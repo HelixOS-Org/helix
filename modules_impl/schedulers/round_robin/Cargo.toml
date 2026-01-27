@@ -1,0 +1,18 @@
+[package]
+name = "helix-scheduler-round-robin"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Round-Robin scheduler module for Helix OS Framework"
+
+[dependencies]
+helix-modules = { workspace = true }
+helix-execution = { workspace = true }
+helix-hal = { workspace = true }
+
+log = { workspace = true }
+spin = { workspace = true }
+
+[features]
+default = []

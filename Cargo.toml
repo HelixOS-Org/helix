@@ -1,0 +1,226 @@
+# =============================================================================
+# Helix OS Framework Kernel - Workspace Configuration
+# =============================================================================
+# This is the root workspace manifest for the Helix OS Framework.
+# It defines all crates that compose the kernel framework.
+# =============================================================================
+
+[workspace]
+resolver = "2"
+
+members = [
+    # Hardware Abstraction Layer
+    "hal",
+
+    # Kernel Core
+    "core",
+
+    # Subsystems
+    "subsystems/execution",
+    "subsystems/memory",
+    "subsystems/dis",
+    "subsystems/userspace",
+
+    # Module System
+    "modules",
+
+    # Module Implementations
+    "modules_impl/schedulers/round_robin",
+
+    # Benchmarks
+    "benchmarks",
+
+    # Filesystem
+    "fs",
+
+    # OS Profiles
+    "profiles/minimal",
+]
+
+# Future members (uncomment when implemented):
+# "boot",
+# "boot/multiboot2",
+# "boot/limine",
+# "boot/uefi",
+# "hal/arch/x86_64",
+# "hal/arch/aarch64",
+# "hal/arch/riscv64",
+# "hal/firmware/acpi",
+# "hal/firmware/devicetree",
+# "subsystems/io",
+# "subsystems/security",
+# "subsystems/communication",
+# "subsystems/time",
+# "ipc",
+# "policy",
+# "interface",
+# "sdk",
+# "profiles/desktop",
+# "profiles/server",
+# "profiles/embedded",
+# "profiles/secure",
+# "modules_impl/schedulers/cfs",
+# "modules_impl/schedulers/realtime",
+# "modules_impl/schedulers/cooperative",
+# "modules_impl/allocators/buddy",
+# "modules_impl/allocators/slab",
+# "modules_impl/allocators/tlsf",
+# "modules_impl/filesystems/ramfs",
+# "modules_impl/drivers/serial",
+# "modules_impl/drivers/keyboard",
+# "modules_impl/drivers/virtio",
+# "tools/helix-build",
+# "tools/helix-pack",
+# "tools/helix-test",
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Helix OS Contributors"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+
+[workspace.dependencies]
+# Internal crates (existing)
+helix-hal = { path = "hal" }
+helix-core = { path = "core" }
+helix-execution = { path = "subsystems/execution" }
+helix-memory = { path = "subsystems/memory" }
+helix-userspace = { path = "subsystems/userspace" }
+helix-modules = { path = "modules" }
+helix-benchmarks = { path = "benchmarks" }
+
+# External dependencies (no_std compatible)
+spin = "0.9"
+bitflags = "2.4"
+log = "0.4"
+static_assertions = "1.1"
+cfg-if = "1.0"
+paste = "1.0"
+
+# Additional dependencies for future use
+hashbrown = "0.14"
+arrayvec = { version = "0.7", default-features = false }
+heapless = "0.8"
+embedded-io = "0.6"
+
+# =============================================================================
+# Build Profiles
+# =============================================================================
+
+[profile.dev]
+# Development profile: fast compilation, full debug info
+panic = "abort"
+opt-level = 0
+debug = true
+debug-assertions = true
+overflow-checks = true
+lto = false
+incremental = true
+codegen-units = 256
+rpath = false
+
+[profile.release]
+# Release profile: maximum optimization
+panic = "abort"
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+rpath = false
+
+[profile.release-with-debug]
+# Release with debug symbols for profiling
+inherits = "release"
+debug = true
+strip = "none"
+
+[profile.production]
+# Production profile: like release but extra hardened
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+
+[profile.bench]
+# Benchmarking profile
+inherits = "release"
+debug = false
+lto = "thin"
+
+[profile.test]
+# Test profile
+inherits = "dev"
+opt-level = 1
+debug = true
+
+# =============================================================================
+# Lints Configuration (Rust 1.74+)
+# =============================================================================
+
+[workspace.lints.rust]
+# Safety lints
+unsafe_op_in_unsafe_fn = "warn"
+# missing_docs = "warn"
+
+# Code quality
+unused = "warn"
+rust_2018_idioms = "warn"
+rust_2021_compatibility = "warn"
+nonstandard_style = "warn"
+future_incompatible = "warn"
+
+# Deny dangerous patterns
+unsafe_code = "allow"  # Required for kernel
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+# Correctness
+correctness = { level = "deny", priority = -1 }
+
+# Suspicious patterns
+suspicious = { level = "warn", priority = -1 }
+
+# Code complexity
+complexity = { level = "warn", priority = -1 }
+
+# Performance
+perf = { level = "warn", priority = -1 }
+
+# Style
+style = { level = "warn", priority = -1 }
+
+# Pedantic (enable selectively)
+pedantic = { level = "allow", priority = -1 }
+module_name_repetitions = "allow"
+similar_names = "allow"
+too_many_lines = "allow"
+
+# Nursery (experimental, enable selectively)
+nursery = { level = "allow", priority = -1 }
+
+# Restriction (very strict, enable selectively)
+# restriction = { level = "allow", priority = -1 }
+
+# Kernel-specific overrides
+unwrap_used = "warn"
+expect_used = "allow"  # Prefer expect over unwrap
+panic = "allow"  # Kernel may panic
+todo = "warn"
+unimplemented = "warn"
+missing_panics_doc = "allow"
+missing_errors_doc = "allow"
+missing_safety_doc = "warn"
+
+# =============================================================================
+# Features (Workspace-wide)
+# =============================================================================
+
+[workspace.metadata.helix]
+# Custom metadata for build scripts
+version = "0.4.0"
+codename = "Aurora"
+min_rust_version = "1.75.0"

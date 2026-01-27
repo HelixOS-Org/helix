@@ -1,0 +1,23 @@
+[package]
+name = "helix-modules"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Module system for Helix OS Framework"
+
+[dependencies]
+helix-hal = { workspace = true }
+
+# Future dependencies (uncomment when implemented):
+# helix-ipc = { workspace = true }
+
+bitflags = { workspace = true }
+log = { workspace = true }
+spin = { workspace = true }
+static_assertions = { workspace = true }
+
+[features]
+default = []
+hot-reload = []
+userspace-modules = []

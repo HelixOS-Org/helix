@@ -1,0 +1,27 @@
+[package]
+name = "helix-dis"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Team"]
+description = "Dynamic Intent Scheduling (DIS) - Revolutionary Scheduling Subsystem"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/helix-os/helix"
+keywords = ["os", "kernel", "scheduler", "real-time", "intent"]
+categories = ["os", "no-std"]
+
+[lib]
+name = "helix_dis"
+path = "mod.rs"
+
+[dependencies]
+bitflags = "2.4"
+spin = { version = "0.9", default-features = false, features = ["mutex", "rwlock", "spin_mutex"] }
+
+# Allocator support
+[features]
+default = ["alloc"]
+alloc = []
+std = []
+
+[dev-dependencies]

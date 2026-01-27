@@ -1,0 +1,32 @@
+[package]
+name = "helix-minimal-os"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Minimal OS example built with Helix Framework"
+
+[dependencies]
+# Helix framework crates
+helix-hal = { workspace = true }
+helix-core = { workspace = true }
+helix-execution = { workspace = true }
+helix-modules = { workspace = true }
+helix-benchmarks = { workspace = true }
+helix-userspace = { workspace = true }
+helix-fs = { path = "../../fs", features = ["alloc"] }
+
+# Note: helix-scheduler-round-robin is temporarily commented out
+# helix-scheduler-round-robin = { path = "../../modules_impl/schedulers/round_robin" }
+
+[features]
+default = ["serial_console"]
+serial_console = []
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+lto = true
+opt-level = "s"

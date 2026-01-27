@@ -1,0 +1,42 @@
+[package]
+name = "helix-fs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Team"]
+license = "MIT"
+description = "HelixFS - Revolutionary Copy-on-Write Filesystem for Helix OS"
+repository = "https://github.com/helix-os/helix"
+keywords = ["filesystem", "kernel", "no_std", "cow", "embedded"]
+categories = ["no-std", "filesystem", "embedded"]
+
+[lib]
+name = "helixfs"
+path = "src/lib.rs"
+
+[features]
+default = ["alloc"]
+std = ["alloc"]
+alloc = []
+kernel = []
+compression = ["alloc"]
+encryption = ["alloc"]
+integrity = []
+snapshots = ["alloc"]
+full = ["compression", "encryption", "integrity", "snapshots"]
+
+[dependencies]
+# No external dependencies - fully self-contained for kernel use
+
+[dev-dependencies]
+# For testing in std environment only
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1
+debug = true

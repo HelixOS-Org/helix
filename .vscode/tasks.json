@@ -1,0 +1,240 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Kernel",
+      "type": "shell",
+      "command": "./scripts/build.sh",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$rustc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Build Kernel (Debug)",
+      "type": "shell",
+      "command": "./scripts/build.sh",
+      "args": [
+        "--debug"
+      ],
+      "group": "build",
+      "problemMatcher": "$rustc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Build Tests",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "test",
+        "--target",
+        "x86_64-unknown-linux-gnu",
+        "--no-run"
+      ],
+      "group": "build",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "clean"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Run QEMU",
+      "type": "shell",
+      "command": "./scripts/run_qemu.sh",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": "Build Kernel"
+    },
+    {
+      "label": "Start QEMU Debug Server",
+      "type": "shell",
+      "command": "./scripts/run_qemu.sh",
+      "args": [
+        "--debug"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Starting QEMU",
+          "endsPattern": "^Waiting for GDB"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": "Build Kernel (Debug)"
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "./scripts/test.sh",
+      "group": "test",
+      "problemMatcher": "$rustc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Run Unit Tests",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "test",
+        "--target",
+        "x86_64-unknown-linux-gnu",
+        "--lib"
+      ],
+      "group": "test",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "Format Code",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "fmt",
+        "--all"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Check Format",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Clippy",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "clippy",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "group": "build",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "Check",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "check",
+        "--all-targets",
+        "--all-features"
+      ],
+      "group": "build",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "Generate Docs",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "doc",
+        "--no-deps",
+        "--document-private-items"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "Open Docs",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "doc",
+        "--no-deps",
+        "--document-private-items",
+        "--open"
+      ],
+      "problemMatcher": [],
+      "dependsOn": "Generate Docs"
+    },
+    {
+      "label": "Create ISO",
+      "type": "shell",
+      "command": "./scripts/build.sh",
+      "args": [
+        "--iso"
+      ],
+      "group": "build",
+      "problemMatcher": [],
+      "dependsOn": "Build Kernel"
+    },
+    {
+      "label": "Pre-commit Check",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "pre-commit"
+      ],
+      "group": "test",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "Show Kernel Size",
+      "type": "shell",
+      "command": "size",
+      "args": [
+        "build/output/helix-kernel"
+      ],
+      "problemMatcher": [],
+      "dependsOn": "Build Kernel"
+    },
+    {
+      "label": "Disassemble Kernel",
+      "type": "shell",
+      "command": "objdump",
+      "args": [
+        "-d",
+        "build/output/helix-kernel"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

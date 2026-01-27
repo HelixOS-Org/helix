@@ -1,0 +1,26 @@
+[package]
+name = "helix-userspace"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Team"]
+description = "Helix OS Userspace Subsystem - ELF Loader, Shell, Runtime"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[dependencies]
+helix-hal = { path = "../../hal" }
+helix-execution = { path = "../execution" }
+helix-memory = { path = "../memory" }
+helix-core = { path = "../../core" }
+spin = "0.9"
+bitflags = "2.4"
+
+[features]
+default = []
+shell = []
+elf = []
+full = ["shell", "elf"]
+
+[lib]
+name = "helix_userspace"
+path = "src/lib.rs"

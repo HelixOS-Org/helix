@@ -1,0 +1,174 @@
+# =============================================================================
+# Helix OS - Clippy Configuration
+# =============================================================================
+# Rust linter configuration for kernel development
+# https://doc.rust-lang.org/clippy/
+# =============================================================================
+
+# Maximum cyclomatic complexity before warning
+cognitive-complexity-threshold = 30
+
+# Maximum number of lines in a function
+too-many-lines-threshold = 200
+
+# Maximum number of arguments in a function
+too-many-arguments-threshold = 8
+
+# Maximum nesting depth
+excessive-nesting-threshold = 6
+
+# Maximum number of struct fields
+max-struct-bools = 4
+
+# Type complexity threshold
+type-complexity-threshold = 350
+
+# Minimum number of enum variants for large_enum_variant
+enum-variant-size-threshold = 200
+
+# Documentation requirements
+missing-docs-in-crate-items = true
+
+# Unwrap is forbidden in kernel code (use expect or proper error handling)
+# Configured via #![deny(clippy::unwrap_used)] in lib.rs
+
+# Panic paths - allowed patterns for panic/expect messages
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+
+# MSRV for lint compatibility
+msrv = "1.75.0"
+
+# Arithmetic operations - be explicit about overflow behavior
+arithmetic-side-effects-allowed = []
+arithmetic-side-effects-allowed-binary = []
+arithmetic-side-effects-allowed-unary = []
+
+# Patterns to ignore for certain lints
+allowed-duplicate-crates = []
+
+# Doc comment configuration
+doc-valid-idents = [
+    "HeliXOS",
+    "HelixFS",
+    "GitHub",
+    "GitLab",
+    "macOS",
+    "FreeBSD",
+    "OpenBSD",
+    "NetBSD",
+    "MinGW",
+    "CamelCase",
+    "SemVer",
+    "JavaScript",
+    "TypeScript",
+    "NaN",
+    "IPv4",
+    "IPv6",
+    "TCP",
+    "UDP",
+    "TLB",
+    "MMU",
+    "APIC",
+    "IOAPIC",
+    "ACPI",
+    "UEFI",
+    "BIOS",
+    "GRUB",
+    "GDT",
+    "IDT",
+    "TSS",
+    "IST",
+    "MSR",
+    "MSI",
+    "DMA",
+    "PCI",
+    "PCIe",
+    "USB",
+    "VirtIO",
+    "PIO",
+    "MMIO",
+    "IRQ",
+    "NMI",
+    "CoW",
+    "EDF",
+    "CFS",
+    "API",
+    "ABI",
+    "FFI",
+    "IPC",
+    "RPC",
+    "SMP",
+    "NUMA",
+    "KVM",
+    "QEMU",
+    "VirtualBox",
+    "VMware",
+    "LLVM",
+    "GCC",
+    "Clang",
+    "WebAssembly",
+    "WASM",
+]
+
+# Ignored prefixes in names
+allowed-prefixes = ["to", "from", "into", "as", "try"]
+
+# Large error types threshold (in bytes)
+large-error-threshold = 256
+
+# Avoid flag arguments - maximum bool parameters
+max-fn-params-bools = 3
+
+# Single char binding names (allowed for loops, closures)
+allowed-idents-below-min-chars = ["i", "j", "k", "n", "x", "y", "z", "id", "ok", "e", "_"]
+min-ident-chars-threshold = 2
+
+# Wildcard dependencies
+warn-on-all-wildcard-imports = true
+
+# Ignored traits for derivable impls
+ignore-interior-mutability = ["bytes::Bytes"]
+
+# Future incompatibility
+future-size-threshold = 256
+
+# Stack size threshold for large futures
+stack-size-threshold = 512000
+
+# Trivially copy types threshold
+trivial-copy-size-limit = 16
+
+# Pass by value size limit  
+pass-by-value-size-limit = 256
+
+# Standard library shadowing
+allow-mixed-uninlined-format-args = false
+
+# Allow certain dbg! macros in tests only
+allow-dbg-in-tests = true
+allow-print-in-tests = true
+
+# Semicolon configuration
+semicolon-inside-block-ignore-singleline = true
+semicolon-outside-block-ignore-multiline = true
+
+# Verbose bit mask threshold
+verbose-bit-mask-threshold = 1
+
+# Literal representation
+literal-representation-threshold = 16384
+
+# Absolute paths configuration  
+absolute-paths-max-segments = 3
+absolute-paths-allowed-crates = ["crate", "self", "super", "core", "alloc"]
+
+# Accepted identifier naming patterns for check-private-items
+check-private-items = false
+
+# Disallowed names (avoid generic test names in production)
+disallowed-names = ["foo", "bar", "baz", "quux", "foobar"]
+
+# Acceptable combinations for pattern type
+accept-comment-above-statement = true
+accept-comment-above-attributes = true

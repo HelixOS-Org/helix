@@ -1,0 +1,19 @@
+[package]
+name = "helix-hal"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Hardware Abstraction Layer for Helix OS Framework"
+
+[dependencies]
+bitflags = { workspace = true }
+log = { workspace = true }
+spin = { workspace = true }
+static_assertions = { workspace = true }
+
+[features]
+default = []
+x86_64 = []
+aarch64 = []
+riscv64 = []

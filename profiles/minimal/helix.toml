@@ -1,0 +1,110 @@
+# Helix OS Profile: Minimal
+#
+# A minimal OS configuration for embedded systems or experiments.
+# Uses only the essential components.
+
+[profile]
+name = "minimal"
+version = "1.0.0"
+description = "Minimal OS for embedded systems"
+target = "embedded"
+
+# Target architecture (can be overridden at build time)
+[profile.arch]
+primary = "x86_64"
+supported = ["x86_64", "aarch64", "riscv64"]
+
+[profile.features]
+# Core features
+multicore = false
+hot_reload = false
+userspace = false
+
+# Optional features
+networking = false
+filesystem = false
+graphics = false
+
+# Memory configuration
+[memory]
+# Minimal memory requirements
+min_ram_mb = 4
+max_ram_mb = 64
+
+# Static allocation (no dynamic heap)
+heap_size_kb = 256
+stack_size_kb = 16
+
+# No virtual memory (flat memory model)
+virtual_memory = false
+
+# Scheduler configuration
+[scheduler]
+module = "round_robin"
+time_slice_ms = 10
+priority_levels = 8
+load_balancing = false
+
+# Console/Debug
+[console]
+backend = "serial"
+baud_rate = 115200
+early_console = true
+
+# Modules to load
+[modules]
+# Static modules (linked into kernel)
+static = [
+    "helix-scheduler-round-robin",
+]
+
+# Dynamic modules (loaded at runtime)
+dynamic = []
+
+# Boot configuration
+[boot]
+# Entry point
+entry = "kernel_main"
+
+# Early initialization
+early_init = [
+    "console",
+    "memory",
+    "interrupts",
+]
+
+# Late initialization
+late_init = [
+    "scheduler",
+]
+
+# Command line (can be overridden by bootloader)
+cmdline = "quiet loglevel=3"
+
+# Debug configuration
+[debug]
+# Debug level: none, minimal, normal, verbose
+level = "minimal"
+
+# Symbols in kernel
+symbols = false
+
+# Stack traces
+stack_traces = true
+
+# Panic behavior: halt, reboot, dump
+panic_behavior = "halt"
+
+# Build configuration
+[build]
+# Optimization level
+opt_level = "s"  # Size optimization
+
+# LTO (Link-Time Optimization)
+lto = true
+
+# Panic strategy
+panic = "abort"
+
+# Strip symbols
+strip = true

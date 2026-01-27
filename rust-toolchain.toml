@@ -1,0 +1,50 @@
+# =============================================================================
+# Helix OS - Rust Toolchain Configuration
+# =============================================================================
+# Specifies the exact Rust toolchain version and components
+# https://rust-lang.github.io/rustup/overrides.html
+# =============================================================================
+
+[toolchain]
+# Nightly channel with specific date for reproducibility
+channel = "nightly-2025-01-15"
+
+# Required components
+components = [
+    # Core compiler
+    "rust-src",           # Source code for std/core (needed for build-std)
+
+    # Formatting and linting
+    "rustfmt",            # Code formatter
+    "clippy",             # Linter
+
+    # LLVM tools for binary inspection
+    "llvm-tools-preview", # objcopy, objdump, etc.
+
+    # Miri for undefined behavior detection (optional, uncomment for testing)
+    # "miri",
+
+    # Rust analyzer for IDE support
+    # "rust-analyzer",    # Usually installed separately
+]
+
+# Compilation targets
+targets = [
+    # Primary target: x86_64 bare metal
+    "x86_64-unknown-none",
+
+    # Future: ARM64 bare metal
+    "aarch64-unknown-none",
+
+    # Future: RISC-V 64-bit bare metal
+    "riscv64gc-unknown-none-elf",
+
+    # Host targets for tests and tools
+    "x86_64-unknown-linux-gnu",
+    # "aarch64-unknown-linux-gnu",
+    # "x86_64-apple-darwin",
+    # "aarch64-apple-darwin",
+]
+
+# Build profile (optional)
+# profile = "minimal"  # or "default", "complete"

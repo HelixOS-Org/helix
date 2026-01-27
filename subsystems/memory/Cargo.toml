@@ -1,0 +1,20 @@
+[package]
+name = "helix-memory"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Memory subsystem for Helix OS Framework - allocators, VMM, memory management"
+
+[dependencies]
+helix-hal = { workspace = true }
+
+bitflags = { workspace = true }
+log = { workspace = true }
+spin = { workspace = true }
+static_assertions = { workspace = true }
+
+[features]
+default = []
+virtual_memory = []
+huge_pages = []

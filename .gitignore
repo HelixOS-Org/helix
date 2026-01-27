@@ -1,0 +1,478 @@
+# =============================================================================
+# Helix OS - Comprehensive .gitignore
+# =============================================================================
+# Rust + Kernel + AI + Multi-IDE + Cross-Platform
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Rust / Cargo
+# -----------------------------------------------------------------------------
+/target/
+**/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+!profiles/*/Cargo.lock
+
+# Incremental compilation
+**/.cargo/
+!.cargo/config.toml
+
+# Rustdoc output
+/doc/
+**/doc/
+
+# Coverage reports
+*.profraw
+*.profdata
+/coverage/
+**/coverage/
+lcov.info
+tarpaulin-report.html
+cobertura.xml
+
+# Benchmarks output
+/criterion/
+**/criterion/
+
+# Miri
+/miri/
+
+# -----------------------------------------------------------------------------
+# Build Artifacts
+# -----------------------------------------------------------------------------
+/build/
+/out/
+/dist/
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.lib
+*.exe
+*.bin
+*.elf
+*.img
+*.iso
+*.vdi
+*.vmdk
+*.qcow2
+*.raw
+
+# Kernel specific
+*.kernel
+*.initrd
+*.initramfs
+helix-kernel
+vmlinux
+System.map
+
+# Linker artifacts
+*.map
+*.ld.bak
+
+# Assembly intermediates
+*.s
+!boot/src/*.asm
+*.lst
+
+# -----------------------------------------------------------------------------
+# Filesystem Images
+# -----------------------------------------------------------------------------
+*.ext2
+*.ext3
+*.ext4
+*.fat
+*.fat32
+*.hfs
+*.helixfs
+
+# -----------------------------------------------------------------------------
+# Debug Artifacts
+# -----------------------------------------------------------------------------
+*.dSYM/
+*.su
+*.idb
+*.pdb
+*.dwarf
+*.debug
+core
+core.*
+vgcore.*
+
+# GDB
+.gdb_history
+.gdbinit.local
+
+# LLDB
+.lldbinit.local
+
+# Valgrind
+*.valgrind
+valgrind-out.txt
+
+# AddressSanitizer / MemorySanitizer
+*.asan
+*.msan
+*.tsan
+
+# -----------------------------------------------------------------------------
+# IDE / Editors
+# -----------------------------------------------------------------------------
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.code-workspace
+.history/
+
+# JetBrains (CLion, IntelliJ IDEA, RustRover)
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.idea_modules/
+cmake-build-*/
+
+# Vim / Neovim
+*.swp
+*.swo
+*.swn
+*~
+.netrwhist
+Session.vim
+Sessionx.vim
+.vim/
+tags
+.tags
+*.un~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+.org-id-locations
+*_archive
+*_flymake.*
+/eshell/history
+/eshell/lastdir
+/elpa/
+*.rel
+/auto/
+.cask/
+dist/
+flycheck_*.el
+.projectile
+.dir-locals.el
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Eclipse
+.project
+.cproject
+.settings/
+.buildpath
+.metadata/
+
+# Kate
+*.kate-swp
+.kateproject
+.kateproject.d/
+
+# Zed
+.zed/
+
+# Helix Editor (text editor, not this project)
+.helix/
+
+# -----------------------------------------------------------------------------
+# Operating Systems
+# -----------------------------------------------------------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+Icon?
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# -----------------------------------------------------------------------------
+# QEMU / Virtualization
+# -----------------------------------------------------------------------------
+*.qcow
+*.qcow2
+*.vdi
+*.vmdk
+*.vhd
+*.vhdx
+*.raw
+*.img
+*.cow
+*.snapshot
+qemu-*.log
+serial.log
+debug.log
+
+# OVMF / UEFI
+OVMF*.fd
+*.efi
+
+# Bochs
+bochsout.txt
+bochsrc.bxrc
+
+# VirtualBox
+*.vbox
+*.vbox-prev
+*.vbox-tmp
+VBoxSVC.log
+
+# -----------------------------------------------------------------------------
+# AI / ML Tools
+# -----------------------------------------------------------------------------
+
+# Models
+*.onnx
+*.pt
+*.pth
+*.h5
+*.hdf5
+*.pb
+*.tflite
+*.mlmodel
+*.safetensors
+*.gguf
+*.bin
+!boot/**/*.bin
+
+# Checkpoints
+checkpoints/
+*.ckpt
+
+# Datasets
+/data/
+/datasets/
+*.csv
+*.parquet
+*.arrow
+*.feather
+
+# Weights & Biases
+wandb/
+*.wandb
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# TensorBoard
+runs/
+events.out.tfevents.*
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+!docs/**/*.ipynb
+
+# Python (for AI tools)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg
+*.egg-info/
+.eggs/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.venv/
+venv/
+ENV/
+env/
+.env
+!.env.example
+
+# -----------------------------------------------------------------------------
+# Logs & Temporary Files
+# -----------------------------------------------------------------------------
+*.log
+logs/
+/log/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.cache
+.cache/
+*.pid
+*.seed
+*.pid.lock
+
+# Test outputs
+test-results/
+test-output/
+*.junit.xml
+
+# -----------------------------------------------------------------------------
+# Documentation Build
+# -----------------------------------------------------------------------------
+/site/
+/_site/
+.hugo_build.lock
+/public/
+book/
+*.pdf
+!docs/**/*.pdf
+
+# mdBook
+book.toml.bak
+
+# -----------------------------------------------------------------------------
+# Security / Secrets
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+secrets/
+.secrets/
+*.secret
+*.secrets
+credentials.json
+service-account.json
+
+# SSH
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*.pub
+!docs/**/*.pub
+known_hosts
+
+# GPG
+*.gpg
+*.asc
+secring.*
+
+# -----------------------------------------------------------------------------
+# CI/CD Artifacts
+# -----------------------------------------------------------------------------
+.github/actions-runner/
+.gitlab-runner/
+.circleci/artifacts/
+.buildkite/artifacts/
+.drone/
+
+# Artifacts
+artifacts/
+/packages/
+
+# -----------------------------------------------------------------------------
+# Miscellaneous
+# -----------------------------------------------------------------------------
+
+# Archives
+*.tar
+*.tar.gz
+*.tgz
+*.tar.bz2
+*.tar.xz
+*.zip
+*.7z
+*.rar
+*.gz
+*.bz2
+*.xz
+*.lz4
+*.zst
+
+# Patches
+*.patch
+*.diff
+
+# Memory dumps
+*.dump
+*.dmp
+
+# Perf
+perf.data
+perf.data.old
+flamegraph.svg
+*.collapsed
+
+# Helix-specific build outputs
+/build/iso/
+/build/logs/
+/build/output/
+!build/.gitkeep
+
+# Local configuration overrides
+*.local
+*.local.*
+.local/
+
+# Nix
+result
+result-*
+.direnv/
+
+# asdf
+.tool-versions.local

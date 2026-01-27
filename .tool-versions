@@ -1,0 +1,21 @@
+# =============================================================================
+# Helix OS - Tool Versions (asdf)
+# =============================================================================
+# Version management for development tools
+# https://asdf-vm.com/
+# =============================================================================
+
+# Rust (managed via rustup, but documented here)
+# rust nightly-2025-01-15
+
+# QEMU
+qemu 8.2.0
+
+# Just (command runner)
+just 1.23.0
+
+# Python (for scripts and tools)
+python 3.12.1
+
+# Node.js (for documentation tools if needed)
+nodejs 20.11.0

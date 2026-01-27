@@ -1,0 +1,150 @@
+# =============================================================================
+# Helix OS - Pre-commit Hook Configuration
+# =============================================================================
+# https://pre-commit.com/
+# Install: pip install pre-commit && pre-commit install
+# =============================================================================
+
+minimum_pre_commit_version: "3.0.0"
+default_stages: [commit]
+fail_fast: false
+
+repos:
+  # ===========================================================================
+  # General hooks
+  # ===========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: ^(.*\.bin|.*\.img|.*\.iso)$
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: trailing-whitespace
+        exclude: ^(.*\.md)$
+
+  # ===========================================================================
+  # Rust formatting
+  # ===========================================================================
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        language: system
+        types: [rust]
+        entry: cargo fmt --all --
+        args: ['--check']
+        pass_filenames: false
+
+  # ===========================================================================
+  # Rust linting
+  # ===========================================================================
+  - repo: local
+    hooks:
+      - id: cargo-clippy
+        name: cargo clippy
+        language: system
+        types: [rust]
+        entry: cargo clippy --all-targets --all-features
+        args: ['--', '-D', 'warnings']
+        pass_filenames: false
+        stages: [commit]
+
+  # ===========================================================================
+  # Rust testing (optional, runs on push)
+  # ===========================================================================
+  - repo: local
+    hooks:
+      - id: cargo-test
+        name: cargo test
+        language: system
+        types: [rust]
+        entry: cargo test --target x86_64-unknown-linux-gnu --lib
+        pass_filenames: false
+        stages: [push]
+
+  # ===========================================================================
+  # Cargo check
+  # ===========================================================================
+  - repo: local
+    hooks:
+      - id: cargo-check
+        name: cargo check
+        language: system
+        types: [rust]
+        entry: cargo check --all-targets --all-features
+        pass_filenames: false
+
+  # ===========================================================================
+  # Shell scripts
+  # ===========================================================================
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning']
+        exclude: ^(target/|build/)
+
+  # ===========================================================================
+  # TOML formatting
+  # ===========================================================================
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.8.1
+    hooks:
+      - id: taplo-format
+        exclude: ^(target/|build/)
+
+  # ===========================================================================
+  # Markdown
+  # ===========================================================================
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix', '--disable', 'MD013', 'MD033', 'MD041', '--']
+        exclude: ^(target/|build/|CHANGELOG\.md)
+
+  # ===========================================================================
+  # Commit message
+  # ===========================================================================
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  # ===========================================================================
+  # Security checks
+  # ===========================================================================
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: ^(\.env\.example|Cargo\.lock)$
+
+# ===========================================================================
+# CI configuration
+# ===========================================================================
+ci:
+  autofix_prs: true
+  autofix_commit_msg: "style: auto-fix by pre-commit hooks"
+  autoupdate_branch: develop
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
+  autoupdate_schedule: weekly
+  skip: [cargo-clippy, cargo-test]
+  submodules: false

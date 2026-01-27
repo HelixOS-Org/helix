@@ -1,0 +1,25 @@
+[package]
+name = "helix-benchmarks"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+helix-hal = { path = "../hal" }
+helix-core = { path = "../core" }
+helix-execution = { path = "../subsystems/execution" }
+helix-memory = { path = "../subsystems/memory" }
+helix-dis = { path = "../subsystems/dis" }
+helix-modules = { path = "../modules" }
+spin = { version = "0.9", features = ["mutex", "rwlock"] }
+bitflags = "2.4"
+
+[features]
+default = []
+verbose = []
+extended = []
+stress = []

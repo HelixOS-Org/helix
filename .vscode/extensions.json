@@ -1,0 +1,38 @@
+{
+  "recommendations": [
+    // Rust
+    "rust-lang.rust-analyzer",
+    "tamasfe.even-better-toml",
+    "serayuzgur.crates",
+    "vadimcn.vscode-lldb",
+    // Code Quality
+    "usernamehw.errorlens",
+    "gruntfuggly.todo-tree",
+    "aaron-bond.better-comments",
+    "streetsidesoftware.code-spell-checker",
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    // Debugging
+    "ms-vscode.cpptools",
+    "webfreak.debug",
+    // Productivity
+    "christian-kohler.path-intellisense",
+    "visualstudioexptteam.vscodeintellicode",
+    "editorconfig.editorconfig",
+    // Documentation
+    "yzhang.markdown-all-in-one",
+    "bierner.markdown-mermaid",
+    // Low-level / Assembly
+    "13xforever.language-x86-64-assembly",
+    "dan-c-underwood.arm",
+    // File Types
+    "bungcip.better-toml",
+    "redhat.vscode-yaml",
+    // Theme (optional)
+    "zhuangtongfa.material-theme"
+  ],
+  "unwantedRecommendations": [
+    "rust-lang.rust"
+  ]
+}

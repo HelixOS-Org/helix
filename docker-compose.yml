@@ -1,0 +1,158 @@
+# =============================================================================
+# Helix OS - Docker Compose Configuration
+# =============================================================================
+# Development environment orchestration
+# =============================================================================
+
+version: "3.9"
+
+services:
+  # ===========================================================================
+  # Development Environment
+  # ===========================================================================
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: helix-dev
+    volumes:
+      - .:/helix
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - target-cache:/helix/target
+    working_dir: /helix
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    environment:
+      - RUST_BACKTRACE=1
+      - CARGO_HOME=/usr/local/cargo
+      - TERM=xterm-256color
+    networks:
+      - helix-net
+
+  # ===========================================================================
+  # Build Service
+  # ===========================================================================
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: helix-build
+    volumes:
+      - .:/helix
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /helix
+    command: ./scripts/build.sh
+    environment:
+      - RUST_BACKTRACE=1
+
+  # ===========================================================================
+  # Test Service
+  # ===========================================================================
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: helix-test
+    volumes:
+      - .:/helix
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /helix
+    command: cargo test --target x86_64-unknown-linux-gnu --workspace --lib
+    environment:
+      - RUST_BACKTRACE=1
+
+  # ===========================================================================
+  # QEMU Runner (requires special privileges)
+  # ===========================================================================
+  qemu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: helix-qemu
+    volumes:
+      - ./build/output:/helix/build/output:ro
+      - ./scripts:/helix/scripts:ro
+    working_dir: /helix
+    command: >
+      qemu-system-x86_64
+        -kernel build/output/helix-kernel
+        -m 512M
+        -smp 4
+        -serial stdio
+        -display none
+        -no-reboot
+    ports:
+      - "1234:1234"  # GDB port
+      - "5900:5900"  # VNC port
+    stdin_open: true
+    tty: true
+    networks:
+      - helix-net
+
+  # ===========================================================================
+  # Documentation Server
+  # ===========================================================================
+  docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: helix-docs
+    volumes:
+      - .:/helix
+      - cargo-cache:/usr/local/cargo/registry
+    working_dir: /helix
+    command: >
+      sh -c "cargo doc --no-deps --document-private-items &&
+             python3 -m http.server 8000 --directory target/doc"
+    ports:
+      - "8000:8000"
+    networks:
+      - helix-net
+
+  # ===========================================================================
+  # Lint Service
+  # ===========================================================================
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: helix-lint
+    volumes:
+      - .:/helix
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+    working_dir: /helix
+    command: >
+      sh -c "cargo fmt --all -- --check &&
+             cargo clippy --all-targets --all-features -- -D warnings"
+    environment:
+      - RUST_BACKTRACE=1
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  cargo-cache:
+    name: helix-cargo-cache
+  cargo-git:
+    name: helix-cargo-git
+  target-cache:
+    name: helix-target-cache
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  helix-net:
+    name: helix-network
+    driver: bridge

@@ -1,0 +1,317 @@
+{
+  // =============================================================================
+  // Helix OS - VS Code Settings
+  // =============================================================================
+  // Project-specific editor configuration
+  // =============================================================================
+  // -------------------------------------------------------------------------
+  // Editor Settings
+  // -------------------------------------------------------------------------
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+  "editor.rulers": [
+    100
+  ],
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.trimAutoWhitespace": true,
+  "editor.renderWhitespace": "boundary",
+  "editor.wordWrap": "off",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.inlayHints.enabled": "onUnlessPressed",
+  // -------------------------------------------------------------------------
+  // File Settings
+  // -------------------------------------------------------------------------
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.encoding": "utf8",
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  // File associations
+  "files.associations": {
+    "*.ld": "plaintext",
+    "*.lds": "plaintext",
+    "*.x": "plaintext",
+    "*.inc": "asm",
+    "justfile": "makefile",
+    ".clippy.toml": "toml",
+    ".rustfmt.toml": "toml"
+  },
+  // Exclude patterns
+  "files.exclude": {
+    "**/target": true,
+    "**/build/output": true,
+    "**/build/iso": true,
+    "**/.git": true,
+    "**/*.o": true,
+    "**/*.a": true,
+    "**/*.so": true
+  },
+  "files.watcherExclude": {
+    "**/target/**": true,
+    "**/build/**": true
+  },
+  "search.exclude": {
+    "**/target": true,
+    "**/build": true,
+    "**/node_modules": true
+  },
+  // -------------------------------------------------------------------------
+  // Rust Settings
+  // -------------------------------------------------------------------------
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.rulers": [
+      100
+    ]
+  },
+  // Rust Analyzer configuration
+  "rust-analyzer.cargo.target": "x86_64-unknown-none",
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.cargo.buildScripts.enable": true,
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.procMacro.attributes.enable": true,
+  // Check on save
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.allTargets": false,
+  "rust-analyzer.check.extraArgs": [
+    "--target",
+    "x86_64-unknown-linux-gnu"
+  ],
+  // Inlay hints
+  "rust-analyzer.inlayHints.bindingModeHints.enable": true,
+  "rust-analyzer.inlayHints.chainingHints.enable": true,
+  "rust-analyzer.inlayHints.closingBraceHints.enable": true,
+  "rust-analyzer.inlayHints.closureReturnTypeHints.enable": "with_block",
+  "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "skip_trivial",
+  "rust-analyzer.inlayHints.parameterHints.enable": true,
+  "rust-analyzer.inlayHints.typeHints.enable": true,
+  "rust-analyzer.inlayHints.reborrowHints.enable": "mutable",
+  // Diagnostics
+  "rust-analyzer.diagnostics.disabled": [],
+  "rust-analyzer.diagnostics.experimental.enable": true,
+  // Lens
+  "rust-analyzer.lens.enable": true,
+  "rust-analyzer.lens.implementations.enable": true,
+  "rust-analyzer.lens.references.adt.enable": true,
+  "rust-analyzer.lens.references.enumVariant.enable": true,
+  "rust-analyzer.lens.references.method.enable": true,
+  "rust-analyzer.lens.references.trait.enable": true,
+  "rust-analyzer.lens.run.enable": true,
+  "rust-analyzer.lens.debug.enable": true,
+  // Hover
+  "rust-analyzer.hover.actions.enable": true,
+  "rust-analyzer.hover.actions.debug.enable": true,
+  "rust-analyzer.hover.actions.gotoTypeDef.enable": true,
+  "rust-analyzer.hover.actions.implementations.enable": true,
+  "rust-analyzer.hover.actions.references.enable": true,
+  "rust-analyzer.hover.actions.run.enable": true,
+  "rust-analyzer.hover.documentation.enable": true,
+  "rust-analyzer.hover.documentation.keywords.enable": true,
+  "rust-analyzer.hover.links.enable": true,
+  // Completion
+  "rust-analyzer.completion.autoimport.enable": true,
+  "rust-analyzer.completion.autoself.enable": true,
+  "rust-analyzer.completion.postfix.enable": true,
+  "rust-analyzer.completion.privateEditable.enable": true,
+  "rust-analyzer.completion.snippets.custom": {
+    "Arc::new": {
+      "postfix": "arc",
+      "body": "Arc::new(${receiver})",
+      "requires": "std::sync::Arc",
+      "description": "Put the expression into an `Arc`",
+      "scope": "expr"
+    },
+    "Box::pin": {
+      "postfix": "pinbox",
+      "body": "Box::pin(${receiver})",
+      "requires": "std::boxed::Box",
+      "description": "Put the expression into a pinned `Box`",
+      "scope": "expr"
+    },
+    "unsafe block": {
+      "prefix": "unsafe",
+      "body": [
+        "// SAFETY: ${1:reason}",
+        "unsafe {",
+        "    $0",
+        "}"
+      ],
+      "description": "Create unsafe block with safety comment"
+    }
+  },
+  // Semantic highlighting
+  "rust-analyzer.semanticHighlighting.strings.enable": true,
+  "rust-analyzer.semanticHighlighting.punctuation.enable": true,
+  "rust-analyzer.semanticHighlighting.operator.enable": true,
+  "rust-analyzer.semanticHighlighting.punctuation.separate.macro.bang": true,
+  "rust-analyzer.semanticHighlighting.punctuation.specialization.enable": true,
+  // -------------------------------------------------------------------------
+  // TOML Settings
+  // -------------------------------------------------------------------------
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
+  },
+  "evenBetterToml.formatter.alignEntries": false,
+  "evenBetterToml.formatter.alignComments": true,
+  "evenBetterToml.formatter.arrayTrailingComma": true,
+  "evenBetterToml.formatter.arrayAutoExpand": true,
+  "evenBetterToml.formatter.arrayAutoCollapse": true,
+  "evenBetterToml.formatter.compactArrays": true,
+  "evenBetterToml.formatter.compactInlineTables": false,
+  "evenBetterToml.formatter.columnWidth": 100,
+  "evenBetterToml.formatter.indentTables": false,
+  "evenBetterToml.formatter.indentEntries": false,
+  "evenBetterToml.formatter.reorderKeys": false,
+  "evenBetterToml.formatter.trailingNewline": true,
+  // -------------------------------------------------------------------------
+  // Markdown Settings
+  // -------------------------------------------------------------------------
+  "[markdown]": {
+    "editor.formatOnSave": false,
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    },
+    "editor.rulers": []
+  },
+  // -------------------------------------------------------------------------
+  // Assembly Settings
+  // -------------------------------------------------------------------------
+  "[asm]": {
+    "editor.tabSize": 4,
+    "editor.rulers": [
+      80
+    ]
+  },
+  // -------------------------------------------------------------------------
+  // Shell Script Settings
+  // -------------------------------------------------------------------------
+  "[shellscript]": {
+    "editor.tabSize": 4,
+    "editor.rulers": [
+      80
+    ],
+    "files.eol": "\n"
+  },
+  // -------------------------------------------------------------------------
+  // Makefile Settings
+  // -------------------------------------------------------------------------
+  "[makefile]": {
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4,
+    "editor.rulers": [
+      80
+    ]
+  },
+  // -------------------------------------------------------------------------
+  // JSON Settings
+  // -------------------------------------------------------------------------
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.tabSize": 2
+  },
+  // -------------------------------------------------------------------------
+  // Terminal Settings
+  // -------------------------------------------------------------------------
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.enablePersistentSessions": true,
+  // -------------------------------------------------------------------------
+  // Git Settings
+  // -------------------------------------------------------------------------
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  // -------------------------------------------------------------------------
+  // Debug Settings
+  // -------------------------------------------------------------------------
+  "debug.allowBreakpointsEverywhere": true,
+  "debug.showBreakpointsInOverviewRuler": true,
+  // -------------------------------------------------------------------------
+  // Extension Settings
+  // -------------------------------------------------------------------------
+  // Error Lens
+  "errorLens.enabled": true,
+  "errorLens.enabledDiagnosticLevels": [
+    "error",
+    "warning"
+  ],
+  "errorLens.excludeBySource": [
+    "rust-analyzer(unresolved-extern-crate)"
+  ],
+  // Todo Tree
+  "todo-tree.general.tags": [
+    "BUG",
+    "HACK",
+    "FIXME",
+    "TODO",
+    "XXX",
+    "SAFETY",
+    "PERF",
+    "NOTE"
+  ],
+  "todo-tree.highlights.customHighlight": {
+    "SAFETY": {
+      "icon": "shield",
+      "foreground": "#FF8C00"
+    },
+    "PERF": {
+      "icon": "dashboard",
+      "foreground": "#00CED1"
+    }
+  },
+  // Better Comments
+  "better-comments.tags": [
+    {
+      "tag": "!",
+      "color": "#FF2D00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "?",
+      "color": "#3498DB",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "SAFETY",
+      "color": "#FF8C00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": true,
+      "italic": false
+    },
+    {
+      "tag": "TODO",
+      "color": "#FF8C00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    }
+  ]
+}

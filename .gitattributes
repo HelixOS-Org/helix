@@ -1,0 +1,213 @@
+# =============================================================================
+# Helix OS - Git Attributes
+# =============================================================================
+# Line ending normalization and diff/merge strategies
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Auto-detect text files and normalize line endings to LF
+# -----------------------------------------------------------------------------
+* text=auto eol=lf
+
+# -----------------------------------------------------------------------------
+# Rust source files
+# -----------------------------------------------------------------------------
+*.rs text diff=rust
+*.toml text
+
+# -----------------------------------------------------------------------------
+# Documentation
+# -----------------------------------------------------------------------------
+*.md text diff=markdown
+*.txt text
+*.rst text
+LICENSE text
+LICENSE-* text
+AUTHORS text
+CONTRIBUTORS text
+CHANGELOG text
+CHANGELOG.md text diff=markdown
+
+# -----------------------------------------------------------------------------
+# Configuration files
+# -----------------------------------------------------------------------------
+*.yml text
+*.yaml text
+*.json text
+*.json5 text
+*.xml text
+*.ini text
+*.cfg text
+*.conf text
+.editorconfig text
+.gitignore text
+.gitattributes text
+.gitmodules text
+
+# -----------------------------------------------------------------------------
+# Shell scripts (ensure LF on all platforms)
+# -----------------------------------------------------------------------------
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+scripts/* text eol=lf
+Makefile text eol=lf
+justfile text eol=lf
+
+# -----------------------------------------------------------------------------
+# Assembly and low-level sources
+# -----------------------------------------------------------------------------
+*.asm text eol=lf
+*.s text eol=lf
+*.S text eol=lf
+*.inc text eol=lf
+
+# Linker scripts
+*.ld text eol=lf
+*.lds text eol=lf
+*.x text eol=lf
+
+# -----------------------------------------------------------------------------
+# C/C++ headers (for FFI)
+# -----------------------------------------------------------------------------
+*.h text diff=cpp
+*.c text diff=cpp
+*.hpp text diff=cpp
+*.cpp text diff=cpp
+
+# -----------------------------------------------------------------------------
+# Python (for AI/ML tools)
+# -----------------------------------------------------------------------------
+*.py text diff=python
+*.pyi text diff=python
+*.pyx text
+*.pxd text
+requirements*.txt text
+
+# -----------------------------------------------------------------------------
+# Web and data files
+# -----------------------------------------------------------------------------
+*.html text diff=html
+*.css text
+*.js text
+*.ts text
+*.csv text
+*.sql text
+
+# -----------------------------------------------------------------------------
+# Binary files (no line ending conversion)
+# -----------------------------------------------------------------------------
+
+# Compiled objects
+*.o binary
+*.a binary
+*.so binary
+*.dylib binary
+*.dll binary
+*.lib binary
+*.exe binary
+
+# Kernel/OS images
+*.bin binary
+*.elf binary
+*.img binary
+*.iso binary
+*.kernel binary
+
+# Disk images
+*.qcow binary
+*.qcow2 binary
+*.vdi binary
+*.vmdk binary
+*.raw binary
+
+# Archives
+*.tar binary
+*.tar.gz binary
+*.tgz binary
+*.tar.bz2 binary
+*.tar.xz binary
+*.zip binary
+*.7z binary
+*.rar binary
+*.gz binary
+*.bz2 binary
+*.xz binary
+*.lz4 binary
+*.zst binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+*.webp binary
+*.bmp binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# Audio/Video
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+*.ogg binary
+*.webm binary
+
+# AI/ML model files
+*.onnx binary
+*.pt binary
+*.pth binary
+*.h5 binary
+*.pb binary
+*.tflite binary
+*.safetensors binary
+*.gguf binary
+
+# Documents
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+
+# -----------------------------------------------------------------------------
+# Lock files - keep as-is
+# -----------------------------------------------------------------------------
+Cargo.lock text -diff
+package-lock.json text -diff
+yarn.lock text -diff
+pnpm-lock.yaml text -diff
+
+# -----------------------------------------------------------------------------
+# Linguist overrides (for GitHub language statistics)
+# -----------------------------------------------------------------------------
+*.rs linguist-language=Rust
+*.asm linguist-language=Assembly
+*.s linguist-language=Assembly
+*.S linguist-language=Assembly
+*.ld linguist-language=Linker Script
+docs/** linguist-documentation
+scripts/** linguist-vendored=false
+boot/src/*.asm linguist-vendored=false
+
+# Test files
+**/tests/** linguist-detectable=true
+**/test_*.rs linguist-detectable=true
+**/*_test.rs linguist-detectable=true
+
+# Generated files
+*.generated.* linguist-generated=true
+target/** linguist-generated=true
+build/output/** linguist-generated=true
+
+# -----------------------------------------------------------------------------
+# Merge strategies
+# -----------------------------------------------------------------------------
+Cargo.lock merge=binary
