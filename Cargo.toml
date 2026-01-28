@@ -9,6 +9,11 @@
 resolver = "2"
 
 members = [
+    # Boot Infrastructure
+    "boot/multiboot2",
+    "boot/limine",
+    "boot/uefi",
+
     # Hardware Abstraction Layer
     "hal",
 
@@ -20,6 +25,7 @@ members = [
     "subsystems/memory",
     "subsystems/dis",
     "subsystems/userspace",
+    "subsystems/ai",
 
     # Module System
     "modules",
@@ -38,9 +44,6 @@ members = [
 ]
 
 # Future members (uncomment when implemented):
-# "boot",
-# "boot/multiboot2",
-# "boot/limine",
 # "boot/uefi",
 # "hal/arch/x86_64",
 # "hal/arch/aarch64",
