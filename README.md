@@ -284,49 +284,30 @@ cd helix
 
 ### 🎨 Create Your Own OS
 
-\`\`\`bash
+```bash
 # 1. Create a new profile
 mkdir -p profiles/myos
+```
 
-# 2. Configure helix.toml
-cat > profiles/myos/helix.toml << EOF
+**2. Configure `helix.toml`:**
+
+```toml
+# profiles/myos/helix.toml
+
 [profile]
 name = "MyOS"
-<table>
-<tr>
-<td align="center" width="25%">
-
-### 🔌
-### Modular
-Every major component is a replaceable module
-
-</td>
-<td align="center" width="25%">
-
-### 🔄
-### Hot-Reload
-Replace kernel components without rebooting
-
-</td>
-<td align="center" width="25%">
-
-### 🏗️
-### Policy-Free
-The kernel makes no decisions — modules do
-
-</td>
-<td align="center" width="25%">
 description = "My custom operating system"
 
 [modules]
 scheduler = "round_robin"
 allocator = "buddy"
 filesystem = "ramfs"
-EOF
+```
 
+```bash
 # 3. Build your OS
 cargo build --release -p helix-myos --target x86_64-unknown-none
-\`\`\`
+```
 
 <br/>
 
