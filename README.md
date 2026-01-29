@@ -1,65 +1,12 @@
 <div align="center">
 
-<!-- Helix OS Banner SVG -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
-  <defs>
-    <linearGradient id="helixGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="dnaGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
-    </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-banner.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-banner.svg">
+  <img alt="Helix OS Framework" src="assets/logo-banner.svg" width="400" height="100">
+</picture>
 
-  <!-- Background -->
-  <rect width="800" height="200" fill="#0d1117"/>
-
-  <!-- DNA Helix Animation Left -->
-  <g transform="translate(80, 100)" filter="url(#glow)">
-    <ellipse cx="0" cy="-30" rx="25" ry="8" fill="url(#dnaGrad)" opacity="0.9"/>
-    <ellipse cx="0" cy="0" rx="25" ry="8" fill="url(#dnaGrad)" opacity="0.7"/>
-    <ellipse cx="0" cy="30" rx="25" ry="8" fill="url(#dnaGrad)" opacity="0.9"/>
-    <line x1="-20" y1="-30" x2="20" y2="-30" stroke="#00d4ff" stroke-width="2"/>
-    <line x1="-20" y1="0" x2="20" y2="0" stroke="#7c3aed" stroke-width="2"/>
-    <line x1="-20" y1="30" x2="20" y2="30" stroke="#00d4ff" stroke-width="2"/>
-  </g>
-
-  <!-- Main Title -->
-  <text x="400" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="72" font-weight="bold" fill="url(#helixGrad)" text-anchor="middle" filter="url(#glow)">HELIX</text>
-
-  <!-- Subtitle -->
-  <text x="400" y="135" font-family="'Segoe UI', Arial, sans-serif" font-size="20" fill="#8b949e" text-anchor="middle" letter-spacing="8">OS FRAMEWORK</text>
-
-  <!-- Tagline -->
-  <text x="400" y="170" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#58a6ff" text-anchor="middle" font-style="italic">Crafted by Artificial Intelligence • Designed for the Future</text>
-
-  <!-- DNA Helix Animation Right -->
-  <g transform="translate(720, 100)" filter="url(#glow)">
-    <ellipse cx="0" cy="-30" rx="25" ry="8" fill="url(#dnaGrad)" opacity="0.9"/>
-    <ellipse cx="0" cy="0" rx="25" ry="8" fill="url(#dnaGrad)" opacity="0.7"/>
-    <ellipse cx="0" cy="30" rx="25" ry="8" fill="url(#dnaGrad)" opacity="0.9"/>
-    <line x1="-20" y1="-30" x2="20" y2="-30" stroke="#00d4ff" stroke-width="2"/>
-    <line x1="-20" y1="0" x2="20" y2="0" stroke="#7c3aed" stroke-width="2"/>
-    <line x1="-20" y1="30" x2="20" y2="30" stroke="#00d4ff" stroke-width="2"/>
-  </g>
-
-  <!-- Decorative dots -->
-  <circle cx="150" cy="40" r="3" fill="#667eea" opacity="0.6"/>
-  <circle cx="200" cy="60" r="2" fill="#764ba2" opacity="0.4"/>
-  <circle cx="600" cy="45" r="2" fill="#f093fb" opacity="0.5"/>
-  <circle cx="650" cy="55" r="3" fill="#667eea" opacity="0.6"/>
-</svg>
-
+<br/>
 <br/>
 
 # 🧬 Helix OS Framework
@@ -102,24 +49,26 @@ This is not simply an AI-assisted OS — it is a demonstration of what AI can ac
 </td>
 <td width="40%">
 
-\`\`\`
-   ╭──────────────────────╮
-   │   🤖 AI-GENERATED    │
-   │                      │
-   │  ┌────────────────┐  │
-   │  │  Claude Opus   │  │
-   │  │  + Sonnet 4    │  │
-   │  └────────────────┘  │
-   │         ▼            │
-   │  ┌────────────────┐  │
-   │  │  Helix OS      │  │
-   │  │  Framework     │  │
-   │  └────────────────┘  │
-   │                      │
-   │  134K+ lines Rust    │
-   │  144 source files    │
-   ╰──────────────────────╯
-\`\`\`
+```mermaid
+flowchart TB
+    subgraph AI["🤖 AI-GENERATED"]
+        direction TB
+        LLM["Claude Opus<br/>+ Sonnet 4"]
+        LLM --> HELIX["Helix OS<br/>Framework"]
+    end
+
+    subgraph STATS["📊 Stats"]
+        S1["134K+ lines Rust"]
+        S2["144 source files"]
+    end
+
+    AI --> STATS
+
+    style AI fill:#1a1a2e,stroke:#667eea,stroke-width:2px
+    style LLM fill:#667eea,stroke:#764ba2,color:#fff
+    style HELIX fill:#764ba2,stroke:#f093fb,color:#fff
+    style STATS fill:#0d1117,stroke:#58a6ff
+```
 
 </td>
 </tr>
@@ -133,15 +82,9 @@ This is not simply an AI-assisted OS — it is a demonstration of what AI can ac
 
 <div align="center">
 
-\`\`\`
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║                                                                               ║
-║   Helix is NOT an operating system                                            ║
-║                                                                               ║
-║   It is a FRAMEWORK for CREATING operating systems                            ║
-║                                                                               ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
-\`\`\`
+> **⚠️ Helix is NOT an operating system**
+>
+> **It is a FRAMEWORK for CREATING operating systems**
 
 </div>
 
@@ -188,99 +131,120 @@ Desktop, server, embedded from the same codebase
 
 ### 7-Layer Overview
 
-\`\`\`
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃                                                                               ┃
-┃   ╭─────────────────────────────────────────────────────────────────────────╮ ┃
-┃   │                    LAYER 7: USERLAND INTERFACE                          │ ┃
-┃   │              Applications • Libraries • System Calls                    │ ┃
-┃   ╰─────────────────────────────────────────────────────────────────────────╯ ┃
-┃                                    ▲                                          ┃
-┃                                    │                                          ┃
-┃   ╭─────────────────────────────────────────────────────────────────────────╮ ┃
-┃   │                    LAYER 6: POLICY LAYER                                │ ┃
-┃   │           Security Policies • Resource Limits • Priorities             │ ┃
-┃   ╰─────────────────────────────────────────────────────────────────────────╯ ┃
-┃                                    ▲                                          ┃
-┃                                    │                                          ┃
-┃   ╭─────────────────────────────────────────────────────────────────────────╮ ┃
-┃   │                    LAYER 5: IPC / MESSAGE BUS                           │ ┃
-┃   │        Async Messages • Shared Memory • Capabilities Transfer          │ ┃
-┃   ╰─────────────────────────────────────────────────────────────────────────╯ ┃
-┃                                    ▲                                          ┃
-┃                                    │                                          ┃
-┃   ╭─────────────────────────────────────────────────────────────────────────╮ ┃
-┃   │                 LAYER 4: MODULE RUNTIME & LOADER                        │ ┃
-┃   │         Dynamic Loading • Hot Reload • Dependency Resolution           │ ┃
-┃   ╰─────────────────────────────────────────────────────────────────────────╯ ┃
-┃                                    ▲                                          ┃
-┃                                    │                                          ┃
-┃   ╭─────────────────────────────────────────────────────────────────────────╮ ┃
-┃   │                  LAYER 3: SUBSYSTEMS FRAMEWORK                          │ ┃
-┃   │  ┌───────────┬───────────┬───────────┬───────────┬───────────┐         │ ┃
-┃   │  │ EXECUTION │  MEMORY   │    I/O    │ SECURITY  │   TIME    │         │ ┃
-┃   │  │           │           │           │           │           │         │ ┃
-┃   │  │ Processes │  VMM      │  Block    │ Caps      │ Timers    │         │ ┃
-┃   │  │ Threads   │  Paging   │  Network  │ Sandboxes │ Clocks    │         │ ┃
-┃   │  │ Scheduler │  Allocator│  Devices  │ Crypto    │ RTC       │         │ ┃
-┃   │  └───────────┴───────────┴───────────┴───────────┴───────────┘         │ ┃
-┃   ╰─────────────────────────────────────────────────────────────────────────╯ ┃
-┃                                    ▲                                          ┃
-┃                                    │                                          ┃
-┃   ╭─────────────────────────────────────────────────────────────────────────╮ ┃
-┃   │               LAYER 2: KERNEL CORE (ORCHESTRATOR)                       │ ┃
-┃   │          Interrupt Dispatch • Syscall Router • Module Manager           │ ┃
-┃   ╰─────────────────────────────────────────────────────────────────────────╯ ┃
-┃                                    ▲                                          ┃
-┃                                    │                                          ┃
-┃   ╭─────────────────────────────────────────────────────────────────────────╮ ┃
-┃   │                LAYER 1: BOOT & HAL (Hardware Abstraction)               │ ┃
-┃   │    UEFI/BIOS Boot • CPU Init • MMU Setup • Interrupt Controllers        │ ┃
-┃   │                                                                         │ ┃
-┃   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │ ┃
-┃   │  │    x86_64       │  │    AArch64      │  │    RISC-V       │         │ ┃
-┃   │  └─────────────────┘  └─────────────────┘  └─────────────────┘         │ ┃
-┃   ╰─────────────────────────────────────────────────────────────────────────╯ ┃
-┃                                                                               ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-\`\`\`
+```mermaid
+flowchart TB
+    subgraph L7["Layer 7: USERLAND INTERFACE"]
+        L7A["Applications"]
+        L7B["Libraries"]
+        L7C["System Calls"]
+    end
+
+    subgraph L6["Layer 6: POLICY LAYER"]
+        L6A["Security Policies"]
+        L6B["Resource Limits"]
+        L6C["Priorities"]
+    end
+
+    subgraph L5["Layer 5: IPC / MESSAGE BUS"]
+        L5A["Async Messages"]
+        L5B["Shared Memory"]
+        L5C["Capabilities Transfer"]
+    end
+
+    subgraph L4["Layer 4: MODULE RUNTIME & LOADER"]
+        L4A["Dynamic Loading"]
+        L4B["Hot Reload"]
+        L4C["Dependency Resolution"]
+    end
+
+    subgraph L3["Layer 3: SUBSYSTEMS FRAMEWORK"]
+        direction LR
+        L3A["EXECUTION<br/>Processes<br/>Threads<br/>Scheduler"]
+        L3B["MEMORY<br/>VMM<br/>Paging<br/>Allocator"]
+        L3C["I/O<br/>Block<br/>Network<br/>Devices"]
+        L3D["SECURITY<br/>Caps<br/>Sandboxes<br/>Crypto"]
+        L3E["TIME<br/>Timers<br/>Clocks<br/>RTC"]
+    end
+
+    subgraph L2["Layer 2: KERNEL CORE (ORCHESTRATOR)"]
+        L2A["Interrupt Dispatch"]
+        L2B["Syscall Router"]
+        L2C["Module Manager"]
+    end
+
+    subgraph L1["Layer 1: BOOT & HAL"]
+        L1A["UEFI/BIOS Boot"]
+        L1B["CPU Init"]
+        L1C["MMU Setup"]
+        L1D["Interrupt Controllers"]
+        subgraph ARCH["Architectures"]
+            direction LR
+            A1["x86_64"]
+            A2["AArch64"]
+            A3["RISC-V"]
+        end
+    end
+
+    L7 --> L6 --> L5 --> L4 --> L3 --> L2 --> L1
+
+    style L7 fill:#4a90e2,stroke:#333,color:#fff
+    style L6 fill:#5a9fd4,stroke:#333,color:#fff
+    style L5 fill:#6ab0c6,stroke:#333,color:#fff
+    style L4 fill:#7bc1b8,stroke:#333,color:#fff
+    style L3 fill:#8cd2aa,stroke:#333,color:#000
+    style L2 fill:#9de39c,stroke:#333,color:#000
+    style L1 fill:#aef48e,stroke:#333,color:#000
+```
 
 <br/>
 
 ### 🔄 System Data Flow
 
-\`\`\`
-                            ┌─────────────────┐
-                            │   Application   │
-                            └────────┬────────┘
-                                     │ syscall
-                                     ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                         KERNEL CORE                                 │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
-│  │   Syscall    │───▶│   Module     │───▶│    IPC       │         │
-│  │   Handler    │    │   Dispatcher │    │   Router     │         │
-│  └──────────────┘    └──────────────┘    └──────────────┘         │
-└─────────────────────────────┬──────────────────────────────────────┘
-                              │
-           ┌──────────────────┼──────────────────┐
-           ▼                  ▼                  ▼
-    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-    │  Scheduler  │    │  Allocator  │    │ Filesystem  │
-    │   Module    │    │   Module    │    │   Module    │
-    │             │    │             │    │             │
-    │ ┌─────────┐ │    │ ┌─────────┐ │    │ ┌─────────┐ │
-    │ │Round    │ │    │ │ Buddy   │ │    │ │ HelixFS │ │
-    │ │Robin    │ │    │ │ Alloc   │ │    │ │         │ │
-    │ └─────────┘ │    │ └─────────┘ │    │ └─────────┘ │
-    │      ↕      │    │      ↕      │    │      ↕      │
-    │ ┌─────────┐ │    │ ┌─────────┐ │    │ ┌─────────┐ │
-    │ │  CFS    │ │    │ │  Slab   │ │    │ │  RamFS  │ │
-    │ │         │ │    │ │  Alloc  │ │    │ │         │ │
-    │ └─────────┘ │    │ └─────────┘ │    │ └─────────┘ │
-    └─────────────┘    └─────────────┘    └─────────────┘
-         HOT-SWAPPABLE AT RUNTIME! 🔥
-\`\`\`
+```mermaid
+flowchart TB
+    APP["\ud83d\udcf1 Application"]
+
+    subgraph KERNEL["KERNEL CORE"]
+        direction LR
+        SH["Syscall<br/>Handler"]
+        MD["Module<br/>Dispatcher"]
+        IPC["IPC<br/>Router"]
+        SH --> MD --> IPC
+    end
+
+    subgraph MODULES["🔥 HOT-SWAPPABLE MODULES"]
+        direction LR
+        subgraph SCHED["Scheduler"]
+            RR["Round Robin"]
+            CFS["CFS"]
+            RR <-.-> CFS
+        end
+
+        subgraph ALLOC["Allocator"]
+            BUDDY["Buddy Alloc"]
+            SLAB["Slab Alloc"]
+            BUDDY <-.-> SLAB
+        end
+
+        subgraph FS["Filesystem"]
+            HFS["HelixFS"]
+            RAMFS["RamFS"]
+            HFS <-.-> RAMFS
+        end
+    end
+
+    APP -->|"syscall"| KERNEL
+    KERNEL --> SCHED
+    KERNEL --> ALLOC
+    KERNEL --> FS
+
+    style APP fill:#58a6ff,stroke:#333,color:#fff
+    style KERNEL fill:#1a1a2e,stroke:#667eea,stroke-width:2px
+    style MODULES fill:#0d1117,stroke:#f093fb,stroke-width:2px
+    style SCHED fill:#2d3748,stroke:#4a90e2
+    style ALLOC fill:#2d3748,stroke:#4a90e2
+    style FS fill:#2d3748,stroke:#4a90e2
+```
 
 <br/>
 
@@ -328,6 +292,30 @@ mkdir -p profiles/myos
 cat > profiles/myos/helix.toml << EOF
 [profile]
 name = "MyOS"
+<table>
+<tr>
+<td align="center" width="25%">
+
+### 🔌
+### Modular
+Every major component is a replaceable module
+
+</td>
+<td align="center" width="25%">
+
+### 🔄
+### Hot-Reload
+Replace kernel components without rebooting
+
+</td>
+<td align="center" width="25%">
+
+### 🏗️
+### Policy-Free
+The kernel makes no decisions — modules do
+
+</td>
+<td align="center" width="25%">
 description = "My custom operating system"
 
 [modules]
@@ -505,27 +493,29 @@ helix/
 
 ## 📊 Project Statistics
 
-\`\`\`
-┌────────────────────────────────────────────────────────────────┐
-│                    📈 PROJECT METRICS                          │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│   Lines of Code (Rust)     ███████████████████████  134,673   │
-│   Source Files             ████████████████████       144     │
-│   Modules                  ██████████                  24     │
-│   Architectures            ███                          3     │
-│   Boot Protocols           ███                          3     │
-│                                                                │
-│   ─────────────────────────────────────────────────────────   │
-│                                                                │
-│   🧬 Boot/UEFI            ████████████████████████  74,000+   │
-│   📁 Filesystem (HelixFS) ██████████████            28,000+   │
-│   💎 Core Kernel          ████████                  16,000+   │
-│   🔧 HAL                  ██████                    12,000+   │
-│   📦 Modules              ████                       4,000+   │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-\`\`\`
+<div align="center">
+
+| 📊 Metric | Value |
+|:--------:|:-----:|
+| **Lines of Code (Rust)** | 134,673 |
+| **Source Files** | 144 |
+| **Modules** | 24 |
+| **Architectures** | 3 |
+| **Boot Protocols** | 3 |
+
+</div>
+
+### 📝 Code Distribution
+
+```mermaid
+pie showData
+    title Lines of Code by Component
+    "🧹 Boot/UEFI" : 74000
+    "📁 Filesystem (HelixFS)" : 28000
+    "💎 Core Kernel" : 16000
+    "🔧 HAL" : 12000
+    "📦 Modules" : 4000
+```
 
 <br/>
 
@@ -593,16 +583,11 @@ Helix is dual-licensed under:
 Choose whichever license works best for your project.
 
 </td>
-<td>
+<td align="center" width="40%">
 
-\`\`\`
-        ╭─────────────────╮
-        │  OPEN SOURCE    │
-        │                 │
-        │   MIT / Apache  │
-        │     2.0         │
-        ╰─────────────────╯
-\`\`\`
+**📖 OPEN SOURCE**
+
+**MIT / Apache 2.0**
 
 </td>
 </tr>
@@ -634,14 +619,11 @@ Choose whichever license works best for your project.
 
 <br/>
 
-\`\`\`
-   ██╗  ██╗███████╗██╗     ██╗██╗  ██╗
-   ██║  ██║██╔════╝██║     ██║╚██╗██╔╝
-   ███████║█████╗  ██║     ██║ ╚███╔╝
-   ██╔══██║██╔══╝  ██║     ██║ ██╔██╗
-   ██║  ██║███████╗███████╗██║██╔╝ ██╗
-   ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝
-\`\`\`
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-banner.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-banner.svg">
+  <img alt="Helix OS Framework" src="assets/logo-banner.svg" width="300" height="75">
+</picture>
 
 ### *The Future of Operating Systems — Designed by AI, Built for Humans*
 
