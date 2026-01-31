@@ -88,6 +88,9 @@ pub mod responses;
 /// Memory model abstractions
 pub mod memory;
 
+/// Kernel relocation (PIE/KASLR)
+pub mod relocation;
+
 /// CPU topology and SMP
 #[cfg(feature = "smp")]
 pub mod cpu;
