@@ -2,11 +2,11 @@
 //!
 //! CPU feature detection using CPUID.
 
-use super::{cpuid, CpuidResult, rdmsr, wrmsr, msr};
+use super::cpuid;
 use super::{read_cr0, write_cr0, read_cr4, write_cr4, read_efer, write_efer};
 use super::{cr0, cr4, efer};
 use crate::arch::CpuFeatures;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 // =============================================================================
 // CPU IDENTIFICATION

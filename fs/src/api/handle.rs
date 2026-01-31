@@ -4,7 +4,7 @@
 
 use crate::core::error::{HfsError, HfsResult};
 use super::vfs::{FileHandle, DirHandle};
-use super::{OpenFlags, Credentials, MAX_OPEN_FILES};
+use super::{OpenFlags, MAX_OPEN_FILES};
 
 // ============================================================================
 // Constants

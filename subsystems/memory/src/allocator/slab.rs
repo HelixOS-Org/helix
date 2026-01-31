@@ -5,7 +5,6 @@
 use super::{HeapAllocator, HeapStats};
 use core::alloc::Layout;
 use alloc::vec::Vec;
-use alloc::boxed::Box;
 use spin::Mutex;
 use core::sync::atomic::{AtomicU64, Ordering};
 

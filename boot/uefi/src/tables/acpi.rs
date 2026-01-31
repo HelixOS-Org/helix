@@ -7,7 +7,6 @@ use crate::error::{Error, Result};
 
 extern crate alloc;
 use alloc::vec::Vec;
-use alloc::string::String;
 use core::ptr;
 
 // =============================================================================

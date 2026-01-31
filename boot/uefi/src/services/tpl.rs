@@ -2,9 +2,7 @@
 //!
 //! Safe wrappers for UEFI Task Priority Level management.
 
-use crate::raw::types::*;
 use super::boot_services;
-use core::cell::Cell;
 
 // =============================================================================
 // TPL LEVELS

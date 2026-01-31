@@ -14,7 +14,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
-use spin::{Mutex, RwLock};
+use spin::RwLock;
 
 /// Task ID type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

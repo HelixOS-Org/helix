@@ -59,12 +59,11 @@ use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use spin::RwLock;
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult};
-use super::stats::{TaskStats, BehaviorPattern, SystemStats, StatsCollector};
-use super::intent::IntentClass;
+use super::{TaskId, CpuId, Nanoseconds};
+use super::stats::{TaskStats, BehaviorPattern, SystemStats};
 
 // =============================================================================
 // Optimization Hints
@@ -779,7 +778,7 @@ impl OptimizationStrategy for EnergyStrategy {
     }
     
     fn evaluate_system(&self, system: &SystemStats) -> Vec<OptimizationHint> {
-        let mut hints = Vec::new();
+        let hints = Vec::new();
         
         // System-wide power management based on load
         if system.cpu_load < self.low_load_threshold && system.runnable_tasks < 5 {

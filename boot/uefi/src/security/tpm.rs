@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use super::hash::{HashAlgorithm, Sha256, Sha512, SHA256_OUTPUT_SIZE, SHA512_OUTPUT_SIZE};
+use super::hash::{Sha256, Sha512};
 
 // =============================================================================
 // TPM2 GUIDS

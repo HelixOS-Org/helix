@@ -51,7 +51,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
-use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::{
     Nanoseconds, CpuBudget, MemoryBudget, IoBudget, 

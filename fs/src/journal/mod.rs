@@ -18,7 +18,6 @@ pub use record::*;
 pub use checkpoint::*;
 pub use recovery::*;
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
 

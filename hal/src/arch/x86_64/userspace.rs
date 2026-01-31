@@ -18,7 +18,6 @@
 //! ```
 
 use core::arch::{asm, naked_asm};
-use super::gdt::{USER_CODE_SELECTOR, USER_DATA_SELECTOR, KERNEL_CODE_SELECTOR, KERNEL_DATA_SELECTOR};
 
 /// User stack size (64KB)
 const USER_STACK_SIZE: usize = 64 * 1024;

@@ -3,11 +3,10 @@
 //! Provides writable clone creation from snapshots
 //! and filesystem rollback functionality.
 
-use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
+use crate::core::error::HfsError;
 use crate::snapshot::{
-    SnapshotId, SnapshotState, SnapshotFlags, SnapshotDescriptor,
-    INVALID_SNAPSHOT_ID, ROOT_SNAPSHOT_ID,
+    SnapshotId,
+    INVALID_SNAPSHOT_ID,
 };
 
 // ============================================================================

@@ -46,7 +46,7 @@
 //! ```
 
 use crate::core::{
-    AiAction, AiEvent, AiPriority, Confidence, DecisionContext, ResourceType, UserActionType,
+    AiAction, AiEvent, Confidence, DecisionContext, ResourceType, UserActionType,
     UserContext, WorkloadCategory,
 };
 

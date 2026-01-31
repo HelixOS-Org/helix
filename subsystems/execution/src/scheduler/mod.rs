@@ -9,9 +9,7 @@ pub mod priority;
 pub mod metrics;
 
 use crate::{ThreadId, ExecResult, ExecError};
-use alloc::boxed::Box;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use spin::RwLock;
 
 pub use traits::*;

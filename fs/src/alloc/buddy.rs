@@ -3,8 +3,6 @@
 //! Uses power-of-2 sized chunks for efficient coalescing.
 //! Good for large contiguous allocations.
 
-use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
 use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 
 // ============================================================================

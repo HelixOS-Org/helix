@@ -5,8 +5,8 @@
 
 use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
-use crate::journal::{JournalSuperblock, JournalState};
-use crate::journal::wal::{WalPosition, WalScanner, WalScanResult, WalBlockHeader, WalBlockType};
+use crate::journal::JournalSuperblock;
+use crate::journal::wal::WalPosition;
 use crate::journal::record::*;
 use crate::journal::checkpoint::CheckpointDescriptor;
 use crate::journal::txn::TxnId;

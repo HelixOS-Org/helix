@@ -8,7 +8,7 @@ pub mod idt;
 pub mod paging;
 pub mod apic;
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::arch::{CpuFeatures, MemoryModel, ArchOperations};
 use crate::raw::types::*;
 

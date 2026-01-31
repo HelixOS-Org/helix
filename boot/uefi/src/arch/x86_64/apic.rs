@@ -4,7 +4,7 @@
 
 use core::sync::atomic::{AtomicU32, Ordering};
 use crate::raw::types::*;
-use super::{rdmsr, wrmsr, msr};
+use super::{rdmsr, wrmsr};
 
 // =============================================================================
 // LOCAL APIC CONSTANTS

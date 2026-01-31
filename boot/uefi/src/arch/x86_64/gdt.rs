@@ -3,7 +3,6 @@
 //! Complete GDT implementation for long mode.
 
 use core::mem::size_of;
-use crate::raw::types::*;
 
 // =============================================================================
 // SEGMENT SELECTORS

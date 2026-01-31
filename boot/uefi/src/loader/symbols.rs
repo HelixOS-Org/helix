@@ -2,8 +2,7 @@
 //!
 //! Comprehensive symbol table management for debugging and dynamic linking.
 
-use crate::raw::types::*;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::loader::{LoadedImage, elf::ElfSymbol};
 
 extern crate alloc;

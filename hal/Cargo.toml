@@ -17,3 +17,4 @@ default = []
 x86_64 = []
 aarch64 = []
 riscv64 = []
+debug_reloc = []  # Enable debug logging for relocation engine

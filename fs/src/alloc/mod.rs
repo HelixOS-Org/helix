@@ -20,8 +20,7 @@ pub use freelist::*;
 pub use cow::*;
 
 use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
-use crate::core::atomic::SpinMutex;
+use crate::core::error::HfsResult;
 use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 
 // ============================================================================

@@ -3,13 +3,12 @@
 //! Manages the hierarchical structure of snapshots
 //! and provides traversal operations.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::snapshot::{
     SnapshotId, SnapshotState, INVALID_SNAPSHOT_ID, ROOT_SNAPSHOT_ID,
-    MAX_SNAPSHOT_DEPTH, MAX_SNAPSHOTS,
+    MAX_SNAPSHOT_DEPTH,
 };
-use crate::snapshot::core::{SnapshotEntry, SnapshotPath};
+use crate::snapshot::core::SnapshotPath;
 
 // ============================================================================
 // Snapshot Tree Node

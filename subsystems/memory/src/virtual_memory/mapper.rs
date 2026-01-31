@@ -5,8 +5,7 @@
 use super::{PageFlags, VirtualMapper};
 use crate::{Page, Frame, MemResult, MemError};
 use crate::physical::frame_allocator::FrameAllocator;
-use helix_hal::{VirtAddr, PhysAddr, PageSize};
-use alloc::sync::Arc;
+use helix_hal::{VirtAddr, PhysAddr};
 use spin::Mutex;
 
 /// Generic page table mapper

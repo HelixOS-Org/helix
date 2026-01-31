@@ -5,7 +5,6 @@
 
 use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
-use crate::core::atomic::SpinMutex;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 // ============================================================================

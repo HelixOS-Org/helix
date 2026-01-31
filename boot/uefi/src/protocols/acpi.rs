@@ -8,7 +8,6 @@ use super::Protocol;
 
 extern crate alloc;
 use alloc::vec::Vec;
-use alloc::string::String;
 use core::ptr;
 
 // =============================================================================

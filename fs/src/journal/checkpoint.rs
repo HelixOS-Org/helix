@@ -6,8 +6,7 @@
 use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
-use crate::journal::{JournalSuperblock, JournalState, CHECKPOINT_INTERVAL, CHECKPOINT_TIME_NS};
-use crate::journal::wal::WalPosition;
+use crate::journal::{CHECKPOINT_INTERVAL, CHECKPOINT_TIME_NS};
 use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 
 // ============================================================================

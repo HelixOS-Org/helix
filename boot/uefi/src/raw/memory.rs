@@ -6,7 +6,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use super::types::{PhysicalAddress, VirtualAddress, Uint64};
+use super::types::{PhysicalAddress, VirtualAddress};
 use core::fmt;
 
 // =============================================================================

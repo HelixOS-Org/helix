@@ -2,7 +2,6 @@
 //!
 //! Device path parsing, building, and manipulation for UEFI.
 
-use core::fmt;
 
 // =============================================================================
 // DEVICE PATH TYPES

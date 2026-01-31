@@ -46,7 +46,7 @@
 use crate::core::{
     AiAction, AiDecision, AiEvent, Confidence, DecisionContext, DecisionId,
 };
-use crate::neural::{Tensor, TensorDtype, TensorShape};
+use crate::neural::{Tensor, TensorShape};
 
 use alloc::{
     collections::{BTreeMap, VecDeque},

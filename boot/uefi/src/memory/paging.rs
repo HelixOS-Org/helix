@@ -3,7 +3,7 @@
 //! x86_64 and aarch64 page table setup for kernel transition.
 
 use crate::raw::types::*;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 extern crate alloc;
 use alloc::vec::Vec;

@@ -1,8 +1,7 @@
 //! # Memory Region Management
 
-use crate::{MemResult, MemError};
+use crate::MemResult;
 use helix_hal::PhysAddr;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use spin::RwLock;
 

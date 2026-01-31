@@ -19,7 +19,6 @@ pub mod arc;
 pub mod page;
 pub mod inode;
 
-use crate::core::types::*;
 use crate::core::error::HfsError;
 
 // ============================================================================

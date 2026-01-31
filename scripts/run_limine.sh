@@ -125,22 +125,22 @@ interface_resolution: 1024x768
 # ===========================================
 
 /Helix OS Framework
-    protocol: limine
+    protocol: multiboot2
     kernel_path: boot():/boot/helix-kernel
 
-    # Request framebuffer
-    # resolution: 1280x720x32
+    # Request linear framebuffer from bootloader
+    resolution: 1024x768x32
 
     # Kernel command line
     cmdline: helix.log_level=debug helix.serial=0x3F8
 
 /Helix OS (Serial Debug)
-    protocol: limine
+    protocol: multiboot2
     kernel_path: boot():/boot/helix-kernel
     cmdline: helix.log_level=trace helix.serial=0x3F8 helix.debug=1
 
 /Helix OS (Safe Mode)
-    protocol: limine
+    protocol: multiboot2
     kernel_path: boot():/boot/helix-kernel
     cmdline: helix.safe_mode=1 helix.log_level=info
 EOF

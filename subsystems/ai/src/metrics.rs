@@ -42,7 +42,6 @@
 //!                      └──────────────────────────────────────────┘
 //! ```
 
-use crate::core::Confidence;
 
 use alloc::{
     collections::{BTreeMap, VecDeque},
@@ -51,7 +50,7 @@ use alloc::{
     vec::Vec,
 };
 use core::sync::atomic::{AtomicU64, Ordering};
-use spin::{Mutex, RwLock};
+use spin::RwLock;
 
 // =============================================================================
 // Metric Types

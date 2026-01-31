@@ -501,7 +501,7 @@ impl Bar {
                     let size = if size_low == 0 {
                         0 // 64-bit size not supported in this simple implementation
                     } else {
-                        (!((size_low | 0x0F) as u64) + 1)
+                        !((size_low | 0x0F) as u64) + 1
                     };
 
                     Some(Self {

@@ -3,12 +3,10 @@
 //! Provides combined encryption and authentication for
 //! tamper-resistant data protection.
 
-use crate::core::types::*;
 use crate::crypto::{
-    CryptoError, CipherAlgorithm,
+    CryptoError,
     GCM_NONCE_SIZE, GCM_TAG_SIZE,
     CHACHA20_NONCE_SIZE, POLY1305_TAG_SIZE,
-    AES_BLOCK_SIZE,
 };
 use crate::crypto::cipher::{Aes256Context, ChaCha20Context};
 

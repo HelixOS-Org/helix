@@ -3,7 +3,6 @@
 //! Page cache for file data with read-ahead and
 //! write coalescing support.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::atomic::{AtomicU32, AtomicU64, Ordering};
 use crate::cache::{CacheState, CacheFlags, CacheHandle, CacheStats};

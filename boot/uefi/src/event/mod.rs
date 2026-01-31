@@ -2,7 +2,6 @@
 //!
 //! UEFI event system, synchronization primitives, and notification mechanisms.
 
-use core::fmt;
 use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 
 // =============================================================================

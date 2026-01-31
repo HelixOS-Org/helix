@@ -4,7 +4,7 @@
 //! They provide time, variable storage, and system control services.
 
 use super::types::*;
-use super::memory::{MemoryDescriptor, MemoryAttribute};
+use super::memory::MemoryDescriptor;
 
 // =============================================================================
 // RUNTIME SERVICES TABLE

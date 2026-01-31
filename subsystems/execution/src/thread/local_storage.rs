@@ -2,8 +2,7 @@
 //!
 //! TLS management for threads.
 
-use crate::{ThreadId, ExecResult, ExecError};
-use helix_hal::VirtAddr;
+use crate::ThreadId;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};

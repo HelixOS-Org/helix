@@ -7,10 +7,9 @@
 //! - B1: Ghost entries evicted from T1
 //! - B2: Ghost entries evicted from T2
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::atomic::{AtomicU32, AtomicU64, Ordering};
-use crate::cache::{CacheKey, CacheHandle, CacheFlags, CacheState};
+use crate::cache::CacheKey;
 
 // ============================================================================
 // Constants

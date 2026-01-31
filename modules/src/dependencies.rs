@@ -5,10 +5,9 @@
 use crate::{
     ModuleId, ModuleMetadata, ModuleDependency, ModuleVersion,
     ModuleResult, ModuleError,
-    registry::{self, ModuleRegistry},
+    registry::{ModuleRegistry},
 };
 use alloc::collections::{BTreeMap, BTreeSet};
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 

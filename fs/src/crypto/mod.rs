@@ -17,7 +17,6 @@ pub mod key;
 pub mod integrity;
 pub mod aead;
 
-use crate::core::types::*;
 use crate::core::error::HfsError;
 
 // ============================================================================

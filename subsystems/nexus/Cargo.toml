@@ -1,0 +1,65 @@
+[package]
+name = "helix-nexus"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "NEXUS - Next-generation EXecutive Unified System - Revolutionary Kernel Intelligence"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["kernel", "ai", "intelligence", "self-healing", "predictive"]
+categories = ["no-std", "embedded", "os"]
+
+[lib]
+name = "helix_nexus"
+path = "src/lib.rs"
+
+[dependencies]
+helix-cortex = { path = "../cortex", optional = true }
+libm = "0.2"
+
+[features]
+default = ["full"]
+
+# Q1 2026: Hardening & Testing
+testing = []
+fuzzing = []
+benchmarking = []
+chaos = []
+proof = []
+
+# Q2 2026: Predictive Intelligence
+prediction = []
+degradation = []
+canary = []
+forecast = []
+anomaly = []
+
+# Q3 2026: Self-Healing
+healing = []
+microrollback = []
+reconstruct = []
+quarantine = []
+substitute = []
+
+# Q4 2026: Multi-Arch Performance
+optimization = []
+accel_x86 = []
+accel_arm = []
+accel_riscv = []
+
+# Observability
+trace = []
+causal = []
+replay = []
+debug = []
+
+# Feature sets
+q1_complete = ["testing", "fuzzing", "benchmarking", "chaos", "proof"]
+q2_complete = ["prediction", "degradation", "canary", "forecast", "anomaly"]
+q3_complete = ["healing", "microrollback", "reconstruct", "quarantine", "substitute"]
+q4_complete = ["optimization", "accel_x86", "accel_arm", "accel_riscv"]
+observability = ["trace", "causal", "replay", "debug"]
+
+# Full GENESIS
+full = ["q1_complete", "q2_complete", "q3_complete", "q4_complete", "observability"]
+minimal = ["prediction", "healing", "trace"]

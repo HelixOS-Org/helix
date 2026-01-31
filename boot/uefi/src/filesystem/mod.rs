@@ -661,7 +661,7 @@ impl FileSystem {
 
     /// List directory
     pub fn read_dir(&mut self, path: &str) -> Result<DirectoryIterator, FileError> {
-        let mut dir = self.open_read(path)?;
+        let dir = self.open_read(path)?;
 
         if !dir.is_directory {
             return Err(FileError::NotDirectory);

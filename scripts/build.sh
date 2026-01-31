@@ -90,9 +90,9 @@ BUILD_STEP_ORDER=(
 
 step_0_prepare_env() {
     print_subheader "Checking Build Environment"
-    
+
     local errors=0
-    
+
     # Check Rust
     print_action "Checking" "Rust toolchain"
     if ! cmd_exists rustc; then
@@ -102,7 +102,7 @@ step_0_prepare_env() {
         local rust_version=$(get_rust_version)
         log_success "Rust ${rust_version} found"
     fi
-    
+
     # Check Cargo
     print_action "Checking" "Cargo"
     if ! cmd_exists cargo; then
@@ -111,7 +111,7 @@ step_0_prepare_env() {
     else
         log_success "Cargo $(get_cargo_version) found"
     fi
-    
+
     # Check nightly
     print_action "Checking" "Rust nightly"
     if ! rustup run nightly rustc --version >/dev/null 2>&1; then
@@ -120,7 +120,7 @@ step_0_prepare_env() {
     else
         log_success "Rust nightly available"
     fi
-    
+
     # Check rust-src
     print_action "Checking" "rust-src component"
     if ! rustup component list --toolchain nightly 2>/dev/null | grep -q "rust-src (installed)"; then
@@ -129,7 +129,7 @@ step_0_prepare_env() {
     else
         log_success "rust-src available"
     fi
-    
+
     # Check llvm-tools
     print_action "Checking" "llvm-tools"
     if ! rustup component list --toolchain nightly 2>/dev/null | grep -q "llvm-tools"; then
@@ -138,7 +138,7 @@ step_0_prepare_env() {
     else
         log_success "llvm-tools available"
     fi
-    
+
     # Check QEMU
     print_action "Checking" "QEMU"
     if ! cmd_exists qemu-system-x86_64; then
@@ -147,7 +147,7 @@ step_0_prepare_env() {
         local qemu_version=$(qemu-system-x86_64 --version | head -1 | awk '{print $4}')
         log_success "QEMU ${qemu_version} found"
     fi
-    
+
     # Check NASM
     print_action "Checking" "NASM assembler"
     if ! cmd_exists nasm; then
@@ -155,7 +155,7 @@ step_0_prepare_env() {
     else
         log_success "NASM found"
     fi
-    
+
     # Check cross-linker
     print_action "Checking" "Cross-linker"
     if ! cmd_exists ld.lld; then
@@ -163,35 +163,35 @@ step_0_prepare_env() {
     else
         log_success "LLD found"
     fi
-    
+
     # Create directories
     print_action "Creating" "Build directories"
     ensure_directories
     log_success "Directories created"
-    
+
     if [[ ${errors} -gt 0 ]]; then
         return 1
     fi
-    
+
     return 0
 }
 
 step_1_build_bootloader() {
     print_subheader "Building Bootloader"
-    
+
     local boot_dir="${HELIX_ROOT}/boot"
     local output_dir="${HELIX_OUTPUT_DIR}/boot"
     mkdir -p "${output_dir}"
-    
+
     # Check for bootloader source
     if [[ ! -d "${boot_dir}" ]]; then
         log_warn "No boot directory found, creating stub..."
         mkdir -p "${boot_dir}/src"
     fi
-    
+
     # For now, we'll use Limine or GRUB
     print_action "Building" "Boot stub"
-    
+
     # Create a minimal boot assembly if not exists
     if [[ ! -f "${boot_dir}/src/boot.asm" ]]; then
         log_info "Creating minimal boot stub..."
@@ -205,7 +205,7 @@ header_start:
     dd 0                         ; architecture (i386)
     dd header_end - header_start ; header length
     dd 0x100000000 - (0xe85250d6 + 0 + (header_end - header_start))
-    
+
     ; end tag
     dw 0
     dw 0
@@ -219,10 +219,10 @@ extern kernel_main
 _start:
     ; Set up stack
     mov esp, stack_top
-    
+
     ; Call Rust kernel
     call kernel_main
-    
+
     ; Halt
 .hang:
     cli
@@ -235,7 +235,7 @@ stack_bottom:
 stack_top:
 EOF
     fi
-    
+
     # Compile if NASM available
     if cmd_exists nasm; then
         draw_progress_bar 1 3 "Assembling boot.asm"
@@ -246,26 +246,26 @@ EOF
     else
         log_warn "NASM not available, bootloader build skipped"
     fi
-    
+
     return 0
 }
 
 step_2_build_core_kernel() {
     print_subheader "Building Kernel Core"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     local extra_args=()
-    
+
     if [[ "${HELIX_VERBOSE}" == "1" ]]; then
         extra_args+=("-v")
     fi
-    
+
     print_action "Compiling" "helix-core"
-    
+
     # Run cargo with progress
     local log_file="${HELIX_LOGS_DIR}/core_kernel.log"
-    
+
     start_spinner "Compiling kernel core..."
     if cargo_build "helix-core" "${extra_args[@]}" > "${log_file}" 2>&1; then
         stop_spinner "success" "Kernel core compiled successfully"
@@ -274,47 +274,47 @@ step_2_build_core_kernel() {
         log_error "See ${log_file} for details"
         return 1
     fi
-    
+
     return 0
 }
 
 step_3_build_memory_subsystem() {
     print_subheader "Building Memory Subsystem"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     local components=(
         "helix-memory"
     )
-    
+
     local total=${#components[@]}
     local current=0
-    
+
     for component in "${components[@]}"; do
         current=$((current + 1))
         draw_progress_bar ${current} ${total} "Building ${component}"
-        
+
         local log_file="${HELIX_LOGS_DIR}/${component}.log"
-        
+
         if ! cargo_build "${component}" > "${log_file}" 2>&1; then
             fail_progress_bar "Failed: ${component}"
             return 1
         fi
     done
-    
+
     complete_progress_bar "Memory subsystem built"
     return 0
 }
 
 step_4_build_scheduler() {
     print_subheader "Building Scheduler"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     local components=(
         "helix-execution"
     )
-    
+
     # Check for scheduler modules
     if [[ -d "${HELIX_ROOT}/modules_impl/schedulers" ]]; then
         for sched_dir in "${HELIX_ROOT}/modules_impl/schedulers"/*/; do
@@ -324,56 +324,56 @@ step_4_build_scheduler() {
             fi
         done
     fi
-    
+
     local total=${#components[@]}
     local current=0
-    
+
     for component in "${components[@]}"; do
         current=$((current + 1))
         draw_progress_bar ${current} ${total} "Building ${component}"
-        
+
         local log_file="${HELIX_LOGS_DIR}/${component}.log"
-        
+
         if ! cargo_build "${component}" > "${log_file}" 2>&1; then
             # Don't fail if module doesn't exist yet
             log_debug "Skipped: ${component}"
         fi
     done
-    
+
     complete_progress_bar "Scheduler built"
     return 0
 }
 
 step_5_build_io_subsystem() {
     print_subheader "Building I/O Subsystem"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     # I/O subsystem not yet implemented, create stub
     if [[ ! -d "${HELIX_ROOT}/subsystems/io" ]]; then
         log_info "I/O subsystem not yet implemented, skipping..."
         return 0
     fi
-    
+
     local log_file="${HELIX_LOGS_DIR}/io_subsystem.log"
-    
+
     start_spinner "Compiling I/O subsystem..."
     if cargo_build "helix-io" > "${log_file}" 2>&1; then
         stop_spinner "success" "I/O subsystem compiled"
     else
         stop_spinner "warn" "I/O subsystem skipped (not ready)"
     fi
-    
+
     return 0
 }
 
 step_6_build_module_system() {
     print_subheader "Building Module System"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     local log_file="${HELIX_LOGS_DIR}/module_system.log"
-    
+
     start_spinner "Compiling module system..."
     if cargo_build "helix-modules" > "${log_file}" 2>&1; then
         stop_spinner "success" "Module system compiled"
@@ -381,63 +381,63 @@ step_6_build_module_system() {
         stop_spinner "error" "Module system compilation failed"
         return 1
     fi
-    
+
     return 0
 }
 
 step_7_build_communication_layer() {
     print_subheader "Building Communication Layer"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     if [[ ! -d "${HELIX_ROOT}/ipc" ]]; then
         log_info "IPC layer not yet implemented, skipping..."
         return 0
     fi
-    
+
     local log_file="${HELIX_LOGS_DIR}/communication.log"
-    
+
     start_spinner "Compiling IPC layer..."
     if cargo_build "helix-ipc" > "${log_file}" 2>&1; then
         stop_spinner "success" "Communication layer compiled"
     else
         stop_spinner "warn" "Communication layer skipped (not ready)"
     fi
-    
+
     return 0
 }
 
 step_8_build_sys_interface() {
     print_subheader "Building System Interface"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     if [[ ! -d "${HELIX_ROOT}/interface" ]]; then
         log_info "System interface not yet implemented, skipping..."
         return 0
     fi
-    
+
     local log_file="${HELIX_LOGS_DIR}/sys_interface.log"
-    
+
     start_spinner "Compiling syscall interface..."
     if cargo_build "helix-interface" > "${log_file}" 2>&1; then
         stop_spinner "success" "System interface compiled"
     else
         stop_spinner "warn" "System interface skipped (not ready)"
     fi
-    
+
     return 0
 }
 
 step_9_build_userland_framework() {
     print_subheader "Building Userland Framework"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     # Build profile example
     if [[ -d "${HELIX_ROOT}/profiles/minimal" ]]; then
         local log_file="${HELIX_LOGS_DIR}/userland.log"
-        
+
         start_spinner "Building minimal OS profile..."
         if cargo_build "helix-minimal-os" > "${log_file}" 2>&1; then
             stop_spinner "success" "Minimal OS profile built"
@@ -447,20 +447,20 @@ step_9_build_userland_framework() {
     else
         log_info "No profiles found, skipping..."
     fi
-    
+
     return 0
 }
 
 step_10_test_all() {
     print_subheader "Running Tests"
-    
+
     cd "${HELIX_ROOT}"
-    
+
     local log_file="${HELIX_LOGS_DIR}/tests.log"
-    
+
     # Run unit tests (host tests only, no target)
     print_action "Running" "Unit tests"
-    
+
     start_spinner "Running unit tests..."
     if cargo_test --workspace --lib > "${log_file}" 2>&1; then
         stop_spinner "success" "All unit tests passed"
@@ -468,86 +468,142 @@ step_10_test_all() {
         stop_spinner "warn" "Some tests failed or skipped"
         log_warn "See ${log_file} for details"
     fi
-    
+
     return 0
 }
 
 step_11_package_kernel() {
     print_subheader "Packaging Kernel Image"
-    
+
     local output_dir="${HELIX_OUTPUT_DIR}"
     local kernel_bin="${HELIX_ROOT}/target/${HELIX_TARGET}/${HELIX_PROFILE}/helix-minimal-os"
-    
+
     mkdir -p "${output_dir}"
-    
+
     if [[ -f "${kernel_bin}" ]]; then
         print_action "Copying" "Kernel binary"
         cp "${kernel_bin}" "${output_dir}/helix-kernel"
-        
+
         # Create ISO if grub-mkrescue available
         if cmd_exists grub-mkrescue; then
-            print_action "Creating" "Bootable ISO"
-            
+            print_action "Creating" "UEFI-Compatible Bootable ISO"
+
             local iso_dir="${HELIX_BUILD_DIR}/iso"
             mkdir -p "${iso_dir}/boot/grub"
-            
+            mkdir -p "${iso_dir}/EFI/BOOT"
+            mkdir -p "${iso_dir}/EFI/helix"
+
+            # Copy kernel (ELF for legacy boot)
             cp "${output_dir}/helix-kernel" "${iso_dir}/boot/"
-            
+
+            # Convert to EFI if possible
+            if [[ -x "${SCRIPT_DIR}/convert_to_efi.sh" ]]; then
+                "${SCRIPT_DIR}/convert_to_efi.sh" || true
+                if [[ -f "${output_dir}/BOOTX64.EFI" ]]; then
+                    cp "${output_dir}/BOOTX64.EFI" "${iso_dir}/EFI/BOOT/"
+                    cp "${output_dir}/BOOTX64.EFI" "${iso_dir}/EFI/helix/kernel.efi"
+                    print_action "Added" "UEFI support (PE32+ format)"
+                fi
+            fi
+
+            # Legacy BIOS GRUB config
             cat > "${iso_dir}/boot/grub/grub.cfg" << 'EOF'
 set timeout=3
 set default=0
 
-menuentry "Helix OS" {
+menuentry "Helix OS (Legacy BIOS)" {
+    multiboot2 /boot/helix-kernel
+    boot
+}
+
+if [ "${grub_platform}" = "efi" ]; then
+    menuentry "Helix OS (UEFI)" {
+        chainloader /EFI/helix/kernel.efi
+        boot
+    }
+fi
+EOF
+
+            # UEFI GRUB config
+            cat > "${iso_dir}/EFI/BOOT/grub.cfg" << 'EOF'
+set timeout=3
+set default=0
+
+# Configure graphics for UEFI
+if [ x$grub_platform = xefi ]; then
+    insmod efi_gop
+    insmod efi_uga
+    set gfxpayload=keep
+    set gfxmode=auto
+fi
+
+menuentry "Helix OS (UEFI Native)" {
+    echo "Loading Helix OS kernel..."
+    chainloader /EFI/BOOT/BOOTX64.EFI
+    boot
+}
+
+menuentry "Helix OS (UEFI Alternative)" {
+    echo "Loading kernel from helix directory..."
+    chainloader /EFI/helix/kernel.efi
+    boot
+}
+
+menuentry "Legacy BIOS Fallback" {
     multiboot2 /boot/helix-kernel
     boot
 }
 EOF
-            
+
+            # Create dual BIOS/UEFI ISO
+            grub-mkrescue -o "${output_dir}/helix.iso" "${iso_dir}" \
+                --efi-directory="${iso_dir}" \
+                --boot-directory="${iso_dir}/boot" 2>/dev/null || \
             grub-mkrescue -o "${output_dir}/helix.iso" "${iso_dir}" 2>/dev/null || true
-            
+
             if [[ -f "${output_dir}/helix.iso" ]]; then
                 log_success "Created: ${output_dir}/helix.iso"
             fi
         fi
-        
+
         log_success "Kernel packaged: ${output_dir}/helix-kernel"
     else
         log_warn "Kernel binary not found, packaging skipped"
     fi
-    
+
     # Print summary
     echo ""
     print_box "Build Output" "$(ls -lh "${output_dir}" 2>/dev/null || echo 'No files')"
-    
+
     return 0
 }
 
 step_12_clean() {
     print_subheader "Cleaning Build Artifacts"
-    
+
     local items_cleaned=0
-    
+
     # Clean cargo target
     if [[ -d "${HELIX_ROOT}/target" ]]; then
         print_action "Cleaning" "Cargo target directory"
         rm -rf "${HELIX_ROOT}/target"
         items_cleaned=$((items_cleaned + 1))
     fi
-    
+
     # Clean build directory
     if [[ -d "${HELIX_BUILD_DIR}" ]]; then
         print_action "Cleaning" "Build directory"
         rm -rf "${HELIX_BUILD_DIR}"
         items_cleaned=$((items_cleaned + 1))
     fi
-    
+
     # Clean Cargo.lock (optional)
     if [[ "${HELIX_FORCE}" == "1" ]] && [[ -f "${HELIX_ROOT}/Cargo.lock" ]]; then
         print_action "Cleaning" "Cargo.lock"
         rm -f "${HELIX_ROOT}/Cargo.lock"
         items_cleaned=$((items_cleaned + 1))
     fi
-    
+
     log_success "Cleaned ${items_cleaned} items"
     return 0
 }
@@ -560,16 +616,16 @@ run_step() {
     local step_name="$1"
     local step_func="step_${step_name}"
     local step_desc="${BUILD_STEPS[${step_name}]:-${step_name}}"
-    
+
     if ! declare -f "${step_func}" >/dev/null; then
         log_error "Step function not found: ${step_func}"
         return 1
     fi
-    
+
     local start_time=$(get_timestamp)
-    
+
     start_step "${step_name}"
-    
+
     if "${step_func}"; then
         local end_time=$(get_timestamp)
         local duration=$((end_time - start_time))
@@ -585,9 +641,9 @@ run_all_steps() {
     local skip_to="${1:-}"
     local stop_at="${2:-}"
     local started=0
-    
+
     [[ -z "${skip_to}" ]] && started=1
-    
+
     for step in "${BUILD_STEP_ORDER[@]}"; do
         # Skip until we reach skip_to
         if [[ "${started}" == "0" ]]; then
@@ -597,18 +653,18 @@ run_all_steps() {
                 continue
             fi
         fi
-        
+
         # Run the step
         if ! run_step "${step}"; then
             return 1
         fi
-        
+
         # Stop if we've reached stop_at
         if [[ -n "${stop_at}" ]] && [[ "${step}" == "${stop_at}" ]]; then
             break
         fi
     done
-    
+
     return 0
 }
 
@@ -621,8 +677,8 @@ print_banner() {
     cat << 'EOF'
     ██╗  ██╗███████╗██╗     ██╗██╗  ██╗
     ██║  ██║██╔════╝██║     ██║╚██╗██╔╝
-    ███████║█████╗  ██║     ██║ ╚███╔╝ 
-    ██╔══██║██╔══╝  ██║     ██║ ██╔██╗ 
+    ███████║█████╗  ██║     ██║ ╚███╔╝
+    ██╔══██║██╔══╝  ██║     ██║ ██╔██╗
     ██║  ██║███████╗███████╗██║██╔╝ ██╗
     ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝
 EOF
@@ -633,11 +689,11 @@ EOF
 
 print_usage() {
     print_banner
-    
+
     echo -e "${BOLD}Usage:${RESET}"
     echo "  $0 [command] [options]"
     echo ""
-    
+
     echo -e "${BOLD}Commands:${RESET}"
     echo "  all                 Run all build steps"
     echo "  step <name>         Run a specific step"
@@ -647,7 +703,7 @@ print_usage() {
     echo "  clean               Clean build artifacts"
     echo "  help                Show this help message"
     echo ""
-    
+
     echo -e "${BOLD}Options:${RESET}"
     echo "  -a, --arch <arch>   Target architecture (x86_64, aarch64, riscv64)"
     echo "  -p, --profile <p>   Build profile (debug, release)"
@@ -656,7 +712,7 @@ print_usage() {
     echo "  -f, --force         Force rebuild"
     echo "  --no-color          Disable colored output"
     echo ""
-    
+
     echo -e "${BOLD}Examples:${RESET}"
     echo "  $0 all                      # Full build"
     echo "  $0 step 2_build_core_kernel # Build only kernel core"
@@ -667,7 +723,7 @@ print_usage() {
 
 list_steps() {
     print_header "Available Build Steps"
-    
+
     local i=0
     for step in "${BUILD_STEP_ORDER[@]}"; do
         local desc="${BUILD_STEPS[${step}]}"
@@ -685,7 +741,7 @@ list_steps() {
 main() {
     local command="${1:-help}"
     shift || true
-    
+
     # Parse options
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -720,16 +776,16 @@ main() {
                 ;;
         esac
     done
-    
+
     # Ensure build directories exist
     ensure_directories
-    
+
     # Start logging
     echo "Build started at $(date)" > "${HELIX_LOG_FILE}"
-    
+
     # Record start time
     local build_start=$(get_timestamp)
-    
+
     case "${command}" in
         all)
             print_banner
@@ -738,7 +794,7 @@ main() {
             print_keyvalue "Profile" "${HELIX_PROFILE}"
             print_keyvalue "Jobs" "${HELIX_JOBS}"
             echo ""
-            
+
             init_steps \
                 "0_prepare_env:Prepare Build Environment" \
                 "1_build_bootloader:Build Bootloader" \
@@ -752,60 +808,60 @@ main() {
                 "9_build_userland_framework:Build Userland Framework" \
                 "10_test_all:Run Tests" \
                 "11_package_kernel:Package Kernel"
-            
+
             if run_all_steps; then
                 local build_end=$(get_timestamp)
                 local duration=$((build_end - build_start))
-                
+
                 echo ""
                 print_header "Build Complete!"
                 echo -e "  ${HELIX_SUCCESS}${SYMBOL_CHECK}${RESET} All steps completed successfully"
                 echo -e "  ${HELIX_INFO}${SYMBOL_CLOCK}${RESET} Total time: $(format_duration ${duration})"
                 echo ""
-                
+
                 print_step_summary
             else
                 print_step_summary
                 exit 1
             fi
             ;;
-        
+
         step)
             local step_name="$1"
             if [[ -z "${step_name}" ]]; then
                 log_error "Step name required"
                 exit 1
             fi
-            
+
             print_banner
             run_step "${step_name}"
             ;;
-        
+
         from)
             local from_step="$1"
             print_banner
             run_all_steps "${from_step}" ""
             ;;
-        
+
         to)
             local to_step="$1"
             print_banner
             run_all_steps "" "${to_step}"
             ;;
-        
+
         list)
             list_steps
             ;;
-        
+
         clean)
             print_banner
             run_step "12_clean"
             ;;
-        
+
         help|--help|-h)
             print_usage
             ;;
-        
+
         *)
             log_error "Unknown command: ${command}"
             print_usage

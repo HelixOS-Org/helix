@@ -5,7 +5,7 @@
 //! This module provides a simplified, consistent interface for all modules.
 //! It maintains backward compatibility while providing a cleaner API.
 
-use crate::{ModuleId, ModuleVersion, ModuleFlags, ModuleState, ModuleError};
+use crate::{ModuleId, ModuleVersion, ModuleFlags, ModuleError};
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -331,7 +331,6 @@ pub trait ModuleTrait: Send + Sync {
 // =============================================================================
 
 use crate::{Module, ModuleContext, ModuleMetadata, ModuleDependency};
-use alloc::sync::Arc;
 
 /// Adapter to use ModuleTrait with the old Module interface
 pub struct ModuleAdapter<T: ModuleTrait> {

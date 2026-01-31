@@ -4,13 +4,11 @@
 
 use crate::{
     Module, ModuleId, ModuleMetadata, ModuleResult, ModuleError, 
-    ModuleState, ModuleContext, ModuleFlags,
+    ModuleState, ModuleFlags,
     loader::LoadedModule,
 };
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 use spin::RwLock;
 

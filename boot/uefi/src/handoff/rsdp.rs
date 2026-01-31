@@ -3,7 +3,6 @@
 //! Structures and utilities for ACPI Root System Description Pointer.
 
 use crate::raw::types::*;
-use crate::error::{Error, Result};
 
 // =============================================================================
 // RSDP SIGNATURE

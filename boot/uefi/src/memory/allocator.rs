@@ -3,14 +3,13 @@
 //! Boot-time memory allocators for UEFI environment.
 
 use crate::raw::types::*;
-use crate::error::{Error, Result};
-use super::{PAGE_SIZE, page_align_up, size_to_pages};
+use super::{PAGE_SIZE, size_to_pages};
 
 extern crate alloc;
 use alloc::vec::Vec;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::{self, NonNull};
-use core::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicUsize, Ordering};
 use core::cell::UnsafeCell;
 
 // =============================================================================

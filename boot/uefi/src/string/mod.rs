@@ -3,7 +3,6 @@
 //! UCS-2 string handling, formatting, and conversion utilities for UEFI.
 
 use core::fmt::{self, Write};
-use core::ops::Deref;
 
 // =============================================================================
 // CONSTANTS

@@ -4,7 +4,7 @@
 //! error handling and atomic guarantees.
 
 use crate::core::error::{HfsError, HfsResult};
-use super::{FileType, FileStat, DirEntry, OpenFlags, SeekWhence};
+use super::{FileStat, DirEntry, OpenFlags, SeekWhence};
 use super::vfs::{FileHandle, PathBuf};
 
 // ============================================================================

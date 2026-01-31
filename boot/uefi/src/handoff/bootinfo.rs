@@ -70,6 +70,30 @@ pub struct BootInfo {
     /// Kernel size
     pub kernel_size: u64,
 
+    // =========================================================================
+    // KASLR / RELOCATION FIELDS
+    // =========================================================================
+
+    /// KASLR slide offset (load_address - link_address)
+    /// Zero if KASLR is disabled or kernel loaded at link address
+    pub kernel_slide: i64,
+
+    /// Address where kernel was linked (from linker script)
+    pub kernel_link_address: u64,
+
+    /// Whether KASLR was applied during this boot
+    pub kaslr_enabled: bool,
+
+    /// Entropy quality used for KASLR (0=none, 1=weak, 2=moderate, 3=strong, 4=crypto)
+    pub kaslr_entropy_quality: u8,
+
+    /// Number of relocation entries applied
+    pub relocation_count: u64,
+
+    // =========================================================================
+    // END KASLR / RELOCATION FIELDS
+    // =========================================================================
+
     /// Physical memory offset (for identity mapping)
     pub physical_memory_offset: Option<u64>,
 
@@ -116,6 +140,13 @@ impl BootInfo {
             kernel_physical_address: None,
             kernel_virtual_address: None,
             kernel_size: 0,
+            // KASLR / Relocation defaults
+            kernel_slide: 0,
+            kernel_link_address: 0,
+            kaslr_enabled: false,
+            kaslr_entropy_quality: 0,
+            relocation_count: 0,
+            // End KASLR fields
             physical_memory_offset: None,
             recursive_index: None,
             tls_template: None,
@@ -157,6 +188,53 @@ impl BootInfo {
     pub fn is_efi(&self) -> bool {
         self.efi_system_table.is_some()
     }
+
+    // =========================================================================
+    // KASLR / RELOCATION METHODS
+    // =========================================================================
+
+    /// Check if KASLR was active during boot
+    pub fn is_kaslr_active(&self) -> bool {
+        self.kaslr_enabled && self.kernel_slide != 0
+    }
+
+    /// Get the KASLR slide offset
+    pub fn get_kernel_slide(&self) -> i64 {
+        self.kernel_slide
+    }
+
+    /// Translate a linked address to its actual runtime address
+    ///
+    /// This is useful for converting addresses from debug info or symbols
+    /// to their actual runtime locations.
+    pub fn translate_address(&self, linked_addr: u64) -> u64 {
+        (linked_addr as i128 + self.kernel_slide as i128) as u64
+    }
+
+    /// Get KASLR entropy quality description
+    pub fn kaslr_entropy_description(&self) -> &'static str {
+        match self.kaslr_entropy_quality {
+            0 => "None (KASLR disabled)",
+            1 => "Weak (TSC-based)",
+            2 => "Moderate (Firmware RNG)",
+            3 => "Strong (RDRAND)",
+            4 => "Cryptographic (RDSEED)",
+            _ => "Unknown",
+        }
+    }
+
+    /// Set KASLR information
+    pub fn set_kaslr_info(&mut self, slide: i64, link_addr: u64, entropy_quality: u8, reloc_count: u64) {
+        self.kernel_slide = slide;
+        self.kernel_link_address = link_addr;
+        self.kaslr_enabled = slide != 0;
+        self.kaslr_entropy_quality = entropy_quality;
+        self.relocation_count = reloc_count;
+    }
+
+    // =========================================================================
+    // END KASLR / RELOCATION METHODS
+    // =========================================================================
 
     /// Get module count
     pub fn module_count(&self) -> usize {

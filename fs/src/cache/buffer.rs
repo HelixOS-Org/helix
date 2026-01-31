@@ -3,13 +3,10 @@
 //! Fixed-size block buffer cache with hash table lookup
 //! and LRU/CLOCK eviction.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::atomic::{AtomicU32, AtomicU64, Ordering};
 use crate::cache::{
     CacheState, CacheFlags, CacheKey, CacheHandle, CacheStats,
-    WritebackRequest, WritebackResult, WritebackUrgency,
-    CACHE_LINE_SIZE,
 };
 
 // ============================================================================

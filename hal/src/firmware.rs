@@ -4,7 +4,6 @@
 
 use crate::{HalResult, PhysAddr};
 use alloc::vec::Vec;
-use alloc::string::String;
 
 /// Firmware interface abstraction
 pub trait FirmwareInterface: Send + Sync {

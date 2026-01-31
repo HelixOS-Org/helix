@@ -8,7 +8,6 @@ use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::String;
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
 use crate::loader::LoadedImage;
 

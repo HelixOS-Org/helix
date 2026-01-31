@@ -1,0 +1,45 @@
+[package]
+name = "helix-relocation"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "Industrial-grade kernel relocation subsystem for Helix OS"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["kernel", "relocation", "elf", "kaslr", "pie"]
+categories = ["no-std", "os", "embedded"]
+
+[lib]
+name = "helix_relocation"
+path = "src/lib.rs"
+
+[features]
+default = ["x86_64"]
+
+# Architecture support
+x86_64 = []
+aarch64 = []
+riscv64 = []
+
+# Boot protocol support
+uefi = []
+limine = []
+multiboot2 = []
+
+# Optional features
+kaslr = []
+debug = []
+stats = []
+validation = []
+
+# All features for testing
+full = ["kaslr", "debug", "stats", "validation"]
+
+[dependencies]
+# No external dependencies - pure no_std
+
+[dev-dependencies]
+# For testing on host
+
+[package.metadata.docs.rs]
+all-features = true

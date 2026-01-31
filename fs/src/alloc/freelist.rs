@@ -2,7 +2,6 @@
 //!
 //! Uses a sorted list of extents for fast lookup and coalescing.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use core::cmp::Ordering;
 

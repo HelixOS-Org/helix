@@ -2,13 +2,11 @@
 //!
 //! Core thread data structure.
 
-use crate::{ThreadId, ProcessId, ExecResult, ExecError};
+use crate::{ThreadId, ProcessId, ExecResult};
 use super::ThreadState;
 use crate::scheduler::Priority;
 use helix_hal::VirtAddr;
 use alloc::string::String;
-use alloc::boxed::Box;
-use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 /// Thread flags

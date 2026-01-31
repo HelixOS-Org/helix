@@ -48,7 +48,7 @@ pub mod config;
 pub mod dtb;
 
 use crate::raw::types::*;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 extern crate alloc;
 use alloc::vec::Vec;

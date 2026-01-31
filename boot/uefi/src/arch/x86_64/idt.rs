@@ -4,7 +4,6 @@
 
 use core::mem::size_of;
 use super::gdt::selectors;
-use crate::raw::types::*;
 
 // =============================================================================
 // IDT CONSTANTS

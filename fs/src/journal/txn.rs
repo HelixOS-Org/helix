@@ -5,7 +5,6 @@
 
 use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
-use crate::journal::record::*;
 use crate::journal::wal::WalPosition;
 use core::sync::atomic::{AtomicU64, AtomicU8, Ordering};
 

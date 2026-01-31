@@ -4,7 +4,6 @@
 
 use crate::core::error::{HfsError, HfsResult};
 use crate::api::FileType;
-use super::ROOT_INO;
 
 /// Maximum name length for dentry
 const MAX_NAME_LEN: usize = 255;

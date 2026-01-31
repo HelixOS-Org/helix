@@ -29,6 +29,7 @@ QEMU_GDB_PORT="${QEMU_GDB_PORT:-1234}"
 QEMU_SERIAL="${QEMU_SERIAL:-stdio}"
 QEMU_DISPLAY="${QEMU_DISPLAY:-none}"
 QEMU_KVM="${QEMU_KVM:-auto}"
+QEMU_UEFI="${QEMU_UEFI:-0}"
 
 # =============================================================================
 # QEMU Configuration Builders
@@ -37,7 +38,7 @@ QEMU_KVM="${QEMU_KVM:-auto}"
 build_qemu_cmd() {
     local qemu_bin=""
     local qemu_args=()
-    
+
     # Select QEMU binary based on architecture
     case "${QEMU_ARCH}" in
         x86_64)
@@ -58,17 +59,17 @@ build_qemu_cmd() {
             exit 1
             ;;
     esac
-    
+
     # Check if QEMU exists
     if ! cmd_exists "${qemu_bin}"; then
         log_error "${qemu_bin} not found. Please install QEMU."
         exit 1
     fi
-    
+
     # Memory and CPU
     qemu_args+=("-m" "${QEMU_MEMORY}")
     qemu_args+=("-smp" "${QEMU_CPUS}")
-    
+
     # KVM acceleration
     if [[ "${QEMU_KVM}" == "auto" ]]; then
         if [[ -e "/dev/kvm" ]] && [[ "${QEMU_ARCH}" == "x86_64" ]]; then
@@ -78,7 +79,7 @@ build_qemu_cmd() {
     elif [[ "${QEMU_KVM}" == "1" ]]; then
         qemu_args+=("-enable-kvm")
     fi
-    
+
     # Serial console
     case "${QEMU_SERIAL}" in
         stdio)
@@ -93,7 +94,7 @@ build_qemu_cmd() {
             qemu_args+=("-serial" "${QEMU_SERIAL}")
             ;;
     esac
-    
+
     # Display
     case "${QEMU_DISPLAY}" in
         none)
@@ -106,7 +107,7 @@ build_qemu_cmd() {
             qemu_args+=("-vnc" ":0")
             ;;
     esac
-    
+
     # Debug mode
     if [[ "${QEMU_DEBUG}" == "1" ]]; then
         qemu_args+=("-s")  # GDB server on port 1234
@@ -114,7 +115,7 @@ build_qemu_cmd() {
         echo "Debug mode: GDB server on port ${QEMU_GDB_PORT}" >&2
         echo "Connect with: gdb -ex 'target remote :${QEMU_GDB_PORT}'" >&2
     fi
-    
+
     # Boot options
     # NOTE: log_info must write to stderr here, not stdout, because
     # this function's stdout is captured by command substitution
@@ -130,17 +131,51 @@ build_qemu_cmd() {
         log_error "Run './scripts/build.sh all' first"
         exit 1
     fi
-    
+
     # Additional devices for x86_64
     if [[ "${QEMU_ARCH}" == "x86_64" ]]; then
+        # UEFI firmware
+        if [[ "${QEMU_UEFI}" == "1" ]]; then
+            # Try different OVMF paths
+            local ovmf_code=""
+            local ovmf_vars=""
+
+            # Common OVMF locations
+            if [[ -f "/usr/share/OVMF/OVMF_CODE.fd" ]]; then
+                ovmf_code="/usr/share/OVMF/OVMF_CODE.fd"
+                ovmf_vars="/usr/share/OVMF/OVMF_VARS.fd"
+            elif [[ -f "/usr/share/ovmf/OVMF.fd" ]]; then
+                ovmf_code="/usr/share/ovmf/OVMF.fd"
+            elif [[ -f "/usr/share/edk2-ovmf/OVMF_CODE.fd" ]]; then
+                ovmf_code="/usr/share/edk2-ovmf/OVMF_CODE.fd"
+                ovmf_vars="/usr/share/edk2-ovmf/OVMF_VARS.fd"
+            elif [[ -f "/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd" ]]; then
+                ovmf_code="/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd"
+                ovmf_vars="/usr/share/edk2-ovmf/x64/OVMF_VARS.4m.fd"
+            fi
+
+            if [[ -n "${ovmf_code}" ]]; then
+                qemu_args+=("-drive" "if=pflash,format=raw,readonly=on,file=${ovmf_code}")
+                if [[ -n "${ovmf_vars}" ]]; then
+                    # Copy VARS to a writable location
+                    local vars_copy="${HELIX_ROOT}/build/output/OVMF_VARS.fd"
+                    cp "${ovmf_vars}" "${vars_copy}" 2>/dev/null || true
+                    qemu_args+=("-drive" "if=pflash,format=raw,file=${vars_copy}")
+                fi
+                echo "UEFI firmware enabled (OVMF)" >&2
+            else
+                echo "Warning: UEFI requested but OVMF not found" >&2
+            fi
+        fi
+
         # VirtIO devices
         qemu_args+=("-device" "virtio-serial-pci")
-        
+
         # Debug console
         qemu_args+=("-debugcon" "file:${HELIX_ROOT}/build/logs/debug.log")
         qemu_args+=("-global" "isa-debugcon.iobase=0x402")
     fi
-    
+
     # Return command
     echo "${qemu_bin}" "${qemu_args[@]}"
 }
@@ -154,19 +189,19 @@ print_usage() {
     cat << 'EOF'
     ██╗  ██╗███████╗██╗     ██╗██╗  ██╗
     ██║  ██║██╔════╝██║     ██║╚██╗██╔╝
-    ███████║█████╗  ██║     ██║ ╚███╔╝ 
-    ██╔══██║██╔══╝  ██║     ██║ ██╔██╗ 
+    ███████║█████╗  ██║     ██║ ╚███╔╝
+    ██╔══██║██╔══╝  ██║     ██║ ██╔██╗
     ██║  ██║███████╗███████╗██║██╔╝ ██╗
     ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝
 EOF
     echo -e "${RESET}"
     echo -e "${DIM}    QEMU Runner${RESET}"
     echo ""
-    
+
     echo -e "${BOLD}Usage:${RESET}"
     echo "  $0 [options]"
     echo ""
-    
+
     echo -e "${BOLD}Options:${RESET}"
     echo "  -a, --arch <arch>     Architecture (x86_64, aarch64, riscv64)"
     echo "  -m, --memory <size>   Memory size (e.g., 256M, 1G)"
@@ -176,9 +211,10 @@ EOF
     echo "  -k, --kvm             Force KVM acceleration"
     echo "  --no-kvm              Disable KVM acceleration"
     echo "  -v, --vnc             Enable VNC display"
+    echo "  -u, --uefi            Enable UEFI firmware (OVMF)"
     echo "  -h, --help            Show this help"
     echo ""
-    
+
     echo -e "${BOLD}Examples:${RESET}"
     echo "  $0                    # Run with defaults"
     echo "  $0 -m 512M -c 2       # 512MB RAM, 2 CPUs"
@@ -227,6 +263,10 @@ main() {
                 QEMU_DISPLAY="vnc"
                 shift
                 ;;
+            -u|--uefi)
+                QEMU_UEFI=1
+                shift
+                ;;
             -h|--help)
                 print_usage
                 exit 0
@@ -238,27 +278,27 @@ main() {
                 ;;
         esac
     done
-    
+
     # Ensure log directory exists
     mkdir -p "${HELIX_ROOT}/build/logs"
-    
+
     # Build and run QEMU command
     print_header "Running Helix in QEMU"
-    
+
     print_keyvalue "Architecture" "${QEMU_ARCH}"
     print_keyvalue "Memory" "${QEMU_MEMORY}"
     print_keyvalue "CPUs" "${QEMU_CPUS}"
     print_keyvalue "Display" "${QEMU_DISPLAY}"
     echo ""
-    
+
     local qemu_cmd=$(build_qemu_cmd)
-    
+
     log_info "Starting QEMU..."
     log_debug "Command: ${qemu_cmd}"
     echo ""
-    
+
     print_separator
-    
+
     # Run QEMU
     exec ${qemu_cmd}
 }

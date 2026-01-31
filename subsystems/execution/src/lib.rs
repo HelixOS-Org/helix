@@ -25,7 +25,6 @@ pub mod context;
 pub mod thread;
 pub mod process;
 
-use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 /// Unique identifier for threads

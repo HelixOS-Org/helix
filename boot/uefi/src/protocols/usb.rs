@@ -3,7 +3,7 @@
 //! High-level USB abstraction for USB device access.
 
 use crate::raw::types::*;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use super::Protocol;
 
 extern crate alloc;

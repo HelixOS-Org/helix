@@ -3,7 +3,7 @@
 //! Track and manage memory regions during boot.
 
 use crate::raw::types::*;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 extern crate alloc;
 use alloc::vec::Vec;

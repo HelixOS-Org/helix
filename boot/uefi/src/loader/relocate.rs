@@ -5,12 +5,11 @@
 
 use crate::raw::types::*;
 use crate::error::{Error, Result};
-use crate::loader::elf::{ElfLoader, ElfRelocation, ElfSymbol, r_x86_64};
+use crate::loader::elf::{ElfLoader, ElfRelocation, r_x86_64};
 use crate::loader::pe::{PeLoader, PeRelocation, reloc_type};
 
 extern crate alloc;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 // =============================================================================
 // RELOCATION ENGINE

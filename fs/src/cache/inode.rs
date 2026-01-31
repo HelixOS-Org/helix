@@ -2,7 +2,6 @@
 //!
 //! Caches inode metadata for fast access without disk I/O.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::atomic::{AtomicU32, AtomicU64, Ordering};
 use crate::cache::{CacheState, CacheFlags, CacheHandle};

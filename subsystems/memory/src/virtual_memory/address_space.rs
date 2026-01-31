@@ -5,7 +5,6 @@ use crate::{Page, MemResult, MemError};
 use helix_hal::{VirtAddr, PageSize};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use spin::RwLock;
 
 /// Address space

@@ -2,11 +2,9 @@
 //!
 //! Defines the communication interface between modules.
 
-use crate::{ModuleId, ModuleResult, ModuleError};
-use alloc::boxed::Box;
+use crate::{ModuleId, ModuleResult};
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::any::Any;
 
 /// Module message
 #[derive(Debug, Clone)]

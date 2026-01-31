@@ -1,0 +1,55 @@
+[package]
+name = "helix-early-boot"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "Revolutionary Early Boot Sequence for Helix OS Framework"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["os", "kernel", "boot", "x86_64", "aarch64", "riscv64"]
+categories = ["no-std", "embedded", "hardware-support"]
+
+[lib]
+name = "helix_early_boot"
+path = "src/lib.rs"
+
+[dependencies]
+# Internal dependencies
+helix-hal = { path = "../../hal", optional = true }
+
+# External dependencies
+bitflags = "2.4"
+spin = { version = "0.9", default-features = false, features = ["spin_mutex", "rwlock"] }
+static_assertions = "1.1"
+
+[features]
+default = ["x86_64"]
+
+# Architecture features
+x86_64 = []
+aarch64 = []
+riscv64 = []
+
+# Boot protocol features
+limine = []
+multiboot2 = []
+uefi = []
+
+# Optional features
+kaslr = []
+early_console = []
+framebuffer = []
+serial = []
+debug = []
+smp = []
+
+# Platform-specific
+qemu = []
+hardware = []
+
+[dev-dependencies]
+# For testing on host
+
+[package.metadata.docs.rs]
+all-features = true
+targets = ["x86_64-unknown-none", "aarch64-unknown-none", "riscv64gc-unknown-none-elf"]

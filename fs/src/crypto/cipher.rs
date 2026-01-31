@@ -2,9 +2,8 @@
 //!
 //! Block cipher operations for encryption/decryption.
 
-use crate::core::types::*;
 use crate::crypto::{
-    CipherAlgorithm, CryptoError,
+    CryptoError,
     AES_BLOCK_SIZE, AES_256_KEY_SIZE,
     CHACHA20_KEY_SIZE, CHACHA20_NONCE_SIZE,
 };

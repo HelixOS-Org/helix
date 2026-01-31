@@ -4,7 +4,7 @@
 
 use crate::core::error::{HfsError, HfsResult};
 use crate::api::FileType;
-use super::{ROOT_INO, VfsInode, VfsInodeFlags, Timespec};
+use super::{VfsInode, VfsInodeFlags, Timespec};
 
 // ============================================================================
 // Constants

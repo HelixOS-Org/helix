@@ -72,11 +72,10 @@ use alloc::collections::{BinaryHeap, BTreeMap, VecDeque};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
-use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering as AtomicOrdering};
+use core::sync::atomic::{AtomicU64, AtomicU32, Ordering as AtomicOrdering};
 use spin::{Mutex, RwLock};
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult};
-use super::intent::IntentClass;
+use super::{TaskId, Nanoseconds};
 
 // =============================================================================
 // Queue Configuration

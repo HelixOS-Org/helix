@@ -5,9 +5,9 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use super::hash::{HashAlgorithm, Sha256, SHA256_OUTPUT_SIZE};
-use super::keys::{KeyError, PublicKey, X509Certificate};
-use super::signature::{AuthenticodeVerifier, SignatureError, SignatureVerificationResult};
+use super::hash::Sha256;
+use super::keys::{KeyError, X509Certificate};
+use super::signature::{AuthenticodeVerifier, SignatureError};
 
 // =============================================================================
 // SECURE BOOT GUIDS

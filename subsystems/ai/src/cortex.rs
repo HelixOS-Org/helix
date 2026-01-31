@@ -40,7 +40,7 @@
 use crate::{
     core::{
         AiAction, AiConfig, AiDecision, AiError, AiEvent, AiPriority, AiResult, AiState,
-        Confidence, DecisionContext, DecisionId, RollbackStrategy, SafetyLevel, SystemMetrics,
+        Confidence, DecisionContext, DecisionId, RollbackStrategy, SystemMetrics,
     },
     healer::Healer,
     intent::IntentEngine,
@@ -50,12 +50,11 @@ use crate::{
     neural::NeuralEngine,
     optimizer::Optimizer,
     resources::ResourceOracle,
-    safety::{SafetyChecker, SafetyViolation},
+    safety::SafetyChecker,
     security::SecurityOracle,
 };
 
 use alloc::{
-    boxed::Box,
     collections::VecDeque,
     format,
     string::{String, ToString},

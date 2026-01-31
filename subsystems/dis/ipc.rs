@@ -48,13 +48,11 @@
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use alloc::sync::Arc;
-use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 use spin::{Mutex, RwLock};
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult};
+use super::{TaskId, Nanoseconds, DISError, DISResult};
 use super::intent::IntentClass;
-use super::isolation::{Capability, DomainId};
 
 // =============================================================================
 // Message Types

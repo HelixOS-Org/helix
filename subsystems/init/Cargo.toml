@@ -1,0 +1,93 @@
+[package]
+name = "helix-init"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Team"]
+description = "Revolutionary Subsystem Initialization Framework for Helix OS"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+documentation = "https://docs.helix-os.org/init"
+keywords = ["os", "kernel", "initialization", "subsystem", "framework"]
+categories = ["no-std", "embedded", "os"]
+
+[lib]
+name = "helix_init"
+path = "src/lib.rs"
+
+[features]
+default = ["std-phases"]
+
+# Enable all standard phases
+std-phases = ["phase-early", "phase-core", "phase-late", "phase-runtime"]
+
+# Individual phases
+phase-early = []
+phase-core = []
+phase-late = []
+phase-runtime = []
+
+# Execution modes
+parallel = []
+lazy = []
+
+# Architecture features
+arch-x86_64 = []
+arch-aarch64 = []
+arch-riscv64 = []
+
+# Subsystem categories
+subsys-boot = []
+subsys-memory = []
+subsys-cpu = []
+subsys-interrupts = []
+subsys-timers = []
+subsys-scheduler = []
+subsys-ipc = []
+subsys-drivers = []
+subsys-filesystem = []
+subsys-network = []
+subsys-security = []
+subsys-debug = []
+subsys-userland = []
+
+# All subsystems
+all-subsystems = [
+    "subsys-boot",
+    "subsys-memory",
+    "subsys-cpu",
+    "subsys-interrupts",
+    "subsys-timers",
+    "subsys-scheduler",
+    "subsys-ipc",
+    "subsys-drivers",
+    "subsys-filesystem",
+    "subsys-network",
+    "subsys-security",
+    "subsys-debug",
+    "subsys-userland",
+]
+
+# Debug and testing
+tracing = []
+metrics = []
+testing = []
+
+# Recovery and rollback
+recovery = []
+rollback = []
+
+[dependencies]
+bitflags = "2.4"
+spin = "0.9"
+cfg-if = "1.0"
+static_assertions = "1.1"
+
+[dev-dependencies]
+# For unit tests on host
+
+[target.'cfg(not(target_os = "none"))'.dev-dependencies]
+# Host-only test dependencies
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -10,6 +10,16 @@
 //! - **Minimal**: Only exposes what's necessary
 //! - **Safe**: Encapsulates all unsafe operations
 //! - **Extensible**: New architectures can be added easily
+//!
+//! ## Kernel Relocation
+//!
+//! The HAL provides comprehensive support for kernel relocation:
+//!
+//! - [`relocation`]: ELF relocation engine for PIE kernels
+//! - [`kaslr`]: Kernel Address Space Layout Randomization
+//!
+//! See the [Kernel Relocation Architecture](../docs/architecture/KERNEL_RELOCATION.md)
+//! document for details.
 
 #![no_std]
 #![feature(negative_impls)]
@@ -25,6 +35,10 @@ pub mod cpu;
 pub mod mmu;
 pub mod interrupts;
 pub mod firmware;
+
+// Kernel relocation support
+pub mod relocation;
+pub mod kaslr;
 
 // Architecture-specific implementations
 pub mod arch;
@@ -69,46 +83,46 @@ pub auto trait ArchSpecific {}
 pub trait HardwareAbstractionLayer: Send + Sync + 'static {
     /// The CPU abstraction type
     type Cpu: cpu::CpuAbstraction;
-    
+
     /// The MMU abstraction type
     type Mmu: mmu::MmuAbstraction;
-    
+
     /// The interrupt controller abstraction type
     type InterruptController: interrupts::InterruptController;
-    
+
     /// The firmware interface type
     type Firmware: firmware::FirmwareInterface;
 
     /// Get the CPU abstraction
     fn cpu(&self) -> &Self::Cpu;
-    
+
     /// Get the MMU abstraction
     fn mmu(&self) -> &Self::Mmu;
-    
+
     /// Get the interrupt controller
     fn interrupt_controller(&self) -> &Self::InterruptController;
-    
+
     /// Get the firmware interface
     fn firmware(&self) -> &Self::Firmware;
 
     /// Get the architecture name
     fn arch_name(&self) -> &'static str;
-    
+
     /// Get the architecture version/revision
     fn arch_version(&self) -> &'static str;
-    
+
     /// Initialize early hardware (called very early in boot)
     fn early_init(&mut self) -> HalResult<()>;
-    
+
     /// Full hardware initialization
     fn init(&mut self) -> HalResult<()>;
-    
+
     /// Halt the system
     fn halt(&self) -> !;
-    
+
     /// Reboot the system
     fn reboot(&self) -> !;
-    
+
     /// Shutdown the system
     fn shutdown(&self) -> !;
 }

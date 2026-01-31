@@ -51,12 +51,10 @@
 //! ```
 
 use alloc::collections::BTreeMap;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering};
-use spin::{Mutex, RwLock};
+use core::sync::atomic::{AtomicU64, Ordering};
+use spin::RwLock;
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult, TaskState};
+use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult};
 
 // =============================================================================
 // CPU Context

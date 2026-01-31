@@ -5,8 +5,6 @@
 //! - Metadata vs data separation
 //! - Wear leveling for flash storage
 
-use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
 use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering};
 
 // ============================================================================

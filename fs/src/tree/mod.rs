@@ -18,7 +18,6 @@ pub use node::*;
 pub use cursor::*;
 pub use dir::*;
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================

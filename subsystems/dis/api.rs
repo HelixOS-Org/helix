@@ -56,16 +56,15 @@
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use alloc::boxed::Box;
 use core::sync::atomic::{AtomicBool, Ordering};
 use spin::RwLock;
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult, Task, TaskState};
-use super::intent::{Intent, IntentClass, IntentBuilder, IntentId, IntentEngine, LatencyTarget};
-use super::policy::{Policy, PolicyId, PolicyEngine, PolicyBuilder};
+use super::{TaskId, CpuId, Nanoseconds, DISResult, Task, TaskState};
+use super::intent::{Intent, IntentClass, IntentBuilder};
+use super::policy::{Policy, PolicyId, PolicyBuilder};
 use super::scheduler::{DISScheduler, SchedulerConfig, SchedulingDecision};
-use super::stats::{StatsCollector, TaskStats, SystemStats, StatsSummary};
-use super::optimizer::{AdaptiveOptimizer, OptimizationHint};
+use super::stats::{TaskStats, SystemStats, StatsSummary};
+use super::optimizer::OptimizationHint;
 use super::isolation::{SecurityManager, DomainId, DomainType, Capability, CapabilitySet};
 use super::queues::QueueManager;
 use super::executor::Executor;

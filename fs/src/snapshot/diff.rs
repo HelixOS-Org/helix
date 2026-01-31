@@ -5,7 +5,7 @@
 
 use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
-use crate::snapshot::{SnapshotId, INVALID_SNAPSHOT_ID, ROOT_SNAPSHOT_ID};
+use crate::snapshot::{SnapshotId, ROOT_SNAPSHOT_ID};
 
 // ============================================================================
 // Diff Types

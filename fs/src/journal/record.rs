@@ -3,7 +3,6 @@
 //! Defines all record types stored in the journal
 //! for transaction logging and recovery.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
 

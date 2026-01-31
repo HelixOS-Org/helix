@@ -6,7 +6,6 @@ use crate::{Frame, MemResult, MemError, MemoryZone};
 use super::{PhysicalAllocator, PhysicalRegion, AllocatorStats};
 use helix_hal::{PhysAddr, PageSize};
 use alloc::collections::BTreeSet;
-use alloc::vec::Vec;
 use spin::Mutex;
 use core::sync::atomic::{AtomicU64, Ordering};
 

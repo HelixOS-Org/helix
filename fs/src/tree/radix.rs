@@ -3,7 +3,6 @@
 //! A compressed radix tree optimized for sparse integer keys.
 //! Used for inode number to block mapping and other integer-keyed data.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use core::sync::atomic::{AtomicU64, AtomicPtr, Ordering};
 use core::ptr::null_mut;

@@ -2,7 +2,7 @@
 //!
 //! Defines execution domains for isolation.
 
-use crate::{ThreadId, ProcessId, ExecResult, ExecError};
+use crate::{ThreadId, ProcessId};
 use alloc::collections::BTreeSet;
 use alloc::string::String;
 use core::sync::atomic::{AtomicU64, Ordering};

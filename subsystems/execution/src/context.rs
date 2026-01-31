@@ -2,9 +2,8 @@
 //!
 //! Context switch infrastructure.
 
-use crate::{ThreadId, ExecResult, ExecError};
+use crate::ThreadId;
 use crate::thread::ThreadContext;
-use helix_hal::VirtAddr;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 /// Context switch reason

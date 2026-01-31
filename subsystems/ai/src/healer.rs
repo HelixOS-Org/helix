@@ -51,8 +51,7 @@
 //! ```
 
 use crate::core::{
-    AiAction, AiDecision, AiError, AiEvent, AiPriority, AiResult, Confidence, DecisionContext,
-    DecisionId,
+    AiAction, AiEvent, Confidence, DecisionContext,
 };
 
 use alloc::{
@@ -801,7 +800,7 @@ impl Healer {
                     target: target_module.clone(),
                 }
             }
-            HealingAction::RestartModule { module_id, preserve_state, .. } => {
+            HealingAction::RestartModule { module_id,  .. } => {
                 AiAction::RestartModule {
                     module_id: if *module_id == 0 { default_module } else { *module_id },
                     module_name: String::from("unknown"),

@@ -11,7 +11,6 @@ use crate::raw::types::*;
 use crate::error::{Error, Result};
 use super::Protocol;
 
-use core::ptr;
 
 // =============================================================================
 // SECURE BOOT

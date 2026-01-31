@@ -3,8 +3,8 @@
 //! Defines the VFS traits that HelixFS implements, allowing
 //! integration with kernel VFS layers.
 
-use crate::core::error::{HfsError, HfsResult};
-use super::{FileType, FileStat, FsStats, DirEntry, Credentials, OpenFlags, SeekWhence, MAX_PATH_LEN};
+use crate::core::error::HfsResult;
+use super::{FileType, FileStat, FsStats, DirEntry, Credentials, OpenFlags, MAX_PATH_LEN};
 
 // ============================================================================
 // VFS Operations Trait

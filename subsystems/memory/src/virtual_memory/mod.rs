@@ -5,10 +5,8 @@
 pub mod address_space;
 pub mod mapper;
 
-use crate::{Page, Frame, MemResult, MemError};
-use helix_hal::{VirtAddr, PhysAddr, PageSize};
-use alloc::sync::Arc;
-use spin::RwLock;
+use crate::{Page, Frame, MemResult};
+use helix_hal::{VirtAddr, PhysAddr};
 use bitflags::bitflags;
 
 bitflags! {

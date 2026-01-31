@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 
 use super::hash::{HashAlgorithm, Sha256, Sha512, SHA256_OUTPUT_SIZE};
 use super::keys::{
-    BigUint, EcPublicKey, EcdsaSignature, KeyError, PublicKey, RsaPublicKey, X509Certificate,
+    EcdsaSignature, PublicKey, X509Certificate,
 };
 
 // =============================================================================

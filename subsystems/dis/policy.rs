@@ -56,13 +56,11 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::collections::BTreeMap;
-use core::sync::atomic::{AtomicU64, Ordering};
 use spin::RwLock;
 
 use super::{
-    TaskId, Task, Nanoseconds, DISError, DISResult,
-    intent::{Intent, IntentClass, IntentFlags},
-    stats::{TaskStats, SystemStats},
+    TaskId, Task, Nanoseconds,
+    intent::{IntentClass, IntentFlags},
 };
 
 // =============================================================================

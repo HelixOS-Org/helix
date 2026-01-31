@@ -4,12 +4,10 @@
 
 use crate::{
     Module, ModuleId, ModuleResult, ModuleError, ModuleState, ModuleFlags,
-    registry::{self, ModuleRegistry},
-    loader::LoadedModule,
+    registry::{ModuleRegistry},
 };
 use alloc::boxed::Box;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use core::any::Any;
 use spin::RwLock;
 

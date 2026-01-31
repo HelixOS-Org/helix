@@ -51,13 +51,11 @@
 //! ```
 
 use alloc::collections::{BTreeMap, VecDeque};
-use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 use spin::RwLock;
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult};
-use super::intent::IntentClass;
+use super::{TaskId, CpuId, Nanoseconds};
 
 // =============================================================================
 // Task Statistics

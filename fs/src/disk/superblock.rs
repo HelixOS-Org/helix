@@ -5,8 +5,8 @@
 
 use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
-use crate::core::hash::{Crc32c, Sha256};
-use crate::{HFS_MAGIC, BLOCK_SIZE, VERSION_MAJOR, VERSION_MINOR};
+use crate::core::hash::Crc32c;
+use crate::{HFS_MAGIC, BLOCK_SIZE};
 use core::mem::size_of;
 
 /// Superblock size in bytes (512 bytes, replicated to fill a block)

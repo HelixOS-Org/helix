@@ -14,7 +14,6 @@
 
 #![no_std]
 
-use core::fmt;
 
 // =============================================================================
 // COLORS
@@ -764,7 +763,7 @@ impl Easing {
             Easing::EaseOut => {
                 let inv_t = 1000 - t;
                 let inv_sq = (inv_t as u32 * inv_t as u32) / 1000;
-                (1000 - inv_sq as u16)
+                1000 - inv_sq as u16
             }
             Easing::EaseInOut => {
                 if t < 500 {

@@ -58,13 +58,11 @@
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::{String, ToString};
-use alloc::vec::Vec;
 use bitflags::bitflags;
-use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use spin::RwLock;
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult};
-use super::intent::IntentClass;
+use super::{TaskId, Nanoseconds, DISError, DISResult};
 
 // =============================================================================
 // Security Domain

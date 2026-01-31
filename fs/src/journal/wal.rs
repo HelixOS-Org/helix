@@ -3,14 +3,9 @@
 //! Provides circular buffer log with ordered writes
 //! and crash-consistent commit protocol.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
-use crate::core::atomic::{SpinMutex, AtomicCounter};
-use crate::journal::{
-    JournalSuperblock, JournalState, JournalMode, JournalStats,
-    JOURNAL_BLOCK_SIZE, MAX_RECORD_SIZE,
-};
+use crate::journal::JOURNAL_BLOCK_SIZE;
 use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 
 // ============================================================================

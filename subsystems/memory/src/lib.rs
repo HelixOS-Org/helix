@@ -26,8 +26,6 @@ pub mod region;
 pub mod protection;
 
 use helix_hal::{PhysAddr, VirtAddr, PageSize};
-use alloc::sync::Arc;
-use core::sync::atomic::{AtomicU64, Ordering};
 
 /// Memory subsystem result type
 pub type MemResult<T> = Result<T, MemError>;

@@ -2,10 +2,9 @@
 //!
 //! Provides internal and leaf node structures for the B+tree.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
-use super::{TreeType, Key64, SearchResult};
+use super::{TreeType, SearchResult};
 use core::mem::size_of;
 
 // ============================================================================

@@ -2,7 +2,7 @@
 //!
 //! Safe wrappers for UEFI memory allocation and management.
 
-use crate::raw::memory::{MemoryType, MemoryAttribute, MemoryDescriptor, MemoryMapKey};
+use crate::raw::memory::{MemoryType, MemoryDescriptor, MemoryMapKey};
 use crate::raw::types::*;
 use core::alloc::{GlobalAlloc, Layout};
 use core::ptr::NonNull;

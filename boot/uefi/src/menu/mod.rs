@@ -2,9 +2,8 @@
 //!
 //! Text and graphical boot menu for selecting boot entries.
 
-use super::config::{BootConfig, BootEntry, GraphicsConfig, LogLevel};
+use super::config::{BootConfig, BootEntry};
 use super::console::{Color, Console, FramebufferConsole, Key};
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // =============================================================================

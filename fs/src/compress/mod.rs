@@ -20,8 +20,7 @@ pub mod lz4;
 pub mod zstd;
 pub mod adaptive;
 
-use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
+use crate::core::error::HfsResult;
 
 // ============================================================================
 // Constants

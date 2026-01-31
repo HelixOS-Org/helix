@@ -3,7 +3,7 @@
 //! Boot-time memory map structures for passing to the kernel.
 
 use crate::raw::types::*;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 extern crate alloc;
 use alloc::vec::Vec;

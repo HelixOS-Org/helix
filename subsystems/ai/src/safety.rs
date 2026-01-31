@@ -49,7 +49,7 @@
 //! ```
 
 use crate::core::{
-    AiAction, AiDecision, AiPriority, Confidence, SafetyLevel,
+    AiAction, AiDecision, AiPriority, SafetyLevel,
 };
 
 use alloc::{

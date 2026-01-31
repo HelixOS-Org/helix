@@ -7,7 +7,7 @@
 
 use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
-use super::{TreeConfig, TreeType, TreeHeader, TreeStats, SearchResult};
+use super::{TreeConfig, TreeHeader, TreeStats, SearchResult};
 use super::node::*;
 
 // ============================================================================

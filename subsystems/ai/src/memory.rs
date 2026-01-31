@@ -47,13 +47,11 @@
 //!                     └─────────────────────────────────────────────┘
 //! ```
 
-use crate::core::{AiDecision, Confidence, DecisionId};
-use crate::learning::Pattern;
+use crate::core::{Confidence, DecisionId};
 
 use alloc::{
     collections::{BTreeMap, VecDeque},
     string::{String, ToString},
-    vec,
     vec::Vec,
 };
 use core::sync::atomic::{AtomicU64, Ordering};

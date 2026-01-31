@@ -16,7 +16,7 @@ pub mod dentry;
 pub mod superblock;
 pub mod namespace;
 
-use crate::core::error::{HfsError, HfsResult};
+use crate::core::error::HfsResult;
 use crate::api::Credentials;
 use crate::api::{FileType, FileStat};
 

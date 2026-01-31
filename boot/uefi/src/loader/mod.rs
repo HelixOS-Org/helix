@@ -21,6 +21,14 @@
 //! - Dynamic relocation for KASLR
 //! - Module dependency resolution
 //! - Symbol table management
+//!
+//! # KASLR Support
+//!
+//! The `relocation` module provides comprehensive KASLR (Kernel Address Space
+//! Layout Randomization) support:
+//! - Hardware entropy collection (RDRAND/RDSEED)
+//! - Randomized kernel load addresses
+//! - Full ELF64 relocation support for PIE kernels
 
 #![allow(dead_code)]
 
@@ -28,6 +36,7 @@ pub mod elf;
 pub mod pe;
 pub mod image;
 pub mod relocate;
+pub mod relocation;
 pub mod verify;
 pub mod symbols;
 
@@ -35,6 +44,7 @@ pub use elf::*;
 pub use pe::*;
 pub use image::*;
 pub use relocate::*;
+pub use relocation::{RelocationConfig, RelocationStats};
 pub use verify::*;
 pub use symbols::*;
 

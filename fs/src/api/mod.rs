@@ -16,7 +16,6 @@ pub mod ops;
 pub mod mount;
 pub mod handle;
 
-use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants

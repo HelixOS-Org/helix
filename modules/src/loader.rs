@@ -2,10 +2,9 @@
 //!
 //! Handles loading module binaries from various sources.
 
-use crate::{Module, ModuleId, ModuleMetadata, ModuleResult, ModuleError, ModuleState};
+use crate::{Module, ModuleMetadata, ModuleResult, ModuleError, ModuleState};
 use alloc::boxed::Box;
 use alloc::sync::Arc;
-use alloc::string::String;
 use alloc::vec::Vec;
 use spin::RwLock;
 

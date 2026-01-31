@@ -5,7 +5,6 @@
 
 #![allow(dead_code)]
 
-use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Submodules

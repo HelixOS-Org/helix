@@ -2,10 +2,9 @@
 //!
 //! Handles key generation, derivation, storage, and wrapping.
 
-use crate::core::types::*;
 use crate::crypto::{
-    CryptoError, CipherAlgorithm, KdfAlgorithm,
-    AES_256_KEY_SIZE, CHACHA20_KEY_SIZE,
+    CryptoError, KdfAlgorithm,
+    AES_256_KEY_SIZE,
     MAX_KEY_SLOTS, KEY_DERIVE_ITERATIONS,
 };
 

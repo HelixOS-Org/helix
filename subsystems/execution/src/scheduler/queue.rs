@@ -5,7 +5,7 @@
 use crate::ThreadId;
 use super::Priority;
 use super::traits::RunQueue;
-use alloc::collections::{BinaryHeap, VecDeque, BTreeMap};
+use alloc::collections::{BinaryHeap, VecDeque};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 

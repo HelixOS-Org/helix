@@ -16,7 +16,6 @@ pub use tree::*;
 pub use diff::*;
 pub use clone::*;
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
 

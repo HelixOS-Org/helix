@@ -57,16 +57,16 @@
 //! 7. **Final Selection**: Pick best candidate for execution
 
 use alloc::collections::{BTreeMap, VecDeque};
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, AtomicUsize, Ordering};
 use spin::{Mutex, RwLock};
 
 use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult, Task, TaskState, TaskFlags};
 use super::intent::{Intent, IntentClass, IntentEngine};
-use super::policy::{PolicyEngine, PolicyContext, TaskContext, PowerMode};
-use super::stats::{StatsCollector, TaskStats, SystemStats, BehaviorPattern};
-use super::optimizer::{AdaptiveOptimizer, OptimizationHint, HintType, QueueLevel};
+use super::policy::{PolicyEngine, PolicyContext, TaskContext};
+use super::stats::StatsCollector;
+use super::optimizer::{AdaptiveOptimizer, HintType, QueueLevel};
 
 // =============================================================================
 // Scheduler Configuration
@@ -506,7 +506,7 @@ impl DISScheduler {
         self.tasks.write().insert(task_id, task);
         
         // Validate and store intent
-        let mut engine = self.intent_engine.write();
+        let engine = self.intent_engine.write();
         engine.register(intent.clone())?;
         drop(engine);
         
@@ -928,7 +928,7 @@ impl DISScheduler {
         drop(cpus);
         
         // Try to migrate a task
-        let mut cpus = self.cpus.write();
+        let cpus = self.cpus.write();
         if busy_idx < cpus.len() && idle_idx < cpus.len() {
             if let Some((task_id, _)) = cpus[busy_idx].dequeue() {
                 cpus[idle_idx].enqueue(task_id, QueueLevel::Normal);

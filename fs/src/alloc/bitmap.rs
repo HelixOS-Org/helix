@@ -3,10 +3,7 @@
 //! Uses hierarchical bitmaps for fast free block finding.
 //! Each bit represents one block (0 = free, 1 = used).
 
-use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
-use crate::core::atomic::AtomicBitset;
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use core::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================
 // Constants
