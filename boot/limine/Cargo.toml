@@ -90,6 +90,9 @@ verbose-boot = ["debug"]
 # heapless for fixed-capacity collections in validation
 heapless = "0.8"
 
+# Relocation subsystem for PIE support
+helix-relocation = { path = "../../subsystems/relocation", default-features = false, features = ["x86_64", "kaslr"] }
+
 [dev-dependencies]
 # Testing only on host
 
