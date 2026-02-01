@@ -11,15 +11,8 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use super::effect::{ActionOutcome, Effect};
 use super::limiter::target_to_string;
 use super::transaction::TransactionId;
-use crate::decide::ActionType;
 use crate::types::*;
-
-// ============================================================================
-// AUDIT ID
-// ============================================================================
-
-/// Audit ID type
-define_id!(AuditId, "Audit entry identifier");
+// ActionType now comes from types::* above
 
 // ============================================================================
 // AUDIT ENTRY
