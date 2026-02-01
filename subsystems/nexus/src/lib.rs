@@ -435,8 +435,9 @@ pub use crate::io::{
 // IOMMU Intelligence Re-exports
 pub use crate::iommu::{
     DeviceId as IommuDeviceId, DmaDirection, DmaMapping, DmaMappingTracker, DomainId, DomainType,
-    FaultTracker, FaultType as IommuFaultType, IommuAnalysis, IommuCapabilities, IommuDomain, IommuFault, IommuId,
-    IommuIntelligence, IommuIssue, IommuManager, IommuState, IommuType, IommuUnit,
+    FaultTracker, FaultType as IommuFaultType, IommuAnalysis, IommuCapabilities, IommuDomain,
+    IommuFault, IommuId, IommuIntelligence, IommuIssue, IommuManager, IommuState, IommuType,
+    IommuUnit,
 };
 // TODO: Re-enable when types are implemented
 // pub use crate::memory::{
