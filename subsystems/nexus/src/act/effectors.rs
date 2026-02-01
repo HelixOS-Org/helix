@@ -2,10 +2,9 @@
 //!
 //! Concrete effector implementations for various action types.
 
-use alloc::format;
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::effect::{Change, ChangeType, ChangeValue};
