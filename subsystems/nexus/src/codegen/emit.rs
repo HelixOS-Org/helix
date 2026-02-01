@@ -8,15 +8,15 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
 
 use super::ir::{
-    IRModule, IRFunction, IRBlock, IRInstruction, IROp, IRValue, IRType,
-    IRTerminator, FunctionAttributes, InlineHint, BlockId,
+    BlockId, FunctionAttributes, IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRTerminator,
+    IRType, IRValue, InlineHint,
 };
-use super::{ProofCertificate, CodeMetrics};
+use super::{CodeMetrics, ProofCertificate};
 
 // ============================================================================
 // EMISSION TYPES
@@ -238,7 +238,9 @@ impl CodeEmitter {
         self.emit_function_attributes(&func.attributes);
 
         // Signature
-        let params: Vec<String> = func.params.iter()
+        let params: Vec<String> = func
+            .params
+            .iter()
             .map(|p| format!("{}: {}", p.name, self.type_to_rust(&p.typ)))
             .collect();
 
@@ -311,7 +313,9 @@ impl CodeEmitter {
         // Similar to emit_function but with unsafe blocks
         self.emit_function_attributes(&func.attributes);
 
-        let params: Vec<String> = func.params.iter()
+        let params: Vec<String> = func
+            .params
+            .iter()
             .map(|p| format!("{}: {}", p.name, self.type_to_rust(&p.typ)))
             .collect();
 
@@ -359,7 +363,9 @@ impl CodeEmitter {
     }
 
     fn emit_llvm_function(&mut self, func: &IRFunction) {
-        let params: Vec<String> = func.params.iter()
+        let params: Vec<String> = func
+            .params
+            .iter()
             .map(|p| format!("{} %{}", self.type_to_llvm(&p.typ), p.name))
             .collect();
 
@@ -388,7 +394,7 @@ impl CodeEmitter {
             InlineHint::AlwaysInline => self.emit_line("#[inline(always)]"),
             InlineHint::Inline => self.emit_line("#[inline]"),
             InlineHint::NoInline => self.emit_line("#[inline(never)]"),
-            InlineHint::None => {}
+            InlineHint::None => {},
         }
 
         if attrs.cold {
@@ -470,9 +476,7 @@ impl CodeEmitter {
     }
 
     fn emit_call(&self, name: &str, args: &[IRValue], dest: &Option<String>) -> String {
-        let arg_strs: Vec<String> = args.iter()
-            .map(|a| self.value_to_rust(a))
-            .collect();
+        let arg_strs: Vec<String> = args.iter().map(|a| self.value_to_rust(a)).collect();
 
         if let Some(d) = dest {
             format!("let {} = {}({});", d, name, arg_strs.join(", "))
@@ -485,21 +489,25 @@ impl CodeEmitter {
         match term {
             IRTerminator::Return(Some(val)) => {
                 self.emit_line(&format!("return {};", self.value_to_rust(val)));
-            }
+            },
             IRTerminator::Return(None) => {
                 self.emit_line("return;");
-            }
+            },
             IRTerminator::Branch(target) => {
                 if let Some(block) = func.blocks.get(target) {
                     self.emit_line(&format!("// goto {}", block.label));
                 }
-            }
+            },
             IRTerminator::CondBranch(cond, then_block, else_block) => {
                 let c = self.value_to_rust(cond);
-                let then_label = func.blocks.get(then_block)
+                let then_label = func
+                    .blocks
+                    .get(then_block)
                     .map(|b| &b.label)
                     .unwrap_or(&String::new());
-                let else_label = func.blocks.get(else_block)
+                let else_label = func
+                    .blocks
+                    .get(else_block)
                     .map(|b| &b.label)
                     .unwrap_or(&String::new());
 
@@ -512,11 +520,11 @@ impl CodeEmitter {
                 self.emit_line(&format!("// goto {}", else_label));
                 self.indent -= 1;
                 self.emit_line("}");
-            }
+            },
             IRTerminator::Unreachable => {
                 self.emit_line("unreachable!();");
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -531,18 +539,30 @@ impl CodeEmitter {
     }
 
     fn emit_llvm_instruction(&mut self, instr: &IRInstruction) {
-        let dest = instr.dest.as_ref().map(|d| format!("%{}", d)).unwrap_or_default();
+        let dest = instr
+            .dest
+            .as_ref()
+            .map(|d| format!("%{}", d))
+            .unwrap_or_default();
 
         match &instr.op {
             IROp::Add(a, b) => {
-                self.emit_line(&format!("  {} = add i64 {}, {}",
-                    dest, self.value_to_llvm(a), self.value_to_llvm(b)));
-            }
+                self.emit_line(&format!(
+                    "  {} = add i64 {}, {}",
+                    dest,
+                    self.value_to_llvm(a),
+                    self.value_to_llvm(b)
+                ));
+            },
             IROp::Sub(a, b) => {
-                self.emit_line(&format!("  {} = sub i64 {}, {}",
-                    dest, self.value_to_llvm(a), self.value_to_llvm(b)));
-            }
-            _ => {}
+                self.emit_line(&format!(
+                    "  {} = sub i64 {}, {}",
+                    dest,
+                    self.value_to_llvm(a),
+                    self.value_to_llvm(b)
+                ));
+            },
+            _ => {},
         }
     }
 
@@ -550,17 +570,17 @@ impl CodeEmitter {
         match term {
             IRTerminator::Return(Some(val)) => {
                 self.emit_line(&format!("  ret i64 {}", self.value_to_llvm(val)));
-            }
+            },
             IRTerminator::Return(None) => {
                 self.emit_line("  ret void");
-            }
+            },
             IRTerminator::Branch(target) => {
                 self.emit_line(&format!("  br label %block_{}", target));
-            }
+            },
             IRTerminator::Unreachable => {
                 self.emit_line("  unreachable");
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -585,7 +605,13 @@ impl CodeEmitter {
             IRValue::Var(name) => format!("%{}", name),
             IRValue::Param(n) => format!("%param_{}", n),
             IRValue::ConstInt(n, _) => format!("{}", n),
-            IRValue::ConstBool(b) => if *b { "true".into() } else { "false".into() },
+            IRValue::ConstBool(b) => {
+                if *b {
+                    "true".into()
+                } else {
+                    "false".into()
+                }
+            },
             IRValue::Null(_) => "null".into(),
             _ => "undef".into(),
         }
@@ -611,17 +637,19 @@ impl CodeEmitter {
             IRType::Array(inner, size) => format!("[{}; {}]", self.type_to_rust(inner), size),
             IRType::Vector(inner, size) => format!("[{}; {}]", self.type_to_rust(inner), size),
             IRType::Struct(fields) => {
-                let field_types: Vec<String> = fields.iter()
-                    .map(|f| self.type_to_rust(f))
-                    .collect();
+                let field_types: Vec<String> =
+                    fields.iter().map(|f| self.type_to_rust(f)).collect();
                 format!("({})", field_types.join(", "))
-            }
+            },
             IRType::Function(params, ret) => {
-                let param_types: Vec<String> = params.iter()
-                    .map(|p| self.type_to_rust(p))
-                    .collect();
-                format!("fn({}) -> {}", param_types.join(", "), self.type_to_rust(ret))
-            }
+                let param_types: Vec<String> =
+                    params.iter().map(|p| self.type_to_rust(p)).collect();
+                format!(
+                    "fn({}) -> {}",
+                    param_types.join(", "),
+                    self.type_to_rust(ret)
+                )
+            },
             IRType::Named(name) => name.clone(),
         }
     }
@@ -682,10 +710,17 @@ impl CodeEmitter {
             docs.push_str("**Parameters:**\n\n");
 
             for param in &func.params {
-                docs.push_str(&format!("- `{}`: `{}`\n", param.name, self.type_to_rust(&param.typ)));
+                docs.push_str(&format!(
+                    "- `{}`: `{}`\n",
+                    param.name,
+                    self.type_to_rust(&param.typ)
+                ));
             }
 
-            docs.push_str(&format!("\n**Returns:** `{}`\n\n", self.type_to_rust(&func.return_type)));
+            docs.push_str(&format!(
+                "\n**Returns:** `{}`\n\n",
+                self.type_to_rust(&func.return_type)
+            ));
         }
 
         docs
@@ -732,8 +767,8 @@ impl Default for CodeEmitter {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::ir::{IRBuilder, IRParam, ParamAttributes};
+    use super::*;
 
     #[test]
     fn test_emit_function() {
@@ -742,8 +777,16 @@ mod tests {
         builder.create_function(
             "add",
             vec![
-                IRParam { name: "a".into(), typ: IRType::I64, attributes: ParamAttributes::default() },
-                IRParam { name: "b".into(), typ: IRType::I64, attributes: ParamAttributes::default() },
+                IRParam {
+                    name: "a".into(),
+                    typ: IRType::I64,
+                    attributes: ParamAttributes::default(),
+                },
+                IRParam {
+                    name: "b".into(),
+                    typ: IRType::I64,
+                    attributes: ParamAttributes::default(),
+                },
             ],
             IRType::I64,
         );
@@ -766,14 +809,20 @@ mod tests {
 
         assert_eq!(emitter.type_to_rust(&IRType::I64), "i64");
         assert_eq!(emitter.type_to_rust(&IRType::Bool), "bool");
-        assert_eq!(emitter.type_to_rust(&IRType::Ptr(Box::new(IRType::U8))), "*const u8");
+        assert_eq!(
+            emitter.type_to_rust(&IRType::Ptr(Box::new(IRType::U8))),
+            "*const u8"
+        );
     }
 
     #[test]
     fn test_value_to_rust() {
         let emitter = CodeEmitter::default();
 
-        assert_eq!(emitter.value_to_rust(&IRValue::ConstInt(42, IRType::I64)), "42");
+        assert_eq!(
+            emitter.value_to_rust(&IRValue::ConstInt(42, IRType::I64)),
+            "42"
+        );
         assert_eq!(emitter.value_to_rust(&IRValue::ConstBool(true)), "true");
         assert_eq!(emitter.value_to_rust(&IRValue::Var("x".into())), "x");
     }
