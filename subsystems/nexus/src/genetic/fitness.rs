@@ -12,8 +12,8 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::{Fitness, GenomeId};
 use super::genome::CodeGenome;
+use super::{Fitness, GenomeId};
 
 // ============================================================================
 // FITNESS OBJECTIVES
@@ -262,10 +262,14 @@ impl FitnessEvaluator {
         // In real implementation, would interpret/execute genome
 
         // For now, use a heuristic based on genome structure
-        let has_arithmetic = genome.genes.iter()
+        let has_arithmetic = genome
+            .genes
+            .iter()
             .any(|g| matches!(g.gene_type, super::genome::GeneType::Arithmetic));
 
-        let has_output = genome.genes.iter()
+        let has_output = genome
+            .genes
+            .iter()
             .any(|g| matches!(g.gene_type, super::genome::GeneType::Memory));
 
         has_arithmetic && has_output
@@ -295,7 +299,9 @@ impl FitnessEvaluator {
 
     fn evaluate_memory_efficiency(&self, genome: &CodeGenome) -> f64 {
         // Count memory operations
-        let memory_ops = genome.genes.iter()
+        let memory_ops = genome
+            .genes
+            .iter()
             .filter(|g| matches!(g.gene_type, super::genome::GeneType::Memory))
             .count();
 
@@ -317,11 +323,15 @@ impl FitnessEvaluator {
 
     fn evaluate_energy_efficiency(&self, genome: &CodeGenome) -> f64 {
         // Estimate based on expensive operations
-        let expensive_ops = genome.genes.iter()
-            .filter(|g| matches!(g.gene_type, 
-                super::genome::GeneType::Memory |
-                super::genome::GeneType::Call
-            ))
+        let expensive_ops = genome
+            .genes
+            .iter()
+            .filter(|g| {
+                matches!(
+                    g.gene_type,
+                    super::genome::GeneType::Memory | super::genome::GeneType::Call
+                )
+            })
             .count();
 
         let total = genome.active_size().max(1);
@@ -343,7 +353,9 @@ impl FitnessEvaluator {
             }
         }
 
-        let total = genome.genes.iter()
+        let total = genome
+            .genes
+            .iter()
             .map(|g| g.codons.len())
             .sum::<usize>()
             .max(1);
@@ -354,9 +366,7 @@ impl FitnessEvaluator {
     fn evaluate_maintainability(&self, genome: &CodeGenome) -> f64 {
         // Based on structure and complexity
         let avg_gene_size = if genome.size() > 0 {
-            genome.genes.iter()
-                .map(|g| g.codons.len())
-                .sum::<usize>() as f64 / genome.size() as f64
+            genome.genes.iter().map(|g| g.codons.len()).sum::<usize>() as f64 / genome.size() as f64
         } else {
             0.0
         };
@@ -367,7 +377,9 @@ impl FitnessEvaluator {
 
     fn evaluate_robustness(&self, genome: &CodeGenome) -> f64 {
         // Check for error handling patterns
-        let control_genes = genome.genes.iter()
+        let control_genes = genome
+            .genes
+            .iter()
             .filter(|g| matches!(g.gene_type, super::genome::GeneType::Control))
             .count();
 
@@ -382,7 +394,9 @@ impl FitnessEvaluator {
         // Check for independent operations that could parallelize
         // Simplified: genes without memory dependencies are parallelizable
 
-        let independent = genome.genes.iter()
+        let independent = genome
+            .genes
+            .iter()
             .filter(|g| !matches!(g.gene_type, super::genome::GeneType::Memory))
             .count();
 
@@ -399,7 +413,9 @@ impl FitnessEvaluator {
             if matches!(gene.gene_type, super::genome::GeneType::Memory) {
                 total_memory += 1;
                 // Check for sequential addressing
-                let has_sequential = gene.codons.iter()
+                let has_sequential = gene
+                    .codons
+                    .iter()
                     .filter_map(|c| match c {
                         super::genome::Codon::Addr(a) => Some(*a),
                         _ => None,
@@ -423,7 +439,9 @@ impl FitnessEvaluator {
 
     fn evaluate_branch_prediction(&self, genome: &CodeGenome) -> f64 {
         // Fewer branches are easier to predict
-        let branch_count = genome.genes.iter()
+        let branch_count = genome
+            .genes
+            .iter()
             .filter(|g| matches!(g.gene_type, super::genome::GeneType::Control))
             .count();
 
@@ -433,11 +451,15 @@ impl FitnessEvaluator {
 
     fn evaluate_vectorization(&self, genome: &CodeGenome) -> f64 {
         // Check for vectorizable patterns (independent arithmetic)
-        let arithmetic_genes = genome.genes.iter()
+        let arithmetic_genes = genome
+            .genes
+            .iter()
             .filter(|g| matches!(g.gene_type, super::genome::GeneType::Arithmetic))
             .count();
 
-        let control_genes = genome.genes.iter()
+        let control_genes = genome
+            .genes
+            .iter()
             .filter(|g| matches!(g.gene_type, super::genome::GeneType::Control))
             .count();
 
@@ -498,9 +520,7 @@ pub fn pareto_fronts(fitnesses: &[Fitness]) -> Vec<Vec<usize>> {
     }
 
     // First front
-    let mut current_front: Vec<usize> = (0..n)
-        .filter(|&i| domination_count[i] == 0)
-        .collect();
+    let mut current_front: Vec<usize> = (0..n).filter(|&i| domination_count[i] == 0).collect();
 
     while !current_front.is_empty() {
         let mut next_front = Vec::new();
@@ -533,7 +553,8 @@ pub fn crowding_distance(fitnesses: &[Fitness], front: &[usize]) -> Vec<f64> {
 
     for obj in 0..m {
         // Sort by objective
-        let mut sorted: Vec<(usize, f64)> = front.iter()
+        let mut sorted: Vec<(usize, f64)> = front
+            .iter()
             .enumerate()
             .map(|(i, &idx)| (i, fitnesses[idx].objectives[obj]))
             .collect();
@@ -547,8 +568,7 @@ pub fn crowding_distance(fitnesses: &[Fitness], front: &[usize]) -> Vec<f64> {
         let range = sorted[n - 1].1 - sorted[0].1;
         if range > 0.0 {
             for i in 1..(n - 1) {
-                distances[sorted[i].0] +=
-                    (sorted[i + 1].1 - sorted[i - 1].1) / range;
+                distances[sorted[i].0] += (sorted[i + 1].1 - sorted[i - 1].1) / range;
             }
         }
     }
@@ -562,8 +582,9 @@ pub fn crowding_distance(fitnesses: &[Fitness], front: &[usize]) -> Vec<f64> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::sync::atomic::AtomicU64;
+
+    use super::*;
 
     #[test]
     fn test_evaluator_creation() {
