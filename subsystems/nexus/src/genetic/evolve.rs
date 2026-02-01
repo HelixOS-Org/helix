@@ -12,14 +12,14 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::{
-    Individual, GenomeId, Fitness, Generation, EvolutionConfig, SelectionStrategy,
-    GeneticEngine, EvolutionStats, GenerationStats,
-};
-use super::genome::CodeGenome;
-use super::population::Population;
-use super::mutation::MutationEngine;
 use super::crossover::CrossoverEngine;
+use super::genome::CodeGenome;
+use super::mutation::MutationEngine;
+use super::population::Population;
+use super::{
+    EvolutionConfig, EvolutionStats, Fitness, Generation, GenerationStats, GeneticEngine, GenomeId,
+    Individual, SelectionStrategy,
+};
 
 // ============================================================================
 // EVOLUTION STRATEGIES
@@ -87,34 +87,36 @@ impl EvolutionController {
         F: Fn(&CodeGenome) -> Fitness,
     {
         match &self.strategy {
-            EvolutionStrategy::Generational => {
-                self.evolve_generational(population, fitness_fn)
-            }
+            EvolutionStrategy::Generational => self.evolve_generational(population, fitness_fn),
             EvolutionStrategy::SteadyState { replacement_count } => {
                 self.evolve_steady_state(population, fitness_fn, *replacement_count)
-            }
+            },
             EvolutionStrategy::MuPlusLambda { mu, lambda } => {
                 self.evolve_mu_plus_lambda(population, fitness_fn, *mu, *lambda)
-            }
+            },
             EvolutionStrategy::MuCommaLambda { mu, lambda } => {
                 self.evolve_mu_comma_lambda(population, fitness_fn, *mu, *lambda)
-            }
+            },
             EvolutionStrategy::DifferentialEvolution { f, cr } => {
                 self.evolve_differential(population, fitness_fn, *f, *cr)
-            }
+            },
             EvolutionStrategy::Coevolution { species_count } => {
                 self.evolve_coevolution(population, fitness_fn, *species_count)
-            }
+            },
             EvolutionStrategy::NoveltySearch { archive_threshold } => {
                 self.evolve_novelty(population, fitness_fn, *archive_threshold)
-            }
+            },
             EvolutionStrategy::MapElites { grid_dims } => {
                 self.evolve_map_elites(population, fitness_fn, grid_dims.clone())
-            }
+            },
         }
     }
 
-    fn evolve_generational<F>(&mut self, population: &mut Population, fitness_fn: F) -> GenerationStats
+    fn evolve_generational<F>(
+        &mut self,
+        population: &mut Population,
+        fitness_fn: F,
+    ) -> GenerationStats
     where
         F: Fn(&CodeGenome) -> Fitness,
     {
@@ -233,8 +235,16 @@ impl EvolutionController {
         // Replace worst individuals
         let mut all: Vec<Individual> = population.iter().cloned().collect();
         all.sort_by(|a, b| {
-            let fa = a.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
-            let fb = b.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
+            let fa = a
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
+            let fb = b
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
             fb.partial_cmp(&fa).unwrap_or(core::cmp::Ordering::Equal)
         });
 
@@ -307,8 +317,16 @@ impl EvolutionController {
         combined.extend(offspring);
 
         combined.sort_by(|a, b| {
-            let fa = a.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
-            let fb = b.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
+            let fa = a
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
+            let fb = b
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
             fb.partial_cmp(&fa).unwrap_or(core::cmp::Ordering::Equal)
         });
 
@@ -371,8 +389,16 @@ impl EvolutionController {
 
         // Select best from offspring only (comma strategy)
         offspring.sort_by(|a, b| {
-            let fa = a.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
-            let fb = b.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
+            let fa = a
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
+            let fb = b
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
             fb.partial_cmp(&fa).unwrap_or(core::cmp::Ordering::Equal)
         });
 
@@ -408,9 +434,7 @@ impl EvolutionController {
             let target = &individuals[i];
 
             // Select three distinct random individuals
-            let mut indices: Vec<usize> = (0..individuals.len())
-                .filter(|&j| j != i)
-                .collect();
+            let mut indices: Vec<usize> = (0..individuals.len()).filter(|&j| j != i).collect();
             shuffle(&mut indices);
 
             if indices.len() < 3 {
@@ -535,7 +559,9 @@ impl EvolutionController {
             return 1.0;
         }
 
-        let distances: Vec<f64> = self.novelty_archive.iter()
+        let distances: Vec<f64> = self
+            .novelty_archive
+            .iter()
             .map(|g| genome.distance(g))
             .collect();
 
@@ -568,11 +594,11 @@ impl EvolutionController {
             // Check if cell is empty or new individual is better
             let should_insert = match self.map_elites_grid.get(&cell) {
                 None => true,
-                Some(existing) => {
-                    existing.fitness.as_ref()
-                        .map(|f| fitness.scalar > f.scalar)
-                        .unwrap_or(true)
-                }
+                Some(existing) => existing
+                    .fitness
+                    .as_ref()
+                    .map(|f| fitness.scalar > f.scalar)
+                    .unwrap_or(true),
             };
 
             if should_insert {
@@ -627,7 +653,8 @@ impl EvolutionController {
             genome.active_size() as f64,
         ];
 
-        features.iter()
+        features
+            .iter()
             .zip(grid_dims.iter())
             .map(|(f, &dim)| {
                 let normalized = (f / 100.0).clamp(0.0, 0.999);
@@ -704,14 +731,22 @@ static mut EVOLVE_SEED: u64 = 46802;
 
 fn rand_u64() -> u64 {
     unsafe {
-        EVOLVE_SEED = EVOLVE_SEED.wrapping_mul(6364136223846793005).wrapping_add(1);
+        EVOLVE_SEED = EVOLVE_SEED
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1);
         EVOLVE_SEED
     }
 }
 
-fn rand_f64() -> f64 { (rand_u64() as f64) / (u64::MAX as f64) }
+fn rand_f64() -> f64 {
+    (rand_u64() as f64) / (u64::MAX as f64)
+}
 fn rand_usize(max: usize) -> usize {
-    if max == 0 { 0 } else { (rand_u64() as usize) % max }
+    if max == 0 {
+        0
+    } else {
+        (rand_u64() as usize) % max
+    }
 }
 
 // ============================================================================
@@ -725,10 +760,7 @@ mod tests {
     #[test]
     fn test_controller_creation() {
         let config = EvolutionConfig::default();
-        let controller = EvolutionController::new(
-            EvolutionStrategy::Generational,
-            config,
-        );
+        let controller = EvolutionController::new(EvolutionStrategy::Generational, config);
         assert_eq!(controller.generation().0, 0);
     }
 }
