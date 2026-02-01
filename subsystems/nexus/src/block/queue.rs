@@ -100,6 +100,7 @@ impl IoRequest {
 }
 
 /// Request queue
+#[derive(Debug)]
 pub struct RequestQueue {
     /// Device
     pub device: BlockDeviceId,
