@@ -13,8 +13,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{TypeSpec, Specification};
 use super::ir::IRType;
+use super::{Specification, TypeSpec};
 
 // ============================================================================
 // CONSTRAINT TYPES
@@ -30,7 +30,7 @@ pub enum Constraint {
     TypeEquals(VarId, TypeExpr),
     TypeSubtype(VarId, TypeExpr),
     TypeImplements(VarId, String),
-    
+
     // Value constraints
     Equals(VarId, ValueExpr),
     NotEquals(VarId, ValueExpr),
@@ -38,20 +38,20 @@ pub enum Constraint {
     LessEquals(VarId, ValueExpr),
     GreaterThan(VarId, ValueExpr),
     GreaterEquals(VarId, ValueExpr),
-    
+
     // Range constraints
     InRange(VarId, ValueExpr, ValueExpr),
-    
+
     // Boolean constraints
     And(Box<Constraint>, Box<Constraint>),
     Or(Box<Constraint>, Box<Constraint>),
     Not(Box<Constraint>),
     Implies(Box<Constraint>, Box<Constraint>),
-    
+
     // Quantifiers
     ForAll(VarId, TypeExpr, Box<Constraint>),
     Exists(VarId, TypeExpr, Box<Constraint>),
-    
+
     // Custom
     Custom(String, Vec<ValueExpr>),
 }
@@ -86,17 +86,33 @@ pub enum ValueExpr {
 /// Binary operator
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOp {
-    Add, Sub, Mul, Div, Rem,
-    And, Or, Xor,
-    Shl, Shr,
-    Eq, Ne, Lt, Le, Gt, Ge,
-    LogicAnd, LogicOr,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    LogicAnd,
+    LogicOr,
 }
 
 /// Unary operator
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnOp {
-    Neg, Not, Deref, Ref,
+    Neg,
+    Not,
+    Deref,
+    Ref,
 }
 
 /// Constraint solution
@@ -279,26 +295,23 @@ impl ConstraintSolver {
             TypeExpr::Var(id) => self.type_subst.get(id).cloned(),
             TypeExpr::Concrete(typ) => Some(typ.clone()),
             TypeExpr::Function(params, ret) => {
-                let param_types: Option<Vec<_>> = params.iter()
-                    .map(|p| self.type_expr_to_ir(p))
-                    .collect();
+                let param_types: Option<Vec<_>> =
+                    params.iter().map(|p| self.type_expr_to_ir(p)).collect();
                 let ret_type = self.type_expr_to_ir(ret)?;
                 Some(IRType::Function(param_types?, Box::new(ret_type)))
-            }
+            },
             TypeExpr::Tuple(types) => {
-                let inner: Option<Vec<_>> = types.iter()
-                    .map(|t| self.type_expr_to_ir(t))
-                    .collect();
+                let inner: Option<Vec<_>> = types.iter().map(|t| self.type_expr_to_ir(t)).collect();
                 Some(IRType::Struct(inner?))
-            }
+            },
             TypeExpr::Array(elem, size) => {
                 let elem_type = self.type_expr_to_ir(elem)?;
                 Some(IRType::Array(Box::new(elem_type), *size))
-            }
+            },
             TypeExpr::Ptr(inner) => {
                 let inner_type = self.type_expr_to_ir(inner)?;
                 Some(IRType::Ptr(Box::new(inner_type)))
-            }
+            },
             TypeExpr::Generic(name) => Some(IRType::Named(name.clone())),
         }
     }
@@ -313,7 +326,7 @@ impl ConstraintSolver {
                     }
                 }
                 false
-            }
+            },
             Constraint::Equals(var, expr) => {
                 if !self.value_subst.contains_key(var) {
                     if let Some(val) = self.eval_value_expr(expr) {
@@ -322,19 +335,19 @@ impl ConstraintSolver {
                     }
                 }
                 false
-            }
+            },
             Constraint::And(c1, c2) => {
                 let r1 = self.propagate(c1);
                 let r2 = self.propagate(c2);
                 r1 || r2
-            }
+            },
             Constraint::Implies(antecedent, consequent) => {
                 if self.is_true(antecedent) {
                     self.propagate(consequent)
                 } else {
                     false
                 }
-            }
+            },
             _ => false,
         }
     }
@@ -349,11 +362,11 @@ impl ConstraintSolver {
                 let lval = self.eval_value_expr(l)?;
                 let rval = self.eval_value_expr(r)?;
                 self.eval_binop(&lval, *op, &rval)
-            }
+            },
             ValueExpr::UnaryOp(op, e) => {
                 let val = self.eval_value_expr(e)?;
                 self.eval_unop(*op, &val)
-            }
+            },
             ValueExpr::If(cond, then_e, else_e) => {
                 let c = self.eval_value_expr(cond)?;
                 match c {
@@ -361,26 +374,26 @@ impl ConstraintSolver {
                     SolvedValue::Bool(false) => self.eval_value_expr(else_e),
                     _ => None,
                 }
-            }
+            },
             _ => None,
         }
     }
 
     fn eval_binop(&self, l: &SolvedValue, op: BinOp, r: &SolvedValue) -> Option<SolvedValue> {
         match (l, r) {
-            (SolvedValue::Int(a), SolvedValue::Int(b)) => {
-                Some(SolvedValue::Int(match op {
-                    BinOp::Add => a + b,
-                    BinOp::Sub => a - b,
-                    BinOp::Mul => a * b,
-                    BinOp::Div => a / b,
-                    BinOp::Rem => a % b,
-                    BinOp::And => a & b,
-                    BinOp::Or => a | b,
-                    BinOp::Xor => a ^ b,
-                    BinOp::Shl => a << (*b as u32),
-                    BinOp::Shr => a >> (*b as u32),
-                    _ => return Some(SolvedValue::Bool(match op {
+            (SolvedValue::Int(a), SolvedValue::Int(b)) => Some(SolvedValue::Int(match op {
+                BinOp::Add => a + b,
+                BinOp::Sub => a - b,
+                BinOp::Mul => a * b,
+                BinOp::Div => a / b,
+                BinOp::Rem => a % b,
+                BinOp::And => a & b,
+                BinOp::Or => a | b,
+                BinOp::Xor => a ^ b,
+                BinOp::Shl => a << (*b as u32),
+                BinOp::Shr => a >> (*b as u32),
+                _ => {
+                    return Some(SolvedValue::Bool(match op {
                         BinOp::Eq => a == b,
                         BinOp::Ne => a != b,
                         BinOp::Lt => a < b,
@@ -388,18 +401,16 @@ impl ConstraintSolver {
                         BinOp::Gt => a > b,
                         BinOp::Ge => a >= b,
                         _ => return None,
-                    })),
-                }))
-            }
-            (SolvedValue::Bool(a), SolvedValue::Bool(b)) => {
-                Some(SolvedValue::Bool(match op {
-                    BinOp::LogicAnd => *a && *b,
-                    BinOp::LogicOr => *a || *b,
-                    BinOp::Eq => a == b,
-                    BinOp::Ne => a != b,
-                    _ => return None,
-                }))
-            }
+                    }));
+                },
+            })),
+            (SolvedValue::Bool(a), SolvedValue::Bool(b)) => Some(SolvedValue::Bool(match op {
+                BinOp::LogicAnd => *a && *b,
+                BinOp::LogicOr => *a || *b,
+                BinOp::Eq => a == b,
+                BinOp::Ne => a != b,
+                _ => return None,
+            })),
             _ => None,
         }
     }
@@ -417,7 +428,7 @@ impl ConstraintSolver {
         match constraint {
             Constraint::Equals(var, ValueExpr::Bool(true)) => {
                 matches!(self.value_subst.get(var), Some(SolvedValue::Bool(true)))
-            }
+            },
             Constraint::And(c1, c2) => self.is_true(c1) && self.is_true(c2),
             Constraint::Or(c1, c2) => self.is_true(c1) || self.is_true(c2),
             Constraint::Not(c) => !self.is_true(c),
@@ -437,55 +448,47 @@ impl ConstraintSolver {
     fn check_constraint(&self, constraint: &Constraint) -> bool {
         match constraint {
             Constraint::TypeEquals(var, typ) => {
-                if let (Some(actual), Some(expected)) = (
-                    self.type_subst.get(var),
-                    self.type_expr_to_ir(typ)
-                ) {
+                if let (Some(actual), Some(expected)) =
+                    (self.type_subst.get(var), self.type_expr_to_ir(typ))
+                {
                     actual == &expected
                 } else {
                     true // Unknown - assume true
                 }
-            }
+            },
             Constraint::Equals(var, expr) => {
-                if let (Some(actual), Some(expected)) = (
-                    self.value_subst.get(var),
-                    self.eval_value_expr(expr)
-                ) {
+                if let (Some(actual), Some(expected)) =
+                    (self.value_subst.get(var), self.eval_value_expr(expr))
+                {
                     self.values_equal(actual, &expected)
                 } else {
                     true
                 }
-            }
+            },
             Constraint::NotEquals(var, expr) => {
-                if let (Some(actual), Some(expected)) = (
-                    self.value_subst.get(var),
-                    self.eval_value_expr(expr)
-                ) {
+                if let (Some(actual), Some(expected)) =
+                    (self.value_subst.get(var), self.eval_value_expr(expr))
+                {
                     !self.values_equal(actual, &expected)
                 } else {
                     true
                 }
-            }
+            },
             Constraint::LessThan(var, expr) => {
-                if let (Some(SolvedValue::Int(a)), Some(SolvedValue::Int(b))) = (
-                    self.value_subst.get(var),
-                    self.eval_value_expr(expr)
-                ) {
+                if let (Some(SolvedValue::Int(a)), Some(SolvedValue::Int(b))) =
+                    (self.value_subst.get(var), self.eval_value_expr(expr))
+                {
                     a < &b
                 } else {
                     true
                 }
-            }
-            Constraint::And(c1, c2) => {
-                self.check_constraint(c1) && self.check_constraint(c2)
-            }
-            Constraint::Or(c1, c2) => {
-                self.check_constraint(c1) || self.check_constraint(c2)
-            }
+            },
+            Constraint::And(c1, c2) => self.check_constraint(c1) && self.check_constraint(c2),
+            Constraint::Or(c1, c2) => self.check_constraint(c1) || self.check_constraint(c2),
             Constraint::Not(c) => !self.check_constraint(c),
             Constraint::Implies(antecedent, consequent) => {
                 !self.check_constraint(antecedent) || self.check_constraint(consequent)
-            }
+            },
             _ => true,
         }
     }
@@ -534,7 +537,9 @@ impl ConstraintSolver {
             TypeSpec::F32 => TypeExpr::Concrete(IRType::F32),
             TypeSpec::F64 => TypeExpr::Concrete(IRType::F64),
             TypeSpec::Ptr(inner) => TypeExpr::Ptr(Box::new(self.typespec_to_expr(inner))),
-            TypeSpec::Array(inner, size) => TypeExpr::Array(Box::new(self.typespec_to_expr(inner)), *size),
+            TypeSpec::Array(inner, size) => {
+                TypeExpr::Array(Box::new(self.typespec_to_expr(inner)), *size)
+            },
             TypeSpec::Generic(name) => TypeExpr::Generic(name.clone()),
             _ => TypeExpr::Concrete(IRType::I64),
         }
@@ -592,11 +597,7 @@ mod tests {
     #[test]
     fn test_binop_eval() {
         let solver = ConstraintSolver::default();
-        let result = solver.eval_binop(
-            &SolvedValue::Int(10),
-            BinOp::Add,
-            &SolvedValue::Int(5),
-        );
+        let result = solver.eval_binop(&SolvedValue::Int(10), BinOp::Add, &SolvedValue::Int(5));
         assert!(matches!(result, Some(SolvedValue::Int(15))));
     }
 }
