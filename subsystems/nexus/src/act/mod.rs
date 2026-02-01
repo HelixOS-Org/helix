@@ -96,7 +96,6 @@ pub use domain::{ActConfig, ActDomain, ActError, ActStats};
 pub use effect::{ActionOutcome, Change, ChangeType, ChangeValue, Effect};
 // Re-exports - Effector
 pub use effector::{Effector, EffectorRegistry, EffectorResult};
-pub use crate::types::EffectorId;
 // Re-exports - Effectors
 pub use effectors::{MemoryEffector, ModuleEffector, NoOpEffector, ProcessEffector};
 // Re-exports - Limiter
@@ -114,5 +113,6 @@ pub use validator::{
     ValidatorStats,
 };
 
+pub use crate::types::EffectorId;
 // Re-export from types (for backwards compatibility)
 pub use crate::types::{ChangeId, EffectId};
