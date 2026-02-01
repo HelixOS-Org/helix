@@ -287,10 +287,7 @@ impl PreValidator {
         };
 
         for rule in &self.rules {
-            if rule
-                .applies_to
-                .contains(&intent.action_type)
-            {
+            if rule.applies_to.contains(&intent.action_type) {
                 let check_result = self.perform_check(&rule.check, intent);
 
                 if check_result {
