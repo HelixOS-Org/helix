@@ -6,13 +6,13 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::boxed::Box;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use super::{NodeId, ClusterId, ImprovementId, Term, Epoch};
+use super::{ClusterId, Epoch, ImprovementId, NodeId, Term};
 
 // ============================================================================
 // CONSENSUS TYPES
@@ -182,7 +182,8 @@ impl RaftState {
         let last_log_index = self.last_log_index();
         let last_log_term = self.last_log_term();
 
-        self.members.iter()
+        self.members
+            .iter()
             .filter(|&m| *m != self.node_id)
             .map(|&member| RequestVote {
                 term: self.current_term,
@@ -305,9 +306,7 @@ impl RaftState {
 
         // Update commit index
         if leader_commit > self.commit_index {
-            self.commit_index = LogIndex(
-                core::cmp::min(leader_commit.0, self.last_log_index().0)
-            );
+            self.commit_index = LogIndex(core::cmp::min(leader_commit.0, self.last_log_index().0));
         }
 
         AppendEntriesResponse {
@@ -356,7 +355,8 @@ impl RaftState {
 
     /// Get committed entries
     pub fn committed_entries(&self) -> Vec<&LogEntry> {
-        self.log.iter()
+        self.log
+            .iter()
             .filter(|e| e.index.0 <= self.commit_index.0)
             .collect()
     }
@@ -527,7 +527,10 @@ impl PaxosState {
         let majority = (self.members.len() / 2) + 1;
         if self.proposer.promises.len() >= majority {
             // Use highest accepted value if any
-            let value = self.proposer.promises.iter()
+            let value = self
+                .proposer
+                .promises
+                .iter()
                 .filter(|(_, n, v)| v.is_some() && n.0 > 0)
                 .max_by_key(|(_, n, _)| n.0)
                 .and_then(|(_, _, v)| v.clone())
@@ -569,10 +572,9 @@ impl PaxosState {
         let majority = (self.members.len() / 2) + 1;
         if self.proposer.accepts.len() >= majority {
             if let Some(value) = &self.proposer.proposed_value {
-                self.learner.learned.insert(
-                    self.proposer.proposal_number,
-                    value.clone(),
-                );
+                self.learner
+                    .learned
+                    .insert(self.proposer.proposal_number, value.clone());
                 return Some(value.clone());
             }
         }
@@ -724,12 +726,12 @@ impl ConsensusEngine {
                 let index = self.raft.append_entry(command);
                 self.stats.proposals += 1;
                 Ok(index)
-            }
+            },
             ConsensusAlgorithm::Paxos => {
                 // Use Paxos
                 self.stats.proposals += 1;
                 Ok(LogIndex(0))
-            }
+            },
             _ => Err(ConsensusError::UnsupportedAlgorithm),
         }
     }
@@ -811,7 +813,7 @@ mod tests {
         raft.add_member(NodeId(3));
 
         raft.start_election();
-        
+
         // Get majority
         let became_leader = raft.handle_vote_response(NodeId(2), true);
         assert!(became_leader);
@@ -821,7 +823,7 @@ mod tests {
     #[test]
     fn test_paxos_prepare() {
         let mut paxos = PaxosState::new(NodeId(1));
-        
+
         let prepare = paxos.prepare(vec![1, 2, 3]);
         assert!(prepare.proposal_number.0 > 0);
     }
@@ -830,7 +832,7 @@ mod tests {
     fn test_consensus_engine() {
         let node_id = NodeId(1);
         let engine = ConsensusEngine::new(node_id, ConsensusConfig::default());
-        
+
         assert!(!engine.is_leader());
     }
 }
