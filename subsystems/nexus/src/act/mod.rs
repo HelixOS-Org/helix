@@ -95,7 +95,8 @@ pub use audit::{AuditEntry, AuditLogger, AuditOutcome, AuditStats};
 pub use domain::{ActConfig, ActDomain, ActError, ActStats};
 pub use effect::{ActionOutcome, Change, ChangeType, ChangeValue, Effect};
 // Re-exports - Effector
-pub use effector::{Effector, EffectorId, EffectorRegistry, EffectorResult};
+pub use effector::{Effector, EffectorRegistry, EffectorResult};
+pub use crate::types::EffectorId;
 // Re-exports - Effectors
 pub use effectors::{MemoryEffector, ModuleEffector, NoOpEffector, ProcessEffector};
 // Re-exports - Limiter
