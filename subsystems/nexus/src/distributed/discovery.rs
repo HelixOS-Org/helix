@@ -6,13 +6,13 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::boxed::Box;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use super::{NodeId, ClusterId, NodeInfo, NodeAddress, NodeCapabilities, NodeState, NodeRole};
+use super::{ClusterId, NodeAddress, NodeCapabilities, NodeId, NodeInfo, NodeRole, NodeState};
 
 // ============================================================================
 // DISCOVERY TYPES
@@ -326,9 +326,7 @@ impl DHTRoutingTable {
 
     /// Find closest nodes
     pub fn find_closest(&self, target: NodeId, count: usize) -> Vec<&DHTEntry> {
-        let mut all_entries: Vec<_> = self.buckets.iter()
-            .flat_map(|b| b.entries())
-            .collect();
+        let mut all_entries: Vec<_> = self.buckets.iter().flat_map(|b| b.entries()).collect();
 
         // Sort by XOR distance
         all_entries.sort_by_key(|e| e.node_id.0 ^ target.0);
@@ -338,9 +336,7 @@ impl DHTRoutingTable {
 
     /// Get all entries
     pub fn all_entries(&self) -> Vec<&DHTEntry> {
-        self.buckets.iter()
-            .flat_map(|b| b.entries())
-            .collect()
+        self.buckets.iter().flat_map(|b| b.entries()).collect()
     }
 }
 
@@ -431,10 +427,7 @@ impl DiscoveryEngine {
             discovered: BTreeMap::new(),
             bootstrap: BootstrapManager::new(BootstrapConfig::default()),
             dht: DHTRoutingTable::new(node_id, config.dht_k),
-            enabled_methods: vec![
-                DiscoveryMethod::Bootstrap,
-                DiscoveryMethod::Gossip,
-            ],
+            enabled_methods: vec![DiscoveryMethod::Bootstrap, DiscoveryMethod::Gossip],
             config,
             running: AtomicBool::new(false),
             sequence: AtomicU64::new(1),
@@ -518,26 +511,23 @@ impl DiscoveryEngine {
         self.stats.queries_answered += 1;
 
         let nodes: Vec<&DiscoveredNode> = match query.query_type {
-            QueryType::All => {
-                self.discovered.values().collect()
-            }
-            QueryType::ByCluster(cluster_id) => {
-                self.discovered.values()
-                    .filter(|n| n.cluster == Some(cluster_id))
-                    .collect()
-            }
+            QueryType::All => self.discovered.values().collect(),
+            QueryType::ByCluster(cluster_id) => self
+                .discovered
+                .values()
+                .filter(|n| n.cluster == Some(cluster_id))
+                .collect(),
             QueryType::ByRole(role) => {
                 // Would need role info
                 self.discovered.values().collect()
-            }
-            QueryType::Random(count) => {
-                self.discovered.values().take(count).collect()
-            }
+            },
+            QueryType::Random(count) => self.discovered.values().take(count).collect(),
             _ => self.discovered.values().collect(),
         };
 
         // Apply filters
-        nodes.into_iter()
+        nodes
+            .into_iter()
             .filter(|n| self.matches_filters(n, &query.filters))
             .cloned()
             .collect()
@@ -550,7 +540,7 @@ impl DiscoveryEngine {
                     if node.cluster != Some(*cluster_id) {
                         return false;
                     }
-                }
+                },
                 DiscoveryFilter::HasCapability(cap) => {
                     if let Some(caps) = &node.capabilities {
                         if !caps.features.contains(cap) {
@@ -559,8 +549,8 @@ impl DiscoveryEngine {
                     } else {
                         return false;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
         true
@@ -568,7 +558,8 @@ impl DiscoveryEngine {
 
     /// Find closest nodes (DHT)
     pub fn find_closest(&self, target: NodeId, count: usize) -> Vec<NodeId> {
-        self.dht.find_closest(target, count)
+        self.dht
+            .find_closest(target, count)
             .into_iter()
             .map(|e| e.node_id)
             .collect()
@@ -577,7 +568,9 @@ impl DiscoveryEngine {
     /// Prune expired nodes
     pub fn prune_expired(&mut self, now: u64) {
         let ttl = self.config.node_ttl;
-        let expired: Vec<NodeId> = self.discovered.iter()
+        let expired: Vec<NodeId> = self
+            .discovered
+            .iter()
             .filter(|(_, n)| now - n.last_seen > ttl)
             .map(|(id, _)| *id)
             .collect();
@@ -658,11 +651,7 @@ mod tests {
     #[test]
     fn test_discovery_engine() {
         let node_info = create_node_info(1);
-        let mut engine = DiscoveryEngine::new(
-            NodeId(1),
-            node_info,
-            DiscoveryConfig::default(),
-        );
+        let mut engine = DiscoveryEngine::new(NodeId(1), node_info, DiscoveryConfig::default());
 
         // Discover another node
         let announcement = DiscoveryAnnouncement {
