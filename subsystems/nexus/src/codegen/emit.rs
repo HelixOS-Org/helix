@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use alloc::vec;
 
 use alloc::collections::BTreeMap;
 use alloc::format;
@@ -500,16 +501,17 @@ impl CodeEmitter {
             },
             IRTerminator::CondBranch(cond, then_block, else_block) => {
                 let c = self.value_to_rust(cond);
+                let empty_label = String::new();
                 let then_label = func
                     .blocks
                     .get(then_block)
                     .map(|b| &b.label)
-                    .unwrap_or(&String::new());
+                    .unwrap_or(&empty_label);
                 let else_label = func
                     .blocks
                     .get(else_block)
                     .map(|b| &b.label)
-                    .unwrap_or(&String::new());
+                    .unwrap_or(&empty_label);
 
                 self.emit_line(&format!("if {} {{", c));
                 self.indent += 1;
