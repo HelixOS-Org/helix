@@ -13,8 +13,12 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{Specification, Predicate, Expr, BinOp, TypeSpec, ProofCertificate, ProvedProperty, ProofMethod};
-use super::ir::{IRModule, IRFunction, IRBlock, IRInstruction, IROp, IRValue, IRType, IRTerminator, BlockId};
+use super::ir::{
+    BlockId, IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRTerminator, IRType, IRValue,
+};
+use super::{
+    BinOp, Expr, Predicate, ProofCertificate, ProofMethod, ProvedProperty, Specification, TypeSpec,
+};
 
 // ============================================================================
 // VERIFICATION TYPES
@@ -138,16 +142,29 @@ pub enum SymbolicExpr {
 /// Symbolic binary operator
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SymBinOp {
-    Add, Sub, Mul, Div, Rem,
-    And, Or, Xor,
-    Shl, Shr,
-    Eq, Ne, Lt, Le, Gt, Ge,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
 }
 
 /// Symbolic unary operator
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SymUnaryOp {
-    Neg, Not,
+    Neg,
+    Not,
 }
 
 /// Path condition
@@ -346,10 +363,10 @@ impl VerificationEngine {
                 Ok(property) => {
                     proved.push(property);
                     self.stats.properties_proved += 1;
-                }
+                },
                 Err(failure) => {
                     failures.push(failure);
-                }
+                },
             }
         }
 
@@ -382,7 +399,9 @@ impl VerificationEngine {
                     name: format!("postcondition_{}", i),
                     precondition: self.predicates_to_expr(&spec.preconditions),
                     postcondition: self.predicate_to_expr(post),
-                    variables: spec.inputs.iter()
+                    variables: spec
+                        .inputs
+                        .iter()
                         .map(|p| (p.name.clone(), self.type_to_ir(&p.typ)))
                         .collect(),
                 };
@@ -401,7 +420,8 @@ impl VerificationEngine {
             return SymbolicExpr::Const(1); // true
         }
 
-        preds.iter()
+        preds
+            .iter()
             .map(|p| self.predicate_to_expr(p))
             .reduce(|a, b| SymbolicExpr::BinOp(Box::new(a), SymBinOp::And, Box::new(b)))
             .unwrap_or(SymbolicExpr::Const(1))
@@ -449,10 +469,9 @@ impl VerificationEngine {
                 SymBinOp::Or,
                 Box::new(self.predicate_to_expr(p2)),
             ),
-            Predicate::Not(p) => SymbolicExpr::UnaryOp(
-                SymUnaryOp::Not,
-                Box::new(self.predicate_to_expr(p)),
-            ),
+            Predicate::Not(p) => {
+                SymbolicExpr::UnaryOp(SymUnaryOp::Not, Box::new(self.predicate_to_expr(p)))
+            },
             _ => SymbolicExpr::Const(1),
         }
     }
@@ -485,7 +504,7 @@ impl VerificationEngine {
                     sym_op,
                     Box::new(self.expr_to_symbolic(e2)),
                 )
-            }
+            },
             Expr::Result => SymbolicExpr::Var("__result".into()),
             _ => SymbolicExpr::Var("__unknown".into()),
         }
@@ -554,7 +573,10 @@ impl VerificationEngine {
         }
     }
 
-    fn verify_condition(&mut self, vc: &VerificationCondition) -> Result<ProvedProperty, VerificationFailure> {
+    fn verify_condition(
+        &mut self,
+        vc: &VerificationCondition,
+    ) -> Result<ProvedProperty, VerificationFailure> {
         // Try symbolic execution first
         if self.config.symbolic_execution {
             if let Some(result) = self.verify_symbolic(vc) {
@@ -580,22 +602,34 @@ impl VerificationEngine {
         self.verify_smt(vc)
     }
 
-    fn verify_symbolic(&mut self, _vc: &VerificationCondition) -> Option<Result<ProvedProperty, VerificationFailure>> {
+    fn verify_symbolic(
+        &mut self,
+        _vc: &VerificationCondition,
+    ) -> Option<Result<ProvedProperty, VerificationFailure>> {
         // Simplified symbolic execution
         None
     }
 
-    fn verify_bmc(&mut self, _vc: &VerificationCondition) -> Option<Result<ProvedProperty, VerificationFailure>> {
+    fn verify_bmc(
+        &mut self,
+        _vc: &VerificationCondition,
+    ) -> Option<Result<ProvedProperty, VerificationFailure>> {
         // Simplified bounded model checking
         None
     }
 
-    fn verify_abstract(&mut self, _vc: &VerificationCondition) -> Option<Result<ProvedProperty, VerificationFailure>> {
+    fn verify_abstract(
+        &mut self,
+        _vc: &VerificationCondition,
+    ) -> Option<Result<ProvedProperty, VerificationFailure>> {
         // Simplified abstract interpretation
         None
     }
 
-    fn verify_smt(&mut self, vc: &VerificationCondition) -> Result<ProvedProperty, VerificationFailure> {
+    fn verify_smt(
+        &mut self,
+        vc: &VerificationCondition,
+    ) -> Result<ProvedProperty, VerificationFailure> {
         self.solver.push();
 
         // Assert precondition
@@ -619,7 +653,7 @@ impl VerificationEngine {
                     confidence: 1.0,
                     proof_sketch: Some("SMT solver proved UNSAT".into()),
                 })
-            }
+            },
             SatResult::Sat => {
                 // Counterexample found - property fails
                 Err(VerificationFailure {
@@ -632,7 +666,7 @@ impl VerificationEngine {
                     }),
                     reason: "Counterexample found".into(),
                 })
-            }
+            },
             SatResult::Unknown => {
                 // Inconclusive - treat as proved with lower confidence
                 Ok(ProvedProperty {
@@ -640,7 +674,7 @@ impl VerificationEngine {
                     confidence: 0.5,
                     proof_sketch: Some("SMT solver returned UNKNOWN".into()),
                 })
-            }
+            },
         }
     }
 
@@ -687,7 +721,7 @@ mod tests {
         let expr = engine.predicate_to_expr(&pred);
 
         match expr {
-            SymbolicExpr::BinOp(_, SymBinOp::Eq, _) => {}
+            SymbolicExpr::BinOp(_, SymBinOp::Eq, _) => {},
             _ => panic!("Expected Eq expression"),
         }
     }
