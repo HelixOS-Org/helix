@@ -367,7 +367,8 @@ pub mod integration;
 
 pub use crate::accel::{AcceleratorRegistry, CryptoAccel, VectorOps};
 pub use crate::anomaly::{Anomaly, AnomalyDetector};
-pub use crate::bench::{Benchmark, BenchmarkResult, BenchmarkSuite};
+// TODO: bench module is empty - uncomment when types are implemented
+// pub use crate::bench::{Benchmark, BenchmarkResult, BenchmarkSuite};
 // Block Device Intelligence Re-exports
 pub use crate::block::{
     BlockAnalysis, BlockDevice, BlockDeviceId, BlockDeviceState, BlockDeviceType,
@@ -388,7 +389,8 @@ pub use crate::config::NexusConfig;
 pub use crate::core::{Nexus, NexusLevel, NexusState};
 pub use crate::debug::{BugPattern, Debugger, Diagnosis};
 // Q2 Re-exports
-pub use crate::degrade::{DegradationDetector, DegradationType};
+// TODO: degrade module is empty - uncomment when types are implemented
+// pub use crate::degrade::{DegradationDetector, DegradationType};
 // Driver Intelligence Re-exports
 pub use crate::driver::{
     CompatibilityAnalyzer, CompatibilityIssue, DeviceClass, DriverConflict, DriverFaultPredictor,
@@ -416,7 +418,8 @@ pub use crate::ftrace::{
 pub use crate::fuzz::{FuzzInput, Fuzzer, MutationStrategy};
 pub use crate::heal::{HealingEngine, HealingResult, HealingStrategy};
 // Integration Re-exports
-pub use crate::integration::{HealthProbe, HealthStatus, NexusRuntime};
+// TODO: integration module is empty - uncomment when types are implemented
+// pub use crate::integration::{HealthProbe, HealthStatus, NexusRuntime};
 // Interrupt Intelligence Re-exports
 pub use crate::interrupt::{
     AffinityChange, AffinityOptimizer, CoalescingOptimizer, CoalescingSettings, CpuId,
@@ -432,24 +435,26 @@ pub use crate::io::{
 // IOMMU Intelligence Re-exports
 pub use crate::iommu::{
     DeviceId as IommuDeviceId, DmaDirection, DmaMapping, DmaMappingTracker, DomainId, DomainType,
-    FaultTracker, FaultType, IommuAnalysis, IommuCapabilities, IommuDomain, IommuFault, IommuId,
+    FaultTracker, FaultType as IommuFaultType, IommuAnalysis, IommuCapabilities, IommuDomain, IommuFault, IommuId,
     IommuIntelligence, IommuIssue, IommuManager, IommuState, IommuType, IommuUnit,
 };
-pub use crate::memory::{
-    AccessPattern, AllocationIntelligence, HotPageTracker, MemoryIntelligence, NumaAnalyzer,
-    PatternDetector, PrefetchPredictor,
-};
+// TODO: Re-enable when types are implemented
+// pub use crate::memory::{
+//     AccessPattern, AllocationIntelligence, HotPageTracker, MemoryIntelligence, NumaAnalyzer,
+//     PatternDetector, PrefetchPredictor,
+// };
 // Q3 Re-exports
 pub use crate::microrollback::{MicroRollbackEngine, RollbackPoint};
 // AI & Intelligence Re-exports
 pub use crate::ml::{DecisionTree, KMeans, RandomForest, SGDClassifier, TinyNN};
 // Network Interface Intelligence Re-exports
-pub use crate::net::{
-    DriverFeature, DriverFeatures, Duplex, IfIndex, InterfaceState, InterfaceStats, InterfaceType,
-    Ipv4Address, Ipv6Address, LinkSpeed, LinkState, MacAddress, NetworkAnalysis,
-    NetworkIntelligence, NetworkInterface, NetworkManager, QdiscType, QueueStats, RingStats,
-    TrafficAnalysis, TrafficPattern,
-};
+// TODO: Re-enable when types are implemented
+// pub use crate::net::{
+//     DriverFeature, DriverFeatures, Duplex, IfIndex, InterfaceState, InterfaceStats, InterfaceType,
+//     Ipv4Address, Ipv6Address, LinkSpeed, LinkState, MacAddress, NetworkAnalysis,
+//     NetworkIntelligence, NetworkInterface, NetworkManager, QdiscType, QueueStats, RingStats,
+//     TrafficAnalysis, TrafficPattern,
+// };
 // Network Intelligence Re-exports
 pub use crate::network::{
     BandwidthPredictor, ConnectionPredictor, Direction, FlowId, FlowStats, NetworkAnomaly,
@@ -480,25 +485,26 @@ pub use crate::pci::{
     PcieLinkSpeed, PcieLinkWidth, PowerState as PciPowerState, ProductId, VendorId,
 };
 // Performance Monitoring Intelligence Re-exports
-pub use crate::perf::{
-    BranchMissRate, CacheEvent, CacheLevel, CacheMissRate, CacheOp, CacheResult, EventConfig,
-    EventId, EventState, EventType, HardwareEvent, Ipc, PerfAnalysis, PerfEvent, PerfIntelligence,
-    PerfManager, PerfMetrics, Pmu, PmuCapabilities, PmuId, PmuType, Sample, SampleType,
-    SoftwareEvent, WorkloadAnalysis as PerfWorkloadAnalysis, WorkloadCharacter,
-};
+// TODO: Re-enable when types are implemented
+// pub use crate::perf::{
+//     BranchMissRate, CacheEvent, CacheLevel, CacheMissRate, CacheOp, CacheResult, EventConfig,
+//     EventId, EventState, EventType, HardwareEvent, Ipc, PerfAnalysis, PerfEvent, PerfIntelligence,
+//     PerfManager, PerfMetrics, Pmu, PmuCapabilities, PmuId, PmuType, Sample, SampleType,
+//     SoftwareEvent, WorkloadAnalysis as PerfWorkloadAnalysis, WorkloadCharacter,
+// };
 pub use crate::power::{
     CState, CStateSelector, EnergyProfiler, PState, PStateGovernor, PowerIntelligence, PowerMode,
-    ThermalManager,
 };
 // Re-export key types from submodules
 pub use crate::predict::{CrashPrediction, PredictionConfidence, PredictionEngine};
 // Process Intelligence Re-exports
-pub use crate::process::{
-    BehaviorEvent, BehaviorEventType, CpuProfile, KillRecommendation, LifecycleEvent,
-    LifecycleManager, PriorityOptimizer, ProcessAnomaly, ProcessAnomalyType,
-    ProcessBehaviorAnalyzer, ProcessId, ProcessIntelligence, ProcessMetrics, ProcessProfile,
-    ProcessState, ProcessType, ResourcePrediction, ResourcePredictor,
-};
+// TODO: Re-enable when types are implemented
+// pub use crate::process::{
+//     BehaviorEvent, BehaviorEventType, CpuProfile, KillRecommendation, LifecycleEvent,
+//     LifecycleManager, PriorityOptimizer, ProcessAnomaly, ProcessAnomalyType,
+//     ProcessBehaviorAnalyzer, ProcessId, ProcessIntelligence, ProcessMetrics, ProcessProfile,
+//     ProcessState, ProcessType, ResourcePrediction, ResourcePredictor,
+// };
 pub use crate::proof::{Property, PropertyType, VerificationResult, Verifier};
 pub use crate::quarantine::{QuarantineLevel, QuarantineSystem};
 pub use crate::reconstruct::{StateReconstructor, StateSnapshot};
@@ -512,8 +518,9 @@ pub use crate::security::{
     BehavioralProfile, IntrusionDetectionSystem, MemorySecurityMonitor, NetworkSecurityMonitor,
     SyscallMonitor, Threat, ThreatSeverity, ThreatType,
 };
-pub use crate::stats::NexusStats;
-pub use crate::substitute::{ModuleInfo, ModuleSlot, SubstitutionManager};
+// TODO: Re-enable when types are implemented
+// pub use crate::stats::NexusStats;
+// pub use crate::substitute::{ModuleInfo, ModuleSlot, SubstitutionManager};
 // Sync Intelligence Re-exports
 pub use crate::sync::{
     AcquireMode, ContentionAnalyzer, ContentionEvent, ContentionStats, DeadlockDetector,
@@ -535,12 +542,13 @@ pub use crate::thermal::{
     ThermalZone, ThermalZoneId, ThermalZoneMode, ThermalZoneType, TripPoint, TripPointType,
 };
 // Timer Intelligence Re-exports
-pub use crate::timer::{
-    CoalescedGroup, CoalescingStats, DeadlinePredictor, HrtimerInfo, HrtimerManager, HrtimerMode,
-    JitterAnalyzer, JitterStats, PatternType, PowerAwareScheduler, SchedulingDecision,
-    TimerCoalescer, TimerId, TimerInfo, TimerIntelligence, TimerPattern, TimerPriority, TimerState,
-    TimerType, TimerWheel,
-};
+// TODO: Re-enable when types are implemented
+// pub use crate::timer::{
+//     CoalescedGroup, CoalescingStats, DeadlinePredictor, HrtimerInfo, HrtimerManager, HrtimerMode,
+//     JitterAnalyzer, JitterStats, PatternType, PowerAwareScheduler, SchedulingDecision,
+//     TimerCoalescer, TimerId, TimerInfo, TimerIntelligence, TimerPattern, TimerPriority, TimerState,
+//     TimerType, TimerWheel,
+// };
 pub use crate::trace::Tracer;
 // USB Intelligence Re-exports
 pub use crate::usb::{
