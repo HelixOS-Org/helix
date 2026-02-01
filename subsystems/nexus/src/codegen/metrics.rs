@@ -12,7 +12,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::ir::{IRModule, IRFunction, IRBlock, IRInstruction, IROp, IRType};
+use super::ir::{IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType};
 
 // ============================================================================
 // METRIC TYPES
@@ -26,29 +26,29 @@ pub enum MetricKind {
     InstructionCount,
     FunctionCount,
     BlockCount,
-    
+
     // Complexity metrics
     CyclomaticComplexity,
     NestingDepth,
     HalsteadVolume,
     MaintainabilityIndex,
-    
+
     // Performance metrics
     EstimatedCycles,
     MemoryFootprint,
     StackUsage,
     CacheEfficiency,
-    
+
     // Quality metrics
     CodeCoverage,
     BranchCoverage,
     MutationScore,
-    
+
     // Safety metrics
     UnsafeBlockCount,
     RawPointerOps,
     UncheckedOps,
-    
+
     // Optimization metrics
     InlinedFunctions,
     EliminatedDeadCode,
@@ -208,10 +208,7 @@ impl MaintainabilityIndex {
         }
 
         // Original MI formula
-        let mi = 171.0
-            - 5.2 * v.ln()
-            - 0.23 * g
-            - 16.2 * loc.ln();
+        let mi = 171.0 - 5.2 * v.ln() - 0.23 * g - 16.2 * loc.ln();
 
         // With comment adjustment
         let adjusted = mi + 50.0 * self.comment_ratio.sin();
@@ -276,11 +273,16 @@ impl MetricsCollector {
     }
 
     fn set_default_thresholds(&mut self) {
-        self.thresholds.insert(MetricKind::CyclomaticComplexity, MetricValue::Count(10));
-        self.thresholds.insert(MetricKind::NestingDepth, MetricValue::Count(4));
-        self.thresholds.insert(MetricKind::MaintainabilityIndex, MetricValue::Score(65.0));
-        self.thresholds.insert(MetricKind::UnsafeBlockCount, MetricValue::Count(0));
-        self.thresholds.insert(MetricKind::CodeCoverage, MetricValue::Percentage(80.0));
+        self.thresholds
+            .insert(MetricKind::CyclomaticComplexity, MetricValue::Count(10));
+        self.thresholds
+            .insert(MetricKind::NestingDepth, MetricValue::Count(4));
+        self.thresholds
+            .insert(MetricKind::MaintainabilityIndex, MetricValue::Score(65.0));
+        self.thresholds
+            .insert(MetricKind::UnsafeBlockCount, MetricValue::Count(0));
+        self.thresholds
+            .insert(MetricKind::CodeCoverage, MetricValue::Percentage(80.0));
     }
 
     /// Collect all metrics for IR module
@@ -331,46 +333,26 @@ impl MetricsCollector {
 
     fn measure(&self, kind: MetricKind, ir: &IRModule) -> MetricResult {
         let value = match kind {
-            MetricKind::LinesOfCode => {
-                MetricValue::Count(self.count_lines(ir))
-            }
-            MetricKind::InstructionCount => {
-                MetricValue::Count(self.count_instructions(ir))
-            }
-            MetricKind::FunctionCount => {
-                MetricValue::Count(ir.functions.len() as u64)
-            }
-            MetricKind::BlockCount => {
-                MetricValue::Count(self.count_blocks(ir))
-            }
+            MetricKind::LinesOfCode => MetricValue::Count(self.count_lines(ir)),
+            MetricKind::InstructionCount => MetricValue::Count(self.count_instructions(ir)),
+            MetricKind::FunctionCount => MetricValue::Count(ir.functions.len() as u64),
+            MetricKind::BlockCount => MetricValue::Count(self.count_blocks(ir)),
             MetricKind::CyclomaticComplexity => {
                 MetricValue::Count(self.calculate_cyclomatic(ir) as u64)
-            }
-            MetricKind::NestingDepth => {
-                MetricValue::Count(self.calculate_nesting_depth(ir) as u64)
-            }
+            },
+            MetricKind::NestingDepth => MetricValue::Count(self.calculate_nesting_depth(ir) as u64),
             MetricKind::HalsteadVolume => {
                 let h = self.calculate_halstead(ir);
                 MetricValue::Score(h.volume())
-            }
+            },
             MetricKind::MaintainabilityIndex => {
                 MetricValue::Score(self.calculate_maintainability(ir))
-            }
-            MetricKind::EstimatedCycles => {
-                MetricValue::Cycles(self.estimate_cycles(ir))
-            }
-            MetricKind::MemoryFootprint => {
-                MetricValue::Bytes(self.estimate_memory(ir))
-            }
-            MetricKind::StackUsage => {
-                MetricValue::Bytes(self.estimate_stack(ir))
-            }
-            MetricKind::UnsafeBlockCount => {
-                MetricValue::Count(self.count_unsafe(ir))
-            }
-            MetricKind::RawPointerOps => {
-                MetricValue::Count(self.count_pointer_ops(ir))
-            }
+            },
+            MetricKind::EstimatedCycles => MetricValue::Cycles(self.estimate_cycles(ir)),
+            MetricKind::MemoryFootprint => MetricValue::Bytes(self.estimate_memory(ir)),
+            MetricKind::StackUsage => MetricValue::Bytes(self.estimate_stack(ir)),
+            MetricKind::UnsafeBlockCount => MetricValue::Count(self.count_unsafe(ir)),
+            MetricKind::RawPointerOps => MetricValue::Count(self.count_pointer_ops(ir)),
             _ => MetricValue::Count(0),
         };
 
@@ -397,23 +379,24 @@ impl MetricsCollector {
     }
 
     fn count_instructions(&self, ir: &IRModule) -> u64 {
-        ir.functions.values()
+        ir.functions
+            .values()
             .flat_map(|f| f.blocks.values())
             .map(|b| b.instructions.len() as u64)
             .sum()
     }
 
     fn count_blocks(&self, ir: &IRModule) -> u64 {
-        ir.functions.values()
-            .map(|f| f.blocks.len() as u64)
-            .sum()
+        ir.functions.values().map(|f| f.blocks.len() as u64).sum()
     }
 
     fn calculate_cyclomatic(&self, ir: &IRModule) -> u32 {
         let mut complexity = 0u32;
 
         for func in ir.functions.values() {
-            let edges = func.blocks.values()
+            let edges = func
+                .blocks
+                .values()
                 .map(|b| b.successors.len() as u32)
                 .sum::<u32>();
             let nodes = func.blocks.len() as u32;
@@ -506,22 +489,29 @@ impl MetricsCollector {
 
         // Count operands
         match op {
-            IROp::Add(a, b) | IROp::Sub(a, b) | IROp::Mul(a, b) |
-            IROp::Div(a, b) | IROp::Rem(a, b) | IROp::And(a, b) |
-            IROp::Or(a, b) | IROp::Xor(a, b) | IROp::Shl(a, b) |
-            IROp::Shr(a, b) | IROp::Store(a, b) => {
+            IROp::Add(a, b)
+            | IROp::Sub(a, b)
+            | IROp::Mul(a, b)
+            | IROp::Div(a, b)
+            | IROp::Rem(a, b)
+            | IROp::And(a, b)
+            | IROp::Or(a, b)
+            | IROp::Xor(a, b)
+            | IROp::Shl(a, b)
+            | IROp::Shr(a, b)
+            | IROp::Store(a, b) => {
                 self.count_operand(a, operands);
                 self.count_operand(b, operands);
-            }
+            },
             IROp::Load(a) | IROp::Neg(a) | IROp::Not(a) => {
                 self.count_operand(a, operands);
-            }
+            },
             IROp::Call(_, args) | IROp::IndirectCall(_, args) => {
                 for arg in args {
                     self.count_operand(arg, operands);
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -530,14 +520,14 @@ impl MetricsCollector {
         match val {
             IRValue::Var(name) => {
                 *operands.entry(name.clone()).or_insert(0) += 1;
-            }
+            },
             IRValue::ConstInt(n, _) => {
                 *operands.entry(format!("{}", n)).or_insert(0) += 1;
-            }
+            },
             IRValue::Param(n) => {
                 *operands.entry(format!("param_{}", n)).or_insert(0) += 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -633,9 +623,8 @@ impl MetricsCollector {
             for block in func.blocks.values() {
                 for instr in &block.instructions {
                     match &instr.op {
-                        IROp::Load(_) | IROp::Store(_, _) |
-                        IROp::GetElementPtr(_, _) => count += 1,
-                        _ => {}
+                        IROp::Load(_) | IROp::Store(_, _) | IROp::GetElementPtr(_, _) => count += 1,
+                        _ => {},
                     }
                 }
             }
@@ -644,18 +633,24 @@ impl MetricsCollector {
         count
     }
 
-    fn check_threshold(&self, value: &MetricValue, threshold: &Option<MetricValue>, kind: MetricKind) -> bool {
+    fn check_threshold(
+        &self,
+        value: &MetricValue,
+        threshold: &Option<MetricValue>,
+        kind: MetricKind,
+    ) -> bool {
         let threshold = match threshold {
             Some(t) => t,
             None => return true,
         };
 
         // Higher is better for some metrics, lower for others
-        let higher_is_better = matches!(kind,
-            MetricKind::MaintainabilityIndex |
-            MetricKind::CodeCoverage |
-            MetricKind::CacheEfficiency |
-            MetricKind::OptimizationGain
+        let higher_is_better = matches!(
+            kind,
+            MetricKind::MaintainabilityIndex
+                | MetricKind::CodeCoverage
+                | MetricKind::CacheEfficiency
+                | MetricKind::OptimizationGain
         );
 
         if higher_is_better {
@@ -689,8 +684,7 @@ impl MetricsCollector {
         let mut changes = Vec::new();
 
         for after_metric in &after.metrics {
-            if let Some(before_metric) = before.metrics.iter()
-                .find(|m| m.kind == after_metric.kind)
+            if let Some(before_metric) = before.metrics.iter().find(|m| m.kind == after_metric.kind)
             {
                 let change = after_metric.value.as_f64() - before_metric.value.as_f64();
                 let percent = if before_metric.value.as_f64() != 0.0 {
@@ -747,8 +741,8 @@ impl Default for MetricsCollector {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::ir::IRBuilder;
+    use super::*;
 
     #[test]
     fn test_halstead_metrics() {
