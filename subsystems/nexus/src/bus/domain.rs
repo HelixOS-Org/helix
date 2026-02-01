@@ -9,7 +9,7 @@
 // ============================================================================
 
 /// Domain identifier for routing
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Domain {
     /// Perception domain
     Sense,
