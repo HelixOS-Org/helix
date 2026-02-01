@@ -216,8 +216,8 @@ impl ActDomain {
 
     /// Execute a single intent
     fn execute_intent(&mut self, intent: &Intent, now: Timestamp) -> Option<Effect> {
-        let action_type = intent.selected_option.action_type;
-        let target = &intent.selected_option.target;
+        let action_type = intent.action_type;
+        let target = &intent.target;
 
         // Validate
         let validation = self.validator.validate(intent);
@@ -261,12 +261,7 @@ impl ActDomain {
         let result = {
             let effector = self.effectors.get_mut(effector_id)?;
             effector_name = String::from(effector.name());
-            effector.execute(
-                action_type,
-                target,
-                &intent.selected_option.parameters,
-                tx_id,
-            )
+            effector.execute(action_type, target, &intent.parameters, tx_id)
         };
         let end_time = Timestamp::now();
 
