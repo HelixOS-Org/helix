@@ -32,7 +32,7 @@ impl Matrix {
             cols,
         }
     }
-    
+
     /// Create from data
     pub fn from_data(rows: usize, cols: usize, data: Vec<f64>) -> Option<Self> {
         if data.len() == rows * cols {
@@ -41,7 +41,7 @@ impl Matrix {
             None
         }
     }
-    
+
     /// Create identity matrix
     pub fn identity(n: usize) -> Self {
         let mut m = Self::new(n, n);
@@ -50,12 +50,12 @@ impl Matrix {
         }
         m
     }
-    
+
     /// Create random matrix
     pub fn random(rows: usize, cols: usize, seed: u64) -> Self {
         let mut data = Vec::with_capacity(rows * cols);
         let mut rng = seed;
-        
+
         for _ in 0..rows * cols {
             rng ^= rng << 13;
             rng ^= rng >> 7;
@@ -63,10 +63,10 @@ impl Matrix {
             let val = (rng as f64 / u64::MAX as f64) * 2.0 - 1.0;
             data.push(val);
         }
-        
+
         Self { data, rows, cols }
     }
-    
+
     /// Get element
     pub fn get(&self, row: usize, col: usize) -> f64 {
         if row < self.rows && col < self.cols {
@@ -75,26 +75,26 @@ impl Matrix {
             0.0
         }
     }
-    
+
     /// Set element
     pub fn set(&mut self, row: usize, col: usize, val: f64) {
         if row < self.rows && col < self.cols {
             self.data[row * self.cols + col] = val;
         }
     }
-    
+
     /// Get row as slice
     pub fn row(&self, idx: usize) -> &[f64] {
         let start = idx * self.cols;
         &self.data[start..start + self.cols]
     }
-    
+
     /// Get mutable row
     pub fn row_mut(&mut self, idx: usize) -> &mut [f64] {
         let start = idx * self.cols;
         &mut self.data[start..start + self.cols]
     }
-    
+
     /// Transpose
     pub fn transpose(&self) -> Self {
         let mut result = Matrix::new(self.cols, self.rows);
@@ -105,15 +105,15 @@ impl Matrix {
         }
         result
     }
-    
+
     /// Matrix multiplication
     pub fn matmul(&self, other: &Matrix) -> Option<Matrix> {
         if self.cols != other.rows {
             return None;
         }
-        
+
         let mut result = Matrix::new(self.rows, other.cols);
-        
+
         for i in 0..self.rows {
             for j in 0..other.cols {
                 let mut sum = 0.0;
@@ -123,24 +123,30 @@ impl Matrix {
                 result.set(i, j, sum);
             }
         }
-        
+
         Some(result)
     }
-    
+
     /// Element-wise addition
     pub fn add(&self, other: &Matrix) -> Option<Matrix> {
         if self.rows != other.rows || self.cols != other.cols {
             return None;
         }
-        
-        let data: Vec<f64> = self.data.iter()
+
+        let data: Vec<f64> = self
+            .data
+            .iter()
             .zip(other.data.iter())
             .map(|(&a, &b)| a + b)
             .collect();
-        
-        Some(Matrix { data, rows: self.rows, cols: self.cols })
+
+        Some(Matrix {
+            data,
+            rows: self.rows,
+            cols: self.cols,
+        })
     }
-    
+
     /// Scale by factor
     pub fn scale(&self, factor: f64) -> Matrix {
         Matrix {
@@ -149,7 +155,7 @@ impl Matrix {
             cols: self.cols,
         }
     }
-    
+
     /// Apply function element-wise
     pub fn map<F>(&self, f: F) -> Matrix
     where
@@ -161,18 +167,18 @@ impl Matrix {
             cols: self.cols,
         }
     }
-    
+
     /// Softmax along rows
     pub fn softmax_rows(&self) -> Matrix {
         let mut result = Matrix::new(self.rows, self.cols);
-        
+
         for i in 0..self.rows {
             // Find max for numerical stability
             let mut max_val = f64::NEG_INFINITY;
             for j in 0..self.cols {
                 max_val = max_val.max(self.get(i, j));
             }
-            
+
             // Compute exp and sum
             let mut sum = 0.0;
             for j in 0..self.cols {
@@ -180,7 +186,7 @@ impl Matrix {
                 result.set(i, j, exp_val);
                 sum += exp_val;
             }
-            
+
             // Normalize
             if sum > 1e-10 {
                 for j in 0..self.cols {
@@ -188,16 +194,16 @@ impl Matrix {
                 }
             }
         }
-        
+
         result
     }
-    
+
     /// L2 norm of entire matrix
     pub fn norm(&self) -> f64 {
         let sq_sum: f64 = self.data.iter().map(|&x| x * x).sum();
         libm::sqrt(sq_sum)
     }
-    
+
     /// Frobenius norm
     pub fn frobenius_norm(&self) -> f64 {
         self.norm()
@@ -231,7 +237,7 @@ impl Tensor3 {
             hidden,
         }
     }
-    
+
     /// Get element
     pub fn get(&self, b: usize, s: usize, h: usize) -> f64 {
         if b < self.batch && s < self.seq_len && h < self.hidden {
@@ -240,14 +246,14 @@ impl Tensor3 {
             0.0
         }
     }
-    
+
     /// Set element
     pub fn set(&mut self, b: usize, s: usize, h: usize, val: f64) {
         if b < self.batch && s < self.seq_len && h < self.hidden {
             self.data[(b * self.seq_len + s) * self.hidden + h] = val;
         }
     }
-    
+
     /// Get batch slice as matrix
     pub fn batch_matrix(&self, b: usize) -> Matrix {
         let mut m = Matrix::new(self.seq_len, self.hidden);
@@ -258,7 +264,7 @@ impl Tensor3 {
         }
         m
     }
-    
+
     /// Set batch from matrix
     pub fn set_batch(&mut self, b: usize, matrix: &Matrix) {
         for s in 0..self.seq_len.min(matrix.rows) {
@@ -291,7 +297,7 @@ impl AttentionMask {
     pub fn causal(seq_len: usize) -> Self {
         AttentionMask::Causal(seq_len)
     }
-    
+
     /// Create padding mask from lengths
     pub fn from_lengths(lengths: &[usize], max_len: usize) -> Self {
         let mut mask = Vec::with_capacity(lengths.len() * max_len);
@@ -302,11 +308,11 @@ impl AttentionMask {
         }
         AttentionMask::Padding(mask)
     }
-    
+
     /// Apply mask to attention scores
     pub fn apply(&self, scores: &mut Matrix) {
         match self {
-            AttentionMask::None => {}
+            AttentionMask::None => {},
             AttentionMask::Padding(mask) => {
                 for i in 0..scores.rows {
                     for j in 0..scores.cols {
@@ -315,7 +321,7 @@ impl AttentionMask {
                         }
                     }
                 }
-            }
+            },
             AttentionMask::Causal(len) => {
                 for i in 0..scores.rows {
                     for j in 0..scores.cols {
@@ -324,7 +330,7 @@ impl AttentionMask {
                         }
                     }
                 }
-            }
+            },
             AttentionMask::Custom(mask_matrix) => {
                 for i in 0..scores.rows.min(mask_matrix.rows) {
                     for j in 0..scores.cols.min(mask_matrix.cols) {
@@ -333,7 +339,7 @@ impl AttentionMask {
                         }
                     }
                 }
-            }
+            },
         }
     }
 }
@@ -359,7 +365,7 @@ impl AttentionOutput {
             weights: None,
         }
     }
-    
+
     /// Create with weights
     pub fn with_weights(output: Matrix, weights: Matrix) -> Self {
         Self {
@@ -389,28 +395,25 @@ impl Linear {
         let scale = libm::sqrt(2.0 / (in_features + out_features) as f64);
         let mut weight = Matrix::random(out_features, in_features, 42);
         weight = weight.scale(scale);
-        
-        Self {
-            weight,
-            bias: None,
-        }
+
+        Self { weight, bias: None }
     }
-    
+
     /// Create with bias
     pub fn with_bias(mut self) -> Self {
         self.bias = Some(alloc::vec![0.0; self.weight.rows]);
         self
     }
-    
+
     /// Forward pass
     pub fn forward(&self, input: &Matrix) -> Matrix {
         // input: [batch, in_features]
         // weight: [out_features, in_features]
         // output: [batch, out_features]
-        
+
         let weight_t = self.weight.transpose();
         let mut output = input.matmul(&weight_t).unwrap_or_else(|| Matrix::new(0, 0));
-        
+
         // Add bias
         if let Some(ref bias) = self.bias {
             for i in 0..output.rows {
@@ -419,7 +422,7 @@ impl Linear {
                 }
             }
         }
-        
+
         output
     }
 }
@@ -451,11 +454,11 @@ impl LayerNorm {
             beta: alloc::vec![0.0; normalized_shape],
         }
     }
-    
+
     /// Forward pass
     pub fn forward(&self, input: &Matrix) -> Matrix {
         let mut output = Matrix::new(input.rows, input.cols);
-        
+
         for i in 0..input.rows {
             // Compute mean
             let mut mean = 0.0;
@@ -463,7 +466,7 @@ impl LayerNorm {
                 mean += input.get(i, j);
             }
             mean /= input.cols as f64;
-            
+
             // Compute variance
             let mut var = 0.0;
             for j in 0..input.cols {
@@ -471,17 +474,17 @@ impl LayerNorm {
                 var += diff * diff;
             }
             var /= input.cols as f64;
-            
+
             // Normalize
             let std = libm::sqrt(var + self.eps);
             for j in 0..input.cols {
                 let normalized = (input.get(i, j) - mean) / std;
-                let scaled = normalized * self.gamma[j % self.normalized_shape] 
+                let scaled = normalized * self.gamma[j % self.normalized_shape]
                     + self.beta[j % self.normalized_shape];
                 output.set(i, j, scaled);
             }
         }
-        
+
         output
     }
 }
@@ -510,33 +513,33 @@ impl Dropout {
             rng_state: 12345,
         }
     }
-    
+
     /// Set training mode
     pub fn train(&mut self, training: bool) {
         self.training = training;
     }
-    
+
     /// Forward pass
     pub fn forward(&mut self, input: &Matrix) -> Matrix {
         if !self.training || self.p == 0.0 {
             return input.clone();
         }
-        
+
         let scale = 1.0 / (1.0 - self.p);
         let mut output = Matrix::new(input.rows, input.cols);
-        
+
         for i in 0..input.data.len() {
             self.rng_state ^= self.rng_state << 13;
             self.rng_state ^= self.rng_state >> 7;
             self.rng_state ^= self.rng_state << 17;
-            
+
             let rand = (self.rng_state as f64) / (u64::MAX as f64);
-            
+
             if rand >= self.p {
                 output.data[i] = input.data[i] * scale;
             }
         }
-        
+
         output
     }
 }
@@ -548,89 +551,88 @@ impl Dropout {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_matrix_basics() {
         let m = Matrix::identity(3);
-        
+
         assert!((m.get(0, 0) - 1.0).abs() < 1e-10);
         assert!((m.get(0, 1) - 0.0).abs() < 1e-10);
         assert!((m.get(1, 1) - 1.0).abs() < 1e-10);
     }
-    
+
     #[test]
     fn test_matrix_matmul() {
         let a = Matrix::from_data(2, 3, alloc::vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
         let b = Matrix::from_data(3, 2, alloc::vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
-        
+
         let c = a.matmul(&b).unwrap();
-        
+
         assert_eq!(c.rows, 2);
         assert_eq!(c.cols, 2);
-        assert!((c.get(0, 0) - 22.0).abs() < 1e-10);  // 1*1 + 2*3 + 3*5
+        assert!((c.get(0, 0) - 22.0).abs() < 1e-10); // 1*1 + 2*3 + 3*5
     }
-    
+
     #[test]
     fn test_softmax() {
         let m = Matrix::from_data(1, 3, alloc::vec![1.0, 2.0, 3.0]).unwrap();
         let s = m.softmax_rows();
-        
+
         // Sum should be 1
         let sum: f64 = (0..3).map(|i| s.get(0, i)).sum();
         assert!((sum - 1.0).abs() < 1e-10);
-        
+
         // Should be increasing
         assert!(s.get(0, 2) > s.get(0, 1));
         assert!(s.get(0, 1) > s.get(0, 0));
     }
-    
+
     #[test]
     fn test_linear() {
         let linear = Linear::new(4, 3).with_bias();
         let input = Matrix::random(2, 4, 42);
-        
+
         let output = linear.forward(&input);
-        
+
         assert_eq!(output.rows, 2);
         assert_eq!(output.cols, 3);
     }
-    
+
     #[test]
     fn test_layer_norm() {
         let ln = LayerNorm::new(4);
         let input = Matrix::random(2, 4, 42);
-        
+
         let output = ln.forward(&input);
-        
+
         assert_eq!(output.rows, 2);
         assert_eq!(output.cols, 4);
-        
+
         // Check normalized (mean ≈ 0, std ≈ 1)
         let mut mean = 0.0;
         for j in 0..output.cols {
             mean += output.get(0, j);
         }
         mean /= output.cols as f64;
-        
+
         assert!(mean.abs() < 1e-10);
     }
-    
+
     #[test]
     fn test_causal_mask() {
         let mut scores = Matrix::from_data(3, 3, alloc::vec![
-            1.0, 2.0, 3.0,
-            4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0,
-        ]).unwrap();
-        
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+        ])
+        .unwrap();
+
         let mask = AttentionMask::causal(3);
         mask.apply(&mut scores);
-        
+
         // Upper triangle should be -inf
         assert!(scores.get(0, 1) == f64::NEG_INFINITY);
         assert!(scores.get(0, 2) == f64::NEG_INFINITY);
         assert!(scores.get(1, 2) == f64::NEG_INFINITY);
-        
+
         // Lower triangle + diagonal should be unchanged
         assert!((scores.get(0, 0) - 1.0).abs() < 1e-10);
         assert!((scores.get(1, 0) - 4.0).abs() < 1e-10);
