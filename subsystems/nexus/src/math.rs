@@ -23,35 +23,65 @@ pub trait F64Ext {
 
 impl F64Ext for f64 {
     #[inline]
-    fn sqrt(self) -> f64 { libm::sqrt(self) }
+    fn sqrt(self) -> f64 {
+        libm::sqrt(self)
+    }
     #[inline]
-    fn ln(self) -> f64 { libm::log(self) }
+    fn ln(self) -> f64 {
+        libm::log(self)
+    }
     #[inline]
-    fn log2(self) -> f64 { libm::log2(self) }
+    fn log2(self) -> f64 {
+        libm::log2(self)
+    }
     #[inline]
-    fn log10(self) -> f64 { libm::log10(self) }
+    fn log10(self) -> f64 {
+        libm::log10(self)
+    }
     #[inline]
-    fn exp(self) -> f64 { libm::exp(self) }
+    fn exp(self) -> f64 {
+        libm::exp(self)
+    }
     #[inline]
-    fn powi(self, n: i32) -> f64 { libm::pow(self, n as f64) }
+    fn powi(self, n: i32) -> f64 {
+        libm::pow(self, n as f64)
+    }
     #[inline]
-    fn powf(self, n: f64) -> f64 { libm::pow(self, n) }
+    fn powf(self, n: f64) -> f64 {
+        libm::pow(self, n)
+    }
     #[inline]
-    fn sin(self) -> f64 { libm::sin(self) }
+    fn sin(self) -> f64 {
+        libm::sin(self)
+    }
     #[inline]
-    fn cos(self) -> f64 { libm::cos(self) }
+    fn cos(self) -> f64 {
+        libm::cos(self)
+    }
     #[inline]
-    fn tan(self) -> f64 { libm::tan(self) }
+    fn tan(self) -> f64 {
+        libm::tan(self)
+    }
     #[inline]
-    fn tanh(self) -> f64 { libm::tanh(self) }
+    fn tanh(self) -> f64 {
+        libm::tanh(self)
+    }
     #[inline]
-    fn abs(self) -> f64 { libm::fabs(self) }
+    fn abs(self) -> f64 {
+        libm::fabs(self)
+    }
     #[inline]
-    fn floor(self) -> f64 { libm::floor(self) }
+    fn floor(self) -> f64 {
+        libm::floor(self)
+    }
     #[inline]
-    fn ceil(self) -> f64 { libm::ceil(self) }
+    fn ceil(self) -> f64 {
+        libm::ceil(self)
+    }
     #[inline]
-    fn round(self) -> f64 { libm::round(self) }
+    fn round(self) -> f64 {
+        libm::round(self)
+    }
 }
 
 /// Extension trait for f32 math operations in no_std
@@ -65,15 +95,25 @@ pub trait F32Ext {
 
 impl F32Ext for f32 {
     #[inline]
-    fn sqrt(self) -> f32 { libm::sqrtf(self) }
+    fn sqrt(self) -> f32 {
+        libm::sqrtf(self)
+    }
     #[inline]
-    fn ln(self) -> f32 { libm::logf(self) }
+    fn ln(self) -> f32 {
+        libm::logf(self)
+    }
     #[inline]
-    fn exp(self) -> f32 { libm::expf(self) }
+    fn exp(self) -> f32 {
+        libm::expf(self)
+    }
     #[inline]
-    fn tanh(self) -> f32 { libm::tanhf(self) }
+    fn tanh(self) -> f32 {
+        libm::tanhf(self)
+    }
     #[inline]
-    fn powf(self, n: f32) -> f32 { libm::powf(self, n) }
+    fn powf(self, n: f32) -> f32 {
+        libm::powf(self, n)
+    }
 }
 
 /// Square root for f64
