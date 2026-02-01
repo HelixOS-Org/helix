@@ -7,8 +7,9 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use super::types::{Hamiltonian, PauliString, Complex, StateVector};
-use super::gates::{apply_h, apply_rx, apply_rz, apply_cnot};
+
+use super::gates::{apply_cnot, apply_h, apply_rx, apply_rz};
+use super::types::{Complex, Hamiltonian, PauliString, StateVector};
 
 // ============================================================================
 // QAOA PARAMETERS
@@ -31,7 +32,7 @@ impl QaoaParameters {
             gammas: alloc::vec![0.5; p],
         }
     }
-    
+
     /// Create with initial values
     pub fn with_values(betas: Vec<f64>, gammas: Vec<f64>) -> Option<Self> {
         if betas.len() != gammas.len() {
@@ -39,24 +40,24 @@ impl QaoaParameters {
         }
         Some(Self { betas, gammas })
     }
-    
+
     /// Number of QAOA layers
     pub fn depth(&self) -> usize {
         self.betas.len()
     }
-    
+
     /// Total number of parameters
     pub fn num_params(&self) -> usize {
         self.betas.len() + self.gammas.len()
     }
-    
+
     /// Get all parameters as vector
     pub fn to_vec(&self) -> Vec<f64> {
         let mut v = self.gammas.clone();
         v.extend(self.betas.iter());
         v
     }
-    
+
     /// Set from vector
     pub fn from_vec(&mut self, params: &[f64]) {
         let p = self.depth();
@@ -90,73 +91,74 @@ impl QaoaProblem {
             cost_hamiltonian,
         }
     }
-    
+
     /// Create MaxCut problem
     pub fn maxcut(edges: &[(usize, usize)]) -> Self {
         let mut n_qubits = 0;
         for &(u, v) in edges {
             n_qubits = n_qubits.max(u + 1).max(v + 1);
         }
-        
+
         let mut terms = Vec::new();
-        
+
         for &(u, v) in edges {
             // Edge contribution: 0.5 * (1 - Z_u * Z_v)
             // = 0.5 - 0.5 * Z_u * Z_v
-            
+
             // Create ZZ term
             let mut ops = alloc::vec![(0u8, 0u8); n_qubits];
-            ops[u] = (3, 0);  // Z
-            ops[v] = (3, 0);  // Z
-            
+            ops[u] = (3, 0); // Z
+            ops[v] = (3, 0); // Z
+
             terms.push((PauliString { operators: ops }, -0.5));
         }
-        
+
         // Constant offset (0.5 per edge) absorbed
         let cost_hamiltonian = Hamiltonian { terms };
-        
+
         Self::new(n_qubits, cost_hamiltonian)
     }
-    
+
     /// Create weighted MaxCut problem
     pub fn weighted_maxcut(edges: &[(usize, usize, f64)]) -> Self {
         let mut n_qubits = 0;
         for &(u, v, _) in edges {
             n_qubits = n_qubits.max(u + 1).max(v + 1);
         }
-        
+
         let mut terms = Vec::new();
-        
+
         for &(u, v, w) in edges {
             let mut ops = alloc::vec![(0u8, 0u8); n_qubits];
             ops[u] = (3, 0);
             ops[v] = (3, 0);
-            
+
             terms.push((PauliString { operators: ops }, -0.5 * w));
         }
-        
+
         let cost_hamiltonian = Hamiltonian { terms };
         Self::new(n_qubits, cost_hamiltonian)
     }
-    
+
     /// Evaluate cost function for bitstring
     pub fn evaluate(&self, bitstring: usize) -> f64 {
         let mut cost = 0.0;
-        
+
         for (pauli_string, coeff) in &self.cost_hamiltonian.terms {
             let mut sign = 1.0f64;
-            
+
             for (i, &(p, _)) in pauli_string.operators.iter().enumerate() {
-                if p == 3 {  // Z operator
+                if p == 3 {
+                    // Z operator
                     if (bitstring >> i) & 1 == 1 {
                         sign *= -1.0;
                     }
                 }
             }
-            
+
             cost += coeff * sign;
         }
-        
+
         cost
     }
 }
@@ -185,7 +187,7 @@ impl QaoaEngine {
             state: StateVector::new(n),
         }
     }
-    
+
     /// Initialize superposition state |+⟩^n
     fn initialize_plus(&mut self) {
         self.state = StateVector::new(self.problem.n_qubits);
@@ -193,27 +195,28 @@ impl QaoaEngine {
             apply_h(&mut self.state, i);
         }
     }
-    
+
     /// Apply cost layer exp(-iγH_C)
     fn apply_cost_layer(&mut self, gamma: f64) {
         // For diagonal cost Hamiltonian (ZZ terms only)
         for (pauli_string, coeff) in &self.problem.cost_hamiltonian.terms {
             // Find qubits with Z operators
-            let z_qubits: Vec<usize> = pauli_string.operators
+            let z_qubits: Vec<usize> = pauli_string
+                .operators
                 .iter()
                 .enumerate()
                 .filter(|(_, &(p, _))| p == 3)
                 .map(|(i, _)| i)
                 .collect();
-            
+
             let angle = 2.0 * gamma * coeff;
-            
+
             match z_qubits.len() {
-                0 => {}
+                0 => {},
                 1 => {
                     // Single Z: apply Rz
                     apply_rz(&mut self.state, z_qubits[0], angle);
-                }
+                },
                 2 => {
                     // ZZ term: apply CNOT-Rz-CNOT pattern
                     let q0 = z_qubits[0];
@@ -221,7 +224,7 @@ impl QaoaEngine {
                     apply_cnot(&mut self.state, q0, q1);
                     apply_rz(&mut self.state, q1, angle);
                     apply_cnot(&mut self.state, q0, q1);
-                }
+                },
                 _ => {
                     // Multi-Z: generalized pattern
                     for i in 0..z_qubits.len() - 1 {
@@ -232,11 +235,11 @@ impl QaoaEngine {
                     for i in (0..z_qubits.len() - 1).rev() {
                         apply_cnot(&mut self.state, z_qubits[i], z_qubits[i + 1]);
                     }
-                }
+                },
             }
         }
     }
-    
+
     /// Apply mixer layer exp(-iβH_M) where H_M = Σ X_i
     fn apply_mixer_layer(&mut self, beta: f64) {
         let angle = 2.0 * beta;
@@ -244,51 +247,51 @@ impl QaoaEngine {
             apply_rx(&mut self.state, i, angle);
         }
     }
-    
+
     /// Execute QAOA circuit
     pub fn execute(&mut self) {
         self.initialize_plus();
-        
+
         let p = self.parameters.depth();
         for layer in 0..p {
             self.apply_cost_layer(self.parameters.gammas[layer]);
             self.apply_mixer_layer(self.parameters.betas[layer]);
         }
     }
-    
+
     /// Compute expectation value of cost Hamiltonian
     pub fn expectation_value(&self) -> f64 {
         let dim = self.state.dimension();
         let mut expectation = 0.0;
-        
+
         for i in 0..dim {
             let prob = self.state.probability(i);
             let cost = self.problem.evaluate(i);
             expectation += prob * cost;
         }
-        
+
         expectation
     }
-    
+
     /// Run QAOA and return expectation value
     pub fn run(&mut self) -> f64 {
         self.execute();
         self.expectation_value()
     }
-    
+
     /// Sample from output distribution
     pub fn sample(&self, n_samples: usize, seed: u64) -> Vec<(usize, usize)> {
         let dim = self.state.dimension();
         let mut counts = alloc::vec![0usize; dim];
         let mut rng = seed;
-        
+
         for _ in 0..n_samples {
             // Simple PRNG
             rng ^= rng << 13;
             rng ^= rng >> 7;
             rng ^= rng << 17;
             let rand = (rng as f64) / (u64::MAX as f64);
-            
+
             let mut cumsum = 0.0;
             for i in 0..dim {
                 cumsum += self.state.probability(i);
@@ -298,29 +301,30 @@ impl QaoaEngine {
                 }
             }
         }
-        
+
         // Return non-zero counts
-        counts.into_iter()
+        counts
+            .into_iter()
             .enumerate()
             .filter(|(_, c)| *c > 0)
             .collect()
     }
-    
+
     /// Find best bitstring from samples
     pub fn best_solution(&self, n_samples: usize, seed: u64) -> (usize, f64) {
         let samples = self.sample(n_samples, seed);
-        
+
         let mut best_bitstring = 0;
         let mut best_cost = f64::NEG_INFINITY;
-        
+
         for (bitstring, _) in samples {
-            let cost = -self.problem.evaluate(bitstring);  // Negate for maximization
+            let cost = -self.problem.evaluate(bitstring); // Negate for maximization
             if cost > best_cost {
                 best_cost = cost;
                 best_bitstring = bitstring;
             }
         }
-        
+
         (best_bitstring, best_cost)
     }
 }
@@ -348,83 +352,83 @@ impl QaoaOptimizer {
             max_iterations: 100,
         }
     }
-    
+
     /// Set learning rate
     pub fn with_learning_rate(mut self, lr: f64) -> Self {
         self.learning_rate = lr;
         self
     }
-    
+
     /// Set max iterations
     pub fn with_max_iterations(mut self, iters: usize) -> Self {
         self.max_iterations = iters;
         self
     }
-    
+
     /// Compute gradient numerically
     fn compute_gradient(&mut self) -> Vec<f64> {
         let eps = 0.01;
         let params = self.engine.parameters.to_vec();
         let mut gradient = alloc::vec![0.0; params.len()];
-        
+
         for i in 0..params.len() {
             // Forward
             let mut params_plus = params.clone();
             params_plus[i] += eps;
             self.engine.parameters.from_vec(&params_plus);
             let f_plus = self.engine.run();
-            
+
             // Backward
             let mut params_minus = params.clone();
             params_minus[i] -= eps;
             self.engine.parameters.from_vec(&params_minus);
             let f_minus = self.engine.run();
-            
+
             gradient[i] = (f_plus - f_minus) / (2.0 * eps);
         }
-        
+
         // Restore original parameters
         self.engine.parameters.from_vec(&params);
-        
+
         gradient
     }
-    
+
     /// Run optimization
     pub fn optimize(&mut self) -> QaoaResult {
         let mut best_params = self.engine.parameters.to_vec();
         let mut best_energy = f64::MAX;
         let mut history = Vec::new();
-        
+
         for _ in 0..self.max_iterations {
             let gradient = self.compute_gradient();
-            
+
             // Update parameters (gradient descent, minimize energy)
             let mut params = self.engine.parameters.to_vec();
             for i in 0..params.len() {
                 params[i] -= self.learning_rate * gradient[i];
             }
             self.engine.parameters.from_vec(&params);
-            
+
             // Evaluate
             let energy = self.engine.run();
             history.push(energy);
-            
+
             if energy < best_energy {
                 best_energy = energy;
                 best_params = params;
             }
         }
-        
+
         // Set best parameters
         self.engine.parameters.from_vec(&best_params);
-        
+
         QaoaResult {
             optimal_parameters: self.engine.parameters.clone(),
             optimal_energy: best_energy,
             history,
         }
     }
-    
+
     /// Get inner engine
     pub fn into_engine(self) -> QaoaEngine {
         self.engine
@@ -449,59 +453,59 @@ pub struct QaoaResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_qaoa_parameters() {
         let params = QaoaParameters::new(3);
         assert_eq!(params.depth(), 3);
         assert_eq!(params.num_params(), 6);
     }
-    
+
     #[test]
     fn test_maxcut_problem() {
         // Triangle graph
         let edges = [(0, 1), (1, 2), (0, 2)];
         let problem = QaoaProblem::maxcut(&edges);
-        
+
         assert_eq!(problem.n_qubits, 3);
-        
+
         // Optimal MaxCut for triangle is 2
         // Bitstrings 001, 010, 100, 011, 101, 110 all give cut = 2
-        let cost_001 = -problem.evaluate(0b001);  // Negate because we minimize ZZ
+        let cost_001 = -problem.evaluate(0b001); // Negate because we minimize ZZ
         let cost_000 = -problem.evaluate(0b000);
-        
+
         // 001 should have better cut than 000
         assert!(cost_001 > cost_000);
     }
-    
+
     #[test]
     fn test_qaoa_engine() {
         let edges = [(0, 1)];
         let problem = QaoaProblem::maxcut(&edges);
-        
+
         let mut engine = QaoaEngine::new(problem, 1);
         engine.parameters.gammas[0] = core::f64::consts::PI / 4.0;
         engine.parameters.betas[0] = core::f64::consts::PI / 4.0;
-        
+
         let energy = engine.run();
-        
+
         // Energy should be finite
         assert!(energy.is_finite());
     }
-    
+
     #[test]
     fn test_qaoa_sampling() {
         let edges = [(0, 1)];
         let problem = QaoaProblem::maxcut(&edges);
-        
+
         let mut engine = QaoaEngine::new(problem, 1);
         engine.execute();
-        
+
         let samples = engine.sample(100, 12345);
-        
+
         // Should have some samples
         assert!(!samples.is_empty());
-        
+
         // Total count should be 100
         let total: usize = samples.iter().map(|(_, c)| c).sum();
         assert_eq!(total, 100);
