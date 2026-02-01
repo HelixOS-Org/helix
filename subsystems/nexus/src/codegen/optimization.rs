@@ -13,7 +13,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::ir::{IRModule, IRFunction, IRBlock, IRInstruction, IROp, IRValue, IRType, BlockId, NodeId};
+use super::ir::{
+    BlockId, IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType, IRValue, NodeId,
+};
 
 // ============================================================================
 // OPTIMIZATION TYPES
@@ -30,7 +32,7 @@ pub enum OptimizationPass {
     CopyPropagation,
     StrengthReduction,
     AlgebraicSimplification,
-    
+
     // Control flow optimizations
     BranchOptimization,
     TailCallOptimization,
@@ -39,23 +41,23 @@ pub enum OptimizationPass {
     LoopFusion,
     LoopFission,
     JumpThreading,
-    
+
     // Memory optimizations
     LoadStoreOptimization,
     MemoryToRegister,
     ScalarReplacement,
-    
+
     // Interprocedural
     Inlining,
     FunctionCloning,
     ArgumentPromotion,
-    
+
     // Architecture-specific
     InstructionSelection,
     RegisterAllocation,
     InstructionScheduling,
     Peephole,
-    
+
     // Advanced
     Superoptimization,
     Vectorization,
@@ -292,9 +294,9 @@ impl OptimizationEngine {
 
         // First: simplifications
         for p in passes {
-            if matches!(p,
-                OptimizationPass::ConstantFolding |
-                OptimizationPass::AlgebraicSimplification
+            if matches!(
+                p,
+                OptimizationPass::ConstantFolding | OptimizationPass::AlgebraicSimplification
             ) {
                 ordered.push(*p);
             }
@@ -302,9 +304,9 @@ impl OptimizationEngine {
 
         // Second: propagation
         for p in passes {
-            if matches!(p,
-                OptimizationPass::ConstantPropagation |
-                OptimizationPass::CopyPropagation
+            if matches!(
+                p,
+                OptimizationPass::ConstantPropagation | OptimizationPass::CopyPropagation
             ) {
                 ordered.push(*p);
             }
@@ -312,9 +314,10 @@ impl OptimizationEngine {
 
         // Third: elimination
         for p in passes {
-            if matches!(p,
-                OptimizationPass::DeadCodeElimination |
-                OptimizationPass::CommonSubexpressionElimination
+            if matches!(
+                p,
+                OptimizationPass::DeadCodeElimination
+                    | OptimizationPass::CommonSubexpressionElimination
             ) {
                 ordered.push(*p);
             }
@@ -335,39 +338,56 @@ impl OptimizationEngine {
             // x + 0 => x
             PeepholePattern {
                 name: "add_zero".into(),
-                pattern: vec![PatternOp::Capture("result".into(), Box::new(PatternOp::Op(
-                    IROp::Add(IRValue::Var("x".into()), IRValue::ConstInt(0, IRType::I64))
-                )))],
+                pattern: vec![PatternOp::Capture(
+                    "result".into(),
+                    Box::new(PatternOp::Op(IROp::Add(
+                        IRValue::Var("x".into()),
+                        IRValue::ConstInt(0, IRType::I64),
+                    ))),
+                )],
                 replacement: vec![PatternOp::Variable("x".into())],
                 condition: None,
             },
             // x * 1 => x
             PeepholePattern {
                 name: "mul_one".into(),
-                pattern: vec![PatternOp::Capture("result".into(), Box::new(PatternOp::Op(
-                    IROp::Mul(IRValue::Var("x".into()), IRValue::ConstInt(1, IRType::I64))
-                )))],
+                pattern: vec![PatternOp::Capture(
+                    "result".into(),
+                    Box::new(PatternOp::Op(IROp::Mul(
+                        IRValue::Var("x".into()),
+                        IRValue::ConstInt(1, IRType::I64),
+                    ))),
+                )],
                 replacement: vec![PatternOp::Variable("x".into())],
                 condition: None,
             },
             // x * 0 => 0
             PeepholePattern {
                 name: "mul_zero".into(),
-                pattern: vec![PatternOp::Capture("result".into(), Box::new(PatternOp::Op(
-                    IROp::Mul(IRValue::Var("x".into()), IRValue::ConstInt(0, IRType::I64))
-                )))],
+                pattern: vec![PatternOp::Capture(
+                    "result".into(),
+                    Box::new(PatternOp::Op(IROp::Mul(
+                        IRValue::Var("x".into()),
+                        IRValue::ConstInt(0, IRType::I64),
+                    ))),
+                )],
                 replacement: vec![PatternOp::Constant(0)],
                 condition: None,
             },
             // x * 2 => x << 1 (strength reduction)
             PeepholePattern {
                 name: "mul_pow2".into(),
-                pattern: vec![PatternOp::Capture("result".into(), Box::new(PatternOp::Op(
-                    IROp::Mul(IRValue::Var("x".into()), IRValue::ConstInt(2, IRType::I64))
-                )))],
-                replacement: vec![PatternOp::Op(
-                    IROp::Shl(IRValue::Var("x".into()), IRValue::ConstInt(1, IRType::I64))
+                pattern: vec![PatternOp::Capture(
+                    "result".into(),
+                    Box::new(PatternOp::Op(IROp::Mul(
+                        IRValue::Var("x".into()),
+                        IRValue::ConstInt(2, IRType::I64),
+                    ))),
                 )],
+                replacement: vec![PatternOp::Op(IROp::Shl(
+                    IRValue::Var("x".into()),
+                    IRValue::ConstInt(1, IRType::I64),
+                ))],
                 condition: None,
             },
         ]
@@ -397,7 +417,9 @@ impl OptimizationEngine {
                     total_improvements.cycle_reduction += improvement.cycle_reduction;
                     changed = true;
 
-                    *self.stats.pass_applications
+                    *self
+                        .stats
+                        .pass_applications
                         .entry(format!("{:?}", pass))
                         .or_insert(0) += 1;
                 }
@@ -435,32 +457,32 @@ impl OptimizationEngine {
                         improvements.instructions_removed += removed;
                     }
                 }
-            }
+            },
             OptimizationPass::DeadCodeElimination => {
                 for func in new_ir.functions.values_mut() {
                     let removed = self.eliminate_dead_code(func);
                     improvements.instructions_removed += removed;
                 }
-            }
+            },
             OptimizationPass::CommonSubexpressionElimination => {
                 for func in new_ir.functions.values_mut() {
                     let removed = self.eliminate_cse(func);
                     improvements.instructions_removed += removed;
                 }
-            }
+            },
             OptimizationPass::StrengthReduction => {
                 for func in new_ir.functions.values_mut() {
                     let reduced = self.reduce_strength(func);
                     improvements.cycle_reduction += reduced;
                 }
-            }
+            },
             OptimizationPass::Peephole => {
                 for func in new_ir.functions.values_mut() {
                     let removed = self.apply_peephole(func);
                     improvements.instructions_removed += removed;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         (new_ir, improvements)
@@ -495,12 +517,8 @@ impl OptimizationEngine {
             IROp::And(IRValue::ConstInt(a, _), IRValue::ConstInt(b, _)) => Some(a & b),
             IROp::Or(IRValue::ConstInt(a, _), IRValue::ConstInt(b, _)) => Some(a | b),
             IROp::Xor(IRValue::ConstInt(a, _), IRValue::ConstInt(b, _)) => Some(a ^ b),
-            IROp::Shl(IRValue::ConstInt(a, _), IRValue::ConstInt(b, _)) => {
-                Some(a << (*b as u32))
-            }
-            IROp::Shr(IRValue::ConstInt(a, _), IRValue::ConstInt(b, _)) => {
-                Some(a >> (*b as u32))
-            }
+            IROp::Shl(IRValue::ConstInt(a, _), IRValue::ConstInt(b, _)) => Some(a << (*b as u32)),
+            IROp::Shr(IRValue::ConstInt(a, _), IRValue::ConstInt(b, _)) => Some(a >> (*b as u32)),
             _ => None,
         }
     }
@@ -564,23 +582,25 @@ impl OptimizationEngine {
             // x * 2 => x << 1 (saves ~2 cycles)
             IROp::Mul(val, IRValue::ConstInt(2, typ)) => {
                 Some((IROp::Shl(val.clone(), IRValue::ConstInt(1, typ.clone())), 2))
-            }
+            },
             // x * 4 => x << 2
             IROp::Mul(val, IRValue::ConstInt(4, typ)) => {
                 Some((IROp::Shl(val.clone(), IRValue::ConstInt(2, typ.clone())), 2))
-            }
+            },
             // x * 8 => x << 3
             IROp::Mul(val, IRValue::ConstInt(8, typ)) => {
                 Some((IROp::Shl(val.clone(), IRValue::ConstInt(3, typ.clone())), 2))
-            }
+            },
             // x / 2 => x >> 1 (for unsigned)
-            IROp::Div(val, IRValue::ConstInt(2, typ)) => {
-                Some((IROp::Shr(val.clone(), IRValue::ConstInt(1, typ.clone())), 15))
-            }
+            IROp::Div(val, IRValue::ConstInt(2, typ)) => Some((
+                IROp::Shr(val.clone(), IRValue::ConstInt(1, typ.clone())),
+                15,
+            )),
             // x % 2 => x & 1
-            IROp::Rem(val, IRValue::ConstInt(2, typ)) => {
-                Some((IROp::And(val.clone(), IRValue::ConstInt(1, typ.clone())), 15))
-            }
+            IROp::Rem(val, IRValue::ConstInt(2, typ)) => Some((
+                IROp::And(val.clone(), IRValue::ConstInt(1, typ.clone())),
+                15,
+            )),
             _ => None,
         }
     }
@@ -755,13 +775,19 @@ mod tests {
     #[test]
     fn test_instruction_cost() {
         let engine = OptimizationEngine::default();
-        assert_eq!(engine.instruction_cost(&IROp::Add(
-            IRValue::Var("a".into()),
-            IRValue::Var("b".into()),
-        )), 1);
-        assert_eq!(engine.instruction_cost(&IROp::Div(
-            IRValue::Var("a".into()),
-            IRValue::Var("b".into()),
-        )), 20);
+        assert_eq!(
+            engine.instruction_cost(&IROp::Add(
+                IRValue::Var("a".into()),
+                IRValue::Var("b".into()),
+            )),
+            1
+        );
+        assert_eq!(
+            engine.instruction_cost(&IROp::Div(
+                IRValue::Var("a".into()),
+                IRValue::Var("b".into()),
+            )),
+            20
+        );
     }
 }
