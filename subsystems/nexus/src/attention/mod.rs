@@ -1,16 +1,34 @@
-//! # Advanced Attention Mechanisms for Helix OS Kernel
+//! # Attention Module
+//!
+//! Production-quality attention mechanisms for transformer architectures.
 //!
 //! Year 3 "EVOLUTION" - Revolutionary attention mechanisms enabling
 //! the kernel to focus on relevant information dynamically.
 //!
-//! ## Key Features
+//! ## Module Structure
 //!
-//! - **Multi-Head Self-Attention**: Core transformer attention
-//! - **Linear Attention**: O(n) complexity for efficiency
-//! - **Sparse Attention**: Focus on important elements
-//! - **Relative Positional Encoding**: Position-aware attention
-//! - **Flash Attention**: Memory-efficient implementation
-//! - **Cross-Attention**: Multi-source attention fusion
+//! - [`types`] - Core types: Matrix, Tensor3, Linear, LayerNorm, Dropout
+//! - [`scaled`] - Scaled dot-product attention, efficient attention, RoPE
+//! - [`multihead`] - Multi-head attention, KV cache, GQA
+//! - [`linear`] - O(n) linear attention, Performer, feature maps
+//! - [`sparse`] - Sparse patterns (local, strided, BigBird, Longformer)
+//! - [`flash`] - Flash Attention v2, paged attention, sliding window
+//!
+//! ## Usage
+//!
+//! ```rust,ignore
+//! use helix_nexus::attention::{
+//!     types::{Matrix, Linear},
+//!     multihead::MultiHeadAttention,
+//!     flash::FlashAttention,
+//! };
+//!
+//! // Create multi-head attention
+//! let mha = MultiHeadAttention::new(512, 8);
+//!
+//! // Or use Flash Attention for memory efficiency
+//! let flash = FlashAttention::new(64);
+//! ```
 //!
 //! ## Kernel Applications
 //!
@@ -22,6 +40,25 @@
 #![no_std]
 
 extern crate alloc;
+
+// Submodules with production-quality implementations
+pub mod types;
+pub mod scaled;
+pub mod multihead;
+pub mod linear;
+pub mod sparse;
+pub mod flash;
+
+// Re-export main types for convenience
+pub use types::{Matrix, Tensor3, AttentionMask as AttentionMaskNew, AttentionOutput, Linear, LayerNorm, Dropout};
+pub use scaled::{ScaledDotProductAttention, EfficientAttention, RelativePositionAttention, RotaryPositionEmbedding};
+pub use multihead::{MultiHeadAttention as MultiHeadAttentionNew, KVCache, CachedMultiHeadAttention, GroupedQueryAttention};
+pub use linear::{FeatureMap, FeatureMapType, LinearAttention as LinearAttentionNew, Performer, LinearAttentionRNN};
+pub use sparse::{SparsePattern, SparsePatternType, SparseAttention as SparseAttentionNew, BlockSparseAttention, DilatedAttention};
+pub use flash::{FlashAttention as FlashAttentionNew, SlidingWindowFlashAttention, PagedAttention, PageTableEntry};
+
+// Legacy code below - kept for backward compatibility
+// TODO: Migrate to new module structure
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -43,7 +80,7 @@ const EPSILON: f64 = 1e-8;
 const DEFAULT_SEQ_LEN: usize = 512;
 
 // ============================================================================
-// CORE ATTENTION TYPES
+// CORE ATTENTION TYPES (LEGACY)
 // ============================================================================
 
 /// Attention score computation
@@ -59,7 +96,7 @@ pub enum AttentionType {
     Cosine,
 }
 
-/// Attention mask type
+/// Attention mask type (legacy)
 #[derive(Debug, Clone)]
 pub enum AttentionMask {
     /// No mask
@@ -75,6 +112,7 @@ pub enum AttentionMask {
 impl AttentionMask {
     /// Get mask value for position (i, j)
     pub fn get_mask(&self, i: usize, j: usize, seq_len: usize) -> f64 {
+        let _ = seq_len;  // Used for API compatibility
         match self {
             AttentionMask::None => 0.0,
             AttentionMask::Causal => {
