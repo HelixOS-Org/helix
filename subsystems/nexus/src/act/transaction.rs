@@ -8,11 +8,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::*;
 use super::effect::{Change, ChangeValue};
-
 // Re-export TransactionId from types for backward compatibility
 pub use crate::types::TransactionId;
+use crate::types::*;
 
 // ============================================================================
 // TRANSACTION
@@ -62,7 +61,9 @@ impl Transaction {
     pub fn is_completed(&self) -> bool {
         matches!(
             self.status,
-            TransactionStatus::Committed | TransactionStatus::RolledBack | TransactionStatus::Failed
+            TransactionStatus::Committed
+                | TransactionStatus::RolledBack
+                | TransactionStatus::Failed
         )
     }
 
@@ -135,7 +136,8 @@ impl RollbackState {
 
     /// Get captured value
     pub fn get(&self, key: &str) -> Option<&ChangeValue> {
-        self.captured.iter()
+        self.captured
+            .iter()
             .find(|c| c.key == key)
             .map(|c| &c.value)
     }
@@ -231,7 +233,9 @@ impl TransactionManager {
     /// Capture rollback state
     pub fn capture_state(&mut self, tx_id: TransactionId, key: String, value: ChangeValue) -> bool {
         if let Some(tx) = self.active.get_mut(&tx_id) {
-            tx.rollback_state.captured.push(CapturedValue { key, value });
+            tx.rollback_state
+                .captured
+                .push(CapturedValue { key, value });
             true
         } else {
             false
@@ -302,7 +306,8 @@ impl TransactionManager {
 
     /// Cleanup old transactions
     pub fn cleanup_stale(&mut self, max_age: Duration, now: Timestamp) -> usize {
-        let stale: Vec<_> = self.active
+        let stale: Vec<_> = self
+            .active
             .iter()
             .filter(|(_, tx)| tx.age(now).as_nanos() > max_age.as_nanos())
             .map(|(id, _)| *id)
