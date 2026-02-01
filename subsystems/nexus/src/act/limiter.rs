@@ -4,9 +4,9 @@
 //! periods to prevent flip-flop behavior and system oscillation.
 
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::types::*;
@@ -157,32 +157,23 @@ impl RateLimiter {
         let mut limits = BTreeMap::new();
 
         // Default rate limits
-        limits.insert(
-            ActionType::Restart,
-            RateLimit {
-                max_actions: 5,
-                window: Duration::from_secs(60),
-                cooldown: Duration::from_secs(10),
-            },
-        );
+        limits.insert(ActionType::Restart, RateLimit {
+            max_actions: 5,
+            window: Duration::from_secs(60),
+            cooldown: Duration::from_secs(10),
+        });
 
-        limits.insert(
-            ActionType::Kill,
-            RateLimit {
-                max_actions: 3,
-                window: Duration::from_secs(60),
-                cooldown: Duration::from_secs(30),
-            },
-        );
+        limits.insert(ActionType::Kill, RateLimit {
+            max_actions: 3,
+            window: Duration::from_secs(60),
+            cooldown: Duration::from_secs(30),
+        });
 
-        limits.insert(
-            ActionType::Migrate,
-            RateLimit {
-                max_actions: 2,
-                window: Duration::from_secs(300),
-                cooldown: Duration::from_secs(60),
-            },
-        );
+        limits.insert(ActionType::Migrate, RateLimit {
+            max_actions: 2,
+            window: Duration::from_secs(300),
+            cooldown: Duration::from_secs(60),
+        });
 
         Self {
             limits,
@@ -210,7 +201,12 @@ impl RateLimiter {
     }
 
     /// Check if action is allowed
-    pub fn check(&self, action_type: ActionType, target: &ActionTarget, now: Timestamp) -> RateLimitResult {
+    pub fn check(
+        &self,
+        action_type: ActionType,
+        target: &ActionTarget,
+        now: Timestamp,
+    ) -> RateLimitResult {
         let target_str = target_to_string(target);
 
         // Get rate limit for this action type
@@ -240,7 +236,9 @@ impl RateLimiter {
         let actions_in_window = self
             .history
             .iter()
-            .filter(|e| e.action_type == action_type && e.timestamp.as_nanos() >= window_start.as_nanos())
+            .filter(|e| {
+                e.action_type == action_type && e.timestamp.as_nanos() >= window_start.as_nanos()
+            })
             .count();
 
         if actions_in_window >= limit.max_actions as usize {
@@ -284,7 +282,10 @@ impl RateLimiter {
 
     /// Get actions in last N seconds
     pub fn recent_actions(&self, seconds: u64, now: Timestamp) -> usize {
-        let window_start = Timestamp::new(now.as_nanos().saturating_sub(Duration::from_secs(seconds).as_nanos()));
+        let window_start = Timestamp::new(
+            now.as_nanos()
+                .saturating_sub(Duration::from_secs(seconds).as_nanos()),
+        );
         self.history
             .iter()
             .filter(|e| e.timestamp.as_nanos() >= window_start.as_nanos())
@@ -349,11 +350,7 @@ mod tests {
     #[test]
     fn test_rate_limiter() {
         let limiter = RateLimiter::new();
-        let result = limiter.check(
-            ActionType::Restart,
-            &ActionTarget::System,
-            Timestamp::now(),
-        );
+        let result = limiter.check(ActionType::Restart, &ActionTarget::System, Timestamp::now());
         assert!(result.allowed);
     }
 
