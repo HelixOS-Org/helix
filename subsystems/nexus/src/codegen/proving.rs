@@ -287,68 +287,95 @@ impl TheoremProver {
 
     fn load_standard_axioms(&mut self) {
         // Arithmetic axioms
-        self.add_axiom("zero_add", Formula::ForAll(
-            "x".into(),
-            Sort::Int,
-            Box::new(Formula::Eq(
-                Term::App("add".into(), vec![Term::Int(0), Term::Var("x".into())]),
-                Term::Var("x".into()),
-            )),
-        ));
-
-        self.add_axiom("add_comm", Formula::ForAll(
-            "x".into(),
-            Sort::Int,
-            Box::new(Formula::ForAll(
-                "y".into(),
+        self.add_axiom(
+            "zero_add",
+            Formula::ForAll(
+                "x".into(),
                 Sort::Int,
                 Box::new(Formula::Eq(
-                    Term::App("add".into(), vec![Term::Var("x".into()), Term::Var("y".into())]),
-                    Term::App("add".into(), vec![Term::Var("y".into()), Term::Var("x".into())]),
+                    Term::App("add".into(), vec![Term::Int(0), Term::Var("x".into())]),
+                    Term::Var("x".into()),
                 )),
-            )),
-        ));
+            ),
+        );
 
-        self.add_axiom("add_assoc", Formula::ForAll(
-            "x".into(),
-            Sort::Int,
-            Box::new(Formula::ForAll(
-                "y".into(),
+        self.add_axiom(
+            "add_comm",
+            Formula::ForAll(
+                "x".into(),
                 Sort::Int,
                 Box::new(Formula::ForAll(
-                    "z".into(),
+                    "y".into(),
                     Sort::Int,
                     Box::new(Formula::Eq(
                         Term::App("add".into(), vec![
-                            Term::App("add".into(), vec![Term::Var("x".into()), Term::Var("y".into())]),
-                            Term::Var("z".into()),
+                            Term::Var("x".into()),
+                            Term::Var("y".into()),
                         ]),
                         Term::App("add".into(), vec![
+                            Term::Var("y".into()),
                             Term::Var("x".into()),
-                            Term::App("add".into(), vec![Term::Var("y".into()), Term::Var("z".into())]),
                         ]),
                     )),
                 )),
-            )),
-        ));
+            ),
+        );
 
-        self.add_axiom("mul_one", Formula::ForAll(
-            "x".into(),
-            Sort::Int,
-            Box::new(Formula::Eq(
-                Term::App("mul".into(), vec![Term::Int(1), Term::Var("x".into())]),
-                Term::Var("x".into()),
-            )),
-        ));
+        self.add_axiom(
+            "add_assoc",
+            Formula::ForAll(
+                "x".into(),
+                Sort::Int,
+                Box::new(Formula::ForAll(
+                    "y".into(),
+                    Sort::Int,
+                    Box::new(Formula::ForAll(
+                        "z".into(),
+                        Sort::Int,
+                        Box::new(Formula::Eq(
+                            Term::App("add".into(), vec![
+                                Term::App("add".into(), vec![
+                                    Term::Var("x".into()),
+                                    Term::Var("y".into()),
+                                ]),
+                                Term::Var("z".into()),
+                            ]),
+                            Term::App("add".into(), vec![
+                                Term::Var("x".into()),
+                                Term::App("add".into(), vec![
+                                    Term::Var("y".into()),
+                                    Term::Var("z".into()),
+                                ]),
+                            ]),
+                        )),
+                    )),
+                )),
+            ),
+        );
 
-        self.add_axiom("mul_zero", Formula::ForAll(
-            "x".into(),
-            Sort::Int,
-            Box::new(Formula::Eq(
-                Term::App("mul".into(), vec![Term::Int(0), Term::Var("x".into())]),
-                Term::Int(0),
-            )),
-        ));
+        self.add_axiom(
+            "mul_one",
+            Formula::ForAll(
+                "x".into(),
+                Sort::Int,
+                Box::new(Formula::Eq(
+                    Term::App("mul".into(), vec![Term::Int(1), Term::Var("x".into())]),
+                    Term::Var("x".into()),
+                )),
+            ),
+        );
+
+        self.add_axiom(
+            "mul_zero",
+            Formula::ForAll(
+                "x".into(),
+                Sort::Int,
+                Box::new(Formula::Eq(
+                    Term::App("mul".into(), vec![Term::Int(0), Term::Var("x".into())]),
+                    Term::Int(0),
+                )),
+            ),
+        );
     }
 
     /// Add axiom
@@ -391,49 +418,49 @@ impl TheoremProver {
         match tactic {
             Tactic::Intro(name) => {
                 self.intro(name)?;
-            }
+            },
             Tactic::Split => {
                 self.split()?;
-            }
+            },
             Tactic::Left => {
                 self.left()?;
-            }
+            },
             Tactic::Right => {
                 self.right()?;
-            }
+            },
             Tactic::Apply(rule) => {
                 self.apply_rule(rule)?;
-            }
+            },
             Tactic::Destruct(hyp) => {
                 self.destruct(hyp)?;
-            }
+            },
             Tactic::Induction(var) => {
                 self.induction(var)?;
-            }
+            },
             Tactic::Simp => {
                 self.simplify()?;
-            }
+            },
             Tactic::Arith => {
                 self.arith()?;
-            }
+            },
             Tactic::Auto => {
                 self.auto()?;
-            }
+            },
             Tactic::Unfold(name) => {
                 self.unfold(name)?;
-            }
+            },
             Tactic::Rewrite(hyp) => {
                 self.rewrite(hyp)?;
-            }
+            },
             Tactic::UseLemma(name) => {
                 self.use_lemma(name)?;
-            }
+            },
             Tactic::ByContradiction => {
                 self.by_contradiction()?;
-            }
+            },
             Tactic::Cases(hyp) => {
                 self.cases(hyp)?;
-            }
+            },
         }
 
         self.stats.total_steps += 1;
@@ -448,14 +475,14 @@ impl TheoremProver {
                 goal.hyps.push((name.into(), (**hyp).clone()));
                 goal.conclusion = (**concl).clone();
                 Ok(())
-            }
+            },
             Formula::ForAll(var, _sort, body) => {
                 // Introduce universally quantified variable
                 let new_var = name.to_string();
                 let new_body = self.substitute_formula(body, var, &Term::Var(new_var.clone()));
                 goal.conclusion = new_body;
                 Ok(())
-            }
+            },
             _ => Err("Cannot intro on this goal".into()),
         }
     }
@@ -481,11 +508,11 @@ impl TheoremProver {
                 self.goals.push(goal2);
                 self.goals.push(goal1);
                 Ok(())
-            }
+            },
             _ => {
                 self.goals.push(goal);
                 Err("Goal is not a conjunction".into())
-            }
+            },
         }
     }
 
@@ -496,7 +523,7 @@ impl TheoremProver {
             Formula::Or(left, _) => {
                 goal.conclusion = (**left).clone();
                 Ok(())
-            }
+            },
             _ => Err("Goal is not a disjunction".into()),
         }
     }
@@ -508,7 +535,7 @@ impl TheoremProver {
             Formula::Or(_, right) => {
                 goal.conclusion = (**right).clone();
                 Ok(())
-            }
+            },
             _ => Err("Goal is not a disjunction".into()),
         }
     }
@@ -531,7 +558,10 @@ impl TheoremProver {
     fn destruct(&mut self, hyp_name: &str) -> Result<(), String> {
         let goal = self.goals.last_mut().ok_or("No goal")?;
 
-        let hyp_idx = goal.hyps.iter().position(|(n, _)| n == hyp_name)
+        let hyp_idx = goal
+            .hyps
+            .iter()
+            .position(|(n, _)| n == hyp_name)
             .ok_or("Hypothesis not found")?;
 
         let (_, hyp) = goal.hyps.remove(hyp_idx);
@@ -541,15 +571,15 @@ impl TheoremProver {
                 goal.hyps.push((format!("{}_l", hyp_name), *left));
                 goal.hyps.push((format!("{}_r", hyp_name), *right));
                 Ok(())
-            }
+            },
             Formula::Exists(var, _sort, body) => {
                 goal.hyps.push((var.clone(), *body));
                 Ok(())
-            }
+            },
             _ => {
                 goal.hyps.push((hyp_name.into(), hyp));
                 Err("Cannot destruct this hypothesis".into())
-            }
+            },
         }
     }
 
@@ -609,7 +639,7 @@ impl TheoremProver {
                     (Formula::False, _) | (_, Formula::False) => Formula::False,
                     _ => Formula::And(Box::new(l), Box::new(r)),
                 }
-            }
+            },
             Formula::Or(left, right) => {
                 let l = self.simplify_formula(left);
                 let r = self.simplify_formula(right);
@@ -619,15 +649,13 @@ impl TheoremProver {
                     (_, Formula::False) => l,
                     _ => Formula::Or(Box::new(l), Box::new(r)),
                 }
-            }
-            Formula::Not(inner) => {
-                match self.simplify_formula(inner) {
-                    Formula::True => Formula::False,
-                    Formula::False => Formula::True,
-                    Formula::Not(x) => *x,
-                    other => Formula::Not(Box::new(other)),
-                }
-            }
+            },
+            Formula::Not(inner) => match self.simplify_formula(inner) {
+                Formula::True => Formula::False,
+                Formula::False => Formula::True,
+                Formula::Not(x) => *x,
+                other => Formula::Not(Box::new(other)),
+            },
             Formula::Implies(left, right) => {
                 let l = self.simplify_formula(left);
                 let r = self.simplify_formula(right);
@@ -636,7 +664,7 @@ impl TheoremProver {
                     (Formula::True, _) => r,
                     _ => Formula::Implies(Box::new(l), Box::new(r)),
                 }
-            }
+            },
             Formula::Eq(t1, t2) if self.terms_equal(t1, t2) => Formula::True,
             _ => formula.clone(),
         }
@@ -649,9 +677,13 @@ impl TheoremProver {
             (Term::Int(a), Term::Int(b)) => a == b,
             (Term::Bool(a), Term::Bool(b)) => a == b,
             (Term::App(f1, args1), Term::App(f2, args2)) => {
-                f1 == f2 && args1.len() == args2.len() &&
-                args1.iter().zip(args2.iter()).all(|(a, b)| self.terms_equal(a, b))
-            }
+                f1 == f2
+                    && args1.len() == args2.len()
+                    && args1
+                        .iter()
+                        .zip(args2.iter())
+                        .all(|(a, b)| self.terms_equal(a, b))
+            },
             _ => false,
         }
     }
@@ -681,11 +713,7 @@ impl TheoremProver {
 
     fn auto(&mut self) -> Result<(), String> {
         // Try various tactics automatically
-        let tactics = vec![
-            Tactic::Simp,
-            Tactic::Arith,
-            Tactic::Split,
-        ];
+        let tactics = vec![Tactic::Simp, Tactic::Arith, Tactic::Split];
 
         for tactic in tactics {
             if self.apply_tactic(&tactic).is_ok() {
@@ -699,7 +727,10 @@ impl TheoremProver {
     }
 
     fn unfold(&mut self, name: &str) -> Result<(), String> {
-        let definition = self.definitions.get(name).cloned()
+        let definition = self
+            .definitions
+            .get(name)
+            .cloned()
             .ok_or("Definition not found")?;
 
         let goal = self.goals.last_mut().ok_or("No goal")?;
@@ -716,7 +747,9 @@ impl TheoremProver {
     fn rewrite(&mut self, hyp_name: &str) -> Result<(), String> {
         let goal = self.goals.last_mut().ok_or("No goal")?;
 
-        let hyp = goal.hyps.iter()
+        let hyp = goal
+            .hyps
+            .iter()
             .find(|(n, _)| n == hyp_name)
             .map(|(_, f)| f.clone())
             .ok_or("Hypothesis not found")?;
@@ -735,8 +768,7 @@ impl TheoremProver {
     }
 
     fn use_lemma(&mut self, name: &str) -> Result<(), String> {
-        let (lemma_formula, _) = self.lemmas.get(name).cloned()
-            .ok_or("Lemma not found")?;
+        let (lemma_formula, _) = self.lemmas.get(name).cloned().ok_or("Lemma not found")?;
 
         let goal = self.goals.last_mut().ok_or("No goal")?;
         goal.hyps.push((name.into(), lemma_formula));
@@ -760,7 +792,10 @@ impl TheoremProver {
     fn cases(&mut self, hyp_name: &str) -> Result<(), String> {
         let goal = self.goals.pop().ok_or("No goal")?;
 
-        let hyp_idx = goal.hyps.iter().position(|(n, _)| n == hyp_name)
+        let hyp_idx = goal
+            .hyps
+            .iter()
+            .position(|(n, _)| n == hyp_name)
             .ok_or("Hypothesis not found")?;
 
         let (_, hyp) = &goal.hyps[hyp_idx];
@@ -791,11 +826,11 @@ impl TheoremProver {
                 self.goals.push(goal2);
                 self.goals.push(goal1);
                 Ok(())
-            }
+            },
             _ => {
                 self.goals.push(goal);
                 Err("Hypothesis is not a disjunction".into())
-            }
+            },
         }
     }
 
@@ -804,7 +839,9 @@ impl TheoremProver {
             Formula::True | Formula::False => formula.clone(),
             Formula::Pred(name, args) => Formula::Pred(
                 name.clone(),
-                args.iter().map(|a| self.substitute_term(a, var, term)).collect(),
+                args.iter()
+                    .map(|a| self.substitute_term(a, var, term))
+                    .collect(),
             ),
             Formula::Eq(t1, t2) => Formula::Eq(
                 self.substitute_term(t1, var, term),
@@ -818,9 +855,9 @@ impl TheoremProver {
                 self.substitute_term(t1, var, term),
                 self.substitute_term(t2, var, term),
             ),
-            Formula::Not(inner) => Formula::Not(Box::new(
-                self.substitute_formula(inner, var, term),
-            )),
+            Formula::Not(inner) => {
+                Formula::Not(Box::new(self.substitute_formula(inner, var, term)))
+            },
             Formula::And(left, right) => Formula::And(
                 Box::new(self.substitute_formula(left, var, term)),
                 Box::new(self.substitute_formula(right, var, term)),
@@ -857,7 +894,9 @@ impl TheoremProver {
             Term::Var(_) | Term::Const(_) | Term::Int(_) | Term::Bool(_) => t.clone(),
             Term::App(name, args) => Term::App(
                 name.clone(),
-                args.iter().map(|a| self.substitute_term(a, var, replacement)).collect(),
+                args.iter()
+                    .map(|a| self.substitute_term(a, var, replacement))
+                    .collect(),
             ),
             Term::Let(name, val, body) if name != var => Term::Let(
                 name.clone(),
@@ -888,7 +927,8 @@ impl TheoremProver {
         };
 
         // Store as lemma
-        self.lemmas.insert(name.into(), (proof.goal.clone(), proof.clone()));
+        self.lemmas
+            .insert(name.into(), (proof.goal.clone(), proof.clone()));
 
         Ok(proof)
     }
@@ -943,10 +983,10 @@ mod tests {
         let mut prover = TheoremProver::default();
 
         // Prove: x = x
-        prover.start_proof("eq_refl", Formula::Eq(
-            Term::Var("x".into()),
-            Term::Var("x".into()),
-        ));
+        prover.start_proof(
+            "eq_refl",
+            Formula::Eq(Term::Var("x".into()), Term::Var("x".into())),
+        );
 
         let _ = prover.apply_tactic(&Tactic::Simp);
         assert!(prover.is_complete());
@@ -958,10 +998,10 @@ mod tests {
 
         // Prove: P -> P
         let p = Formula::Pred("P".into(), vec![]);
-        prover.start_proof("impl_refl", Formula::Implies(
-            Box::new(p.clone()),
-            Box::new(p),
-        ));
+        prover.start_proof(
+            "impl_refl",
+            Formula::Implies(Box::new(p.clone()), Box::new(p)),
+        );
 
         let _ = prover.apply_tactic(&Tactic::Intro("H".into()));
         assert!(!prover.is_complete()); // Still need to prove P from H
