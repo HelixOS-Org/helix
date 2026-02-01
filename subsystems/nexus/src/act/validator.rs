@@ -4,11 +4,12 @@
 //! an action to execute, ensuring safety and correctness.
 
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use alloc::format;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::decide::{ActionType, Intent};
+use crate::types::{ActionType, Intent};
 
 // ============================================================================
 // VALIDATION RULE
