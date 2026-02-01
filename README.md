@@ -1,34 +1,60 @@
 <div align="center">
 
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- HELIX BANNER -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/nexus-logo-minimal.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/nexus-logo-minimal.svg">
-  <img alt="Helix OS Framework" src="assets/nexus-logo-minimal.svg" width="180" height="180">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-banner.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-banner.svg">
+  <img alt="Helix OS Framework" src="assets/logo-banner.svg" width="520">
 </picture>
 
 <br/>
 <br/>
 
-# Helix OS Framework
-
-**An Experimental Operating System Architecture with Kernel-Level Artificial Intelligence**
+### *An Experimental Operating System Architecture with Kernel-Level Artificial Intelligence*
 
 <br/>
 
-[![License](https://img.shields.io/badge/License-MIT%2FApache--2.0-blue?style=for-the-badge)](LICENSE)
-[![Rust](https://img.shields.io/badge/Rust-Nightly-orange?style=for-the-badge&logo=rust)](https://www.rust-lang.org/)
-[![Status](https://img.shields.io/badge/Status-Research-blueviolet?style=for-the-badge)](#current-state-of-the-project)
-[![Architecture](https://img.shields.io/badge/Arch-x86__64%20%7C%20AArch64%20%7C%20RISC--V-green?style=for-the-badge)](#supported-architectures)
+[![License](https://img.shields.io/badge/License-MIT%2FApache--2.0-0d1117?style=for-the-badge&labelColor=1a1a2e&color=667eea)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-Nightly-0d1117?style=for-the-badge&logo=rust&labelColor=1a1a2e&color=f97316)](https://www.rust-lang.org/)
+[![Status](https://img.shields.io/badge/Status-Research-0d1117?style=for-the-badge&labelColor=1a1a2e&color=a78bfa)](#current-state-of-the-project)
+[![Lines](https://img.shields.io/badge/Lines-217K+-0d1117?style=for-the-badge&labelColor=1a1a2e&color=00e5ff)](#codebase-statistics)
 
 <br/>
 
-[Documentation](docs/) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](#contributing) · [Roadmap](#future-roadmap)
+[📖 Documentation](docs/) · [🏛️ Architecture](docs/ARCHITECTURE.md) · [🤝 Contributing](#contributing) · [🗺️ Roadmap](#future-roadmap)
+
+<br/>
+
+---
+
+<br/>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- NEXUS LOGO -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/nexus-logo-minimal.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/nexus-logo-minimal.svg">
+  <img alt="NEXUS - Neural EXecution and Understanding System" src="assets/nexus-logo-minimal.svg" width="120">
+</picture>
+
+<br/>
+
+**Powered by NEXUS** — *The Neural EXecution and Understanding System*
+
+<br/>
 
 </div>
 
 ---
 
-## Vision
+<br/>
+
+## 🔮 Vision
 
 Operating systems have remained architecturally stagnant for decades. While hardware has evolved exponentially and artificial intelligence has transformed nearly every domain of computing, the fundamental design of operating systems continues to rely on static policies, rigid schedulers, and reactive resource management.
 
@@ -40,7 +66,7 @@ Helix is not an incremental improvement. It is a foundational rethinking of what
 
 ---
 
-## What is Helix OS Framework?
+## 🧬 What is Helix OS Framework?
 
 Helix is an experimental operating system architecture designed from the ground up to integrate artificial intelligence at the kernel level. It is not a traditional OS distribution, nor is it a modification of existing kernels. Helix is a research platform for exploring the next generation of system software.
 
@@ -56,7 +82,17 @@ Helix is an experimental operating system architecture designed from the ground 
 
 ---
 
-## Introducing NEXUS
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/nexus-logo-minimal.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/nexus-logo-minimal.svg">
+  <img alt="NEXUS" src="assets/nexus-logo-minimal.svg" width="100">
+</picture>
+
+</div>
+
+## 🧠 Introducing NEXUS
 
 At the heart of Helix lies **NEXUS** — the Neural EXecution and Understanding System.
 
@@ -103,7 +139,7 @@ This architectural position enables NEXUS to make decisions with microsecond lat
 
 ---
 
-## Core Architecture Overview
+## 🏛️ Core Architecture Overview
 
 Helix is structured as a layered system where each layer has clearly defined responsibilities and interfaces.
 
@@ -170,7 +206,7 @@ flowchart TB
 
 ---
 
-## System Architecture — Detailed View
+## ⚙️ System Architecture — Detailed View
 
 The following diagram illustrates the interaction patterns between major system components.
 
@@ -240,7 +276,7 @@ NEXUS integrates with kernel subsystems through well-defined interfaces:
 
 ---
 
-## Key Concepts
+## 💡 Key Concepts
 
 ### AI-Augmented Kernel
 
@@ -297,7 +333,7 @@ This closed-loop architecture enables Helix to improve its behavior over time, r
 
 ---
 
-## Why Helix is Different
+## ✨ Why Helix is Different
 
 Helix represents a departure from conventional operating system design in several fundamental ways:
 
@@ -319,7 +355,7 @@ Helix prioritizes architectural exploration over backward compatibility. This en
 
 ---
 
-## Current State of the Project
+## 📊 Current State of the Project
 
 Helix OS Framework is in active research and development. The current state of major components:
 
@@ -346,7 +382,7 @@ Helix OS Framework is in active research and development. The current state of m
 
 ---
 
-## Supported Architectures
+## 🖥️ Supported Architectures
 
 | Architecture | Status | Notes |
 |--------------|--------|-------|
@@ -356,7 +392,7 @@ Helix OS Framework is in active research and development. The current state of m
 
 ---
 
-## Future Roadmap
+## 🗺️ Future Roadmap
 
 The following diagram illustrates the planned development phases for Helix:
 
@@ -408,7 +444,7 @@ gantt
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 Helix welcomes contributions from researchers, systems programmers, and AI engineers interested in exploring the intersection of artificial intelligence and operating system design.
 
@@ -442,7 +478,7 @@ See [docs/development/CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for det
 
 ---
 
-## Documentation
+## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -455,7 +491,7 @@ See [docs/development/CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for det
 
 ---
 
-## License
+## 📜 License
 
 Helix OS Framework is dual-licensed under:
 
@@ -466,7 +502,7 @@ You may choose either license for your use of this software.
 
 ---
 
-## Philosophy
+## 🌌 Philosophy
 
 The operating system is the foundation upon which all software rests. For decades, this foundation has been built on static assumptions: fixed scheduling policies, reactive resource management, and rigid security models. These designs reflect the limitations of their era — a time when computation was scarce and human configuration was the only path to optimization.
 
@@ -482,8 +518,21 @@ Helix OS Framework is our contribution to that future.
 
 ---
 
+<br/>
+
 <div align="center">
 
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/nexus-logo-minimal.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/nexus-logo-minimal.svg">
+  <img alt="NEXUS" src="assets/nexus-logo-minimal.svg" width="80">
+</picture>
+
+<br/>
 <br/>
 
 **Helix OS Framework**
@@ -492,6 +541,13 @@ Helix OS Framework is our contribution to that future.
 
 <br/>
 
-[GitHub](https://github.com/HelixOSFramework/helix) · [Documentation](docs/) · [Contributing](#contributing)
+[![GitHub](https://img.shields.io/badge/GitHub-HelixOSFramework-0d1117?style=for-the-badge&logo=github&labelColor=1a1a2e)](https://github.com/HelixOSFramework/helix)
+[![Docs](https://img.shields.io/badge/Docs-Read%20Now-0d1117?style=for-the-badge&logo=gitbook&labelColor=1a1a2e&color=00e5ff)](docs/)
+
+<br/>
+
+---
+
+<sub>Built with 🧠 by AI · Designed for the future of computing</sub>
 
 </div>
