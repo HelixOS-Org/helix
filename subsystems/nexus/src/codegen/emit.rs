@@ -6,12 +6,10 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::vec;
-
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 
 use super::ir::{
     BlockId, FunctionAttributes, IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRTerminator,
