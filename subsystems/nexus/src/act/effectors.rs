@@ -4,15 +4,16 @@
 
 use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::effect::{Change, ChangeId, ChangeType, ChangeValue};
+use super::effect::{Change, ChangeType, ChangeValue};
 use super::effector::{Effector, EffectorId, EffectorResult};
 use super::limiter::target_to_string;
 use super::transaction::{RollbackState, TransactionId};
-use crate::decide::{ActionParameters, ActionTarget, ActionType};
 use crate::types::*;
+// ActionParameters, ActionTarget, EffectId, ChangeId are now in types/envelope.rs
 
 // ============================================================================
 // NOOP EFFECTOR
