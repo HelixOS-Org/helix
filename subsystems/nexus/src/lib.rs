@@ -269,6 +269,49 @@ pub mod ltm;
 pub mod learn;
 
 // ============================================================================
+// YEAR 3 - EVOLUTION: SELF-EVOLUTION & GENETIC ALGORITHMS
+// ============================================================================
+
+/// Code generation engine - synthesize, verify, and optimize kernel code
+pub mod codegen;
+
+/// Genetic algorithm engine - evolutionary optimization
+pub mod genetic;
+
+/// Self-modification engine - runtime kernel evolution
+pub mod selfmod;
+
+/// Distributed evolution - federated learning across nodes
+pub mod distributed;
+
+/// Quantum-inspired optimization - QAOA, quantum annealing
+pub mod quantum;
+
+/// Neural Architecture Search - automatic model design
+pub mod nas;
+
+/// Symbolic AI integration - logic programming, unification
+pub mod symbolic;
+
+/// Evolutionary game theory - Nash equilibrium, mechanism design
+pub mod game_theory;
+
+/// Morphogenetic kernel - self-organizing biological structures
+pub mod morpho;
+
+/// Zero-shot learning - handle novel situations without training
+pub mod zeroshot;
+
+/// Metacognitive controller - kernel self-awareness
+pub mod metacog;
+
+/// Formal verification engine - SAT/SMT, model checking
+pub mod formal;
+
+/// Emergent swarm intelligence - ACO, PSO, flocking
+pub mod swarm;
+
+// ============================================================================
 // COGNITIVE ARCHITECTURE (7 DOMAINS)
 // ============================================================================
 
@@ -523,13 +566,13 @@ pub use crate::virtualization::{
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// NEXUS build timestamp
-pub const BUILD_TIMESTAMP: &str = "2026-01-29";
+pub const BUILD_TIMESTAMP: &str = "2028-01-29";
 
 /// NEXUS codename
-pub const CODENAME: &str = "GENESIS";
+pub const CODENAME: &str = "EVOLUTION";
 
 /// NEXUS year
-pub const YEAR: u32 = 1;
+pub const YEAR: u32 = 3;
 
 // ============================================================================
 // ARCHITECTURE DETECTION
