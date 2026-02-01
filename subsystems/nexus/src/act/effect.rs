@@ -7,7 +7,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::types::*;
-use crate::decide::{ActionType, ActionTarget};
+// ActionTarget, ActionParameters, EffectId, ChangeId are now in types/envelope.rs
 
 // ============================================================================
 // EFFECT
@@ -280,8 +280,7 @@ impl Change {
     }
 }
 
-/// Change ID type
-define_id!(ChangeId, "Change identifier");
+// ChangeId is now defined in types/envelope.rs and re-exported via types/mod.rs
 
 /// Change type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
