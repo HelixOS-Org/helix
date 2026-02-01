@@ -4,9 +4,8 @@
 //! an action to execute, ensuring safety and correctness.
 
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
-use alloc::format;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::types::{ActionType, Intent};
@@ -288,7 +287,10 @@ impl PreValidator {
         };
 
         for rule in &self.rules {
-            if rule.applies_to.contains(&intent.selected_option.action_type) {
+            if rule
+                .applies_to
+                .contains(&intent.action_type)
+            {
                 let check_result = self.perform_check(&rule.check, intent);
 
                 if check_result {
@@ -322,23 +324,23 @@ impl PreValidator {
             ValidationCheck::TargetExists => {
                 // In real implementation, check if target exists
                 true
-            }
+            },
             ValidationCheck::HasPermission => {
                 // In real implementation, check permissions
                 true
-            }
+            },
             ValidationCheck::ResourcesAvailable => {
                 // In real implementation, check resources
                 true
-            }
+            },
             ValidationCheck::NoConflicts => {
                 // In real implementation, check conflicts
                 true
-            }
+            },
             ValidationCheck::ParametersValid => {
                 // In real implementation, validate parameters
                 true
-            }
+            },
             ValidationCheck::RateLimitOk => true,
             ValidationCheck::CooldownElapsed => true,
             ValidationCheck::Custom(_) => true,
@@ -397,8 +399,7 @@ mod tests {
 
     #[test]
     fn test_validation_result() {
-        let result = ValidationResult::ok()
-            .with_warning("Minor issue");
+        let result = ValidationResult::ok().with_warning("Minor issue");
 
         assert!(result.valid);
         assert_eq!(result.warnings.len(), 1);
