@@ -8,10 +8,11 @@ use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::effect::{Change, ChangeType, ChangeValue};
-use super::effector::{Effector, EffectorId, EffectorResult};
+use super::effector::{Effector, EffectorResult};
 use super::limiter::target_to_string;
 use super::transaction::{RollbackState, TransactionId};
 use crate::types::*;
+use crate::types::EffectorId;
 // ActionParameters, ActionTarget, EffectId, ChangeId are now in types/envelope.rs
 
 // ============================================================================
