@@ -39,6 +39,7 @@
 //! ```
 
 extern crate alloc;
+use alloc::vec;
 
 // Submodules
 pub mod helpers;
