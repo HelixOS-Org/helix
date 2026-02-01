@@ -15,8 +15,8 @@ use super::effector::EffectorRegistry;
 use super::limiter::{RateLimiter, RateLimiterStats};
 use super::transaction::{TransactionManager, TransactionStats};
 use super::validator::{PreValidator, ValidationFailure, ValidatorStats};
-use crate::decide::Intent;
 use crate::types::*;
+// Intent now comes from types::* above
 
 // ============================================================================
 // CONFIGURATION
