@@ -79,87 +79,39 @@
 #![allow(dead_code)]
 
 // Submodules
-pub mod effect;
-pub mod validator;
-pub mod limiter;
-pub mod transaction;
-pub mod effector;
-pub mod effectors;
 pub mod audit;
 pub mod domain;
+pub mod effect;
+pub mod effector;
+pub mod effectors;
+pub mod limiter;
+pub mod transaction;
+pub mod validator;
 
 // Re-exports - Effect
-pub use effect::{
-    Effect,
-    ActionOutcome,
-    Change,
-    ChangeType,
-    ChangeValue,
+// Re-exports - Audit
+pub use audit::{AuditEntry, AuditLogger, AuditOutcome, AuditStats};
+// Re-exports - Domain
+pub use domain::{ActConfig, ActDomain, ActError, ActStats};
+pub use effect::{ActionOutcome, Change, ChangeType, ChangeValue, Effect};
+// Re-exports - Effector
+pub use effector::{Effector, EffectorId, EffectorRegistry, EffectorResult};
+// Re-exports - Effectors
+pub use effectors::{MemoryEffector, ModuleEffector, NoOpEffector, ProcessEffector};
+// Re-exports - Limiter
+pub use limiter::{
+    RateLimit, RateLimitReason, RateLimitResult, RateLimiter, RateLimiterStats, target_to_string,
 };
-
-// Re-export from types (for backwards compatibility)
-pub use crate::types::{EffectId, ChangeId};
-
+// Re-exports - Transaction
+pub use transaction::{
+    CapturedValue, RollbackState, Transaction, TransactionError, TransactionId, TransactionManager,
+    TransactionStats, TransactionStatus,
+};
 // Re-exports - Validator
 pub use validator::{
-    PreValidator,
-    ValidationRule,
-    ValidationCheck,
-    ValidationResult,
-    ValidationFailure,
+    PreValidator, ValidationCheck, ValidationFailure, ValidationResult, ValidationRule,
     ValidatorStats,
 };
 
-// Re-exports - Limiter
-pub use limiter::{
-    RateLimiter,
-    RateLimit,
-    RateLimitResult,
-    RateLimitReason,
-    RateLimiterStats,
-    target_to_string,
-};
-
-// Re-exports - Transaction
-pub use transaction::{
-    TransactionManager,
-    TransactionId,
-    Transaction,
-    TransactionStatus,
-    RollbackState,
-    CapturedValue,
-    TransactionError,
-    TransactionStats,
-};
-
-// Re-exports - Effector
-pub use effector::{
-    Effector,
-    EffectorId,
-    EffectorResult,
-    EffectorRegistry,
-};
-
-// Re-exports - Effectors
-pub use effectors::{
-    NoOpEffector,
-    ProcessEffector,
-    MemoryEffector,
-    ModuleEffector,
-};
-
-// Re-exports - Audit
-pub use audit::{
-    AuditLogger,
-    AuditEntry,
-    AuditOutcome,
-    AuditStats,
-};
-
-// Re-exports - Domain
-pub use domain::{
-    ActDomain,
-    ActConfig,
-    ActStats,
-    ActError,
-};
+// Re-export from types (for backwards compatibility)
+pub use crate::types::{ChangeId, EffectId};
