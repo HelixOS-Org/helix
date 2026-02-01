@@ -8,12 +8,12 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
 
-use super::{TypeSpec, Specification};
-use super::ir::{IRType, IRValue, IROp};
+use super::ir::{IROp, IRType, IRValue};
+use super::{Specification, TypeSpec};
 
 // ============================================================================
 // TEMPLATE TYPES
@@ -29,38 +29,38 @@ pub enum TemplateCategory {
     HashMap,
     BitSet,
     RingBuffer,
-    
+
     // Algorithms
     Search,
     Sort,
     Hash,
     Compression,
     Checksum,
-    
+
     // Control flow
     Loop,
     Conditional,
     StateMachine,
-    
+
     // Memory
     Allocator,
     Pool,
     Slab,
     Arena,
-    
+
     // Synchronization
     SpinLock,
     Mutex,
     Semaphore,
     RwLock,
     Atomic,
-    
+
     // Kernel patterns
     Interrupt,
     Syscall,
     Driver,
     Scheduler,
-    
+
     // Error handling
     Result,
     Option,
@@ -203,15 +203,14 @@ pub fn {{name}}<T: PartialEq>(arr: &[T], target: &T) -> Option<usize> {
     }
     None
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("linear_search".into()),
-                    description: "Function name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("linear_search".into()),
+                description: "Function name".into(),
+            }],
             constraints: vec![],
             performance: TemplatePerformance {
                 time_complexity: "O(n)".into(),
@@ -230,7 +229,7 @@ pub fn {{name}}<T: PartialEq>(arr: &[T], target: &T) -> Option<usize> {
 pub fn {{name}}<T: Ord>(arr: &[T], target: &T) -> Option<usize> {
     let mut left = 0;
     let mut right = arr.len();
-    
+
     while left < right {
         let mid = left + (right - left) / 2;
         match arr[mid].cmp(target) {
@@ -241,15 +240,14 @@ pub fn {{name}}<T: Ord>(arr: &[T], target: &T) -> Option<usize> {
     }
     None
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("binary_search".into()),
-                    description: "Function name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("binary_search".into()),
+                description: "Function name".into(),
+            }],
             constraints: vec![],
             performance: TemplatePerformance {
                 time_complexity: "O(log n)".into(),
@@ -276,7 +274,7 @@ impl {{name}} {
     pub const fn new() -> Self {
         Self { locked: AtomicBool::new(false) }
     }
-    
+
     pub fn lock(&self) {
         while self.locked.compare_exchange_weak(
             false, true,
@@ -286,11 +284,11 @@ impl {{name}} {
             core::hint::spin_loop();
         }
     }
-    
+
     pub fn unlock(&self) {
         self.locked.store(false, Ordering::Release);
     }
-    
+
     pub fn try_lock(&self) -> bool {
         self.locked.compare_exchange(
             false, true,
@@ -299,15 +297,14 @@ impl {{name}} {
         ).is_ok()
     }
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("SpinLock".into()),
-                    description: "Type name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("SpinLock".into()),
+                description: "Type name".into(),
+            }],
             constraints: vec![TemplateConstraint::NoAlloc],
             performance: TemplatePerformance {
                 time_complexity: "O(1) amortized".into(),
@@ -340,7 +337,7 @@ impl<T, const N: usize> {{name}}<T, N> {
             len: 0,
         }
     }
-    
+
     pub fn push(&mut self, item: T) -> Result<(), T> {
         if self.len == N {
             return Err(item);
@@ -350,7 +347,7 @@ impl<T, const N: usize> {{name}}<T, N> {
         self.len += 1;
         Ok(())
     }
-    
+
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
             return None;
@@ -360,20 +357,19 @@ impl<T, const N: usize> {{name}}<T, N> {
         self.len -= 1;
         Some(item)
     }
-    
+
     pub fn len(&self) -> usize { self.len }
     pub fn is_empty(&self) -> bool { self.len == 0 }
     pub fn is_full(&self) -> bool { self.len == N }
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("RingBuffer".into()),
-                    description: "Type name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("RingBuffer".into()),
+                description: "Type name".into(),
+            }],
             constraints: vec![TemplateConstraint::NoAlloc],
             performance: TemplatePerformance {
                 time_complexity: "O(1)".into(),
@@ -398,19 +394,19 @@ impl<const N: usize> {{name}}<N> {
     pub const fn new() -> Self {
         Self { bits: [0; (N + 63) / 64] }
     }
-    
+
     pub fn set(&mut self, idx: usize) {
         if idx < N {
             self.bits[idx / 64] |= 1 << (idx % 64);
         }
     }
-    
+
     pub fn clear(&mut self, idx: usize) {
         if idx < N {
             self.bits[idx / 64] &= !(1 << (idx % 64));
         }
     }
-    
+
     pub fn get(&self, idx: usize) -> bool {
         if idx < N {
             (self.bits[idx / 64] >> (idx % 64)) & 1 == 1
@@ -418,17 +414,17 @@ impl<const N: usize> {{name}}<N> {
             false
         }
     }
-    
+
     pub fn toggle(&mut self, idx: usize) {
         if idx < N {
             self.bits[idx / 64] ^= 1 << (idx % 64);
         }
     }
-    
+
     pub fn count_ones(&self) -> usize {
         self.bits.iter().map(|b| b.count_ones() as usize).sum()
     }
-    
+
     pub fn first_set(&self) -> Option<usize> {
         for (i, &word) in self.bits.iter().enumerate() {
             if word != 0 {
@@ -438,15 +434,14 @@ impl<const N: usize> {{name}}<N> {
         None
     }
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("BitSet".into()),
-                    description: "Type name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("BitSet".into()),
+                description: "Type name".into(),
+            }],
             constraints: vec![TemplateConstraint::NoAlloc],
             performance: TemplatePerformance {
                 time_complexity: "O(1)".into(),
@@ -466,7 +461,7 @@ impl<const N: usize> {{name}}<N> {
 pub fn {{name}}(data: &[u8]) -> u64 {
     const FNV_OFFSET: u64 = 0xcbf29ce484222325;
     const FNV_PRIME: u64 = 0x100000001b3;
-    
+
     let mut hash = FNV_OFFSET;
     for &byte in data {
         hash ^= byte as u64;
@@ -474,15 +469,14 @@ pub fn {{name}}(data: &[u8]) -> u64 {
     }
     hash
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("fnv1a".into()),
-                    description: "Function name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("fnv1a".into()),
+                description: "Function name".into(),
+            }],
             constraints: vec![TemplateConstraint::NoAlloc, TemplateConstraint::NoUnsafe],
             performance: TemplatePerformance {
                 time_complexity: "O(n)".into(),
@@ -502,7 +496,7 @@ pub fn {{name}}(data: &[u8]) -> u64 {
 pub fn {{name}}(data: &[u8]) -> u32 {
     const POLY: u32 = 0xedb88320;
     let mut crc = 0xffffffff;
-    
+
     for &byte in data {
         crc ^= byte as u32;
         for _ in 0..8 {
@@ -513,18 +507,17 @@ pub fn {{name}}(data: &[u8]) -> u32 {
             };
         }
     }
-    
+
     !crc
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("crc32".into()),
-                    description: "Function name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("crc32".into()),
+                description: "Function name".into(),
+            }],
             constraints: vec![TemplateConstraint::NoAlloc, TemplateConstraint::NoUnsafe],
             performance: TemplatePerformance {
                 time_complexity: "O(n)".into(),
@@ -553,17 +546,18 @@ pub struct InterruptFrame {
 pub extern "x86-interrupt" fn {{name}}(frame: InterruptFrame) {
     // Save state
     {{save_state}}
-    
+
     // Handle interrupt
     {{handler_body}}
-    
+
     // Restore state
     {{restore_state}}
-    
+
     // Send EOI if needed
     {{eoi}}
 }
-"#.into(),
+"#
+            .into(),
             parameters: vec![
                 TemplateParam {
                     name: "name".into(),
@@ -618,7 +612,8 @@ pub fn {{name}}(syscall_num: u64, arg0: u64, arg1: u64, arg2: u64, arg3: u64) ->
         _ => -1, // ENOSYS
     }
 }
-"#.into(),
+"#
+            .into(),
             parameters: vec![
                 TemplateParam {
                     name: "name".into(),
@@ -671,7 +666,7 @@ impl<T, const N: usize> {{name}}<T, N> {
             allocated: 0,
         }
     }
-    
+
     pub fn alloc(&mut self) -> Option<&mut T> {
         if self.free_head >= N {
             return None;
@@ -681,31 +676,30 @@ impl<T, const N: usize> {{name}}<T, N> {
         self.allocated += 1;
         Some(unsafe { &mut *self.storage[idx].as_mut_ptr() })
     }
-    
+
     pub fn free(&mut self, ptr: &mut T) {
         let addr = ptr as *mut T as usize;
         let base = self.storage.as_ptr() as usize;
         let idx = (addr - base) / core::mem::size_of::<T>();
-        
+
         if idx < N {
             self.free_list[idx] = self.free_head as u16;
             self.free_head = idx;
             self.allocated -= 1;
         }
     }
-    
+
     pub fn allocated(&self) -> usize { self.allocated }
     pub fn available(&self) -> usize { N - self.allocated }
 }
-"#.into(),
-            parameters: vec![
-                TemplateParam {
-                    name: "name".into(),
-                    typ: ParamType::Ident,
-                    default: Some("MemoryPool".into()),
-                    description: "Type name".into(),
-                },
-            ],
+"#
+            .into(),
+            parameters: vec![TemplateParam {
+                name: "name".into(),
+                typ: ParamType::Ident,
+                default: Some("MemoryPool".into()),
+                description: "Type name".into(),
+            }],
             constraints: vec![TemplateConstraint::NoAlloc],
             performance: TemplatePerformance {
                 time_complexity: "O(1)".into(),
@@ -723,7 +717,10 @@ impl<T, const N: usize> {{name}}<T, N> {
         template.id = id;
 
         self.by_name.insert(template.name.clone(), id);
-        self.by_category.entry(template.category).or_default().push(id);
+        self.by_category
+            .entry(template.category)
+            .or_default()
+            .push(id);
         self.templates.insert(id, template);
 
         id
@@ -741,7 +738,8 @@ impl<T, const N: usize> {{name}}<T, N> {
 
     /// Get templates by category
     pub fn get_by_category(&self, category: TemplateCategory) -> Vec<&Template> {
-        self.by_category.get(&category)
+        self.by_category
+            .get(&category)
             .map(|ids| ids.iter().filter_map(|id| self.templates.get(id)).collect())
             .unwrap_or_default()
     }
@@ -762,7 +760,11 @@ impl<T, const N: usize> {{name}}<T, N> {
             }
         }
 
-        matches.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(core::cmp::Ordering::Equal));
+        matches.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         matches
     }
 
@@ -782,8 +784,12 @@ impl<T, const N: usize> {{name}}<T, N> {
         if name_lower.contains("hash") && template.category == TemplateCategory::Hash {
             score += 0.5;
         }
-        if name_lower.contains("lock") && matches!(template.category, 
-            TemplateCategory::SpinLock | TemplateCategory::Mutex) {
+        if name_lower.contains("lock")
+            && matches!(
+                template.category,
+                TemplateCategory::SpinLock | TemplateCategory::Mutex
+            )
+        {
             score += 0.5;
         }
 
@@ -799,7 +805,11 @@ impl<T, const N: usize> {{name}}<T, N> {
         if score > 0.0 { Some(score) } else { None }
     }
 
-    fn suggest_bindings(&self, template: &Template, spec: &Specification) -> BTreeMap<String, String> {
+    fn suggest_bindings(
+        &self,
+        template: &Template,
+        spec: &Specification,
+    ) -> BTreeMap<String, String> {
         let mut bindings = BTreeMap::new();
 
         for param in &template.parameters {
@@ -814,7 +824,11 @@ impl<T, const N: usize> {{name}}<T, N> {
     }
 
     /// Instantiate template with bindings
-    pub fn instantiate(&self, template_id: u64, bindings: &BTreeMap<String, String>) -> Option<Instantiation> {
+    pub fn instantiate(
+        &self,
+        template_id: u64,
+        bindings: &BTreeMap<String, String>,
+    ) -> Option<Instantiation> {
         let template = self.templates.get(&template_id)?;
 
         let mut code = template.code.clone();
@@ -888,10 +902,10 @@ mod tests {
     fn test_instantiate() {
         let lib = TemplateLibrary::new();
         let template = lib.get_by_name("fnv1a_hash").unwrap();
-        
+
         let mut bindings = BTreeMap::new();
         bindings.insert("name".into(), "my_hash".into());
-        
+
         let result = lib.instantiate(template.id, &bindings);
         assert!(result.is_some());
         assert!(result.unwrap().code.contains("my_hash"));
