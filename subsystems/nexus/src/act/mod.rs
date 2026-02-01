@@ -93,10 +93,12 @@ pub use effect::{
     Effect,
     ActionOutcome,
     Change,
-    ChangeId,
     ChangeType,
     ChangeValue,
 };
+
+// Re-export from types (for backwards compatibility)
+pub use crate::types::{EffectId, ChangeId};
 
 // Re-exports - Validator
 pub use validator::{
@@ -149,7 +151,6 @@ pub use effectors::{
 // Re-exports - Audit
 pub use audit::{
     AuditLogger,
-    AuditId,
     AuditEntry,
     AuditOutcome,
     AuditStats,
