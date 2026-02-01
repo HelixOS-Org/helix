@@ -10,7 +10,7 @@ use alloc::format;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::types::*;
-use crate::decide::{ActionType, ActionTarget};
+// ActionTarget is now in types/envelope.rs
 
 // ============================================================================
 // RATE LIMIT
