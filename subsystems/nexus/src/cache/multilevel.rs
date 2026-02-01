@@ -1,6 +1,9 @@
 //! Multi-level cache coordination.
 
+extern crate alloc;
+
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::manager::CacheManager;
