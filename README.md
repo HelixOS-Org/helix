@@ -17,7 +17,7 @@
 
 <br/>
 
-[![License](https://img.shields.io/badge/License-MIT%2FApache--2.0-0d1117?style=for-the-badge&labelColor=1a1a2e&color=667eea)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-0d1117?style=for-the-badge&labelColor=1a1a2e&color=667eea)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-Nightly-0d1117?style=for-the-badge&logo=rust&labelColor=1a1a2e&color=f97316)](https://www.rust-lang.org/)
 [![Status](https://img.shields.io/badge/Status-Research-0d1117?style=for-the-badge&labelColor=1a1a2e&color=a78bfa)](#current-state-of-the-project)
 [![Lines](https://img.shields.io/badge/Lines-217K+-0d1117?style=for-the-badge&labelColor=1a1a2e&color=00e5ff)](#codebase-statistics)
@@ -397,38 +397,52 @@ Helix OS Framework is in active research and development. The current state of m
 The following diagram illustrates the planned development phases for Helix:
 
 ```mermaid
-gantt
-    title Helix OS Framework Development Roadmap
-    dateFormat YYYY-Q
-    axisFormat %Y
+flowchart LR
+    subgraph P1["Phase 1: Foundation"]
+        direction TB
+        P1A["Core Architecture"]:::done
+        P1B["Boot Infrastructure"]:::done
+        P1C["Hardware Abstraction"]:::active
+    end
 
-    section Foundation
-    Core Architecture           :done,    p1a, 2024-Q1, 2024-Q4
-    Boot Infrastructure         :done,    p1b, 2024-Q1, 2024-Q3
-    Hardware Abstraction        :active,  p1c, 2024-Q2, 2025-Q2
+    subgraph P2["Phase 2: Kernel"]
+        direction TB
+        P2A["Memory Management"]:::done
+        P2B["Process Scheduler"]:::done
+        P2C["IPC Subsystem"]:::active
+        P2D["Device Drivers"]:::planned
+    end
 
-    section Kernel
-    Memory Management           :done,    p2a, 2024-Q2, 2024-Q4
-    Process Scheduler           :done,    p2b, 2024-Q3, 2025-Q1
-    IPC Subsystem               :active,  p2c, 2024-Q4, 2025-Q2
-    Device Driver Framework     :         p2d, 2025-Q1, 2025-Q4
+    subgraph P3["Phase 3: NEXUS"]
+        direction TB
+        P3A["Cognitive Architecture"]:::active
+        P3B["Perception"]:::active
+        P3C["Reasoning Engine"]:::planned
+        P3D["Learning Framework"]:::planned
+    end
 
-    section NEXUS
-    Cognitive Architecture      :active,  p3a, 2024-Q3, 2025-Q2
-    Perception Subsystem        :active,  p3b, 2025-Q1, 2025-Q3
-    Reasoning Engine            :         p3c, 2025-Q2, 2025-Q4
-    Learning Framework          :         p3d, 2025-Q3, 2026-Q2
+    subgraph P4["Phase 4: Services"]
+        direction TB
+        P4A["Filesystem"]:::done
+        P4B["Network Stack"]:::planned
+        P4C["Security"]:::planned
+    end
 
-    section System Services
-    Filesystem Services         :done,    p4a, 2024-Q2, 2025-Q1
-    Network Stack               :         p4b, 2025-Q2, 2026-Q1
-    Security Framework          :         p4c, 2025-Q3, 2026-Q2
+    subgraph P5["Phase 5: Ecosystem"]
+        direction TB
+        P5A["Userspace"]:::planned
+        P5B["Developer Tools"]:::planned
+        P5C["Documentation"]:::active
+    end
 
-    section Ecosystem
-    Userspace Environment       :         p5a, 2025-Q4, 2026-Q3
-    Developer Tools             :         p5b, 2026-Q1, 2026-Q4
-    Documentation               :active,  p5c, 2024-Q1, 2026-Q4
+    P1 --> P2 --> P3 --> P4 --> P5
+
+    classDef done fill:#22c55e,stroke:#16a34a,color:#fff
+    classDef active fill:#3b82f6,stroke:#2563eb,color:#fff
+    classDef planned fill:#6b7280,stroke:#4b5563,color:#fff
 ```
+
+**Legend:** 🟢 Done · 🔵 Active · ⚫ Planned
 
 ### Phase Descriptions
 
@@ -493,12 +507,9 @@ See [docs/development/CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for det
 
 ## 📜 License
 
-Helix OS Framework is dual-licensed under:
+Helix OS Framework is licensed under the **MIT License**.
 
-- [MIT License](LICENSE-MIT)
-- [Apache License 2.0](LICENSE-APACHE)
-
-You may choose either license for your use of this software.
+See [LICENSE](LICENSE) for the full license text.
 
 ---
 
