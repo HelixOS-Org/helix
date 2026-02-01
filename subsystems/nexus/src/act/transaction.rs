@@ -11,12 +11,8 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use crate::types::*;
 use super::effect::{Change, ChangeValue};
 
-// ============================================================================
-// TRANSACTION ID
-// ============================================================================
-
-/// Transaction ID type
-define_id!(TransactionId, "Transaction identifier");
+// Re-export TransactionId from types for backward compatibility
+pub use crate::types::TransactionId;
 
 // ============================================================================
 // TRANSACTION
