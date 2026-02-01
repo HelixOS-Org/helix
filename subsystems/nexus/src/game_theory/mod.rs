@@ -54,23 +54,23 @@
 
 extern crate alloc;
 
-pub mod auction;
-pub mod bargaining;
-pub mod coalition;
-pub mod evolutionary;
-pub mod fair_division;
-pub mod mechanism;
 pub mod nash;
+pub mod evolutionary;
+pub mod mechanism;
+pub mod auction;
+pub mod coalition;
 pub mod replicator;
+pub mod bargaining;
 pub mod voting;
+pub mod fair_division;
 
-use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::collections::BTreeMap;
 use core::cmp::Ordering;
 
-use crate::types::{NexusError, NexusResult};
+use crate::types::{NexusResult, NexusError};
 
 /// Player (agent) identifier
 pub type PlayerId = u32;
@@ -136,11 +136,7 @@ impl Strategy {
 
     /// Pure strategy for resource request
     pub fn resource_request(id: StrategyId, amount: f64) -> Self {
-        Self::new(
-            id,
-            &alloc::format!("request_{}", amount as u64),
-            alloc::vec![amount],
-        )
+        Self::new(id, &alloc::format!("request_{}", amount as u64), alloc::vec![amount])
     }
 
     /// Cooperation strategy
@@ -168,9 +164,7 @@ impl MixedStrategy {
         if strategy_idx < num_strategies {
             probs[strategy_idx] = 1.0;
         }
-        Self {
-            probabilities: probs,
-        }
+        Self { probabilities: probs }
     }
 
     /// Create uniform mixed strategy
@@ -191,9 +185,7 @@ impl MixedStrategy {
                 *p /= sum;
             }
         }
-        Self {
-            probabilities: probs,
-        }
+        Self { probabilities: probs }
     }
 
     /// Sample a pure strategy from mixed
@@ -210,8 +202,7 @@ impl MixedStrategy {
 
     /// Get support (strategies with non-zero probability)
     pub fn support(&self) -> Vec<usize> {
-        self.probabilities
-            .iter()
+        self.probabilities.iter()
             .enumerate()
             .filter(|(_, &p)| p > 1e-10)
             .map(|(i, _)| i)
@@ -272,11 +263,7 @@ impl PayoffFunction {
     }
 
     /// Calculate payoffs for strategy profile
-    pub fn calculate(
-        &self,
-        strategies: &[StrategyId],
-        all_strategies: &[Vec<Strategy>],
-    ) -> Vec<Utility> {
+    pub fn calculate(&self, strategies: &[StrategyId], all_strategies: &[Vec<Strategy>]) -> Vec<Utility> {
         if let Some(ref matrix) = self.matrix {
             // 2-player matrix game
             if strategies.len() >= 2 {
@@ -305,12 +292,10 @@ impl PayoffFunction {
         match calc.calc_type {
             PayoffType::LinearResource => {
                 let total = calc.params.get(0).copied().unwrap_or(100.0);
-                let requests: Vec<f64> = strategies
-                    .iter()
+                let requests: Vec<f64> = strategies.iter()
                     .zip(all_strategies.iter())
                     .map(|(&sid, strats)| {
-                        strats
-                            .get(sid as usize)
+                        strats.get(sid as usize)
                             .and_then(|s| s.params.first())
                             .copied()
                             .unwrap_or(0.0)
@@ -323,18 +308,17 @@ impl PayoffFunction {
                     requests
                 } else {
                     // Proportional allocation
-                    requests
-                        .iter()
+                    requests.iter()
                         .map(|&r| r * total / total_request)
                         .collect()
                 }
-            },
+            }
             PayoffType::CongestionDelay => {
                 // Higher congestion = lower utility
                 let n = strategies.len() as f64;
                 let base_utility = calc.params.get(0).copied().unwrap_or(10.0);
                 alloc::vec![base_utility / n; strategies.len()]
-            },
+            }
             _ => alloc::vec![0.0; strategies.len()],
         }
     }
@@ -367,30 +351,19 @@ impl Game {
         // (cooperate, defect) = (0, 5)
         // (defect, cooperate) = (5, 0)
         // (defect, defect) = (1, 1)
-        let matrix = alloc::vec![alloc::vec![(3.0, 3.0), (0.0, 5.0)], alloc::vec![
-            (5.0, 0.0),
-            (1.0, 1.0)
-        ],];
+        let matrix = alloc::vec![
+            alloc::vec![(3.0, 3.0), (0.0, 5.0)],
+            alloc::vec![(5.0, 0.0), (1.0, 1.0)],
+        ];
 
-        Self::new(
-            2,
-            strategies,
-            PayoffFunction::from_matrix(matrix),
-            GameType::PrisonersDilemma,
-        )
+        Self::new(2, strategies, PayoffFunction::from_matrix(matrix), GameType::PrisonersDilemma)
     }
 
     /// Create coordination game
     pub fn coordination(reward: f64, penalty: f64) -> Self {
         let strategies = alloc::vec![
-            alloc::vec![
-                Strategy::new(0, "A", alloc::vec![]),
-                Strategy::new(1, "B", alloc::vec![])
-            ],
-            alloc::vec![
-                Strategy::new(0, "A", alloc::vec![]),
-                Strategy::new(1, "B", alloc::vec![])
-            ],
+            alloc::vec![Strategy::new(0, "A", alloc::vec![]), Strategy::new(1, "B", alloc::vec![])],
+            alloc::vec![Strategy::new(0, "A", alloc::vec![]), Strategy::new(1, "B", alloc::vec![])],
         ];
 
         let matrix = alloc::vec![
@@ -398,12 +371,7 @@ impl Game {
             alloc::vec![(penalty, penalty), (reward, reward)],
         ];
 
-        Self::new(
-            2,
-            strategies,
-            PayoffFunction::from_matrix(matrix),
-            GameType::Coordination,
-        )
+        Self::new(2, strategies, PayoffFunction::from_matrix(matrix), GameType::Coordination)
     }
 
     /// Create resource allocation game
@@ -459,11 +427,9 @@ impl StrategyProfile {
 
     /// Create mixed strategy profile
     pub fn mixed(strategies: Vec<MixedStrategy>) -> Self {
-        let pure = strategies
-            .iter()
+        let pure = strategies.iter()
             .map(|m| {
-                m.probabilities
-                    .iter()
+                m.probabilities.iter()
                     .enumerate()
                     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(Ordering::Equal))
                     .map(|(i, _)| i as StrategyId)
@@ -515,9 +481,9 @@ impl NashSolver {
         // Try support enumeration for small games
         for support1_size in 1..=m {
             for support2_size in 1..=n {
-                if let Some(equilibrium) =
-                    self.check_support_equilibrium(game, support1_size, support2_size)
-                {
+                if let Some(equilibrium) = self.check_support_equilibrium(
+                    game, support1_size, support2_size
+                ) {
                     return Ok(equilibrium);
                 }
             }
@@ -579,9 +545,7 @@ impl NashSolver {
         let n = game.num_players;
 
         // Initialize counts for each strategy
-        let mut counts: Vec<Vec<f64>> = game
-            .strategies
-            .iter()
+        let mut counts: Vec<Vec<f64>> = game.strategies.iter()
             .map(|s| alloc::vec![1.0; s.len()])
             .collect();
 
@@ -590,8 +554,7 @@ impl NashSolver {
             let mut new_strategies = Vec::with_capacity(n);
 
             for player in 0..n {
-                let opponent_mixed: Vec<_> = counts
-                    .iter()
+                let opponent_mixed: Vec<_> = counts.iter()
                     .enumerate()
                     .filter(|(i, _)| *i != player)
                     .map(|(_, c)| {
@@ -611,8 +574,7 @@ impl NashSolver {
         }
 
         // Convert counts to mixed strategies
-        let mixed: Vec<MixedStrategy> = counts
-            .into_iter()
+        let mixed: Vec<MixedStrategy> = counts.into_iter()
             .map(|c| {
                 let sum: f64 = c.iter().sum();
                 MixedStrategy::from_probs(c.into_iter().map(|x| x / sum).collect())
@@ -684,9 +646,7 @@ impl NashSolver {
         let n = game.num_players;
 
         // Initialize with uniform strategies
-        let mut populations: Vec<Vec<f64>> = game
-            .strategies
-            .iter()
+        let mut populations: Vec<Vec<f64>> = game.strategies.iter()
             .map(|s| {
                 let p = 1.0 / s.len() as f64;
                 alloc::vec![p; s.len()]
@@ -706,16 +666,14 @@ impl NashSolver {
                 let mut avg_fitness = 0.0;
 
                 for s in 0..num_strategies {
-                    let fitness =
-                        self.strategy_fitness(game, player, s as StrategyId, &populations);
+                    let fitness = self.strategy_fitness(game, player, s as StrategyId, &populations);
                     fitnesses.push(fitness);
                     avg_fitness += populations[player][s] * fitness;
                 }
 
                 // Update populations using replicator equation
                 for s in 0..num_strategies {
-                    let delta =
-                        populations[player][s] * (fitnesses[s] - avg_fitness) * learning_rate;
+                    let delta = populations[player][s] * (fitnesses[s] - avg_fitness) * learning_rate;
                     new_populations[player][s] += delta;
                     new_populations[player][s] = new_populations[player][s].max(0.0);
                 }
@@ -732,8 +690,7 @@ impl NashSolver {
             populations = new_populations;
         }
 
-        let mixed: Vec<MixedStrategy> = populations
-            .into_iter()
+        let mixed: Vec<MixedStrategy> = populations.into_iter()
             .map(MixedStrategy::from_probs)
             .collect();
 
@@ -753,15 +710,7 @@ impl NashSolver {
 
         // Simplified: enumerate opponent strategy combinations
         // For efficiency, use sampling for large games
-        self.enumerate_expected_payoff(
-            game,
-            player,
-            strategy,
-            populations,
-            0,
-            alloc::vec![],
-            &mut expected,
-        );
+        self.enumerate_expected_payoff(game, player, strategy, populations, 0, alloc::vec![], &mut expected);
 
         expected
     }
@@ -792,28 +741,12 @@ impl NashSolver {
 
         if current_player == player {
             profile.push(strategy);
-            self.enumerate_expected_payoff(
-                game,
-                player,
-                strategy,
-                populations,
-                current_player + 1,
-                profile,
-                expected,
-            );
+            self.enumerate_expected_payoff(game, player, strategy, populations, current_player + 1, profile, expected);
         } else {
             for s in 0..game.strategies[current_player].len() {
                 let mut new_profile = profile.clone();
                 new_profile.push(s as StrategyId);
-                self.enumerate_expected_payoff(
-                    game,
-                    player,
-                    strategy,
-                    populations,
-                    current_player + 1,
-                    new_profile,
-                    expected,
-                );
+                self.enumerate_expected_payoff(game, player, strategy, populations, current_player + 1, new_profile, expected);
             }
         }
     }
@@ -934,15 +867,8 @@ impl MechanismDesign {
         let mut payments = BTreeMap::new();
 
         // Sort by valuation density (value per unit)
-        let mut sorted_bids: Vec<_> = bids
-            .iter()
-            .map(|b| {
-                (
-                    b.player,
-                    b.valuation / b.requested_amount.max(1.0),
-                    b.requested_amount,
-                )
-            })
+        let mut sorted_bids: Vec<_> = bids.iter()
+            .map(|b| (b.player, b.valuation / b.requested_amount.max(1.0), b.requested_amount))
             .collect();
         sorted_bids.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
 
@@ -964,12 +890,10 @@ impl MechanismDesign {
         // Calculate VCG payments (externality)
         for bid in bids {
             // Welfare without this player
-            let welfare_without =
-                self.calculate_welfare_without(&sorted_bids, bid.player, total_resource);
+            let welfare_without = self.calculate_welfare_without(&sorted_bids, bid.player, total_resource);
             // Others' welfare with this player
-            let others_welfare_with = welfare
-                - (bid.valuation / bid.requested_amount.max(1.0))
-                    * allocations.get(&bid.player).copied().unwrap_or(0.0);
+            let others_welfare_with = welfare - (bid.valuation / bid.requested_amount.max(1.0))
+                * allocations.get(&bid.player).copied().unwrap_or(0.0);
 
             let payment = welfare_without - others_welfare_with;
             payments.insert(bid.player, payment.max(0.0));
@@ -982,12 +906,7 @@ impl MechanismDesign {
         }
     }
 
-    fn calculate_welfare_without(
-        &self,
-        sorted_bids: &[(PlayerId, f64, f64)],
-        exclude: PlayerId,
-        total: f64,
-    ) -> f64 {
+    fn calculate_welfare_without(&self, sorted_bids: &[(PlayerId, f64, f64)], exclude: PlayerId, total: f64) -> f64 {
         let mut remaining = total;
         let mut welfare = 0.0;
 
@@ -1030,8 +949,9 @@ impl MechanismDesign {
 
     /// Max-min fair allocation
     fn max_min_fair_allocation(&self, bids: &[Bid], total_resource: f64) -> Allocation {
-        let mut allocations: BTreeMap<PlayerId, f64> =
-            bids.iter().map(|b| (b.player, 0.0)).collect();
+        let mut allocations: BTreeMap<PlayerId, f64> = bids.iter()
+            .map(|b| (b.player, 0.0))
+            .collect();
 
         let mut remaining = total_resource;
         let mut unsatisfied: Vec<_> = bids.iter().collect();
@@ -1057,8 +977,7 @@ impl MechanismDesign {
             unsatisfied.retain(|b| !newly_satisfied.contains(&b.player));
         }
 
-        let welfare = bids
-            .iter()
+        let welfare = bids.iter()
             .map(|b| {
                 let alloc = allocations.get(&b.player).copied().unwrap_or(0.0);
                 (b.valuation / b.requested_amount.max(1.0)) * alloc
@@ -1107,10 +1026,7 @@ impl KernelResourceGameManager {
 
     /// Find stable resource allocation
     pub fn find_stable_allocation(&mut self) -> NexusResult<StrategyProfile> {
-        let game = self
-            .current_game
-            .as_ref()
-            .ok_or(NexusError::NotInitialized)?;
+        let game = self.current_game.as_ref().ok_or(NexusError::NotInitialized)?;
         self.nash_solver.find_nash_equilibrium(game)
     }
 
@@ -1166,7 +1082,10 @@ mod tests {
         let equilibrium = solver.find_nash_equilibrium(&game).unwrap();
 
         // Both (A,A) and (B,B) are Nash equilibria
-        assert!(equilibrium.pure == alloc::vec![0, 0] || equilibrium.pure == alloc::vec![1, 1]);
+        assert!(
+            equilibrium.pure == alloc::vec![0, 0] ||
+            equilibrium.pure == alloc::vec![1, 1]
+        );
     }
 
     #[test]
@@ -1174,21 +1093,9 @@ mod tests {
         let mechanism = MechanismDesign::new(MechanismType::VCG);
 
         let bids = alloc::vec![
-            Bid {
-                player: 0,
-                valuation: 100.0,
-                requested_amount: 50.0
-            },
-            Bid {
-                player: 1,
-                valuation: 80.0,
-                requested_amount: 60.0
-            },
-            Bid {
-                player: 2,
-                valuation: 60.0,
-                requested_amount: 40.0
-            },
+            Bid { player: 0, valuation: 100.0, requested_amount: 50.0 },
+            Bid { player: 1, valuation: 80.0, requested_amount: 60.0 },
+            Bid { player: 2, valuation: 60.0, requested_amount: 40.0 },
         ];
 
         let allocation = mechanism.allocate(&bids, 100.0);
@@ -1203,21 +1110,9 @@ mod tests {
         let mechanism = MechanismDesign::new(MechanismType::MaxMinFair);
 
         let bids = alloc::vec![
-            Bid {
-                player: 0,
-                valuation: 10.0,
-                requested_amount: 30.0
-            },
-            Bid {
-                player: 1,
-                valuation: 10.0,
-                requested_amount: 30.0
-            },
-            Bid {
-                player: 2,
-                valuation: 10.0,
-                requested_amount: 30.0
-            },
+            Bid { player: 0, valuation: 10.0, requested_amount: 30.0 },
+            Bid { player: 1, valuation: 10.0, requested_amount: 30.0 },
+            Bid { player: 2, valuation: 10.0, requested_amount: 30.0 },
         ];
 
         let allocation = mechanism.allocate(&bids, 60.0);
