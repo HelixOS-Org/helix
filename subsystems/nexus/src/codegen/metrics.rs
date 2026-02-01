@@ -6,6 +6,8 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::math::F64Ext;
+use alloc::format;
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
@@ -19,7 +21,7 @@ use super::ir::{IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType};
 // ============================================================================
 
 /// Code quality metric
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MetricKind {
     // Size metrics
     LinesOfCode,
