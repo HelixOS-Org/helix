@@ -10,15 +10,9 @@ use alloc::vec::Vec;
 
 use super::effect::Change;
 use super::transaction::{RollbackState, TransactionId};
-use crate::decide::{ActionParameters, ActionTarget, ActionType};
 use crate::types::*;
-
-// ============================================================================
-// EFFECTOR ID
-// ============================================================================
-
-/// Effector ID type
-define_id!(EffectorId, "Effector identifier");
+// ActionParameters, ActionTarget not in types - only ActionType available
+// use crate::decide::{ActionParameters, ActionTarget, ActionType};
 
 // ============================================================================
 // EFFECTOR TRAIT
