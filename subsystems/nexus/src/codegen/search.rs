@@ -13,8 +13,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{Specification, GenOptions, Priority};
 use super::synthesis::SynthesisCandidate;
+use super::{GenOptions, Priority, Specification};
 
 // ============================================================================
 // SEARCH TYPES
@@ -84,7 +84,11 @@ pub enum ProgramFragment {
     /// Unary operation
     UnaryOp(UnaryOpKind, Box<ProgramFragment>),
     /// Conditional
-    If(Box<ProgramFragment>, Box<ProgramFragment>, Box<ProgramFragment>),
+    If(
+        Box<ProgramFragment>,
+        Box<ProgramFragment>,
+        Box<ProgramFragment>,
+    ),
     /// Loop
     Loop(Box<ProgramFragment>, Box<ProgramFragment>),
     /// Function call
@@ -107,16 +111,31 @@ pub enum HoleType {
 /// Binary operation kind
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOpKind {
-    Add, Sub, Mul, Div, Rem,
-    And, Or, Xor,
-    Shl, Shr,
-    Eq, Ne, Lt, Le, Gt, Ge,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
 }
 
 /// Unary operation kind
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOpKind {
-    Neg, Not, Deref, Ref,
+    Neg,
+    Not,
+    Deref,
+    Ref,
 }
 
 /// Search result
@@ -209,7 +228,9 @@ impl Frontier for PriorityFrontier {
     fn push(&mut self, node: SearchNode) {
         self.heap.push(node);
         self.heap.sort_by(|a, b| {
-            b.f_score.partial_cmp(&a.f_score).unwrap_or(core::cmp::Ordering::Equal)
+            b.f_score
+                .partial_cmp(&a.f_score)
+                .unwrap_or(core::cmp::Ordering::Equal)
         });
     }
 
@@ -294,11 +315,7 @@ impl SearchEngine {
     }
 
     /// Search for programs
-    pub fn search(
-        &mut self,
-        spec: &Specification,
-        strategy: SearchStrategy,
-    ) -> SearchResult {
+    pub fn search(&mut self, spec: &Specification, strategy: SearchStrategy) -> SearchResult {
         self.nodes.clear();
         self.roots.clear();
         self.stats = SearchStats::default();
@@ -330,7 +347,12 @@ impl SearchEngine {
         }
     }
 
-    fn create_node(&mut self, parent: Option<u64>, depth: usize, fragment: ProgramFragment) -> SearchNode {
+    fn create_node(
+        &mut self,
+        parent: Option<u64>,
+        depth: usize,
+        fragment: ProgramFragment,
+    ) -> SearchNode {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         self.stats.nodes_created += 1;
 
@@ -603,7 +625,8 @@ impl SearchEngine {
                             f64::INFINITY
                         } else {
                             (child.total_reward / child.visits as f64)
-                                + self.config.mcts_c * (parent_visits.ln() / child.visits as f64).sqrt()
+                                + self.config.mcts_c
+                                    * (parent_visits.ln() / child.visits as f64).sqrt()
                         };
 
                         if ucb > best_ucb {
@@ -685,7 +708,9 @@ impl SearchEngine {
 
             // Sort by score and keep top beam_width
             candidates.sort_by(|a, b| {
-                a.f_score.partial_cmp(&b.f_score).unwrap_or(core::cmp::Ordering::Equal)
+                a.f_score
+                    .partial_cmp(&b.f_score)
+                    .unwrap_or(core::cmp::Ordering::Equal)
             });
             candidates.truncate(self.config.beam_width);
 
@@ -709,7 +734,8 @@ impl SearchEngine {
 
         for _ in 0..generations {
             // Evaluate fitness
-            let mut scored: Vec<(f64, ProgramFragment)> = population.iter()
+            let mut scored: Vec<(f64, ProgramFragment)> = population
+                .iter()
                 .map(|p| (self.fitness(spec, p), p.clone()))
                 .collect();
 
@@ -726,7 +752,8 @@ impl SearchEngine {
 
             // Selection
             scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(core::cmp::Ordering::Equal));
-            let survivors: Vec<_> = scored.into_iter()
+            let survivors: Vec<_> = scored
+                .into_iter()
                 .take(population_size / 2)
                 .map(|(_, p)| p)
                 .collect();
@@ -836,8 +863,8 @@ impl SearchEngine {
                         expanded: false,
                     });
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         children
@@ -878,7 +905,7 @@ impl SearchEngine {
             ProgramFragment::UnaryOp(_, e) => self.is_complete(e),
             ProgramFragment::If(c, t, e) => {
                 self.is_complete(c) && self.is_complete(t) && self.is_complete(e)
-            }
+            },
             ProgramFragment::Loop(c, b) => self.is_complete(c) && self.is_complete(b),
             ProgramFragment::Call(_, args) => args.iter().all(|a| self.is_complete(a)),
             ProgramFragment::Seq(stmts) => stmts.iter().all(|s| self.is_complete(s)),
@@ -904,7 +931,7 @@ impl SearchEngine {
             ProgramFragment::UnaryOp(_, e) => self.count_holes(e),
             ProgramFragment::If(c, t, e) => {
                 self.count_holes(c) + self.count_holes(t) + self.count_holes(e)
-            }
+            },
             ProgramFragment::Loop(c, b) => self.count_holes(c) + self.count_holes(b),
             ProgramFragment::Call(_, args) => args.iter().map(|a| self.count_holes(a)).sum(),
             ProgramFragment::Seq(stmts) => stmts.iter().map(|s| self.count_holes(s)).sum(),
@@ -949,7 +976,7 @@ impl SearchEngine {
         match (p1, p2) {
             (ProgramFragment::BinOp(op, l, _), ProgramFragment::BinOp(_, _, r)) => {
                 ProgramFragment::BinOp(*op, l.clone(), r.clone())
-            }
+            },
             _ => p1.clone(),
         }
     }
@@ -959,7 +986,7 @@ impl SearchEngine {
         match program {
             ProgramFragment::BinOp(BinOpKind::Add, l, r) => {
                 ProgramFragment::BinOp(BinOpKind::Sub, l.clone(), r.clone())
-            }
+            },
             ProgramFragment::Const(n) => ProgramFragment::Const(n + 1),
             _ => program.clone(),
         }
@@ -983,8 +1010,8 @@ impl Default for SearchEngine {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::PerformanceSpec;
+    use super::*;
 
     fn test_spec() -> Specification {
         Specification {
