@@ -42,26 +42,42 @@
 extern crate alloc;
 
 // Submodules with production-quality implementations
-pub mod types;
-pub mod scaled;
-pub mod multihead;
-pub mod linear;
-pub mod sparse;
 pub mod flash;
+pub mod linear;
+pub mod multihead;
+pub mod scaled;
+pub mod sparse;
+pub mod types;
 
 // Re-export main types for convenience
-pub use types::{Matrix, Tensor3, AttentionMask as AttentionMaskNew, AttentionOutput, Linear, LayerNorm, Dropout};
-pub use scaled::{ScaledDotProductAttention, EfficientAttention, RelativePositionAttention, RotaryPositionEmbedding};
-pub use multihead::{MultiHeadAttention as MultiHeadAttentionNew, KVCache, CachedMultiHeadAttention, GroupedQueryAttention};
-pub use linear::{FeatureMap, FeatureMapType, LinearAttention as LinearAttentionNew, Performer, LinearAttentionRNN};
-pub use sparse::{SparsePattern, SparsePatternType, SparseAttention as SparseAttentionNew, BlockSparseAttention, DilatedAttention};
-pub use flash::{FlashAttention as FlashAttentionNew, SlidingWindowFlashAttention, PagedAttention, PageTableEntry};
-
 // Legacy code below - kept for backward compatibility
 // TODO: Migrate to new module structure
-
 use alloc::vec;
 use alloc::vec::Vec;
+
+pub use flash::{
+    FlashAttention as FlashAttentionNew, PageTableEntry, PagedAttention,
+    SlidingWindowFlashAttention,
+};
+pub use linear::{
+    FeatureMap, FeatureMapType, LinearAttention as LinearAttentionNew, LinearAttentionRNN,
+    Performer,
+};
+pub use multihead::{
+    CachedMultiHeadAttention, GroupedQueryAttention, KVCache,
+    MultiHeadAttention as MultiHeadAttentionNew,
+};
+pub use scaled::{
+    EfficientAttention, RelativePositionAttention, RotaryPositionEmbedding,
+    ScaledDotProductAttention,
+};
+pub use sparse::{
+    BlockSparseAttention, DilatedAttention, SparseAttention as SparseAttentionNew, SparsePattern,
+    SparsePatternType,
+};
+pub use types::{
+    AttentionMask as AttentionMaskNew, AttentionOutput, Dropout, LayerNorm, Linear, Matrix, Tensor3,
+};
 
 // ============================================================================
 // CONSTANTS
@@ -112,7 +128,7 @@ pub enum AttentionMask {
 impl AttentionMask {
     /// Get mask value for position (i, j)
     pub fn get_mask(&self, i: usize, j: usize, seq_len: usize) -> f64 {
-        let _ = seq_len;  // Used for API compatibility
+        let _ = seq_len; // Used for API compatibility
         match self {
             AttentionMask::None => 0.0,
             AttentionMask::Causal => {
