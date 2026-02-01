@@ -6,13 +6,13 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::boxed::Box;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use super::{NodeId, ClusterId, Epoch, Term, NodeInfo, NodeRole, NodeState, NodeCapabilities};
+use super::{ClusterId, Epoch, NodeCapabilities, NodeId, NodeInfo, NodeRole, NodeState, Term};
 
 // ============================================================================
 // MEMBERSHIP TYPES
@@ -245,15 +245,19 @@ impl HealthChecker {
         }
 
         // Count recent successes/failures
-        let recent: Vec<_> = history.iter().rev()
+        let recent: Vec<_> = history
+            .iter()
+            .rev()
             .take(self.config.healthy_threshold as usize)
             .collect();
 
-        let healthy_count = recent.iter()
+        let healthy_count = recent
+            .iter()
             .filter(|c| c.status == HealthStatus::Healthy)
             .count();
 
-        let unhealthy_count = recent.iter()
+        let unhealthy_count = recent
+            .iter()
             .filter(|c| c.status == HealthStatus::Unhealthy)
             .count();
 
@@ -320,15 +324,12 @@ impl PhiAccrualDetector {
         }
 
         // Calculate intervals
-        let intervals: Vec<f64> = history.windows(2)
-            .map(|w| (w[1] - w[0]) as f64)
-            .collect();
+        let intervals: Vec<f64> = history.windows(2).map(|w| (w[1] - w[0]) as f64).collect();
 
         // Mean and variance
         let mean: f64 = intervals.iter().sum::<f64>() / intervals.len() as f64;
-        let variance: f64 = intervals.iter()
-            .map(|i| (i - mean).powi(2))
-            .sum::<f64>() / intervals.len() as f64;
+        let variance: f64 =
+            intervals.iter().map(|i| (i - mean).powi(2)).sum::<f64>() / intervals.len() as f64;
         let std_dev = variance.sqrt();
 
         // Time since last heartbeat
@@ -438,9 +439,16 @@ impl ClusterManager {
     }
 
     /// Add member
-    pub fn add_member(&mut self, node_id: NodeId, role: MemberRole) -> Result<MemberId, ClusterError> {
+    pub fn add_member(
+        &mut self,
+        node_id: NodeId,
+        role: MemberRole,
+    ) -> Result<MemberId, ClusterError> {
         // Check limits
-        let voters = self.config.members.iter()
+        let voters = self
+            .config
+            .members
+            .iter()
             .filter(|m| m.role == MemberRole::Voter && m.status == MemberStatus::Active)
             .count();
 
@@ -485,7 +493,10 @@ impl ClusterManager {
 
     /// Remove member
     pub fn remove_member(&mut self, node_id: NodeId) -> Result<(), ClusterError> {
-        let idx = self.config.members.iter()
+        let idx = self
+            .config
+            .members
+            .iter()
             .position(|m| m.node_id == node_id)
             .ok_or(ClusterError::NotMember)?;
 
@@ -493,8 +504,15 @@ impl ClusterManager {
 
         // Check minimum voters
         if member.role == MemberRole::Voter {
-            let voters = self.config.members.iter()
-                .filter(|m| m.role == MemberRole::Voter && m.status == MemberStatus::Active && m.node_id != node_id)
+            let voters = self
+                .config
+                .members
+                .iter()
+                .filter(|m| {
+                    m.role == MemberRole::Voter
+                        && m.status == MemberStatus::Active
+                        && m.node_id != node_id
+                })
                 .count();
 
             if voters < self.config.min_voters {
@@ -521,7 +539,10 @@ impl ClusterManager {
 
     /// Promote learner to voter
     pub fn promote(&mut self, node_id: NodeId) -> Result<(), ClusterError> {
-        let member = self.config.members.iter_mut()
+        let member = self
+            .config
+            .members
+            .iter_mut()
             .find(|m| m.node_id == node_id)
             .ok_or(ClusterError::NotMember)?;
 
@@ -529,7 +550,10 @@ impl ClusterManager {
             return Err(ClusterError::InvalidRole);
         }
 
-        let voters = self.config.members.iter()
+        let voters = self
+            .config
+            .members
+            .iter()
             .filter(|m| m.role == MemberRole::Voter && m.status == MemberStatus::Active)
             .count();
 
@@ -557,8 +581,12 @@ impl ClusterManager {
     pub fn heartbeat(&mut self, node_id: NodeId, timestamp: u64) {
         self.failure_detector.heartbeat(node_id, timestamp);
 
-        if let Some(member) = self.config.members.iter_mut()
-            .find(|m| m.node_id == node_id) {
+        if let Some(member) = self
+            .config
+            .members
+            .iter_mut()
+            .find(|m| m.node_id == node_id)
+        {
             member.last_heartbeat = timestamp;
             if member.status == MemberStatus::Suspect {
                 member.status = MemberStatus::Active;
@@ -603,7 +631,9 @@ impl ClusterManager {
 
     /// Get active voters
     pub fn voters(&self) -> impl Iterator<Item = &Member> {
-        self.config.members.iter()
+        self.config
+            .members
+            .iter()
             .filter(|m| m.role == MemberRole::Voter && m.status == MemberStatus::Active)
     }
 
