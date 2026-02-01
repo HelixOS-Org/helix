@@ -46,20 +46,20 @@
 extern crate alloc;
 
 // Production-quality submodules
-pub mod types;
-pub mod gates;
-pub mod circuits;
-pub mod qaoa;
-pub mod vqe;
 pub mod annealing;
+pub mod circuits;
+pub mod gates;
+pub mod qaoa;
+pub mod types;
+pub mod vqe;
 
 // Re-export main types
-pub use types::{Complex, QubitState, StateVector, Pauli, PauliString, Hamiltonian};
-pub use circuits::{Instruction, QuantumCircuit, CircuitExecutor};
-
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::f64::consts::PI;
+
+pub use circuits::{CircuitExecutor, Instruction, QuantumCircuit};
+pub use types::{Complex, Hamiltonian, Pauli, PauliString, QubitState, StateVector};
 
 /// Quantum-inspired optimization problem types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
