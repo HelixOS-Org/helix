@@ -683,7 +683,7 @@ impl SynthesisEngine {
         spec: &Specification,
         sketch: Option<&Sketch>,
         options: &GenOptions,
-    ) -> Vec<SynthesisCandidate> {
+    ) -> Vec<SynthesisCandidate> {      
         let mut candidates = Vec::new();
 
         if let Some(sketch) = sketch {
