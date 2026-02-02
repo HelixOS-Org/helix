@@ -136,14 +136,14 @@ unsafe fn read_apic(offset: u32) -> u32 {
     // This would use the APIC module's read function
     // For now, we'll use memory-mapped access at default base
     let base = 0xFEE0_0000u64;
-    core::ptr::read_volatile((base + offset as u64) as *const u32)
+    unsafe { core::ptr::read_volatile((base + offset as u64) as *const u32) }
 }
 
 /// Write APIC register (placeholder - should use apic module)
 #[inline]
 unsafe fn write_apic(offset: u32, value: u32) {
     let base = 0xFEE0_0000u64;
-    core::ptr::write_volatile((base + offset as u64) as *mut u32, value);
+    unsafe { core::ptr::write_volatile((base + offset as u64) as *mut u32, value) };
 }
 
 // =============================================================================
@@ -165,14 +165,14 @@ pub unsafe fn init(cpu_id: usize) -> Result<(), ApicTimerError> {
     TSC_DEADLINE_AVAILABLE.store(tsc_features.tsc_deadline, Ordering::SeqCst);
 
     // Set divide configuration
-    write_apic(apic_regs::TIMER_DCR, ApicTimerDivide::By1 as u32);
+    unsafe { write_apic(apic_regs::TIMER_DCR, ApicTimerDivide::By1 as u32) };
 
     // Initially masked
     let lvt = (TIMER_VECTOR as u32) | (1 << 16); // Masked
-    write_apic(apic_regs::LVT_TIMER, lvt);
+    unsafe { write_apic(apic_regs::LVT_TIMER, lvt) };
 
     // Stop the timer
-    write_apic(apic_regs::TIMER_ICR, 0);
+    unsafe { write_apic(apic_regs::TIMER_ICR, 0) };
 
     PER_CPU_TIMER[cpu_id]
         .vector
@@ -200,7 +200,7 @@ pub unsafe fn calibrate(cpu_id: usize) -> Result<u64, ApicTimerError> {
     }
 
     // Use PIT for calibration
-    let frequency = calibrate_with_pit()?;
+    let frequency = unsafe { calibrate_with_pit()? };
 
     PER_CPU_TIMER[cpu_id]
         .frequency
@@ -229,13 +229,13 @@ unsafe fn calibrate_with_pit() -> Result<u64, ApicTimerError> {
     // This is a simplified version - real implementation would be more robust
 
     // Set up APIC timer to maximum count
-    write_apic(apic_regs::TIMER_DCR, ApicTimerDivide::By1 as u32);
-    write_apic(apic_regs::LVT_TIMER, (1 << 16)); // Masked, one-shot
-    write_apic(apic_regs::TIMER_ICR, 0xFFFF_FFFF);
+    unsafe { write_apic(apic_regs::TIMER_DCR, ApicTimerDivide::By1 as u32) };
+    unsafe { write_apic(apic_regs::LVT_TIMER, (1 << 16)) }; // Masked, one-shot
+    unsafe { write_apic(apic_regs::TIMER_ICR, 0xFFFF_FFFF) };
 
     // Wait using TSC (if available and calibrated) or busy loop
     let start_tsc = tsc::read();
-    let start_apic = read_apic(apic_regs::TIMER_CCR);
+    let start_apic = unsafe { read_apic(apic_regs::TIMER_CCR) };
 
     // Simple delay - in production, use PIT or HPET
     for _ in 0..10_000_000 {
@@ -243,7 +243,7 @@ unsafe fn calibrate_with_pit() -> Result<u64, ApicTimerError> {
     }
 
     let end_tsc = tsc::read();
-    let end_apic = read_apic(apic_regs::TIMER_CCR);
+    let end_apic = unsafe { read_apic(apic_regs::TIMER_CCR) };
 
     // Calculate elapsed
     let apic_elapsed = start_apic - end_apic;
@@ -278,10 +278,10 @@ pub unsafe fn start_oneshot(cpu_id: usize, ticks: u32, vector: u8) -> Result<(),
 
     // Configure LVT: one-shot mode, specified vector, not masked
     let lvt = (vector as u32) | (ApicTimerMode::OneShot as u32) << 17;
-    write_apic(apic_regs::LVT_TIMER, lvt);
+    unsafe { write_apic(apic_regs::LVT_TIMER, lvt) };
 
     // Set initial count (starts countdown)
-    write_apic(apic_regs::TIMER_ICR, ticks);
+    unsafe { write_apic(apic_regs::TIMER_ICR, ticks) };
 
     PER_CPU_TIMER[cpu_id]
         .mode
@@ -302,10 +302,10 @@ pub unsafe fn start_periodic(cpu_id: usize, ticks: u32, vector: u8) -> Result<()
 
     // Configure LVT: periodic mode, specified vector, not masked
     let lvt = (vector as u32) | (ApicTimerMode::Periodic as u32) << 17;
-    write_apic(apic_regs::LVT_TIMER, lvt);
+    unsafe { write_apic(apic_regs::LVT_TIMER, lvt) };
 
     // Set initial count (starts countdown)
-    write_apic(apic_regs::TIMER_ICR, ticks);
+    unsafe { write_apic(apic_regs::TIMER_ICR, ticks) };
 
     PER_CPU_TIMER[cpu_id]
         .mode
@@ -334,10 +334,10 @@ pub unsafe fn start_tsc_deadline(
 
     // Configure LVT: TSC-deadline mode, specified vector, not masked
     let lvt = (vector as u32) | (ApicTimerMode::TscDeadline as u32) << 17;
-    write_apic(apic_regs::LVT_TIMER, lvt);
+    unsafe { write_apic(apic_regs::LVT_TIMER, lvt) };
 
     // Write deadline to IA32_TSC_DEADLINE MSR
-    tsc::write_deadline(deadline);
+    unsafe { tsc::write_deadline(deadline) };
 
     PER_CPU_TIMER[cpu_id]
         .mode
@@ -358,7 +358,7 @@ pub unsafe fn arm_deadline_ns(
 ) -> Result<(), ApicTimerError> {
     let ticks = super::ns_to_tsc(ns_from_now);
     let deadline = tsc::read() + ticks;
-    start_tsc_deadline(cpu_id, deadline, vector)
+    unsafe { start_tsc_deadline(cpu_id, deadline, vector) }
 }
 
 /// Stop the APIC timer
@@ -375,15 +375,15 @@ pub unsafe fn stop(cpu_id: usize) -> Result<(), ApicTimerError> {
 
     if mode == ApicTimerMode::TscDeadline as u32 {
         // Disarm TSC deadline
-        tsc::disarm_deadline();
+        unsafe { tsc::disarm_deadline() };
     } else {
         // Stop counter-based timer
-        write_apic(apic_regs::TIMER_ICR, 0);
+        unsafe { write_apic(apic_regs::TIMER_ICR, 0) };
     }
 
     // Mask the timer
-    let lvt = read_apic(apic_regs::LVT_TIMER);
-    write_apic(apic_regs::LVT_TIMER, lvt | (1 << 16));
+    let lvt = unsafe { read_apic(apic_regs::LVT_TIMER) };
+    unsafe { write_apic(apic_regs::LVT_TIMER, lvt | (1 << 16)) };
 
     Ok(())
 }
@@ -507,7 +507,7 @@ impl ApicTimer {
     ///
     /// Timer must be initialized and calibrated.
     pub unsafe fn start_oneshot(&self, ticks: u32, vector: u8) -> Result<(), ApicTimerError> {
-        start_oneshot(self.cpu_id, ticks, vector)
+        unsafe { start_oneshot(self.cpu_id, ticks, vector) }
     }
 
     /// Start periodic timer
@@ -516,7 +516,7 @@ impl ApicTimer {
     ///
     /// Timer must be initialized and calibrated.
     pub unsafe fn start_periodic(&self, ticks: u32, vector: u8) -> Result<(), ApicTimerError> {
-        start_periodic(self.cpu_id, ticks, vector)
+        unsafe { start_periodic(self.cpu_id, ticks, vector) }
     }
 
     /// Start TSC-deadline timer
@@ -529,7 +529,7 @@ impl ApicTimer {
         deadline: u64,
         vector: u8,
     ) -> Result<(), ApicTimerError> {
-        start_tsc_deadline(self.cpu_id, deadline, vector)
+        unsafe { start_tsc_deadline(self.cpu_id, deadline, vector) }
     }
 
     /// Stop the timer
@@ -538,7 +538,7 @@ impl ApicTimer {
     ///
     /// Timer must be initialized.
     pub unsafe fn stop(&self) -> Result<(), ApicTimerError> {
-        stop(self.cpu_id)
+        unsafe { stop(self.cpu_id) }
     }
 
     /// Read current count
