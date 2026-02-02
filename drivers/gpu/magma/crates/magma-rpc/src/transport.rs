@@ -2,12 +2,12 @@
 //!
 //! Low-level transport for RPC communication with GSP.
 
-use magma_core::{Error, Result, GpuAddr, ByteSize};
+use magma_core::{ByteSize, Error, GpuAddr, Result};
 use magma_hal::bar::BarRegion;
 use magma_hal::mmio::MmioRegion;
 
-use crate::channel::{RpcChannel, RpcChannelId, ChannelManager};
-use crate::gsp::{GspState, GspInfo, GspBootParams, GspInitProgress};
+use crate::channel::{ChannelManager, RpcChannel, RpcChannelId};
+use crate::gsp::{GspBootParams, GspInfo, GspInitProgress, GspState};
 use crate::queue::{CommandQueue, ResponseQueue};
 
 // =============================================================================
@@ -254,22 +254,33 @@ impl Transport {
             let offset = i as usize * channel_size as usize;
 
             // SAFETY: bounds checked against shared_mem size
-            let cmd_region = unsafe {
-                self.shared_mem.subregion(offset, queue_size)
-            }.ok_or(Error::OutOfMemory)?;
+            let cmd_region = unsafe { self.shared_mem.subregion(offset, queue_size) }
+                .ok_or(Error::OutOfMemory)?;
 
             let rsp_region = unsafe {
-                self.shared_mem.subregion(offset + queue_size.as_bytes() as usize, queue_size)
-            }.ok_or(Error::OutOfMemory)?;
+                self.shared_mem
+                    .subregion(offset + queue_size.as_bytes() as usize, queue_size)
+            }
+            .ok_or(Error::OutOfMemory)?;
 
             // Create queues
             // SAFETY: Regions are from valid shared memory
             let cmd_queue = unsafe {
-                CommandQueue::new(cmd_region.gpu_addr, cmd_region.cpu_addr, queue_size, entry_size)?
+                CommandQueue::new(
+                    cmd_region.gpu_addr,
+                    cmd_region.cpu_addr,
+                    queue_size,
+                    entry_size,
+                )?
             };
 
             let rsp_queue = unsafe {
-                ResponseQueue::new(rsp_region.gpu_addr, rsp_region.cpu_addr, queue_size, entry_size)?
+                ResponseQueue::new(
+                    rsp_region.gpu_addr,
+                    rsp_region.cpu_addr,
+                    queue_size,
+                    entry_size,
+                )?
             };
 
             // Create channel
