@@ -41,13 +41,15 @@ use core::arch::asm;
 #[inline]
 pub unsafe fn rdmsr(msr: u32) -> u64 {
     let (low, high): (u32, u32);
-    asm!(
-        "rdmsr",
-        in("ecx") msr,
-        out("eax") low,
-        out("edx") high,
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "rdmsr",
+            in("ecx") msr,
+            out("eax") low,
+            out("edx") high,
+            options(nomem, nostack, preserves_flags)
+        );
+    }
     ((high as u64) << 32) | (low as u64)
 }
 
@@ -61,13 +63,15 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
 pub unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;
-    asm!(
-        "wrmsr",
-        in("ecx") msr,
-        in("eax") low,
-        in("edx") high,
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "wrmsr",
+            in("ecx") msr,
+            in("eax") low,
+            in("edx") high,
+            options(nomem, nostack, preserves_flags)
+        );
+    }
 }
 
 // =============================================================================
@@ -396,7 +400,9 @@ impl Efer {
     /// # Safety
     /// Incorrect values can crash the system or disable long mode.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_EFER, self.bits());
+        unsafe {
+            wrmsr(addr::IA32_EFER, self.bits());
+        }
     }
 
     /// Update EFER with a closure
@@ -406,7 +412,9 @@ impl Efer {
     pub unsafe fn update<F: FnOnce(&mut Self)>(f: F) {
         let mut efer = Self::read();
         f(&mut efer);
-        efer.write();
+        unsafe {
+            efer.write();
+        }
     }
 
     /// Check if syscall is enabled
@@ -469,7 +477,9 @@ impl ApicBase {
     /// # Safety
     /// Incorrect values can disable the APIC or cause system instability.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_APIC_BASE, self.value);
+        unsafe {
+            wrmsr(addr::IA32_APIC_BASE, self.value);
+        }
     }
 
     /// Get the APIC base address
@@ -573,7 +583,9 @@ impl Pat {
     /// # Safety
     /// Incorrect values can cause memory corruption.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_PAT, self.value);
+        unsafe {
+            wrmsr(addr::IA32_PAT, self.value);
+        }
     }
 
     /// Get entry at index (0-7)
@@ -649,7 +661,9 @@ impl Star {
     /// # Safety
     /// Must set correct segment selectors.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_STAR, self.value);
+        unsafe {
+            wrmsr(addr::IA32_STAR, self.value);
+        }
     }
 
     /// Create a new STAR configuration
@@ -687,7 +701,9 @@ impl Lstar {
     /// # Safety
     /// Must point to valid syscall handler code.
     pub unsafe fn write(addr: u64) {
-        wrmsr(addr::IA32_LSTAR, addr);
+        unsafe {
+            wrmsr(addr::IA32_LSTAR, addr);
+        }
     }
 }
 
@@ -705,7 +721,9 @@ impl Cstar {
     /// # Safety
     /// Must point to valid syscall handler code.
     pub unsafe fn write(addr: u64) {
-        wrmsr(addr::IA32_CSTAR, addr);
+        unsafe {
+            wrmsr(addr::IA32_CSTAR, addr);
+        }
     }
 }
 
@@ -723,7 +741,9 @@ impl SfMask {
     /// # Safety
     /// Must be a valid flags mask.
     pub unsafe fn write(mask: u64) {
-        wrmsr(addr::IA32_SFMASK, mask);
+        unsafe {
+            wrmsr(addr::IA32_SFMASK, mask);
+        }
     }
 
     /// Standard mask: disable IF, TF, DF, AC, NT
@@ -748,7 +768,9 @@ impl FsBase {
     /// # Safety
     /// Must be a valid canonical address.
     pub unsafe fn write(base: u64) {
-        wrmsr(addr::IA32_FS_BASE, base);
+        unsafe {
+            wrmsr(addr::IA32_FS_BASE, base);
+        }
     }
 
     /// Write FS base using WRFSBASE (if available)
@@ -757,7 +779,9 @@ impl FsBase {
     /// Requires FSGSBASE feature and CR4.FSGSBASE bit set.
     #[inline]
     pub unsafe fn write_fast(base: u64) {
-        asm!("wrfsbase {}", in(reg) base, options(nostack, preserves_flags));
+        unsafe {
+            asm!("wrfsbase {}", in(reg) base, options(nostack, preserves_flags));
+        }
     }
 
     /// Read FS base using RDFSBASE (if available)
@@ -767,7 +791,9 @@ impl FsBase {
     #[inline]
     pub unsafe fn read_fast() -> u64 {
         let base: u64;
-        asm!("rdfsbase {}", out(reg) base, options(nostack, preserves_flags));
+        unsafe {
+            asm!("rdfsbase {}", out(reg) base, options(nostack, preserves_flags));
+        }
         base
     }
 }
@@ -786,7 +812,9 @@ impl GsBase {
     /// # Safety
     /// Must be a valid canonical address.
     pub unsafe fn write(base: u64) {
-        wrmsr(addr::IA32_GS_BASE, base);
+        unsafe {
+            wrmsr(addr::IA32_GS_BASE, base);
+        }
     }
 
     /// Write GS base using WRGSBASE (if available)
@@ -795,7 +823,9 @@ impl GsBase {
     /// Requires FSGSBASE feature and CR4.FSGSBASE bit set.
     #[inline]
     pub unsafe fn write_fast(base: u64) {
-        asm!("wrgsbase {}", in(reg) base, options(nostack, preserves_flags));
+        unsafe {
+            asm!("wrgsbase {}", in(reg) base, options(nostack, preserves_flags));
+        }
     }
 
     /// Read GS base using RDGSBASE (if available)
@@ -805,7 +835,9 @@ impl GsBase {
     #[inline]
     pub unsafe fn read_fast() -> u64 {
         let base: u64;
-        asm!("rdgsbase {}", out(reg) base, options(nostack, preserves_flags));
+        unsafe {
+            asm!("rdgsbase {}", out(reg) base, options(nostack, preserves_flags));
+        }
         base
     }
 }
@@ -824,7 +856,9 @@ impl KernelGsBase {
     /// # Safety
     /// Must be a valid canonical address.
     pub unsafe fn write(base: u64) {
-        wrmsr(addr::IA32_KERNEL_GS_BASE, base);
+        unsafe {
+            wrmsr(addr::IA32_KERNEL_GS_BASE, base);
+        }
     }
 }
 
@@ -834,7 +868,9 @@ impl KernelGsBase {
 /// Should only be called at syscall/interrupt entry/exit boundaries.
 #[inline]
 pub unsafe fn swapgs() {
-    asm!("swapgs", options(nostack, preserves_flags));
+    unsafe {
+        asm!("swapgs", options(nostack, preserves_flags));
+    }
 }
 
 // =============================================================================
@@ -892,7 +928,9 @@ impl Tsc {
     /// # Safety
     /// Can desynchronize TSC across cores.
     pub unsafe fn write(value: u64) {
-        wrmsr(addr::IA32_TSC, value);
+        unsafe {
+            wrmsr(addr::IA32_TSC, value);
+        }
     }
 
     /// Get TSC_AUX value (processor ID)
@@ -905,7 +943,9 @@ impl Tsc {
     /// # Safety
     /// Typically set to processor ID.
     pub unsafe fn set_aux(value: u32) {
-        wrmsr(addr::IA32_TSC_AUX, value as u64);
+        unsafe {
+            wrmsr(addr::IA32_TSC_AUX, value as u64);
+        }
     }
 
     /// Get TSC adjust value
@@ -918,7 +958,9 @@ impl Tsc {
     /// # Safety
     /// Can affect time measurement.
     pub unsafe fn set_adjust(value: i64) {
-        wrmsr(addr::IA32_TSC_ADJUST, value as u64);
+        unsafe {
+            wrmsr(addr::IA32_TSC_ADJUST, value as u64);
+        }
     }
 
     /// Get TSC deadline value
@@ -931,7 +973,9 @@ impl Tsc {
     /// # Safety
     /// Must have TSC-deadline mode enabled in APIC timer.
     pub unsafe fn set_deadline(value: u64) {
-        wrmsr(addr::IA32_TSC_DEADLINE, value);
+        unsafe {
+            wrmsr(addr::IA32_TSC_DEADLINE, value);
+        }
     }
 }
 
@@ -981,7 +1025,9 @@ impl MiscEnable {
     /// # Safety
     /// Can affect system behavior significantly.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_MISC_ENABLE, self.bits());
+        unsafe {
+            wrmsr(addr::IA32_MISC_ENABLE, self.bits());
+        }
     }
 }
 
@@ -1023,7 +1069,9 @@ impl FeatureControl {
     /// # Safety
     /// Cannot be modified once locked.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_FEATURE_CONTROL, self.bits());
+        unsafe {
+            wrmsr(addr::IA32_FEATURE_CONTROL, self.bits());
+        }
     }
 
     /// Check if locked
@@ -1087,7 +1135,9 @@ impl DebugCtl {
     /// # Safety
     /// Can affect debugging and profiling behavior.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_DEBUGCTL, self.bits());
+        unsafe {
+            wrmsr(addr::IA32_DEBUGCTL, self.bits());
+        }
     }
 }
 
@@ -1121,7 +1171,9 @@ impl SpecCtrl {
     /// # Safety
     /// Can affect performance.
     pub unsafe fn write(self) {
-        wrmsr(addr::IA32_SPEC_CTRL, self.bits());
+        unsafe {
+            wrmsr(addr::IA32_SPEC_CTRL, self.bits());
+        }
     }
 }
 
@@ -1130,7 +1182,9 @@ impl SpecCtrl {
 /// # Safety
 /// This is a heavyweight operation.
 pub unsafe fn ibpb() {
-    wrmsr(addr::IA32_PRED_CMD, 1);
+    unsafe {
+        wrmsr(addr::IA32_PRED_CMD, 1);
+    }
 }
 
 /// L1D cache flush
@@ -1138,7 +1192,9 @@ pub unsafe fn ibpb() {
 /// # Safety
 /// This is a heavyweight operation.
 pub unsafe fn l1d_flush() {
-    wrmsr(addr::IA32_FLUSH_CMD, 1);
+    unsafe {
+        wrmsr(addr::IA32_FLUSH_CMD, 1);
+    }
 }
 
 // =============================================================================
