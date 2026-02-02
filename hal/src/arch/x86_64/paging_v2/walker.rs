@@ -7,7 +7,7 @@ use core::fmt;
 
 use super::addresses::{PageSize, PhysicalAddress, VirtualAddress};
 use super::entries::{PageFlags, PageTableEntry, PageTableLevel};
-use super::table::{PageTable, PageTableIndex};
+use super::table::PageTable;
 use super::{is_5level_paging, phys_to_virt};
 
 // =============================================================================
@@ -145,7 +145,7 @@ impl PageTableWalker {
     /// The current page table must be valid.
     #[inline]
     pub unsafe fn current() -> Self {
-        Self::from_cr3(super::read_cr3())
+        unsafe { Self::from_cr3(super::read_cr3()) }
     }
 
     /// Create a new page table walker from a root physical address
@@ -337,7 +337,7 @@ impl PageTableWalker {
         let end_aligned = end.align_up(PageSize::Size4K);
 
         while current < end_aligned {
-            if let Ok(info) = self.translate(current) {
+            if let Ok(info) = unsafe { self.translate(current) } {
                 callback(info);
                 // Skip to the end of this page
                 current = VirtualAddress::new(current.as_u64() + info.page_size.size() as u64);
@@ -369,8 +369,8 @@ impl fmt::Debug for PageTableWalker {
 /// The current page tables must be valid.
 #[inline]
 pub unsafe fn translate(virt: VirtualAddress) -> Result<PhysicalAddress, TranslationError> {
-    let walker = PageTableWalker::current();
-    walker.translate(virt).map(|info| info.physical_address)
+    let walker = unsafe { PageTableWalker::current() };
+    unsafe { walker.translate(virt) }.map(|info| info.physical_address)
 }
 
 /// Get full mapping information for a virtual address
@@ -380,8 +380,8 @@ pub unsafe fn translate(virt: VirtualAddress) -> Result<PhysicalAddress, Transla
 /// The current page tables must be valid.
 #[inline]
 pub unsafe fn get_mapping_info(virt: VirtualAddress) -> Result<MappingInfo, TranslationError> {
-    let walker = PageTableWalker::current();
-    walker.translate(virt)
+    let walker = unsafe { PageTableWalker::current() };
+    unsafe { walker.translate(virt) }
 }
 
 /// Check if a virtual address is mapped
@@ -391,8 +391,8 @@ pub unsafe fn get_mapping_info(virt: VirtualAddress) -> Result<MappingInfo, Tran
 /// The current page tables must be valid.
 #[inline]
 pub unsafe fn is_mapped(virt: VirtualAddress) -> bool {
-    let walker = PageTableWalker::current();
-    walker.translate(virt).is_ok()
+    let walker = unsafe { PageTableWalker::current() };
+    unsafe { walker.translate(virt) }.is_ok()
 }
 
 /// Check if a range of virtual addresses is mapped
@@ -401,13 +401,13 @@ pub unsafe fn is_mapped(virt: VirtualAddress) -> bool {
 ///
 /// The current page tables must be valid.
 pub unsafe fn is_range_mapped(start: VirtualAddress, size: usize) -> bool {
-    let walker = PageTableWalker::current();
+    let walker = unsafe { PageTableWalker::current() };
     let end = VirtualAddress::new(start.as_u64() + size as u64);
 
     let mut current = start.align_down(PageSize::Size4K);
 
     while current < end {
-        match walker.translate(current) {
+        match unsafe { walker.translate(current) } {
             Ok(info) => {
                 current = VirtualAddress::new(current.as_u64() + info.page_size.size() as u64);
             },
