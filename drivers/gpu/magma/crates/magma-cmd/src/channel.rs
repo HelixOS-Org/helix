@@ -2,7 +2,7 @@
 //!
 //! GPU channels (FIFO contexts) for command submission.
 
-use magma_core::{Error, Result, GpuAddr, Handle};
+use magma_core::{Error, GpuAddr, Handle, Result};
 
 use crate::ring::{CommandRing, RingConfig};
 
@@ -26,13 +26,13 @@ pub enum EngineClass {
     /// Graphics (3D) engine - Ampere
     GraphicsAmpere = 0xC697,
     /// Graphics (3D) engine - Ada
-    GraphicsAda = 0xC797,
+    GraphicsAda    = 0xC797,
     /// Compute engine
-    Compute = 0xC6C0,
+    Compute        = 0xC6C0,
     /// Copy engine (DMA)
-    Copy = 0xC6B5,
+    Copy           = 0xC6B5,
     /// 2D engine
-    Twod = 0x902D,
+    Twod           = 0x902D,
 }
 
 impl EngineClass {
@@ -271,10 +271,7 @@ impl ChannelManager {
 
     /// Count active channels
     pub fn active_count(&self) -> usize {
-        self.channels
-            .values()
-            .filter(|c| c.can_submit())
-            .count()
+        self.channels.values().filter(|c| c.can_submit()).count()
     }
 }
 
