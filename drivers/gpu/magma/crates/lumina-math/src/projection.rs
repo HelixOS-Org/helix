@@ -202,27 +202,21 @@ pub fn perspective(fov_y: f32, aspect: f32, z_near: f32, z_far: f32) -> Mat4 {
 
 /// Default orthographic projection (Vulkan-style: RH, zero-to-one)
 #[inline]
-pub fn orthographic(
-    left: f32,
-    right: f32,
-    bottom: f32,
-    top: f32,
-    z_near: f32,
-    z_far: f32,
-) -> Mat4 {
+pub fn orthographic(left: f32, right: f32, bottom: f32, top: f32, z_near: f32, z_far: f32) -> Mat4 {
     orthographic_rh_zo(left, right, bottom, top, z_near, z_far)
 }
 
 #[cfg(test)]
 mod tests {
+    use core::f32::consts::FRAC_PI_4;
+
     use super::*;
     use crate::vec::Vec4;
-    use core::f32::consts::FRAC_PI_4;
 
     #[test]
     fn test_perspective_frustum() {
         let proj = perspective(FRAC_PI_4, 1.0, 0.1, 100.0);
-        
+
         // Point on near plane should map to z=0
         let near_point = proj * Vec4::new(0.0, 0.0, -0.1, 1.0);
         let near_ndc = near_point / near_point.w;
@@ -237,7 +231,7 @@ mod tests {
     #[test]
     fn test_orthographic_corners() {
         let proj = orthographic(-1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
-        
+
         // Corner should map to NDC corner
         let corner = proj * Vec4::new(1.0, 1.0, 0.0, 1.0);
         assert!((corner.x - 1.0).abs() < 0.01);
@@ -248,7 +242,7 @@ mod tests {
     #[test]
     fn test_orthographic_2d() {
         let proj = orthographic_2d(800.0, 600.0);
-        
+
         // Top-left corner (0,0) should map to (-1, 1)
         let tl = proj * Vec4::new(0.0, 0.0, 0.0, 1.0);
         assert!((tl.x - (-1.0)).abs() < 0.01);
