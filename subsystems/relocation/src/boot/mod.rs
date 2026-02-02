@@ -156,6 +156,12 @@ impl MemoryMap {
     }
 }
 
+impl Default for MemoryMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Framebuffer info
 #[derive(Debug, Clone, Copy)]
 pub struct FramebufferInfo {
@@ -282,7 +288,7 @@ impl BootAdapter for Multiboot2Adapter {
             return Err(RelocError::InvalidAddress);
         }
 
-        let mut ctx = BootContext::empty(BootProtocol::Multiboot2);
+        let ctx = BootContext::empty(BootProtocol::Multiboot2);
 
         // Parse multiboot2 tags
         // Note: Multiboot2 loads in 32-bit mode with physical addressing
