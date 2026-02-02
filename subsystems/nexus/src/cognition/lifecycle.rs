@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use alloc::vec;
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
