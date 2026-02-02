@@ -15,8 +15,12 @@ helix-modules = { workspace = true }
 helix-benchmarks = { workspace = true }
 helix-userspace = { workspace = true }
 helix-fs = { path = "../../fs", features = ["alloc"] }
-helix-ai = { path = "../../subsystems/ai" }
-helix-relocation = { path = "../../subsystems/relocation", features = ["x86_64", "kaslr", "validation", "stats"] }
+helix-relocation = { path = "../../subsystems/relocation", features = [
+    "x86_64",
+    "kaslr",
+    "validation",
+    "stats",
+] }
 
 # Note: helix-scheduler-round-robin is temporarily commented out
 # helix-scheduler-round-robin = { path = "../../modules_impl/schedulers/round_robin" }
