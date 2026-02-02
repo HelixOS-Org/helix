@@ -293,7 +293,9 @@ pub struct TimestampPeriod {
 impl TimestampPeriod {
     /// Creates a timestamp period converter
     pub const fn new(nanoseconds_per_tick: f32) -> Self {
-        Self { nanoseconds_per_tick }
+        Self {
+            nanoseconds_per_tick,
+        }
     }
 
     /// Converts GPU ticks to nanoseconds
@@ -313,7 +315,11 @@ impl TimestampPeriod {
 
     /// Computes duration between two timestamps in nanoseconds
     pub fn duration_nanoseconds(&self, start: u64, end: u64) -> f64 {
-        let diff = if end >= start { end - start } else { start - end };
+        let diff = if end >= start {
+            end - start
+        } else {
+            start - end
+        };
         self.ticks_to_nanoseconds(diff)
     }
 }
