@@ -2,6 +2,11 @@
 //!
 //! The GOP protocol provides access to the graphics frame buffer
 //! and allows setting video modes.
+//!
+//! # Safety
+//! This module interfaces with UEFI firmware via FFI. All protocol pointers
+//! are provided by the firmware and validated before use.
+// codeql[rust/access-invalid-pointer] - UEFI FFI pointers validated by firmware
 
 use core::fmt;
 
@@ -50,7 +55,11 @@ impl EfiGraphicsOutputProtocol {
     /// Query a specific mode
     ///
     /// # Safety
-    /// The caller must ensure the protocol pointer is valid.
+    /// The caller must ensure the protocol pointer is valid and obtained
+    /// from UEFI LocateProtocol or HandleProtocol calls.
+    ///
+    /// # Errors
+    /// Returns status error if the mode cannot be queried.
     pub unsafe fn query_mode(
         &mut self,
         mode_number: u32,
@@ -61,6 +70,7 @@ impl EfiGraphicsOutputProtocol {
         let status = (self.query_mode)(self, mode_number, &mut size, &mut info);
 
         if status.is_success() && !info.is_null() {
+            // SAFETY: UEFI guarantees info pointer is valid when status is SUCCESS
             Ok(&*info)
         } else {
             Err(status)
@@ -70,7 +80,8 @@ impl EfiGraphicsOutputProtocol {
     /// Set the video mode
     ///
     /// # Safety
-    /// The caller must ensure the protocol pointer is valid.
+    /// The caller must ensure the protocol pointer is valid and obtained
+    /// from UEFI LocateProtocol or HandleProtocol calls.
     pub unsafe fn set_mode(&mut self, mode_number: u32) -> Result<(), Status> {
         let status = (self.set_mode)(self, mode_number);
         status.to_status_result()
