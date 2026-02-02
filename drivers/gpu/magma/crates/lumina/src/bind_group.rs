@@ -3,7 +3,7 @@
 //! Bind groups organize shader resources into sets that can be
 //! bound together during command recording.
 
-use crate::types::{BufferHandle, TextureHandle, SamplerHandle};
+use crate::types::{BufferHandle, SamplerHandle, TextureHandle};
 
 /// A set of bindings for shader resources
 #[derive(Clone, Debug)]
