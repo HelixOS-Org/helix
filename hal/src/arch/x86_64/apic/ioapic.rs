@@ -420,9 +420,9 @@ impl IoApic {
     ///
     /// The base address must be a valid mapping of the I/O APIC registers.
     pub unsafe fn new(base: u64, gsi_base: u32) -> Self {
-        let version = Self::read_indirect(base, indirect_registers::VERSION);
+        let version = unsafe { Self::read_indirect(base, indirect_registers::VERSION) };
         let num_entries = ((version >> 16) & 0xFF) as u8 + 1;
-        let id = (Self::read_indirect(base, indirect_registers::ID) >> 24) as u8;
+        let id = unsafe { (Self::read_indirect(base, indirect_registers::ID) >> 24) as u8 };
 
         Self {
             base,
@@ -435,15 +435,19 @@ impl IoApic {
     /// Read an indirect register
     #[inline]
     unsafe fn read_indirect(base: u64, reg: u32) -> u32 {
-        core::ptr::write_volatile((base + mmio_registers::IOREGSEL as u64) as *mut u32, reg);
-        core::ptr::read_volatile((base + mmio_registers::IOWIN as u64) as *const u32)
+        unsafe {
+            core::ptr::write_volatile((base + mmio_registers::IOREGSEL as u64) as *mut u32, reg);
+            core::ptr::read_volatile((base + mmio_registers::IOWIN as u64) as *const u32)
+        }
     }
 
     /// Write an indirect register
     #[inline]
     unsafe fn write_indirect(base: u64, reg: u32, value: u32) {
-        core::ptr::write_volatile((base + mmio_registers::IOREGSEL as u64) as *mut u32, reg);
-        core::ptr::write_volatile((base + mmio_registers::IOWIN as u64) as *mut u32, value);
+        unsafe {
+            core::ptr::write_volatile((base + mmio_registers::IOREGSEL as u64) as *mut u32, reg);
+            core::ptr::write_volatile((base + mmio_registers::IOWIN as u64) as *mut u32, value);
+        }
     }
 
     /// Get the I/O APIC ID
