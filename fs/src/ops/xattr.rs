@@ -571,10 +571,8 @@ impl XattrTable {
         let mut list = XattrList::new();
 
         for entry in &self.entries {
-            if entry.used {
-                if !list.add(entry.name()) {
-                    break;
-                }
+            if entry.used && !list.add(entry.name()) {
+                break;
             }
         }
 
