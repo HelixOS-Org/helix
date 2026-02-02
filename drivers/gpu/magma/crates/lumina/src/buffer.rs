@@ -378,8 +378,9 @@ pub struct IndexBuffer {
 impl IndexBuffer {
     /// Creates a new index buffer from u16 indices
     pub fn from_u16(indices: &[u16]) -> Self {
-        let bytes =
-            unsafe { core::slice::from_raw_parts(indices.as_ptr() as *const u8, indices.len() * 2) };
+        let bytes = unsafe {
+            core::slice::from_raw_parts(indices.as_ptr() as *const u8, indices.len() * 2)
+        };
 
         Self {
             handle: BufferHandle::null(),
@@ -391,8 +392,9 @@ impl IndexBuffer {
 
     /// Creates a new index buffer from u32 indices
     pub fn from_u32(indices: &[u32]) -> Self {
-        let bytes =
-            unsafe { core::slice::from_raw_parts(indices.as_ptr() as *const u8, indices.len() * 4) };
+        let bytes = unsafe {
+            core::slice::from_raw_parts(indices.as_ptr() as *const u8, indices.len() * 4)
+        };
 
         Self {
             handle: BufferHandle::null(),
