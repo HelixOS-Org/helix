@@ -36,14 +36,14 @@ impl DepthTest {
     /// Returns the Vulkan compare op
     pub const fn vk_compare_op(self) -> u32 {
         match self {
-            Self::Disabled | Self::Never => 0,  // VK_COMPARE_OP_NEVER
-            Self::Less => 1,                     // VK_COMPARE_OP_LESS
-            Self::Equal => 2,                    // VK_COMPARE_OP_EQUAL
-            Self::LessEqual => 3,                // VK_COMPARE_OP_LESS_OR_EQUAL
-            Self::Greater => 4,                  // VK_COMPARE_OP_GREATER
-            Self::NotEqual => 5,                 // VK_COMPARE_OP_NOT_EQUAL
-            Self::GreaterEqual => 6,             // VK_COMPARE_OP_GREATER_OR_EQUAL
-            Self::Always => 7,                   // VK_COMPARE_OP_ALWAYS
+            Self::Disabled | Self::Never => 0, // VK_COMPARE_OP_NEVER
+            Self::Less => 1,                   // VK_COMPARE_OP_LESS
+            Self::Equal => 2,                  // VK_COMPARE_OP_EQUAL
+            Self::LessEqual => 3,              // VK_COMPARE_OP_LESS_OR_EQUAL
+            Self::Greater => 4,                // VK_COMPARE_OP_GREATER
+            Self::NotEqual => 5,               // VK_COMPARE_OP_NOT_EQUAL
+            Self::GreaterEqual => 6,           // VK_COMPARE_OP_GREATER_OR_EQUAL
+            Self::Always => 7,                 // VK_COMPARE_OP_ALWAYS
         }
     }
 
@@ -71,10 +71,10 @@ impl CullMode {
     /// Returns the Vulkan cull mode flags
     pub const fn vk_flags(self) -> u32 {
         match self {
-            Self::None => 0,           // VK_CULL_MODE_NONE
-            Self::Front => 1,          // VK_CULL_MODE_FRONT_BIT
-            Self::Back => 2,           // VK_CULL_MODE_BACK_BIT
-            Self::FrontAndBack => 3,   // VK_CULL_MODE_FRONT_AND_BACK
+            Self::None => 0,         // VK_CULL_MODE_NONE
+            Self::Front => 1,        // VK_CULL_MODE_FRONT_BIT
+            Self::Back => 2,         // VK_CULL_MODE_BACK_BIT
+            Self::FrontAndBack => 3, // VK_CULL_MODE_FRONT_AND_BACK
         }
     }
 }
@@ -520,13 +520,10 @@ impl PipelineCache {
         }
 
         let hash = self.hash_key(key);
-        self.pipelines.insert(
-            hash,
-            CachedPipeline {
-                handle,
-                last_used_frame: self.current_frame,
-            },
-        );
+        self.pipelines.insert(hash, CachedPipeline {
+            handle,
+            last_used_frame: self.current_frame,
+        });
     }
 
     /// Advances to the next frame
@@ -536,11 +533,7 @@ impl PipelineCache {
 
     /// Evicts the least recently used entry
     fn evict_lru(&mut self) {
-        if let Some((&key, _)) = self
-            .pipelines
-            .iter()
-            .min_by_key(|(_, v)| v.last_used_frame)
-        {
+        if let Some((&key, _)) = self.pipelines.iter().min_by_key(|(_, v)| v.last_used_frame) {
             self.pipelines.remove(&key);
         }
     }
