@@ -10,9 +10,9 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
-use super::ir::{IROp, IRType, IRValue};
 use super::{Specification, TypeSpec};
 
 // ============================================================================
@@ -20,7 +20,7 @@ use super::{Specification, TypeSpec};
 // ============================================================================
 
 /// Template category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TemplateCategory {
     // Data structures
     Array,
