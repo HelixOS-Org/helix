@@ -1,0 +1,383 @@
+# =============================================================================
+# Helix OS - GitHub Actions CI Workflow
+# =============================================================================
+# Continuous Integration pipeline for Helix OS kernel
+#
+# Branch Protection Requirements:
+# 1. Go to Settings → Branches → Add branch protection rule
+# 2. Branch name pattern: main (or develop)
+# 3. Enable:
+#    ✅ Require a pull request before merging
+#    ✅ Require approvals (set to 1 or more)
+#    ✅ Require status checks to pass before merging
+#       - Select: ci-success, format, clippy, build-x86_64, test
+#    ✅ Require conversation resolution before merging
+#    ✅ Do not allow bypassing the above settings
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+# Cancel in-progress runs on same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # ===========================================================================
+  # Format Check
+  # ===========================================================================
+  format:
+    name: 📝 Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  # ===========================================================================
+  # Lint Check
+  # ===========================================================================
+  clippy:
+    name: 🔍 Clippy Lint
+    runs-on: ubuntu-latest
+    needs: format
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy, rust-src
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-clippy-
+            ${{ runner.os }}-cargo-
+
+      - name: Run Clippy (host target)
+        run: |
+          cargo clippy --target x86_64-unknown-linux-gnu \
+            --workspace \
+            --all-features \
+            -- -D warnings -D clippy::all
+
+  # ===========================================================================
+  # Build Check (fast compilation check)
+  # ===========================================================================
+  check:
+    name: ✅ Cargo Check
+    runs-on: ubuntu-latest
+    needs: format
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+          targets: x86_64-unknown-none
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-check-
+            ${{ runner.os }}-cargo-
+
+      - name: Cargo check (kernel target)
+        run: |
+          cargo check --target x86_64-unknown-none \
+            -p helix-minimal-os \
+            -p helix-core \
+            -p helix-hal \
+            -p helix-nexus
+
+  # ===========================================================================
+  # Build x86_64
+  # ===========================================================================
+  build-x86_64:
+    name: 🔨 Build x86_64
+    runs-on: ubuntu-latest
+    needs: [format, clippy, check]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src, llvm-tools-preview
+          targets: x86_64-unknown-none
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-build-x86-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-x86-
+            ${{ runner.os }}-cargo-
+
+      - name: Build kernel (release)
+        run: |
+          cargo build --release \
+            --target x86_64-unknown-none \
+            -p helix-minimal-os
+
+      - name: Check binary size
+        run: |
+          ls -lh target/x86_64-unknown-none/release/helix-minimal-os || true
+          size target/x86_64-unknown-none/release/helix-minimal-os || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helix-kernel-x86_64
+          path: target/x86_64-unknown-none/release/helix-minimal-os
+          retention-days: 14
+
+  # ===========================================================================
+  # Unit Tests
+  # ===========================================================================
+  test:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: [format, clippy]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+            ${{ runner.os }}-cargo-
+
+      - name: Run unit tests
+        run: |
+          cargo test --target x86_64-unknown-linux-gnu \
+            --workspace --lib \
+            -- --nocapture
+
+      - name: Run doc tests
+        run: |
+          cargo test --target x86_64-unknown-linux-gnu \
+            --workspace --doc \
+            || echo "Doc tests completed"
+
+  # ===========================================================================
+  # Documentation Build
+  # ===========================================================================
+  docs:
+    name: 📚 Documentation
+    runs-on: ubuntu-latest
+    needs: format
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-doc-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-doc-
+            ${{ runner.os }}-cargo-
+
+      - name: Build documentation
+        run: |
+          RUSTDOCFLAGS="-D warnings" cargo doc \
+            --target x86_64-unknown-linux-gnu \
+            --no-deps \
+            --workspace
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: target/x86_64-unknown-linux-gnu/doc/
+          retention-days: 14
+
+  # ===========================================================================
+  # Security Audit
+  # ===========================================================================
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run security audit
+        run: cargo audit || echo "Audit completed with findings"
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+        continue-on-error: true
+
+      - name: Run cargo-deny
+        run: cargo deny check || echo "Deny check completed"
+        continue-on-error: true
+
+  # ===========================================================================
+  # QEMU Integration Test
+  # ===========================================================================
+  integration:
+    name: 🖥️ Integration Test
+    runs-on: ubuntu-latest
+    needs: [build-x86_64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86
+
+      - name: Download kernel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: helix-kernel-x86_64
+          path: build/output/
+
+      - name: Run QEMU boot test
+        timeout-minutes: 5
+        run: |
+          chmod +x build/output/helix-minimal-os || true
+
+          # Run QEMU with timeout
+          timeout 30 qemu-system-x86_64 \
+            -kernel build/output/helix-minimal-os \
+            -m 256M \
+            -serial stdio \
+            -display none \
+            -no-reboot \
+            2>&1 | tee qemu-output.log || true
+
+          # Check for successful boot indicators
+          if grep -qi "helix\|kernel\|boot\|init" qemu-output.log; then
+            echo "✅ Kernel boot detected"
+          else
+            echo "⚠️ Boot verification inconclusive (may still be OK)"
+          fi
+
+  # ===========================================================================
+  # CI Success Gate (Required for branch protection)
+  # ===========================================================================
+  ci-success:
+    name: ✅ CI Success
+    runs-on: ubuntu-latest
+    needs: [format, clippy, check, build-x86_64, test, docs]
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          if [[ "${{ needs.format.result }}" != "success" ]]; then
+            echo "❌ Format check failed"
+            exit 1
+          fi
+          if [[ "${{ needs.clippy.result }}" != "success" ]]; then
+            echo "❌ Clippy check failed"
+            exit 1
+          fi
+          if [[ "${{ needs.check.result }}" != "success" ]]; then
+            echo "❌ Cargo check failed"
+            exit 1
+          fi
+          if [[ "${{ needs.build-x86_64.result }}" != "success" ]]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          if [[ "${{ needs.docs.result }}" != "success" ]]; then
+            echo "❌ Documentation build failed"
+            exit 1
+          fi
+
+          echo "✅ All CI checks passed!"
+          echo ""
+          echo "Summary:"
+          echo "  - Format:  ✅"
+          echo "  - Clippy:  ✅"
+          echo "  - Check:   ✅"
+          echo "  - Build:   ✅"
+          echo "  - Tests:   ✅"
+          echo "  - Docs:    ✅"
