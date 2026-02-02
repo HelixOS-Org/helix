@@ -42,7 +42,9 @@ pub fn cache_line_size() -> usize {
 /// The address must be valid memory.
 #[inline]
 pub unsafe fn clflush(addr: *const u8) {
-    asm!("clflush [{}]", in(reg) addr, options(nostack, preserves_flags));
+    unsafe {
+        asm!("clflush [{}]", in(reg) addr, options(nostack, preserves_flags));
+    }
 }
 
 /// Optimized cache line flush (CLFLUSHOPT)
@@ -55,7 +57,9 @@ pub unsafe fn clflush(addr: *const u8) {
 /// Requires CLFLUSHOPT CPU feature.
 #[inline]
 pub unsafe fn clflushopt(addr: *const u8) {
-    asm!("clflushopt [{}]", in(reg) addr, options(nostack, preserves_flags));
+    unsafe {
+        asm!("clflushopt [{}]", in(reg) addr, options(nostack, preserves_flags));
+    }
 }
 
 /// Cache line write back (CLWB)
@@ -69,7 +73,9 @@ pub unsafe fn clflushopt(addr: *const u8) {
 /// Requires CLWB CPU feature.
 #[inline]
 pub unsafe fn clwb(addr: *const u8) {
-    asm!("clwb [{}]", in(reg) addr, options(nostack, preserves_flags));
+    unsafe {
+        asm!("clwb [{}]", in(reg) addr, options(nostack, preserves_flags));
+    }
 }
 
 /// Flush a range of memory
@@ -82,7 +88,9 @@ pub unsafe fn flush_range(start: *const u8, len: usize) {
     let end = addr + len;
 
     while addr < end {
-        clflush(addr as *const u8);
+        unsafe {
+            clflush(addr as *const u8);
+        }
         addr += CACHE_LINE_SIZE;
     }
 }
@@ -98,7 +106,9 @@ pub unsafe fn flush_range_opt(start: *const u8, len: usize) {
     let end = addr + len;
 
     while addr < end {
-        clflushopt(addr as *const u8);
+        unsafe {
+            clflushopt(addr as *const u8);
+        }
         addr += CACHE_LINE_SIZE;
     }
 
@@ -120,7 +130,9 @@ pub unsafe fn flush_range_opt(start: *const u8, len: usize) {
 /// Should only be used during power management transitions.
 #[inline]
 pub unsafe fn wbinvd() {
-    asm!("wbinvd", options(nostack, preserves_flags));
+    unsafe {
+        asm!("wbinvd", options(nostack, preserves_flags));
+    }
 }
 
 /// Invalidate caches without writeback (INVD)
@@ -132,7 +144,9 @@ pub unsafe fn wbinvd() {
 /// Only use after disabling caching or in special hardware contexts.
 #[inline]
 pub unsafe fn invd() {
-    asm!("invd", options(nostack, preserves_flags));
+    unsafe {
+        asm!("invd", options(nostack, preserves_flags));
+    }
 }
 
 // =============================================================================
@@ -248,7 +262,9 @@ pub fn prefetch_range(start: *const u8, len: usize, hint: PrefetchHint) {
 /// Address must be 4-byte aligned.
 #[inline]
 pub unsafe fn movnti32(addr: *mut u32, value: u32) {
-    asm!("movnti [{}], {:e}", in(reg) addr, in(reg) value, options(nostack, preserves_flags));
+    unsafe {
+        asm!("movnti [{}], {:e}", in(reg) addr, in(reg) value, options(nostack, preserves_flags));
+    }
 }
 
 /// Non-temporal store (64-bit)
@@ -257,7 +273,9 @@ pub unsafe fn movnti32(addr: *mut u32, value: u32) {
 /// Address must be 8-byte aligned.
 #[inline]
 pub unsafe fn movnti64(addr: *mut u64, value: u64) {
-    asm!("movnti [{}], {}", in(reg) addr, in(reg) value, options(nostack, preserves_flags));
+    unsafe {
+        asm!("movnti [{}], {}", in(reg) addr, in(reg) value, options(nostack, preserves_flags));
+    }
 }
 
 // =============================================================================
@@ -272,11 +290,13 @@ pub unsafe fn movnti64(addr: *mut u64, value: u64) {
 #[inline]
 pub unsafe fn disable_cache() {
     use super::control_regs::Cr0;
-    Cr0::update(|cr0| {
-        cr0.insert(Cr0::CD);
-        cr0.insert(Cr0::NW);
-    });
-    wbinvd();
+    unsafe {
+        Cr0::update(|cr0| {
+            cr0.insert(Cr0::CD);
+            cr0.insert(Cr0::NW);
+        });
+        wbinvd();
+    }
 }
 
 /// Enable caching globally via CR0.CD
@@ -286,10 +306,12 @@ pub unsafe fn disable_cache() {
 #[inline]
 pub unsafe fn enable_cache() {
     use super::control_regs::Cr0;
-    Cr0::update(|cr0| {
-        cr0.remove(Cr0::CD);
-        cr0.remove(Cr0::NW);
-    });
+    unsafe {
+        Cr0::update(|cr0| {
+            cr0.remove(Cr0::CD);
+            cr0.remove(Cr0::NW);
+        });
+    }
 }
 
 // =============================================================================
@@ -372,25 +394,20 @@ impl<T> core::ops::DerefMut for CacheAligned<T> {
 // =============================================================================
 
 /// Padding to prevent false sharing
+///
+/// The struct is aligned to 64 bytes (cache line size) which naturally
+/// provides false sharing prevention. The alignment attribute ensures
+/// the value occupies a full cache line.
 #[repr(C, align(64))]
 #[derive(Clone, Copy)]
 pub struct CachePadded<T> {
     value: T,
-    _pad: [u8; 64 - core::mem::size_of::<T>() % 64],
 }
 
 impl<T> CachePadded<T> {
     /// Create a new cache-padded value
-    ///
-    /// # Panics
-    /// Panics if T is larger than 64 bytes.
     pub const fn new(value: T) -> Self {
-        // Note: In const context, we can't assert, but the type won't compile
-        // if T > 64 bytes due to the array size calculation
-        Self {
-            value,
-            _pad: [0u8; 64 - core::mem::size_of::<T>() % 64],
-        }
+        Self { value }
     }
 }
 
