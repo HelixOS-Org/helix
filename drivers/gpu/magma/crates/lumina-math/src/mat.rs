@@ -1,7 +1,8 @@
 //! Matrix types
 
-use super::vec::{Vec3, Vec4};
 use core::ops::{Mul, MulAssign};
+
+use super::vec::{Vec3, Vec4};
 
 /// A 2x2 matrix
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -264,8 +265,7 @@ impl Mat4 {
         let io_km = i * o - k * m;
         let in_jm = i * n - j * m;
 
-        a * (f * kp_lo - g * jp_ln + h * jo_kn)
-            - b * (e * kp_lo - g * ip_lm + h * io_km)
+        a * (f * kp_lo - g * jp_ln + h * jo_kn) - b * (e * kp_lo - g * ip_lm + h * io_km)
             + c * (e * jp_ln - f * ip_lm + h * in_jm)
             - d * (e * jo_kn - f * io_km + g * in_jm)
     }
