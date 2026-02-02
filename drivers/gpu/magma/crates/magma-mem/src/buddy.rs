@@ -5,7 +5,7 @@
 use alloc::vec::Vec;
 use core::cmp::min;
 
-use magma_core::{Error, Result, GpuAddr, ByteSize};
+use magma_core::{ByteSize, Error, GpuAddr, Result};
 
 // =============================================================================
 // CONSTANTS
@@ -73,9 +73,7 @@ struct FreeList {
 
 impl FreeList {
     fn new() -> Self {
-        Self {
-            blocks: Vec::new(),
-        }
+        Self { blocks: Vec::new() }
     }
 
     fn push(&mut self, block: BuddyBlock) {
