@@ -135,13 +135,16 @@ impl ActionBuffer {
 /// An action with timestamp
 #[derive(Debug, Clone)]
 pub struct TimestampedAction {
+    /// Type of user action
     pub action_type: UserActionType,
+    /// When the action occurred
     pub timestamp: u64,
+    /// Details about the action
     pub details: ActionDetails,
 }
 
 /// Details about a user action
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ActionDetails {
     /// Process that performed the action
     pub process_id: Option<u64>,
@@ -149,16 +152,6 @@ pub struct ActionDetails {
     pub resource: Option<String>,
     /// Additional metadata
     pub metadata: Vec<(String, String)>,
-}
-
-impl Default for ActionDetails {
-    fn default() -> Self {
-        Self {
-            process_id: None,
-            resource: None,
-            metadata: Vec::new(),
-        }
-    }
 }
 
 /// A learned action sequence
@@ -244,23 +237,49 @@ impl Default for IntentClass {
 #[derive(Debug, Clone)]
 pub enum UserGoal {
     /// Compile a project
-    CompileProject { project_path: String },
+    CompileProject {
+        /// Path to the project
+        project_path: String,
+    },
     /// Install a package
-    InstallPackage { package_name: String },
+    InstallPackage {
+        /// Name of the package
+        package_name: String,
+    },
     /// Update system
     UpdateSystem,
     /// Launch an application
-    LaunchApplication { app_name: String },
+    LaunchApplication {
+        /// Name of the application
+        app_name: String,
+    },
     /// Open a file
-    OpenFile { file_path: String },
+    OpenFile {
+        /// Path to the file
+        file_path: String,
+    },
     /// Complete a file transfer
-    FileTransfer { source: String, destination: String },
+    FileTransfer {
+        /// Source path
+        source: String,
+        /// Destination path
+        destination: String,
+    },
     /// Search for something
-    Search { query: String },
+    Search {
+        /// Search query
+        query: String,
+    },
     /// Configure settings
-    ConfigureSettings { category: String },
+    ConfigureSettings {
+        /// Settings category
+        category: String,
+    },
     /// Custom goal
-    Custom { description: String },
+    Custom {
+        /// Goal description
+        description: String,
+    },
 }
 
 /// Context for intent detection
@@ -481,7 +500,7 @@ impl IntentEngine {
     pub fn analyze(
         &self,
         event: &AiEvent,
-        context: &DecisionContext,
+        _context: &DecisionContext,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         if !self.enabled {
             return Ok(None);
@@ -560,7 +579,7 @@ impl IntentEngine {
     /// Handle process spawn event
     fn handle_process_spawn(
         &self,
-        pid: u64,
+        _pid: u64,
         name: &str,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         // Infer intent from process name
@@ -692,7 +711,7 @@ impl IntentEngine {
     fn generate_suggestions(
         &self,
         intent: IntentClass,
-        context: &UserContext,
+        _context: &UserContext,
     ) -> Vec<IntentSuggestion> {
         let mut suggestions = Vec::new();
 
@@ -941,12 +960,19 @@ impl IntentEngine {
 /// Public statistics structure
 #[derive(Debug, Clone)]
 pub struct IntentEngineStatistics {
+    /// Whether the engine is enabled
     pub enabled: bool,
+    /// Total actions processed
     pub actions_processed: u64,
+    /// Intents successfully recognized
     pub intents_recognized: u64,
+    /// Total predictions made
     pub predictions_made: u64,
+    /// Correct predictions
     pub predictions_correct: u64,
+    /// Number of known action sequences
     pub known_sequences: usize,
+    /// Overall prediction accuracy (0.0 - 1.0)
     pub prediction_accuracy: f32,
 }
 
