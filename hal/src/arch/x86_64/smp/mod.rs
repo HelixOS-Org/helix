@@ -75,10 +75,10 @@ pub use cpu_info::{
     detect_topology, enumerate_cpus, get_cpu_info, register_cpu, CpuInfo, CpuState, CpuTopology,
 };
 pub use per_cpu::{
-    current_apic_id, current_cpu_id, current_percpu, init_ap, init_bsp, PerCpu, PerCpuData,
+    current_apic_id, current_percpu, init_ap, init_bsp, PerCpu, PerCpuData,
     PerCpuFlags, PerCpuRef,
 };
-pub use startup::{set_tsc_frequency, start_all_aps, start_ap, ApEntryFn, TrampolineData};
+pub use startup::{set_tsc_frequency, start_ap, ApEntryFn, TrampolineData};
 
 // =============================================================================
 // Constants
@@ -162,7 +162,7 @@ pub unsafe fn init() -> Result<(), SmpError> {
     set_cpu_online(bsp_id as usize, true);
 
     // Initialize per-CPU for BSP
-    per_cpu::init_bsp()?;
+    per_cpu::init_bsp(bsp_id)?;
 
     // Enumerate CPUs (from ACPI or MP tables)
     let cpu_count = cpu_info::enumerate_cpus()?;
@@ -183,12 +183,15 @@ pub unsafe fn init() -> Result<(), SmpError> {
 ///
 /// Must be called after `init()` and after the memory subsystem
 /// is ready to allocate AP stacks.
-pub unsafe fn start_all_aps() -> Result<usize, SmpError> {
+///
+/// # Arguments
+/// * `ap_list` - List of (APIC ID, CPU ID) tuples for APs to start
+pub unsafe fn start_all_aps(ap_list: &[(u32, usize)]) -> Result<usize, SmpError> {
     if !SMP_INITIALIZED.load(Ordering::Acquire) {
         return Err(SmpError::NotInitialized);
     }
 
-    let started = startup::start_aps()?;
+    let started = startup::start_all_aps(ap_list)?;
 
     log::info!("SMP: Started {} application processor(s)", started);
 
@@ -218,7 +221,7 @@ pub fn get_current_apic_id() -> u32 {
 /// Get the current CPU's index (0-based)
 #[inline]
 pub fn current_cpu_id() -> usize {
-    per_cpu::current_cpu_id()
+    per_cpu::current_cpu_id() as usize
 }
 
 /// Get the total number of CPUs in the system
@@ -314,9 +317,11 @@ fn cpuid(leaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) ebx,
             inout("eax") leaf => eax,
-            out("ebx") ebx,
             out("ecx") ecx,
             out("edx") edx,
             options(nostack, preserves_flags),
@@ -329,9 +334,11 @@ fn cpuid_subleaf(leaf: u32, subleaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) ebx,
             inout("eax") leaf => eax,
-            out("ebx") ebx,
             inout("ecx") subleaf => ecx,
             out("edx") edx,
             options(nostack, preserves_flags),
