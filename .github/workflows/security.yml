@@ -1,0 +1,182 @@
+# =============================================================================
+# Helix OS - Security Scanning Workflow
+# =============================================================================
+# Runs scheduled security scans and on security-related events
+# =============================================================================
+
+name: 🔒 Security Scan
+
+on:
+  schedule:
+    # Run daily at 02:00 UTC
+    - cron: '0 2 * * *'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - 'deny.toml'
+  pull_request:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - 'deny.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ===========================================================================
+  # 🔍 VULNERABILITY SCAN
+  # ===========================================================================
+  vulnerability-scan:
+    name: 🔍 Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: 🔐 Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+          disable-sudo: true
+
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: 🦀 Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 📦 Install Security Tools
+        run: |
+          cargo install cargo-audit --locked
+          cargo install cargo-deny --locked
+          cargo install cargo-outdated --locked
+
+      - name: 🔍 Cargo Audit
+        run: |
+          echo "## 🔍 Security Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cargo audit --json > audit-report.json 2>&1 || true
+          cargo audit 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+
+      - name: 🔍 Cargo Deny
+        run: |
+          echo "## 🚫 Dependency Policy Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cargo deny check 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+
+      - name: 📊 Check Outdated Dependencies
+        run: |
+          echo "## 📦 Outdated Dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cargo outdated --root-deps-only 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+
+      - name: 📤 Upload Audit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-${{ github.sha }}
+          path: audit-report.json
+          retention-days: 30
+
+  # ===========================================================================
+  # 🕵️ SECRET SCANNING
+  # ===========================================================================
+  secret-scan:
+    name: 🕵️ Secret Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: 🔐 Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 🕵️ TruffleHog Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --only-verified --json
+        continue-on-error: true
+
+      - name: 🔍 Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  # ===========================================================================
+  # 🔒 SBOM GENERATION
+  # ===========================================================================
+  sbom:
+    name: 🔒 Generate SBOM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: 🔐 Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: 🦀 Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 📦 Install cargo-sbom
+        run: cargo install cargo-sbom --locked
+        continue-on-error: true
+
+      - name: 📋 Generate SBOM
+        run: cargo sbom > sbom.json 2>/dev/null || echo '{"note": "SBOM generation not available"}' > sbom.json
+        continue-on-error: true
+
+      - name: 📤 Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom.json
+          retention-days: 90
+
+  # ===========================================================================
+  # 📊 SECURITY SUMMARY
+  # ===========================================================================
+  security-summary:
+    name: 📊 Security Summary
+    runs-on: ubuntu-latest
+    needs: [vulnerability-scan, secret-scan, sbom]
+    if: always()
+    permissions:
+      contents: read
+    steps:
+      - name: 📊 Generate Summary
+        run: |
+          echo "# 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnerability Scan | ${{ needs.vulnerability-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Scan | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SBOM Generation | ${{ needs.sbom.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
