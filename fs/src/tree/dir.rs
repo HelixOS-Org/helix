@@ -389,10 +389,8 @@ impl DirBlock {
         let hash = hash_name(name);
 
         for (i, entry) in self.entries.iter().enumerate() {
-            if entry.is_valid() && entry.name_hash == hash {
-                if entry.name() == name {
-                    return Some((i, entry));
-                }
+            if entry.is_valid() && entry.name_hash == hash && entry.name() == name {
+                return Some((i, entry));
             }
         }
         None
