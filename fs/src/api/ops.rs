@@ -158,10 +158,8 @@ impl WriteOp {
             return Err(HfsError::InvalidArgument);
         }
 
-        if !self.append {
-            if self.offset.checked_add(self.len as u64).is_none() {
-                return Err(HfsError::Overflow);
-            }
+        if !self.append && self.offset.checked_add(self.len as u64).is_none() {
+            return Err(HfsError::Overflow);
         }
 
         Ok(())
@@ -252,7 +250,7 @@ pub struct MkdirOp {
     pub mode: u32,
     /// User ID
     pub uid: u32,
-    /// Group ID  
+    /// Group ID
     pub gid: u32,
 }
 
