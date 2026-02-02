@@ -8,13 +8,12 @@
 #![no_std]
 #![no_main]
 #![feature(abi_efiapi)]
-#![feature(alloc_error_handler)]
 #![feature(naked_functions)]
 #![allow(unused_imports)]
 
-extern crate alloc;
+// Note: extern crate alloc, global_allocator, alloc_error_handler, and panic_handler
+// are provided by the helix_uefi library
 
-use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use helix_uefi::arch::{Architecture, CpuFeatures, MemoryModel, PlatformInit};
@@ -1035,77 +1034,11 @@ unsafe fn print_error(st: &EfiSystemTable, error: Error) -> Result<()> {
 }
 
 // =============================================================================
-// PANIC HANDLER
+// PANIC HANDLER - Provided by helix_uefi library
 // =============================================================================
-
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    // Try to print panic message if possible
-    unsafe {
-        if let Some(st) = SYSTEM_TABLE {
-            if !BOOT_SERVICES_EXITED.load(Ordering::Acquire) {
-                let st = &*st;
-                if !st.con_out.is_null() {
-                    let con_out = &*st.con_out;
-
-                    let msg: &[u16] = &[
-                        'P' as u16,
-                        'A' as u16,
-                        'N' as u16,
-                        'I' as u16,
-                        'C' as u16,
-                        '!' as u16,
-                        '\r' as u16,
-                        '\n' as u16,
-                        0,
-                    ];
-
-                    let _ = (con_out.output_string)(st.con_out, msg.as_ptr());
-                }
-            }
-        }
-    }
-
-    // Halt
-    loop {
-        #[cfg(target_arch = "x86_64")]
-        unsafe {
-            core::arch::asm!("cli; hlt", options(nomem, nostack, noreturn));
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        unsafe {
-            core::arch::asm!("wfi", options(nomem, nostack));
-        }
-    }
-}
+// Note: The panic handler is provided by the helix_uefi library
 
 // =============================================================================
-// ALLOCATOR
+// ALLOCATOR - Use the one from helix_uefi library
 // =============================================================================
-
-#[global_allocator]
-static ALLOCATOR: DummyAllocator = DummyAllocator;
-
-struct DummyAllocator;
-
-unsafe impl core::alloc::GlobalAlloc for DummyAllocator {
-    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        // In a real implementation, this would use UEFI's allocate_pool
-        core::ptr::null_mut()
-    }
-
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {
-        // In a real implementation, this would use UEFI's free_pool
-    }
-}
-
-#[alloc_error_handler]
-fn alloc_error(_layout: core::alloc::Layout) -> ! {
-    loop {
-        #[cfg(target_arch = "x86_64")]
-        unsafe {
-            core::arch::asm!("cli; hlt", options(nomem, nostack, noreturn));
-        }
-    }
-}
+// Note: The global allocator is provided by the helix_uefi library
