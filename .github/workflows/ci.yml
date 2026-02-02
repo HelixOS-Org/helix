@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -154,7 +154,7 @@ jobs:
         run: |
           echo "Format: ${{ needs.format.result }}"
           echo "Build: ${{ needs.build.result }}"
-          
+
           if [[ "${{ needs.format.result }}" == "success" && "${{ needs.build.result }}" == "success" ]]; then
             echo "✅ All required checks passed!"
             exit 0
