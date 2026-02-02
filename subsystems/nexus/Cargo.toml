@@ -14,7 +14,6 @@ name = "helix_nexus"
 path = "src/lib.rs"
 
 [dependencies]
-helix-cortex = { path = "../cortex", optional = true }
 libm = "0.2"
 
 [features]
