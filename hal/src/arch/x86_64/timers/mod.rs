@@ -159,7 +159,7 @@ pub unsafe fn init() -> Result<(), TimerError> {
     }
 
     // Initialize PIT for calibration
-    pit::init();
+    unsafe { pit::init() };
 
     // Detect TSC features
     let tsc_features = tsc::detect_features();
@@ -172,11 +172,11 @@ pub unsafe fn init() -> Result<(), TimerError> {
             freq
         } else {
             // Fall back to PIT calibration
-            calibration::calibrate_tsc_with_pit()?
+            calibration::calibrate_tsc_with_pit()?.frequency
         }
     } else {
         // Non-invariant TSC - still calibrate but mark it
-        calibration::calibrate_tsc_with_pit()?
+        calibration::calibrate_tsc_with_pit()?.frequency
     };
 
     TSC_FREQUENCY.store(tsc_freq, Ordering::SeqCst);
