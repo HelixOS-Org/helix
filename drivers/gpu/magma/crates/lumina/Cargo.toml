@@ -1,0 +1,35 @@
+[package]
+name = "lumina"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Graphics Team"]
+description = "Intent-based graphics API for Helix OS"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/magma"
+documentation = "https://docs.helix-os.dev/lumina"
+keywords = ["graphics", "gpu", "rendering", "vulkan", "no_std"]
+categories = ["graphics", "no-std", "rendering"]
+
+[features]
+default = ["derive"]
+std = []
+derive = ["lumina-derive"]
+debug = []
+hot-reload = ["std"]
+raytracing = []
+mesh-shaders = []
+
+[dependencies]
+# Internal dependencies
+lumina-derive = { path = "../lumina-derive", optional = true }
+lumina-math = { path = "../lumina-math" }
+lumina-shader = { path = "../lumina-shader" }
+magma-vulkan = { path = "../magma-vulkan" }
+magma-mem = { path = "../magma-mem" }
+
+# External dependencies
+spin = "0.9"
+bitflags = "2.4"
+
+[dev-dependencies]
+# For testing with std
