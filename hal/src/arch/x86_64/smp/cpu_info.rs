@@ -435,12 +435,15 @@ pub fn extract_topology_ids(apic_id: u32, topology: &CpuTopology) -> (u8, u8, u8
 // =============================================================================
 
 fn cpuid(leaf: u32) -> (u32, u32, u32, u32) {
-    let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
+    let (mut eax, ebx, ecx, edx): (u32, u32, u32, u32);
+    eax = leaf;
     unsafe {
         core::arch::asm!(
+            "mov {tmp:r}, rbx",
             "cpuid",
-            inout("eax") leaf => eax,
-            out("ebx") ebx,
+            "xchg {tmp:r}, rbx",
+            tmp = out(reg) ebx,
+            inout("eax") eax,
             out("ecx") ecx,
             out("edx") edx,
             options(nostack, preserves_flags),
@@ -450,13 +453,17 @@ fn cpuid(leaf: u32) -> (u32, u32, u32, u32) {
 }
 
 fn cpuid_subleaf(leaf: u32, subleaf: u32) -> (u32, u32, u32, u32) {
-    let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
+    let (mut eax, ebx, mut ecx, edx): (u32, u32, u32, u32);
+    eax = leaf;
+    ecx = subleaf;
     unsafe {
         core::arch::asm!(
+            "mov {tmp:r}, rbx",
             "cpuid",
-            inout("eax") leaf => eax,
-            out("ebx") ebx,
-            inout("ecx") subleaf => ecx,
+            "xchg {tmp:r}, rbx",
+            tmp = out(reg) ebx,
+            inout("eax") eax,
+            inout("ecx") ecx,
             out("edx") edx,
             options(nostack, preserves_flags),
         );
