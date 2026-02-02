@@ -4,8 +4,8 @@
 
 use alloc::vec::Vec;
 
-use magma_core::{Error, Result, GpuAddr, ByteSize};
 use magma_core::command::{GpuMethod, MethodType};
+use magma_core::{ByteSize, Error, GpuAddr, Result};
 
 // =============================================================================
 // PUSH BUFFER
@@ -80,7 +80,12 @@ impl PushBuffer {
     }
 
     /// Push non-increasing method (same address)
-    pub fn push_non_increasing(&mut self, method_id: u16, subchannel: u8, data: &[u32]) -> Result<()> {
+    pub fn push_non_increasing(
+        &mut self,
+        method_id: u16,
+        subchannel: u8,
+        data: &[u32],
+    ) -> Result<()> {
         let method = GpuMethod::non_increasing(method_id, subchannel, data.len() as u16);
         self.push_method(method, data)
     }
@@ -149,7 +154,8 @@ impl<'a> PushStream<'a> {
 
     /// Push multiple values to same address
     pub fn write_repeat(&mut self, id: u16, values: &[u32]) -> Result<&mut Self> {
-        self.buffer.push_non_increasing(id, self.subchannel, values)?;
+        self.buffer
+            .push_non_increasing(id, self.subchannel, values)?;
         Ok(self)
     }
 
