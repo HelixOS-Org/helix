@@ -12,7 +12,7 @@ use crate::types::*;
 // =============================================================================
 
 /// GPU fence for CPU-GPU synchronization
-/// 
+///
 /// Fences use a monotonically increasing value stored in GPU-visible memory.
 /// The CPU can poll or wait for the fence value to reach a target.
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub struct Fence {
 
 impl Fence {
     /// Create a new fence
-    /// 
+    ///
     /// # Safety
     /// - `gpu_addr` must be a valid GPU address
     /// - `cpu_ptr` must be a valid pointer if Some
@@ -93,7 +93,7 @@ unsafe impl Send for Fence {}
 // =============================================================================
 
 /// Timeline semaphore for multi-point synchronization
-/// 
+///
 /// Unlike binary semaphores, timeline semaphores have an integer value
 /// that can be waited on or signaled to specific points.
 #[derive(Debug)]
@@ -154,7 +154,7 @@ pub enum EventStatus {
     /// Event not yet signaled
     Reset = 0,
     /// Event signaled
-    Set = 1,
+    Set   = 1,
 }
 
 // =============================================================================
