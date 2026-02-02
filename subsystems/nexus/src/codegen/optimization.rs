@@ -6,15 +6,16 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use alloc::format;
+use alloc::vec;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::ir::{
-    BlockId, IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType, IRValue, NodeId,
+    IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType, IRValue,
 };
 
 // ============================================================================
@@ -395,7 +396,7 @@ impl OptimizationEngine {
 
     /// Optimize IR module
     pub fn optimize(&mut self, mut ir: IRModule) -> OptimizationResult {
-        let start = 0u64; // Timestamp placeholder
+        let _start = 0u64; // Timestamp placeholder
         let mut applied = Vec::new();
         let mut total_improvements = Improvements::default();
 
@@ -495,7 +496,7 @@ impl OptimizationEngine {
         for block in func.blocks.values_mut() {
             let mut i = 0;
             while i < block.instructions.len() {
-                if let Some(folded) = self.try_fold(&block.instructions[i].op) {
+                if let Some(_folded) = self.try_fold(&block.instructions[i].op) {
                     block.instructions[i].op = IROp::Nop;
                     // Would store folded value
                     changed = true;
@@ -544,8 +545,8 @@ impl OptimizationEngine {
             for instr in &mut block.instructions {
                 let expr_key = self.op_to_key(&instr.op);
 
-                if let Some(existing) = expressions.get(&expr_key) {
-                    if let Some(dest) = &instr.dest {
+                if let Some(_existing) = expressions.get(&expr_key) {
+                    if let Some(_dest) = &instr.dest {
                         // Would replace with copy
                         removed += 1;
                     }
@@ -684,7 +685,7 @@ impl OptimizationEngine {
         best
     }
 
-    fn enumerate_sequences(&self, length: usize) -> Vec<Vec<IRInstruction>> {
+    fn enumerate_sequences(&self, _length: usize) -> Vec<Vec<IRInstruction>> {
         // Simplified enumeration
         vec![]
     }
