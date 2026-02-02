@@ -13,18 +13,18 @@
 <br/>
 <br/>
 
-### *An Experimental Operating System Architecture with Kernel-Level Artificial Intelligence*
+### *A Next-Generation Operating System with AI-Native Architecture*
 
 <br/>
 
 [![License](https://img.shields.io/badge/License-MIT-0d1117?style=for-the-badge&labelColor=1a1a2e&color=667eea)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-Nightly-0d1117?style=for-the-badge&logo=rust&labelColor=1a1a2e&color=f97316)](https://www.rust-lang.org/)
-[![Status](https://img.shields.io/badge/Status-Research-0d1117?style=for-the-badge&labelColor=1a1a2e&color=a78bfa)](#current-state-of-the-project)
-[![Lines](https://img.shields.io/badge/Lines-217K+-0d1117?style=for-the-badge&labelColor=1a1a2e&color=00e5ff)](#codebase-statistics)
+[![Status](https://img.shields.io/badge/Status-Research-0d1117?style=for-the-badge&labelColor=1a1a2e&color=a78bfa)](#project-status)
+[![Lines](https://img.shields.io/badge/Lines-650K+-0d1117?style=for-the-badge&labelColor=1a1a2e&color=00e5ff)](#codebase-statistics)
 
 <br/>
 
-[📖 Documentation](docs/) · [🏛️ Architecture](docs/ARCHITECTURE.md) · [🤝 Contributing](#contributing) · [🗺️ Roadmap](#future-roadmap)
+[📖 Documentation](docs/) · [🏛️ Architecture](docs/ARCHITECTURE.md) · [🤝 Contributing](#contributing) · [🗺️ Roadmap](#roadmap)
 
 <br/>
 
@@ -52,433 +52,249 @@
 
 ---
 
-<br/>
+## Introduction
 
-## 🔮 Vision
+**Helix OS** is a research operating system written entirely in **Rust**, designed to explore the integration of artificial intelligence at the kernel level. Unlike traditional operating systems that treat AI as an application-layer concern, Helix embeds cognitive capabilities directly into its core subsystems.
 
-Operating systems have remained architecturally stagnant for decades. While hardware has evolved exponentially and artificial intelligence has transformed nearly every domain of computing, the fundamental design of operating systems continues to rely on static policies, rigid schedulers, and reactive resource management.
+### Key Innovations
 
-**Helix OS Framework challenges this paradigm.**
+| Feature | Description |
+|---------|-------------|
+| 🧠 **NEXUS AI Engine** | Kernel-integrated cognitive system for adaptive resource management |
+| 🌋 **MAGMA GPU Driver** | Native NVIDIA GPU driver with Vulkan 1.3 support |
+| 🔄 **Hot-Reload** | Dynamic kernel module replacement without reboot |
+| 🛡️ **Self-Healing** | Automatic crash recovery and fault isolation |
+| 📁 **HelixFS** | Modern filesystem with journaling, encryption, and B+tree indexing |
 
-We envision an operating system where intelligence is not an application running on top of the kernel, but a fundamental property of the kernel itself. An OS that understands workload intent before execution, adapts its behavior based on learned patterns, and optimizes system resources through continuous reasoning rather than fixed heuristics.
-
-Helix is not an incremental improvement. It is a foundational rethinking of what an operating system can become when artificial intelligence operates at its core.
-
----
-
-## 🧬 What is Helix OS Framework?
-
-Helix is an experimental operating system architecture designed from the ground up to integrate artificial intelligence at the kernel level. It is not a traditional OS distribution, nor is it a modification of existing kernels. Helix is a research platform for exploring the next generation of system software.
-
-**Core Characteristics:**
-
-- **Research-Oriented**: Helix exists to explore ideas that cannot be tested within conventional OS architectures. It prioritizes experimentation and architectural innovation over production stability.
-
-- **AI-Native Infrastructure**: Rather than treating AI as an application-layer concern, Helix embeds cognitive capabilities directly into kernel subsystems. The AI layer has privileged access to system state, scheduling decisions, memory management, and hardware interfaces.
-
-- **Modular Architecture**: Every major subsystem in Helix is designed as a replaceable module. Schedulers, allocators, filesystems, and even components of the AI layer can be swapped, extended, or replaced without rebuilding the kernel.
-
-- **Multi-Architecture Foundation**: Helix targets x86_64 as its primary development platform, with architectural abstractions designed to support AArch64 and RISC-V as the project matures.
+> ⚠️ **Note**: Helix is a research platform. It is not intended for production use.
 
 ---
 
-<div align="center">
+## Architecture
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/nexus-logo-minimal.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/nexus-logo-minimal.svg">
-  <img alt="NEXUS" src="assets/nexus-logo-minimal.svg" width="100">
-</picture>
-
-</div>
-
-## 🧠 Introducing NEXUS
-
-At the heart of Helix lies **NEXUS** — the Neural EXecution and Understanding System.
-
-NEXUS is not a chatbot. It is not a virtual assistant. It is a kernel-integrated cognitive layer that operates below the abstraction level of user applications, with direct access to the fundamental mechanisms of the operating system.
-
-### What NEXUS Does
-
-NEXUS serves as the intelligence substrate of Helix, responsible for:
-
-| Domain | Function |
-|--------|----------|
-| **System Understanding** | Continuously models the state of running processes, memory pressure, I/O patterns, and hardware utilization to build a real-time understanding of system behavior |
-| **Intent Recognition** | Infers the computational intent behind workloads — distinguishing between interactive, batch, real-time, and background tasks without explicit configuration |
-| **Predictive Optimization** | Anticipates resource needs before they become critical, pre-allocating memory, adjusting scheduling priorities, and preparing I/O pathways |
-| **Adaptive Policy** | Replaces static kernel policies with learned behaviors that evolve based on observed system patterns and outcomes |
-| **Anomaly Detection** | Identifies unusual system states that may indicate bugs, security threats, or hardware degradation |
-
-### How NEXUS Differs from Application-Level AI
-
-Traditional AI assistants operate in user space, isolated from the kernel by privilege boundaries. They can observe limited system metrics and make suggestions, but they cannot directly influence kernel decisions.
-
-NEXUS operates differently:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Traditional AI Assistant                     │
-├─────────────────────────────────────────────────────────────────┤
-│  User Space    │  AI Application  ──→  System Calls  ──→  Kernel │
-│                │  (Limited visibility, no direct control)        │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                          NEXUS in Helix                          │
-├─────────────────────────────────────────────────────────────────┤
-│  Kernel Space  │  NEXUS  ←──→  Scheduler                        │
-│                │         ←──→  Memory Manager                    │
-│                │         ←──→  I/O Subsystem                     │
-│                │         ←──→  Hardware Abstraction              │
-│                │  (Full visibility, direct integration)          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-This architectural position enables NEXUS to make decisions with microsecond latency based on complete system visibility — something impossible for user-space AI systems.
-
----
-
-## 🏛️ Core Architecture Overview
-
-Helix is structured as a layered system where each layer has clearly defined responsibilities and interfaces.
+Helix follows a modular architecture where each layer has clearly defined responsibilities.
 
 ```mermaid
 flowchart TB
-    subgraph USER["User Space"]
+    subgraph USER["👤 User Space"]
         APP["Applications"]
-        LIB["System Libraries"]
-        SVC["System Services"]
+        PRISM["Prism UI Engine"]
     end
 
-    subgraph KERNEL["Kernel Space"]
-        subgraph NEXUS_LAYER["NEXUS AI Layer"]
+    subgraph KERNEL["🔷 Kernel Space"]
+        subgraph NEXUS["🧠 NEXUS AI Layer"]
             SENSE["Perception"]
             REASON["Reasoning"]
-            ACT["Action"]
+            LEARN["Learning"]
         end
 
-        subgraph CORE["Kernel Core"]
+        subgraph CORE["⚙️ Kernel Core"]
             SCHED["Scheduler"]
             MEM["Memory Manager"]
-            IPC["IPC Subsystem"]
-            VFS["Virtual Filesystem"]
+            IPC["IPC / Nexus Bus"]
+            VFS["VFS / HelixFS"]
         end
 
-        subgraph HAL["Hardware Abstraction"]
-            CPU["CPU Management"]
-            MMU["Memory Unit"]
-            INT["Interrupt Controller"]
-            DRV["Device Drivers"]
+        subgraph DRIVERS["🔌 Drivers"]
+            MAGMA["🌋 MAGMA GPU"]
+            BLOCK["Block Devices"]
+            NET["Network"]
+        end
+
+        subgraph HAL["🔧 Hardware Abstraction"]
+            CPU["CPU / SMP"]
+            MMU["MMU / Paging"]
+            IRQ["Interrupts"]
+            PCI["PCI / IOMMU"]
         end
     end
 
-    subgraph HW["Hardware"]
-        PROC["Processor"]
-        RAM["Memory"]
-        DEV["Devices"]
-    end
-
-    APP --> LIB --> SVC
-    SVC --> NEXUS_LAYER
-    SVC --> CORE
-    NEXUS_LAYER <--> CORE
-    CORE --> HAL
-    HAL --> HW
-
-    style NEXUS_LAYER fill:#1a1a3e,stroke:#00e5ff,stroke-width:2px,color:#fff
-    style CORE fill:#1a2a1a,stroke:#4ade80,stroke-width:1px
-    style HAL fill:#2a1a1a,stroke:#f97316,stroke-width:1px
-    style USER fill:#1a1a2e,stroke:#a78bfa,stroke-width:1px
-    style HW fill:#2a2a2a,stroke:#6b7280,stroke-width:1px
-```
-
-### Layer Responsibilities
-
-| Layer | Purpose |
-|-------|---------|
-| **Hardware** | Physical computation substrate: processors, memory, storage, peripherals |
-| **Hardware Abstraction** | Architecture-specific code that presents a uniform interface to upper layers |
-| **Kernel Core** | Fundamental OS mechanisms: scheduling, memory management, IPC, filesystem abstraction |
-| **NEXUS AI Layer** | Cognitive subsystem that perceives system state, reasons about optimization, and influences kernel decisions |
-| **System Services** | Privileged processes that provide system functionality: device managers, network stack, security services |
-| **User Space** | Applications and libraries running with standard user privileges |
-
----
-
-## ⚙️ System Architecture — Detailed View
-
-The following diagram illustrates the interaction patterns between major system components.
-
-```mermaid
-flowchart LR
-    subgraph NEXUS["NEXUS Cognitive Core"]
-        direction TB
-        SENSE["Sense<br/>──────<br/>System State<br/>Perception"]
-        UNDERSTAND["Understand<br/>──────<br/>Pattern<br/>Recognition"]
-        REASON["Reason<br/>──────<br/>Causal<br/>Analysis"]
-        DECIDE["Decide<br/>──────<br/>Action<br/>Selection"]
-        LEARN["Learn<br/>──────<br/>Model<br/>Adaptation"]
-
-        SENSE --> UNDERSTAND --> REASON --> DECIDE
-        DECIDE --> LEARN --> SENSE
-    end
-
-    subgraph KERNEL["Kernel Subsystems"]
-        direction TB
-        SCHED["Process Scheduler"]
-        VMM["Virtual Memory"]
-        IO["I/O Manager"]
-        SEC["Security Monitor"]
-    end
-
-    subgraph RESOURCES["System Resources"]
-        direction TB
-        CPU["CPU Cores"]
-        MEM["Physical Memory"]
+    subgraph HW["💻 Hardware"]
+        PROC["x86_64 CPU"]
+        GPU["NVIDIA GPU"]
         DISK["Storage"]
-        NET["Network"]
     end
 
-    subgraph WORKLOAD["Workloads"]
-        direction TB
-        PROC["Processes"]
-        THR["Threads"]
-        SVC["Services"]
-    end
+    APP --> CORE
+    PRISM --> MAGMA
+    NEXUS <--> CORE
+    CORE --> HAL
+    DRIVERS --> HAL
+    HAL --> HW
+    MAGMA --> GPU
 
-    WORKLOAD --> KERNEL
-    KERNEL <--> NEXUS
-    KERNEL --> RESOURCES
-
-    NEXUS -.->|"Scheduling<br/>Hints"| SCHED
-    NEXUS -.->|"Memory<br/>Predictions"| VMM
-    NEXUS -.->|"I/O<br/>Optimization"| IO
-    NEXUS -.->|"Threat<br/>Detection"| SEC
-
-    style NEXUS fill:#0f172a,stroke:#00e5ff,stroke-width:2px,color:#e2e8f0
-    style KERNEL fill:#1e293b,stroke:#4ade80,stroke-width:1px,color:#e2e8f0
-    style RESOURCES fill:#1e293b,stroke:#f97316,stroke-width:1px,color:#e2e8f0
-    style WORKLOAD fill:#1e293b,stroke:#a78bfa,stroke-width:1px,color:#e2e8f0
+    style NEXUS fill:#1a1a3e,stroke:#00e5ff,stroke-width:2px
+    style CORE fill:#1a2a1a,stroke:#4ade80,stroke-width:1px
+    style DRIVERS fill:#2a1a2a,stroke:#f472b6,stroke-width:1px
+    style HAL fill:#2a1a1a,stroke:#f97316,stroke-width:1px
 ```
 
-### NEXUS Integration Points
+### Layer Overview
 
-NEXUS integrates with kernel subsystems through well-defined interfaces:
-
-**Scheduler Integration**: NEXUS provides scheduling hints based on workload classification, predicted execution time, and inter-process dependencies. The scheduler remains authoritative but incorporates NEXUS recommendations into its decisions.
-
-**Memory Management Integration**: NEXUS predicts memory allocation patterns, suggests page eviction candidates, and identifies opportunities for memory compression or deduplication.
-
-**I/O Optimization**: By learning application I/O patterns, NEXUS can pre-stage data, optimize request ordering, and balance load across storage devices.
-
-**Security Monitoring**: NEXUS maintains behavioral baselines for processes and can flag anomalous activity for the security subsystem to evaluate.
+| Layer | Components | Status |
+|-------|------------|--------|
+| **NEXUS AI** | Perception, Reasoning, Learning, Self-Healing | 🔵 In Development |
+| **Kernel Core** | Scheduler, Memory, IPC, Syscalls | 🟢 Functional |
+| **Drivers** | MAGMA (GPU), Block, Network | 🔵 In Development |
+| **HAL** | x86_64 CPU, APIC, Paging, PCI | 🟢 Functional |
+| **Filesystem** | HelixFS with journaling & encryption | 🟢 Functional |
+| **Boot** | Limine, UEFI, Multiboot2 | 🟢 Functional |
 
 ---
 
-## 💡 Key Concepts
+## Core Components
 
-### AI-Augmented Kernel
+### 🧠 NEXUS — Neural EXecution and Understanding System
 
-Traditional kernels operate on fixed algorithms with configurable parameters. An AI-augmented kernel operates on learned models that adapt to observed conditions. The distinction is fundamental:
-
-| Traditional Kernel | AI-Augmented Kernel |
-|-------------------|---------------------|
-| Static scheduling policies | Adaptive scheduling based on workload patterns |
-| Reactive resource allocation | Predictive resource pre-allocation |
-| Threshold-based decisions | Learned decision boundaries |
-| Configuration-driven behavior | Experience-driven behavior |
-
-### Intent-Aware Computing
-
-Most operating systems treat all processes as opaque execution units. Helix attempts to understand the *intent* behind computation:
-
-- Is this process performing interactive work that requires low latency?
-- Is this a batch job that prioritizes throughput over response time?
-- Is this a background service that should yield to foreground activity?
-- Is this a real-time workload with hard timing constraints?
-
-By inferring intent, NEXUS can make scheduling and resource allocation decisions that align with what the workload actually needs, rather than relying on imperfect priority hints from applications.
-
-### Adaptive Resource Management
-
-Resource management in Helix is not governed by static policies but by continuously refined models:
-
-- **Memory Pressure Response**: Rather than fixed low-memory thresholds, NEXUS learns the relationship between available memory and system responsiveness, adapting reclamation behavior accordingly.
-
-- **CPU Frequency Scaling**: Rather than reactive governors, NEXUS anticipates computational demand and adjusts frequency proactively.
-
-- **I/O Scheduling**: Rather than fixed algorithms, NEXUS learns which I/O patterns benefit from different scheduling strategies.
-
-### Self-Optimizing System Behavior
-
-Helix incorporates feedback loops that allow the system to evaluate the outcomes of its decisions:
+NEXUS is the cognitive engine that powers Helix's adaptive behavior. It operates at the kernel level with direct access to system state.
 
 ```mermaid
 flowchart LR
-    OBS["Observe<br/>System State"] --> PRED["Predict<br/>Optimal Action"]
-    PRED --> ACT["Execute<br/>Action"]
-    ACT --> MEAS["Measure<br/>Outcome"]
-    MEAS --> LEARN["Update<br/>Model"]
-    LEARN --> OBS
+    subgraph NEXUS["NEXUS Cognitive Loop"]
+        S["👁️ Sense"] --> U["🧩 Understand"]
+        U --> R["🤔 Reason"]
+        R --> D["⚡ Decide"]
+        D --> A["🎯 Act"]
+        A --> L["📚 Learn"]
+        L --> S
+    end
 
-    style OBS fill:#1e3a5f,stroke:#60a5fa,color:#fff
-    style PRED fill:#1e3a5f,stroke:#60a5fa,color:#fff
-    style ACT fill:#1e3a5f,stroke:#60a5fa,color:#fff
-    style MEAS fill:#1e3a5f,stroke:#60a5fa,color:#fff
-    style LEARN fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    style NEXUS fill:#0f172a,stroke:#00e5ff,stroke-width:2px
 ```
 
-This closed-loop architecture enables Helix to improve its behavior over time, rather than requiring manual tuning.
+**Current Capabilities:**
+- ✅ System state perception (CPU, memory, processes)
+- ✅ Anomaly detection framework
+- ✅ Self-healing crash recovery
+- 🔵 Predictive resource allocation (in progress)
+- 🔵 Workload classification (in progress)
+
+### 🌋 MAGMA — GPU Driver
+
+MAGMA is a from-scratch NVIDIA GPU driver designed with a GSP-first architecture.
+
+```mermaid
+flowchart TB
+    subgraph MAGMA["MAGMA Driver Stack"]
+        VK["magma-vulkan<br/>Vulkan 1.3 ICD"]
+        CMD["magma-cmd<br/>Command Submission"]
+        MEM["magma-mem<br/>VRAM Allocator"]
+        RPC["magma-rpc<br/>GSP Protocol"]
+        HAL["magma-hal<br/>PCI/BAR/MMIO"]
+        CORE["magma-core<br/>Types & Traits"]
+    end
+
+    VK --> CMD --> MEM
+    MEM --> RPC --> HAL --> CORE
+
+    style VK fill:#7c3aed,stroke:#a78bfa
+    style CMD fill:#4f46e5,stroke:#818cf8
+    style MEM fill:#2563eb,stroke:#60a5fa
+    style RPC fill:#0891b2,stroke:#22d3ee
+    style HAL fill:#059669,stroke:#34d399
+    style CORE fill:#d97706,stroke:#fbbf24
+```
+
+**Implemented Crates:**
+| Crate | Purpose | Status |
+|-------|---------|--------|
+| `magma-core` | Foundational types, traits, error handling | 🟢 Complete |
+| `magma-hal` | PCI enumeration, BAR mapping, MMIO | 🟢 Complete |
+| `magma-rpc` | GSP RPC protocol (50+ functions) | 🟢 Complete |
+| `magma-mem` | VRAM buddy allocator (4KB-2GB) | 🟢 Complete |
+| `magma-cmd` | Command rings, push buffers | 🟢 Complete |
+| `magma-vulkan` | Vulkan 1.3 ICD entry points | 🔵 In Progress |
+
+**Supported GPUs:** Turing (RTX 20xx), Ampere (RTX 30xx), Ada (RTX 40xx), Blackwell (RTX 50xx)
+
+### 📁 HelixFS — Filesystem
+
+A modern filesystem built for Helix with advanced features.
+
+**Features:**
+- ✅ B+tree directory indexing
+- ✅ Copy-on-write journaling
+- ✅ AES-256-GCM encryption
+- ✅ LZ4/ZSTD compression
+- ✅ Snapshots
+
+### 🔄 Relocation Engine
+
+Enables dynamic kernel patching and hot-reload capabilities.
+
+**Features:**
+- ✅ KASLR (Kernel Address Space Layout Randomization)
+- ✅ ELF parsing and relocation
+- ✅ Hot-patch infrastructure
+- ✅ Module validation
 
 ---
 
-## ✨ Why Helix is Different
+## Project Status
 
-Helix represents a departure from conventional operating system design in several fundamental ways:
+### What Works ✅
 
-**Intelligence as Infrastructure, Not Application**
+| Component | Description |
+|-----------|-------------|
+| **Boot** | Limine and UEFI boot, framebuffer initialization |
+| **HAL** | x86_64 with APIC, SMP, paging, interrupts |
+| **Memory** | Physical/virtual memory management, heap allocation |
+| **Scheduler** | Preemptive multitasking, priority-based scheduling |
+| **IPC** | Message passing, shared memory |
+| **HelixFS** | Full filesystem with journaling |
+| **Hot-Reload** | Dynamic module loading/unloading |
+| **MAGMA Core** | PCI, MMIO, RPC, memory allocator, command buffers |
 
-In traditional systems, AI capabilities exist in user space, isolated from kernel mechanisms. Helix treats intelligence as infrastructure — as fundamental to the OS as memory management or process scheduling.
+### In Progress 🔵
 
-**Learning Over Configuration**
+| Component | Description |
+|-----------|-------------|
+| **NEXUS Reasoning** | AI decision engine |
+| **MAGMA Vulkan** | Full Vulkan 1.3 conformance |
+| **Network Stack** | TCP/IP implementation |
+| **Prism UI** | Windowing and compositor |
 
-Traditional operating systems require extensive configuration to optimize for specific workloads. Helix aims to learn optimal behavior from observation, reducing the need for manual tuning.
+### Planned ⚫
 
-**Unified System Model**
-
-Rather than treating the scheduler, memory manager, and I/O subsystem as independent components, NEXUS maintains a unified model of system state that enables coordinated optimization across subsystems.
-
-**Research-First Design**
-
-Helix prioritizes architectural exploration over backward compatibility. This enables investigation of ideas that would be impossible to implement within the constraints of production operating systems.
+| Component | Description |
+|-----------|-------------|
+| **ARM64 Port** | AArch64 architecture support |
+| **RISC-V Port** | RISC-V 64 architecture support |
+| **Userspace** | POSIX-compatible environment |
+| **Ray Tracing** | MAGMA RTX support |
 
 ---
 
-## 📊 Current State of the Project
-
-Helix OS Framework is in active research and development. The current state of major components:
-
-| Component | Status | Description |
-|-----------|--------|-------------|
-| **Boot Infrastructure** | Functional | Limine and UEFI boot protocols implemented |
-| **Hardware Abstraction** | In Progress | x86_64 support active; ARM64 and RISC-V planned |
-| **Kernel Core** | In Progress | Basic scheduling, memory management, and IPC operational |
-| **Module System** | Functional | Dynamic module loading with hot-reload capability |
-| **NEXUS Framework** | In Development | Cognitive architecture defined; subsystems under implementation |
-| **Filesystem (HelixFS)** | Functional | B+tree based filesystem with journaling |
-| **Userspace** | Planned | Minimal userspace environment not yet implemented |
-
-### Codebase Statistics
+## Codebase Statistics
 
 | Metric | Value |
 |--------|-------|
-| Lines of Rust Code | 217,000+ |
-| Source Files | 190+ |
-| Kernel Modules | 24 |
-| Target Architectures | 3 |
-
-**Important**: Helix is not production-ready. It is a research platform intended for exploring next-generation OS concepts. It should not be used for any production workload.
-
----
-
-## 🖥️ Supported Architectures
-
-| Architecture | Status | Notes |
-|--------------|--------|-------|
-| **x86_64** | Primary | Active development target |
-| **AArch64** | Planned | HAL abstractions in place |
-| **RISC-V 64** | Planned | HAL abstractions in place |
+| **Lines of Rust** | 650,000+ |
+| **Source Files** | 1,487 |
+| **Crates** | 30+ |
+| **NEXUS Subsystems** | 100+ modules |
+| **MAGMA Crates** | 6 core + 50 planned |
 
 ---
 
-## 🗺️ Future Roadmap
+## Getting Started
 
-The following diagram illustrates the planned development phases for Helix:
+### Prerequisites
 
-```mermaid
-flowchart LR
-    subgraph P1["Phase 1: Foundation"]
-        direction TB
-        P1A["Core Architecture"]:::done
-        P1B["Boot Infrastructure"]:::done
-        P1C["Hardware Abstraction"]:::active
-    end
+- Rust nightly (2025+)
+- QEMU with KVM support
+- `xorriso` for ISO creation
 
-    subgraph P2["Phase 2: Kernel"]
-        direction TB
-        P2A["Memory Management"]:::done
-        P2B["Process Scheduler"]:::done
-        P2C["IPC Subsystem"]:::active
-        P2D["Device Drivers"]:::planned
-    end
-
-    subgraph P3["Phase 3: NEXUS"]
-        direction TB
-        P3A["Cognitive Architecture"]:::active
-        P3B["Perception"]:::active
-        P3C["Reasoning Engine"]:::planned
-        P3D["Learning Framework"]:::planned
-    end
-
-    subgraph P4["Phase 4: Services"]
-        direction TB
-        P4A["Filesystem"]:::done
-        P4B["Network Stack"]:::planned
-        P4C["Security"]:::planned
-    end
-
-    subgraph P5["Phase 5: Ecosystem"]
-        direction TB
-        P5A["Userspace"]:::planned
-        P5B["Developer Tools"]:::planned
-        P5C["Documentation"]:::active
-    end
-
-    P1 --> P2 --> P3 --> P4 --> P5
-
-    classDef done fill:#22c55e,stroke:#16a34a,color:#fff
-    classDef active fill:#3b82f6,stroke:#2563eb,color:#fff
-    classDef planned fill:#6b7280,stroke:#4b5563,color:#fff
-```
-
-**Legend:** 🟢 Done · 🔵 Active · ⚫ Planned
-
-### Phase Descriptions
-
-**Phase 1 — Foundation**: Establish the core architectural framework, boot infrastructure, and hardware abstraction layer that all other components build upon.
-
-**Phase 2 — Kernel Subsystems**: Implement the fundamental kernel mechanisms: memory management, process scheduling, inter-process communication, and device driver infrastructure.
-
-**Phase 3 — NEXUS Integration**: Develop the NEXUS cognitive architecture, including perception, reasoning, decision-making, and learning subsystems, and integrate them with kernel components.
-
-**Phase 4 — System Services**: Build the privileged services that provide high-level system functionality: filesystem services, networking, and security enforcement.
-
-**Phase 5 — Ecosystem**: Create the userspace environment, developer tools, and comprehensive documentation needed for external contribution and experimentation.
-
----
-
-## 🤝 Contributing
-
-Helix welcomes contributions from researchers, systems programmers, and AI engineers interested in exploring the intersection of artificial intelligence and operating system design.
-
-### Areas of Interest
-
-- **Kernel Development**: Low-level systems programming, scheduler design, memory management algorithms
-- **AI/ML Integration**: Efficient inference at kernel level, online learning, system modeling
-- **Architecture Research**: Novel approaches to OS design, security models, capability systems
-- **Hardware Enablement**: Driver development, architecture ports, hardware optimization
-- **Documentation**: Technical writing, architecture documentation, API reference
-
-### Getting Started
+### Build & Run
 
 ```bash
 # Clone the repository
 git clone https://github.com/HelixOSFramework/helix.git
 cd helix
 
-# Install dependencies (Rust nightly required)
+# Install Rust toolchain
 rustup default nightly
+rustup target add x86_64-unknown-none
 rustup component add rust-src llvm-tools-preview
 
 # Build the kernel
@@ -488,44 +304,111 @@ rustup component add rust-src llvm-tools-preview
 ./scripts/run_qemu.sh
 ```
 
-See [docs/development/CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for detailed contribution guidelines.
+### Build Options
+
+```bash
+# Debug build
+./scripts/build.sh --debug
+
+# Create bootable ISO
+./scripts/build.sh --iso
+
+# Run unit tests
+cargo test --target x86_64-unknown-linux-gnu --lib
+```
 
 ---
 
-## 📚 Documentation
+## Roadmap
+
+```mermaid
+gantt
+    title Helix OS Development Roadmap
+    dateFormat  YYYY-MM
+    axisFormat  %Y Q%q
+
+    section Foundation
+    Boot & HAL           :done,    2024-01, 2024-06
+    Memory & Scheduler   :done,    2024-03, 2024-09
+    HelixFS              :done,    2024-06, 2024-12
+
+    section MAGMA
+    Core Infrastructure  :done,    2024-09, 2025-01
+    Vulkan 1.3 Core      :active,  2025-01, 2025-06
+    Vulkan Conformance   :         2025-06, 2025-12
+
+    section NEXUS
+    Perception           :done,    2024-06, 2025-01
+    Reasoning Engine     :active,  2025-01, 2025-09
+    Learning Framework   :         2025-09, 2026-03
+
+    section Ecosystem
+    Network Stack        :active,  2025-03, 2025-09
+    Prism UI             :         2025-06, 2026-01
+    Userspace            :         2025-12, 2026-06
+```
+
+### Milestones
+
+| Milestone | Target | Key Deliverables |
+|-----------|--------|------------------|
+| **v0.1** | Q1 2025 | Kernel boots, HelixFS functional ✅ |
+| **v0.2** | Q2 2025 | MAGMA renders triangle, NEXUS perception |
+| **v0.3** | Q4 2025 | Vulkan conformance, network stack |
+| **v0.4** | Q2 2026 | Prism UI, userspace shell |
+| **v1.0** | Q4 2026 | Production-ready research platform |
+
+---
+
+## Contributing
+
+We welcome contributions from systems programmers, AI researchers, and graphics engineers.
+
+### Areas of Interest
+
+| Area | Skills |
+|------|--------|
+| **Kernel** | Rust, x86_64, memory management |
+| **MAGMA** | GPU architecture, Vulkan, PCI drivers |
+| **NEXUS** | ML/AI, systems modeling, optimization |
+| **Prism** | Graphics, UI/UX, compositing |
+
+### Quick Start
+
+```bash
+# Fork and clone
+git clone https://github.com/YOUR_USERNAME/helix.git
+
+# Create feature branch
+git checkout -b feature/my-feature
+
+# Make changes and test
+cargo test --target x86_64-unknown-linux-gnu
+
+# Submit PR
+```
+
+See [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for detailed guidelines.
+
+---
+
+## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [Architecture Overview](docs/ARCHITECTURE.md) | Complete technical architecture documentation |
-| [NEXUS Design](docs/architecture/NEXUS.md) | Detailed design of the NEXUS cognitive system |
-| [Module Guide](docs/MODULE_GUIDE.md) | How to develop kernel modules for Helix |
-| [OS Builder Guide](docs/OS_BUILDER_GUIDE.md) | Creating custom OS configurations with Helix |
-| [Coding Standards](docs/development/CODING_STANDARDS.md) | Code style and contribution standards |
-| [Debugging Guide](docs/development/DEBUGGING.md) | Kernel debugging techniques and tools |
+| [Architecture](docs/ARCHITECTURE.md) | System design overview |
+| [Module Guide](docs/MODULE_GUIDE.md) | Writing kernel modules |
+| [MAGMA Roadmap](drivers/gpu/magma/docs/INFINITY_ROADMAP.md) | GPU driver development plan |
+| [Coding Standards](docs/development/CODING_STANDARDS.md) | Code style guidelines |
+| [Debugging](docs/development/DEBUGGING.md) | Kernel debugging techniques |
 
 ---
 
-## 📜 License
+## License
 
-Helix OS Framework is licensed under the **MIT License**.
+Helix OS is dual-licensed under **MIT** and **Apache 2.0**.
 
-See [LICENSE](LICENSE) for the full license text.
-
----
-
-## 🌌 Philosophy
-
-The operating system is the foundation upon which all software rests. For decades, this foundation has been built on static assumptions: fixed scheduling policies, reactive resource management, and rigid security models. These designs reflect the limitations of their era — a time when computation was scarce and human configuration was the only path to optimization.
-
-That era is ending.
-
-We now possess the capability to build systems that understand themselves — that observe their own behavior, reason about optimization, and adapt without human intervention. The question is not whether AI will transform operating systems, but how deeply that transformation will reach.
-
-Helix answers: to the kernel itself.
-
-This is not a vision of AI replacing human judgment, but of AI extending it. An operating system that learns from its environment, that anticipates rather than reacts, that becomes more capable with every workload it observes. A system where intelligence is not a feature but a fundamental property.
-
-Helix OS Framework is our contribution to that future.
+See [LICENSE](LICENSE) for details.
 
 ---
 
@@ -546,9 +429,9 @@ Helix OS Framework is our contribution to that future.
 <br/>
 <br/>
 
-**Helix OS Framework**
+**Helix OS**
 
-*Redefining the Foundation of Computing*
+*Intelligence at the Foundation*
 
 <br/>
 
@@ -559,6 +442,6 @@ Helix OS Framework is our contribution to that future.
 
 ---
 
-<sub>Built with 🧠 by AI · Designed for the future of computing</sub>
+<sub>Built with 🦀 Rust · Powered by 🧠 NEXUS · Accelerated by 🌋 MAGMA</sub>
 
 </div>
