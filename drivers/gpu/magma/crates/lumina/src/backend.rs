@@ -38,24 +38,13 @@ pub trait Backend: Send + Sync {
     fn destroy_texture(&mut self, handle: TextureHandle);
 
     /// Upload data to a texture
-    fn upload_texture(
-        &mut self,
-        handle: TextureHandle,
-        mip_level: u32,
-        data: &[u8],
-    ) -> Result<()>;
+    fn upload_texture(&mut self, handle: TextureHandle, mip_level: u32, data: &[u8]) -> Result<()>;
 
     /// Create a graphics pipeline
-    fn create_graphics_pipeline(
-        &mut self,
-        desc: &GraphicsPipelineDesc,
-    ) -> Result<PipelineHandle>;
+    fn create_graphics_pipeline(&mut self, desc: &GraphicsPipelineDesc) -> Result<PipelineHandle>;
 
     /// Create a compute pipeline
-    fn create_compute_pipeline(
-        &mut self,
-        desc: &ComputePipelineDesc,
-    ) -> Result<PipelineHandle>;
+    fn create_compute_pipeline(&mut self, desc: &ComputePipelineDesc) -> Result<PipelineHandle>;
 
     /// Destroy a pipeline
     fn destroy_pipeline(&mut self, handle: PipelineHandle);
@@ -207,12 +196,7 @@ impl Backend for NullBackend {
 
     fn destroy_buffer(&mut self, _handle: BufferHandle) {}
 
-    fn upload_buffer(
-        &mut self,
-        _handle: BufferHandle,
-        _offset: usize,
-        _data: &[u8],
-    ) -> Result<()> {
+    fn upload_buffer(&mut self, _handle: BufferHandle, _offset: usize, _data: &[u8]) -> Result<()> {
         Ok(())
     }
 
@@ -233,19 +217,13 @@ impl Backend for NullBackend {
         Ok(())
     }
 
-    fn create_graphics_pipeline(
-        &mut self,
-        _desc: &GraphicsPipelineDesc,
-    ) -> Result<PipelineHandle> {
+    fn create_graphics_pipeline(&mut self, _desc: &GraphicsPipelineDesc) -> Result<PipelineHandle> {
         let id = self.next_pipeline_id;
         self.next_pipeline_id += 1;
         Ok(PipelineHandle::new(id, 0))
     }
 
-    fn create_compute_pipeline(
-        &mut self,
-        _desc: &ComputePipelineDesc,
-    ) -> Result<PipelineHandle> {
+    fn create_compute_pipeline(&mut self, _desc: &ComputePipelineDesc) -> Result<PipelineHandle> {
         let id = self.next_pipeline_id;
         self.next_pipeline_id += 1;
         Ok(PipelineHandle::new(id, 0))
