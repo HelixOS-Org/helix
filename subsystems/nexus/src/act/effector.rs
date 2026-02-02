@@ -184,8 +184,8 @@ impl EffectorRegistry {
     }
 
     /// Get mutable effector by ID
-    pub fn get_mut(&mut self, id: EffectorId) -> Option<&mut dyn Effector> {
-        self.effectors.get_mut(&id).map(|e| e.as_mut())
+    pub fn get_mut(&mut self, id: EffectorId) -> Option<&mut (dyn Effector + 'static)> {
+        self.effectors.get_mut(&id).map(|e| &mut **e)
     }
 
     /// Count effectors
