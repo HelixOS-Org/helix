@@ -31,7 +31,7 @@ jobs:
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $PR_TITLE"
-          
+
           # Check for conventional commit format (optional)
           if [[ "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\(.+\))?: ]]; then
             echo "✅ PR title follows conventional commit format"
@@ -115,23 +115,23 @@ jobs:
       - name: Check commit messages
         run: |
           echo "Checking commit messages..."
-          
+
           COMMITS=$(git log origin/${{ github.base_ref }}..HEAD --pretty=format:"%s")
-          
+
           while IFS= read -r commit; do
             echo "  - $commit"
-            
+
             # Check for fixup/squash commits
             if [[ "$commit" =~ ^(fixup!|squash!) ]]; then
               echo "    ⚠️ Found fixup/squash commit - please squash before merge"
             fi
-            
+
             # Check commit length
             if [[ ${#commit} -gt 72 ]]; then
               echo "    ⚠️ Commit message exceeds 72 characters"
             fi
           done <<< "$COMMITS"
-          
+
           echo ""
           echo "✅ Commit check completed"
 
@@ -152,15 +152,15 @@ jobs:
           # Get diff stats
           STATS=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD)
           echo "Changes: $STATS"
-          
+
           # Extract numbers
           INSERTIONS=$(echo "$STATS" | grep -oP '\d+(?= insertion)' || echo "0")
           DELETIONS=$(echo "$STATS" | grep -oP '\d+(?= deletion)' || echo "0")
           TOTAL=$((INSERTIONS + DELETIONS))
-          
+
           echo ""
           echo "Total lines changed: $TOTAL"
-          
+
           if [[ $TOTAL -gt 1000 ]]; then
             echo "⚠️ Large PR detected (>1000 lines). Consider splitting into smaller PRs."
           elif [[ $TOTAL -gt 500 ]]; then
@@ -180,7 +180,7 @@ jobs:
         run: |
           LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
           echo "Labels: $LABELS"
-          
+
           if [[ "$LABELS" == "[]" ]]; then
             echo "ℹ️ No labels assigned. Consider adding labels for categorization."
           else
