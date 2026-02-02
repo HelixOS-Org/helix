@@ -118,10 +118,8 @@ impl<'a> ElfParser<'a> {
     /// Convert virtual address to file offset
     pub fn vaddr_to_offset(&self, vaddr: u64) -> RelocResult<usize> {
         for phdr in self.program_headers() {
-            if phdr.is_loadable() {
-                if vaddr >= phdr.p_vaddr && vaddr < phdr.p_vaddr + phdr.p_filesz {
-                    return Ok((vaddr - phdr.p_vaddr + phdr.p_offset) as usize);
-                }
+            if phdr.is_loadable() && vaddr >= phdr.p_vaddr && vaddr < phdr.p_vaddr + phdr.p_filesz {
+                return Ok((vaddr - phdr.p_vaddr + phdr.p_offset) as usize);
             }
         }
         Err(RelocError::OutOfBounds(vaddr))
@@ -150,7 +148,7 @@ struct DynIter<'a> {
     index: usize,
 }
 
-impl<'a> DynIter<'a> {
+impl DynIter<'_> {
     fn empty() -> Self {
         Self {
             data: &[],
@@ -221,4 +219,4 @@ impl<'a> Iterator for RelaIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for RelaIter<'a> {}
+impl ExactSizeIterator for RelaIter<'_> {}
