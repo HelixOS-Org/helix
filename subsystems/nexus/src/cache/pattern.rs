@@ -98,7 +98,7 @@ impl AccessPatternTracker {
             let stride = self.history[i] as i64 - self.history[i - 1] as i64;
             *strides.entry(stride).or_insert(0) += 1;
         }
-        if let Some((&stride, &count)) = strides.iter().max_by_key(|(_, &c)| c) {
+        if let Some((&stride, &count)) = strides.iter().max_by_key(|&(_, c)| c) {
             if count as f64 / (len - 1) as f64 > 0.6 && stride != 0 && stride != 1 {
                 self.detected_pattern = Some(AccessPattern::Strided { stride });
                 return;
@@ -147,8 +147,8 @@ impl AccessPatternTracker {
 
                 successors
                     .iter()
-                    .max_by_key(|(_, &count)| count)
-                    .map(|((_, next), _)| *next)
+                    .max_by_key(|&(_, count)| count)
+                    .map(|&((_, next), _)| *next)
             },
             AccessPattern::Random => None,
         }
