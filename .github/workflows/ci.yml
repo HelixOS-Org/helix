@@ -426,10 +426,29 @@ jobs:
         with:
           languages: rust
           queries: security-extended
+          config-file: .github/codeql/codeql-config.yml
+        continue-on-error: true
+
+      - name: 🔨 Build for CodeQL
+        run: |
+          # Set up minimal environment for CodeQL extraction
+          rustup show
+          cargo check --target x86_64-unknown-linux-gnu 2>/dev/null || true
         continue-on-error: true
 
       - name: 🔍 Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:rust"
+          upload: true
+          output: sarif-results
+        continue-on-error: true
+
+      - name: 📊 Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: sarif-results
         continue-on-error: true
 
   # ===========================================================================
