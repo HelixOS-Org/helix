@@ -9,7 +9,9 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::format;
+use alloc::string::String;use alloc::string::ToString;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -389,7 +391,7 @@ impl TheoremProver {
     }
 
     /// Start a proof
-    pub fn start_proof(&mut self, name: &str, formula: Formula) -> u64 {
+    pub fn start_proof(&mut self, _name: &str, formula: Formula) -> u64 {
         self.stats.proofs_attempted += 1;
 
         let goal_id = self.next_id.fetch_add(1, Ordering::Relaxed);
@@ -413,7 +415,7 @@ impl TheoremProver {
             return Err("No goals to prove".into());
         }
 
-        let goal = self.goals.last_mut().unwrap();
+        let _goal = self.goals.last_mut().unwrap();
 
         match tactic {
             Tactic::Intro(name) => {
@@ -479,7 +481,10 @@ impl TheoremProver {
             Formula::ForAll(var, _sort, body) => {
                 // Introduce universally quantified variable
                 let new_var = name.to_string();
-                let new_body = self.substitute_formula(body, var, &Term::Var(new_var.clone()));
+                let body_cloned = (**body).clone();
+                let var_cloned = var.clone();
+                let new_body = self.substitute_formula(&body_cloned, &var_cloned, &Term::Var(new_var.clone()));
+                let goal = self.goals.last_mut().ok_or("No goal")?;
                 goal.conclusion = new_body;
                 Ok(())
             },
@@ -616,8 +621,10 @@ impl TheoremProver {
     }
 
     fn simplify(&mut self) -> Result<(), String> {
+        let conclusion_cloned = self.goals.last().ok_or("No goal")?.conclusion.clone();
+        let simplified = self.simplify_formula(&conclusion_cloned);
         let goal = self.goals.last_mut().ok_or("No goal")?;
-        goal.conclusion = self.simplify_formula(&goal.conclusion);
+        goal.conclusion = simplified;
 
         // Check if simplified to True
         if matches!(goal.conclusion, Formula::True) {
@@ -689,10 +696,11 @@ impl TheoremProver {
     }
 
     fn arith(&mut self) -> Result<(), String> {
-        let goal = self.goals.last_mut().ok_or("No goal")?;
+        let conclusion_cloned = self.goals.last().ok_or("No goal")?.conclusion.clone();
 
         // Try to solve arithmetic goal
-        if self.is_arithmetic_tautology(&goal.conclusion) {
+        if self.is_arithmetic_tautology(&conclusion_cloned) {
+            let goal = self.goals.last_mut().ok_or("No goal")?;
             goal.solved = true;
             self.goals.pop();
             Ok(())
@@ -733,19 +741,21 @@ impl TheoremProver {
             .cloned()
             .ok_or("Definition not found")?;
 
+        let conclusion_cloned = self.goals.last().ok_or("No goal")?.conclusion.clone();
+        let unfolded = self.unfold_in_formula(&conclusion_cloned, name, &definition);
         let goal = self.goals.last_mut().ok_or("No goal")?;
-        goal.conclusion = self.unfold_in_formula(&goal.conclusion, name, &definition);
+        goal.conclusion = unfolded;
 
         Ok(())
     }
 
-    fn unfold_in_formula(&self, formula: &Formula, name: &str, definition: &Term) -> Formula {
+    fn unfold_in_formula(&self, formula: &Formula, _name: &str, _definition: &Term) -> Formula {
         // Simplified unfolding
         formula.clone()
     }
 
     fn rewrite(&mut self, hyp_name: &str) -> Result<(), String> {
-        let goal = self.goals.last_mut().ok_or("No goal")?;
+        let goal = self.goals.last().ok_or("No goal")?;
 
         let hyp = goal
             .hyps
@@ -754,15 +764,19 @@ impl TheoremProver {
             .map(|(_, f)| f.clone())
             .ok_or("Hypothesis not found")?;
 
+        let conclusion_cloned = goal.conclusion.clone();
+
         if let Formula::Eq(lhs, rhs) = hyp {
-            goal.conclusion = self.rewrite_formula(&goal.conclusion, &lhs, &rhs);
+            let rewritten = self.rewrite_formula(&conclusion_cloned, &lhs, &rhs);
+            let goal = self.goals.last_mut().ok_or("No goal")?;
+            goal.conclusion = rewritten;
             Ok(())
         } else {
             Err("Hypothesis is not an equality".into())
         }
     }
 
-    fn rewrite_formula(&self, formula: &Formula, from: &Term, to: &Term) -> Formula {
+    fn rewrite_formula(&self, formula: &Formula, _from: &Term, _to: &Term) -> Formula {
         // Simplified rewriting
         formula.clone()
     }
