@@ -15,9 +15,7 @@
 
 use core::sync::atomic::{AtomicPtr, Ordering};
 
-use super::frame::{
-    ExceptionStackFrame, InterruptContext, InterruptStackFrame, PageFaultErrorCode,
-};
+use super::frame::{ExceptionStackFrame, InterruptStackFrame, PageFaultErrorCode};
 use super::vectors::ExceptionVector;
 
 // =============================================================================
