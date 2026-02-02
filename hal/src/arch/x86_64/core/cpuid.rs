@@ -249,6 +249,7 @@ impl Vendor {
 /// CPU Feature (from CPUID)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
+#[allow(non_camel_case_types)]
 pub enum Feature {
     // CPUID.01H:ECX features
     /// SSE3 (Streaming SIMD Extensions 3)
@@ -1278,7 +1279,7 @@ pub fn get_xsave_info() -> Option<XsaveInfo> {
     let max_size = result.ecx;
     let features_hi = result.edx;
 
-    let features = (features_hi as u64) << 32 | (features_lo as u64);
+    let features = ((features_hi as u64) << 32) | (features_lo as u64);
 
     Some(XsaveInfo {
         enabled_size,
