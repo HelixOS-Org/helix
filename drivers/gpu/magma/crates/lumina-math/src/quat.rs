@@ -5,9 +5,8 @@
 
 use core::ops::{Add, Mul, Neg, Sub};
 
+use crate::mat::{Mat3, Mat4};
 use crate::vec::Vec3;
-use crate::mat::Mat3;
-use crate::mat::Mat4;
 
 /// A quaternion representing a rotation in 3D space.
 ///
