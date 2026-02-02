@@ -6,9 +6,9 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use crate::types::{PipelineHandle, BufferHandle, TextureHandle};
 use crate::bind_group::BindGroupHandle;
 use crate::draw::IndexFormat;
+use crate::types::{BufferHandle, PipelineHandle, TextureHandle};
 
 /// Command pool handle
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -211,7 +211,15 @@ impl CommandEncoder {
     }
 
     /// Sets viewport
-    pub fn set_viewport(&mut self, x: f32, y: f32, width: f32, height: f32, min_depth: f32, max_depth: f32) {
+    pub fn set_viewport(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        min_depth: f32,
+        max_depth: f32,
+    ) {
         self.commands.push(Command::SetViewport {
             x,
             y,
@@ -224,21 +232,33 @@ impl CommandEncoder {
 
     /// Sets scissor
     pub fn set_scissor(&mut self, x: i32, y: i32, width: u32, height: u32) {
-        self.commands.push(Command::SetScissor { x, y, width, height });
+        self.commands.push(Command::SetScissor {
+            x,
+            y,
+            width,
+            height,
+        });
     }
 
     /// Binds graphics pipeline
     pub fn bind_graphics_pipeline(&mut self, pipeline: PipelineHandle) {
-        self.commands.push(Command::BindGraphicsPipeline { pipeline });
+        self.commands
+            .push(Command::BindGraphicsPipeline { pipeline });
     }
 
     /// Binds compute pipeline
     pub fn bind_compute_pipeline(&mut self, pipeline: PipelineHandle) {
-        self.commands.push(Command::BindComputePipeline { pipeline });
+        self.commands
+            .push(Command::BindComputePipeline { pipeline });
     }
 
     /// Binds vertex buffers
-    pub fn bind_vertex_buffers(&mut self, first_binding: u32, buffers: &[BufferHandle], offsets: &[u64]) {
+    pub fn bind_vertex_buffers(
+        &mut self,
+        first_binding: u32,
+        buffers: &[BufferHandle],
+        offsets: &[u64],
+    ) {
         self.commands.push(Command::BindVertexBuffers {
             first_binding,
             buffers: buffers.to_vec(),
@@ -247,7 +267,12 @@ impl CommandEncoder {
     }
 
     /// Binds index buffer
-    pub fn bind_index_buffer(&mut self, buffer: BufferHandle, offset: u64, index_type: IndexFormat) {
+    pub fn bind_index_buffer(
+        &mut self,
+        buffer: BufferHandle,
+        offset: u64,
+        index_type: IndexFormat,
+    ) {
         self.commands.push(Command::BindIndexBuffer {
             buffer,
             offset,
@@ -256,7 +281,12 @@ impl CommandEncoder {
     }
 
     /// Binds descriptor sets
-    pub fn bind_descriptor_sets(&mut self, first_set: u32, sets: &[BindGroupHandle], dynamic_offsets: &[u32]) {
+    pub fn bind_descriptor_sets(
+        &mut self,
+        first_set: u32,
+        sets: &[BindGroupHandle],
+        dynamic_offsets: &[u32],
+    ) {
         self.commands.push(Command::BindDescriptorSets {
             first_set,
             sets: sets.to_vec(),
@@ -274,7 +304,13 @@ impl CommandEncoder {
     }
 
     /// Draws vertices
-    pub fn draw(&mut self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
+    pub fn draw(
+        &mut self,
+        vertex_count: u32,
+        instance_count: u32,
+        first_vertex: u32,
+        first_instance: u32,
+    ) {
         self.commands.push(Command::Draw {
             vertex_count,
             instance_count,
@@ -284,7 +320,14 @@ impl CommandEncoder {
     }
 
     /// Draws indexed vertices
-    pub fn draw_indexed(&mut self, index_count: u32, instance_count: u32, first_index: u32, vertex_offset: i32, first_instance: u32) {
+    pub fn draw_indexed(
+        &mut self,
+        index_count: u32,
+        instance_count: u32,
+        first_index: u32,
+        vertex_offset: i32,
+        first_instance: u32,
+    ) {
         self.commands.push(Command::DrawIndexed {
             index_count,
             instance_count,
@@ -301,11 +344,17 @@ impl CommandEncoder {
 
     /// Dispatches compute indirect
     pub fn dispatch_indirect(&mut self, buffer: BufferHandle, offset: u64) {
-        self.commands.push(Command::DispatchIndirect { buffer, offset });
+        self.commands
+            .push(Command::DispatchIndirect { buffer, offset });
     }
 
     /// Copies buffer to buffer
-    pub fn copy_buffer(&mut self, src: BufferHandle, dst: BufferHandle, regions: &[BufferCopyRegion]) {
+    pub fn copy_buffer(
+        &mut self,
+        src: BufferHandle,
+        dst: BufferHandle,
+        regions: &[BufferCopyRegion],
+    ) {
         self.commands.push(Command::CopyBuffer {
             src,
             dst,
@@ -314,7 +363,12 @@ impl CommandEncoder {
     }
 
     /// Copies buffer to texture
-    pub fn copy_buffer_to_texture(&mut self, src: BufferHandle, dst: TextureHandle, regions: &[BufferTextureCopyRegion]) {
+    pub fn copy_buffer_to_texture(
+        &mut self,
+        src: BufferHandle,
+        dst: TextureHandle,
+        regions: &[BufferTextureCopyRegion],
+    ) {
         self.commands.push(Command::CopyBufferToTexture {
             src,
             dst,
@@ -323,7 +377,12 @@ impl CommandEncoder {
     }
 
     /// Copies texture to buffer
-    pub fn copy_texture_to_buffer(&mut self, src: TextureHandle, dst: BufferHandle, regions: &[BufferTextureCopyRegion]) {
+    pub fn copy_texture_to_buffer(
+        &mut self,
+        src: TextureHandle,
+        dst: BufferHandle,
+        regions: &[BufferTextureCopyRegion],
+    ) {
         self.commands.push(Command::CopyTextureToBuffer {
             src,
             dst,
@@ -332,7 +391,14 @@ impl CommandEncoder {
     }
 
     /// Pipeline barrier
-    pub fn pipeline_barrier(&mut self, src_stage: u32, dst_stage: u32, memory_barriers: &[MemoryBarrier], buffer_barriers: &[BufferBarrier], image_barriers: &[ImageBarrier]) {
+    pub fn pipeline_barrier(
+        &mut self,
+        src_stage: u32,
+        dst_stage: u32,
+        memory_barriers: &[MemoryBarrier],
+        buffer_barriers: &[BufferBarrier],
+        image_barriers: &[ImageBarrier],
+    ) {
         self.commands.push(Command::PipelineBarrier {
             src_stage,
             dst_stage,
@@ -430,7 +496,8 @@ impl RenderPassBeginDesc {
 
     /// Adds depth clear value
     pub fn with_depth_clear(mut self, depth: f32, stencil: u32) -> Self {
-        self.clear_values.push(ClearValue::DepthStencil { depth, stencil });
+        self.clear_values
+            .push(ClearValue::DepthStencil { depth, stencil });
         self
     }
 }
@@ -450,9 +517,15 @@ impl ClearValue {
     /// White
     pub const WHITE: Self = Self::Color([1.0, 1.0, 1.0, 1.0]);
     /// Default depth
-    pub const DEPTH_ONE: Self = Self::DepthStencil { depth: 1.0, stencil: 0 };
+    pub const DEPTH_ONE: Self = Self::DepthStencil {
+        depth: 1.0,
+        stencil: 0,
+    };
     /// Reversed depth
-    pub const DEPTH_ZERO: Self = Self::DepthStencil { depth: 0.0, stencil: 0 };
+    pub const DEPTH_ZERO: Self = Self::DepthStencil {
+        depth: 0.0,
+        stencil: 0,
+    };
 }
 
 /// Buffer copy region
@@ -547,7 +620,10 @@ pub struct MemoryBarrier {
 impl MemoryBarrier {
     /// Creates memory barrier
     pub const fn new(src_access: u32, dst_access: u32) -> Self {
-        Self { src_access, dst_access }
+        Self {
+            src_access,
+            dst_access,
+        }
     }
 }
 
@@ -616,7 +692,11 @@ pub struct ImageBarrier {
 
 impl ImageBarrier {
     /// Creates image layout transition
-    pub const fn transition(texture: TextureHandle, old_layout: ImageLayout, new_layout: ImageLayout) -> Self {
+    pub const fn transition(
+        texture: TextureHandle,
+        old_layout: ImageLayout,
+        new_layout: ImageLayout,
+    ) -> Self {
         Self {
             src_access: 0,
             dst_access: 0,
@@ -706,7 +786,11 @@ pub enum Command {
     },
 
     /// Set push constants
-    SetPushConstants { stages: u32, offset: u32, data: Vec<u8> },
+    SetPushConstants {
+        stages: u32,
+        offset: u32,
+        data: Vec<u8>,
+    },
 
     /// Draw vertices
     Draw {
@@ -837,19 +921,13 @@ pub enum Command {
     },
 
     /// Push debug group
-    PushDebugGroup {
-        name: &'static str,
-        color: [f32; 4],
-    },
+    PushDebugGroup { name: &'static str, color: [f32; 4] },
 
     /// Pop debug group
     PopDebugGroup,
 
     /// Insert debug label
-    InsertDebugLabel {
-        name: &'static str,
-        color: [f32; 4],
-    },
+    InsertDebugLabel { name: &'static str, color: [f32; 4] },
 
     /// Fill buffer
     FillBuffer {
