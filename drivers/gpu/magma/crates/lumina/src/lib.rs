@@ -64,19 +64,30 @@ pub use lumina_derive::*;
 
 // Core modules
 pub mod backend;
+pub mod bind_group;
 pub mod buffer;
 pub mod color;
 pub mod command;
+pub mod compute;
 pub mod context;
+pub mod device;
+pub mod draw;
 pub mod error;
 pub mod frame;
 pub mod graph;
+pub mod graphics_pipeline;
 pub mod handle;
+pub mod memory;
 pub mod mesh;
 pub mod pipeline;
+pub mod query;
+pub mod render_pass;
 pub mod resource;
 pub mod sampler;
+pub mod shader;
 pub mod state;
+pub mod surface;
+pub mod sync;
 pub mod texture;
 pub mod types;
 
