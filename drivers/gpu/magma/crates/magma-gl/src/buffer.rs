@@ -2,10 +2,11 @@
 //!
 //! OpenGL buffer objects translated to Vulkan buffers.
 
+use alloc::vec::Vec;
+
 use crate::context::{BufferObject, BufferUsageHint, GlContext};
 use crate::enums::*;
 use crate::types::*;
-use alloc::vec::Vec;
 
 // =============================================================================
 // BUFFER TARGET TRANSLATION
@@ -15,24 +16,20 @@ use alloc::vec::Vec;
 pub fn translate_usage_to_vk_flags(usage: BufferUsageHint) -> u32 {
     // Returns VkMemoryPropertyFlags
     match usage {
-        BufferUsageHint::StaticDraw
-        | BufferUsageHint::StaticRead
-        | BufferUsageHint::StaticCopy => {
+        BufferUsageHint::StaticDraw | BufferUsageHint::StaticRead | BufferUsageHint::StaticCopy => {
             // Device local for static data
             0x00000001 // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-        }
+        },
         BufferUsageHint::DynamicDraw
         | BufferUsageHint::DynamicRead
         | BufferUsageHint::DynamicCopy => {
             // Host visible + coherent for dynamic data
             0x00000002 | 0x00000004 // VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-        }
-        BufferUsageHint::StreamDraw
-        | BufferUsageHint::StreamRead
-        | BufferUsageHint::StreamCopy => {
+        },
+        BufferUsageHint::StreamDraw | BufferUsageHint::StreamRead | BufferUsageHint::StreamCopy => {
             // Host visible + coherent for streaming
             0x00000002 | 0x00000004
-        }
+        },
     }
 }
 
@@ -46,15 +43,15 @@ pub fn translate_target_to_vk_usage(target: GLenum) -> u32 {
         GL_SHADER_STORAGE_BUFFER => 0x00000020, // VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         GL_COPY_READ_BUFFER | GL_COPY_WRITE_BUFFER => {
             0x00000001 | 0x00000002 // VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
-        }
+        },
         GL_PIXEL_PACK_BUFFER => 0x00000001, // VK_BUFFER_USAGE_TRANSFER_SRC_BIT
         GL_PIXEL_UNPACK_BUFFER => 0x00000002, // VK_BUFFER_USAGE_TRANSFER_DST_BIT
         GL_DRAW_INDIRECT_BUFFER | GL_DISPATCH_INDIRECT_BUFFER => {
             0x00000100 // VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
-        }
+        },
         GL_TRANSFORM_FEEDBACK_BUFFER => {
             0x00000800 // VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT
-        }
+        },
         _ => 0,
     }
 }
@@ -215,10 +212,10 @@ impl VertexAttribFormat {
             (GL_UNSIGNED_BYTE, 4, false) => 41, // VK_FORMAT_R8G8B8A8_UINT
 
             // Signed byte normalized
-            (GL_BYTE, 1, true) => 10,  // VK_FORMAT_R8_SNORM
-            (GL_BYTE, 2, true) => 17,  // VK_FORMAT_R8G8_SNORM
-            (GL_BYTE, 3, true) => 24,  // VK_FORMAT_R8G8B8_SNORM
-            (GL_BYTE, 4, true) => 38,  // VK_FORMAT_R8G8B8A8_SNORM
+            (GL_BYTE, 1, true) => 10, // VK_FORMAT_R8_SNORM
+            (GL_BYTE, 2, true) => 17, // VK_FORMAT_R8G8_SNORM
+            (GL_BYTE, 3, true) => 24, // VK_FORMAT_R8G8B8_SNORM
+            (GL_BYTE, 4, true) => 38, // VK_FORMAT_R8G8B8A8_SNORM
 
             // Signed byte integer
             (GL_BYTE, 1, false) => 14, // VK_FORMAT_R8_SINT
