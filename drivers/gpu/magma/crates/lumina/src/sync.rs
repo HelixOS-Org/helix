@@ -250,7 +250,10 @@ pub struct SemaphoreSubmitInfo {
 
 impl SemaphoreSubmitInfo {
     /// Creates a binary semaphore submit info
-    pub const fn binary(semaphore: SemaphoreHandle, stage_mask: crate::render_pass::PipelineStage) -> Self {
+    pub const fn binary(
+        semaphore: SemaphoreHandle,
+        stage_mask: crate::render_pass::PipelineStage,
+    ) -> Self {
         Self {
             semaphore,
             value: 0,
@@ -259,7 +262,11 @@ impl SemaphoreSubmitInfo {
     }
 
     /// Creates a timeline semaphore submit info
-    pub const fn timeline(semaphore: SemaphoreHandle, value: u64, stage_mask: crate::render_pass::PipelineStage) -> Self {
+    pub const fn timeline(
+        semaphore: SemaphoreHandle,
+        value: u64,
+        stage_mask: crate::render_pass::PipelineStage,
+    ) -> Self {
         Self {
             semaphore,
             value,
@@ -279,8 +286,14 @@ pub struct MemoryBarrier {
 
 impl MemoryBarrier {
     /// Creates a memory barrier
-    pub const fn new(src_access: crate::render_pass::AccessFlags, dst_access: crate::render_pass::AccessFlags) -> Self {
-        Self { src_access, dst_access }
+    pub const fn new(
+        src_access: crate::render_pass::AccessFlags,
+        dst_access: crate::render_pass::AccessFlags,
+    ) -> Self {
+        Self {
+            src_access,
+            dst_access,
+        }
     }
 
     /// Full memory barrier
