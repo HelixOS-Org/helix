@@ -75,7 +75,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 pub use entries::{Dpl, GateOptions, GateType, IdtEntry};
 pub use frame::InterruptStackFrame;
-pub use handlers::{ExceptionFrame, ExceptionHandlerFn, HandlerFn, InterruptFrame};
+pub use handlers::{ExceptionHandlerFn, HandlerFn};
 pub use idt::{load_idt, Idt, IdtDescriptor};
 pub use vectors::{ExceptionVector, IrqVector, SystemVector, Vector};
 
@@ -155,10 +155,10 @@ pub unsafe fn init() {
     }
 
     // Initialize the static IDT
-    idt::init_idt();
+    unsafe { idt::init_idt() };
 
     // Load the IDT
-    idt::load_idt();
+    unsafe { idt::load_idt() };
 
     log::info!("IDT: Initialized with {} entries", IDT_ENTRIES);
 }
@@ -174,7 +174,7 @@ pub unsafe fn init() {
 #[inline]
 pub unsafe fn init_for_ap() {
     debug_assert!(IDT_INITIALIZED.load(Ordering::Acquire));
-    idt::load_idt();
+    unsafe { idt::load_idt() };
 }
 
 /// Enable interrupts on the current CPU
@@ -184,7 +184,9 @@ pub unsafe fn init_for_ap() {
 /// Caller must ensure interrupt handlers are properly set up.
 #[inline]
 pub unsafe fn enable() {
-    core::arch::asm!("sti", options(nomem, nostack, preserves_flags));
+    unsafe {
+        core::arch::asm!("sti", options(nomem, nostack, preserves_flags));
+    }
 }
 
 /// Disable interrupts on the current CPU
@@ -249,7 +251,9 @@ where
 /// Interrupts must be enabled for this to ever return.
 #[inline]
 pub unsafe fn halt() {
-    core::arch::asm!("hlt", options(nomem, nostack, preserves_flags));
+    unsafe {
+        core::arch::asm!("hlt", options(nomem, nostack, preserves_flags));
+    }
 }
 
 /// Halt the CPU forever (infinite loop with hlt)
@@ -285,7 +289,9 @@ pub unsafe fn end_of_interrupt(_vector: u8) {
 ///
 /// The handler must be a valid function that properly handles the interrupt.
 pub unsafe fn register_handler(vector: u8, handler: usize, gate_type: GateType) {
-    idt::set_handler(vector, handler, gate_type);
+    unsafe {
+        idt::set_handler(vector, handler, gate_type);
+    }
 }
 
 /// Register an exception handler with IST
@@ -294,7 +300,9 @@ pub unsafe fn register_handler(vector: u8, handler: usize, gate_type: GateType) 
 ///
 /// The handler must be a valid exception handler.
 pub unsafe fn register_exception_handler(vector: u8, handler: usize, ist: u8) {
-    idt::set_exception_handler(vector, handler, ist);
+    unsafe {
+        idt::set_exception_handler(vector, handler, ist);
+    }
 }
 
 // =============================================================================
