@@ -117,31 +117,31 @@ unsafe fn calibrate_tsc_single_pit(pit_ticks: u64) -> Result<u64, TimerError> {
     let command =
         ((pit::PitChannel::Channel2 as u8) << 6) | ((pit::PitAccess::LowHigh as u8) << 4) | 0; // Mode 0
 
-    outb(0x43, command);
+    unsafe { outb(0x43, command) };
 
     // Write count
-    outb(0x42, ticks_u16 as u8);
-    outb(0x42, (ticks_u16 >> 8) as u8);
+    unsafe { outb(0x42, ticks_u16 as u8) };
+    unsafe { outb(0x42, (ticks_u16 >> 8) as u8) };
 
     // Enable gate
-    let port_b = inb(0x61);
-    outb(0x61, (port_b & 0xFC) | 0x01);
+    let port_b = unsafe { inb(0x61) };
+    unsafe { outb(0x61, (port_b & 0xFC) | 0x01) };
 
     // Read starting TSC (serialized)
-    core::arch::asm!("mfence", options(nostack, preserves_flags));
+    unsafe { core::arch::asm!("mfence", options(nostack, preserves_flags)) };
     let start_tsc = tsc::read();
 
     // Wait for output to go high
-    while inb(0x61) & 0x20 == 0 {
+    while unsafe { inb(0x61) } & 0x20 == 0 {
         core::hint::spin_loop();
     }
 
     // Read ending TSC
     let end_tsc = tsc::read();
-    core::arch::asm!("mfence", options(nostack, preserves_flags));
+    unsafe { core::arch::asm!("mfence", options(nostack, preserves_flags)) };
 
     // Disable gate
-    outb(0x61, port_b & 0xFC);
+    unsafe { outb(0x61, port_b & 0xFC) };
 
     // Calculate TSC frequency
     let tsc_elapsed = end_tsc - start_tsc;
@@ -332,23 +332,27 @@ pub fn calibrate_apic_with_pit() -> Result<CalibrationResult, TimerError> {
 
 #[inline]
 unsafe fn outb(port: u16, value: u8) {
-    core::arch::asm!(
-        "out dx, al",
-        in("dx") port,
-        in("al") value,
-        options(nostack, nomem, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "out dx, al",
+            in("dx") port,
+            in("al") value,
+            options(nostack, nomem, preserves_flags),
+        );
+    }
 }
 
 #[inline]
 unsafe fn inb(port: u16) -> u8 {
     let value: u8;
-    core::arch::asm!(
-        "in al, dx",
-        in("dx") port,
-        out("al") value,
-        options(nostack, nomem, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "in al, dx",
+            in("dx") port,
+            out("al") value,
+            options(nostack, nomem, preserves_flags),
+        );
+    }
     value
 }
 
