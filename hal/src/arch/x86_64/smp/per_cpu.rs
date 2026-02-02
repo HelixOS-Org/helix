@@ -222,7 +222,7 @@ static PERCPU_INITIALIZED: [AtomicU32; MAX_CPUS] = [const { AtomicU32::new(0) };
 /// This returns a mutable reference. Caller must ensure proper synchronization.
 pub unsafe fn get_percpu_data(cpu_id: usize) -> Option<&'static mut PerCpuData> {
     if cpu_id < MAX_CPUS && PERCPU_INITIALIZED[cpu_id].load(Ordering::Acquire) != 0 {
-        Some(&mut PERCPU_DATA[cpu_id])
+        unsafe { Some(&mut PERCPU_DATA[cpu_id]) }
     } else {
         None
     }
@@ -439,22 +439,31 @@ pub struct PerCpu<T> {
 unsafe impl<T: Send> Send for PerCpu<T> {}
 unsafe impl<T: Send> Sync for PerCpu<T> {}
 
-impl<T: Default + Copy> PerCpu<T> {
-    /// Create a new per-CPU variable with default values
-    pub const fn new() -> Self
-    where
-        T: ~const Default,
-    {
+impl<T: Copy> PerCpu<T> {
+    /// Create a new per-CPU variable with a specific value
+    ///
+    /// Note: This is not const due to the value parameter.
+    /// For static initialization, use `PerCpu::zeroed()` or a dedicated const constructor.
+    pub fn with_value(value: T) -> Self {
+        // Use array::from_fn which works at runtime
         Self {
-            data: [const { UnsafeCell::new(T::default()) }; MAX_CPUS],
+            data: core::array::from_fn(|_| UnsafeCell::new(value)),
         }
     }
+}
 
-    /// Create a new per-CPU variable with a specific value
-    pub const fn with_value(value: T) -> Self {
+impl<T: Default> PerCpu<T> {
+    /// Create a new per-CPU variable with default values
+    pub fn new() -> Self {
         Self {
-            data: [const { UnsafeCell::new(value) }; MAX_CPUS],
+            data: core::array::from_fn(|_| UnsafeCell::new(T::default())),
         }
+    }
+}
+
+impl<T: Default> Default for PerCpu<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -475,7 +484,7 @@ impl<T> PerCpu<T> {
     pub unsafe fn get_mut(&self) -> &mut T {
         let cpu_id = current_cpu_id() as usize;
         debug_assert!(cpu_id < MAX_CPUS);
-        &mut *self.data[cpu_id].get()
+        unsafe { &mut *self.data[cpu_id].get() }
     }
 
     /// Get reference to a specific CPU's value
@@ -493,7 +502,7 @@ impl<T> PerCpu<T> {
     /// Caller must ensure exclusive access
     pub unsafe fn get_cpu_mut(&self, cpu_id: usize) -> Option<&mut T> {
         if cpu_id < MAX_CPUS {
-            Some(&mut *self.data[cpu_id].get())
+            unsafe { Some(&mut *self.data[cpu_id].get()) }
         } else {
             None
         }
