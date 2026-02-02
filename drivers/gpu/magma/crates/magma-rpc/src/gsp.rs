@@ -2,7 +2,7 @@
 //!
 //! GPU System Processor state machine and initialization.
 
-use magma_core::{Error, Result, GpuGeneration};
+use magma_core::{Error, GpuGeneration, Result};
 
 // =============================================================================
 // GSP STATE
