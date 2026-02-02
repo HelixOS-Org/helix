@@ -9,15 +9,12 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::ir::{
-    IRFunction, IRModule, IROp, IRType, IRValue,
-};
+use super::ir::{IRFunction, IRModule, IROp, IRType, IRValue};
 use super::{
     BinOp, Expr, Predicate, ProofCertificate, ProofMethod, ProvedProperty, Specification, TypeSpec,
 };
