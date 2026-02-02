@@ -175,13 +175,17 @@ impl Router {
 
     /// Get all channels to a target domain
     pub fn channels_to(&mut self, target: Domain) -> Vec<&mut Channel> {
-        let mut result = Vec::new();
-        for domain in Domain::cognitive_domains() {
-            if let Some(channel) = self.get_channel(domain, target) {
-                result.push(channel);
-            }
-        }
-        result
+        // Collect all valid route keys first to avoid borrowing self in the loop
+        let valid_keys: Vec<u64> = Domain::cognitive_domains()
+            .into_iter()
+            .map(|domain| RouteKey::new(domain, target).to_u64())
+            .collect();
+        
+        self.channels
+            .iter_mut()
+            .filter(|(key, _)| valid_keys.contains(key))
+            .map(|(_, channel)| channel)
+            .collect()
     }
 
     /// Close all channels
