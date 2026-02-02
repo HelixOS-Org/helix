@@ -4,8 +4,8 @@
 
 use alloc::vec::Vec;
 
-use magma_core::{Error, Result, GpuAddr, ByteSize};
-use magma_core::command::{DrawParams, DrawIndexedParams, DispatchParams};
+use magma_core::command::{DispatchParams, DrawIndexedParams, DrawParams};
+use magma_core::{ByteSize, Error, GpuAddr, Result};
 
 use crate::pushbuf::PushBuffer;
 
@@ -160,7 +160,7 @@ impl CommandBuffer {
                 self.estimated_size = 0;
                 self.state = CommandBufferState::Recording;
                 Ok(())
-            }
+            },
             _ => Err(Error::InvalidState),
         }
     }
@@ -282,7 +282,8 @@ impl CommandBuffer {
     /// Copy buffer
     pub fn copy_buffer(&mut self, src: GpuAddr, dst: GpuAddr, size: u64) -> Result<()> {
         self.check_recording()?;
-        self.commands.push(RecordedCommand::CopyBuffer { src, dst, size });
+        self.commands
+            .push(RecordedCommand::CopyBuffer { src, dst, size });
         self.estimated_size += 24;
         Ok(())
     }
@@ -331,21 +332,21 @@ impl CommandBuffer {
                 pb.push_single(0x058E, 0, params.instance_count)?; // INSTANCE_COUNT
                 pb.push_single(0x0590, 0, params.first_vertex)?; // VERTEX_START
                 pb.push_single(0x0594, 0, 1)?; // DRAW_TRIGGER
-            }
+            },
             RecordedCommand::Dispatch(params) => {
                 pb.push_single(0x0200, 0, params.groups_x)?;
                 pb.push_single(0x0204, 0, params.groups_y)?;
                 pb.push_single(0x0208, 0, params.groups_z)?;
                 pb.push_single(0x020C, 0, 1)?; // DISPATCH_TRIGGER
-            }
+            },
             RecordedCommand::Barrier => {
                 pb.push_single(methods::WAIT_FOR_IDLE, 0, 0)?;
-            }
+            },
             // Other commands would be compiled similarly
             _ => {
                 // NOP for unimplemented commands
                 pb.push_single(methods::NOP, 0, 0)?;
-            }
+            },
         }
 
         Ok(())
