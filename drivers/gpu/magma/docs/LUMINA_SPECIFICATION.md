@@ -69,7 +69,7 @@ Modern "low-level" graphics APIs promised control and performance. They delivere
 Vulkan forces developers to describe *how* the GPU should work instead of *what* they want.
 This is a category error. The GPU driver already knows how to:
 - Allocate memory efficiently
-- Schedule barriers optimally  
+- Schedule barriers optimally
 - Batch descriptor updates
 - Pipeline state caching
 
@@ -78,7 +78,7 @@ Vulkan makes you re-implement driver logic in userspace. That's not "explicit"�
 ### 1.3 The Lumina Thesis
 
 > **Lumina Principle #1**: *Express intent, not mechanism.*
-> 
+>
 > **Lumina Principle #2**: *The compiler knows more than you think.*
 >
 > **Lumina Principle #3**: *Safety is not optional—it's the foundation of performance.*
@@ -244,7 +244,7 @@ use lumina::prelude::*;
 
 ```rust
 //! examples/spinning_cube.rs
-//! 
+//!
 //! A rotating, colored 3D cube in ~50 lines.
 //! Equivalent Vulkan: 1200+ lines.
 
@@ -280,7 +280,7 @@ fn vertex_main(
 ) -> VertexOutput<Vec3> {
     let mvp = uniforms.projection * uniforms.view * uniforms.model;
     let clip_pos = mvp * vertex.position.extend(1.0);
-    
+
     VertexOutput {
         position: clip_pos,      // gl_Position equivalent
         varying: vertex.color,   // Passed to fragment shader
@@ -307,11 +307,11 @@ fn main() -> lumina::Result<()> {
         .window(1280, 720)
         .vsync(true)
         .build()?;
-    
+
     // Create cube mesh (CPU → GPU upload is automatic)
     let cube = GpuMesh::cube(1.0)
         .with_colors(CUBE_COLORS);
-    
+
     // Uniforms (automatically becomes push constants or UBO based on size)
     let mut uniforms = SceneUniforms {
         model: Mat4::IDENTITY,
@@ -319,14 +319,14 @@ fn main() -> lumina::Result<()> {
         projection: Mat4::perspective(45.0_f32.to_radians(), 16.0/9.0, 0.1, 100.0),
         time: 0.0,
     };
-    
+
     // Main loop
     app.run(|frame, input| {
         // Update uniforms
         uniforms.time = frame.time();
         uniforms.model = Mat4::from_rotation_y(uniforms.time)
                        * Mat4::from_rotation_x(uniforms.time * 0.7);
-        
+
         // ═══════════════════════════════════════════════════════════════════
         // THE ENTIRE RENDER PASS (replaces 300+ lines of Vulkan)
         // ═══════════════════════════════════════════════════════════════════
@@ -337,7 +337,7 @@ fn main() -> lumina::Result<()> {
             .uniforms(&uniforms)
             .depth_test(DepthTest::Less)
             .submit();
-        
+
         // Continue running
         !input.should_close()
     })
@@ -376,20 +376,20 @@ fn update_particles(
     #[builtin(global_id)] gid: UVec3,
 ) {
     let idx = gid.x as usize;
-    
+
     // Bounds check (compiled to GPU branch)
     if idx >= particles.len() {
         return;
     }
-    
+
     // Standard Rust syntax - compiles to GPU instructions
     let particle = &mut particles[idx];
-    
+
     // Physics update
     particle.velocity += gravity * delta_time;
     particle.position += particle.velocity * delta_time;
     particle.lifetime -= delta_time;
-    
+
     // Respawn dead particles
     if particle.lifetime <= 0.0 {
         particle.position = Vec3::ZERO;
@@ -400,11 +400,11 @@ fn update_particles(
 
 fn main() -> lumina::Result<()> {
     let app = Lumina::init("Particle System")?;
-    
+
     // Create particle buffer (1 million particles)
     let mut particles = GpuBuffer::new(1_000_000, BufferUsage::Storage);
     particles.fill(Particle::default());
-    
+
     app.run(|frame, _| {
         // Dispatch compute shader
         // Barrier automatically inserted before particle read in render
@@ -412,13 +412,13 @@ fn main() -> lumina::Result<()> {
             .dispatch(update_particles)
             .args(&mut particles, frame.delta_time(), Vec3::new(0.0, -9.8, 0.0))
             .groups(particles.len().div_ceil(256), 1, 1);
-        
+
         // Render particles as points
         frame.render()
             .clear(Color::BLACK)
             .draw_points(&particles)
             .submit();
-        
+
         true
     })
 }
@@ -445,7 +445,7 @@ pub struct MyVertexShader;
 impl lumina::VertexShader for MyVertexShader {
     type Input = (Vec3, Vec4);
     type Output = Vec4;
-    
+
     fn spirv() -> &'static [u32] {
         // Embedded SPIR-V bytecode (compiled at build time)
         include_spirv!("my_vertex.spv")
@@ -512,22 +512,22 @@ fn lighting_pass(
     let albedo = gbuffer.albedo.sample(uv);
     let normal = gbuffer.normal.sample(uv).xyz();
     let position = gbuffer.position.sample(uv).xyz();
-    
+
     let mut color = Vec3::ZERO;
     for light in lights {
         color += calculate_lighting(position, normal, albedo.rgb(), light);
     }
-    
+
     FragmentOutput { color: color.extend(1.0).into() }
 }
 
 fn main() -> lumina::Result<()> {
     let app = Lumina::init("Deferred Renderer")?;
     let scene = load_scene("sponza.gltf")?;
-    
+
     // G-Buffer automatically sized to window
     let gbuffer = GBufferOutput::create(&app, app.window_size());
-    
+
     app.run(|frame, _| {
         // Pass 1: Fill G-Buffer
         // Lumina automatically creates render pass with 4 attachments
@@ -536,9 +536,9 @@ fn main() -> lumina::Result<()> {
             .draw(&scene.meshes)
             .with(gbuffer_vertex, gbuffer_pass)
             .submit();
-        
+
         // Barrier automatically inserted: gbuffer was written, now being read
-        
+
         // Pass 2: Lighting (fullscreen quad)
         frame.render()
             .draw_fullscreen()
@@ -546,7 +546,7 @@ fn main() -> lumina::Result<()> {
             .bind(&gbuffer)
             .bind(&scene.lights)
             .submit();
-        
+
         true
     })
 }
@@ -710,30 +710,30 @@ impl RenderGraph {
     pub fn compile(&self) -> CompiledGraph {
         // Phase 1: Lifetime analysis
         let lifetimes = self.analyze_lifetimes();
-        
+
         // Phase 2: Barrier placement
         let barriers = self.compute_barriers(&lifetimes);
-        
+
         // Phase 3: Pass merging (find subpass opportunities)
         let passes = self.merge_passes(&barriers);
-        
+
         // Phase 4: Resource aliasing
         let aliases = self.compute_aliases(&lifetimes);
-        
+
         // Phase 5: Command buffer generation
         self.emit_commands(&passes, &aliases)
     }
-    
+
     /// Automatic barrier insertion based on resource usage
     fn compute_barriers(&self, lifetimes: &Lifetimes) -> Vec<Barrier> {
         let mut barriers = Vec::new();
-        
+
         for (resource, lifetime) in lifetimes {
             let mut prev_state = ResourceState::UNDEFINED;
-            
+
             for usage in &lifetime.usages {
                 let required_state = usage.required_state();
-                
+
                 if needs_barrier(prev_state, required_state) {
                     barriers.push(Barrier {
                         resource: *resource,
@@ -742,14 +742,14 @@ impl RenderGraph {
                         to: required_state,
                     });
                 }
-                
+
                 prev_state = required_state;
             }
         }
-        
+
         // Coalesce adjacent barriers
         self.coalesce_barriers(&mut barriers);
-        
+
         barriers
     }
 }
@@ -771,13 +771,13 @@ impl PipelineInferrer {
         render_target: &RenderTargetDesc,
     ) -> GraphicsPipelineDesc {
         let mut inferrer = Self::default();
-        
+
         // Analyze fragment shader outputs
         for output in &fragment.outputs {
             match output.semantic {
                 Semantic::Color(idx) => {
                     inferrer.color_attachment(idx, render_target.format(idx));
-                    
+
                     // If shader writes alpha < 1.0, enable blending
                     if output.writes_alpha && !output.alpha_is_one() {
                         inferrer.enable_blend(idx, BlendPreset::Alpha);
@@ -788,24 +788,24 @@ impl PipelineInferrer {
                 }
             }
         }
-        
+
         // Analyze fragment shader inputs
         for input in &fragment.inputs {
             if input.is_depth_sample {
                 inferrer.depth_test(DepthTest::Less);
             }
         }
-        
+
         // Analyze vertex shader to detect winding
         if vertex.has_consistent_winding() {
             inferrer.cull_mode(CullMode::Back);
         }
-        
+
         // Check for derivative instructions (requires quad processing)
         if fragment.uses_derivatives() {
             inferrer.require_helper_invocations();
         }
-        
+
         inferrer.build()
     }
 }
@@ -817,13 +817,13 @@ impl RenderBuilder {
         self.overrides.depth_test = Some(test);
         self
     }
-    
+
     /// Override inferred blend mode
     pub fn blend(mut self, mode: BlendMode) -> Self {
         self.overrides.blend = Some(mode);
         self
     }
-    
+
     /// Override inferred cull mode
     pub fn cull(mut self, mode: CullMode) -> Self {
         self.overrides.cull = Some(mode);
@@ -839,22 +839,22 @@ impl RenderBuilder {
 pub trait MagmaBackend {
     /// Submit compiled render graph
     fn submit(&self, graph: &CompiledGraph) -> SubmitHandle;
-    
+
     /// Allocate GPU buffer
     fn create_buffer(&self, desc: &BufferDesc) -> BufferHandle;
-    
+
     /// Allocate GPU texture
     fn create_texture(&self, desc: &TextureDesc) -> TextureHandle;
-    
+
     /// Create graphics pipeline
     fn create_pipeline(&self, desc: &GraphicsPipelineDesc) -> PipelineHandle;
-    
+
     /// Wait for submission to complete
     fn wait(&self, handle: SubmitHandle);
-    
+
     /// Get next swapchain image
     fn acquire_frame(&self) -> FrameHandle;
-    
+
     /// Present frame
     fn present(&self, frame: FrameHandle);
 }
@@ -872,10 +872,10 @@ impl MagmaBackend for MagmaDriver {
     fn submit(&self, graph: &CompiledGraph) -> SubmitHandle {
         // Acquire command buffer from pool
         let cmd = self.command_pool.allocate();
-        
+
         // Begin command buffer
         cmd.begin();
-        
+
         // Emit all commands from compiled graph
         for command in &graph.commands {
             match command {
@@ -900,9 +900,9 @@ impl MagmaBackend for MagmaDriver {
                 // ... other commands
             }
         }
-        
+
         cmd.end();
-        
+
         // Submit to GSP ring buffer
         self.ring_buffer.submit(cmd)
     }
@@ -929,14 +929,14 @@ pub struct GpuBuffer<T: GpuData> {
 impl<T: GpuData> GpuBuffer<T> {
     /// Create new buffer (owned)
     pub fn new(len: usize, usage: BufferUsage) -> Self { ... }
-    
+
     /// Borrow immutably for reading on GPU
     pub fn as_gpu_slice(&self) -> GpuSlice<'_, T> {
         // Compile-time: tracks that this buffer is being read
         // Runtime: may insert barrier if previously written
         GpuSlice { buffer: self, access: Access::Read }
     }
-    
+
     /// Borrow mutably for writing on GPU
     pub fn as_gpu_slice_mut(&mut self) -> GpuSliceMut<'_, T> {
         // Compile-time: ensures exclusive access
@@ -950,8 +950,8 @@ impl<T: GpuData> GpuBuffer<T> {
 fn bad_code(buffer: &mut GpuBuffer<f32>) {
     let read = buffer.as_gpu_slice();       // Immutable borrow
     let write = buffer.as_gpu_slice_mut();  // ERROR: cannot borrow mutably
-    //         ^^^^^^^^^^^^^^^^^^^^^^^^ 
-    // error[E0502]: cannot borrow `*buffer` as mutable because it is also 
+    //         ^^^^^^^^^^^^^^^^^^^^^^^^
+    // error[E0502]: cannot borrow `*buffer` as mutable because it is also
     //               borrowed as immutable
 }
 
@@ -960,7 +960,7 @@ fn good_code(buffer: &mut GpuBuffer<f32>) {
         let read = buffer.as_gpu_slice();
         // use read...
     } // read dropped here
-    
+
     let write = buffer.as_gpu_slice_mut();  // OK: no conflicting borrow
     // use write...
 }
@@ -981,7 +981,7 @@ impl<'a> Frame<'a> {
     pub fn render(&mut self) -> RenderBuilder<'_> {
         RenderBuilder::new(self)
     }
-    
+
     /// Begin a compute operation
     pub fn compute(&mut self) -> ComputeBuilder<'_> {
         ComputeBuilder::new(self)
@@ -999,11 +999,11 @@ impl<'a> Drop for Frame<'a> {
 /// RAII ensures frames are always presented
 fn render_loop(app: &mut Lumina) {
     let frame = app.begin_frame();  // Acquires swapchain image
-    
+
     frame.render()
         .draw(&mesh)
         .submit();
-    
+
     // frame dropped here → automatic present
 }
 ```
@@ -1022,7 +1022,7 @@ fn compute_then_render(
         .dispatch(physics_kernel)
         .read(&particles)       // Immutable borrow starts
         .submit();
-    
+
     // Try to write particles
     frame.compute()
         .dispatch(spawn_kernel)
@@ -1041,7 +1041,7 @@ fn async_compute(
         .dispatch(process_data)
         .write(&mut data)
         .submit_async();
-    
+
     // Lumina automatically inserts semaphore wait
     // because data was written on different queue
     frame.render()
@@ -1055,17 +1055,17 @@ fn async_compute(
 fn render_with_temp_buffer(frame: &mut Frame) {
     // Allocate temporary buffer for this frame only
     let temp = frame.allocate_temp::<f32>(1024);
-    
+
     frame.compute()
         .dispatch(fill_temp)
         .write(&mut temp)
         .submit();
-    
+
     frame.render()
         .draw(&mesh)
         .read(&temp)
         .submit();
-    
+
     // temp automatically recycled when frame ends
     // Lumina may alias this memory with other temp buffers in future frames
 }
@@ -1292,9 +1292,9 @@ The API doesn't just wrap Vulkan—it **obsoletes the need for manual Vulkan pro
 
 ---
 
-**Document Version**: 1.0.0  
-**Last Updated**: February 2026  
-**Authors**: Helix OS Graphics Team  
+**Document Version**: 1.0.0
+**Last Updated**: February 2026
+**Authors**: Helix OS Graphics Team
 **Status**: Design Specification
 
 ```
