@@ -2,7 +2,7 @@
 //!
 //! NVIDIA GPU PCI enumeration and configuration space access.
 
-use magma_core::{Error, Result, GpuGeneration, PciAddr, GpuDeviceId};
+use magma_core::{Error, GpuDeviceId, GpuGeneration, PciAddr, Result};
 
 // =============================================================================
 // NVIDIA VENDOR ID
@@ -53,47 +53,47 @@ pub mod device_ids {
 #[repr(u16)]
 pub enum PciConfigReg {
     /// Vendor ID (16-bit)
-    VendorId = 0x00,
+    VendorId          = 0x00,
     /// Device ID (16-bit)
-    DeviceId = 0x02,
+    DeviceId          = 0x02,
     /// Command register
-    Command = 0x04,
+    Command           = 0x04,
     /// Status register
-    Status = 0x06,
+    Status            = 0x06,
     /// Revision ID
-    RevisionId = 0x08,
+    RevisionId        = 0x08,
     /// Class code
-    ClassCode = 0x09,
+    ClassCode         = 0x09,
     /// Cache line size
-    CacheLineSize = 0x0C,
+    CacheLineSize     = 0x0C,
     /// Latency timer
-    LatencyTimer = 0x0D,
+    LatencyTimer      = 0x0D,
     /// Header type
-    HeaderType = 0x0E,
+    HeaderType        = 0x0E,
     /// BAR0
-    Bar0 = 0x10,
+    Bar0              = 0x10,
     /// BAR1
-    Bar1 = 0x14,
+    Bar1              = 0x14,
     /// BAR2
-    Bar2 = 0x18,
+    Bar2              = 0x18,
     /// BAR3
-    Bar3 = 0x1C,
+    Bar3              = 0x1C,
     /// BAR4
-    Bar4 = 0x20,
+    Bar4              = 0x20,
     /// BAR5
-    Bar5 = 0x24,
+    Bar5              = 0x24,
     /// Subsystem Vendor ID
     SubsystemVendorId = 0x2C,
     /// Subsystem ID
-    SubsystemId = 0x2E,
+    SubsystemId       = 0x2E,
     /// Expansion ROM Base
-    ExpansionRomBase = 0x30,
+    ExpansionRomBase  = 0x30,
     /// Capabilities pointer
-    CapabilitiesPtr = 0x34,
+    CapabilitiesPtr   = 0x34,
     /// Interrupt line
-    InterruptLine = 0x3C,
+    InterruptLine     = 0x3C,
     /// Interrupt pin
-    InterruptPin = 0x3D,
+    InterruptPin      = 0x3D,
 }
 
 /// PCI command register flags
