@@ -117,23 +117,27 @@ pub enum PitAccess {
 
 #[inline]
 unsafe fn outb(port: u16, value: u8) {
-    core::arch::asm!(
-        "out dx, al",
-        in("dx") port,
-        in("al") value,
-        options(nostack, nomem, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "out dx, al",
+            in("dx") port,
+            in("al") value,
+            options(nostack, nomem, preserves_flags),
+        );
+    }
 }
 
 #[inline]
 unsafe fn inb(port: u16) -> u8 {
     let value: u8;
-    core::arch::asm!(
-        "in al, dx",
-        in("dx") port,
-        out("al") value,
-        options(nostack, nomem, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "in al, dx",
+            in("dx") port,
+            out("al") value,
+            options(nostack, nomem, preserves_flags),
+        );
+    }
     value
 }
 
@@ -162,7 +166,7 @@ pub unsafe fn init() {
     }
 
     // Disable channel 0 initially (set very low frequency)
-    set_divisor(PitChannel::Channel0, 0); // 0 = 65536, ~18.2 Hz
+    unsafe { set_divisor(PitChannel::Channel0, 0) }; // 0 = 65536, ~18.2 Hz
 
     log::debug!("PIT: Initialized");
 }
@@ -179,11 +183,11 @@ pub unsafe fn set_divisor(channel: PitChannel, divisor: u16) {
         | ((PitMode::RateGenerator as u8) << 1);
 
     // Send command
-    outb(ports::COMMAND, command);
+    unsafe { outb(ports::COMMAND, command) };
 
     // Send divisor (low byte then high byte)
-    outb(channel.data_port(), divisor as u8);
-    outb(channel.data_port(), (divisor >> 8) as u8);
+    unsafe { outb(channel.data_port(), divisor as u8) };
+    unsafe { outb(channel.data_port(), (divisor >> 8) as u8) };
 
     if channel == PitChannel::Channel0 {
         CHANNEL0_DIVISOR.store(divisor, Ordering::SeqCst);
@@ -211,7 +215,7 @@ pub unsafe fn set_frequency(frequency_hz: u32) -> u32 {
         }
     };
 
-    set_divisor(PitChannel::Channel0, divisor);
+    unsafe { set_divisor(PitChannel::Channel0, divisor) };
 
     // Calculate actual frequency
     let actual_divisor = if divisor == 0 {
@@ -230,11 +234,11 @@ pub unsafe fn set_frequency(frequency_hz: u32) -> u32 {
 pub unsafe fn read_count(channel: PitChannel) -> u16 {
     // Send latch command
     let command = (channel as u8) << 6;
-    outb(ports::COMMAND, command);
+    unsafe { outb(ports::COMMAND, command) };
 
     // Read low byte then high byte
-    let low = inb(channel.data_port()) as u16;
-    let high = inb(channel.data_port()) as u16;
+    let low = unsafe { inb(channel.data_port()) } as u16;
+    let high = unsafe { inb(channel.data_port()) } as u16;
 
     low | (high << 8)
 }
@@ -274,8 +278,8 @@ pub fn divisor_to_period_ns(divisor: u16) -> u64 {
 ///
 /// Modifies system I/O ports.
 pub unsafe fn enable_channel2_gate() {
-    let value = inb(ports::PORT_B);
-    outb(ports::PORT_B, value | 0x01); // Set gate bit
+    let value = unsafe { inb(ports::PORT_B) };
+    unsafe { outb(ports::PORT_B, value | 0x01) }; // Set gate bit
 }
 
 /// Disable channel 2 gate
@@ -284,8 +288,8 @@ pub unsafe fn enable_channel2_gate() {
 ///
 /// Modifies system I/O ports.
 pub unsafe fn disable_channel2_gate() {
-    let value = inb(ports::PORT_B);
-    outb(ports::PORT_B, value & !0x01); // Clear gate bit
+    let value = unsafe { inb(ports::PORT_B) };
+    unsafe { outb(ports::PORT_B, value & !0x01) }; // Clear gate bit
 }
 
 /// Read channel 2 output status
@@ -306,23 +310,23 @@ pub unsafe fn wait_ticks(ticks: u16) {
         | ((PitAccess::LowHigh as u8) << 4)
         | ((PitMode::InterruptOnTerminalCount as u8) << 1);
 
-    outb(ports::COMMAND, command);
+    unsafe { outb(ports::COMMAND, command) };
 
     // Write count
-    outb(ports::CHANNEL2, ticks as u8);
-    outb(ports::CHANNEL2, (ticks >> 8) as u8);
+    unsafe { outb(ports::CHANNEL2, ticks as u8) };
+    unsafe { outb(ports::CHANNEL2, (ticks >> 8) as u8) };
 
     // Enable gate
-    let port_b = inb(ports::PORT_B);
-    outb(ports::PORT_B, (port_b & 0xFC) | 0x01);
+    let port_b = unsafe { inb(ports::PORT_B) };
+    unsafe { outb(ports::PORT_B, (port_b & 0xFC) | 0x01) };
 
     // Wait for output to go high
-    while inb(ports::PORT_B) & 0x20 == 0 {
+    while unsafe { inb(ports::PORT_B) } & 0x20 == 0 {
         core::hint::spin_loop();
     }
 
     // Disable gate
-    outb(ports::PORT_B, port_b & 0xFC);
+    unsafe { outb(ports::PORT_B, port_b & 0xFC) };
 }
 
 /// Wait for a specified time in microseconds
@@ -347,7 +351,7 @@ pub unsafe fn wait_us(us: u64) {
         } else {
             remaining as u16
         };
-        wait_ticks(this_wait);
+        unsafe { wait_ticks(this_wait) };
         remaining -= this_wait as u64;
     }
 }
@@ -358,7 +362,7 @@ pub unsafe fn wait_us(us: u64) {
 ///
 /// Must be called with interrupts disabled.
 pub unsafe fn wait_ms(ms: u64) {
-    wait_us(ms * 1000);
+    unsafe { wait_us(ms * 1000) };
 }
 
 // =============================================================================
@@ -380,7 +384,7 @@ impl Pit {
     ///
     /// Must be called during early boot.
     pub unsafe fn init(&self) {
-        init();
+        unsafe { init() };
     }
 
     /// Set the system timer frequency (channel 0)
@@ -389,7 +393,7 @@ impl Pit {
     ///
     /// Must be called with interrupts disabled.
     pub unsafe fn set_frequency(&self, frequency_hz: u32) -> u32 {
-        set_frequency(frequency_hz)
+        unsafe { set_frequency(frequency_hz) }
     }
 
     /// Read the current count of channel 0
@@ -398,7 +402,7 @@ impl Pit {
     ///
     /// Should be called with interrupts disabled.
     pub unsafe fn read_count(&self) -> u16 {
-        read_count(PitChannel::Channel0)
+        unsafe { read_count(PitChannel::Channel0) }
     }
 
     /// Wait for microseconds using channel 2
@@ -407,7 +411,7 @@ impl Pit {
     ///
     /// Must be called with interrupts disabled.
     pub unsafe fn wait_us(&self, us: u64) {
-        wait_us(us);
+        unsafe { wait_us(us) };
     }
 
     /// Wait for milliseconds using channel 2
@@ -416,7 +420,7 @@ impl Pit {
     ///
     /// Must be called with interrupts disabled.
     pub unsafe fn wait_ms(&self, ms: u64) {
-        wait_ms(ms);
+        unsafe { wait_ms(ms) };
     }
 }
 
@@ -437,7 +441,7 @@ impl Default for Pit {
 /// Modifies system I/O ports.
 pub unsafe fn speaker_on(frequency_hz: u32) {
     if frequency_hz == 0 {
-        speaker_off();
+        unsafe { speaker_off() };
         return;
     }
 
@@ -455,13 +459,13 @@ pub unsafe fn speaker_on(frequency_hz: u32) {
         | ((PitAccess::LowHigh as u8) << 4)
         | ((PitMode::SquareWave as u8) << 1);
 
-    outb(ports::COMMAND, command);
-    outb(ports::CHANNEL2, divisor as u8);
-    outb(ports::CHANNEL2, (divisor >> 8) as u8);
+    unsafe { outb(ports::COMMAND, command) };
+    unsafe { outb(ports::CHANNEL2, divisor as u8) };
+    unsafe { outb(ports::CHANNEL2, (divisor >> 8) as u8) };
 
     // Enable speaker
-    let port_b = inb(ports::PORT_B);
-    outb(ports::PORT_B, port_b | 0x03);
+    let port_b = unsafe { inb(ports::PORT_B) };
+    unsafe { outb(ports::PORT_B, port_b | 0x03) };
 }
 
 /// Disable the PC speaker
@@ -470,8 +474,8 @@ pub unsafe fn speaker_on(frequency_hz: u32) {
 ///
 /// Modifies system I/O ports.
 pub unsafe fn speaker_off() {
-    let port_b = inb(ports::PORT_B);
-    outb(ports::PORT_B, port_b & 0xFC);
+    let port_b = unsafe { inb(ports::PORT_B) };
+    unsafe { outb(ports::PORT_B, port_b & 0xFC) };
 }
 
 /// Beep for a specified duration
@@ -480,7 +484,7 @@ pub unsafe fn speaker_off() {
 ///
 /// Must be called with interrupts disabled (for accurate timing).
 pub unsafe fn beep(frequency_hz: u32, duration_ms: u64) {
-    speaker_on(frequency_hz);
-    wait_ms(duration_ms);
-    speaker_off();
+    unsafe { speaker_on(frequency_hz) };
+    unsafe { wait_ms(duration_ms) };
+    unsafe { speaker_off() };
 }
