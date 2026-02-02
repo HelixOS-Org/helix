@@ -580,7 +580,7 @@ mod tests {
         let back = linear.to_srgb();
         assert!((c.r - back.r).abs() < 1e-5);
         assert!((c.g - back.g).abs() < 1e-5);
-        assert!((c.b - back.b).abs() < 1e-5);
+        assert!((c.b - back.b).abs() < 1e-5);   
     }
 
     #[test]
