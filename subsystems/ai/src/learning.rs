@@ -277,18 +277,36 @@ pub struct Pattern {
 #[derive(Debug, Clone, PartialEq)]
 pub enum PatternType {
     /// Temporal pattern (happens at specific times)
-    Temporal { period_us: u64, phase_us: u64 },
+    Temporal {
+        /// Period in microseconds
+        period_us: u64,
+        /// Phase offset in microseconds
+        phase_us: u64,
+    },
     /// Sequential pattern (A then B then C)
-    Sequential { sequence: Vec<u32> },
+    Sequential {
+        /// Sequence of event types
+        sequence: Vec<u32>,
+    },
     /// Correlation pattern (A and B occur together)
     Correlation {
+        /// Correlated event types
         events: Vec<u32>,
-        correlation: u8, // 0-100
+        /// Correlation strength (0-100)
+        correlation: u8,
     },
     /// Anomaly pattern (deviation from baseline)
-    Anomaly { metric: String, threshold: f32 },
+    Anomaly {
+        /// Metric name
+        metric: String,
+        /// Threshold for anomaly detection
+        threshold: f32,
+    },
     /// Usage pattern (user behavior)
-    Usage { category: String },
+    Usage {
+        /// Usage category
+        category: String,
+    },
 }
 
 // =============================================================================
@@ -325,7 +343,7 @@ impl QPolicy {
     /// Discretize a continuous state to a hash
     fn discretize_state(&self, state: &StateVector) -> u64 {
         let mut hash: u64 = 0;
-        for (i, &f) in state.features.iter().enumerate() {
+        for &f in state.features.iter() {
             let bin = (f.clamp(0.0, 1.0) * self.state_bins as f32) as u64;
             hash = hash.wrapping_mul(31).wrapping_add(bin);
         }
@@ -496,6 +514,7 @@ pub struct LearningEngine {
 
 /// Timestamped event for sequence analysis
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct TimestampedEvent {
     event_type: u32,
     timestamp: u64,
@@ -698,8 +717,8 @@ impl LearningEngine {
     fn context_to_state(&self, context: &DecisionContext) -> StateVector {
         StateVector::new(
             vec![
-                context.cpu_usage as f32 / 100.0,
-                context.memory_usage as f32 / 100.0,
+                context.cpu_usage / 100.0,
+                context.memory_usage / 100.0,
                 context.active_processes as f32 / 1000.0,
                 context.io_pending as f32 / 100.0,
             ],
@@ -1020,7 +1039,7 @@ impl LearningEngine {
     }
 
     /// Enable or disable learning
-    pub fn set_enabled(&self, enabled: bool) {
+    pub fn set_enabled(&self, _enabled: bool) {
         // Note: We can't modify self.enabled directly as it's not mutable
         // In real implementation, would use RwLock
     }
@@ -1061,15 +1080,25 @@ impl LearningEngine {
 /// Public statistics
 #[derive(Debug, Clone)]
 pub struct LearningStatistics {
+    /// Whether learning is enabled
     pub enabled: bool,
+    /// Total experiences recorded
     pub experiences_recorded: u64,
+    /// Total training iterations
     pub training_iterations: u64,
+    /// Number of patterns discovered
     pub patterns_discovered: u64,
+    /// Number of successful predictions
     pub successful_predictions: u64,
+    /// Number of failed predictions
     pub failed_predictions: u64,
+    /// Overall prediction accuracy (0.0 - 1.0)
     pub prediction_accuracy: f32,
+    /// Number of policy updates
     pub policy_updates: u64,
+    /// Current experience buffer size
     pub experience_buffer_size: usize,
+    /// Number of known patterns
     pub known_patterns: usize,
 }
 
