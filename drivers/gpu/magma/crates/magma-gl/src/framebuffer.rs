@@ -2,11 +2,12 @@
 //!
 //! OpenGL framebuffer objects translated to Vulkan framebuffers and render passes.
 
+use alloc::vec::Vec;
+
 use crate::context::{FramebufferAttachment, FramebufferObject};
 use crate::enums::*;
 use crate::texture;
 use crate::types::*;
-use alloc::vec::Vec;
 
 // =============================================================================
 // ATTACHMENT DESCRIPTION
@@ -91,7 +92,7 @@ impl RenderPassDesc {
             depth_stencil_attachment: None,
             subpass_count: 1,
         };
-        
+
         // Add color attachments
         for (i, attachment) in fbo.color_attachments.iter().enumerate() {
             if attachment.name != 0 {
@@ -103,17 +104,17 @@ impl RenderPassDesc {
                 desc.color_attachments.push(att_desc);
             }
         }
-        
+
         // Add depth-stencil attachment
         if fbo.depth_attachment.name != 0 || fbo.stencil_attachment.name != 0 {
             let mut att_desc = AttachmentDesc::default();
             att_desc.final_layout = 3; // VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
             desc.depth_stencil_attachment = Some(att_desc);
         }
-        
+
         desc
     }
-    
+
     /// Calculate hash for caching
     pub fn hash(&self) -> u64 {
         // Simple hash for now
@@ -143,20 +144,20 @@ pub fn check_framebuffer_status(
     if fbo.name == 0 {
         return GL_FRAMEBUFFER_COMPLETE;
     }
-    
+
     let mut has_attachment = false;
     let mut width: Option<u32> = None;
     let mut height: Option<u32> = None;
     let mut samples: Option<u32> = None;
-    
+
     // Check color attachments
     for attachment in &fbo.color_attachments {
         if attachment.name == 0 {
             continue;
         }
-        
+
         has_attachment = true;
-        
+
         // Verify attachment exists
         if attachment.is_texture {
             if !texture_exists(attachment.name) {
@@ -167,11 +168,11 @@ pub fn check_framebuffer_status(
                 return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
             }
         }
-        
+
         // TODO: Check dimensions match
         // TODO: Check sample counts match
     }
-    
+
     // Check depth attachment
     if fbo.depth_attachment.name != 0 {
         has_attachment = true;
@@ -185,7 +186,7 @@ pub fn check_framebuffer_status(
             }
         }
     }
-    
+
     // Check stencil attachment
     if fbo.stencil_attachment.name != 0 {
         has_attachment = true;
@@ -199,12 +200,12 @@ pub fn check_framebuffer_status(
             }
         }
     }
-    
+
     // Must have at least one attachment
     if !has_attachment {
         return GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
     }
-    
+
     GL_FRAMEBUFFER_COMPLETE
 }
 
@@ -257,19 +258,35 @@ impl BlitRegion {
     pub fn src_flipped(&self) -> (bool, bool) {
         (self.src_x0 > self.src_x1, self.src_y0 > self.src_y1)
     }
-    
+
     /// Check if destination region is flipped
     pub fn dst_flipped(&self) -> (bool, bool) {
         (self.dst_x0 > self.dst_x1, self.dst_y0 > self.dst_y1)
     }
-    
+
     /// Convert to Vulkan blit regions
     pub fn to_vk_regions(&self) -> (VkOffset3D, VkOffset3D, VkOffset3D, VkOffset3D) {
         (
-            VkOffset3D { x: self.src_x0, y: self.src_y0, z: 0 },
-            VkOffset3D { x: self.src_x1, y: self.src_y1, z: 1 },
-            VkOffset3D { x: self.dst_x0, y: self.dst_y0, z: 0 },
-            VkOffset3D { x: self.dst_x1, y: self.dst_y1, z: 1 },
+            VkOffset3D {
+                x: self.src_x0,
+                y: self.src_y0,
+                z: 0,
+            },
+            VkOffset3D {
+                x: self.src_x1,
+                y: self.src_y1,
+                z: 1,
+            },
+            VkOffset3D {
+                x: self.dst_x0,
+                y: self.dst_y0,
+                z: 0,
+            },
+            VkOffset3D {
+                x: self.dst_x1,
+                y: self.dst_y1,
+                z: 1,
+            },
         )
     }
 }
@@ -304,7 +321,7 @@ impl ClearValue {
     pub fn from_color(r: f32, g: f32, b: f32, a: f32) -> Self {
         ClearValue::ColorFloat([r, g, b, a])
     }
-    
+
     /// Create depth-stencil clear
     pub fn from_depth_stencil(depth: f64, stencil: i32) -> Self {
         ClearValue::DepthStencil {
@@ -351,15 +368,15 @@ impl ReadPixelsParams {
         } else {
             self.width
         };
-        
+
         let pixel_size = texture::texture_size(1, 1, 1, self.format, self.type_);
         let row_bytes = row_length as usize * pixel_size;
-        
+
         // Align to pack_alignment
         let alignment = self.pack_alignment as usize;
         (row_bytes + alignment - 1) & !(alignment - 1)
     }
-    
+
     /// Calculate total buffer size needed
     pub fn buffer_size(&self) -> usize {
         let stride = self.row_stride();
@@ -393,10 +410,10 @@ impl DrawBufferConfig {
                 }
             })
             .collect();
-        
+
         Self { attachments }
     }
-    
+
     /// Get number of active draw buffers
     pub fn count(&self) -> usize {
         self.attachments.len()
