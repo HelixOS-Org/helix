@@ -71,6 +71,8 @@
 #![allow(clippy::items_after_statements)]
 #![allow(clippy::cast_ptr_alignment)]
 #![allow(clippy::needless_lifetimes)]
+#![allow(clippy::redundant_closure_for_method_calls)]
+#![allow(clippy::match_same_arms)]
 
 // =============================================================================
 // Module Declarations
