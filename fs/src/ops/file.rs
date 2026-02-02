@@ -345,10 +345,11 @@ impl FileTable {
     /// Find file by inode
     pub fn find_by_inode(&self, dev: u64, ino: u64) -> Option<usize> {
         for i in 0..MAX_OPEN_FILES {
-            if self.slots[i] == FileTableSlot::Used {
-                if self.files[i].dev == dev && self.files[i].ino == ino {
-                    return Some(i);
-                }
+            if self.slots[i] == FileTableSlot::Used
+                && self.files[i].dev == dev
+                && self.files[i].ino == ino
+            {
+                return Some(i);
             }
         }
         None
