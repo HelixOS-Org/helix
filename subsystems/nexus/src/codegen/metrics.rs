@@ -12,9 +12,8 @@ use alloc::format;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::ir::{IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType};
+use super::ir::{IRFunction, IRModule, IROp};
 
 // ============================================================================
 // METRIC TYPES
@@ -216,7 +215,7 @@ impl MaintainabilityIndex {
         let adjusted = mi + 50.0 * self.comment_ratio.sin();
 
         // Normalize to 0-100
-        (adjusted.max(0.0).min(100.0))
+        adjusted.max(0.0).min(100.0)
     }
 }
 
