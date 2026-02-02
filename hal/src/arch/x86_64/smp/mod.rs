@@ -75,8 +75,7 @@ pub use cpu_info::{
     detect_topology, enumerate_cpus, get_cpu_info, register_cpu, CpuInfo, CpuState, CpuTopology,
 };
 pub use per_cpu::{
-    current_apic_id, current_percpu, init_ap, init_bsp, PerCpu, PerCpuData,
-    PerCpuFlags, PerCpuRef,
+    current_apic_id, current_percpu, init_ap, init_bsp, PerCpu, PerCpuData, PerCpuFlags, PerCpuRef,
 };
 pub use startup::{set_tsc_frequency, start_ap, ApEntryFn, TrampolineData};
 
@@ -317,9 +316,9 @@ fn cpuid(leaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
-            "mov {tmp}, rbx",
+            "mov {tmp:r}, rbx",
             "cpuid",
-            "xchg {tmp}, rbx",
+            "xchg {tmp:r}, rbx",
             tmp = out(reg) ebx,
             inout("eax") leaf => eax,
             out("ecx") ecx,
@@ -334,9 +333,9 @@ fn cpuid_subleaf(leaf: u32, subleaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
-            "mov {tmp}, rbx",
+            "mov {tmp:r}, rbx",
             "cpuid",
-            "xchg {tmp}, rbx",
+            "xchg {tmp:r}, rbx",
             tmp = out(reg) ebx,
             inout("eax") leaf => eax,
             inout("ecx") subleaf => ecx,
@@ -374,6 +373,14 @@ pub enum SmpError {
     CpuAlreadyOnline,
     /// CPU not present
     CpuNotPresent,
+    /// Trampoline not ready
+    TrampolineNotReady,
+    /// AP startup timeout
+    ApStartupTimeout,
+    /// IPI delivery failed
+    IpiDeliveryFailed,
+    /// Stack allocation failed
+    StackAllocationFailed,
 }
 
 impl core::fmt::Display for SmpError {
@@ -389,6 +396,10 @@ impl core::fmt::Display for SmpError {
             SmpError::InvalidCpuId => write!(f, "Invalid CPU ID"),
             SmpError::CpuAlreadyOnline => write!(f, "CPU already online"),
             SmpError::CpuNotPresent => write!(f, "CPU not present"),
+            SmpError::TrampolineNotReady => write!(f, "Trampoline not ready"),
+            SmpError::ApStartupTimeout => write!(f, "AP startup timeout"),
+            SmpError::IpiDeliveryFailed => write!(f, "IPI delivery failed"),
+            SmpError::StackAllocationFailed => write!(f, "Stack allocation failed"),
         }
     }
 }
