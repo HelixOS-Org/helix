@@ -784,6 +784,7 @@ pub struct FramebufferInfo<'boot> {
     /// Framebuffer type
     pub fb_type: u8,
     /// Color info
+    #[allow(dead_code)]
     color_info: &'boot [u8],
 }
 
@@ -865,6 +866,7 @@ pub struct ElfSections<'boot> {
     /// String table index
     pub shndx: u32,
     /// Raw section data
+    #[allow(dead_code)]
     sections: &'boot [u8],
 }
 
