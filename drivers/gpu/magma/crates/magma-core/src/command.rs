@@ -32,7 +32,7 @@ pub enum CommandBufferState {
 // =============================================================================
 
 /// NVIDIA GPU push buffer (FIFO command stream)
-/// 
+///
 /// Push buffers are the fundamental command submission mechanism for NVIDIA GPUs.
 /// Commands are 32-bit method/data pairs that get pushed to a FIFO and consumed
 /// by the GPU engines.
@@ -76,7 +76,7 @@ impl PushBuffer {
 // =============================================================================
 
 /// GPU method encoding for push buffers
-/// 
+///
 /// NVIDIA GPUs use a specific encoding for method calls:
 /// - Method ID: 13 bits (engine-specific register address)
 /// - Subchannel: 3 bits (selects engine within channel)
@@ -93,23 +93,18 @@ pub struct GpuMethod {
 #[repr(u8)]
 pub enum MethodType {
     /// Increasing: address increments for each data word
-    Increasing = 0,
+    Increasing    = 0,
     /// Non-increasing: address stays the same
     NonIncreasing = 3,
     /// Inline: data embedded in the method word
-    Inline = 4,
+    Inline        = 4,
     /// Increase once: increment by 1 after all data
-    IncreaseOnce = 5,
+    IncreaseOnce  = 5,
 }
 
 impl GpuMethod {
     /// Create a new GPU method
-    pub const fn new(
-        method_id: u16,
-        subchannel: u8,
-        count: u16,
-        method_type: MethodType,
-    ) -> Self {
+    pub const fn new(method_id: u16, subchannel: u8, count: u16, method_type: MethodType) -> Self {
         let raw = ((method_type as u32) << 29)
             | ((count as u32 & 0x1FFF) << 16)
             | ((subchannel as u32 & 0x7) << 13)
@@ -185,7 +180,7 @@ pub struct SubmitDesc {
 // =============================================================================
 
 /// Token returned from command submission
-/// 
+///
 /// Used to track submission status and wait for completion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SubmissionToken {
