@@ -120,7 +120,7 @@ impl fmt::Display for Error {
             Self::PipelineCreation(msg) => write!(f, "Failed to create pipeline: {}", msg),
             Self::ShaderCompilation { stage, message } => {
                 write!(f, "Shader compilation failed ({:?}): {}", stage, message)
-            }
+            },
             Self::ShaderLinking(msg) => write!(f, "Shader linking failed: {}", msg),
             Self::InvalidHandle => write!(f, "Invalid resource handle"),
             Self::ResourceInUse => write!(f, "Resource is still in use"),
@@ -130,11 +130,11 @@ impl fmt::Display for Error {
             Self::GraphCycle => write!(f, "Render graph contains a cycle"),
             Self::GraphUnresolved(dep) => {
                 write!(f, "Render graph has unresolved dependency: {}", dep)
-            }
+            },
             Self::InvalidFramebuffer(msg) => write!(f, "Invalid framebuffer: {}", msg),
             Self::FormatMismatch { expected, found } => {
                 write!(f, "Format mismatch: expected {}, found {}", expected, found)
-            }
+            },
             Self::ContextMismatch => write!(f, "Resource used with wrong context"),
             Self::Internal(msg) => write!(f, "Internal error: {}", msg),
         }
