@@ -26,6 +26,8 @@
 #![feature(auto_traits)]
 #![feature(naked_functions)]
 #![feature(asm_experimental_arch)]
+#![feature(abi_x86_interrupt)]
+#![feature(const_trait_impl)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 
