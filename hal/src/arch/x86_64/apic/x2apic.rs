@@ -27,8 +27,6 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use super::registers;
-
 // =============================================================================
 // x2APIC MSR Addresses
 // =============================================================================
@@ -138,13 +136,15 @@ fn set_active(active: bool) {
 #[inline]
 unsafe fn rdmsr(msr: u32) -> u64 {
     let (low, high): (u32, u32);
-    core::arch::asm!(
-        "rdmsr",
-        in("ecx") msr,
-        out("eax") low,
-        out("edx") high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "rdmsr",
+            in("ecx") msr,
+            out("eax") low,
+            out("edx") high,
+            options(nostack, preserves_flags),
+        );
+    }
     ((high as u64) << 32) | (low as u64)
 }
 
@@ -153,13 +153,15 @@ unsafe fn rdmsr(msr: u32) -> u64 {
 unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;
-    core::arch::asm!(
-        "wrmsr",
-        in("ecx") msr,
-        in("eax") low,
-        in("edx") high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "wrmsr",
+            in("ecx") msr,
+            in("eax") low,
+            in("edx") high,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 // =============================================================================
@@ -180,11 +182,13 @@ pub fn is_supported() -> bool {
     let result: u32;
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "mov eax, 1",
             "cpuid",
+            "mov rbx, {tmp}",
+            tmp = out(reg) _,
             out("ecx") result,
             out("eax") _,
-            out("ebx") _,
             out("edx") _,
             options(nostack, preserves_flags),
         );
@@ -194,10 +198,8 @@ pub fn is_supported() -> bool {
 
 /// Check if x2APIC is currently enabled in hardware
 pub fn is_enabled_in_hardware() -> bool {
-    unsafe {
-        let base = rdmsr(IA32_APIC_BASE_MSR);
-        (base & APIC_ENABLE_BIT != 0) && (base & X2APIC_ENABLE_BIT != 0)
-    }
+    let base = unsafe { rdmsr(IA32_APIC_BASE_MSR) };
+    (base & APIC_ENABLE_BIT != 0) && (base & X2APIC_ENABLE_BIT != 0)
 }
 
 // =============================================================================
@@ -220,14 +222,16 @@ pub unsafe fn enable() -> Result<(), X2ApicError> {
     }
 
     // Read current APIC base
-    let mut base = rdmsr(IA32_APIC_BASE_MSR);
+    let mut base = unsafe { rdmsr(IA32_APIC_BASE_MSR) };
 
     // Enable APIC and x2APIC
     base |= APIC_ENABLE_BIT | X2APIC_ENABLE_BIT;
-    wrmsr(IA32_APIC_BASE_MSR, base);
+    unsafe {
+        wrmsr(IA32_APIC_BASE_MSR, base);
+    }
 
     // Verify x2APIC is enabled
-    let base = rdmsr(IA32_APIC_BASE_MSR);
+    let base = unsafe { rdmsr(IA32_APIC_BASE_MSR) };
     if base & X2APIC_ENABLE_BIT == 0 {
         return Err(X2ApicError::EnableFailed);
     }
@@ -248,15 +252,19 @@ pub unsafe fn disable() -> Result<(), X2ApicError> {
     }
 
     // Read current APIC base
-    let mut base = rdmsr(IA32_APIC_BASE_MSR);
+    let mut base = unsafe { rdmsr(IA32_APIC_BASE_MSR) };
 
     // Must first disable APIC entirely
     base &= !(APIC_ENABLE_BIT | X2APIC_ENABLE_BIT);
-    wrmsr(IA32_APIC_BASE_MSR, base);
+    unsafe {
+        wrmsr(IA32_APIC_BASE_MSR, base);
+    }
 
     // Then re-enable in xAPIC mode
     base |= APIC_ENABLE_BIT;
-    wrmsr(IA32_APIC_BASE_MSR, base);
+    unsafe {
+        wrmsr(IA32_APIC_BASE_MSR, base);
+    }
 
     set_active(false);
     Ok(())
@@ -441,7 +449,7 @@ impl X2Apic {
     /// - Bits 18-19: Destination Shorthand
     /// - Bits 32-63: Destination APIC ID
     pub fn send_ipi(dest: u32, vector: u8, delivery_mode: u8, shorthand: u8) {
-        let icr = (dest as u64) << 32
+        let icr = ((dest as u64) << 32)
             | (vector as u64)
             | ((delivery_mode as u64) << 8)
             | (1 << 14)  // Level: Assert
