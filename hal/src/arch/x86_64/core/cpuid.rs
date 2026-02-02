@@ -74,9 +74,11 @@ pub fn cpuid(leaf: u32) -> CpuIdResult {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         asm!(
+            "mov {tmp}, rbx",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) ebx,
             inout("eax") leaf => eax,
-            out("ebx") ebx,
             inout("ecx") 0u32 => ecx,
             out("edx") edx,
             options(nomem, nostack, preserves_flags)
@@ -98,9 +100,11 @@ pub fn cpuid_count(leaf: u32, subleaf: u32) -> CpuIdResult {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         asm!(
+            "mov {tmp}, rbx",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) ebx,
             inout("eax") leaf => eax,
-            out("ebx") ebx,
             inout("ecx") subleaf => ecx,
             out("edx") edx,
             options(nomem, nostack, preserves_flags)
@@ -130,7 +134,7 @@ pub mod leaf {
     /// Thermal and Power Management
     pub const THERMAL: u32 = 0x06;
     /// Structured Extended Feature Flags
-    pub const EXT_FEATURES: u32 = 0x07;
+    pub const STRUCT_EXT_FEATURES: u32 = 0x07;
     /// Direct Cache Access Information
     pub const DCA: u32 = 0x09;
     /// Architectural Performance Monitoring
@@ -674,14 +678,14 @@ impl CpuId {
 
         // Get extended features (leaf 07H)
         let features_07 = if max_basic_leaf >= 7 {
-            cpuid_count(leaf::EXT_FEATURES, 0)
+            cpuid_count(leaf::STRUCT_EXT_FEATURES, 0)
         } else {
             CpuIdResult::zero()
         };
 
         // Get extended features EDX (subleaf 1)
-        let features_07_1 = if max_basic_leaf >= 7 {
-            cpuid_count(leaf::EXT_FEATURES, 1)
+        let _features_07_1 = if max_basic_leaf >= 7 {
+            cpuid_count(leaf::STRUCT_EXT_FEATURES, 1)
         } else {
             CpuIdResult::zero()
         };
