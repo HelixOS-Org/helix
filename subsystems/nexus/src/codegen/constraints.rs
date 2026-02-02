@@ -507,7 +507,7 @@ impl ConstraintSolver {
         let mut constraints = ConstraintSet::new();
 
         // Create variables for inputs
-        for (i, param) in spec.inputs.iter().enumerate() {
+        for (_i, param) in spec.inputs.iter().enumerate() {
             let var = self.fresh_var();
             let typ = self.typespec_to_expr(&param.typ);
             constraints.declare(var, &param.name, typ.clone());
