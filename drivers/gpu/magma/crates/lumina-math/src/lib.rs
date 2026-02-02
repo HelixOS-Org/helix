@@ -19,43 +19,43 @@
 #![no_std]
 #![warn(missing_docs)]
 
-mod mat;
-mod vec;
-mod quat;
-mod transform;
+mod color;
 mod geometry;
 mod int_vec;
-mod color;
 mod interpolation;
+mod mat;
 mod noise;
 mod projection;
+mod quat;
+mod transform;
+mod vec;
 
 #[cfg(feature = "simd")]
 mod simd;
 
-pub use mat::{Mat2, Mat3, Mat4};
-pub use vec::{Vec2, Vec3, Vec4};
-pub use quat::Quat;
-pub use transform::{Transform, Transform2D, Isometry};
-pub use geometry::{Ray, Plane, AABB, Sphere, Frustum, Rect, Intersection};
-pub use int_vec::{IVec2, IVec3, IVec4, UVec2, UVec3, UVec4};
 pub use color::{Color, LinearColor};
-
-pub use interpolation::{lerp, inverse_lerp, remap, smoothstep, smootherstep, saturate};
-pub use interpolation::{bezier, catmull_rom, hermite, ease};
-pub use interpolation::{ease_lerp, ease_lerp_vec2, ease_lerp_vec3, ease_lerp_vec4};
-
-pub use noise::{perlin, simplex, worley, value, fbm};
-pub use projection::{
-    perspective, orthographic,
-    perspective_rh_zo, perspective_rh_no, perspective_lh_zo, perspective_lh_no,
-    perspective_infinite_rh_zo, perspective_infinite_reverse_rh_zo,
-    orthographic_rh_zo, orthographic_rh_no, orthographic_lh_zo,
-    orthographic_symmetric_rh_zo, orthographic_2d,
+pub use geometry::{Frustum, Intersection, Plane, Ray, Rect, Sphere, AABB};
+pub use int_vec::{IVec2, IVec3, IVec4, UVec2, UVec3, UVec4};
+pub use interpolation::{
+    bezier, catmull_rom, ease, ease_lerp, ease_lerp_vec2, ease_lerp_vec3, ease_lerp_vec4, hermite,
+    inverse_lerp, lerp, remap, saturate, smootherstep, smoothstep,
 };
-
+pub use mat::{Mat2, Mat3, Mat4};
+pub use noise::{fbm, perlin, simplex, value, worley};
+pub use projection::{
+    orthographic, orthographic_2d, orthographic_lh_zo, orthographic_rh_no, orthographic_rh_zo,
+    orthographic_symmetric_rh_zo, perspective, perspective_infinite_reverse_rh_zo,
+    perspective_infinite_rh_zo, perspective_lh_no, perspective_lh_zo, perspective_rh_no,
+    perspective_rh_zo,
+};
+pub use quat::Quat;
 #[cfg(feature = "simd")]
-pub use simd::{SimdVec4, SimdMat4, cross3_simd, dot4_simd, mat4_mul_vec4_simd, mat4_mul_mat4_simd, batch_transform_points, batch_transform_vectors};
+pub use simd::{
+    batch_transform_points, batch_transform_vectors, cross3_simd, dot4_simd, mat4_mul_mat4_simd,
+    mat4_mul_vec4_simd, SimdMat4, SimdVec4,
+};
+pub use transform::{Isometry, Transform, Transform2D};
+pub use vec::{Vec2, Vec3, Vec4};
 
 /// Common mathematical constants
 pub mod consts {
@@ -114,7 +114,11 @@ pub fn sign(x: f32) -> f32 {
 /// Returns 1.0 if x >= edge, else 0.0
 #[inline]
 pub fn step(edge: f32, x: f32) -> f32 {
-    if x >= edge { 1.0 } else { 0.0 }
+    if x >= edge {
+        1.0
+    } else {
+        0.0
+    }
 }
 
 /// Wraps value to the range [0, max]
