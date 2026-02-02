@@ -154,8 +154,8 @@ pub use bus::{
     BusStats, CortexBus, CortexEvent, EventCategory, EventHandler, EventPriority, HandlerId,
 };
 pub use consciousness::{
-    Contract, ContractId, ContractState, Invariant, InvariantId,
-    InvariantState, InvariantViolation, StructuralConsciousness,
+    Contract, ContractId, ContractState, Invariant, InvariantId, InvariantState,
+    InvariantViolation, StructuralConsciousness,
 };
 pub use formal::{
     Proof, ProofMethod, Property, PropertyId, PropertyKind, State, StateMachine, Transition,
@@ -189,7 +189,8 @@ pub use telemetry::{
     TelemetrySnapshot, TimeSeries, Timer,
 };
 pub use temporal::{
-    HotSwap, Rollback, Snapshot, SnapshotId, TemporalKernel, SemanticVersion as Version, VersionId, VersionState,
+    HotSwap, Rollback, SemanticVersion as Version, Snapshot, SnapshotId, TemporalKernel, VersionId,
+    VersionState,
 };
 
 /// Global CORTEX instance
