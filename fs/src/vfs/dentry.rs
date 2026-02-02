@@ -398,15 +398,15 @@ impl DentryCache {
         let mut count = 0;
 
         for i in 0..CACHE_SIZE {
-            if !self.dentries[i].is_free() && self.dentries[i].parent_ino == dir_ino {
-                if count < to_remove.len() {
-                    let name_len = self.dentries[i].name_len as usize;
-                    to_remove[count].0 = dir_ino;
-                    to_remove[count].2 = name_len;
-                    to_remove[count].1[..name_len]
-                        .copy_from_slice(&self.dentries[i].name[..name_len]);
-                    count += 1;
-                }
+            if !self.dentries[i].is_free()
+                && self.dentries[i].parent_ino == dir_ino
+                && count < to_remove.len()
+            {
+                let name_len = self.dentries[i].name_len as usize;
+                to_remove[count].0 = dir_ino;
+                to_remove[count].2 = name_len;
+                to_remove[count].1[..name_len].copy_from_slice(&self.dentries[i].name[..name_len]);
+                count += 1;
             }
         }
 
