@@ -3,8 +3,8 @@
 //! This module provides types for common geometric primitives
 //! used in rendering and physics calculations.
 
-use crate::vec::{Vec2, Vec3, Vec4};
 use crate::mat::Mat4;
+use crate::vec::{Vec2, Vec3, Vec4};
 
 /// A ray in 3D space
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -366,7 +366,11 @@ impl AABB {
     /// Intersects a ray with this AABB
     #[inline]
     pub fn intersect_ray(self, ray: Ray) -> Option<f32> {
-        let inv_dir = Vec3::new(1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z);
+        let inv_dir = Vec3::new(
+            1.0 / ray.direction.x,
+            1.0 / ray.direction.y,
+            1.0 / ray.direction.z,
+        );
 
         let t1 = (self.min.x - ray.origin.x) * inv_dir.x;
         let t2 = (self.max.x - ray.origin.x) * inv_dir.x;
@@ -588,7 +592,14 @@ impl Frustum {
     /// Returns an array of all 6 planes
     #[inline]
     pub fn planes(&self) -> [Plane; 6] {
-        [self.left, self.right, self.bottom, self.top, self.near, self.far]
+        [
+            self.left,
+            self.right,
+            self.bottom,
+            self.top,
+            self.near,
+            self.far,
+        ]
     }
 
     /// Tests if a point is inside the frustum
@@ -618,9 +629,21 @@ impl Frustum {
         for plane in self.planes() {
             // Find the positive vertex (farthest along the plane normal)
             let p = Vec3::new(
-                if plane.normal.x >= 0.0 { aabb.max.x } else { aabb.min.x },
-                if plane.normal.y >= 0.0 { aabb.max.y } else { aabb.min.y },
-                if plane.normal.z >= 0.0 { aabb.max.z } else { aabb.min.z },
+                if plane.normal.x >= 0.0 {
+                    aabb.max.x
+                } else {
+                    aabb.min.x
+                },
+                if plane.normal.y >= 0.0 {
+                    aabb.max.y
+                } else {
+                    aabb.min.y
+                },
+                if plane.normal.z >= 0.0 {
+                    aabb.max.z
+                } else {
+                    aabb.min.z
+                },
             );
 
             if plane.signed_distance(p) < 0.0 {
@@ -649,15 +672,39 @@ impl Frustum {
 
         for plane in self.planes() {
             let p = Vec3::new(
-                if plane.normal.x >= 0.0 { aabb.max.x } else { aabb.min.x },
-                if plane.normal.y >= 0.0 { aabb.max.y } else { aabb.min.y },
-                if plane.normal.z >= 0.0 { aabb.max.z } else { aabb.min.z },
+                if plane.normal.x >= 0.0 {
+                    aabb.max.x
+                } else {
+                    aabb.min.x
+                },
+                if plane.normal.y >= 0.0 {
+                    aabb.max.y
+                } else {
+                    aabb.min.y
+                },
+                if plane.normal.z >= 0.0 {
+                    aabb.max.z
+                } else {
+                    aabb.min.z
+                },
             );
 
             let n = Vec3::new(
-                if plane.normal.x >= 0.0 { aabb.min.x } else { aabb.max.x },
-                if plane.normal.y >= 0.0 { aabb.min.y } else { aabb.max.y },
-                if plane.normal.z >= 0.0 { aabb.min.z } else { aabb.max.z },
+                if plane.normal.x >= 0.0 {
+                    aabb.min.x
+                } else {
+                    aabb.max.x
+                },
+                if plane.normal.y >= 0.0 {
+                    aabb.min.y
+                } else {
+                    aabb.max.y
+                },
+                if plane.normal.z >= 0.0 {
+                    aabb.min.z
+                } else {
+                    aabb.max.z
+                },
             );
 
             if plane.signed_distance(p) < 0.0 {
@@ -718,7 +765,12 @@ impl Rect {
     /// Creates a new rectangle
     #[inline]
     pub const fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Creates a rectangle from min and max corners
