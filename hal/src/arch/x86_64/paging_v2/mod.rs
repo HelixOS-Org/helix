@@ -218,11 +218,13 @@ pub fn read_cr3() -> u64 {
 /// This will flush the TLB (unless PCID is used with the noflush bit).
 #[inline]
 pub unsafe fn write_cr3(value: u64) {
-    core::arch::asm!(
-        "mov cr3, {}",
-        in(reg) value,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov cr3, {}",
+            in(reg) value,
+            options(nostack, preserves_flags),
+        );
+    }
     CURRENT_CR3.store(value, Ordering::Release);
 }
 
@@ -251,7 +253,7 @@ pub fn current_pcid() -> Option<Pcid> {
 /// The physical address must point to a valid page table.
 #[inline]
 pub unsafe fn switch_page_table(root: PhysicalAddress) {
-    write_cr3(root.as_u64());
+    unsafe { write_cr3(root.as_u64()) };
 }
 
 /// Switch to a new page table with PCID
@@ -266,7 +268,7 @@ pub unsafe fn switch_page_table_pcid(root: PhysicalAddress, pcid: Pcid, noflush:
     if noflush {
         cr3 |= 1 << 63; // CR3.NOFLUSH bit
     }
-    write_cr3(cr3);
+    unsafe { write_cr3(cr3) };
 }
 
 /// Check if an address is canonical for the current paging mode
@@ -308,12 +310,14 @@ fn detect_la57_support() -> bool {
     let result: u32;
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "mov eax, 7",
             "xor ecx, ecx",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) _,
             out("ecx") result,
             out("eax") _,
-            out("ebx") _,
             out("edx") _,
             options(nostack, preserves_flags),
         );
@@ -342,10 +346,12 @@ fn detect_phys_addr_bits() -> u8 {
     let max_leaf: u32;
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "mov eax, 0x80000000",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) _,
             out("eax") max_leaf,
-            out("ebx") _,
             out("ecx") _,
             out("edx") _,
             options(nostack, preserves_flags),
@@ -356,10 +362,12 @@ fn detect_phys_addr_bits() -> u8 {
         let result: u32;
         unsafe {
             core::arch::asm!(
+                "mov {tmp}, rbx",
                 "mov eax, 0x80000008",
                 "cpuid",
+                "xchg {tmp}, rbx",
+                tmp = out(reg) _,
                 out("eax") result,
-                out("ebx") _,
                 out("ecx") _,
                 out("edx") _,
                 options(nostack, preserves_flags),
