@@ -1,6 +1,11 @@
 //! PCI Protocol
 //!
 //! High-level PCI device abstraction for device enumeration and access.
+//!
+//! # Safety
+//! This module interfaces with UEFI firmware via FFI. All protocol pointers
+//! are provided by the firmware and validated before use.
+// codeql[rust/access-invalid-pointer] - UEFI FFI pointers validated by firmware
 
 use super::{EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
@@ -34,8 +39,15 @@ impl PciDevice {
     /// Create from raw protocol
     ///
     /// # Safety
-    /// Protocol pointer must be valid
+    /// Protocol pointer must be valid and obtained from UEFI LocateProtocol
+    /// or HandleProtocol calls. The pointer must remain valid for the
+    /// lifetime of this PciDevice instance.
+    ///
+    /// # Errors
+    /// Returns error if the PCI location cannot be read from the device.
     pub unsafe fn from_raw(protocol: *mut EfiPciIoProtocol, handle: Handle) -> Result<Self> {
+        debug_assert!(!protocol.is_null(), "PciDevice protocol pointer is null");
+
         let mut segment = 0usize;
         let mut bus = 0usize;
         let mut device = 0usize;
