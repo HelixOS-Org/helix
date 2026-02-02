@@ -4,7 +4,7 @@
 
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use magma_core::{Error, Result, GpuAddr, ByteSize};
+use magma_core::{ByteSize, Error, GpuAddr, Result};
 
 // =============================================================================
 // RING CONFIGURATION
@@ -181,7 +181,8 @@ impl CommandRing {
     pub fn update_completions(&mut self, completed_fence: u64) {
         let before = self.pending.len();
 
-        self.pending.retain(|entry| entry.fence_value > completed_fence);
+        self.pending
+            .retain(|entry| entry.fence_value > completed_fence);
 
         let completed = before - self.pending.len();
         self.stats.total_completions += completed as u64;
