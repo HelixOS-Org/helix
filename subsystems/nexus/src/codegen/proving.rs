@@ -9,10 +9,9 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::format;
-use alloc::string::String;use alloc::string::ToString;
-use alloc::vec;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================
@@ -483,7 +482,8 @@ impl TheoremProver {
                 let new_var = name.to_string();
                 let body_cloned = (**body).clone();
                 let var_cloned = var.clone();
-                let new_body = self.substitute_formula(&body_cloned, &var_cloned, &Term::Var(new_var.clone()));
+                let new_body =
+                    self.substitute_formula(&body_cloned, &var_cloned, &Term::Var(new_var.clone()));
                 let goal = self.goals.last_mut().ok_or("No goal")?;
                 goal.conclusion = new_body;
                 Ok(())
