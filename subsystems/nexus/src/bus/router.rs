@@ -8,10 +8,10 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::*;
+use super::channel::{Channel, ChannelStats};
 use super::domain::Domain;
 use super::message::{Message, MessagePayload};
-use super::channel::{Channel, ChannelStats};
+use crate::types::*;
 
 // ============================================================================
 // ROUTE KEY
@@ -137,11 +137,11 @@ impl Router {
                 Ok(()) => {
                     self.total_routed.fetch_add(1, Ordering::Relaxed);
                     Ok(())
-                }
+                },
                 Err(e) => {
                     self.dropped.fetch_add(1, Ordering::Relaxed);
                     Err(e)
-                }
+                },
             }
         } else {
             self.failed_routes.fetch_add(1, Ordering::Relaxed);
@@ -180,7 +180,7 @@ impl Router {
             .into_iter()
             .map(|domain| RouteKey::new(domain, target).to_u64())
             .collect();
-        
+
         self.channels
             .iter_mut()
             .filter(|(key, _)| valid_keys.contains(key))
@@ -286,8 +286,8 @@ impl RouterStats {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::message::MessagePayload;
+    use super::*;
 
     #[test]
     fn test_router_create_channel() {
