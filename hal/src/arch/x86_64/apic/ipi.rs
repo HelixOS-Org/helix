@@ -212,11 +212,11 @@ fn build_icr_x2apic(
 /// Send an IPI in xAPIC mode
 unsafe fn send_ipi_xapic(dest: u32, vector: u8, delivery_mode: IpiDeliveryMode, shorthand: u8) {
     // Wait for previous IPI to complete
-    wait_ipi_idle_xapic();
+    unsafe { wait_ipi_idle_xapic() };
 
     // Write destination to ICR high
     if shorthand == 0 {
-        write_lapic(registers::ICR_HIGH, dest << 24);
+        unsafe { write_lapic(registers::ICR_HIGH, dest << 24) };
     }
 
     // Write command to ICR low (this triggers the IPI)
@@ -228,7 +228,7 @@ unsafe fn send_ipi_xapic(dest: u32, vector: u8, delivery_mode: IpiDeliveryMode, 
         IpiTrigger::Edge,
         shorthand,
     );
-    write_lapic(registers::ICR_LOW, icr);
+    unsafe { write_lapic(registers::ICR_LOW, icr) };
 
     IPI_SEND_COUNT.fetch_add(1, Ordering::Relaxed);
 }
@@ -248,13 +248,15 @@ unsafe fn send_ipi_x2apic(dest: u32, vector: u8, delivery_mode: IpiDeliveryMode,
     // x2APIC ICR write
     let low = icr as u32;
     let high = (icr >> 32) as u32;
-    core::arch::asm!(
-        "wrmsr",
-        in("ecx") 0x830u32, // x2APIC ICR MSR
-        in("eax") low,
-        in("edx") high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "wrmsr",
+            in("ecx") 0x830u32, // x2APIC ICR MSR
+            in("eax") low,
+            in("edx") high,
+            options(nostack, preserves_flags),
+        );
+    }
 
     IPI_SEND_COUNT.fetch_add(1, Ordering::Relaxed);
 }
@@ -262,7 +264,7 @@ unsafe fn send_ipi_x2apic(dest: u32, vector: u8, delivery_mode: IpiDeliveryMode,
 /// Wait for IPI to be delivered (xAPIC only)
 unsafe fn wait_ipi_idle_xapic() {
     // Bit 12 = Delivery Status (1 = send pending)
-    while read_lapic(registers::ICR_LOW) & (1 << 12) != 0 {
+    while unsafe { read_lapic(registers::ICR_LOW) } & (1 << 12) != 0 {
         core::hint::spin_loop();
     }
 }
