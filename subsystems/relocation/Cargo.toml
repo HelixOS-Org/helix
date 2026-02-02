@@ -27,10 +27,12 @@ limine = []
 multiboot2 = []
 
 # Optional features
+# Optional features
 kaslr = []
 debug = []
 stats = []
 validation = []
+alloc = []
 
 # All features for testing
 full = ["kaslr", "debug", "stats", "validation"]
