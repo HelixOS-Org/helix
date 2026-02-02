@@ -3,10 +3,12 @@
 //! Tracks OpenGL state and generates Vulkan commands when state changes.
 //! Uses dirty flags to batch state changes efficiently.
 
+use alloc::vec::Vec;
+
+use bitflags::bitflags;
+
 use crate::enums::*;
 use crate::types::*;
-use alloc::vec::Vec;
-use bitflags::bitflags;
 
 // =============================================================================
 // DIRTY FLAGS
@@ -860,7 +862,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_BACK => {
                 if self.stencil.back.func != stencil_func {
                     self.stencil.back.func = stencil_func;
@@ -868,7 +870,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_FRONT_AND_BACK => {
                 let front_changed = self.stencil.front.func != stencil_func;
                 let back_changed = self.stencil.back.func != stencil_func;
@@ -879,7 +881,7 @@ impl GlState {
                     self.stencil.back.func = stencil_func;
                 }
                 front_changed || back_changed
-            }
+            },
             _ => false,
         };
         if changed {
@@ -913,7 +915,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_BACK => {
                 if self.stencil.back.op != op {
                     self.stencil.back.op = op;
@@ -921,7 +923,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_FRONT_AND_BACK => {
                 let front_changed = self.stencil.front.op != op;
                 let back_changed = self.stencil.back.op != op;
@@ -932,7 +934,7 @@ impl GlState {
                     self.stencil.back.op = op;
                 }
                 front_changed || back_changed
-            }
+            },
             _ => false,
         };
         if changed {
@@ -955,7 +957,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_BACK => {
                 if self.stencil.back.write_mask != mask {
                     self.stencil.back.write_mask = mask;
@@ -963,7 +965,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_FRONT_AND_BACK => {
                 let front_changed = self.stencil.front.write_mask != mask;
                 let back_changed = self.stencil.back.write_mask != mask;
@@ -974,7 +976,7 @@ impl GlState {
                     self.stencil.back.write_mask = mask;
                 }
                 front_changed || back_changed
-            }
+            },
             _ => false,
         };
         if changed {
@@ -1089,7 +1091,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_ELEMENT_ARRAY_BUFFER => {
                 if self.buffers.element_array_buffer != buffer {
                     self.buffers.element_array_buffer = buffer;
@@ -1099,7 +1101,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_COPY_READ_BUFFER => {
                 if self.buffers.copy_read_buffer != buffer {
                     self.buffers.copy_read_buffer = buffer;
@@ -1107,7 +1109,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_COPY_WRITE_BUFFER => {
                 if self.buffers.copy_write_buffer != buffer {
                     self.buffers.copy_write_buffer = buffer;
@@ -1115,7 +1117,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_PIXEL_PACK_BUFFER => {
                 if self.buffers.pixel_pack_buffer != buffer {
                     self.buffers.pixel_pack_buffer = buffer;
@@ -1123,7 +1125,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_PIXEL_UNPACK_BUFFER => {
                 if self.buffers.pixel_unpack_buffer != buffer {
                     self.buffers.pixel_unpack_buffer = buffer;
@@ -1131,7 +1133,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_DRAW_INDIRECT_BUFFER => {
                 if self.buffers.draw_indirect_buffer != buffer {
                     self.buffers.draw_indirect_buffer = buffer;
@@ -1139,7 +1141,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_DISPATCH_INDIRECT_BUFFER => {
                 if self.buffers.dispatch_indirect_buffer != buffer {
                     self.buffers.dispatch_indirect_buffer = buffer;
@@ -1147,7 +1149,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             _ => false,
         };
         if changed {
@@ -1187,7 +1189,7 @@ impl GlState {
                     self.set_error(GL_INVALID_VALUE);
                     false
                 }
-            }
+            },
             GL_SHADER_STORAGE_BUFFER => {
                 if (index as usize) < MAX_SSBO_BINDINGS {
                     if self.buffers.shader_storage_buffers[index as usize] != binding {
@@ -1200,7 +1202,7 @@ impl GlState {
                     self.set_error(GL_INVALID_VALUE);
                     false
                 }
-            }
+            },
             _ => false,
         };
         if changed {
@@ -1237,7 +1239,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_2D => {
                 if binding.texture_2d != texture {
                     binding.texture_2d = texture;
@@ -1245,7 +1247,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_3D => {
                 if binding.texture_3d != texture {
                     binding.texture_3d = texture;
@@ -1253,7 +1255,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_CUBE_MAP => {
                 if binding.texture_cube_map != texture {
                     binding.texture_cube_map = texture;
@@ -1261,7 +1263,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_1D_ARRAY => {
                 if binding.texture_1d_array != texture {
                     binding.texture_1d_array = texture;
@@ -1269,7 +1271,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_2D_ARRAY => {
                 if binding.texture_2d_array != texture {
                     binding.texture_2d_array = texture;
@@ -1277,7 +1279,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_2D_MULTISAMPLE => {
                 if binding.texture_2d_multisample != texture {
                     binding.texture_2d_multisample = texture;
@@ -1285,7 +1287,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_2D_MULTISAMPLE_ARRAY => {
                 if binding.texture_2d_multisample_array != texture {
                     binding.texture_2d_multisample_array = texture;
@@ -1293,7 +1295,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_RECTANGLE => {
                 if binding.texture_rectangle != texture {
                     binding.texture_rectangle = texture;
@@ -1301,7 +1303,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_BUFFER => {
                 if binding.texture_buffer != texture {
                     binding.texture_buffer = texture;
@@ -1309,7 +1311,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_TEXTURE_CUBE_MAP_ARRAY => {
                 if binding.texture_cube_map_array != texture {
                     binding.texture_cube_map_array = texture;
@@ -1317,11 +1319,11 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             _ => {
                 self.set_error(GL_INVALID_ENUM);
                 false
-            }
+            },
         };
         if changed {
             self.mark_dirty(DirtyFlags::TEXTURES);
@@ -1357,7 +1359,7 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             GL_READ_FRAMEBUFFER => {
                 if self.framebuffer.read_framebuffer != framebuffer {
                     self.framebuffer.read_framebuffer = framebuffer;
@@ -1365,11 +1367,11 @@ impl GlState {
                 } else {
                     false
                 }
-            }
+            },
             _ => {
                 self.set_error(GL_INVALID_ENUM);
                 false
-            }
+            },
         };
         if changed {
             self.mark_dirty(DirtyFlags::FRAMEBUFFER);
@@ -1477,43 +1479,43 @@ impl GlState {
                     self.raster.scissor_enabled = true;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_POLYGON_OFFSET_FILL => {
                 if !self.raster.polygon_offset_fill {
                     self.raster.polygon_offset_fill = true;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_POLYGON_OFFSET_LINE => {
                 if !self.raster.polygon_offset_line {
                     self.raster.polygon_offset_line = true;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_POLYGON_OFFSET_POINT => {
                 if !self.raster.polygon_offset_point {
                     self.raster.polygon_offset_point = true;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_LINE_SMOOTH => {
                 if !self.raster.line_smooth {
                     self.raster.line_smooth = true;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_MULTISAMPLE => {
                 if !self.raster.multisample {
                     self.raster.multisample = true;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_RASTERIZER_DISCARD => {
                 if !self.raster.discard {
                     self.raster.discard = true;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             _ => self.set_error(GL_INVALID_ENUM),
         }
     }
@@ -1530,43 +1532,43 @@ impl GlState {
                     self.raster.scissor_enabled = false;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_POLYGON_OFFSET_FILL => {
                 if self.raster.polygon_offset_fill {
                     self.raster.polygon_offset_fill = false;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_POLYGON_OFFSET_LINE => {
                 if self.raster.polygon_offset_line {
                     self.raster.polygon_offset_line = false;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_POLYGON_OFFSET_POINT => {
                 if self.raster.polygon_offset_point {
                     self.raster.polygon_offset_point = false;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_LINE_SMOOTH => {
                 if self.raster.line_smooth {
                     self.raster.line_smooth = false;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_MULTISAMPLE => {
                 if self.raster.multisample {
                     self.raster.multisample = false;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             GL_RASTERIZER_DISCARD => {
                 if self.raster.discard {
                     self.raster.discard = false;
                     self.mark_dirty(DirtyFlags::RASTER);
                 }
-            }
+            },
             _ => self.set_error(GL_INVALID_ENUM),
         }
     }
