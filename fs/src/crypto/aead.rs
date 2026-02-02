@@ -799,6 +799,9 @@ impl Default for ChaCha20Poly1305 {
 // Tests
 // ============================================================================
 
+// CodeQL: Test code uses zero-filled keys/nonces for deterministic testing.
+// These are NOT used in production - production keys come from KDF.
+// codeql[rust/hard-coded-cryptographic-value] - Test values only
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -806,9 +809,13 @@ mod tests {
     #[test]
     fn test_aes256_gcm_roundtrip() {
         let mut gcm = Aes256Gcm::new();
+        // SAFETY: Test-only zero key for deterministic behavior
+        #[allow(clippy::zero_filled_array)]
         let key = [0u8; 32];
         gcm.init(&key).unwrap();
 
+        // SAFETY: Test-only zero nonce
+        #[allow(clippy::zero_filled_array)]
         let nonce = [0u8; 12];
         let plaintext = b"Hello, World!";
         let aad = b"additional data";
