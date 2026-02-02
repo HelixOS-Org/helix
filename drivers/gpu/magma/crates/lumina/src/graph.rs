@@ -196,19 +196,13 @@ pub enum RenderNode {
     EndRenderPass,
 
     /// Bind a graphics pipeline
-    BindGraphicsPipeline {
-        pipeline: PipelineHandle,
-    },
+    BindGraphicsPipeline { pipeline: PipelineHandle },
 
     /// Bind a compute pipeline
-    BindComputePipeline {
-        pipeline: PipelineHandle,
-    },
+    BindComputePipeline { pipeline: PipelineHandle },
 
     /// Set push constants
-    PushConstants {
-        data: Vec<u8>,
-    },
+    PushConstants { data: Vec<u8> },
 
     /// Bind vertex buffer
     BindVertexBuffer {
@@ -249,21 +243,13 @@ pub enum RenderNode {
     },
 
     /// Pipeline barrier
-    Barrier {
-        barriers: Vec<BarrierInfo>,
-    },
+    Barrier { barriers: Vec<BarrierInfo> },
 
     /// Clear color attachment
-    ClearColor {
-        attachment: u32,
-        value: ClearValue,
-    },
+    ClearColor { attachment: u32, value: ClearValue },
 
     /// Clear depth/stencil attachment
-    ClearDepthStencil {
-        depth: f32,
-        stencil: u32,
-    },
+    ClearDepthStencil { depth: f32, stencil: u32 },
 
     /// Copy buffer to buffer
     CopyBuffer {
@@ -400,13 +386,10 @@ impl RenderGraph {
         let id = ResourceId::new(self.next_resource_id);
         self.next_resource_id += 1;
 
-        self.resources.insert(
-            id,
-            ResourceInfo {
-                resource_type: ResourceType::Buffer,
-                name: None,
-            },
-        );
+        self.resources.insert(id, ResourceInfo {
+            resource_type: ResourceType::Buffer,
+            name: None,
+        });
 
         self.current_states.insert(id, ResourceState::default());
 
@@ -418,13 +401,10 @@ impl RenderGraph {
         let id = ResourceId::new(self.next_resource_id);
         self.next_resource_id += 1;
 
-        self.resources.insert(
-            id,
-            ResourceInfo {
-                resource_type: ResourceType::Texture,
-                name: None,
-            },
-        );
+        self.resources.insert(id, ResourceInfo {
+            resource_type: ResourceType::Texture,
+            name: None,
+        });
 
         self.current_states.insert(id, ResourceState::default());
 
@@ -472,9 +452,9 @@ impl RenderGraph {
         for (node_index, node) in self.nodes.into_iter().enumerate() {
             // Insert any barriers that should come before this node
             while barrier_index < barriers.len() && barriers[barrier_index].0 == node_index {
-                compiled.commands.push(CompiledCommand::Barrier(
-                    barriers[barrier_index].1.clone(),
-                ));
+                compiled
+                    .commands
+                    .push(CompiledCommand::Barrier(barriers[barrier_index].1.clone()));
                 barrier_index += 1;
             }
 
