@@ -2,9 +2,7 @@
 //!
 //! This module provides random number generators suitable for GPU use.
 
-use crate::Vec2;
-use crate::Vec3;
-use crate::Vec4;
+use crate::{Vec2, Vec3, Vec4};
 
 /// PCG random number generator (32-bit)
 #[derive(Clone, Copy, Debug)]
@@ -41,7 +39,10 @@ impl Pcg32 {
 
     /// Steps the RNG state
     const fn step(&mut self) {
-        self.state = self.state.wrapping_mul(6364136223846793005).wrapping_add(self.inc);
+        self.state = self
+            .state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(self.inc);
     }
 
     /// Generates the next u32
