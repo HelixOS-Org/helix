@@ -6,8 +6,8 @@
 #[cfg(all(target_arch = "x86_64", feature = "simd"))]
 use core::arch::x86_64::*;
 
-use crate::vec::{Vec3, Vec4};
 use crate::mat::Mat4;
+use crate::vec::{Vec3, Vec4};
 
 /// SIMD-optimized 4-component vector using __m128
 #[cfg(all(target_arch = "x86_64", feature = "simd"))]
@@ -458,10 +458,9 @@ pub fn mat4_mul_mat4_simd(a: &Mat4, b: &Mat4) -> Mat4 {
 
 // Fallback implementations for non-x86_64 or non-SIMD
 #[cfg(not(all(target_arch = "x86_64", feature = "simd")))]
-pub use crate::vec::Vec4 as SimdVec4;
-
-#[cfg(not(all(target_arch = "x86_64", feature = "simd")))]
 pub use crate::mat::Mat4 as SimdMat4;
+#[cfg(not(all(target_arch = "x86_64", feature = "simd")))]
+pub use crate::vec::Vec4 as SimdVec4;
 
 #[cfg(not(all(target_arch = "x86_64", feature = "simd")))]
 #[inline]
@@ -544,13 +543,10 @@ mod tests {
     #[test]
     fn test_batch_transform_identity() {
         let m = Mat4::IDENTITY;
-        let points = [
-            Vec3::new(1.0, 2.0, 3.0),
-            Vec3::new(4.0, 5.0, 6.0),
-        ];
+        let points = [Vec3::new(1.0, 2.0, 3.0), Vec3::new(4.0, 5.0, 6.0)];
         let mut output = [Vec3::ZERO; 2];
         batch_transform_points(&m, &points, &mut output);
-        
+
         for (i, p) in points.iter().enumerate() {
             assert!((output[i].x - p.x).abs() < 1e-5);
             assert!((output[i].y - p.y).abs() < 1e-5);
