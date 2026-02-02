@@ -2,7 +2,7 @@
 //!
 //! This module provides types and utilities for compute shader dispatch.
 
-use crate::types::{BufferHandle, TextureHandle, PipelineHandle};
+use crate::types::{BufferHandle, PipelineHandle, TextureHandle};
 
 /// Compute pipeline descriptor
 #[derive(Clone, Debug)]
@@ -353,18 +353,45 @@ impl TextureFormat {
     pub const fn bytes_per_pixel(&self) -> u32 {
         match self {
             Self::R8Unorm | Self::R8Snorm | Self::R8Uint | Self::R8Sint | Self::Stencil8 => 1,
-            Self::R16Unorm | Self::R16Snorm | Self::R16Uint | Self::R16Sint | Self::R16Float
-            | Self::Rg8Unorm | Self::Rg8Snorm | Self::Rg8Uint | Self::Rg8Sint
+            Self::R16Unorm
+            | Self::R16Snorm
+            | Self::R16Uint
+            | Self::R16Sint
+            | Self::R16Float
+            | Self::Rg8Unorm
+            | Self::Rg8Snorm
+            | Self::Rg8Uint
+            | Self::Rg8Sint
             | Self::Depth16Unorm => 2,
             Self::Depth24Plus => 3,
-            Self::R32Uint | Self::R32Sint | Self::R32Float | Self::Rg16Unorm | Self::Rg16Snorm
-            | Self::Rg16Uint | Self::Rg16Sint | Self::Rg16Float | Self::Rgba8Unorm
-            | Self::Rgba8UnormSrgb | Self::Rgba8Snorm | Self::Rgba8Uint | Self::Rgba8Sint
-            | Self::Bgra8Unorm | Self::Bgra8UnormSrgb | Self::Rgb10a2Unorm | Self::Rg11b10Float
-            | Self::Depth24PlusStencil8 | Self::Depth32Float => 4,
+            Self::R32Uint
+            | Self::R32Sint
+            | Self::R32Float
+            | Self::Rg16Unorm
+            | Self::Rg16Snorm
+            | Self::Rg16Uint
+            | Self::Rg16Sint
+            | Self::Rg16Float
+            | Self::Rgba8Unorm
+            | Self::Rgba8UnormSrgb
+            | Self::Rgba8Snorm
+            | Self::Rgba8Uint
+            | Self::Rgba8Sint
+            | Self::Bgra8Unorm
+            | Self::Bgra8UnormSrgb
+            | Self::Rgb10a2Unorm
+            | Self::Rg11b10Float
+            | Self::Depth24PlusStencil8
+            | Self::Depth32Float => 4,
             Self::Depth32FloatStencil8 => 5,
-            Self::Rg32Uint | Self::Rg32Sint | Self::Rg32Float | Self::Rgba16Unorm
-            | Self::Rgba16Snorm | Self::Rgba16Uint | Self::Rgba16Sint | Self::Rgba16Float => 8,
+            Self::Rg32Uint
+            | Self::Rg32Sint
+            | Self::Rg32Float
+            | Self::Rgba16Unorm
+            | Self::Rgba16Snorm
+            | Self::Rgba16Uint
+            | Self::Rgba16Sint
+            | Self::Rgba16Float => 8,
             Self::Rgba32Uint | Self::Rgba32Sint | Self::Rgba32Float => 16,
             // Compressed formats return block size / pixels per block
             _ => 0,
@@ -454,7 +481,14 @@ impl DispatchDesc {
     }
 
     /// Calculates dispatch size for a given work size and local size
-    pub const fn for_size(work_x: u32, work_y: u32, work_z: u32, local_x: u32, local_y: u32, local_z: u32) -> Self {
+    pub const fn for_size(
+        work_x: u32,
+        work_y: u32,
+        work_z: u32,
+        local_x: u32,
+        local_y: u32,
+        local_z: u32,
+    ) -> Self {
         Self {
             x: (work_x + local_x - 1) / local_x,
             y: (work_y + local_y - 1) / local_y,
