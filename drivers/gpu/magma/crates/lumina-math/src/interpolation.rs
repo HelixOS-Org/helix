@@ -3,8 +3,9 @@
 //! This module provides common interpolation methods and easing functions
 //! for animations and smooth transitions.
 
-use crate::vec::{Vec2, Vec3, Vec4};
 use core::f32::consts::PI;
+
+use crate::vec::{Vec2, Vec3, Vec4};
 
 /// Linearly interpolates between two values
 #[inline]
