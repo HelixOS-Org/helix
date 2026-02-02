@@ -1,0 +1,42 @@
+[package]
+name = "magma-gl"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Team"]
+description = "OpenGL 3.3+ translation layer over Magma Vulkan driver"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["graphics", "opengl", "vulkan", "translation", "kernel"]
+categories = ["graphics", "no-std"]
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = []
+# Enable debug assertions and validation
+debug = []
+# Enable OpenGL 4.x features
+gl4 = []
+# Enable compute shader support
+compute = []
+# Enable tessellation shader support
+tessellation = []
+
+[dependencies]
+# Bitflags for dirty flag management
+bitflags = "2.4"
+
+# Spin lock for thread-safe context
+spin = "0.9"
+
+# TODO: Enable these when the crates are available
+# magma-vulkan = { path = "../magma-vulkan" }
+# magma-mem = { path = "../magma-mem" }
+# naga = { version = "0.14", default-features = false, features = ["glsl-in", "spv-out"] }
+
+[dev-dependencies]
+# Test utilities (when running on host)
+
+[package.metadata.docs.rs]
+all-features = true
