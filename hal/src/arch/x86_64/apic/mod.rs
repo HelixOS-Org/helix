@@ -166,7 +166,7 @@ pub unsafe fn init() -> Result<(), ApicError> {
 
     // Try to enable x2APIC if supported
     if x2apic_supported {
-        if enable_x2apic() {
+        if unsafe { enable_x2apic() } {
             X2APIC_ENABLED.store(true, Ordering::SeqCst);
             log::info!("APIC: x2APIC mode enabled");
         } else {
@@ -179,7 +179,7 @@ pub unsafe fn init() -> Result<(), ApicError> {
     LAPIC_BASE.store(base, Ordering::SeqCst);
 
     // Initialize the Local APIC
-    local::init(base)?;
+    unsafe { local::init(base)? };
 
     // Store BSP APIC ID
     let bsp_id = local::get_apic_id();
@@ -206,7 +206,7 @@ pub unsafe fn init_for_ap() -> Result<(), ApicError> {
     }
 
     let base = LAPIC_BASE.load(Ordering::Acquire);
-    local::init(base)?;
+    unsafe { local::init(base)? };
 
     let ap_id = local::get_apic_id();
     log::debug!("APIC: AP {} initialized", ap_id);
@@ -220,15 +220,20 @@ pub fn is_apic_present() -> bool {
     // CPUID.01H:EDX.APIC[bit 9]
     let edx: u32;
     unsafe {
+        // Save rbx which is reserved by LLVM
+        let rbx: u64;
         core::arch::asm!(
+            "mov {0}, rbx",
             "mov eax, 1",
             "cpuid",
+            "mov rbx, {0}",
+            out(reg) rbx,
             out("edx") edx,
             out("eax") _,
-            out("ebx") _,
             out("ecx") _,
             options(nostack, preserves_flags),
         );
+        let _ = rbx; // Silence unused warning
     }
     edx & (1 << 9) != 0
 }
@@ -239,15 +244,20 @@ pub fn is_x2apic_supported() -> bool {
     // CPUID.01H:ECX.x2APIC[bit 21]
     let ecx: u32;
     unsafe {
+        // Save rbx which is reserved by LLVM
+        let rbx: u64;
         core::arch::asm!(
+            "mov {0}, rbx",
             "mov eax, 1",
             "cpuid",
+            "mov rbx, {0}",
+            out(reg) rbx,
             out("ecx") ecx,
             out("eax") _,
-            out("ebx") _,
             out("edx") _,
             options(nostack, preserves_flags),
         );
+        let _ = rbx; // Silence unused warning
     }
     ecx & (1 << 21) != 0
 }
@@ -285,13 +295,15 @@ unsafe fn enable_x2apic() -> bool {
     const X2APIC_ENABLE: u64 = 1 << 10;
 
     let (low, high): (u32, u32);
-    core::arch::asm!(
-        "rdmsr",
-        in("ecx") IA32_APIC_BASE_MSR,
-        out("eax") low,
-        out("edx") high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "rdmsr",
+            in("ecx") IA32_APIC_BASE_MSR,
+            out("eax") low,
+            out("edx") high,
+            options(nostack, preserves_flags),
+        );
+    }
 
     let value = ((high as u64) << 32) | (low as u64);
     let new_value = value | APIC_ENABLE | X2APIC_ENABLE;
@@ -299,23 +311,27 @@ unsafe fn enable_x2apic() -> bool {
     let new_low = new_value as u32;
     let new_high = (new_value >> 32) as u32;
 
-    core::arch::asm!(
-        "wrmsr",
-        in("ecx") IA32_APIC_BASE_MSR,
-        in("eax") new_low,
-        in("edx") new_high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "wrmsr",
+            in("ecx") IA32_APIC_BASE_MSR,
+            in("eax") new_low,
+            in("edx") new_high,
+            options(nostack, preserves_flags),
+        );
+    }
 
     // Verify
     let (verify_low, verify_high): (u32, u32);
-    core::arch::asm!(
-        "rdmsr",
-        in("ecx") IA32_APIC_BASE_MSR,
-        out("eax") verify_low,
-        out("edx") verify_high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "rdmsr",
+            in("ecx") IA32_APIC_BASE_MSR,
+            out("eax") verify_low,
+            out("edx") verify_high,
+            options(nostack, preserves_flags),
+        );
+    }
 
     let verify = ((verify_high as u64) << 32) | (verify_low as u64);
     verify & X2APIC_ENABLE != 0
@@ -354,13 +370,17 @@ pub fn end_of_interrupt() {
 /// The target CPU must be valid and running.
 #[inline]
 pub unsafe fn send_ipi(destination: IpiDestination, vector: u8) {
-    local::send_ipi(destination, vector);
+    unsafe {
+        local::send_ipi(destination, vector);
+    }
 }
 
 /// Broadcast an IPI to all processors except self
 #[inline]
 pub unsafe fn broadcast_ipi(vector: u8) {
-    local::send_ipi(IpiDestination::AllExcludingSelf, vector);
+    unsafe {
+        local::send_ipi(IpiDestination::AllExcludingSelf, vector);
+    }
 }
 
 /// Initialize an I/O APIC
@@ -368,8 +388,11 @@ pub unsafe fn broadcast_ipi(vector: u8) {
 /// # Safety
 ///
 /// The base address must be valid and mapped.
-pub unsafe fn init_ioapic(id: u8, base: u64, gsi_base: u32) -> Result<(), ApicError> {
-    ioapic::init(id, base, gsi_base)
+pub unsafe fn init_ioapic(_id: u8, base: u64, gsi_base: u32) -> Result<(), ApicError> {
+    unsafe {
+        ioapic::register_ioapic(base, gsi_base)?;
+    }
+    Ok(())
 }
 
 // =============================================================================
