@@ -221,12 +221,14 @@ pub fn flush_tlb_range(start: VirtualAddress, count: usize, page_size: usize) {
 /// INVPCID must be supported by the CPU.
 #[inline]
 pub unsafe fn flush_tlb_pcid(inv_type: InvpcidType, descriptor: &InvpcidDescriptor) {
-    core::arch::asm!(
-        "invpcid {0}, [{1}]",
-        in(reg) inv_type as u64,
-        in(reg) descriptor,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "invpcid {0}, [{1}]",
+            in(reg) inv_type as u64,
+            in(reg) descriptor,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 /// Flush a single address for a specific PCID
@@ -237,7 +239,7 @@ pub unsafe fn flush_tlb_pcid(inv_type: InvpcidType, descriptor: &InvpcidDescript
 #[inline]
 pub unsafe fn flush_tlb_pcid_address(pcid: Pcid, addr: VirtualAddress) {
     let desc = InvpcidDescriptor::new(pcid, addr);
-    flush_tlb_pcid(InvpcidType::IndividualAddress, &desc);
+    unsafe { flush_tlb_pcid(InvpcidType::IndividualAddress, &desc) };
 }
 
 /// Flush all entries for a specific PCID
@@ -248,7 +250,7 @@ pub unsafe fn flush_tlb_pcid_address(pcid: Pcid, addr: VirtualAddress) {
 #[inline]
 pub unsafe fn flush_tlb_pcid_context(pcid: Pcid) {
     let desc = InvpcidDescriptor::single_context(pcid);
-    flush_tlb_pcid(InvpcidType::SingleContext, &desc);
+    unsafe { flush_tlb_pcid(InvpcidType::SingleContext, &desc) };
 }
 
 /// Flush all TLB entries for all PCIDs including globals
@@ -259,7 +261,7 @@ pub unsafe fn flush_tlb_pcid_context(pcid: Pcid) {
 #[inline]
 pub unsafe fn flush_tlb_all_pcid_including_globals() {
     let desc = InvpcidDescriptor::global();
-    flush_tlb_pcid(InvpcidType::AllContextsIncludingGlobals, &desc);
+    unsafe { flush_tlb_pcid(InvpcidType::AllContextsIncludingGlobals, &desc) };
 }
 
 /// Flush all TLB entries for all PCIDs except globals
@@ -270,7 +272,7 @@ pub unsafe fn flush_tlb_all_pcid_including_globals() {
 #[inline]
 pub unsafe fn flush_tlb_all_pcid_except_globals() {
     let desc = InvpcidDescriptor::global();
-    flush_tlb_pcid(InvpcidType::AllContextsExceptGlobals, &desc);
+    unsafe { flush_tlb_pcid(InvpcidType::AllContextsExceptGlobals, &desc) };
 }
 
 // =============================================================================
@@ -284,11 +286,13 @@ pub fn is_pcid_supported() -> bool {
     let ecx: u32;
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "mov eax, 1",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) _,
             out("ecx") ecx,
             out("eax") _,
-            out("ebx") _,
             out("edx") _,
             options(nostack, preserves_flags),
         );
@@ -300,20 +304,22 @@ pub fn is_pcid_supported() -> bool {
 #[inline]
 pub fn is_invpcid_supported() -> bool {
     // CPUID.07H:EBX.INVPCID[bit 10]
-    let ebx: u32;
+    let ebx: u64;
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "mov eax, 7",
             "xor ecx, ecx",
             "cpuid",
-            out("ebx") ebx,
+            "xchg {tmp}, rbx",
+            tmp = out(reg) ebx,
             out("eax") _,
             out("ecx") _,
             out("edx") _,
             options(nostack, preserves_flags),
         );
     }
-    ebx & (1 << 10) != 0
+    (ebx as u32) & (1 << 10) != 0
 }
 
 /// Check if PCID is enabled in CR4
@@ -339,17 +345,21 @@ pub fn is_pcid_enabled() -> bool {
 #[inline]
 pub unsafe fn enable_pcid() {
     let mut cr4: u64;
-    core::arch::asm!(
-        "mov {}, cr4",
-        out(reg) cr4,
-        options(nomem, nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov {}, cr4",
+            out(reg) cr4,
+            options(nomem, nostack, preserves_flags),
+        );
+    }
     cr4 |= 1 << 17; // CR4.PCIDE
-    core::arch::asm!(
-        "mov cr4, {}",
-        in(reg) cr4,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov cr4, {}",
+            in(reg) cr4,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 // =============================================================================
@@ -363,11 +373,13 @@ pub fn is_pge_supported() -> bool {
     let edx: u32;
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",
             "mov eax, 1",
             "cpuid",
+            "xchg {tmp}, rbx",
+            tmp = out(reg) _,
             out("edx") edx,
             out("eax") _,
-            out("ebx") _,
             out("ecx") _,
             options(nostack, preserves_flags),
         );
@@ -397,17 +409,21 @@ pub fn is_pge_enabled() -> bool {
 #[inline]
 pub unsafe fn enable_pge() {
     let mut cr4: u64;
-    core::arch::asm!(
-        "mov {}, cr4",
-        out(reg) cr4,
-        options(nomem, nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov {}, cr4",
+            out(reg) cr4,
+            options(nomem, nostack, preserves_flags),
+        );
+    }
     cr4 |= 1 << 7; // CR4.PGE
-    core::arch::asm!(
-        "mov cr4, {}",
-        in(reg) cr4,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov cr4, {}",
+            in(reg) cr4,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 /// Flush global TLB entries by toggling CR4.PGE
@@ -420,25 +436,31 @@ pub unsafe fn flush_global_tlb() {
     let mut cr4: u64;
 
     // Read CR4
-    core::arch::asm!(
-        "mov {}, cr4",
-        out(reg) cr4,
-        options(nomem, nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov {}, cr4",
+            out(reg) cr4,
+            options(nomem, nostack, preserves_flags),
+        );
+    }
 
     // Clear PGE
-    core::arch::asm!(
-        "mov cr4, {}",
-        in(reg) cr4 & !(1 << 7),
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov cr4, {}",
+            in(reg) cr4 & !(1 << 7),
+            options(nostack, preserves_flags),
+        );
+    }
 
     // Set PGE again
-    core::arch::asm!(
-        "mov cr4, {}",
-        in(reg) cr4,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov cr4, {}",
+            in(reg) cr4,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 // =============================================================================
