@@ -196,19 +196,19 @@ impl AttributeFormat {
     /// Returns the Vulkan format constant
     pub const fn vk_format(&self) -> u32 {
         match self {
-            Self::Float => 100,  // VK_FORMAT_R32_SFLOAT
-            Self::Vec2 => 103,   // VK_FORMAT_R32G32_SFLOAT
-            Self::Vec3 => 106,   // VK_FORMAT_R32G32B32_SFLOAT
-            Self::Vec4 => 109,   // VK_FORMAT_R32G32B32A32_SFLOAT
-            Self::Int => 98,     // VK_FORMAT_R32_SINT
-            Self::IVec2 => 101,  // VK_FORMAT_R32G32_SINT
-            Self::IVec3 => 104,  // VK_FORMAT_R32G32B32_SINT
-            Self::IVec4 => 107,  // VK_FORMAT_R32G32B32A32_SINT
-            Self::UInt => 99,    // VK_FORMAT_R32_UINT
-            Self::UVec2 => 102,  // VK_FORMAT_R32G32_UINT
-            Self::UVec3 => 105,  // VK_FORMAT_R32G32B32_UINT
-            Self::UVec4 => 108,  // VK_FORMAT_R32G32B32A32_UINT
-            Self::Rgba8 => 37,   // VK_FORMAT_R8G8B8A8_UNORM
+            Self::Float => 100, // VK_FORMAT_R32_SFLOAT
+            Self::Vec2 => 103,  // VK_FORMAT_R32G32_SFLOAT
+            Self::Vec3 => 106,  // VK_FORMAT_R32G32B32_SFLOAT
+            Self::Vec4 => 109,  // VK_FORMAT_R32G32B32A32_SFLOAT
+            Self::Int => 98,    // VK_FORMAT_R32_SINT
+            Self::IVec2 => 101, // VK_FORMAT_R32G32_SINT
+            Self::IVec3 => 104, // VK_FORMAT_R32G32B32_SINT
+            Self::IVec4 => 107, // VK_FORMAT_R32G32B32A32_SINT
+            Self::UInt => 99,   // VK_FORMAT_R32_UINT
+            Self::UVec2 => 102, // VK_FORMAT_R32G32_UINT
+            Self::UVec3 => 105, // VK_FORMAT_R32G32B32_UINT
+            Self::UVec4 => 108, // VK_FORMAT_R32G32B32A32_UINT
+            Self::Rgba8 => 37,  // VK_FORMAT_R8G8B8A8_UNORM
         }
     }
 }
