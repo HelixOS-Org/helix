@@ -2,11 +2,12 @@
 //!
 //! GLSL to SPIR-V translation using Naga.
 
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::context::{ShaderObject, ShaderType};
 use crate::enums::*;
 use crate::types::*;
-use alloc::string::String;
-use alloc::vec::Vec;
 
 // =============================================================================
 // SHADER STAGE
@@ -53,7 +54,7 @@ impl GlslVersion {
     /// Parse version from GLSL source
     pub fn parse(source: &str) -> Self {
         let mut version = GlslVersion::default();
-        
+
         for line in source.lines() {
             let trimmed = line.trim();
             if trimmed.starts_with("#version") {
@@ -67,7 +68,7 @@ impl GlslVersion {
                     match parts[2] {
                         "core" => version.core = true,
                         "es" => version.es = true,
-                        _ => {}
+                        _ => {},
                     }
                 }
                 break;
@@ -76,13 +77,13 @@ impl GlslVersion {
                 break;
             }
         }
-        
+
         // Default to 330 core if not specified
         if version.version == 0 {
             version.version = 330;
             version.core = true;
         }
-        
+
         version
     }
 }
@@ -113,7 +114,7 @@ impl Default for ShaderCompileResult {
 }
 
 /// Compile GLSL to SPIR-V
-/// 
+///
 /// This would use the naga crate in a full implementation:
 /// ```ignore
 /// use naga::front::glsl::{Frontend, Options};
@@ -121,30 +122,30 @@ impl Default for ShaderCompileResult {
 /// ```
 pub fn compile_glsl(source: &str, shader_type: ShaderType) -> ShaderCompileResult {
     let mut result = ShaderCompileResult::default();
-    
+
     // Parse GLSL version
     let version = GlslVersion::parse(source);
-    
+
     // Validate version
     if version.version < 330 && !version.es {
         result.log = String::from("Error: Only GLSL 3.30+ core profile is supported");
         return result;
     }
-    
+
     // TODO: Actual compilation using naga
     // For now, return a placeholder success
-    // 
+    //
     // Real implementation would be:
     // 1. Parse GLSL using naga::front::glsl::Frontend
     // 2. Validate the IR
     // 3. Generate SPIR-V using naga::back::spv::Writer
-    
+
     #[cfg(feature = "naga")]
     {
         // use naga::front::glsl::{Frontend, Options, ShaderStage};
         // use naga::back::spv;
         // use naga::valid::{Validator, ValidationFlags, Capabilities};
-        // 
+        //
         // let stage = match shader_type {
         //     ShaderType::Vertex => ShaderStage::Vertex,
         //     ShaderType::Fragment => ShaderStage::Fragment,
@@ -153,10 +154,10 @@ pub fn compile_glsl(source: &str, shader_type: ShaderType) -> ShaderCompileResul
         //     ShaderType::TessEvaluation => ShaderStage::TessellationEvaluation,
         //     ShaderType::Compute => ShaderStage::Compute,
         // };
-        // 
+        //
         // let mut frontend = Frontend::default();
         // let options = Options::from(stage);
-        // 
+        //
         // match frontend.parse(&options, source) {
         //     Ok(module) => {
         //         let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
@@ -185,11 +186,11 @@ pub fn compile_glsl(source: &str, shader_type: ShaderType) -> ShaderCompileResul
         //     }
         // }
     }
-    
+
     // Placeholder: mark as success for testing
     result.success = true;
     result.log = String::from("Compilation successful (placeholder)");
-    
+
     result
 }
 
@@ -216,14 +217,13 @@ pub fn std140_alignment(gl_type: GLenum) -> usize {
         // Scalars
         GL_FLOAT | GL_INT | GL_UNSIGNED_INT => 4,
         GL_DOUBLE => 8,
-        
+
         // Vectors align to 2N or 4N
         // vec2 -> 8 bytes
         // vec3, vec4 -> 16 bytes
-        
+
         // Matrices align like arrays of vec4
         // mat4 -> 16 bytes per column
-        
         _ => 16, // Default to vec4 alignment
     }
 }
@@ -236,7 +236,7 @@ pub fn std140_size(gl_type: GLenum, array_size: usize) -> usize {
         // Add more types as needed
         _ => 16,
     };
-    
+
     if array_size > 1 {
         // Array elements are rounded up to vec4 alignment
         let aligned = (base_size + 15) & !15;
@@ -395,12 +395,13 @@ pub fn link_program(
         reflection: ShaderReflection::default(),
         pipeline_layout: PipelineLayoutInfo::default(),
     };
-    
+
     // Validate shader combinations
     if compute_spirv.is_some() {
         // Compute pipeline
         if vertex_spirv.is_some() || fragment_spirv.is_some() {
-            result.log = String::from("Error: Compute shader cannot be combined with graphics shaders");
+            result.log =
+                String::from("Error: Compute shader cannot be combined with graphics shaders");
             return result;
         }
     } else {
@@ -414,13 +415,13 @@ pub fn link_program(
             return result;
         }
     }
-    
+
     // TODO: Use spirv-reflect or naga to extract reflection data
     // TODO: Build descriptor set layouts
     // TODO: Validate interface matching between stages
-    
+
     result.success = true;
     result.log = String::from("Link successful (placeholder)");
-    
+
     result
 }
