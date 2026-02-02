@@ -4,11 +4,11 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
-use crate::types::ShaderHandle;
 use crate::compute::{ShaderStage, ShaderStageFlags, TextureFormat};
+use crate::types::ShaderHandle;
 
 /// Shader module descriptor
 #[derive(Clone, Debug)]
@@ -134,10 +134,7 @@ pub struct ReflectedBinding {
 #[derive(Clone, Debug)]
 pub enum ReflectedBindingType {
     /// Uniform buffer
-    UniformBuffer {
-        size: u64,
-        dynamic: bool,
-    },
+    UniformBuffer { size: u64, dynamic: bool },
     /// Storage buffer
     StorageBuffer {
         size: u64,
@@ -163,9 +160,7 @@ pub enum ReflectedBindingType {
         multisampled: bool,
     },
     /// Input attachment
-    InputAttachment {
-        index: u32,
-    },
+    InputAttachment { index: u32 },
     /// Acceleration structure (ray tracing)
     AccelerationStructure,
 }
@@ -313,13 +308,34 @@ impl VertexFormat {
     /// Returns the number of components
     pub const fn components(self) -> u32 {
         match self {
-            Self::Float32 | Self::Int32 | Self::Uint32 | Self::Float64 | Self::Float16 |
-            Self::Unorm8 | Self::Snorm8 | Self::Unorm16 | Self::Snorm16 => 1,
-            Self::Float32x2 | Self::Int32x2 | Self::Uint32x2 | Self::Float64x2 | Self::Float16x2 |
-            Self::Unorm8x2 | Self::Snorm8x2 | Self::Unorm16x2 | Self::Snorm16x2 => 2,
+            Self::Float32
+            | Self::Int32
+            | Self::Uint32
+            | Self::Float64
+            | Self::Float16
+            | Self::Unorm8
+            | Self::Snorm8
+            | Self::Unorm16
+            | Self::Snorm16 => 1,
+            Self::Float32x2
+            | Self::Int32x2
+            | Self::Uint32x2
+            | Self::Float64x2
+            | Self::Float16x2
+            | Self::Unorm8x2
+            | Self::Snorm8x2
+            | Self::Unorm16x2
+            | Self::Snorm16x2 => 2,
             Self::Float32x3 | Self::Int32x3 | Self::Uint32x3 | Self::Float64x3 => 3,
-            Self::Float32x4 | Self::Int32x4 | Self::Uint32x4 | Self::Float64x4 | Self::Float16x4 |
-            Self::Unorm8x4 | Self::Snorm8x4 | Self::Unorm16x4 | Self::Snorm16x4 => 4,
+            Self::Float32x4
+            | Self::Int32x4
+            | Self::Uint32x4
+            | Self::Float64x4
+            | Self::Float16x4
+            | Self::Unorm8x4
+            | Self::Snorm8x4
+            | Self::Unorm16x4
+            | Self::Snorm16x4 => 4,
         }
     }
 }
@@ -513,12 +529,18 @@ pub struct ShaderLibrary {
 impl ShaderLibrary {
     /// Creates an empty shader library
     pub const fn new() -> Self {
-        Self { modules: Vec::new() }
+        Self {
+            modules: Vec::new(),
+        }
     }
 
     /// Adds a shader module
     pub fn add(&mut self, name: String, handle: ShaderHandle, stage: ShaderStage) {
-        self.modules.push(ShaderLibraryEntry { name, handle, stage });
+        self.modules.push(ShaderLibraryEntry {
+            name,
+            handle,
+            stage,
+        });
     }
 
     /// Finds a shader by name
