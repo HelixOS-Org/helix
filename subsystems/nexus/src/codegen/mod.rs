@@ -25,14 +25,13 @@ pub mod verification;
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::format;
-use alloc::vec;
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::{ComponentId, Timestamp};
+use crate::types::Timestamp;
 
 // ============================================================================
 // CODE GENERATION TYPES
@@ -715,7 +714,7 @@ impl CodeGenEngine {
         }
     }
 
-    fn generate_body(&self, spec: &Specification, variant: usize) -> String {
+    fn generate_body(&self, _spec: &Specification, variant: usize) -> String {
         // Simplified body generation
         match variant % 3 {
             0 => "    // Direct implementation\n    todo!()\n".into(),
