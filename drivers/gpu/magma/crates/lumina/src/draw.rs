@@ -2,8 +2,8 @@
 //!
 //! This module provides types for issuing draw commands.
 
-use crate::types::{BufferHandle, PipelineHandle};
 use crate::bind_group::BindGroupHandle;
+use crate::types::{BufferHandle, PipelineHandle};
 
 /// Draw command for non-indexed rendering
 #[derive(Clone, Copy, Debug)]
@@ -284,7 +284,12 @@ impl ScissorRect {
 
     /// Creates a scissor rect with offset
     pub const fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 }
 
