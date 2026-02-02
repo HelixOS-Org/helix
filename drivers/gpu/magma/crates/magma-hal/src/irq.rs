@@ -13,21 +13,21 @@ use magma_core::{Error, Result};
 #[repr(u32)]
 pub enum InterruptSource {
     /// FIFO engine interrupt
-    Fifo = 0,
+    Fifo     = 0,
     /// Graphics engine interrupt
     Graphics = 1,
     /// Copy engine interrupt
-    Copy = 2,
+    Copy     = 2,
     /// Display interrupt
-    Display = 3,
+    Display  = 3,
     /// GSP interrupt
-    Gsp = 4,
+    Gsp      = 4,
     /// Fault interrupt (MMU, etc.)
-    Fault = 5,
+    Fault    = 5,
     /// Timer interrupt
-    Timer = 6,
+    Timer    = 6,
     /// LTC (L2 cache) interrupt
-    Ltc = 7,
+    Ltc      = 7,
 }
 
 /// Interrupt status
