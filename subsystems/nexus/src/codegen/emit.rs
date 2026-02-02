@@ -9,10 +9,10 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::{format, vec};
+use alloc::format;
 
 use super::ir::{
-    BlockId, FunctionAttributes, IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRTerminator,
+    FunctionAttributes, IRFunction, IRInstruction, IRModule, IROp, IRTerminator,
     IRType, IRValue, InlineHint,
 };
 use super::{CodeMetrics, ProofCertificate};
