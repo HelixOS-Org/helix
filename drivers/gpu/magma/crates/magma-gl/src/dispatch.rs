@@ -3,14 +3,15 @@
 //! Public OpenGL API functions that dispatch to the context.
 //! These are the entry points that match the standard OpenGL API.
 
-use crate::context::{GlContext, SharedGlContext};
-use crate::enums::*;
-use crate::state::DirtyFlags;
-use crate::types::*;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::ffi::c_void;
 use core::ptr;
+
+use crate::context::{GlContext, SharedGlContext};
+use crate::enums::*;
+use crate::state::DirtyFlags;
+use crate::types::*;
 
 // =============================================================================
 // THREAD-LOCAL CONTEXT
@@ -21,7 +22,7 @@ use core::ptr;
 static mut CURRENT_CONTEXT: Option<SharedGlContext> = None;
 
 /// Make a context current
-/// 
+///
 /// # Safety
 /// This function modifies global state and should be called
 /// from a single thread or with proper synchronization.
@@ -30,7 +31,7 @@ pub unsafe fn make_current(context: Option<SharedGlContext>) {
 }
 
 /// Get the current context
-/// 
+///
 /// # Safety
 /// This function reads global state.
 pub unsafe fn get_current() -> Option<SharedGlContext> {
@@ -76,7 +77,13 @@ pub extern "C" fn glGetString(name: GLenum) -> *const u8 {
 /// Check if capability is enabled
 #[no_mangle]
 pub extern "C" fn glIsEnabled(cap: GLenum) -> GLboolean {
-    with_context(|ctx| if ctx.state.is_enabled(cap) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.state.is_enabled(cap) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 // =============================================================================
@@ -103,7 +110,8 @@ pub extern "C" fn glDisable(cap: GLenum) {
 #[no_mangle]
 pub extern "C" fn glViewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) {
     with_context(|ctx| {
-        ctx.state.set_viewport(x as f32, y as f32, width as f32, height as f32);
+        ctx.state
+            .set_viewport(x as f32, y as f32, width as f32, height as f32);
     });
 }
 
@@ -183,7 +191,10 @@ pub extern "C" fn glBlendFuncSeparate(
     srcAlpha: GLenum,
     dstAlpha: GLenum,
 ) {
-    with_context(|ctx| ctx.state.set_blend_func_separate(srcRGB, dstRGB, srcAlpha, dstAlpha));
+    with_context(|ctx| {
+        ctx.state
+            .set_blend_func_separate(srcRGB, dstRGB, srcAlpha, dstAlpha)
+    });
 }
 
 /// Set blend equation
@@ -244,13 +255,11 @@ pub extern "C" fn glStencilOp(sfail: GLenum, dpfail: GLenum, dppass: GLenum) {
 
 /// Set stencil operations for specific face
 #[no_mangle]
-pub extern "C" fn glStencilOpSeparate(
-    face: GLenum,
-    sfail: GLenum,
-    dpfail: GLenum,
-    dppass: GLenum,
-) {
-    with_context(|ctx| ctx.state.set_stencil_op_separate(face, sfail, dpfail, dppass));
+pub extern "C" fn glStencilOpSeparate(face: GLenum, sfail: GLenum, dpfail: GLenum, dppass: GLenum) {
+    with_context(|ctx| {
+        ctx.state
+            .set_stencil_op_separate(face, sfail, dpfail, dppass)
+    });
 }
 
 /// Set stencil mask
@@ -362,7 +371,13 @@ pub extern "C" fn glDeleteBuffers(n: GLsizei, buffers: *const GLuint) {
 /// Check if name is a buffer
 #[no_mangle]
 pub extern "C" fn glIsBuffer(buffer: GLuint) -> GLboolean {
-    with_context(|ctx| if ctx.is_buffer(buffer) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.is_buffer(buffer) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 /// Bind buffer to target
@@ -381,7 +396,12 @@ pub extern "C" fn glBindBuffer(target: GLenum, buffer: GLuint) {
 
 /// Allocate buffer storage
 #[no_mangle]
-pub extern "C" fn glBufferData(target: GLenum, size: GLsizeiptr, data: *const c_void, usage: GLenum) {
+pub extern "C" fn glBufferData(
+    target: GLenum,
+    size: GLsizeiptr,
+    data: *const c_void,
+    usage: GLenum,
+) {
     with_context(|ctx| {
         // Get bound buffer for target
         let buffer_handle = match target {
@@ -390,7 +410,7 @@ pub extern "C" fn glBufferData(target: GLenum, size: GLsizeiptr, data: *const c_
             _ => {
                 ctx.state.set_error(GL_INVALID_ENUM);
                 return;
-            }
+            },
         };
 
         if !buffer_handle.is_valid() {
@@ -422,7 +442,7 @@ pub extern "C" fn glBufferSubData(
             _ => {
                 ctx.state.set_error(GL_INVALID_ENUM);
                 return;
-            }
+            },
         };
 
         if !buffer_handle.is_valid() {
@@ -467,7 +487,8 @@ pub extern "C" fn glBindBufferRange(
         } else {
             BufferHandle::new(buffer)
         };
-        ctx.state.bind_buffer_range(target, index, handle, offset as usize, size as usize);
+        ctx.state
+            .bind_buffer_range(target, index, handle, offset as usize, size as usize);
     });
 }
 
@@ -507,7 +528,13 @@ pub extern "C" fn glDeleteVertexArrays(n: GLsizei, arrays: *const GLuint) {
 /// Check if name is a VAO
 #[no_mangle]
 pub extern "C" fn glIsVertexArray(array: GLuint) -> GLboolean {
-    with_context(|ctx| if ctx.is_vertex_array(array) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.is_vertex_array(array) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 /// Bind VAO
@@ -579,7 +606,13 @@ pub extern "C" fn glDeleteShader(shader: GLuint) {
 /// Check if name is a shader
 #[no_mangle]
 pub extern "C" fn glIsShader(shader: GLuint) -> GLboolean {
-    with_context(|ctx| if ctx.is_shader(shader) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.is_shader(shader) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 /// Set shader source
@@ -593,7 +626,7 @@ pub extern "C" fn glShaderSource(
     with_context(|ctx| {
         if let Some(shader_obj) = ctx.shaders.get_mut(&shader) {
             shader_obj.source.clear();
-            
+
             for i in 0..count as usize {
                 let src_ptr = unsafe { *string.add(i) };
                 let len = if length.is_null() {
@@ -620,7 +653,7 @@ pub extern "C" fn glShaderSource(
                         l as usize
                     }
                 };
-                
+
                 let slice = unsafe { core::slice::from_raw_parts(src_ptr as *const u8, len) };
                 if let Ok(s) = core::str::from_utf8(slice) {
                     shader_obj.source.push_str(s);
@@ -661,16 +694,30 @@ pub extern "C" fn glGetShaderiv(shader: GLuint, pname: GLenum, params: *mut GLin
                     crate::context::ShaderType::TessEvaluation => GL_TESS_EVALUATION_SHADER as i32,
                     crate::context::ShaderType::Compute => GL_COMPUTE_SHADER as i32,
                 },
-                GL_DELETE_STATUS => if shader_obj.delete_pending { GL_TRUE as i32 } else { GL_FALSE as i32 },
-                GL_COMPILE_STATUS => if shader_obj.compiled { GL_TRUE as i32 } else { GL_FALSE as i32 },
+                GL_DELETE_STATUS => {
+                    if shader_obj.delete_pending {
+                        GL_TRUE as i32
+                    } else {
+                        GL_FALSE as i32
+                    }
+                },
+                GL_COMPILE_STATUS => {
+                    if shader_obj.compiled {
+                        GL_TRUE as i32
+                    } else {
+                        GL_FALSE as i32
+                    }
+                },
                 GL_INFO_LOG_LENGTH => shader_obj.info_log.len() as i32 + 1,
                 GL_SHADER_SOURCE_LENGTH => shader_obj.source.len() as i32 + 1,
                 _ => {
                     ctx.state.set_error(GL_INVALID_ENUM);
                     return;
-                }
+                },
             };
-            unsafe { *params = value; }
+            unsafe {
+                *params = value;
+            }
         } else {
             ctx.state.set_error(GL_INVALID_VALUE);
         }
@@ -689,7 +736,7 @@ pub extern "C" fn glGetShaderInfoLog(
         if let Some(shader_obj) = ctx.shaders.get(&shader) {
             let log_bytes = shader_obj.info_log.as_bytes();
             let copy_len = core::cmp::min(log_bytes.len(), (maxLength - 1) as usize);
-            
+
             unsafe {
                 ptr::copy_nonoverlapping(log_bytes.as_ptr(), infoLog as *mut u8, copy_len);
                 *infoLog.add(copy_len) = 0;
@@ -722,7 +769,13 @@ pub extern "C" fn glDeleteProgram(program: GLuint) {
 /// Check if name is a program
 #[no_mangle]
 pub extern "C" fn glIsProgram(program: GLuint) -> GLboolean {
-    with_context(|ctx| if ctx.is_program(program) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.is_program(program) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 /// Attach shader to program
@@ -735,17 +788,21 @@ pub extern "C" fn glAttachShader(program: GLuint, shader: GLuint) {
             ctx.state.set_error(GL_INVALID_VALUE);
             return;
         };
-        
+
         if let Some(program_obj) = ctx.programs.get_mut(&program) {
             match shader_type {
                 crate::context::ShaderType::Vertex => program_obj.vertex_shader = Some(shader),
                 crate::context::ShaderType::Fragment => program_obj.fragment_shader = Some(shader),
                 crate::context::ShaderType::Geometry => program_obj.geometry_shader = Some(shader),
-                crate::context::ShaderType::TessControl => program_obj.tess_control_shader = Some(shader),
-                crate::context::ShaderType::TessEvaluation => program_obj.tess_evaluation_shader = Some(shader),
+                crate::context::ShaderType::TessControl => {
+                    program_obj.tess_control_shader = Some(shader)
+                },
+                crate::context::ShaderType::TessEvaluation => {
+                    program_obj.tess_evaluation_shader = Some(shader)
+                },
                 crate::context::ShaderType::Compute => program_obj.compute_shader = Some(shader),
             }
-            
+
             // Increment shader ref count
             if let Some(s) = ctx.shaders.get_mut(&shader) {
                 s.ref_count += 1;
@@ -782,7 +839,7 @@ pub extern "C" fn glDetachShader(program: GLuint, shader: GLuint) {
             } else {
                 false
             };
-            
+
             if detached {
                 // Decrement shader ref count
                 if let Some(s) = ctx.shaders.get_mut(&shader) {
@@ -832,18 +889,48 @@ pub extern "C" fn glGetProgramiv(program: GLuint, pname: GLenum, params: *mut GL
     with_context(|ctx| {
         if let Some(program_obj) = ctx.programs.get(&program) {
             let value = match pname {
-                GL_DELETE_STATUS => if program_obj.delete_pending { GL_TRUE as i32 } else { GL_FALSE as i32 },
-                GL_LINK_STATUS => if program_obj.linked { GL_TRUE as i32 } else { GL_FALSE as i32 },
-                GL_VALIDATE_STATUS => if program_obj.validated { GL_TRUE as i32 } else { GL_FALSE as i32 },
+                GL_DELETE_STATUS => {
+                    if program_obj.delete_pending {
+                        GL_TRUE as i32
+                    } else {
+                        GL_FALSE as i32
+                    }
+                },
+                GL_LINK_STATUS => {
+                    if program_obj.linked {
+                        GL_TRUE as i32
+                    } else {
+                        GL_FALSE as i32
+                    }
+                },
+                GL_VALIDATE_STATUS => {
+                    if program_obj.validated {
+                        GL_TRUE as i32
+                    } else {
+                        GL_FALSE as i32
+                    }
+                },
                 GL_INFO_LOG_LENGTH => program_obj.info_log.len() as i32 + 1,
                 GL_ATTACHED_SHADERS => {
                     let mut count = 0;
-                    if program_obj.vertex_shader.is_some() { count += 1; }
-                    if program_obj.fragment_shader.is_some() { count += 1; }
-                    if program_obj.geometry_shader.is_some() { count += 1; }
-                    if program_obj.tess_control_shader.is_some() { count += 1; }
-                    if program_obj.tess_evaluation_shader.is_some() { count += 1; }
-                    if program_obj.compute_shader.is_some() { count += 1; }
+                    if program_obj.vertex_shader.is_some() {
+                        count += 1;
+                    }
+                    if program_obj.fragment_shader.is_some() {
+                        count += 1;
+                    }
+                    if program_obj.geometry_shader.is_some() {
+                        count += 1;
+                    }
+                    if program_obj.tess_control_shader.is_some() {
+                        count += 1;
+                    }
+                    if program_obj.tess_evaluation_shader.is_some() {
+                        count += 1;
+                    }
+                    if program_obj.compute_shader.is_some() {
+                        count += 1;
+                    }
                     count
                 },
                 GL_ACTIVE_UNIFORMS => program_obj.uniforms.len() as i32,
@@ -851,9 +938,11 @@ pub extern "C" fn glGetProgramiv(program: GLuint, pname: GLenum, params: *mut GL
                 _ => {
                     ctx.state.set_error(GL_INVALID_ENUM);
                     return;
-                }
+                },
             };
-            unsafe { *params = value; }
+            unsafe {
+                *params = value;
+            }
         } else {
             ctx.state.set_error(GL_INVALID_VALUE);
         }
@@ -945,7 +1034,13 @@ pub extern "C" fn glDeleteTextures(n: GLsizei, textures: *const GLuint) {
 /// Check if name is a texture
 #[no_mangle]
 pub extern "C" fn glIsTexture(texture: GLuint) -> GLboolean {
-    with_context(|ctx| if ctx.is_texture(texture) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.is_texture(texture) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 /// Bind texture
@@ -1007,7 +1102,13 @@ pub extern "C" fn glDeleteFramebuffers(n: GLsizei, framebuffers: *const GLuint) 
 /// Check if name is a framebuffer
 #[no_mangle]
 pub extern "C" fn glIsFramebuffer(framebuffer: GLuint) -> GLboolean {
-    with_context(|ctx| if ctx.is_framebuffer(framebuffer) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.is_framebuffer(framebuffer) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 /// Bind framebuffer
@@ -1056,7 +1157,13 @@ pub extern "C" fn glDeleteRenderbuffers(n: GLsizei, renderbuffers: *const GLuint
 /// Check if name is a renderbuffer
 #[no_mangle]
 pub extern "C" fn glIsRenderbuffer(renderbuffer: GLuint) -> GLboolean {
-    with_context(|ctx| if ctx.is_renderbuffer(renderbuffer) { GL_TRUE } else { GL_FALSE })
+    with_context(|ctx| {
+        if ctx.is_renderbuffer(renderbuffer) {
+            GL_TRUE
+        } else {
+            GL_FALSE
+        }
+    })
 }
 
 /// Bind renderbuffer
@@ -1092,7 +1199,12 @@ pub extern "C" fn glDrawArrays(mode: GLenum, first: GLint, count: GLsizei) {
 
 /// Draw elements
 #[no_mangle]
-pub extern "C" fn glDrawElements(mode: GLenum, count: GLsizei, type_: GLenum, indices: *const c_void) {
+pub extern "C" fn glDrawElements(
+    mode: GLenum,
+    count: GLsizei,
+    type_: GLenum,
+    indices: *const c_void,
+) {
     with_context(|ctx| {
         // TODO: Translate to vkCmdDrawIndexed
         let _ = (mode, count, type_, indices);
