@@ -1,0 +1,75 @@
+# =============================================================================
+# Helix OS - Dependabot Configuration
+# =============================================================================
+# Automated dependency updates with security focus
+# =============================================================================
+
+version: 2
+
+registries:
+  crates-io:
+    type: cargo-registry
+    url: https://crates.io
+
+updates:
+  # ==========================================================================
+  # Rust Dependencies
+  # ==========================================================================
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "helix-os/security"
+      - "helix-os/maintainers"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "security-review"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Group minor and patch updates
+    groups:
+      rust-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Security updates take priority
+    allow:
+      - dependency-type: "all"
+    ignore:
+      # Ignore pre-release versions unless already using one
+      - dependency-name: "*"
+        update-types: ["version-update:semver-prerelease"]
+
+  # ==========================================================================
+  # GitHub Actions
+  # ==========================================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "helix-os/security"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "security-review"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
