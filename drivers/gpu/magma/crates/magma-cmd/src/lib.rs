@@ -49,7 +49,7 @@ pub mod submit;
 
 // Re-exports
 pub use buffer::{CommandBuffer, CommandBufferState};
-pub use channel::{GpuChannel, ChannelId};
+pub use channel::{ChannelId, GpuChannel};
 pub use pushbuf::{PushBuffer, PushStream};
 pub use ring::{CommandRing, RingConfig};
 pub use submit::{Submission, SubmitFlags};
