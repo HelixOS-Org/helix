@@ -2,12 +2,15 @@
 //!
 //! Vulkan graphics and compute pipeline creation and caching.
 
-use crate::context::{GlContext, ProgramObject};
-use crate::enums::*;
-use crate::state::{BlendState, DepthState, RasterState, StencilState, VertexAttribState, MAX_VERTEX_ATTRIBS};
-use crate::texture::SamplerState;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::context::{GlContext, ProgramObject};
+use crate::enums::*;
+use crate::state::{
+    BlendState, DepthState, RasterState, StencilState, VertexAttribState, MAX_VERTEX_ATTRIBS,
+};
+use crate::texture::SamplerState;
 
 // =============================================================================
 // PIPELINE STATE HASH
@@ -140,19 +143,19 @@ fn hash_depth_stencil_state(depth: &DepthState, stencil: &StencilState) -> u64 {
 /// Translate GL primitive type to Vulkan topology
 pub fn gl_topology_to_vk(mode: GLenum) -> u32 {
     match mode {
-        GL_POINTS => 0,           // VK_PRIMITIVE_TOPOLOGY_POINT_LIST
-        GL_LINES => 1,            // VK_PRIMITIVE_TOPOLOGY_LINE_LIST
-        GL_LINE_LOOP => 2,        // VK_PRIMITIVE_TOPOLOGY_LINE_STRIP (approximate)
-        GL_LINE_STRIP => 2,       // VK_PRIMITIVE_TOPOLOGY_LINE_STRIP
-        GL_TRIANGLES => 3,        // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
-        GL_TRIANGLE_STRIP => 4,   // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP
-        GL_TRIANGLE_FAN => 5,     // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN
-        GL_LINES_ADJACENCY => 6,  // VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY
-        GL_LINE_STRIP_ADJACENCY => 7, // VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY
-        GL_TRIANGLES_ADJACENCY => 8, // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY
+        GL_POINTS => 0,                   // VK_PRIMITIVE_TOPOLOGY_POINT_LIST
+        GL_LINES => 1,                    // VK_PRIMITIVE_TOPOLOGY_LINE_LIST
+        GL_LINE_LOOP => 2,                // VK_PRIMITIVE_TOPOLOGY_LINE_STRIP (approximate)
+        GL_LINE_STRIP => 2,               // VK_PRIMITIVE_TOPOLOGY_LINE_STRIP
+        GL_TRIANGLES => 3,                // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+        GL_TRIANGLE_STRIP => 4,           // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP
+        GL_TRIANGLE_FAN => 5,             // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN
+        GL_LINES_ADJACENCY => 6,          // VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY
+        GL_LINE_STRIP_ADJACENCY => 7,     // VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY
+        GL_TRIANGLES_ADJACENCY => 8,      // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY
         GL_TRIANGLE_STRIP_ADJACENCY => 9, // VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY
-        GL_PATCHES => 10,         // VK_PRIMITIVE_TOPOLOGY_PATCH_LIST
-        _ => 3, // Default to triangles
+        GL_PATCHES => 10,                 // VK_PRIMITIVE_TOPOLOGY_PATCH_LIST
+        _ => 3,                           // Default to triangles
     }
 }
 
@@ -168,21 +171,21 @@ pub fn topology_needs_restart(mode: GLenum) -> bool {
 /// Translate GL blend factor to Vulkan
 pub fn gl_blend_factor_to_vk(factor: GLenum) -> u32 {
     match factor {
-        GL_ZERO => 0,                        // VK_BLEND_FACTOR_ZERO
-        GL_ONE => 1,                         // VK_BLEND_FACTOR_ONE
-        GL_SRC_COLOR => 2,                   // VK_BLEND_FACTOR_SRC_COLOR
-        GL_ONE_MINUS_SRC_COLOR => 3,         // VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR
-        GL_DST_COLOR => 4,                   // VK_BLEND_FACTOR_DST_COLOR
-        GL_ONE_MINUS_DST_COLOR => 5,         // VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR
-        GL_SRC_ALPHA => 6,                   // VK_BLEND_FACTOR_SRC_ALPHA
-        GL_ONE_MINUS_SRC_ALPHA => 7,         // VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-        GL_DST_ALPHA => 8,                   // VK_BLEND_FACTOR_DST_ALPHA
-        GL_ONE_MINUS_DST_ALPHA => 9,         // VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA
-        GL_CONSTANT_COLOR => 10,             // VK_BLEND_FACTOR_CONSTANT_COLOR
-        GL_ONE_MINUS_CONSTANT_COLOR => 11,   // VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR
-        GL_CONSTANT_ALPHA => 12,             // VK_BLEND_FACTOR_CONSTANT_ALPHA
-        GL_ONE_MINUS_CONSTANT_ALPHA => 13,   // VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA
-        GL_SRC_ALPHA_SATURATE => 14,         // VK_BLEND_FACTOR_SRC_ALPHA_SATURATE
+        GL_ZERO => 0,                      // VK_BLEND_FACTOR_ZERO
+        GL_ONE => 1,                       // VK_BLEND_FACTOR_ONE
+        GL_SRC_COLOR => 2,                 // VK_BLEND_FACTOR_SRC_COLOR
+        GL_ONE_MINUS_SRC_COLOR => 3,       // VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR
+        GL_DST_COLOR => 4,                 // VK_BLEND_FACTOR_DST_COLOR
+        GL_ONE_MINUS_DST_COLOR => 5,       // VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR
+        GL_SRC_ALPHA => 6,                 // VK_BLEND_FACTOR_SRC_ALPHA
+        GL_ONE_MINUS_SRC_ALPHA => 7,       // VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+        GL_DST_ALPHA => 8,                 // VK_BLEND_FACTOR_DST_ALPHA
+        GL_ONE_MINUS_DST_ALPHA => 9,       // VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA
+        GL_CONSTANT_COLOR => 10,           // VK_BLEND_FACTOR_CONSTANT_COLOR
+        GL_ONE_MINUS_CONSTANT_COLOR => 11, // VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR
+        GL_CONSTANT_ALPHA => 12,           // VK_BLEND_FACTOR_CONSTANT_ALPHA
+        GL_ONE_MINUS_CONSTANT_ALPHA => 13, // VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA
+        GL_SRC_ALPHA_SATURATE => 14,       // VK_BLEND_FACTOR_SRC_ALPHA_SATURATE
         _ => 0,
     }
 }
@@ -214,7 +217,7 @@ pub fn gl_compare_op_to_vk(func: GLenum) -> u32 {
         GL_NOTEQUAL => 5, // VK_COMPARE_OP_NOT_EQUAL
         GL_GEQUAL => 6,   // VK_COMPARE_OP_GREATER_OR_EQUAL
         GL_ALWAYS => 7,   // VK_COMPARE_OP_ALWAYS
-        _ => 1, // Default to LESS
+        _ => 1,           // Default to LESS
     }
 }
 
@@ -235,14 +238,14 @@ const GL_STENCIL_INVERT: GLenum = 0x150A;
 /// Translate GL stencil operation to Vulkan
 pub fn gl_stencil_op_to_vk(op: GLenum) -> u32 {
     match op {
-        GL_STENCIL_KEEP => 0,       // VK_STENCIL_OP_KEEP
-        GL_STENCIL_ZERO => 1,       // VK_STENCIL_OP_ZERO
-        GL_STENCIL_REPLACE => 2,    // VK_STENCIL_OP_REPLACE
-        GL_STENCIL_INCR => 3,       // VK_STENCIL_OP_INCREMENT_AND_CLAMP
-        GL_STENCIL_DECR => 4,       // VK_STENCIL_OP_DECREMENT_AND_CLAMP
-        GL_STENCIL_INVERT => 5,     // VK_STENCIL_OP_INVERT
-        GL_STENCIL_INCR_WRAP => 6,  // VK_STENCIL_OP_INCREMENT_AND_WRAP
-        GL_STENCIL_DECR_WRAP => 7,  // VK_STENCIL_OP_DECREMENT_AND_WRAP
+        GL_STENCIL_KEEP => 0,      // VK_STENCIL_OP_KEEP
+        GL_STENCIL_ZERO => 1,      // VK_STENCIL_OP_ZERO
+        GL_STENCIL_REPLACE => 2,   // VK_STENCIL_OP_REPLACE
+        GL_STENCIL_INCR => 3,      // VK_STENCIL_OP_INCREMENT_AND_CLAMP
+        GL_STENCIL_DECR => 4,      // VK_STENCIL_OP_DECREMENT_AND_CLAMP
+        GL_STENCIL_INVERT => 5,    // VK_STENCIL_OP_INVERT
+        GL_STENCIL_INCR_WRAP => 6, // VK_STENCIL_OP_INCREMENT_AND_WRAP
+        GL_STENCIL_DECR_WRAP => 7, // VK_STENCIL_OP_DECREMENT_AND_WRAP
         _ => 0,
     }
 }
@@ -329,12 +332,12 @@ impl PipelineCache {
             max_cached,
         }
     }
-    
+
     /// Increment frame counter
     pub fn next_frame(&mut self) {
         self.frame_number += 1;
     }
-    
+
     /// Get or create graphics pipeline
     pub fn get_graphics_pipeline(&mut self, key: &PipelineKey) -> Option<&CachedPipeline> {
         let hash = Self::hash_key(key);
@@ -344,7 +347,7 @@ impl PipelineCache {
         }
         None
     }
-    
+
     /// Insert graphics pipeline
     pub fn insert_graphics_pipeline(
         &mut self,
@@ -353,19 +356,19 @@ impl PipelineCache {
         vk_pipeline_layout: u64,
     ) {
         let hash = Self::hash_key(key);
-        
+
         // Evict if at capacity
         if self.graphics.len() >= self.max_cached {
             self.evict_oldest_graphics();
         }
-        
+
         self.graphics.insert(hash, CachedPipeline {
             vk_pipeline,
             vk_pipeline_layout,
             last_used_frame: self.frame_number,
         });
     }
-    
+
     /// Get or create compute pipeline
     pub fn get_compute_pipeline(&mut self, program: u32) -> Option<&CachedPipeline> {
         if let Some(pipeline) = self.compute.get_mut(&program) {
@@ -374,7 +377,7 @@ impl PipelineCache {
         }
         None
     }
-    
+
     /// Insert compute pipeline
     pub fn insert_compute_pipeline(
         &mut self,
@@ -388,35 +391,50 @@ impl PipelineCache {
             last_used_frame: self.frame_number,
         });
     }
-    
+
     /// Evict oldest graphics pipeline
     fn evict_oldest_graphics(&mut self) {
-        if let Some((&oldest_key, _)) = self.graphics.iter().min_by_key(|(_, p)| p.last_used_frame) {
+        if let Some((&oldest_key, _)) = self.graphics.iter().min_by_key(|(_, p)| p.last_used_frame)
+        {
             // TODO: Destroy Vulkan pipeline
             self.graphics.remove(&oldest_key);
         }
     }
-    
+
     /// Hash pipeline key to u64
     fn hash_key(key: &PipelineKey) -> u64 {
         let mut hash: u64 = key.program as u64;
-        hash = hash.wrapping_mul(0x517cc1b727220a95).wrapping_add(key.render_pass_hash);
-        hash = hash.wrapping_mul(0x517cc1b727220a95).wrapping_add(key.vertex_input_hash);
-        hash = hash.wrapping_mul(0x517cc1b727220a95).wrapping_add(key.raster_hash);
-        hash = hash.wrapping_mul(0x517cc1b727220a95).wrapping_add(key.blend_hash);
-        hash = hash.wrapping_mul(0x517cc1b727220a95).wrapping_add(key.depth_stencil_hash);
-        hash = hash.wrapping_mul(0x517cc1b727220a95).wrapping_add(key.topology as u64);
-        hash = hash.wrapping_mul(0x517cc1b727220a95).wrapping_add(key.samples as u64);
+        hash = hash
+            .wrapping_mul(0x517cc1b727220a95)
+            .wrapping_add(key.render_pass_hash);
+        hash = hash
+            .wrapping_mul(0x517cc1b727220a95)
+            .wrapping_add(key.vertex_input_hash);
+        hash = hash
+            .wrapping_mul(0x517cc1b727220a95)
+            .wrapping_add(key.raster_hash);
+        hash = hash
+            .wrapping_mul(0x517cc1b727220a95)
+            .wrapping_add(key.blend_hash);
+        hash = hash
+            .wrapping_mul(0x517cc1b727220a95)
+            .wrapping_add(key.depth_stencil_hash);
+        hash = hash
+            .wrapping_mul(0x517cc1b727220a95)
+            .wrapping_add(key.topology as u64);
+        hash = hash
+            .wrapping_mul(0x517cc1b727220a95)
+            .wrapping_add(key.samples as u64);
         hash
     }
-    
+
     /// Clear all cached pipelines
     pub fn clear(&mut self) {
         // TODO: Destroy all Vulkan pipelines
         self.graphics.clear();
         self.compute.clear();
     }
-    
+
     /// Get statistics
     pub fn stats(&self) -> (usize, usize) {
         (self.graphics.len(), self.compute.len())
