@@ -6,20 +6,15 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::format;
-use alloc::vec;
-
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::ir::{IRBuilder, IRModule, IROp, IRParam, IRType, IRValue, ParamAttributes};
-use super::{
-    BinOp, Expr, GenOptions, Predicate, Specification,
-    TypeSpec,
-};
+use super::{BinOp, Expr, GenOptions, Predicate, Specification, TypeSpec};
 
 // ============================================================================
 // SYNTHESIS TYPES
@@ -525,7 +520,8 @@ impl SynthesisEngine {
         let mut candidates = Vec::new();
 
         // Find matching components - clone names to avoid borrow issues
-        let matching: Vec<String> = self.components
+        let matching: Vec<String> = self
+            .components
             .values()
             .filter(|c| Self::component_matches_static(c, spec))
             .map(|c| c.name.clone())
@@ -696,7 +692,7 @@ impl SynthesisEngine {
         spec: &Specification,
         sketch: Option<&Sketch>,
         options: &GenOptions,
-    ) -> Vec<SynthesisCandidate> {      
+    ) -> Vec<SynthesisCandidate> {
         let mut candidates = Vec::new();
 
         if let Some(sketch) = sketch {
