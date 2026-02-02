@@ -53,6 +53,9 @@ causal = []
 replay = []
 debug = []
 
+# Nightly features
+nightly = []
+
 # Feature sets
 q1_complete = ["testing", "fuzzing", "benchmarking", "chaos", "proof"]
 q2_complete = ["prediction", "degradation", "canary", "forecast", "anomaly"]
