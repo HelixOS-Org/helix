@@ -80,7 +80,8 @@ impl<'a> Frame<'a> {
     /// # Example
     ///
     /// ```rust
-    /// frame.render()
+    /// frame
+    ///     .render()
     ///     .clear(Color::BLACK)
     ///     .draw(&mesh)
     ///     .with(vertex_shader, fragment_shader)
@@ -102,7 +103,8 @@ impl<'a> Frame<'a> {
     /// # Example
     ///
     /// ```rust
-    /// frame.compute()
+    /// frame
+    ///     .compute()
     ///     .dispatch(compute_kernel)
     ///     .args(&mut buffer, delta_time)
     ///     .groups(buffer.len() / 256, 1, 1);
@@ -306,7 +308,10 @@ impl<'b, 'a> DrawWithShadersBuilder<'b, 'a> {
                 resource: crate::graph::ResourceId::new(0),
                 load_op,
                 store_op: StoreOp::Store,
-                clear_value: render.clear_color.map(ClearValue::Color).unwrap_or_default(),
+                clear_value: render
+                    .clear_color
+                    .map(ClearValue::Color)
+                    .unwrap_or_default(),
             }],
             depth_attachment: render.clear_depth.map(|depth| Attachment {
                 resource: crate::graph::ResourceId::new(1),
@@ -389,16 +394,12 @@ impl<'b, 'a> DrawFullscreenWithShaderBuilder<'b, 'a> {
     /// Submits the draw call
     pub fn submit(self) {
         // Draw fullscreen triangle
-        self.draw
-            .render
-            .frame
-            .graph
-            .add_node(RenderNode::Draw {
-                vertex_count: 3,
-                instance_count: 1,
-                first_vertex: 0,
-                first_instance: 0,
-            });
+        self.draw.render.frame.graph.add_node(RenderNode::Draw {
+            vertex_count: 3,
+            instance_count: 1,
+            first_vertex: 0,
+            first_instance: 0,
+        });
     }
 }
 
@@ -461,9 +462,7 @@ impl<'b, 'a> ComputeBuilder<'b, 'a> {
 
     /// Dispatches a compute kernel
     pub fn dispatch<K>(self, _kernel: K) -> DispatchBuilder<'b, 'a> {
-        DispatchBuilder {
-            frame: self.frame,
-        }
+        DispatchBuilder { frame: self.frame }
     }
 }
 
