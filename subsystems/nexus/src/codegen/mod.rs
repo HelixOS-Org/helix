@@ -24,9 +24,8 @@ pub mod verification;
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::format;
-
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
