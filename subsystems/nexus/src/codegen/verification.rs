@@ -9,12 +9,14 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::ir::{
-    BlockId, IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRTerminator, IRType, IRValue,
+    IRFunction, IRModule, IROp, IRType, IRValue,
 };
 use super::{
     BinOp, Expr, Predicate, ProofCertificate, ProofMethod, ProvedProperty, Specification, TypeSpec,
@@ -350,7 +352,7 @@ impl VerificationEngine {
     pub fn verify(&mut self, ir: &IRModule, spec: &Specification) -> VerificationResult {
         self.stats.total_verifications += 1;
 
-        let start = 0u64; // Timestamp placeholder
+        let _start = 0u64; // Timestamp placeholder
 
         // Generate verification conditions
         let vcs = self.generate_vcs(ir, spec);
