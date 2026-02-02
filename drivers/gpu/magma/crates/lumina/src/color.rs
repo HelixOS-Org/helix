@@ -3,8 +3,9 @@
 //! Provides color representations for use in rendering operations
 //! such as clear colors and constant colors.
 
-use crate::output::Rgba8;
 use lumina_math::Vec4;
+
+use crate::output::Rgba8;
 
 /// An RGBA color with floating-point components
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
