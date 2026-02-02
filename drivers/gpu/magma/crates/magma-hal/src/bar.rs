@@ -2,7 +2,7 @@
 //!
 //! GPU BAR mapping and region handling.
 
-use magma_core::{Error, Result, PhysAddr, ByteSize};
+use magma_core::{ByteSize, Error, PhysAddr, Result};
 
 // =============================================================================
 // BAR TYPES
@@ -44,11 +44,11 @@ pub enum BarPrefetch {
 #[repr(u8)]
 pub enum NvidiaBar {
     /// BAR0: MMIO registers
-    Mmio = 0,
+    Mmio        = 0,
     /// BAR1: Framebuffer aperture
     Framebuffer = 1,
     /// BAR2/3: RAMIN (instance memory)
-    Ramin = 2,
+    Ramin       = 2,
 }
 
 impl NvidiaBar {
