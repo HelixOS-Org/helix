@@ -17,7 +17,7 @@
 use core::sync::atomic::{fence, AtomicU32, AtomicU64, Ordering};
 
 use super::cpu_info::{get_cpu_info, register_cpu, CpuState};
-use super::{SmpError, AP_TRAMPOLINE_ADDR, CPU_STACK_SIZE, MAX_CPUS};
+use super::{SmpError, AP_TRAMPOLINE_ADDR, MAX_CPUS};
 
 // =============================================================================
 // Trampoline
@@ -321,14 +321,16 @@ unsafe fn write_icr(dest_apic_id: u64, icr_low: u32) {
     let high_ptr = (LAPIC_BASE + ICR_HIGH_OFFSET) as *mut u32;
     let low_ptr = (LAPIC_BASE + ICR_LOW_OFFSET) as *mut u32;
 
-    core::ptr::write_volatile(high_ptr, icr_high);
-    core::ptr::write_volatile(low_ptr, icr_low);
+    unsafe {
+        core::ptr::write_volatile(high_ptr, icr_high);
+        core::ptr::write_volatile(low_ptr, icr_low);
+    }
 }
 
 /// Read ICR low register
 unsafe fn read_icr() -> u32 {
     let low_ptr = (LAPIC_BASE + ICR_LOW_OFFSET) as *const u32;
-    core::ptr::read_volatile(low_ptr)
+    unsafe { core::ptr::read_volatile(low_ptr) }
 }
 
 // =============================================================================
