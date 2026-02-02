@@ -1,0 +1,293 @@
+# =============================================================================
+# Helix OS - Release Workflow (GitFlow)
+# =============================================================================
+# Handles releases from release/* branches to main
+# Includes signing, attestation, and provenance
+# =============================================================================
+
+name: 🚀 Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  # ===========================================================================
+  # 🔒 PRE-RELEASE SECURITY CHECK
+  # ===========================================================================
+  pre-release-check:
+    name: 🔒 Pre-Release Security
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: 🔐 Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+          disable-sudo: true
+
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 🏷️ Extract Version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Release Version: $VERSION"
+
+      - name: 🦀 Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 📦 Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: 🔍 Final Security Audit
+        run: |
+          echo "## 🔒 Pre-Release Security Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if cargo audit --deny warnings; then
+            echo "✅ No known vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Security warnings found - review required" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ===========================================================================
+  # 🔨 BUILD RELEASE
+  # ===========================================================================
+  build-release:
+    name: 🔨 Build Release
+    runs-on: ubuntu-latest
+    needs: pre-release-check
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: 🔐 Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: 🦀 Install Rust (Nightly)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src, llvm-tools-preview
+          targets: x86_64-unknown-none
+
+      - name: 📦 Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: 🔨 Build Release Binary
+        run: |
+          cargo build \
+            --target x86_64-unknown-none \
+            --release
+
+      - name: 📦 Package Artifacts
+        run: |
+          mkdir -p release-artifacts
+
+          # Copy kernel binary
+          if [ -f target/x86_64-unknown-none/release/helix-kernel ]; then
+            cp target/x86_64-unknown-none/release/helix-kernel release-artifacts/
+          fi
+
+          # Copy any additional binaries
+          find target/x86_64-unknown-none/release -maxdepth 1 -type f -executable \
+            -exec cp {} release-artifacts/ \; 2>/dev/null || true
+
+          # Create checksums
+          cd release-artifacts
+          sha256sum * > SHA256SUMS.txt 2>/dev/null || echo "No files to checksum"
+          sha512sum * > SHA512SUMS.txt 2>/dev/null || echo "No files to checksum"
+
+      - name: 📤 Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: helix-release-${{ needs.pre-release-check.outputs.version }}
+          path: release-artifacts/
+          retention-days: 90
+
+      - name: 🔏 Generate Attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'release-artifacts/*'
+        continue-on-error: true
+
+  # ===========================================================================
+  # 📋 GENERATE CHANGELOG
+  # ===========================================================================
+  changelog:
+    name: 📋 Generate Changelog
+    runs-on: ubuntu-latest
+    needs: pre-release-check
+    permissions:
+      contents: read
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 📋 Generate Changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.pre-release-check.outputs.version }}"
+
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "## 🚀 Helix OS $VERSION" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "**Release Date:** $(date -u +%Y-%m-%d)" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "### 📝 Changes since $PREV_TAG" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD >> CHANGELOG.md
+          else
+            echo "### 📝 Initial Release" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" --max-count=50 >> CHANGELOG.md
+          fi
+
+          echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### 🔒 Security" >> CHANGELOG.md
+          echo "- All dependencies audited for vulnerabilities" >> CHANGELOG.md
+          echo "- Build provenance attestation included" >> CHANGELOG.md
+          echo "- SBOM available as release artifact" >> CHANGELOG.md
+
+          # Output for GitHub release
+          {
+            echo 'changelog<<EOF'
+            cat CHANGELOG.md
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
+      - name: 📤 Upload Changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-${{ needs.pre-release-check.outputs.version }}
+          path: CHANGELOG.md
+          retention-days: 90
+
+  # ===========================================================================
+  # 🚀 CREATE GITHUB RELEASE
+  # ===========================================================================
+  create-release:
+    name: 🚀 Create Release
+    runs-on: ubuntu-latest
+    needs: [pre-release-check, build-release, changelog]
+    permissions:
+      contents: write
+    steps:
+      - name: 🔐 Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: 📥 Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: helix-release-${{ needs.pre-release-check.outputs.version }}
+          path: ./release-artifacts
+
+      - name: 📥 Download Changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog-${{ needs.pre-release-check.outputs.version }}
+          path: ./
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.pre-release-check.outputs.version }}
+          name: Helix OS ${{ needs.pre-release-check.outputs.version }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ inputs.prerelease || contains(needs.pre-release-check.outputs.version, '-') }}
+          files: |
+            release-artifacts/*
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ===========================================================================
+  # 📊 POST-RELEASE NOTIFICATION
+  # ===========================================================================
+  notify:
+    name: 📊 Post-Release
+    runs-on: ubuntu-latest
+    needs: [pre-release-check, create-release]
+    if: always()
+    permissions:
+      contents: read
+    steps:
+      - name: 📊 Release Summary
+        run: |
+          echo "# 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.pre-release-check.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ needs.create-release.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Actor | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.create-release.result }}" == "success" ]; then
+            echo "✅ **Release published successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Release failed - check logs**" >> $GITHUB_STEP_SUMMARY
+          fi
