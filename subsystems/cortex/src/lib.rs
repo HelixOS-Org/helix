@@ -115,6 +115,31 @@ pub mod telemetry;
 pub mod temporal;
 
 // =============================================================================
+// CORE TYPES
+// =============================================================================
+
+/// Timestamp in microseconds since system boot
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct Timestamp(pub u64);
+
+impl Timestamp {
+    /// Create a new timestamp
+    pub const fn new(us: u64) -> Self {
+        Self(us)
+    }
+
+    /// Create timestamp from current time (placeholder - returns 0)
+    pub fn now() -> Self {
+        Self(0)
+    }
+
+    /// Get the raw microseconds value
+    pub const fn as_micros(&self) -> u64 {
+        self.0
+    }
+}
+
+// =============================================================================
 // RE-EXPORTS
 // =============================================================================
 
@@ -129,7 +154,7 @@ pub use bus::{
     BusStats, CortexBus, CortexEvent, EventCategory, EventHandler, EventPriority, HandlerId,
 };
 pub use consciousness::{
-    ConsciousnessLevel, Contract, ContractId, ContractState, Invariant, InvariantId,
+    Contract, ContractId, ContractState, Invariant, InvariantId,
     InvariantState, InvariantViolation, StructuralConsciousness,
 };
 pub use formal::{
@@ -164,7 +189,7 @@ pub use telemetry::{
     TelemetrySnapshot, TimeSeries, Timer,
 };
 pub use temporal::{
-    HotSwap, Rollback, Snapshot, SnapshotId, TemporalKernel, Version, VersionId, VersionState,
+    HotSwap, Rollback, Snapshot, SnapshotId, TemporalKernel, SemanticVersion as Version, VersionId, VersionState,
 };
 
 /// Global CORTEX instance
@@ -210,116 +235,6 @@ impl Default for IntelligenceLevel {
     fn default() -> Self {
         Self::Monitoring
     }
-}
-
-// =============================================================================
-// CORTEX CONFIGURATION
-// =============================================================================
-
-/// CORTEX configuration
-#[derive(Debug, Clone)]
-pub struct CortexConfig {
-    /// Intelligence level
-    pub level: IntelligenceLevel,
-
-    /// Enable consciousness layer
-    pub consciousness_enabled: bool,
-
-    /// Enable neural engine
-    pub neural_enabled: bool,
-
-    /// Enable temporal kernel
-    pub temporal_enabled: bool,
-
-    /// Enable survivability core
-    pub survivability_enabled: bool,
-
-    /// Enable meta-kernel
-    pub meta_enabled: bool,
-
-    /// Maximum decisions per second
-    pub max_decisions_per_second: u64,
-
-    /// Decision timeout in microseconds
-    pub decision_timeout_us: u64,
-
-    /// Memory budget for CORTEX (bytes)
-    pub memory_budget: usize,
-
-    /// CPU budget (percentage)
-    pub cpu_budget_percent: u8,
-
-    /// Enable decision logging
-    pub log_decisions: bool,
-
-    /// Enable performance tracing
-    pub trace_performance: bool,
-}
-
-impl Default for CortexConfig {
-    fn default() -> Self {
-        Self {
-            level: IntelligenceLevel::Monitoring,
-            consciousness_enabled: true,
-            neural_enabled: true,
-            temporal_enabled: true,
-            survivability_enabled: true,
-            meta_enabled: true,
-            max_decisions_per_second: 10000,
-            decision_timeout_us: 100,
-            memory_budget: 16 * 1024 * 1024, // 16 MB
-            cpu_budget_percent: 5,
-            log_decisions: true,
-            trace_performance: false,
-        }
-    }
-}
-
-// =============================================================================
-// CORTEX STATISTICS
-// =============================================================================
-
-/// CORTEX runtime statistics
-#[derive(Debug, Clone, Default)]
-pub struct CortexStats {
-    /// Total decisions made
-    pub decisions_made: u64,
-
-    /// Decisions per second (rolling average)
-    pub decisions_per_second: f64,
-
-    /// Average decision time (microseconds)
-    pub avg_decision_time_us: f64,
-
-    /// Invariant violations detected
-    pub violations_detected: u64,
-
-    /// Violations prevented
-    pub violations_prevented: u64,
-
-    /// Threats detected
-    pub threats_detected: u64,
-
-    /// Threats neutralized
-    pub threats_neutralized: u64,
-
-    /// Hot swaps performed
-    pub hot_swaps_performed: u64,
-
-    /// Rollbacks performed
-    pub rollbacks_performed: u64,
-
-    /// Prediction accuracy (0.0 - 1.0)
-    pub prediction_accuracy: f64,
-
-    /// Memory used (bytes)
-    pub memory_used: usize,
-
-    /// CPU usage (percentage)
-    pub cpu_usage_percent: f64,
-
-    /// Uptime (microseconds)
-    pub uptime_us: u64,
 }
 
 // =============================================================================

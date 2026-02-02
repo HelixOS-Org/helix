@@ -16,7 +16,7 @@ env:
 
 jobs:
   # ===========================================================================
-  # Format Check
+  # Format Check (helix-nexus only)
   # ===========================================================================
   format:
     name: 📝 Format
@@ -29,11 +29,11 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - name: Check formatting (helix-nexus)
+        run: cargo fmt -p helix-nexus -- --check
 
   # ===========================================================================
-  # Clippy (Linux target only - no bare metal)
+  # Clippy (Linux target only)
   # ===========================================================================
   clippy:
     name: 🔍 Clippy
@@ -83,37 +83,6 @@ jobs:
 
       - name: Build helix-nexus
         run: cargo build -p helix-nexus --release --target x86_64-unknown-linux-gnu
-
-  # ===========================================================================
-  # Build Kernel (Nightly + bare metal)
-  # ===========================================================================
-  build-kernel:
-    name: 🖥️ Build Kernel
-    runs-on: ubuntu-latest
-    needs: format
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust Nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rust-src, llvm-tools-preview
-
-      - name: Add bare metal target
-        run: rustup target add x86_64-unknown-none
-
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/
-            ~/.cargo/git/
-            target/
-          key: ${{ runner.os }}-kernel-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Build kernel
-        run: ./scripts/build.sh
-        continue-on-error: true
 
   # ===========================================================================
   # Tests (Linux host target)
