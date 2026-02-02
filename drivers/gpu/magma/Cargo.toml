@@ -1,0 +1,194 @@
+# =============================================================================
+#  __  __    _    ____ __  __    _
+# |  \/  |  / \  / ___|  \/  |  / \
+# | |\/| | / _ \| |  _| |\/| | / _ \
+# | |  | |/ ___ \ |_| | |  | |/ ___ \
+# |_|  |_/_/   \_\____|_|  |_/_/   \_\
+#
+# MAGMA - Revolutionary NVIDIA GPU Driver for Helix OS
+# =============================================================================
+#
+# Architecture: GSP-First, Microkernel, Vulkan-Native
+# Target: Industrial-grade, hyper-scalable driver infrastructure
+#
+# This workspace is designed to host hundreds of crates while maintaining
+# strict separation of concerns and compile-time safety guarantees.
+# =============================================================================
+
+[workspace]
+resolver = "2"
+
+members = [
+    # =========================================================================
+    # CORE LAYER - Shared foundations (no hardware dependencies)
+    # =========================================================================
+    "crates/magma-core",             # Core traits, types, error handling
+    "crates/magma-core-types",       # Fundamental type definitions
+    "crates/magma-core-sync",        # Synchronization primitives
+    "crates/magma-core-alloc",       # Memory allocation abstractions
+    "crates/magma-core-collections", # Lock-free data structures
+
+    # =========================================================================
+    # HARDWARE ABSTRACTION LAYER - GPU hardware interface
+    # =========================================================================
+    "crates/magma-hal",        # HAL facade
+    "crates/magma-hal-pci",    # PCI/PCIe bus abstraction
+    "crates/magma-hal-bar",    # BAR (Base Address Register) mapping
+    "crates/magma-hal-mmio",   # Memory-mapped I/O primitives
+    "crates/magma-hal-irq",    # Interrupt handling
+    "crates/magma-hal-iommu",  # IOMMU/DMA management
+    "crates/magma-hal-detect", # GPU detection & enumeration
+
+    # =========================================================================
+    # GSP FIRMWARE LAYER - GPU System Processor communication
+    # =========================================================================
+    "crates/magma-rpc",           # RPC facade
+    "crates/magma-rpc-transport", # Low-level transport (MMIO/doorbell)
+    "crates/magma-rpc-protocol",  # Message serialization (like RM API)
+    "crates/magma-rpc-handshake", # Firmware loading & authentication
+    "crates/magma-rpc-channels",  # Multi-channel management
+    "crates/magma-rpc-events",    # Async event handling from GSP
+
+    # =========================================================================
+    # MEMORY MANAGEMENT - VRAM & system memory
+    # =========================================================================
+    "crates/magma-mem",        # Memory facade
+    "crates/magma-mem-vram",   # VRAM allocator (buddy system)
+    "crates/magma-mem-sysmem", # System memory (pinned pages)
+    "crates/magma-mem-mmu",    # GPU MMU/page table management
+    "crates/magma-mem-bo",     # Buffer Objects abstraction
+    "crates/magma-mem-dmabuf", # DMA-BUF import/export
+
+    # =========================================================================
+    # COMMAND SUBMISSION - GPU work scheduling
+    # =========================================================================
+    "crates/magma-cmd",           # Command submission facade
+    "crates/magma-cmd-ring",      # Circular command buffers
+    "crates/magma-cmd-pushbuf",   # Push buffer construction
+    "crates/magma-cmd-fence",     # GPU fence/sync primitives
+    "crates/magma-cmd-scheduler", # Work scheduling & priorities
+
+    # =========================================================================
+    # ENGINE ABSTRACTIONS - Specific GPU engines
+    # =========================================================================
+    "crates/magma-engine-graphics", # 3D graphics engine
+    "crates/magma-engine-compute",  # CUDA/compute engine
+    "crates/magma-engine-copy",     # DMA copy engine
+    "crates/magma-engine-video",    # NVDEC/NVENC video engines
+    "crates/magma-engine-display",  # Display/scanout engine
+
+    # =========================================================================
+    # VULKAN IMPLEMENTATION - Zero-overhead Vulkan 1.3
+    # =========================================================================
+    "crates/magma-vulkan",            # Vulkan facade & entry points
+    "crates/magma-vulkan-instance",   # VkInstance implementation
+    "crates/magma-vulkan-device",     # VkDevice implementation
+    "crates/magma-vulkan-memory",     # VkDeviceMemory implementation
+    "crates/magma-vulkan-buffer",     # VkBuffer implementation
+    "crates/magma-vulkan-image",      # VkImage implementation
+    "crates/magma-vulkan-shader",     # VkShaderModule & pipeline
+    "crates/magma-vulkan-cmd",        # VkCommandBuffer implementation
+    "crates/magma-vulkan-queue",      # VkQueue implementation
+    "crates/magma-vulkan-sync",       # VkFence, VkSemaphore, VkEvent
+    "crates/magma-vulkan-swapchain",  # VkSwapchainKHR (WSI)
+    "crates/magma-vulkan-descriptor", # Descriptor sets & layouts
+    "crates/magma-vulkan-render",     # Render pass & framebuffer
+
+    # =========================================================================
+    # KERNEL MODULE - Minimal microkernel component (<2000 LOC)
+    # =========================================================================
+    "crates/k-magma", # Kernel-space driver (IRQ + IOMMU only)
+
+    # =========================================================================
+    # USERSPACE DAEMON - Heavy lifting in userspace
+    # =========================================================================
+    "crates/u-magma",     # Userspace driver daemon
+    "crates/u-magma-ipc", # IPC with kernel module
+
+    # =========================================================================
+    # GENERATION-SPECIFIC SUPPORT
+    # =========================================================================
+    "crates/magma-gen-turing",    # Turing (RTX 20xx) specifics
+    "crates/magma-gen-ampere",    # Ampere (RTX 30xx) specifics
+    "crates/magma-gen-ada",       # Ada Lovelace (RTX 40xx) specifics
+    "crates/magma-gen-blackwell", # Blackwell (RTX 50xx) specifics
+
+    # =========================================================================
+    # TESTING & TOOLING
+    # =========================================================================
+    "crates/magma-test-framework", # GPU testing infrastructure
+    "crates/magma-trace",          # Performance tracing
+    "crates/magma-debug",          # Debug utilities
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.86"
+authors = ["Helix OS Foundation <magma@helixos.org>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/HelixOS-Org/magma"
+documentation = "https://docs.helixos.org/magma"
+keywords = ["gpu", "vulkan", "nvidia", "driver", "graphics"]
+categories = ["graphics", "hardware-support", "no-std"]
+
+[workspace.dependencies]
+# Internal crates - version synchronized
+magma-core = { path = "crates/magma-core" }
+magma-core-types = { path = "crates/magma-core-types" }
+magma-core-sync = { path = "crates/magma-core-sync" }
+magma-core-alloc = { path = "crates/magma-core-alloc" }
+magma-core-collections = { path = "crates/magma-core-collections" }
+magma-hal = { path = "crates/magma-hal" }
+magma-hal-pci = { path = "crates/magma-hal-pci" }
+magma-hal-bar = { path = "crates/magma-hal-bar" }
+magma-hal-mmio = { path = "crates/magma-hal-mmio" }
+magma-hal-irq = { path = "crates/magma-hal-irq" }
+magma-hal-iommu = { path = "crates/magma-hal-iommu" }
+magma-hal-detect = { path = "crates/magma-hal-detect" }
+magma-rpc = { path = "crates/magma-rpc" }
+magma-rpc-transport = { path = "crates/magma-rpc-transport" }
+magma-rpc-protocol = { path = "crates/magma-rpc-protocol" }
+magma-rpc-handshake = { path = "crates/magma-rpc-handshake" }
+magma-rpc-channels = { path = "crates/magma-rpc-channels" }
+magma-rpc-events = { path = "crates/magma-rpc-events" }
+magma-mem = { path = "crates/magma-mem" }
+magma-mem-vram = { path = "crates/magma-mem-vram" }
+magma-mem-sysmem = { path = "crates/magma-mem-sysmem" }
+magma-mem-mmu = { path = "crates/magma-mem-mmu" }
+magma-mem-bo = { path = "crates/magma-mem-bo" }
+magma-mem-dmabuf = { path = "crates/magma-mem-dmabuf" }
+magma-cmd = { path = "crates/magma-cmd" }
+magma-cmd-ring = { path = "crates/magma-cmd-ring" }
+magma-cmd-pushbuf = { path = "crates/magma-cmd-pushbuf" }
+magma-cmd-fence = { path = "crates/magma-cmd-fence" }
+magma-cmd-scheduler = { path = "crates/magma-cmd-scheduler" }
+magma-vulkan = { path = "crates/magma-vulkan" }
+k-magma = { path = "crates/k-magma" }
+u-magma = { path = "crates/u-magma" }
+
+# External dependencies - pinned versions for reproducibility
+bitflags = "2.4"
+log = { version = "0.4", default-features = false }
+spin = { version = "0.9", default-features = false }
+static_assertions = "1.1"
+bytemuck = { version = "1.14", features = ["derive"] }
+arrayvec = { version = "0.7", default-features = false }
+hashbrown = { version = "0.14", default-features = false, features = ["ahash"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.release-debug]
+inherits = "release"
+debug = true
+strip = "none"
+
+[profile.dev]
+opt-level = 0
+debug = true
+overflow-checks = true
