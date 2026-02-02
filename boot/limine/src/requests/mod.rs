@@ -52,24 +52,24 @@
 //! static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 //! ```
 
-pub mod bootloader;
-pub mod memory;
-pub mod kernel;
-pub mod smp;
-pub mod framebuffer;
-pub mod firmware;
 pub mod boot;
+pub mod bootloader;
+pub mod firmware;
+pub mod framebuffer;
+pub mod kernel;
+pub mod memory;
+pub mod smp;
 
 // Re-export all request types
-pub use bootloader::*;
-pub use memory::*;
-pub use kernel::*;
-pub use smp::*;
-pub use framebuffer::*;
-pub use firmware::*;
-pub use boot::*;
-
 use core::sync::atomic::{AtomicPtr, Ordering};
+
+pub use boot::*;
+pub use bootloader::*;
+pub use firmware::*;
+pub use framebuffer::*;
+pub use kernel::*;
+pub use memory::*;
+pub use smp::*;
 
 /// Trait for all Limine requests
 ///

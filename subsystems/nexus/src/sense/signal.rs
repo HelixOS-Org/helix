@@ -7,9 +7,9 @@
 use alloc::string::String;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::*;
 use super::events::{EventData, RawEvent};
 use super::probe::ProbeType;
+use crate::types::*;
 
 // ============================================================================
 // SIGNAL TYPES
@@ -281,7 +281,11 @@ impl SignalNormalizer {
             EventData::Metric(m) => match &m.value {
                 MetricValue::Counter(v) => (SignalType::Metric, SignalValue::Integer(*v as i64)),
                 MetricValue::Gauge(v) => (SignalType::Metric, SignalValue::Numeric(*v)),
-                MetricValue::Histogram(_) => (SignalType::Metric, SignalValue::Numeric(0.0)),
+                MetricValue::Histogram { sum, count } => {
+                    let avg = if *count > 0 { sum / *count as f64 } else { 0.0 };
+                    (SignalType::Metric, SignalValue::Numeric(avg))
+                },
+                MetricValue::Flag(b) => (SignalType::Metric, SignalValue::Boolean(*b)),
             },
             EventData::Raw(_) => (SignalType::Event, SignalValue::Boolean(true)),
         }
@@ -326,8 +330,8 @@ pub struct NormalizerStats {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::events::CpuSample;
+    use super::*;
 
     #[test]
     fn test_signal_normalizer() {

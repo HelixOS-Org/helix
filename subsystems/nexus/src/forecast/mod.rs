@@ -20,19 +20,15 @@ mod result;
 mod series;
 
 // Re-export point
-pub use point::TimePoint;
-
-// Re-export series
-pub use series::TimeSeries;
-
-// Re-export result
-pub use result::ForecastResult;
-
 // Re-export forecaster
 pub use forecaster::Forecaster;
-
+pub use point::TimePoint;
 // Re-export resource types
 pub use resource::{ForecastSeverity, ResourceForecast, ResourceForecaster};
+// Re-export result
+pub use result::ForecastResult;
+// Re-export series
+pub use series::TimeSeries;
 
 // ============================================================================
 // TESTS

@@ -16,104 +16,105 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::RwLock;
 
-use super::{UserResult, UserError, STATS};
+use super::{UserError, UserResult, STATS};
 
 /// Syscall numbers (Linux-compatible subset)
 #[repr(u64)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Syscall {
     /// Read from file descriptor
-    Read = 0,
+    Read            = 0,
     /// Write to file descriptor
-    Write = 1,
+    Write           = 1,
     /// Open file
-    Open = 2,
+    Open            = 2,
     /// Close file descriptor
-    Close = 3,
+    Close           = 3,
     /// Get file status
-    Stat = 4,
+    Stat            = 4,
     /// Get file status (fd)
-    Fstat = 5,
+    Fstat           = 5,
     /// Seek
-    Lseek = 8,
+    Lseek           = 8,
     /// Memory map
-    Mmap = 9,
+    Mmap            = 9,
     /// Memory protect
-    Mprotect = 10,
+    Mprotect        = 10,
     /// Memory unmap
-    Munmap = 11,
+    Munmap          = 11,
     /// Change heap size
-    Brk = 12,
+    Brk             = 12,
     /// I/O control
-    Ioctl = 16,
+    Ioctl           = 16,
     /// Access check
-    Access = 21,
+    Access          = 21,
     /// Create pipe
-    Pipe = 22,
+    Pipe            = 22,
     /// Duplicate FD
-    Dup = 32,
+    Dup             = 32,
     /// Duplicate FD to specific number
-    Dup2 = 33,
+    Dup2            = 33,
     /// Pause
-    Pause = 34,
+    Pause           = 34,
     /// Nanosleep
-    Nanosleep = 35,
+    Nanosleep       = 35,
     /// Get process ID
-    Getpid = 39,
+    Getpid          = 39,
     /// Send signal
-    Kill = 62,
+    Kill            = 62,
     /// Fork
-    Fork = 57,
+    Fork            = 57,
     /// Execute program
-    Execve = 59,
+    Execve          = 59,
     /// Exit
-    Exit = 60,
+    Exit            = 60,
     /// Wait for child
-    Wait4 = 61,
+    Wait4           = 61,
     /// Get current directory
-    Getcwd = 79,
+    Getcwd          = 79,
     /// Change directory
-    Chdir = 80,
+    Chdir           = 80,
     /// Create directory
-    Mkdir = 83,
+    Mkdir           = 83,
     /// Remove directory
-    Rmdir = 84,
+    Rmdir           = 84,
     /// Unlink file
-    Unlink = 87,
+    Unlink          = 87,
     /// Get time
-    Gettimeofday = 96,
+    Gettimeofday    = 96,
     /// Get resource usage
-    Getrusage = 98,
+    Getrusage       = 98,
     /// Get UID
-    Getuid = 102,
+    Getuid          = 102,
     /// Get GID
-    Getgid = 104,
+    Getgid          = 104,
     /// Get EUID
-    Geteuid = 107,
+    Geteuid         = 107,
     /// Get EGID
-    Getegid = 108,
+    Getegid         = 108,
     /// Get parent PID
-    Getppid = 110,
+    Getppid         = 110,
     /// Set signal handler
-    RtSigaction = 13,
+    RtSigaction     = 13,
     /// Signal return
-    RtSigreturn = 15,
+    RtSigreturn     = 15,
     /// Architecture-specific
-    ArchPrctl = 158,
+    ArchPrctl       = 158,
     /// Exit process group
-    ExitGroup = 231,
-    
+    ExitGroup       = 231,
+
     // Helix-specific syscalls (start at 1000)
     /// Get DIS statistics
-    HelixDisStats = 1000,
+    HelixDisStats   = 1000,
     /// Hot-reload module
-    HelixHotReload = 1001,
+    HelixHotReload  = 1001,
     /// Self-heal trigger
-    HelixSelfHeal = 1002,
+    HelixSelfHeal   = 1002,
     /// Run benchmark
-    HelixBenchmark = 1003,
+    HelixBenchmark  = 1003,
     /// Get kernel info
     HelixKernelInfo = 1004,
 }
@@ -178,75 +179,75 @@ pub type SyscallResult = Result<u64, SyscallError>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyscallError {
     /// Operation not permitted
-    EPERM = 1,
+    EPERM   = 1,
     /// No such file or directory
-    ENOENT = 2,
+    ENOENT  = 2,
     /// No such process
-    ESRCH = 3,
+    ESRCH   = 3,
     /// Interrupted system call
-    EINTR = 4,
+    EINTR   = 4,
     /// I/O error
-    EIO = 5,
+    EIO     = 5,
     /// No such device or address
-    ENXIO = 6,
+    ENXIO   = 6,
     /// Argument list too long
-    E2BIG = 7,
+    E2BIG   = 7,
     /// Exec format error
     ENOEXEC = 8,
     /// Bad file descriptor
-    EBADF = 9,
+    EBADF   = 9,
     /// No child processes
-    ECHILD = 10,
+    ECHILD  = 10,
     /// Resource temporarily unavailable
-    EAGAIN = 11,
+    EAGAIN  = 11,
     /// Out of memory
-    ENOMEM = 12,
+    ENOMEM  = 12,
     /// Permission denied
-    EACCES = 13,
+    EACCES  = 13,
     /// Bad address
-    EFAULT = 14,
+    EFAULT  = 14,
     /// Block device required
     ENOTBLK = 15,
     /// Device or resource busy
-    EBUSY = 16,
+    EBUSY   = 16,
     /// File exists
-    EEXIST = 17,
+    EEXIST  = 17,
     /// Invalid cross-device link
-    EXDEV = 18,
+    EXDEV   = 18,
     /// No such device
-    ENODEV = 19,
+    ENODEV  = 19,
     /// Not a directory
     ENOTDIR = 20,
     /// Is a directory
-    EISDIR = 21,
+    EISDIR  = 21,
     /// Invalid argument
-    EINVAL = 22,
+    EINVAL  = 22,
     /// File table overflow
-    ENFILE = 23,
+    ENFILE  = 23,
     /// Too many open files
-    EMFILE = 24,
+    EMFILE  = 24,
     /// Inappropriate ioctl for device
-    ENOTTY = 25,
+    ENOTTY  = 25,
     /// Text file busy
     ETXTBSY = 26,
     /// File too large
-    EFBIG = 27,
+    EFBIG   = 27,
     /// No space left on device
-    ENOSPC = 28,
+    ENOSPC  = 28,
     /// Illegal seek
-    ESPIPE = 29,
+    ESPIPE  = 29,
     /// Read-only file system
-    EROFS = 30,
+    EROFS   = 30,
     /// Too many links
-    EMLINK = 31,
+    EMLINK  = 31,
     /// Broken pipe
-    EPIPE = 32,
+    EPIPE   = 32,
     /// Math argument out of domain
-    EDOM = 33,
+    EDOM    = 33,
     /// Result too large
-    ERANGE = 34,
+    ERANGE  = 34,
     /// Function not implemented
-    ENOSYS = 38,
+    ENOSYS  = 38,
 }
 
 impl SyscallError {
@@ -285,7 +286,7 @@ impl SyscallArgs {
             arg6: 0,
         }
     }
-    
+
     /// Create from array
     pub fn from_array(args: [u64; 6]) -> Self {
         Self {
@@ -331,12 +332,12 @@ impl SyscallTable {
             call_counts: [ZERO; 256],
         }
     }
-    
+
     /// Initialize table with default handlers
     pub fn init(&self) {
         let mut handlers = self.handlers.write();
         handlers.resize_with(256, || None);
-        
+
         // Register standard syscalls
         self.register_handler_internal(&mut handlers, Syscall::Read, sys_read, 3, "read");
         self.register_handler_internal(&mut handlers, Syscall::Write, sys_write, 3, "write");
@@ -350,7 +351,7 @@ impl SyscallTable {
         self.register_handler_internal(&mut handlers, Syscall::Mmap, sys_mmap, 6, "mmap");
         self.register_handler_internal(&mut handlers, Syscall::Munmap, sys_munmap, 2, "munmap");
     }
-    
+
     fn register_handler_internal(
         &self,
         handlers: &mut Vec<Option<SyscallEntry>>,
@@ -369,30 +370,30 @@ impl SyscallTable {
             });
         }
     }
-    
+
     /// Handle a syscall
     pub fn handle(&self, num: u64, args: SyscallArgs) -> SyscallResult {
         STATS.syscall_made();
-        
+
         let handlers = self.handlers.read();
-        
+
         if num >= handlers.len() as u64 {
             return Err(SyscallError::ENOSYS);
         }
-        
+
         if let Some(entry) = &handlers[num as usize] {
             // Update stats
             if num < 256 {
                 self.call_counts[num as usize].fetch_add(1, Ordering::Relaxed);
             }
-            
+
             // Call handler
             (entry.handler)(args)
         } else {
             Err(SyscallError::ENOSYS)
         }
     }
-    
+
     /// Get syscall count
     pub fn get_count(&self, syscall: Syscall) -> u64 {
         let num = syscall as usize;
@@ -419,7 +420,7 @@ fn sys_read(args: SyscallArgs) -> SyscallResult {
     let _fd = args.arg1 as i32;
     let _buf = args.arg2 as *mut u8;
     let _count = args.arg3 as usize;
-    
+
     // In real OS, would read from fd_table entry
     // For now, return 0 (EOF)
     Ok(0)
@@ -430,18 +431,18 @@ fn sys_write(args: SyscallArgs) -> SyscallResult {
     let fd = args.arg1 as i32;
     let buf = args.arg2 as *const u8;
     let count = args.arg3 as usize;
-    
+
     if buf.is_null() {
         return Err(SyscallError::EFAULT);
     }
-    
+
     // For stdout/stderr, would output to console
     match fd {
         1 | 2 => {
             // Would write to console
             // In real OS: console::write(buf, count)
             Ok(count as u64)
-        }
+        },
         _ => Err(SyscallError::EBADF),
     }
 }
@@ -455,7 +456,7 @@ fn sys_open(_args: SyscallArgs) -> SyscallResult {
 /// Close file descriptor
 fn sys_close(args: SyscallArgs) -> SyscallResult {
     let fd = args.arg1 as i32;
-    
+
     // Would close in fd_table
     if fd >= 0 {
         Ok(0)
@@ -486,7 +487,7 @@ fn sys_fork(_args: SyscallArgs) -> SyscallResult {
 /// Exit process
 fn sys_exit(args: SyscallArgs) -> SyscallResult {
     let _code = args.arg1 as i32;
-    
+
     // Would terminate current process
     // This syscall never returns
     Ok(0)
@@ -495,7 +496,7 @@ fn sys_exit(args: SyscallArgs) -> SyscallResult {
 /// Change heap size
 fn sys_brk(args: SyscallArgs) -> SyscallResult {
     let new_brk = args.arg1;
-    
+
     // Would adjust heap
     // For now, just return the requested value
     Ok(new_brk)
@@ -509,11 +510,11 @@ fn sys_mmap(args: SyscallArgs) -> SyscallResult {
     let _flags = args.arg4 as i32;
     let _fd = args.arg5 as i32;
     let _offset = args.arg6;
-    
+
     if len == 0 {
         return Err(SyscallError::EINVAL);
     }
-    
+
     // Would allocate virtual memory
     // For now, return error
     if addr == 0 {
@@ -527,7 +528,7 @@ fn sys_mmap(args: SyscallArgs) -> SyscallResult {
 fn sys_munmap(args: SyscallArgs) -> SyscallResult {
     let _addr = args.arg1;
     let _len = args.arg2;
-    
+
     // Would free virtual memory
     Ok(0)
 }

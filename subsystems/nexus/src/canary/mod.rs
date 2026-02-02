@@ -19,16 +19,13 @@ mod invariant;
 mod monitor;
 
 // Re-export invariant types
-pub use invariant::{Invariant, InvariantCheck, InvariantResult};
-
 // Re-export canary
 pub use canary::Canary;
-
-// Re-export monitor
-pub use monitor::{CanaryMonitor, CanaryStats};
-
 // Re-export helpers
 pub use helpers::{bool_invariant, range_invariant};
+pub use invariant::{Invariant, InvariantCheck, InvariantResult};
+// Re-export monitor
+pub use monitor::{CanaryMonitor, CanaryStats};
 
 // ============================================================================
 // TESTS
@@ -36,8 +33,9 @@ pub use helpers::{bool_invariant, range_invariant};
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::sync::atomic::Ordering;
+
+    use super::*;
 
     #[test]
     fn test_invariant_result() {

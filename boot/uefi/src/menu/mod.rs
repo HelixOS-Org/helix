@@ -2,9 +2,10 @@
 //!
 //! Text and graphical boot menu for selecting boot entries.
 
+use alloc::vec::Vec;
+
 use super::config::{BootConfig, BootEntry};
 use super::console::{Color, Console, FramebufferConsole, Key};
-use alloc::vec::Vec;
 
 // =============================================================================
 // BOOT MENU
@@ -114,32 +115,32 @@ impl<'a> BootMenu<'a> {
                 if self.selected > 0 {
                     self.selected -= 1;
                 }
-            }
+            },
             Key::Down => {
                 let visible_count = self.config.visible_entries().count();
                 if self.selected < visible_count.saturating_sub(1) {
                     self.selected += 1;
                 }
-            }
+            },
             Key::Enter => {
                 return Some(MenuResult::Boot(self.selected));
-            }
+            },
             Key::Char('e') | Key::Char('E') => {
                 self.enter_editor();
-            }
+            },
             Key::Char('c') | Key::Char('C') => {
                 return Some(MenuResult::Shell);
-            }
+            },
             Key::Char('r') | Key::Char('R') => {
                 return Some(MenuResult::Reboot);
-            }
+            },
             Key::Char('s') | Key::Char('S') => {
                 return Some(MenuResult::Shutdown);
-            }
+            },
             Key::Escape => {
                 return Some(MenuResult::Continue);
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         None
@@ -150,23 +151,23 @@ impl<'a> BootMenu<'a> {
         match key {
             Key::Escape => {
                 self.editor_active = false;
-            }
+            },
             Key::Enter => {
                 self.editor_active = false;
                 return Some(MenuResult::Boot(self.selected));
-            }
+            },
             Key::Backspace => {
                 if self.cmdline_len > 0 {
                     self.cmdline_len -= 1;
                 }
-            }
+            },
             Key::Char(c) => {
                 if self.cmdline_len < self.cmdline_buffer.len() - 1 {
                     self.cmdline_buffer[self.cmdline_len] = c as u8;
                     self.cmdline_len += 1;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         None
@@ -212,19 +213,26 @@ impl<'a> BootMenu<'a> {
     /// Draw banner
     fn draw_banner(&self) {
         self.console.println("");
-        self.console.print_colored("  ╔═══════════════════════════════════════════════════════╗\r\n", Color::Cyan);
+        self.console.print_colored(
+            "  ╔═══════════════════════════════════════════════════════╗\r\n",
+            Color::Cyan,
+        );
         self.console.print_colored("  ║", Color::Cyan);
-        self.console.print_colored("           Helix UEFI Boot Manager v1.0           ", Color::White);
+        self.console.print_colored(
+            "           Helix UEFI Boot Manager v1.0           ",
+            Color::White,
+        );
         self.console.print_colored("║\r\n", Color::Cyan);
-        self.console.print_colored("  ╚═══════════════════════════════════════════════════════╝\r\n", Color::Cyan);
+        self.console.print_colored(
+            "  ╚═══════════════════════════════════════════════════════╝\r\n",
+            Color::Cyan,
+        );
         self.console.println("");
     }
 
     /// Draw entries
     fn draw_entries(&self) {
-        let visible: Vec<_> = self.config.entries.iter()
-            .filter(|e| !e.hidden)
-            .collect();
+        let visible: Vec<_> = self.config.entries.iter().filter(|e| !e.hidden).collect();
 
         for (i, entry) in visible.iter().enumerate() {
             let is_selected = i == self.selected;
@@ -250,7 +258,10 @@ impl<'a> BootMenu<'a> {
     /// Draw help text
     fn draw_help(&self) {
         self.console.println("");
-        self.console.print_colored("  ─────────────────────────────────────────────────────────\r\n", Color::DarkGray);
+        self.console.print_colored(
+            "  ─────────────────────────────────────────────────────────\r\n",
+            Color::DarkGray,
+        );
         self.console.print_colored("  ↑↓ ", Color::Yellow);
         self.console.print("Select   ");
         self.console.print_colored("Enter ", Color::Yellow);
@@ -272,14 +283,16 @@ impl<'a> BootMenu<'a> {
         let seconds = self.timeout / 10;
         self.console.println("");
         self.console.print("  Booting in ");
-        self.console.print_colored(&format_number(seconds), Color::Yellow);
+        self.console
+            .print_colored(&format_number(seconds), Color::Yellow);
         self.console.println(" seconds...");
     }
 
     /// Draw command line editor
     fn draw_editor(&self) {
         self.console.println("");
-        self.console.print_colored("  Command Line Editor:\r\n", Color::Cyan);
+        self.console
+            .print_colored("  Command Line Editor:\r\n", Color::Cyan);
         self.console.print("  > ");
 
         if let Ok(s) = core::str::from_utf8(&self.cmdline_buffer[..self.cmdline_len]) {
@@ -292,9 +305,7 @@ impl<'a> BootMenu<'a> {
 
     /// Get selected entry
     pub fn selected_entry(&self) -> Option<&BootEntry> {
-        let visible: Vec<_> = self.config.entries.iter()
-            .filter(|e| !e.hidden)
-            .collect();
+        let visible: Vec<_> = self.config.entries.iter().filter(|e| !e.hidden).collect();
 
         visible.get(self.selected).map(|e| *e)
     }
@@ -531,7 +542,8 @@ impl<'a> Spinner<'a> {
     /// Draw spinner
     fn draw(&self) {
         self.console.print("\r  ");
-        self.console.print_colored(&char_to_str(Self::FRAMES[self.frame]), Color::Cyan);
+        self.console
+            .print_colored(&char_to_str(Self::FRAMES[self.frame]), Color::Cyan);
         self.console.print(" ");
         self.console.print(self.message);
     }

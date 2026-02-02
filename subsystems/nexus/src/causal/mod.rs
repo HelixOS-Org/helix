@@ -22,20 +22,17 @@
 extern crate alloc;
 
 // Submodules
-pub mod node;
 pub mod edge;
 pub mod graph;
+pub mod node;
 pub mod tracker;
 
 // Re-export node types
-pub use node::{CausalNode, CausalNodeType};
-
 // Re-export edge types
 pub use edge::{CausalEdge, CausalEdgeType};
-
 // Re-export graph
 pub use graph::CausalGraph;
-
+pub use node::{CausalNode, CausalNodeType};
 // Re-export tracker
 pub use tracker::CausalTracker;
 

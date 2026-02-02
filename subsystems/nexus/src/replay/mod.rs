@@ -19,16 +19,13 @@ mod provider;
 mod session;
 
 // Re-export event types
-pub use event::{EventData, IoOperation, ReplayEvent, ReplayEventType};
-
-// Re-export session
-pub use session::RecordingSession;
-
 // Re-export engine
 pub use engine::{ReplayEngine, ReplayState, ReplayStats};
-
+pub use event::{EventData, IoOperation, ReplayEvent, ReplayEventType};
 // Re-export provider
 pub use provider::DeterminismProvider;
+// Re-export session
+pub use session::RecordingSession;
 
 // ============================================================================
 // TESTS

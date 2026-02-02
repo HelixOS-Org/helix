@@ -2,8 +2,8 @@
 //!
 //! This module implements the page table structures for AArch64 translation.
 
-use super::entries::{PageTableEntry, BlockDescriptor, TableDescriptor, MemoryAttributes};
-use super::{PAGE_SIZE, PAGE_SHIFT};
+use super::entries::{BlockDescriptor, MemoryAttributes, PageTableEntry, TableDescriptor};
+use super::{PAGE_SHIFT, PAGE_SIZE};
 
 // =============================================================================
 // Translation Granule
@@ -285,13 +285,9 @@ pub enum WalkResult {
         is_block: bool,
     },
     /// No mapping at this address
-    NotMapped {
-        level: TranslationLevel,
-    },
+    NotMapped { level: TranslationLevel },
     /// Invalid entry encountered
-    Invalid {
-        level: TranslationLevel,
-    },
+    Invalid { level: TranslationLevel },
 }
 
 /// Page table walker for 4KB granule
@@ -315,7 +311,12 @@ impl PageTableWalker {
     pub unsafe fn walk(&self, va: u64) -> WalkResult {
         let mut table = self.root;
 
-        for level in [TranslationLevel::L0, TranslationLevel::L1, TranslationLevel::L2, TranslationLevel::L3] {
+        for level in [
+            TranslationLevel::L0,
+            TranslationLevel::L1,
+            TranslationLevel::L2,
+            TranslationLevel::L3,
+        ] {
             let index = level.index_from_va(va);
             let entry = (*table).entries[index];
 
@@ -349,7 +350,9 @@ impl PageTableWalker {
             table = entry.phys_addr() as *const PageTable;
         }
 
-        WalkResult::Invalid { level: TranslationLevel::L3 }
+        WalkResult::Invalid {
+            level: TranslationLevel::L3,
+        }
     }
 
     /// Translate virtual address to physical

@@ -59,11 +59,12 @@ use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
 use spin::RwLock;
 
-use super::{TaskId, CpuId, Nanoseconds};
-use super::stats::{TaskStats, BehaviorPattern, SystemStats};
+use super::stats::{BehaviorPattern, SystemStats, TaskStats};
+use super::{CpuId, Nanoseconds, TaskId};
 
 // =============================================================================
 // Optimization Hints
@@ -320,51 +321,57 @@ impl PredictionEngine {
             config,
         }
     }
-    
+
     /// Record CPU load sample
     pub fn record_load(&self, timestamp: Nanoseconds, load: u8, runnable: u32) {
-        let sample = LoadSample { timestamp, load, runnable };
-        
+        let sample = LoadSample {
+            timestamp,
+            load,
+            runnable,
+        };
+
         let mut history = self.cpu_history.write();
         if history.len() >= self.config.history_length {
             history.pop_front();
         }
         history.push_back(sample);
     }
-    
+
     /// Update task model
     pub fn update_task_model(&self, task_id: TaskId, stats: &TaskStats) {
         let mut models = self.task_models.write();
-        let model = models.entry(task_id).or_insert(TaskPredictionModel::default());
-        
+        let model = models
+            .entry(task_id)
+            .or_insert(TaskPredictionModel::default());
+
         // Update execution time average using exponential moving average
         let alpha = 0.3f64;
         let new_exec = stats.avg_exec_time.raw() as f64;
         let old_exec = model.exec_time_avg.raw() as f64;
         let avg_exec = alpha * new_exec + (1.0 - alpha) * old_exec;
         model.exec_time_avg = Nanoseconds::new(avg_exec as u64);
-        
+
         // Update variance
         let diff = (new_exec - avg_exec).abs();
         let old_var = model.exec_time_variance as f64;
         let new_var = alpha * diff * diff + (1.0 - alpha) * old_var;
         model.exec_time_variance = new_var as u64;
-        
+
         // Update probabilities
         model.burst_probability = stats.burst_score;
         model.sleep_probability = 100 - stats.cpu_percent;
-        
+
         model.samples += 1;
-        
+
         // Update confidence
         model.confidence = (model.samples.min(100) as u8)
             .saturating_sub(((model.exec_time_variance / 1_000_000) as u8).min(50));
     }
-    
+
     /// Predict CPU load for next interval
     pub fn predict_cpu_load(&self, lookahead: Nanoseconds) -> LoadPrediction {
         let history = self.cpu_history.read();
-        
+
         if history.len() < 3 {
             return LoadPrediction {
                 predicted_load: 50,
@@ -372,14 +379,22 @@ impl PredictionEngine {
                 trend: LoadTrend::Stable,
             };
         }
-        
+
         // Calculate trend
         let recent: Vec<u8> = history.iter().rev().take(10).map(|s| s.load).collect();
-        let older: Vec<u8> = history.iter().rev().skip(10).take(10).map(|s| s.load).collect();
-        
-        let recent_avg: u32 = recent.iter().map(|&x| x as u32).sum::<u32>() / recent.len().max(1) as u32;
-        let older_avg: u32 = older.iter().map(|&x| x as u32).sum::<u32>() / older.len().max(1) as u32;
-        
+        let older: Vec<u8> = history
+            .iter()
+            .rev()
+            .skip(10)
+            .take(10)
+            .map(|s| s.load)
+            .collect();
+
+        let recent_avg: u32 =
+            recent.iter().map(|&x| x as u32).sum::<u32>() / recent.len().max(1) as u32;
+        let older_avg: u32 =
+            older.iter().map(|&x| x as u32).sum::<u32>() / older.len().max(1) as u32;
+
         let trend = if recent_avg > older_avg + 5 {
             LoadTrend::Increasing
         } else if recent_avg + 5 < older_avg {
@@ -387,27 +402,27 @@ impl PredictionEngine {
         } else {
             LoadTrend::Stable
         };
-        
+
         // Predict based on trend
         let predicted = match trend {
             LoadTrend::Increasing => (recent_avg + 10).min(100) as u8,
             LoadTrend::Decreasing => recent_avg.saturating_sub(10) as u8,
             LoadTrend::Stable => recent_avg as u8,
         };
-        
+
         let confidence = (history.len().min(50) * 2) as u8;
-        
+
         LoadPrediction {
             predicted_load: predicted,
             confidence,
             trend,
         }
     }
-    
+
     /// Predict task behavior
     pub fn predict_task_behavior(&self, task_id: TaskId) -> TaskPrediction {
         let models = self.task_models.read();
-        
+
         if let Some(model) = models.get(&task_id) {
             if model.confidence >= self.config.confidence_threshold {
                 return TaskPrediction {
@@ -418,7 +433,7 @@ impl PredictionEngine {
                 };
             }
         }
-        
+
         TaskPrediction {
             next_exec_time: Nanoseconds::from_millis(10),
             likely_burst: false,
@@ -426,16 +441,16 @@ impl PredictionEngine {
             confidence: 0,
         }
     }
-    
+
     /// Get prediction accuracy
     pub fn accuracy(&self) -> f64 {
         let made = self.accuracy.predictions_made.load(Ordering::Relaxed);
         let correct = self.accuracy.predictions_correct.load(Ordering::Relaxed);
-        
+
         if made == 0 {
             return 0.0;
         }
-        
+
         (correct as f64 / made as f64) * 100.0
     }
 }
@@ -473,13 +488,18 @@ pub struct TaskPrediction {
 pub trait OptimizationStrategy: Send + Sync {
     /// Name of the strategy
     fn name(&self) -> &str;
-    
+
     /// Evaluate and generate hints for a task
-    fn evaluate_task(&self, task_id: TaskId, stats: &TaskStats, system: &SystemStats) -> Option<OptimizationHint>;
-    
+    fn evaluate_task(
+        &self,
+        task_id: TaskId,
+        stats: &TaskStats,
+        system: &SystemStats,
+    ) -> Option<OptimizationHint>;
+
     /// Evaluate system-wide and generate hints
     fn evaluate_system(&self, system: &SystemStats) -> Vec<OptimizationHint>;
-    
+
     /// Update strategy based on outcome
     fn update(&mut self, hint: &OptimizationHint, success: bool);
 }
@@ -514,34 +534,39 @@ impl OptimizationStrategy for TimeSliceStrategy {
     fn name(&self) -> &str {
         "time_slice"
     }
-    
-    fn evaluate_task(&self, task_id: TaskId, stats: &TaskStats, _system: &SystemStats) -> Option<OptimizationHint> {
+
+    fn evaluate_task(
+        &self,
+        task_id: TaskId,
+        stats: &TaskStats,
+        _system: &SystemStats,
+    ) -> Option<OptimizationHint> {
         // Determine optimal time slice based on behavior
         let recommended = match stats.behavior_pattern {
             BehaviorPattern::CpuBound => {
                 // CPU-bound: longer slices to reduce overhead
                 Nanoseconds::from_millis(50)
-            }
+            },
             BehaviorPattern::Interactive => {
                 // Interactive: short slices for responsiveness
                 Nanoseconds::from_millis(4)
-            }
+            },
             BehaviorPattern::IoBound => {
                 // I/O-bound: moderate slices
                 Nanoseconds::from_millis(10)
-            }
+            },
             BehaviorPattern::Bursty => {
                 // Bursty: adaptive based on burst score
                 let base = 5 + stats.burst_score as u64 / 5;
                 Nanoseconds::from_millis(base)
-            }
+            },
             BehaviorPattern::Background => {
                 // Background: longer slices, less scheduling
                 Nanoseconds::from_millis(100)
-            }
+            },
             _ => return None,
         };
-        
+
         // Only generate hint if significantly different from current
         let avg_exec = stats.avg_exec_time;
         if avg_exec > Nanoseconds::zero() {
@@ -550,12 +575,12 @@ impl OptimizationStrategy for TimeSliceStrategy {
             } else {
                 -(((avg_exec.raw() - recommended.raw()) * 100 / avg_exec.raw()) as i8)
             };
-            
+
             if diff_percent.abs() < 20 {
                 return None;
             }
         }
-        
+
         Some(OptimizationHint {
             task_id,
             hint_type: HintType::TimeSlice(TimeSliceHint {
@@ -574,15 +599,16 @@ impl OptimizationStrategy for TimeSliceStrategy {
             timestamp: Nanoseconds::zero(),
         })
     }
-    
+
     fn evaluate_system(&self, _system: &SystemStats) -> Vec<OptimizationHint> {
         Vec::new()
     }
-    
+
     fn update(&mut self, _hint: &OptimizationHint, success: bool) {
         self.adjustments += 1;
         let alpha = 0.1;
-        self.success_rate = alpha * (if success { 1.0 } else { 0.0 }) + (1.0 - alpha) * self.success_rate;
+        self.success_rate =
+            alpha * (if success { 1.0 } else { 0.0 }) + (1.0 - alpha) * self.success_rate;
     }
 }
 
@@ -613,8 +639,13 @@ impl OptimizationStrategy for PriorityStrategy {
     fn name(&self) -> &str {
         "priority"
     }
-    
-    fn evaluate_task(&self, task_id: TaskId, stats: &TaskStats, _system: &SystemStats) -> Option<OptimizationHint> {
+
+    fn evaluate_task(
+        &self,
+        task_id: TaskId,
+        stats: &TaskStats,
+        _system: &SystemStats,
+    ) -> Option<OptimizationHint> {
         // Interactive boost
         if stats.interactive_score > 70 && stats.cpu_percent < 30 {
             return Some(OptimizationHint {
@@ -631,7 +662,7 @@ impl OptimizationStrategy for PriorityStrategy {
                 timestamp: Nanoseconds::zero(),
             });
         }
-        
+
         // CPU hog penalty
         if stats.cpu_percent > 90 && stats.preemptions > stats.voluntary_switches * 3 {
             return Some(OptimizationHint {
@@ -648,17 +679,18 @@ impl OptimizationStrategy for PriorityStrategy {
                 timestamp: Nanoseconds::zero(),
             });
         }
-        
+
         None
     }
-    
+
     fn evaluate_system(&self, _system: &SystemStats) -> Vec<OptimizationHint> {
         Vec::new()
     }
-    
+
     fn update(&mut self, _hint: &OptimizationHint, success: bool) {
         let alpha = 0.1;
-        self.success_rate = alpha * (if success { 1.0 } else { 0.0 }) + (1.0 - alpha) * self.success_rate;
+        self.success_rate =
+            alpha * (if success { 1.0 } else { 0.0 }) + (1.0 - alpha) * self.success_rate;
     }
 }
 
@@ -683,28 +715,40 @@ impl OptimizationStrategy for LoadBalanceStrategy {
     fn name(&self) -> &str {
         "load_balance"
     }
-    
-    fn evaluate_task(&self, task_id: TaskId, stats: &TaskStats, system: &SystemStats) -> Option<OptimizationHint> {
+
+    fn evaluate_task(
+        &self,
+        task_id: TaskId,
+        stats: &TaskStats,
+        system: &SystemStats,
+    ) -> Option<OptimizationHint> {
         // Skip if too many migrations already
         if stats.migrations > 10 {
             return None;
         }
-        
+
         // Find underloaded CPUs
-        let avg_load: u32 = system.per_cpu_load.iter()
+        let avg_load: u32 = system
+            .per_cpu_load
+            .iter()
             .map(|c| c.load as u32)
-            .sum::<u32>() / system.per_cpu_load.len().max(1) as u32;
-        
-        let underloaded: Vec<CpuId> = system.per_cpu_load.iter()
+            .sum::<u32>()
+            / system.per_cpu_load.len().max(1) as u32;
+
+        let underloaded: Vec<CpuId> = system
+            .per_cpu_load
+            .iter()
             .filter(|c| (c.load as u32) < avg_load.saturating_sub(self.imbalance_threshold as u32))
             .map(|c| c.cpu_id)
             .collect();
-        
-        let overloaded: Vec<CpuId> = system.per_cpu_load.iter()
+
+        let overloaded: Vec<CpuId> = system
+            .per_cpu_load
+            .iter()
             .filter(|c| (c.load as u32) > avg_load + self.imbalance_threshold as u32)
             .map(|c| c.cpu_id)
             .collect();
-        
+
         if !underloaded.is_empty() && !overloaded.is_empty() {
             return Some(OptimizationHint {
                 task_id,
@@ -720,14 +764,14 @@ impl OptimizationStrategy for LoadBalanceStrategy {
                 timestamp: Nanoseconds::zero(),
             });
         }
-        
+
         None
     }
-    
+
     fn evaluate_system(&self, _system: &SystemStats) -> Vec<OptimizationHint> {
         Vec::new()
     }
-    
+
     fn update(&mut self, _hint: &OptimizationHint, _success: bool) {}
 }
 
@@ -752,8 +796,13 @@ impl OptimizationStrategy for EnergyStrategy {
     fn name(&self) -> &str {
         "energy"
     }
-    
-    fn evaluate_task(&self, task_id: TaskId, stats: &TaskStats, _system: &SystemStats) -> Option<OptimizationHint> {
+
+    fn evaluate_task(
+        &self,
+        task_id: TaskId,
+        stats: &TaskStats,
+        _system: &SystemStats,
+    ) -> Option<OptimizationHint> {
         let power_state = if stats.cpu_percent > self.high_load_threshold {
             PowerState::Performance
         } else if stats.cpu_percent < self.low_load_threshold {
@@ -761,7 +810,7 @@ impl OptimizationStrategy for EnergyStrategy {
         } else {
             return None;
         };
-        
+
         Some(OptimizationHint {
             task_id,
             hint_type: HintType::Energy(EnergyHint {
@@ -776,18 +825,18 @@ impl OptimizationStrategy for EnergyStrategy {
             timestamp: Nanoseconds::zero(),
         })
     }
-    
+
     fn evaluate_system(&self, system: &SystemStats) -> Vec<OptimizationHint> {
         let hints = Vec::new();
-        
+
         // System-wide power management based on load
         if system.cpu_load < self.low_load_threshold && system.runnable_tasks < 5 {
             // Could suggest system-wide power saving
         }
-        
+
         hints
     }
-    
+
     fn update(&mut self, _hint: &OptimizationHint, _success: bool) {}
 }
 
@@ -854,7 +903,7 @@ impl AdaptiveOptimizer {
         strategies.push(Box::new(PriorityStrategy::new()));
         strategies.push(Box::new(LoadBalanceStrategy::new()));
         strategies.push(Box::new(EnergyStrategy::new()));
-        
+
         Self {
             prediction: PredictionEngine::new(PredictionConfig::default()),
             strategies: RwLock::new(strategies),
@@ -865,26 +914,26 @@ impl AdaptiveOptimizer {
             enabled: AtomicBool::new(true),
         }
     }
-    
+
     /// Enable or disable optimizer
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::SeqCst);
     }
-    
+
     /// Check if enabled
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::SeqCst)
     }
-    
+
     /// Run optimization for a task
     pub fn optimize_task(&self, task_id: TaskId, stats: &TaskStats, system: &SystemStats) {
         if !self.is_enabled() {
             return;
         }
-        
+
         // Update prediction model
         self.prediction.update_task_model(task_id, stats);
-        
+
         // Run all strategies
         let strategies = self.strategies.read();
         for strategy in strategies.iter() {
@@ -896,19 +945,20 @@ impl AdaptiveOptimizer {
                 }
             }
         }
-        
+
         self.stats.optimizations_run.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Run system-wide optimization
     pub fn optimize_system(&self, system: &SystemStats) {
         if !self.is_enabled() {
             return;
         }
-        
+
         // Record load for prediction
-        self.prediction.record_load(system.timestamp, system.cpu_load, system.runnable_tasks);
-        
+        self.prediction
+            .record_load(system.timestamp, system.cpu_load, system.runnable_tasks);
+
         // Run system-level strategies
         let strategies = self.strategies.read();
         for strategy in strategies.iter() {
@@ -917,7 +967,7 @@ impl AdaptiveOptimizer {
             }
         }
     }
-    
+
     /// Add a hint to pending
     fn add_hint(&self, hint: OptimizationHint) {
         let mut pending = self.pending_hints.write();
@@ -927,21 +977,22 @@ impl AdaptiveOptimizer {
         pending.push_back(hint);
         self.stats.hints_generated.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Get next pending hint
     pub fn pop_hint(&self) -> Option<OptimizationHint> {
         self.pending_hints.write().pop_front()
     }
-    
+
     /// Get all pending hints for a task
     pub fn hints_for_task(&self, task_id: TaskId) -> Vec<OptimizationHint> {
-        self.pending_hints.read()
+        self.pending_hints
+            .read()
             .iter()
             .filter(|h| h.task_id == task_id)
             .cloned()
             .collect()
     }
-    
+
     /// Record hint outcome
     pub fn record_outcome(&self, hint: OptimizationHint, success: bool) {
         // Update strategy
@@ -949,42 +1000,42 @@ impl AdaptiveOptimizer {
         for strategy in strategies.iter_mut() {
             strategy.update(&hint, success);
         }
-        
+
         // Track applied hints
         let mut applied = self.applied_hints.write();
         if applied.len() >= self.config.max_applied_hints {
             applied.pop_front();
         }
         applied.push_back((hint, success));
-        
+
         self.stats.hints_applied.fetch_add(1, Ordering::Relaxed);
         if success {
             self.stats.hints_successful.fetch_add(1, Ordering::Relaxed);
         }
     }
-    
+
     /// Predict CPU load
     pub fn predict_load(&self) -> LoadPrediction {
         self.prediction.predict_cpu_load(Nanoseconds::from_secs(1))
     }
-    
+
     /// Predict task behavior
     pub fn predict_task(&self, task_id: TaskId) -> TaskPrediction {
         self.prediction.predict_task_behavior(task_id)
     }
-    
+
     /// Get success rate
     pub fn success_rate(&self) -> f64 {
         let applied = self.stats.hints_applied.load(Ordering::Relaxed);
         let successful = self.stats.hints_successful.load(Ordering::Relaxed);
-        
+
         if applied == 0 {
             return 0.0;
         }
-        
+
         (successful as f64 / applied as f64) * 100.0
     }
-    
+
     /// Get optimizer statistics
     pub fn statistics(&self) -> OptimizerStatistics {
         OptimizerStatistics {
@@ -996,7 +1047,7 @@ impl AdaptiveOptimizer {
             optimizations_run: self.stats.optimizations_run.load(Ordering::Relaxed),
         }
     }
-    
+
     /// Register custom strategy
     pub fn register_strategy(&self, strategy: Box<dyn OptimizationStrategy>) {
         self.strategies.write().push(strategy);
@@ -1057,30 +1108,30 @@ impl LearningModule {
             exploration_rate: 0.1,
         }
     }
-    
+
     /// Initialize weight for a strategy
     pub fn init_strategy(&self, name: &str) {
         self.strategy_weights.write().insert(name.to_string(), 1.0);
     }
-    
+
     /// Get strategy weight
     pub fn get_weight(&self, name: &str) -> f64 {
         *self.strategy_weights.read().get(name).unwrap_or(&1.0)
     }
-    
+
     /// Update strategy weight based on outcome
     pub fn update_weight(&self, name: &str, reward: f64) {
         let mut weights = self.strategy_weights.write();
         let current = *weights.get(name).unwrap_or(&1.0);
-        
+
         // Gradient descent update
         let new_weight = current + self.learning_rate * reward;
-        
+
         // Clamp to reasonable range
         let clamped = new_weight.max(0.1).min(10.0);
         weights.insert(name.to_string(), clamped);
     }
-    
+
     /// Record adjustment
     pub fn record_adjustment(&self, adj: Adjustment) {
         let mut adjustments = self.adjustments.write();
@@ -1089,7 +1140,7 @@ impl LearningModule {
         }
         adjustments.push(adj);
     }
-    
+
     /// Should explore (try new things)?
     pub fn should_explore(&self) -> bool {
         // Simple random exploration
@@ -1097,10 +1148,11 @@ impl LearningModule {
         let pseudo_random = core::ptr::addr_of!(self) as u64 % 100;
         (pseudo_random as f64 / 100.0) < self.exploration_rate
     }
-    
+
     /// Get recent adjustments for a strategy
     pub fn recent_adjustments(&self, strategy: &str, limit: usize) -> Vec<Adjustment> {
-        self.adjustments.read()
+        self.adjustments
+            .read()
             .iter()
             .rev()
             .filter(|a| a.strategy == strategy)
@@ -1108,18 +1160,19 @@ impl LearningModule {
             .cloned()
             .collect()
     }
-    
+
     /// Calculate average reward for strategy
     pub fn average_reward(&self, strategy: &str) -> f64 {
         let adjustments = self.adjustments.read();
-        let relevant: Vec<_> = adjustments.iter()
+        let relevant: Vec<_> = adjustments
+            .iter()
             .filter(|a| a.strategy == strategy)
             .collect();
-        
+
         if relevant.is_empty() {
             return 0.0;
         }
-        
+
         relevant.iter().map(|a| a.reward).sum::<f64>() / relevant.len() as f64
     }
 }
@@ -1137,20 +1190,20 @@ impl Default for LearningModule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_time_slice_strategy() {
         let strategy = TimeSliceStrategy::new();
-        
+
         let mut stats = TaskStats::new();
         stats.behavior_pattern = BehaviorPattern::CpuBound;
         stats.interactive_score = 20;
-        
+
         let system = SystemStats::default();
-        
+
         let hint = strategy.evaluate_task(TaskId::new(1), &stats, &system);
         assert!(hint.is_some());
-        
+
         if let Some(h) = hint {
             if let HintType::TimeSlice(ts) = h.hint_type {
                 assert_eq!(ts.recommended.as_millis(), 50);
@@ -1159,33 +1212,29 @@ mod tests {
             }
         }
     }
-    
+
     #[test]
     fn test_prediction_engine() {
         let engine = PredictionEngine::new(PredictionConfig::default());
-        
+
         // Add some samples
         for i in 0..20 {
-            engine.record_load(
-                Nanoseconds::from_secs(i as u64),
-                50 + (i % 10) as u8,
-                10
-            );
+            engine.record_load(Nanoseconds::from_secs(i as u64), 50 + (i % 10) as u8, 10);
         }
-        
+
         let prediction = engine.predict_cpu_load(Nanoseconds::from_secs(1));
         assert!(prediction.predicted_load > 0);
     }
-    
+
     #[test]
     fn test_adaptive_optimizer() {
         let optimizer = AdaptiveOptimizer::default();
-        
+
         let stats = TaskStats::new();
         let system = SystemStats::default();
-        
+
         optimizer.optimize_task(TaskId::new(1), &stats, &system);
-        
+
         // Stats should be updated
         let opt_stats = optimizer.statistics();
         assert!(opt_stats.optimizations_run >= 1);

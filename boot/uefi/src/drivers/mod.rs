@@ -310,27 +310,40 @@ pub struct PciLocation {
 impl PciLocation {
     /// Create new location
     pub const fn new(segment: u16, bus: u8, device: u8, function: u8) -> Self {
-        Self { segment, bus, device, function }
+        Self {
+            segment,
+            bus,
+            device,
+            function,
+        }
     }
 
     /// Create from BDF
     pub const fn from_bdf(bus: u8, device: u8, function: u8) -> Self {
-        Self { segment: 0, bus, device, function }
+        Self {
+            segment: 0,
+            bus,
+            device,
+            function,
+        }
     }
 
     /// Convert to config address
     pub const fn config_address(&self) -> u32 {
-        (1 << 31) |
-        ((self.bus as u32) << 16) |
-        ((self.device as u32) << 11) |
-        ((self.function as u32) << 8)
+        (1 << 31)
+            | ((self.bus as u32) << 16)
+            | ((self.device as u32) << 11)
+            | ((self.function as u32) << 8)
     }
 }
 
 impl fmt::Display for PciLocation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:04x}:{:02x}:{:02x}.{}",
-            self.segment, self.bus, self.device, self.function)
+        write!(
+            f,
+            "{:04x}:{:02x}:{:02x}.{}",
+            self.segment, self.bus, self.device, self.function
+        )
     }
 }
 
@@ -392,7 +405,12 @@ pub struct DriverVersion {
 impl DriverVersion {
     /// Create new version
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self { major, minor, patch, build: 0 }
+        Self {
+            major,
+            minor,
+            patch,
+            build: 0,
+        }
     }
 }
 

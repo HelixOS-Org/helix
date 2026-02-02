@@ -15,7 +15,7 @@ pub mod tlb;
 
 // Re-exports
 pub use asid::{Asid, AsidAllocator};
-pub use entries::{PageTableEntry, BlockDescriptor, TableDescriptor, MemoryAttributes};
+pub use entries::{BlockDescriptor, MemoryAttributes, PageTableEntry, TableDescriptor};
 pub use mapping::{MapFlags, VirtualMemoryMapper};
 pub use tables::{PageTable, TranslationGranule, TranslationLevel};
 pub use tlb::{tlb_flush_all, tlb_flush_asid, tlb_flush_page};

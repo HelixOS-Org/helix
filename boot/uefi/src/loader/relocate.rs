@@ -3,10 +3,10 @@
 //! Comprehensive relocation processing for executable images.
 //! Supports all ELF and PE relocation types for x86_64.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
-use crate::loader::elf::{ElfLoader, ElfRelocation, r_x86_64};
-use crate::loader::pe::{PeLoader, PeRelocation, reloc_type};
+use crate::loader::elf::{r_x86_64, ElfLoader, ElfRelocation};
+use crate::loader::pe::{reloc_type, PeLoader, PeRelocation};
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -36,7 +36,11 @@ impl RelocationEngine {
     }
 
     /// Relocate ELF image
-    pub fn relocate(&mut self, loader: &mut ElfLoader, new_base: Option<VirtualAddress>) -> Result<()> {
+    pub fn relocate(
+        &mut self,
+        loader: &mut ElfLoader,
+        new_base: Option<VirtualAddress>,
+    ) -> Result<()> {
         let image = loader.image().ok_or(Error::NotLoaded)?;
 
         // Calculate delta
@@ -55,7 +59,11 @@ impl RelocationEngine {
     }
 
     /// Relocate PE image
-    pub fn relocate_pe(&mut self, loader: &PeLoader, new_base: Option<VirtualAddress>) -> Result<()> {
+    pub fn relocate_pe(
+        &mut self,
+        loader: &PeLoader,
+        new_base: Option<VirtualAddress>,
+    ) -> Result<()> {
         let image = loader.image().ok_or(Error::NotLoaded)?;
 
         // Calculate delta
@@ -97,33 +105,33 @@ impl RelocationEngine {
                     size: 0,
                     reloc_type: RelocationType::None,
                 });
-            }
+            },
 
             r_x86_64::R_X86_64_64 => {
                 // S + A
                 let value = symbol_value + addend + self.base_delta;
                 (value as u64, 8)
-            }
+            },
 
             r_x86_64::R_X86_64_PC32 => {
                 // S + A - P
                 let p = reloc.offset as i64 + self.base_delta;
                 let value = symbol_value + addend - p;
                 (value as u64, 4)
-            }
+            },
 
             r_x86_64::R_X86_64_PLT32 => {
                 // L + A - P (same as PC32 for static linking)
                 let p = reloc.offset as i64 + self.base_delta;
                 let value = symbol_value + addend - p;
                 (value as u64, 4)
-            }
+            },
 
             r_x86_64::R_X86_64_RELATIVE => {
                 // B + A
                 let value = self.base_delta + addend;
                 (value as u64, 8)
-            }
+            },
 
             r_x86_64::R_X86_64_32 => {
                 // S + A
@@ -132,7 +140,7 @@ impl RelocationEngine {
                     return Err(Error::RelocationOverflow);
                 }
                 (value as u64, 4)
-            }
+            },
 
             r_x86_64::R_X86_64_32S => {
                 // S + A (signed)
@@ -141,7 +149,7 @@ impl RelocationEngine {
                     return Err(Error::RelocationOverflow);
                 }
                 (value as u64, 4)
-            }
+            },
 
             r_x86_64::R_X86_64_16 => {
                 // S + A
@@ -150,7 +158,7 @@ impl RelocationEngine {
                     return Err(Error::RelocationOverflow);
                 }
                 (value as u64, 2)
-            }
+            },
 
             r_x86_64::R_X86_64_PC16 => {
                 // S + A - P
@@ -160,7 +168,7 @@ impl RelocationEngine {
                     return Err(Error::RelocationOverflow);
                 }
                 (value as u64, 2)
-            }
+            },
 
             r_x86_64::R_X86_64_8 => {
                 // S + A
@@ -169,7 +177,7 @@ impl RelocationEngine {
                     return Err(Error::RelocationOverflow);
                 }
                 (value as u64, 1)
-            }
+            },
 
             r_x86_64::R_X86_64_PC8 => {
                 // S + A - P
@@ -179,56 +187,56 @@ impl RelocationEngine {
                     return Err(Error::RelocationOverflow);
                 }
                 (value as u64, 1)
-            }
+            },
 
             r_x86_64::R_X86_64_PC64 => {
                 // S + A - P
                 let p = reloc.offset as i64 + self.base_delta;
                 let value = symbol_value + addend - p;
                 (value as u64, 8)
-            }
+            },
 
             r_x86_64::R_X86_64_GOTOFF64 => {
                 // S + A - GOT
                 // Would need GOT address
                 (0, 8)
-            }
+            },
 
             r_x86_64::R_X86_64_GOTPC32 => {
                 // GOT + A - P
                 // Would need GOT address
                 (0, 4)
-            }
+            },
 
             r_x86_64::R_X86_64_SIZE32 => {
                 // Z + A
                 let z = symbol.map(|s| s.size as i64).unwrap_or(0);
                 let value = z + addend;
                 (value as u64, 4)
-            }
+            },
 
             r_x86_64::R_X86_64_SIZE64 => {
                 // Z + A
                 let z = symbol.map(|s| s.size as i64).unwrap_or(0);
                 let value = z + addend;
                 (value as u64, 8)
-            }
+            },
 
             r_x86_64::R_X86_64_GLOB_DAT | r_x86_64::R_X86_64_JUMP_SLOT => {
                 // S (direct symbol address)
                 let value = symbol_value + self.base_delta;
                 (value as u64, 8)
-            }
+            },
 
             r_x86_64::R_X86_64_COPY => {
                 // Copy symbol value (handled specially)
                 (0, 0)
-            }
+            },
 
             _ => {
                 self.stats.unsupported_count += 1;
                 return Err(Error::UnsupportedRelocation);
-            }
+            },
         };
 
         self.stats.applied_count += 1;
@@ -253,32 +261,32 @@ impl RelocationEngine {
                     size: 0,
                     reloc_type: RelocationType::None,
                 });
-            }
+            },
 
             reloc_type::IMAGE_REL_BASED_HIGH => {
                 // High 16 bits
                 (self.base_delta as u64 >> 16, 2)
-            }
+            },
 
             reloc_type::IMAGE_REL_BASED_LOW => {
                 // Low 16 bits
                 (self.base_delta as u64 & 0xFFFF, 2)
-            }
+            },
 
             reloc_type::IMAGE_REL_BASED_HIGHLOW => {
                 // Full 32 bits
                 (self.base_delta as u64, 4)
-            }
+            },
 
             reloc_type::IMAGE_REL_BASED_DIR64 => {
                 // Full 64 bits
                 (self.base_delta as u64, 8)
-            }
+            },
 
             _ => {
                 self.stats.unsupported_count += 1;
                 return Err(Error::UnsupportedRelocation);
-            }
+            },
         };
 
         self.stats.applied_count += 1;
@@ -440,7 +448,9 @@ impl KaslrGenerator {
     /// Generate random offset
     pub fn generate_offset(&mut self) -> u64 {
         // Simple LCG random number generator
-        self.seed = self.seed.wrapping_mul(6364136223846793005)
+        self.seed = self
+            .seed
+            .wrapping_mul(6364136223846793005)
             .wrapping_add(1442695040888963407);
 
         let range = (self.max_offset - self.min_offset) / self.alignment;

@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use alloc::string::String;
+
 use super::identifiers::DomainId;
 use super::temporal::Timestamp;
 
@@ -34,6 +35,16 @@ impl NexusError {
             domain: None,
             timestamp: Timestamp::now(),
         }
+    }
+
+    /// Not initialized error
+    pub fn not_initialized() -> Self {
+        Self::new(ErrorCode::NotInitialized, "not initialized")
+    }
+
+    /// Operation failed error
+    pub fn operation_failed() -> Self {
+        Self::new(ErrorCode::Unknown, "operation failed")
     }
 
     /// With domain
@@ -153,6 +164,8 @@ pub enum ErrorCode {
     RateLimited,
     /// Effector unavailable
     EffectorUnavailable,
+    /// Execution failed
+    ExecutionFailed,
 
     // ============== Memory ==============
     /// Memory full
@@ -247,7 +260,8 @@ impl ErrorCode {
             | Self::TransactionAborted
             | Self::RollbackFailed
             | Self::RateLimited
-            | Self::EffectorUnavailable => ErrorCategory::Execution,
+            | Self::EffectorUnavailable
+            | Self::ExecutionFailed => ErrorCategory::Execution,
 
             Self::MemoryFull
             | Self::ConsolidationFailed
@@ -331,8 +345,14 @@ mod tests {
 
     #[test]
     fn test_error_category() {
-        assert_eq!(ErrorCode::ProbeFailure.category(), ErrorCategory::Perception);
-        assert_eq!(ErrorCode::PolicyViolation.category(), ErrorCategory::Decision);
+        assert_eq!(
+            ErrorCode::ProbeFailure.category(),
+            ErrorCategory::Perception
+        );
+        assert_eq!(
+            ErrorCode::PolicyViolation.category(),
+            ErrorCategory::Decision
+        );
     }
 
     #[test]

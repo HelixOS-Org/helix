@@ -87,20 +87,21 @@ pub mod signal;
 // Re-exports - Collector
 pub use collector::{CollectorStats, EventCollector, EventCollectorConfig};
 // Re-exports - Domain
-pub use domain::{SenseConfig, SenseDomain, SenseDomainStats};
+pub use domain::{SenseConfig, SenseDomain};
+// Re-exports - Events (using actual types from events.rs)
 pub use events::{
-    CpuEvent, EventPriority, IoEvent, KernelEvent, KernelEventKind, MemoryEvent, NetworkEvent,
-    ProcessEvent, SchedulerEvent,
+    BlockIoEvent, CpuSample, EventData, IoOperation, MemorySample, NetworkDirection,
+    NetworkIoEvent, NetworkProtocol, RawEvent, SchedulerEventData, SchedulerEventType,
 };
 // Re-exports - Probe
 pub use probe::{Probe, ProbeConfig, ProbeError, ProbeState, ProbeStats};
 // Re-exports - Probes
-pub use probes::{CpuProbe, IoProbe, MemoryProbe, NetworkProbe, SchedulerProbe};
+pub use probes::{CpuProbe, MemoryProbe};
 // Re-exports - Registry
-pub use registry::{ProbeRegistry, RegistryStats};
+pub use registry::ProbeRegistry;
 // Re-exports - Signal
 pub use signal::{
-    NormalizerStats, Signal, SignalKind, SignalNormalizer, SignalPriority, SignalValue,
+    NormalizerStats, Signal, SignalMetadata, SignalNormalizer, SignalType, SignalValue,
 };
 
 // ============================================================================

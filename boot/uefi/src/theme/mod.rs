@@ -121,9 +121,15 @@ impl Color {
     /// Lighten color
     pub fn lighten(&self, amount: u8) -> Color {
         Color {
-            r: self.r.saturating_add(((255 - self.r) as u16 * amount as u16 / 255) as u8),
-            g: self.g.saturating_add(((255 - self.g) as u16 * amount as u16 / 255) as u8),
-            b: self.b.saturating_add(((255 - self.b) as u16 * amount as u16 / 255) as u8),
+            r: self
+                .r
+                .saturating_add(((255 - self.r) as u16 * amount as u16 / 255) as u8),
+            g: self
+                .g
+                .saturating_add(((255 - self.g) as u16 * amount as u16 / 255) as u8),
+            b: self
+                .b
+                .saturating_add(((255 - self.b) as u16 * amount as u16 / 255) as u8),
             a: self.a,
         }
     }
@@ -150,7 +156,11 @@ impl fmt::Display for Color {
         if self.a == 255 {
             write!(f, "#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
         } else {
-            write!(f, "#{:02X}{:02X}{:02X}{:02X}", self.r, self.g, self.b, self.a)
+            write!(
+                f,
+                "#{:02X}{:02X}{:02X}{:02X}",
+                self.r, self.g, self.b, self.a
+            )
         }
     }
 }

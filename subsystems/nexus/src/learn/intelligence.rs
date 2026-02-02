@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::AtomicBool;
 
 use super::curriculum::{CurriculumLearner, DifficultyLevel};
 use super::feedback::{FeedbackEntry, FeedbackLoop, FeedbackType};

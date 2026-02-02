@@ -17,44 +17,44 @@ use super::signature::{AuthenticodeVerifier, SignatureError};
 pub mod guid {
     /// EFI_GLOBAL_VARIABLE GUID
     pub const EFI_GLOBAL_VARIABLE: [u8; 16] = [
-        0x61, 0xdf, 0xe4, 0x8b, 0xca, 0x93, 0xd2, 0x11,
-        0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c,
+        0x61, 0xdf, 0xe4, 0x8b, 0xca, 0x93, 0xd2, 0x11, 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b,
+        0x8c,
     ];
 
     /// EFI_IMAGE_SECURITY_DATABASE GUID
     pub const EFI_IMAGE_SECURITY_DATABASE: [u8; 16] = [
-        0xcb, 0xb2, 0x19, 0xd7, 0x3a, 0x3d, 0x96, 0x45,
-        0xa3, 0xbc, 0xda, 0xd0, 0x0e, 0x67, 0x65, 0x6f,
+        0xcb, 0xb2, 0x19, 0xd7, 0x3a, 0x3d, 0x96, 0x45, 0xa3, 0xbc, 0xda, 0xd0, 0x0e, 0x67, 0x65,
+        0x6f,
     ];
 
     /// EFI_CERT_SHA256_GUID
     pub const EFI_CERT_SHA256: [u8; 16] = [
-        0x26, 0x16, 0xc4, 0xc1, 0x4c, 0x50, 0x92, 0x40,
-        0xac, 0xa9, 0x41, 0xf9, 0x36, 0x93, 0x43, 0x28,
+        0x26, 0x16, 0xc4, 0xc1, 0x4c, 0x50, 0x92, 0x40, 0xac, 0xa9, 0x41, 0xf9, 0x36, 0x93, 0x43,
+        0x28,
     ];
 
     /// EFI_CERT_RSA2048_GUID
     pub const EFI_CERT_RSA2048: [u8; 16] = [
-        0xe8, 0x66, 0x57, 0x3c, 0x9c, 0x26, 0x34, 0x4e,
-        0xaa, 0x14, 0xed, 0x77, 0x6e, 0x85, 0xb3, 0xb6,
+        0xe8, 0x66, 0x57, 0x3c, 0x9c, 0x26, 0x34, 0x4e, 0xaa, 0x14, 0xed, 0x77, 0x6e, 0x85, 0xb3,
+        0xb6,
     ];
 
     /// EFI_CERT_X509_GUID
     pub const EFI_CERT_X509: [u8; 16] = [
-        0xa1, 0x59, 0xc0, 0xa5, 0xe4, 0x94, 0xa7, 0x4a,
-        0x87, 0xb5, 0xab, 0x15, 0x5c, 0x2b, 0xf0, 0x72,
+        0xa1, 0x59, 0xc0, 0xa5, 0xe4, 0x94, 0xa7, 0x4a, 0x87, 0xb5, 0xab, 0x15, 0x5c, 0x2b, 0xf0,
+        0x72,
     ];
 
     /// EFI_CERT_X509_SHA256_GUID
     pub const EFI_CERT_X509_SHA256: [u8; 16] = [
-        0x92, 0xa4, 0xd2, 0x3b, 0xc0, 0x96, 0x79, 0x40,
-        0xb4, 0x20, 0xfc, 0xf9, 0x8e, 0xf1, 0x03, 0xed,
+        0x92, 0xa4, 0xd2, 0x3b, 0xc0, 0x96, 0x79, 0x40, 0xb4, 0x20, 0xfc, 0xf9, 0x8e, 0xf1, 0x03,
+        0xed,
     ];
 
     /// EFI_CERT_PKCS7_GUID
     pub const EFI_CERT_PKCS7: [u8; 16] = [
-        0x9d, 0xd2, 0xaf, 0x4a, 0xdf, 0x68, 0xee, 0x49,
-        0x8a, 0xa9, 0x34, 0x7d, 0x37, 0x56, 0x65, 0xa7,
+        0x9d, 0xd2, 0xaf, 0x4a, 0xdf, 0x68, 0xee, 0x49, 0x8a, 0xa9, 0x34, 0x7d, 0x37, 0x56, 0x65,
+        0xa7,
     ];
 }
 
@@ -186,10 +186,10 @@ impl SignatureEntryType {
     /// Get signature data size (for fixed-size types)
     pub fn signature_size(&self) -> Option<usize> {
         match self {
-            Self::Sha256 => Some(16 + 32), // Owner GUID + SHA-256
+            Self::Sha256 => Some(16 + 32),               // Owner GUID + SHA-256
             Self::X509Sha256 => Some(16 + 32 + 32 + 32), // Owner + ToBeSignedHash + Time + ...
-            Self::Rsa2048 => Some(16 + 256), // Owner GUID + 2048-bit key
-            Self::X509 | Self::Unknown(_) => None, // Variable size
+            Self::Rsa2048 => Some(16 + 256),             // Owner GUID + 2048-bit key
+            Self::X509 | Self::Unknown(_) => None,       // Variable size
         }
     }
 }
@@ -480,20 +480,21 @@ impl SignatureDatabase {
                     for entry in &list.entries {
                         if let Ok(db_cert) = entry.as_x509() {
                             if db_cert.serial_number == cert.serial_number
-                                && db_cert.issuer == cert.issuer {
+                                && db_cert.issuer == cert.issuer
+                            {
                                 return true;
                             }
                         }
                     }
-                }
+                },
                 SignatureEntryType::X509Sha256 => {
                     for entry in &list.entries {
                         if entry.data.len() >= 32 && &entry.data[..32] == &cert_hash {
                             return true;
                         }
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -640,17 +641,13 @@ impl SecureBootVerifier {
                         reason: DenialReason::InvalidSignature,
                     }
                 }
-            }
-            Err(SignatureError::NoSignature) => {
-                SecureBootResult::Denied {
-                    reason: DenialReason::NoSignature,
-                }
-            }
-            Err(_) => {
-                SecureBootResult::Denied {
-                    reason: DenialReason::SignatureError,
-                }
-            }
+            },
+            Err(SignatureError::NoSignature) => SecureBootResult::Denied {
+                reason: DenialReason::NoSignature,
+            },
+            Err(_) => SecureBootResult::Denied {
+                reason: DenialReason::SignatureError,
+            },
         }
     }
 
@@ -861,8 +858,8 @@ impl VariableAuthentication2 {
             return Err(SecureBootError::InvalidAuthentication);
         }
 
-        let time = EfiTime::from_bytes(&data[0..16])
-            .ok_or(SecureBootError::InvalidAuthentication)?;
+        let time =
+            EfiTime::from_bytes(&data[0..16]).ok_or(SecureBootError::InvalidAuthentication)?;
 
         let auth_info = WinCertificateUefiGuid::parse(&data[16..])?;
 

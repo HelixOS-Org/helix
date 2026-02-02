@@ -13,25 +13,19 @@ mod prediction;
 mod tracing;
 
 // Re-export main config
-pub use main::NexusConfig;
-
-// Re-export prediction config
-pub use prediction::PredictionConfig;
-
-// Re-export healing config
-pub use healing::HealingConfig;
-
-// Re-export tracing config
-pub use tracing::TracingConfig;
-
 // Re-export chaos config
 pub use chaos::ChaosConfig;
-
-// Re-export performance config
-pub use performance::PerformanceConfig;
-
 // Re-export error
 pub use error::ConfigError;
+// Re-export healing config
+pub use healing::HealingConfig;
+pub use main::NexusConfig;
+// Re-export performance config
+pub use performance::PerformanceConfig;
+// Re-export prediction config
+pub use prediction::PredictionConfig;
+// Re-export tracing config
+pub use tracing::TracingConfig;
 
 // ============================================================================
 // TESTS

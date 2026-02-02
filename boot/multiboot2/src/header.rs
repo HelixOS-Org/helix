@@ -11,7 +11,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use helix_multiboot2::header::{Multiboot2Header, HeaderBuilder};
+//! use helix_multiboot2::header::{HeaderBuilder, Multiboot2Header};
 //!
 //! // Simple header (minimal)
 //! #[used]
@@ -26,7 +26,7 @@
 //!     .build();
 //! ```
 
-use crate::{HEADER_MAGIC, ARCHITECTURE_I386, calculate_checksum, verify_checksum};
+use crate::{calculate_checksum, verify_checksum, ARCHITECTURE_I386, HEADER_MAGIC};
 
 // =============================================================================
 // Header Structure
@@ -157,9 +157,10 @@ impl Multiboot2Header {
         const CHECKSUM: u32 = calculate_checksum(HEADER_MAGIC, ARCHITECTURE_I386, HEADER_LENGTH);
 
         // Compile-time verification
-        const _: () = assert!(verify_checksum(
-            HEADER_MAGIC, ARCHITECTURE_I386, HEADER_LENGTH, CHECKSUM
-        ), "Invalid checksum calculation");
+        const _: () = assert!(
+            verify_checksum(HEADER_MAGIC, ARCHITECTURE_I386, HEADER_LENGTH, CHECKSUM),
+            "Invalid checksum calculation"
+        );
 
         Self {
             data: HeaderData {
@@ -232,7 +233,10 @@ const _: () = {
     let header = Multiboot2Header::minimal();
     assert!(header.is_valid(), "Minimal header must be valid");
     assert!(header.magic() == HEADER_MAGIC, "Magic must match");
-    assert!(header.architecture() == ARCHITECTURE_I386, "Architecture must match");
+    assert!(
+        header.architecture() == ARCHITECTURE_I386,
+        "Architecture must match"
+    );
 };
 
 // =============================================================================
@@ -319,7 +323,11 @@ impl HeaderBuilder {
     /// * `depth` - Requested color depth in bits (0 for no preference)
     #[must_use]
     pub const fn request_framebuffer(mut self, width: u32, height: u32, depth: u32) -> Self {
-        self.framebuffer = Some(FramebufferRequest { width, height, depth });
+        self.framebuffer = Some(FramebufferRequest {
+            width,
+            height,
+            depth,
+        });
         self
     }
 
@@ -547,12 +555,12 @@ pub const MINIMAL_HEADER_DATA: [u32; 6] = {
     const CHECKSUM: u32 = calculate_checksum(HEADER_MAGIC, ARCHITECTURE_I386, LENGTH);
 
     [
-        HEADER_MAGIC,       // magic
-        ARCHITECTURE_I386,  // architecture
-        LENGTH,             // header_length
-        CHECKSUM,           // checksum
-        0,                  // end tag: type=0, flags=0
-        8,                  // end tag: size=8
+        HEADER_MAGIC,      // magic
+        ARCHITECTURE_I386, // architecture
+        LENGTH,            // header_length
+        CHECKSUM,          // checksum
+        0,                 // end tag: type=0, flags=0
+        8,                 // end tag: size=8
     ]
 };
 

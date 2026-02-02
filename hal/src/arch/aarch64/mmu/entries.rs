@@ -74,11 +74,11 @@ pub enum AccessPermission {
     /// Kernel read/write, user no access
     KernelRwUserNone = 0b00,
     /// Kernel read/write, user read/write
-    KernelRwUserRw = 0b01,
+    KernelRwUserRw   = 0b01,
     /// Kernel read-only, user no access
     KernelRoUserNone = 0b10,
     /// Kernel read-only, user read-only
-    KernelRoUserRo = 0b11,
+    KernelRoUserRo   = 0b11,
 }
 
 impl AccessPermission {
@@ -118,9 +118,9 @@ impl AccessPermission {
 #[repr(u8)]
 pub enum Shareability {
     /// Non-shareable
-    NonShareable = 0b00,
+    NonShareable   = 0b00,
     /// Reserved
-    Reserved = 0b01,
+    Reserved       = 0b01,
     /// Outer shareable
     OuterShareable = 0b10,
     /// Inner shareable
@@ -154,17 +154,17 @@ impl Shareability {
 #[repr(u8)]
 pub enum MemoryAttributeIndex {
     /// Device-nGnRnE (strongly ordered)
-    DeviceNGnRnE = 0,
+    DeviceNGnRnE       = 0,
     /// Device-nGnRE
-    DeviceNGnRE = 1,
+    DeviceNGnRE        = 1,
     /// Normal Non-cacheable
     NormalNonCacheable = 2,
     /// Normal Write-Through
     NormalWriteThrough = 3,
     /// Normal Write-Back
-    NormalWriteBack = 4,
+    NormalWriteBack    = 4,
     /// Normal Write-Back Non-transient
-    NormalWriteBackNt = 5,
+    NormalWriteBackNt  = 5,
 }
 
 impl MemoryAttributeIndex {
@@ -432,10 +432,13 @@ impl fmt::Debug for PageTableEntry {
         } else if self.is_table() {
             write!(f, "PTE::Table({:#x})", self.phys_addr())
         } else {
-            write!(f, "PTE::Page({:#x}, {:?}, {:?})",
-                   self.phys_addr(),
-                   self.permission(),
-                   self.attr_index())
+            write!(
+                f,
+                "PTE::Page({:#x}, {:?}, {:?})",
+                self.phys_addr(),
+                self.permission(),
+                self.attr_index()
+            )
         }
     }
 }
@@ -524,7 +527,13 @@ impl TableDescriptor {
     }
 
     /// Create with hierarchical attributes
-    pub const fn with_attrs(next_level_addr: u64, ns: bool, ap_table: u8, xn: bool, pxn: bool) -> Self {
+    pub const fn with_attrs(
+        next_level_addr: u64,
+        ns: bool,
+        ap_table: u8,
+        xn: bool,
+        pxn: bool,
+    ) -> Self {
         let addr = next_level_addr & PTE_ADDR_MASK_4K;
         let mut bits = addr | PTE_TABLE | PTE_VALID;
 

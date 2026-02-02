@@ -71,9 +71,12 @@ impl MacAddress {
 
     /// Check if broadcast
     pub const fn is_broadcast(&self) -> bool {
-        self.octets[0] == 0xFF && self.octets[1] == 0xFF &&
-        self.octets[2] == 0xFF && self.octets[3] == 0xFF &&
-        self.octets[4] == 0xFF && self.octets[5] == 0xFF
+        self.octets[0] == 0xFF
+            && self.octets[1] == 0xFF
+            && self.octets[2] == 0xFF
+            && self.octets[3] == 0xFF
+            && self.octets[4] == 0xFF
+            && self.octets[5] == 0xFF
     }
 
     /// Check if multicast
@@ -88,17 +91,27 @@ impl MacAddress {
 
     /// Check if zero
     pub const fn is_zero(&self) -> bool {
-        self.octets[0] == 0 && self.octets[1] == 0 &&
-        self.octets[2] == 0 && self.octets[3] == 0 &&
-        self.octets[4] == 0 && self.octets[5] == 0
+        self.octets[0] == 0
+            && self.octets[1] == 0
+            && self.octets[2] == 0
+            && self.octets[3] == 0
+            && self.octets[4] == 0
+            && self.octets[5] == 0
     }
 }
 
 impl fmt::Display for MacAddress {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            self.octets[0], self.octets[1], self.octets[2],
-            self.octets[3], self.octets[4], self.octets[5])
+        write!(
+            f,
+            "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+            self.octets[0],
+            self.octets[1],
+            self.octets[2],
+            self.octets[3],
+            self.octets[4],
+            self.octets[5]
+        )
     }
 }
 
@@ -115,17 +128,25 @@ pub struct Ipv4Address {
 
 impl Ipv4Address {
     /// Any address (0.0.0.0)
-    pub const ANY: Self = Self { octets: [0, 0, 0, 0] };
+    pub const ANY: Self = Self {
+        octets: [0, 0, 0, 0],
+    };
 
     /// Broadcast address (255.255.255.255)
-    pub const BROADCAST: Self = Self { octets: [255, 255, 255, 255] };
+    pub const BROADCAST: Self = Self {
+        octets: [255, 255, 255, 255],
+    };
 
     /// Localhost (127.0.0.1)
-    pub const LOCALHOST: Self = Self { octets: [127, 0, 0, 1] };
+    pub const LOCALHOST: Self = Self {
+        octets: [127, 0, 0, 1],
+    };
 
     /// Create from octets
     pub const fn new(a: u8, b: u8, c: u8, d: u8) -> Self {
-        Self { octets: [a, b, c, d] }
+        Self {
+            octets: [a, b, c, d],
+        }
     }
 
     /// Create from 32-bit value (network byte order)
@@ -136,16 +157,16 @@ impl Ipv4Address {
                 ((value >> 16) & 0xFF) as u8,
                 ((value >> 8) & 0xFF) as u8,
                 (value & 0xFF) as u8,
-            ]
+            ],
         }
     }
 
     /// Convert to 32-bit value (network byte order)
     pub const fn to_u32(&self) -> u32 {
-        ((self.octets[0] as u32) << 24) |
-        ((self.octets[1] as u32) << 16) |
-        ((self.octets[2] as u32) << 8) |
-        (self.octets[3] as u32)
+        ((self.octets[0] as u32) << 24)
+            | ((self.octets[1] as u32) << 16)
+            | ((self.octets[2] as u32) << 8)
+            | (self.octets[3] as u32)
     }
 
     /// Check if loopback
@@ -181,15 +202,18 @@ impl Ipv4Address {
                 self.octets[1] & mask.octets[1],
                 self.octets[2] & mask.octets[2],
                 self.octets[3] & mask.octets[3],
-            ]
+            ],
         }
     }
 }
 
 impl fmt::Display for Ipv4Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}.{}",
-            self.octets[0], self.octets[1], self.octets[2], self.octets[3])
+        write!(
+            f,
+            "{}.{}.{}.{}",
+            self.octets[0], self.octets[1], self.octets[2], self.octets[3]
+        )
     }
 }
 
@@ -210,22 +234,30 @@ impl Ipv6Address {
 
     /// Localhost (::1)
     pub const LOCALHOST: Self = Self {
-        octets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        octets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     };
 
     /// Create from segments
     pub const fn new(segments: [u16; 8]) -> Self {
         Self {
             octets: [
-                (segments[0] >> 8) as u8, segments[0] as u8,
-                (segments[1] >> 8) as u8, segments[1] as u8,
-                (segments[2] >> 8) as u8, segments[2] as u8,
-                (segments[3] >> 8) as u8, segments[3] as u8,
-                (segments[4] >> 8) as u8, segments[4] as u8,
-                (segments[5] >> 8) as u8, segments[5] as u8,
-                (segments[6] >> 8) as u8, segments[6] as u8,
-                (segments[7] >> 8) as u8, segments[7] as u8,
-            ]
+                (segments[0] >> 8) as u8,
+                segments[0] as u8,
+                (segments[1] >> 8) as u8,
+                segments[1] as u8,
+                (segments[2] >> 8) as u8,
+                segments[2] as u8,
+                (segments[3] >> 8) as u8,
+                segments[3] as u8,
+                (segments[4] >> 8) as u8,
+                segments[4] as u8,
+                (segments[5] >> 8) as u8,
+                segments[5] as u8,
+                (segments[6] >> 8) as u8,
+                segments[6] as u8,
+                (segments[7] >> 8) as u8,
+                segments[7] as u8,
+            ],
         }
     }
 
@@ -237,14 +269,22 @@ impl Ipv6Address {
 
     /// Check if loopback
     pub const fn is_loopback(&self) -> bool {
-        self.octets[0] == 0 && self.octets[1] == 0 &&
-        self.octets[2] == 0 && self.octets[3] == 0 &&
-        self.octets[4] == 0 && self.octets[5] == 0 &&
-        self.octets[6] == 0 && self.octets[7] == 0 &&
-        self.octets[8] == 0 && self.octets[9] == 0 &&
-        self.octets[10] == 0 && self.octets[11] == 0 &&
-        self.octets[12] == 0 && self.octets[13] == 0 &&
-        self.octets[14] == 0 && self.octets[15] == 1
+        self.octets[0] == 0
+            && self.octets[1] == 0
+            && self.octets[2] == 0
+            && self.octets[3] == 0
+            && self.octets[4] == 0
+            && self.octets[5] == 0
+            && self.octets[6] == 0
+            && self.octets[7] == 0
+            && self.octets[8] == 0
+            && self.octets[9] == 0
+            && self.octets[10] == 0
+            && self.octets[11] == 0
+            && self.octets[12] == 0
+            && self.octets[13] == 0
+            && self.octets[14] == 0
+            && self.octets[15] == 1
     }
 
     /// Check if link-local
@@ -269,12 +309,18 @@ impl Ipv6Address {
 
     /// Check if IPv4-mapped
     pub const fn is_ipv4_mapped(&self) -> bool {
-        self.octets[0] == 0 && self.octets[1] == 0 &&
-        self.octets[2] == 0 && self.octets[3] == 0 &&
-        self.octets[4] == 0 && self.octets[5] == 0 &&
-        self.octets[6] == 0 && self.octets[7] == 0 &&
-        self.octets[8] == 0 && self.octets[9] == 0 &&
-        self.octets[10] == 0xFF && self.octets[11] == 0xFF
+        self.octets[0] == 0
+            && self.octets[1] == 0
+            && self.octets[2] == 0
+            && self.octets[3] == 0
+            && self.octets[4] == 0
+            && self.octets[5] == 0
+            && self.octets[6] == 0
+            && self.octets[7] == 0
+            && self.octets[8] == 0
+            && self.octets[9] == 0
+            && self.octets[10] == 0xFF
+            && self.octets[11] == 0xFF
     }
 }
 
@@ -289,7 +335,7 @@ pub enum EtherType {
     /// IPv4
     Ipv4 = 0x0800,
     /// ARP
-    Arp = 0x0806,
+    Arp  = 0x0806,
     /// VLAN tagged
     Vlan = 0x8100,
     /// IPv6
@@ -297,7 +343,7 @@ pub enum EtherType {
     /// LLDP
     Lldp = 0x88CC,
     /// PTP
-    Ptp = 0x88F7,
+    Ptp  = 0x88F7,
 }
 
 /// Ethernet header
@@ -611,19 +657,19 @@ pub enum DhcpMessageType {
     /// Discover
     Discover = 1,
     /// Offer
-    Offer = 2,
+    Offer    = 2,
     /// Request
-    Request = 3,
+    Request  = 3,
     /// Decline
-    Decline = 4,
+    Decline  = 4,
     /// ACK
-    Ack = 5,
+    Ack      = 5,
     /// NAK
-    Nak = 6,
+    Nak      = 6,
     /// Release
-    Release = 7,
+    Release  = 7,
     /// Inform
-    Inform = 8,
+    Inform   = 8,
 }
 
 /// DHCP option codes
@@ -834,17 +880,17 @@ impl PxeBootInfo {
 #[repr(u16)]
 pub enum TftpOpcode {
     /// Read request
-    Rrq = 1,
+    Rrq   = 1,
     /// Write request
-    Wrq = 2,
+    Wrq   = 2,
     /// Data
-    Data = 3,
+    Data  = 3,
     /// Acknowledgment
-    Ack = 4,
+    Ack   = 4,
     /// Error
     Error = 5,
     /// Option acknowledgment
-    Oack = 6,
+    Oack  = 6,
 }
 
 /// TFTP error codes
@@ -852,21 +898,21 @@ pub enum TftpOpcode {
 #[repr(u16)]
 pub enum TftpError {
     /// Not defined
-    NotDefined = 0,
+    NotDefined        = 0,
     /// File not found
-    FileNotFound = 1,
+    FileNotFound      = 1,
     /// Access violation
-    AccessViolation = 2,
+    AccessViolation   = 2,
     /// Disk full
-    DiskFull = 3,
+    DiskFull          = 3,
     /// Illegal operation
-    IllegalOperation = 4,
+    IllegalOperation  = 4,
     /// Unknown transfer ID
-    UnknownTid = 5,
+    UnknownTid        = 5,
     /// File already exists
-    FileExists = 6,
+    FileExists        = 6,
     /// No such user
-    NoSuchUser = 7,
+    NoSuchUser        = 7,
     /// Option negotiation failed
     OptionNegotiation = 8,
 }
@@ -1037,23 +1083,23 @@ impl HttpStatus {
 #[repr(u16)]
 pub enum DnsRecordType {
     /// A record (IPv4)
-    A = 1,
+    A     = 1,
     /// NS record
-    Ns = 2,
+    Ns    = 2,
     /// CNAME record
     Cname = 5,
     /// SOA record
-    Soa = 6,
+    Soa   = 6,
     /// PTR record
-    Ptr = 12,
+    Ptr   = 12,
     /// MX record
-    Mx = 15,
+    Mx    = 15,
     /// TXT record
-    Txt = 16,
+    Txt   = 16,
     /// AAAA record (IPv6)
-    Aaaa = 28,
+    Aaaa  = 28,
     /// SRV record
-    Srv = 33,
+    Srv   = 33,
 }
 
 /// DNS header

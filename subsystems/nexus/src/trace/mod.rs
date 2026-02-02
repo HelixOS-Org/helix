@@ -24,30 +24,25 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
-pub mod span;
-pub mod record;
 pub mod buffer;
-pub mod tracer;
 pub mod guard;
+pub mod record;
+pub mod span;
+pub mod tracer;
+pub mod types;
 
 // Re-export types
-pub use types::{SpanId, TraceId, TraceLevel};
-
-// Re-export span types
-pub use span::{Span, SpanEvent, SpanValue};
-
-// Re-export record
-pub use record::TraceRecord;
-
 // Re-export buffer
 pub use buffer::TraceRingBuffer;
-
-// Re-export tracer
-pub use tracer::{Tracer, TracerConfig, TracerStats};
-
 // Re-export guard
 pub use guard::SpanGuard;
+// Re-export record
+pub use record::TraceRecord;
+// Re-export span types
+pub use span::{Span, SpanEvent, SpanValue};
+// Re-export tracer
+pub use tracer::{Tracer, TracerConfig, TracerStats};
+pub use types::{SpanId, TraceId, TraceLevel};
 
 // ============================================================================
 // TESTS

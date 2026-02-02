@@ -32,10 +32,9 @@
 //! | 0x0F00    | GICD_SGIR        | SGI Register (GICv2)                 |
 //! | 0x6000    | GICD_IROUTER     | Routing Registers (GICv3)            |
 
-use super::{
-    bit_reg_offset, byte_reg_offset, config_reg_offset, Priority, TriggerMode, SPI_BASE,
-};
 use core::ptr::{read_volatile, write_volatile};
+
+use super::{bit_reg_offset, byte_reg_offset, config_reg_offset, Priority, TriggerMode, SPI_BASE};
 
 // ============================================================================
 // GICD Register Offsets
@@ -360,7 +359,8 @@ impl Distributor {
     #[inline]
     pub unsafe fn set_priority(&self, intid: u32, priority: Priority) {
         let (reg_index, byte_offset) = byte_reg_offset(intid);
-        let addr = (self.base as *mut u8).add(GICD_IPRIORITYR + reg_index * 4 + byte_offset as usize);
+        let addr =
+            (self.base as *mut u8).add(GICD_IPRIORITYR + reg_index * 4 + byte_offset as usize);
         write_volatile(addr, priority.value());
     }
 
@@ -368,7 +368,8 @@ impl Distributor {
     #[inline]
     pub unsafe fn get_priority(&self, intid: u32) -> Priority {
         let (reg_index, byte_offset) = byte_reg_offset(intid);
-        let addr = (self.base as *const u8).add(GICD_IPRIORITYR + reg_index * 4 + byte_offset as usize);
+        let addr =
+            (self.base as *const u8).add(GICD_IPRIORITYR + reg_index * 4 + byte_offset as usize);
         Priority(read_volatile(addr))
     }
 
@@ -398,11 +399,11 @@ impl Distributor {
         match mode {
             TriggerMode::Level => {
                 // Bit 1 = 0 for level-triggered
-            }
+            },
             TriggerMode::Edge => {
                 // Bit 1 = 1 for edge-triggered
                 config |= 0x2 << bit_offset;
-            }
+            },
         }
 
         self.write_reg(GICD_ICFGR + reg_index * 4, config);

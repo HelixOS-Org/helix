@@ -2,11 +2,13 @@
 //!
 //! Defines execution domains for isolation.
 
-use crate::{ThreadId, ProcessId};
 use alloc::collections::BTreeSet;
 use alloc::string::String;
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::RwLock;
+
+use crate::{ProcessId, ThreadId};
 
 /// Domain identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

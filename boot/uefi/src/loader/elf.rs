@@ -3,13 +3,15 @@
 //! Complete ELF64 executable loader with full support for all standard
 //! features including program headers, sections, relocations, and symbols.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
-use crate::loader::{LoadedImage, ImageSection, SectionFlags, ImageFlags, ImageFormat, MachineType};
+use crate::loader::{
+    ImageFlags, ImageFormat, ImageSection, LoadedImage, MachineType, SectionFlags,
+};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // ELF CONSTANTS
@@ -713,7 +715,9 @@ impl ElfLoader {
         self.symbols.clear();
 
         // Find symbol table section
-        let symtab = self.section_headers.iter()
+        let symtab = self
+            .section_headers
+            .iter()
             .find(|s| s.sh_type == sht::SHT_SYMTAB);
 
         let symtab = match symtab {
@@ -836,7 +840,9 @@ impl ElfLoader {
         self.dynamic.clear();
 
         // Find PT_DYNAMIC segment
-        let dyn_seg = self.program_headers.iter()
+        let dyn_seg = self
+            .program_headers
+            .iter()
             .find(|p| p.p_type == pt::PT_DYNAMIC);
 
         let dyn_seg = match dyn_seg {
@@ -911,7 +917,9 @@ impl ElfLoader {
         }
 
         // Check for NX stack
-        let nx_stack = self.program_headers.iter()
+        let nx_stack = self
+            .program_headers
+            .iter()
             .any(|p| p.p_type == pt::PT_GNU_STACK && !p.is_executable());
 
         // Build image flags
@@ -924,7 +932,9 @@ impl ElfLoader {
         };
 
         // Find BSS
-        let bss_section = self.section_headers.iter()
+        let bss_section = self
+            .section_headers
+            .iter()
             .find(|s| s.is_bss() && s.is_allocated());
 
         let (bss_start, bss_size) = bss_section
@@ -988,7 +998,8 @@ impl ElfLoader {
 
     /// Get loadable segments
     pub fn loadable_segments(&self) -> Vec<&Elf64ProgramHeader> {
-        self.program_headers.iter()
+        self.program_headers
+            .iter()
             .filter(|p| p.is_load())
             .collect()
     }

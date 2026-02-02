@@ -19,64 +19,42 @@
 //! - [`cql`] - Causal Query Language
 //! - [`intelligence`] - Main causal reasoning interface
 
-#![no_std]
-
 extern crate alloc;
 
-pub mod types;
-pub mod events;
-pub mod graph;
 pub mod chain;
 pub mod counterfactual;
-pub mod explanation;
 pub mod cql;
+pub mod events;
+pub mod explanation;
+pub mod graph;
 pub mod intelligence;
+pub mod types;
 
 // Re-export types
-pub use types::{
-    CausalEventId, CausalNodeId, CausalEdgeId, ChainId, QueryId,
-};
-
-// Re-export events
-pub use events::{
-    CausalEventType, EventSeverity, CausalEvent,
-};
-
-// Re-export graph
-pub use graph::{
-    CausalRelationType, CausalNode, CausalEdge, CausalGraph,
-};
-
 // Re-export chain
-pub use chain::{
-    CausalChain, CausalChainBuilder,
-};
-
+pub use chain::{CausalChain, CausalChainBuilder};
 // Re-export counterfactual
 pub use counterfactual::{
-    CounterfactualScenario, CounterfactualModification,
-    CounterfactualResult, CounterfactualImpact, CounterfactualEngine,
+    CounterfactualEngine, CounterfactualImpact, CounterfactualModification, CounterfactualResult,
+    CounterfactualScenario,
 };
-
-// Re-export explanation
-pub use explanation::{
-    ExplanationType, Explanation, ExplanationGenerator,
-};
-
 // Re-export cql
-pub use cql::{
-    CqlQuery, CqlResult, CqlEngine,
-};
-
+pub use cql::{CqlEngine, CqlQuery, CqlResult};
+// Re-export events
+pub use events::{CausalEvent, CausalEventType, EventSeverity};
+// Re-export explanation
+pub use explanation::{Explanation, ExplanationGenerator, ExplanationType};
+// Re-export graph
+pub use graph::{CausalEdge, CausalGraph, CausalNode, CausalRelationType};
 // Re-export intelligence
-pub use intelligence::{
-    CausalReasoningAnalysis, CausalReasoningIntelligence,
-};
+pub use intelligence::{CausalReasoningAnalysis, CausalReasoningIntelligence};
+pub use types::{CausalEdgeId, CausalEventId, CausalNodeId, ChainId, QueryId};
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::String;
+
+    use super::*;
 
     #[test]
     fn test_causal_event() {
@@ -176,7 +154,9 @@ mod tests {
 
         graph.add_relationship(n1, n2, CausalRelationType::DirectCause, 0.9);
 
-        let result = engine.execute(&graph, CqlQuery::WhyQuery { event: CausalEventId::new(2) });
+        let result = engine.execute(&graph, CqlQuery::WhyQuery {
+            event: CausalEventId::new(2),
+        });
         assert!(matches!(result, CqlResult::Explanation(_)));
     }
 

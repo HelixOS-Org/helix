@@ -16,14 +16,14 @@ use super::hash::{Sha256, Sha512};
 pub mod guid {
     /// EFI_TCG2_PROTOCOL GUID
     pub const EFI_TCG2_PROTOCOL: [u8; 16] = [
-        0x8f, 0x9a, 0xf6, 0x60, 0xc5, 0x25, 0x14, 0x45,
-        0x93, 0x27, 0xf5, 0x5e, 0xe4, 0x2c, 0x4e, 0xf3,
+        0x8f, 0x9a, 0xf6, 0x60, 0xc5, 0x25, 0x14, 0x45, 0x93, 0x27, 0xf5, 0x5e, 0xe4, 0x2c, 0x4e,
+        0xf3,
     ];
 
     /// EFI_TCG2_FINAL_EVENTS_TABLE GUID
     pub const EFI_TCG2_FINAL_EVENTS_TABLE: [u8; 16] = [
-        0xb9, 0x83, 0x82, 0x77, 0xb3, 0x1f, 0xd0, 0x4b,
-        0xae, 0x83, 0xb6, 0x31, 0x47, 0xfa, 0x8e, 0x2f,
+        0xb9, 0x83, 0x82, 0x77, 0xb3, 0x1f, 0xd0, 0x4b, 0xae, 0x83, 0xb6, 0x31, 0x47, 0xfa, 0x8e,
+        0x2f,
     ];
 }
 
@@ -360,8 +360,12 @@ impl Tcg2BootServiceCapability {
             manufacturer_id: u32::from_le_bytes([data[18], data[19], data[20], data[21]]),
             number_of_pcr_banks: u32::from_le_bytes([data[22], data[23], data[24], data[25]]),
             active_pcr_banks: if data.len() > 26 {
-                u32::from_le_bytes([data[26], data.get(27).copied().unwrap_or(0),
-                                   data.get(28).copied().unwrap_or(0), data.get(29).copied().unwrap_or(0)])
+                u32::from_le_bytes([
+                    data[26],
+                    data.get(27).copied().unwrap_or(0),
+                    data.get(28).copied().unwrap_or(0),
+                    data.get(29).copied().unwrap_or(0),
+                ])
             } else {
                 0
             },
@@ -413,7 +417,12 @@ impl TcgPcrEvent2 {
     }
 
     /// Create with multiple hash algorithms
-    pub fn new_multi_hash(pcr_index: u32, event_type: u32, data: &[u8], algorithms: &[u16]) -> Self {
+    pub fn new_multi_hash(
+        pcr_index: u32,
+        event_type: u32,
+        data: &[u8],
+        algorithms: &[u16],
+    ) -> Self {
         let mut digests = TpmlDigestValues::new();
 
         for &alg in algorithms {
@@ -421,16 +430,16 @@ impl TcgPcrEvent2 {
                 algorithm::TPM_ALG_SHA256 => {
                     let hash = Sha256::digest(data);
                     digests.add(alg, &hash);
-                }
+                },
                 algorithm::TPM_ALG_SHA384 => {
                     let hash = Sha512::digest_384(data);
                     digests.add(alg, &hash);
-                }
+                },
                 algorithm::TPM_ALG_SHA512 => {
                     let hash = Sha512::digest_512(data);
                     digests.add(alg, &hash);
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -641,10 +650,8 @@ impl<'a> Tpm2Response<'a> {
         if self.offset + 2 > self.payload().len() {
             return Err(TpmError::InvalidResponse);
         }
-        let value = u16::from_be_bytes([
-            self.payload()[self.offset],
-            self.payload()[self.offset + 1],
-        ]);
+        let value =
+            u16::from_be_bytes([self.payload()[self.offset], self.payload()[self.offset + 1]]);
         self.offset += 2;
         Ok(value)
     }
@@ -800,9 +807,7 @@ impl EventLog {
 
 impl Default for EventLog {
     fn default() -> Self {
-        Self::new(&[
-            (algorithm::TPM_ALG_SHA256, 32),
-        ])
+        Self::new(&[(algorithm::TPM_ALG_SHA256, 32)])
     }
 }
 
@@ -964,7 +969,12 @@ impl MeasuredBoot {
         // DevicePath
         event_data.extend_from_slice(&path_bytes);
 
-        self.extend_digest(pcr, event_type::EV_EFI_BOOT_SERVICES_APPLICATION, image_hash, &event_data);
+        self.extend_digest(
+            pcr,
+            event_type::EV_EFI_BOOT_SERVICES_APPLICATION,
+            image_hash,
+            &event_data,
+        );
     }
 
     /// Get PCR value

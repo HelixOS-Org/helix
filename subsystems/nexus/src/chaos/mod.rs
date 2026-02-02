@@ -24,30 +24,25 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
-pub mod target;
 pub mod config;
-pub mod fault;
-pub mod experiment;
 pub mod engine;
+pub mod experiment;
+pub mod fault;
+pub mod target;
+pub mod types;
 
 // Re-export types
-pub use types::FaultType;
-
-// Re-export target
-pub use target::FaultTarget;
-
 // Re-export config
 pub use config::FaultConfig;
-
-// Re-export fault
-pub use fault::Fault;
-
-// Re-export experiment
-pub use experiment::{ChaosExperiment, ExperimentResults};
-
 // Re-export engine
 pub use engine::{ChaosEngine, ChaosSafety};
+// Re-export experiment
+pub use experiment::{ChaosExperiment, ExperimentResults};
+// Re-export fault
+pub use fault::Fault;
+// Re-export target
+pub use target::FaultTarget;
+pub use types::FaultType;
 
 // ============================================================================
 // TESTS

@@ -11,6 +11,7 @@
 //! Each entry type: Synchronous, IRQ, FIQ, SError
 
 use core::arch::asm;
+
 use super::handlers::ExceptionHandler;
 
 // =============================================================================
@@ -36,41 +37,41 @@ pub const VECTOR_TABLE_ALIGN: usize = 0x800;
 pub enum VectorOffset {
     // From current EL, SP_EL0
     /// Synchronous exception from current EL, SP_EL0
-    CurrentElSp0Sync = 0x000,
+    CurrentElSp0Sync     = 0x000,
     /// IRQ from current EL, SP_EL0
-    CurrentElSp0Irq = 0x080,
+    CurrentElSp0Irq      = 0x080,
     /// FIQ from current EL, SP_EL0
-    CurrentElSp0Fiq = 0x100,
+    CurrentElSp0Fiq      = 0x100,
     /// SError from current EL, SP_EL0
-    CurrentElSp0Serror = 0x180,
+    CurrentElSp0Serror   = 0x180,
 
     // From current EL, SP_ELx
     /// Synchronous exception from current EL, SP_ELx
-    CurrentElSpxSync = 0x200,
+    CurrentElSpxSync     = 0x200,
     /// IRQ from current EL, SP_ELx
-    CurrentElSpxIrq = 0x280,
+    CurrentElSpxIrq      = 0x280,
     /// FIQ from current EL, SP_ELx
-    CurrentElSpxFiq = 0x300,
+    CurrentElSpxFiq      = 0x300,
     /// SError from current EL, SP_ELx
-    CurrentElSpxSerror = 0x380,
+    CurrentElSpxSerror   = 0x380,
 
     // From lower EL, AArch64
     /// Synchronous exception from lower EL, AArch64
-    LowerElAarch64Sync = 0x400,
+    LowerElAarch64Sync   = 0x400,
     /// IRQ from lower EL, AArch64
-    LowerElAarch64Irq = 0x480,
+    LowerElAarch64Irq    = 0x480,
     /// FIQ from lower EL, AArch64
-    LowerElAarch64Fiq = 0x500,
+    LowerElAarch64Fiq    = 0x500,
     /// SError from lower EL, AArch64
     LowerElAarch64Serror = 0x580,
 
     // From lower EL, AArch32
     /// Synchronous exception from lower EL, AArch32
-    LowerElAarch32Sync = 0x600,
+    LowerElAarch32Sync   = 0x600,
     /// IRQ from lower EL, AArch32
-    LowerElAarch32Irq = 0x680,
+    LowerElAarch32Irq    = 0x680,
     /// FIQ from lower EL, AArch32
-    LowerElAarch32Fiq = 0x700,
+    LowerElAarch32Fiq    = 0x700,
     /// SError from lower EL, AArch32
     LowerElAarch32Serror = 0x780,
 }
@@ -101,41 +102,45 @@ impl VectorOffset {
 
     /// Check if exception is synchronous
     pub fn is_sync(&self) -> bool {
-        matches!(self,
-            Self::CurrentElSp0Sync |
-            Self::CurrentElSpxSync |
-            Self::LowerElAarch64Sync |
-            Self::LowerElAarch32Sync
+        matches!(
+            self,
+            Self::CurrentElSp0Sync
+                | Self::CurrentElSpxSync
+                | Self::LowerElAarch64Sync
+                | Self::LowerElAarch32Sync
         )
     }
 
     /// Check if exception is IRQ
     pub fn is_irq(&self) -> bool {
-        matches!(self,
-            Self::CurrentElSp0Irq |
-            Self::CurrentElSpxIrq |
-            Self::LowerElAarch64Irq |
-            Self::LowerElAarch32Irq
+        matches!(
+            self,
+            Self::CurrentElSp0Irq
+                | Self::CurrentElSpxIrq
+                | Self::LowerElAarch64Irq
+                | Self::LowerElAarch32Irq
         )
     }
 
     /// Check if exception is FIQ
     pub fn is_fiq(&self) -> bool {
-        matches!(self,
-            Self::CurrentElSp0Fiq |
-            Self::CurrentElSpxFiq |
-            Self::LowerElAarch64Fiq |
-            Self::LowerElAarch32Fiq
+        matches!(
+            self,
+            Self::CurrentElSp0Fiq
+                | Self::CurrentElSpxFiq
+                | Self::LowerElAarch64Fiq
+                | Self::LowerElAarch32Fiq
         )
     }
 
     /// Check if exception is SError
     pub fn is_serror(&self) -> bool {
-        matches!(self,
-            Self::CurrentElSp0Serror |
-            Self::CurrentElSpxSerror |
-            Self::LowerElAarch64Serror |
-            Self::LowerElAarch32Serror
+        matches!(
+            self,
+            Self::CurrentElSp0Serror
+                | Self::CurrentElSpxSerror
+                | Self::LowerElAarch64Serror
+                | Self::LowerElAarch32Serror
         )
     }
 
@@ -290,8 +295,10 @@ pub fn write_vbar_el3(addr: u64) {
 /// - Contains valid exception handler code
 pub unsafe fn install_vectors(addr: u64) {
     // Verify alignment
-    debug_assert!(addr & (VECTOR_TABLE_ALIGN as u64 - 1) == 0,
-                  "Vector table must be 2KB aligned");
+    debug_assert!(
+        addr & (VECTOR_TABLE_ALIGN as u64 - 1) == 0,
+        "Vector table must be 2KB aligned"
+    );
 
     write_vbar_el1(addr);
 }
@@ -436,7 +443,10 @@ impl VectorTableBuilder {
     }
 
     /// Set SError handler
-    pub fn serror_handler(mut self, handler: extern "C" fn(*mut super::context::TrapFrame)) -> Self {
+    pub fn serror_handler(
+        mut self,
+        handler: extern "C" fn(*mut super::context::TrapFrame),
+    ) -> Self {
         self.serror_handler = Some(handler);
         self
     }

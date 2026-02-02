@@ -4,12 +4,11 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::core::{ComponentId, NexusTimestamp};
-use crate::error::{HealingError, NexusResult};
-
 use super::entry::RollbackEntry;
 use super::point::RollbackPoint;
 use super::policy::RollbackPolicy;
+use crate::core::{ComponentId, NexusTimestamp};
+use crate::error::{HealingError, NexusResult};
 
 /// The micro-rollback engine
 pub struct MicroRollbackEngine {
@@ -219,12 +218,14 @@ impl MicroRollbackEngine {
         // Find components that depend on this one
         // and rollback them to the same time
         if self.policy.cascade_on_failure {
-            let point = self.get_point(point_id);
-            if let Some(point) = point {
-                for dep in &point.dependencies {
-                    if let Ok(dep_entry) = self.rollback_to_time(*dep, target_time) {
-                        entries.push(dep_entry);
-                    }
+            let deps: Vec<ComponentId> = if let Some(point) = self.get_point(point_id) {
+                point.dependencies.clone()
+            } else {
+                Vec::new()
+            };
+            for dep in deps {
+                if let Ok(dep_entry) = self.rollback_to_time(dep, target_time) {
+                    entries.push(dep_entry);
                 }
             }
         }

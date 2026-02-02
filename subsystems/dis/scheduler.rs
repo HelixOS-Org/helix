@@ -59,14 +59,15 @@
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering};
+
 use spin::{Mutex, RwLock};
 
-use super::{TaskId, CpuId, Nanoseconds, DISError, DISResult, Task, TaskState, TaskFlags};
 use super::intent::{Intent, IntentClass, IntentEngine};
-use super::policy::{PolicyEngine, PolicyContext, TaskContext};
-use super::stats::StatsCollector;
 use super::optimizer::{AdaptiveOptimizer, HintType, QueueLevel};
+use super::policy::{PolicyContext, PolicyEngine, TaskContext};
+use super::stats::StatsCollector;
+use super::{CpuId, DISError, DISResult, Nanoseconds, Task, TaskFlags, TaskId, TaskState};
 
 // =============================================================================
 // Scheduler Configuration
@@ -150,19 +151,19 @@ impl RunQueue {
             runtime: AtomicU64::new(0),
         }
     }
-    
+
     /// Push task to back of queue
     pub fn push_back(&mut self, task_id: TaskId) {
         self.tasks.push_back(task_id);
         self.count.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Push task to front of queue (high priority)
     pub fn push_front(&mut self, task_id: TaskId) {
         self.tasks.push_front(task_id);
         self.count.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Pop next task
     pub fn pop_front(&mut self) -> Option<TaskId> {
         let task = self.tasks.pop_front();
@@ -171,7 +172,7 @@ impl RunQueue {
         }
         task
     }
-    
+
     /// Remove specific task
     pub fn remove(&mut self, task_id: TaskId) -> bool {
         if let Some(pos) = self.tasks.iter().position(|&t| t == task_id) {
@@ -181,22 +182,22 @@ impl RunQueue {
         }
         false
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.count.load(Ordering::Relaxed) == 0
     }
-    
+
     /// Get task count
     pub fn len(&self) -> usize {
         self.count.load(Ordering::Relaxed)
     }
-    
+
     /// Get time quantum
     pub fn time_quantum(&self) -> Nanoseconds {
         self.time_quantum
     }
-    
+
     /// Add runtime
     pub fn add_runtime(&self, ns: Nanoseconds) {
         self.runtime.fetch_add(ns.raw(), Ordering::Relaxed);
@@ -239,12 +240,30 @@ impl CpuState {
             current: None,
             idle_task,
             queues: [
-                Mutex::new(RunQueue::new(QueueLevel::RealTime, Nanoseconds::from_millis(2))),
-                Mutex::new(RunQueue::new(QueueLevel::Interactive, Nanoseconds::from_millis(4))),
-                Mutex::new(RunQueue::new(QueueLevel::Normal, Nanoseconds::from_millis(10))),
-                Mutex::new(RunQueue::new(QueueLevel::Batch, Nanoseconds::from_millis(50))),
-                Mutex::new(RunQueue::new(QueueLevel::Background, Nanoseconds::from_millis(100))),
-                Mutex::new(RunQueue::new(QueueLevel::Idle, Nanoseconds::from_millis(200))),
+                Mutex::new(RunQueue::new(
+                    QueueLevel::RealTime,
+                    Nanoseconds::from_millis(2),
+                )),
+                Mutex::new(RunQueue::new(
+                    QueueLevel::Interactive,
+                    Nanoseconds::from_millis(4),
+                )),
+                Mutex::new(RunQueue::new(
+                    QueueLevel::Normal,
+                    Nanoseconds::from_millis(10),
+                )),
+                Mutex::new(RunQueue::new(
+                    QueueLevel::Batch,
+                    Nanoseconds::from_millis(50),
+                )),
+                Mutex::new(RunQueue::new(
+                    QueueLevel::Background,
+                    Nanoseconds::from_millis(100),
+                )),
+                Mutex::new(RunQueue::new(
+                    QueueLevel::Idle,
+                    Nanoseconds::from_millis(200),
+                )),
             ],
             runnable: AtomicU32::new(0),
             load: AtomicU32::new(0),
@@ -254,7 +273,7 @@ impl CpuState {
             current_priority: AtomicUsize::new(2), // Normal
         }
     }
-    
+
     /// Get queue index for level
     fn queue_index(level: QueueLevel) -> usize {
         match level {
@@ -266,21 +285,21 @@ impl CpuState {
             QueueLevel::Idle => 5,
         }
     }
-    
+
     /// Enqueue task
     pub fn enqueue(&self, task_id: TaskId, level: QueueLevel) {
         let idx = Self::queue_index(level);
         self.queues[idx].lock().push_back(task_id);
         self.runnable.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Enqueue task with high priority
     pub fn enqueue_front(&self, task_id: TaskId, level: QueueLevel) {
         let idx = Self::queue_index(level);
         self.queues[idx].lock().push_front(task_id);
         self.runnable.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Dequeue next task
     pub fn dequeue(&self) -> Option<(TaskId, QueueLevel)> {
         // Check queues from highest to lowest priority
@@ -292,7 +311,7 @@ impl CpuState {
             QueueLevel::Background,
             QueueLevel::Idle,
         ];
-        
+
         for level in levels {
             let idx = Self::queue_index(level);
             if let Some(task) = self.queues[idx].lock().pop_front() {
@@ -300,10 +319,10 @@ impl CpuState {
                 return Some((task, level));
             }
         }
-        
+
         None
     }
-    
+
     /// Remove task from any queue
     pub fn remove_task(&self, task_id: TaskId) -> bool {
         for queue in &self.queues {
@@ -314,12 +333,12 @@ impl CpuState {
         }
         false
     }
-    
+
     /// Check if CPU has runnable tasks
     pub fn has_runnable(&self) -> bool {
         self.runnable.load(Ordering::Relaxed) > 0
     }
-    
+
     /// Calculate load
     pub fn calculate_load(&self) -> u32 {
         let runnable = self.runnable.load(Ordering::Relaxed);
@@ -328,17 +347,17 @@ impl CpuState {
         self.load.store(load, Ordering::Relaxed);
         load
     }
-    
+
     /// Request reschedule
     pub fn request_resched(&self) {
         self.need_resched.store(true, Ordering::SeqCst);
     }
-    
+
     /// Clear reschedule flag
     pub fn clear_resched(&self) {
         self.need_resched.store(false, Ordering::SeqCst);
     }
-    
+
     /// Check if reschedule needed
     pub fn needs_resched(&self) -> bool {
         self.need_resched.load(Ordering::SeqCst)
@@ -447,14 +466,14 @@ impl DISScheduler {
     /// Create new DIS scheduler
     pub fn new(config: SchedulerConfig) -> Self {
         let cpu_count = config.cpu_count;
-        
+
         // Create per-CPU state
         let mut cpus = Vec::with_capacity(cpu_count);
         for i in 0..cpu_count {
             let idle_task = TaskId::new(u64::MAX - i as u64);
             cpus.push(CpuState::new(CpuId::new(i as u32), idle_task));
         }
-        
+
         Self {
             config: RwLock::new(config),
             intent_engine: RwLock::new(IntentEngine::new()),
@@ -472,18 +491,18 @@ impl DISScheduler {
             sched_stats: SchedulerStats::default(),
         }
     }
-    
+
     // =========================================================================
     // Task Management
     // =========================================================================
-    
+
     /// Create a new task with intent
     pub fn create_task(&self, name: &str, intent: Intent) -> DISResult<TaskId> {
         let task_id = TaskId::new(self.next_task_id.fetch_add(1, Ordering::Relaxed));
-        
+
         // Create task from intent
         let mut task = Task::new(task_id, name.into(), intent.clone());
-        
+
         // Apply intent properties
         task.base_priority = match task.intent.class {
             IntentClass::RealTime => 90,
@@ -495,102 +514,106 @@ impl DISScheduler {
             IntentClass::Idle => 0,
             IntentClass::Critical => 100,
         };
-        
+
         task.time_slice = self.config.read().default_time_slice;
         task.state = TaskState::Ready;
-        
+
         // Register with stats
         self.stats.read().register_task(task_id);
-        
+
         // Store task and intent
         self.tasks.write().insert(task_id, task);
-        
+
         // Validate and store intent
         let engine = self.intent_engine.write();
         engine.register(intent.clone())?;
         drop(engine);
-        
+
         self.intents.write().insert(task_id, intent);
-        
+
         // Enqueue task
         self.enqueue_task(task_id)?;
-        
-        self.sched_stats.tasks_created.fetch_add(1, Ordering::Relaxed);
-        
+
+        self.sched_stats
+            .tasks_created
+            .fetch_add(1, Ordering::Relaxed);
+
         Ok(task_id)
     }
-    
+
     /// Destroy a task
     pub fn destroy_task(&self, task_id: TaskId) -> DISResult<()> {
         // Remove from queues
         for cpu in self.cpus.read().iter() {
             cpu.remove_task(task_id);
         }
-        
+
         // Remove task
         self.tasks.write().remove(&task_id);
         self.intents.write().remove(&task_id);
-        
+
         // Unregister from stats
         self.stats.read().unregister_task(task_id);
-        
-        self.sched_stats.tasks_completed.fetch_add(1, Ordering::Relaxed);
-        
+
+        self.sched_stats
+            .tasks_completed
+            .fetch_add(1, Ordering::Relaxed);
+
         Ok(())
     }
-    
+
     /// Get task
     pub fn get_task(&self, task_id: TaskId) -> Option<Task> {
         self.tasks.read().get(&task_id).cloned()
     }
-    
+
     /// Update task state
     pub fn set_task_state(&self, task_id: TaskId, state: TaskState) -> DISResult<()> {
         let mut tasks = self.tasks.write();
-        
+
         if let Some(task) = tasks.get_mut(&task_id) {
             let old_state = task.state;
             task.state = state;
-            
+
             // Handle state transitions
             match (old_state, state) {
                 (_, TaskState::Ready) if old_state != TaskState::Ready => {
                     drop(tasks);
                     self.enqueue_task(task_id)?;
-                }
+                },
                 (TaskState::Ready, _) if state != TaskState::Ready => {
                     drop(tasks);
                     self.dequeue_task(task_id)?;
-                }
-                _ => {}
+                },
+                _ => {},
             }
-            
+
             return Ok(());
         }
-        
+
         Err(DISError::TaskNotFound(task_id))
     }
-    
+
     /// Enqueue task to appropriate CPU
     fn enqueue_task(&self, task_id: TaskId) -> DISResult<()> {
         let tasks = self.tasks.read();
         let task = tasks.get(&task_id).ok_or(DISError::TaskNotFound(task_id))?;
-        
+
         // Determine queue level
         let level = self.determine_queue_level(task);
-        
+
         // Select target CPU
         let cpu = self.select_cpu(task_id)?;
-        
+
         // Enqueue
         let cpus = self.cpus.read();
         if let Some(cpu_state) = cpus.get(cpu.id() as usize) {
             cpu_state.enqueue(task_id, level);
         }
-        
+
         Ok(())
     }
-    
+
     /// Dequeue task
     fn dequeue_task(&self, task_id: TaskId) -> DISResult<()> {
         for cpu in self.cpus.read().iter() {
@@ -600,11 +623,11 @@ impl DISScheduler {
         }
         Ok(())
     }
-    
+
     /// Determine queue level for task
     fn determine_queue_level(&self, task: &Task) -> QueueLevel {
         let config = self.config.read();
-        
+
         if task.base_priority >= config.realtime_threshold as i32 {
             QueueLevel::RealTime
         } else if task.base_priority >= config.interactive_threshold as i32 {
@@ -619,18 +642,18 @@ impl DISScheduler {
             QueueLevel::Idle
         }
     }
-    
+
     /// Select target CPU for task
     fn select_cpu(&self, task_id: TaskId) -> DISResult<CpuId> {
         let cpus = self.cpus.read();
-        
+
         // Check affinity
         if let Some(task) = self.tasks.read().get(&task_id) {
             if task.flags.contains(TaskFlags::CPU_AFFINITY) && task.cpu_affinity != 0 {
                 // Find least loaded CPU in affinity set
                 let mut best_cpu: Option<&CpuState> = None;
                 let mut best_load = u32::MAX;
-                
+
                 for (id, cpu) in cpus.iter().enumerate() {
                     // Check if this CPU is in the affinity mask
                     if (task.cpu_affinity & (1 << id)) != 0 {
@@ -643,51 +666,52 @@ impl DISScheduler {
                         }
                     }
                 }
-                
+
                 if let Some(cpu) = best_cpu {
                     return Ok(cpu.id);
                 }
             }
         }
-        
+
         // Find least loaded CPU
-        let best = cpus.iter()
+        let best = cpus
+            .iter()
             .filter(|c| c.online.load(Ordering::Relaxed))
             .min_by_key(|c| c.load.load(Ordering::Relaxed));
-        
+
         match best {
             Some(cpu) => Ok(cpu.id),
             None => Err(DISError::NoCpuAvailable),
         }
     }
-    
+
     // =========================================================================
     // Scheduling
     // =========================================================================
-    
+
     /// Main scheduling entry point
     pub fn schedule(&self, cpu: CpuId) -> SchedulingDecision {
         self.sched_stats.schedules.fetch_add(1, Ordering::Relaxed);
-        
+
         let cpus = self.cpus.read();
         let cpu_state = match cpus.get(cpu.id() as usize) {
             Some(c) => c,
             None => return self.idle_decision(cpu),
         };
-        
+
         // Clear reschedule flag
         cpu_state.clear_resched();
-        
+
         // Get current task
         let prev_task = cpu_state.current;
-        
+
         // Try to get next task
         let decision = if let Some((task_id, level)) = cpu_state.dequeue() {
             self.make_decision(task_id, level, cpu)
         } else {
             self.idle_decision(cpu)
         };
-        
+
         // Record context switch
         if let Some(prev) = prev_task {
             if prev != decision.task_id {
@@ -695,10 +719,10 @@ impl DISScheduler {
                 self.stats.read().record_task_switch(prev, true);
             }
         }
-        
+
         decision
     }
-    
+
     /// Make scheduling decision for task
     fn make_decision(&self, task_id: TaskId, level: QueueLevel, cpu: CpuId) -> SchedulingDecision {
         let config = self.config.read();
@@ -706,12 +730,12 @@ impl DISScheduler {
         let mut reason = DecisionReason::HighestPriority;
         let mut optimizations = Vec::new();
         let mut priority = 0i32;
-        
+
         // Get task info
         if let Some(task) = self.tasks.read().get(&task_id) {
             priority = task.base_priority;
             time_slice = task.time_slice;
-            
+
             // Check for deadline
             if task.flags.contains(TaskFlags::DEADLINE) {
                 if let Some(deadline) = task.deadline {
@@ -723,30 +747,32 @@ impl DISScheduler {
                 }
             }
         }
-        
+
         // Check intent
         if config.intent_scheduling {
             if let Some(intent) = self.intents.read().get(&task_id) {
-                self.sched_stats.intent_evaluations.fetch_add(1, Ordering::Relaxed);
-                
+                self.sched_stats
+                    .intent_evaluations
+                    .fetch_add(1, Ordering::Relaxed);
+
                 match intent.class {
                     IntentClass::RealTime => {
                         reason = DecisionReason::RealTimeRequirement;
                         time_slice = Nanoseconds::from_millis(2);
-                    }
+                    },
                     IntentClass::Interactive => {
                         reason = DecisionReason::InteractiveBoost;
                         time_slice = Nanoseconds::from_millis(4);
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
-        
+
         // Apply policies
         if let Some(task) = self.tasks.read().get(&task_id) {
             let system_stats = self.stats.read().get_system_stats();
-            
+
             let context = PolicyContext {
                 system: super::policy::SystemContext {
                     cpu_load: system_stats.cpu_load,
@@ -765,7 +791,10 @@ impl DISScheduler {
                 },
                 task: Some(TaskContext {
                     task_id,
-                    intent_class: self.intents.read().get(&task_id)
+                    intent_class: self
+                        .intents
+                        .read()
+                        .get(&task_id)
                         .map(|i| i.class)
                         .unwrap_or(IntentClass::Interactive),
                     priority: task.base_priority as i8,
@@ -777,13 +806,15 @@ impl DISScheduler {
                 current_time: Nanoseconds::new(self.current_time.load(Ordering::Relaxed)),
                 events: Vec::new(),
             };
-            
+
             // PolicyEngine.evaluate returns number of actions applied
             let _ = context; // Context used for future policy evaluation
-            self.sched_stats.policy_applications.fetch_add(1, Ordering::Relaxed);
+            self.sched_stats
+                .policy_applications
+                .fetch_add(1, Ordering::Relaxed);
             reason = DecisionReason::PolicyEnforced("policy".into());
         }
-        
+
         // Apply optimizer hints
         if config.adaptive_optimization {
             for hint in self.optimizer.read().hints_for_task(task_id) {
@@ -791,17 +822,19 @@ impl DISScheduler {
                     HintType::TimeSlice(ts) => {
                         time_slice = ts.recommended;
                         optimizations.push("time_slice_opt".into());
-                    }
+                    },
                     HintType::Priority(p) => {
                         priority = p.recommended as i32;
                         optimizations.push("priority_opt".into());
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-                self.sched_stats.optimization_hints_applied.fetch_add(1, Ordering::Relaxed);
+                self.sched_stats
+                    .optimization_hints_applied
+                    .fetch_add(1, Ordering::Relaxed);
             }
         }
-        
+
         SchedulingDecision {
             task_id,
             time_slice,
@@ -812,11 +845,11 @@ impl DISScheduler {
             optimizations,
         }
     }
-    
+
     /// Create idle decision
     fn idle_decision(&self, cpu: CpuId) -> SchedulingDecision {
         let idle_task = TaskId::new(u64::MAX - cpu.id() as u64);
-        
+
         SchedulingDecision {
             task_id: idle_task,
             time_slice: Nanoseconds::from_millis(10),
@@ -827,22 +860,22 @@ impl DISScheduler {
             optimizations: Vec::new(),
         }
     }
-    
+
     /// Timer tick handler
     pub fn tick(&self, cpu: CpuId) {
         self.tick_count.fetch_add(1, Ordering::Relaxed);
-        let now = Nanoseconds::new(self.current_time.fetch_add(
-            self.config.read().tick_interval.raw(),
-            Ordering::Relaxed
-        ));
-        
+        let now = Nanoseconds::new(
+            self.current_time
+                .fetch_add(self.config.read().tick_interval.raw(), Ordering::Relaxed),
+        );
+
         // Update statistics
         self.stats.read().tick(now);
-        
+
         // Check if current task's time slice expired
         let mut needs_resched = false;
         let mut expired_task_id = None;
-        
+
         {
             let cpus = self.cpus.read();
             if let Some(cpu_state) = cpus.get(cpu.id() as usize) {
@@ -851,8 +884,10 @@ impl DISScheduler {
                     if let Some(task) = tasks.get(&task_id) {
                         // Update task runtime
                         let tick_interval = self.config.read().tick_interval;
-                        self.stats.read().update_task_runtime(task_id, tick_interval);
-                        
+                        self.stats
+                            .read()
+                            .update_task_runtime(task_id, tick_interval);
+
                         // Check time slice
                         if task.runtime >= task.time_slice {
                             cpu_state.request_resched();
@@ -863,7 +898,7 @@ impl DISScheduler {
                 }
             }
         }
-        
+
         // Handle expired task outside of lock
         if needs_resched {
             if let Some(task_id) = expired_task_id {
@@ -872,47 +907,55 @@ impl DISScheduler {
                 self.stats.read().record_task_preemption(task_id);
             }
         }
-        
+
         // Periodic load balancing
         let config = self.config.read();
         if config.load_balancing {
             let balance_interval = config.balance_interval.raw();
-            if self.tick_count.load(Ordering::Relaxed) % (balance_interval / config.tick_interval.raw()) == 0 {
+            if self.tick_count.load(Ordering::Relaxed)
+                % (balance_interval / config.tick_interval.raw())
+                == 0
+            {
                 drop(config);
                 self.load_balance();
             }
         }
-        
+
         // Periodic optimization
         if self.config.read().adaptive_optimization {
             let system_stats = self.stats.read().get_system_stats();
             self.optimizer.read().optimize_system(&system_stats);
         }
     }
-    
+
     /// Load balancing
     fn load_balance(&self) {
-        self.sched_stats.load_balances.fetch_add(1, Ordering::Relaxed);
-        
+        self.sched_stats
+            .load_balances
+            .fetch_add(1, Ordering::Relaxed);
+
         let cpus = self.cpus.read();
-        
+
         // Calculate per-CPU load
         for cpu in cpus.iter() {
             cpu.calculate_load();
         }
-        
+
         // Find imbalance
-        let loads: Vec<_> = cpus.iter().map(|c| c.load.load(Ordering::Relaxed)).collect();
+        let loads: Vec<_> = cpus
+            .iter()
+            .map(|c| c.load.load(Ordering::Relaxed))
+            .collect();
         if loads.is_empty() {
             return;
         }
-        
+
         let avg_load: u32 = loads.iter().sum::<u32>() / loads.len() as u32;
-        
+
         // Find busiest and idlest
         let busiest = loads.iter().enumerate().max_by_key(|(_, &l)| l);
         let idlest = loads.iter().enumerate().min_by_key(|(_, &l)| l);
-        
+
         let (busy_idx, idle_idx) = match (busiest, idlest) {
             (Some((bi, busy_load)), Some((ii, idle_load))) => {
                 if *busy_load > avg_load + 20 && *idle_load < avg_load - 10 {
@@ -920,13 +963,13 @@ impl DISScheduler {
                 } else {
                     return;
                 }
-            }
+            },
             _ => return,
         };
-        
+
         // Release read lock before taking write lock
         drop(cpus);
-        
+
         // Try to migrate a task
         let cpus = self.cpus.write();
         if busy_idx < cpus.len() && idle_idx < cpus.len() {
@@ -937,41 +980,41 @@ impl DISScheduler {
             }
         }
     }
-    
+
     // =========================================================================
     // Configuration and Control
     // =========================================================================
-    
+
     /// Update configuration
     pub fn set_config(&self, config: SchedulerConfig) {
         *self.config.write() = config;
     }
-    
+
     /// Get configuration
     pub fn config(&self) -> SchedulerConfig {
         self.config.read().clone()
     }
-    
+
     /// Enable/disable scheduler
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::SeqCst);
     }
-    
+
     /// Check if enabled
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::SeqCst)
     }
-    
+
     /// Get current timestamp
     pub fn current_time(&self) -> Nanoseconds {
         Nanoseconds::new(self.current_time.load(Ordering::Relaxed))
     }
-    
+
     /// Get total context switches
     pub fn context_switches(&self) -> u64 {
         self.context_switches.load(Ordering::Relaxed)
     }
-    
+
     /// Get scheduler statistics
     pub fn statistics(&self) -> DISStatistics {
         DISStatistics {
@@ -984,27 +1027,30 @@ impl DISScheduler {
             load_balances: self.sched_stats.load_balances.load(Ordering::Relaxed),
             policy_applications: self.sched_stats.policy_applications.load(Ordering::Relaxed),
             intent_evaluations: self.sched_stats.intent_evaluations.load(Ordering::Relaxed),
-            optimization_hints: self.sched_stats.optimization_hints_applied.load(Ordering::Relaxed),
+            optimization_hints: self
+                .sched_stats
+                .optimization_hints_applied
+                .load(Ordering::Relaxed),
             tick_count: self.tick_count.load(Ordering::Relaxed),
             uptime: self.current_time(),
         }
     }
-    
+
     /// Get intent engine
     pub fn intent_engine(&self) -> &RwLock<IntentEngine> {
         &self.intent_engine
     }
-    
+
     /// Get policy engine
     pub fn policy_engine(&self) -> &RwLock<PolicyEngine> {
         &self.policy_engine
     }
-    
+
     /// Get statistics collector
     pub fn stats_collector(&self) -> &RwLock<StatsCollector> {
         &self.stats
     }
-    
+
     /// Get optimizer
     pub fn optimizer(&self) -> &RwLock<AdaptiveOptimizer> {
         &self.optimizer
@@ -1050,43 +1096,43 @@ impl DISSchedulerBuilder {
             config: SchedulerConfig::default(),
         }
     }
-    
+
     /// Set CPU count
     pub fn cpu_count(mut self, count: usize) -> Self {
         self.config.cpu_count = count;
         self
     }
-    
+
     /// Set default time slice
     pub fn time_slice(mut self, slice: Nanoseconds) -> Self {
         self.config.default_time_slice = slice;
         self
     }
-    
+
     /// Enable/disable adaptive optimization
     pub fn adaptive_optimization(mut self, enabled: bool) -> Self {
         self.config.adaptive_optimization = enabled;
         self
     }
-    
+
     /// Enable/disable intent scheduling
     pub fn intent_scheduling(mut self, enabled: bool) -> Self {
         self.config.intent_scheduling = enabled;
         self
     }
-    
+
     /// Enable/disable load balancing
     pub fn load_balancing(mut self, enabled: bool) -> Self {
         self.config.load_balancing = enabled;
         self
     }
-    
+
     /// Enable/disable preemption
     pub fn preemption(mut self, enabled: bool) -> Self {
         self.config.preemption = enabled;
         self
     }
-    
+
     /// Build scheduler
     pub fn build(self) -> DISScheduler {
         DISScheduler::new(self.config)
@@ -1105,40 +1151,36 @@ impl Default for DISSchedulerBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::intent::IntentBuilder;
-    
+    use super::*;
+
     #[test]
     fn test_scheduler_creation() {
         let scheduler = DISScheduler::default();
         assert!(scheduler.is_enabled());
         assert_eq!(scheduler.config().cpu_count, 4);
     }
-    
+
     #[test]
     fn test_task_creation() {
         let scheduler = DISScheduler::default();
-        
-        let intent = IntentBuilder::new()
-            .class(IntentClass::Interactive)
-            .build();
-        
+
+        let intent = IntentBuilder::new().class(IntentClass::Interactive).build();
+
         let task_id = scheduler.create_task("test", intent).unwrap();
-        
+
         let task = scheduler.get_task(task_id);
         assert!(task.is_some());
     }
-    
+
     #[test]
     fn test_scheduling() {
         let scheduler = DISScheduler::default();
-        
-        let intent = IntentBuilder::new()
-            .class(IntentClass::Interactive)
-            .build();
-        
+
+        let intent = IntentBuilder::new().class(IntentClass::Interactive).build();
+
         let _task_id = scheduler.create_task("test", intent).unwrap();
-        
+
         let decision = scheduler.schedule(CpuId::new(0));
         assert_eq!(decision.queue_level, QueueLevel::Interactive);
     }

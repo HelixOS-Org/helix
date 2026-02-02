@@ -48,20 +48,18 @@
 //!                      └─────────────────────────────────────┘
 //! ```
 
+use alloc::collections::VecDeque;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
+use core::sync::atomic::{AtomicU64, Ordering};
+
+use spin::{Mutex, RwLock};
+
 use crate::core::{
     AiAction, AiDecision, AiError, AiEvent, AiPriority, AiResult, Confidence, DecisionContext,
     DecisionId, PowerProfile, ResourceType, SystemMetrics, WorkloadCategory,
 };
-
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use core::sync::atomic::{AtomicU64, Ordering};
-use spin::{Mutex, RwLock};
 
 // =============================================================================
 // Performance Profile
@@ -111,10 +109,10 @@ pub struct SchedulerParams {
 impl Default for SchedulerParams {
     fn default() -> Self {
         Self {
-            sched_granularity_ns: 3_000_000,      // 3ms
-            wakeup_granularity_ns: 4_000_000,     // 4ms
-            min_granularity_ns: 500_000,          // 0.5ms
-            migration_cost_ns: 500_000,           // 0.5ms
+            sched_granularity_ns: 3_000_000,  // 3ms
+            wakeup_granularity_ns: 4_000_000, // 4ms
+            min_granularity_ns: 500_000,      // 0.5ms
+            migration_cost_ns: 500_000,       // 0.5ms
             nr_latency: 8,
             latency_nice_enabled: true,
             numa_balancing: true,
@@ -452,7 +450,7 @@ impl Optimizer {
                 allocator: AllocatorParams {
                     thp_enabled: true,
                     thp_defrag: ThpDefrag::DeferMadvise, // Don't block
-                    swappiness: 10, // Avoid swapping
+                    swappiness: 10,                      // Avoid swapping
                     vfs_cache_pressure: 50,
                     dirty_ratio: 10,
                     dirty_background_ratio: 5,
@@ -540,9 +538,9 @@ impl Optimizer {
             PerformanceProfile {
                 name: "realtime".to_string(),
                 scheduler: SchedulerParams {
-                    sched_granularity_ns: 500_000,   // 0.5ms
-                    wakeup_granularity_ns: 250_000,  // 0.25ms
-                    min_granularity_ns: 100_000,     // 0.1ms
+                    sched_granularity_ns: 500_000,  // 0.5ms
+                    wakeup_granularity_ns: 250_000, // 0.25ms
+                    min_granularity_ns: 100_000,    // 0.1ms
                     migration_cost_ns: 100_000,
                     nr_latency: 2,
                     latency_nice_enabled: true,
@@ -591,18 +589,20 @@ impl Optimizer {
         self.record_metrics(&context.system_metrics);
 
         match event {
-            AiEvent::CpuThreshold { usage_percent, cpu_id } => {
-                self.handle_cpu_threshold(*usage_percent, *cpu_id, context)
-            }
+            AiEvent::CpuThreshold {
+                usage_percent,
+                cpu_id,
+            } => self.handle_cpu_threshold(*usage_percent, *cpu_id, context),
             AiEvent::MemoryPressure { available_percent } => {
                 self.handle_memory_pressure(*available_percent, context)
-            }
-            AiEvent::IoBottleneck { device_id, latency_us } => {
-                self.handle_io_bottleneck(*device_id, *latency_us, context)
-            }
+            },
+            AiEvent::IoBottleneck {
+                device_id,
+                latency_us,
+            } => self.handle_io_bottleneck(*device_id, *latency_us, context),
             AiEvent::ProcessResourceSpike { pid, resource } => {
                 self.handle_resource_spike(*pid, resource, context)
-            }
+            },
             _ => Ok(None),
         }
     }
@@ -667,7 +667,9 @@ impl Optimizer {
                 AiAction::TuneAllocator {
                     strategy: String::from("high_cache_pressure"),
                 },
-                AiAction::SuspendIdleProcesses { threshold_seconds: 60 },
+                AiAction::SuspendIdleProcesses {
+                    threshold_seconds: 60,
+                },
             ])
         } else if available < 20 {
             // Low: increase swappiness
@@ -717,7 +719,10 @@ impl Optimizer {
         Ok(Some((
             action,
             Confidence::new(0.7),
-            format!("I/O bottleneck on device {}: {}us latency", device_id, latency_us),
+            format!(
+                "I/O bottleneck on device {}: {}us latency",
+                device_id, latency_us
+            ),
         )))
     }
 
@@ -735,14 +740,14 @@ impl Optimizer {
                     old_priority: 0,
                     new_priority: 10, // Lower priority
                 }
-            }
+            },
             ResourceType::Memory => {
                 // Isolate memory-hungry process
                 AiAction::IsolateProcess {
                     pid,
                     isolation_level: 1,
                 }
-            }
+            },
             _ => return Ok(None),
         };
 
@@ -776,10 +781,14 @@ impl Optimizer {
                     confidence: Confidence::new(0.7),
                     priority: AiPriority::Normal,
                     reasoning: vec![
-                        format!("Workload changed from {:?} to {:?}",
-                            current_profile.target_workload, workload),
-                        format!("Switching profile from {} to {}",
-                            current_profile.name, new_profile.name),
+                        format!(
+                            "Workload changed from {:?} to {:?}",
+                            current_profile.target_workload, workload
+                        ),
+                        format!(
+                            "Switching profile from {} to {}",
+                            current_profile.name, new_profile.name
+                        ),
                     ],
                     expected_outcome: "Better performance for current workload".to_string(),
                     rollback: None,
@@ -889,7 +898,8 @@ impl Optimizer {
             .rev()
             .take(10)
             .map(|s| s.metrics.context_switch_rate)
-            .sum::<u32>() / 10;
+            .sum::<u32>()
+            / 10;
 
         if avg_ctx_switches > 20000 && metrics.cpu_usage_percent > 50 {
             return Some(OptimizationHint {
@@ -1042,7 +1052,10 @@ mod tests {
             },
             ..Default::default()
         };
-        assert_eq!(optimizer.classify_workload(&context), WorkloadCategory::Idle);
+        assert_eq!(
+            optimizer.classify_workload(&context),
+            WorkloadCategory::Idle
+        );
 
         // I/O intensive
         let context = DecisionContext {
@@ -1054,7 +1067,10 @@ mod tests {
             },
             ..Default::default()
         };
-        assert_eq!(optimizer.classify_workload(&context), WorkloadCategory::IoIntensive);
+        assert_eq!(
+            optimizer.classify_workload(&context),
+            WorkloadCategory::IoIntensive
+        );
 
         // Computation
         let context = DecisionContext {
@@ -1066,7 +1082,10 @@ mod tests {
             },
             ..Default::default()
         };
-        assert_eq!(optimizer.classify_workload(&context), WorkloadCategory::Computation);
+        assert_eq!(
+            optimizer.classify_workload(&context),
+            WorkloadCategory::Computation
+        );
     }
 
     #[test]
@@ -1083,6 +1102,8 @@ mod tests {
         };
 
         optimizer.add_profile(custom);
-        assert!(optimizer.available_profiles().contains(&"custom".to_string()));
+        assert!(optimizer
+            .available_profiles()
+            .contains(&"custom".to_string()));
     }
 }

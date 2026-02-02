@@ -2,12 +2,12 @@
 //!
 //! Structures for passing loaded modules (initrd, kernel modules, etc.) to the kernel.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // MODULE TYPE
@@ -18,31 +18,31 @@ use alloc::string::String;
 #[repr(u32)]
 pub enum ModuleType {
     /// Unknown module type
-    Unknown = 0,
+    Unknown      = 0,
     /// Initial ramdisk (initrd/initramfs)
-    Initrd = 1,
+    Initrd       = 1,
     /// Kernel module (.ko)
     KernelModule = 2,
     /// Device tree blob
-    DeviceTree = 3,
+    DeviceTree   = 3,
     /// ACPI table
-    AcpiTable = 4,
+    AcpiTable    = 4,
     /// Microcode update
-    Microcode = 5,
+    Microcode    = 5,
     /// Configuration file
-    Config = 6,
+    Config       = 6,
     /// Firmware image
-    Firmware = 7,
+    Firmware     = 7,
     /// ELF binary
-    Elf = 8,
+    Elf          = 8,
     /// Symbol table
-    SymbolTable = 9,
+    SymbolTable  = 9,
     /// Debug information
-    DebugInfo = 10,
+    DebugInfo    = 10,
     /// Splash screen image
     SplashScreen = 11,
     /// Custom module type
-    Custom = 0xFFFF,
+    Custom       = 0xFFFF,
 }
 
 impl ModuleType {
@@ -52,7 +52,10 @@ impl ModuleType {
 
         if name_lower.contains("initrd") || name_lower.contains("initramfs") {
             ModuleType::Initrd
-        } else if name_lower.ends_with(".ko") || name_lower.ends_with(".ko.xz") || name_lower.ends_with(".ko.zst") {
+        } else if name_lower.ends_with(".ko")
+            || name_lower.ends_with(".ko.xz")
+            || name_lower.ends_with(".ko.zst")
+        {
             ModuleType::KernelModule
         } else if name_lower.ends_with(".dtb") || name_lower.ends_with(".dts") {
             ModuleType::DeviceTree
@@ -60,7 +63,10 @@ impl ModuleType {
             ModuleType::AcpiTable
         } else if name_lower.contains("microcode") || name_lower.contains("ucode") {
             ModuleType::Microcode
-        } else if name_lower.ends_with(".conf") || name_lower.ends_with(".cfg") || name_lower.ends_with(".toml") {
+        } else if name_lower.ends_with(".conf")
+            || name_lower.ends_with(".cfg")
+            || name_lower.ends_with(".toml")
+        {
             ModuleType::Config
         } else if name_lower.ends_with(".elf") {
             ModuleType::Elf
@@ -68,7 +74,10 @@ impl ModuleType {
             ModuleType::SymbolTable
         } else if name_lower.ends_with(".debug") || name_lower.ends_with(".dwarf") {
             ModuleType::DebugInfo
-        } else if name_lower.ends_with(".bmp") || name_lower.ends_with(".tga") || name_lower.ends_with(".png") {
+        } else if name_lower.ends_with(".bmp")
+            || name_lower.ends_with(".tga")
+            || name_lower.ends_with(".png")
+        {
             ModuleType::SplashScreen
         } else {
             ModuleType::Unknown
@@ -361,7 +370,13 @@ impl ModuleList {
     }
 
     /// Add module with automatic type detection
-    pub fn add_auto(&mut self, name: String, addr: PhysicalAddress, size: u64, data: &[u8]) -> &ModuleInfo {
+    pub fn add_auto(
+        &mut self,
+        name: String,
+        addr: PhysicalAddress,
+        size: u64,
+        data: &[u8],
+    ) -> &ModuleInfo {
         let mut module = ModuleInfo::new(name.clone(), addr, size);
 
         // Detect type from filename first, then magic
@@ -409,7 +424,9 @@ impl ModuleList {
 
     /// Find modules by type
     pub fn find_by_type(&self, module_type: ModuleType) -> impl Iterator<Item = &ModuleInfo> {
-        self.modules.iter().filter(move |m| m.module_type == module_type)
+        self.modules
+            .iter()
+            .filter(move |m| m.module_type == module_type)
     }
 
     /// Find initrd
@@ -456,7 +473,7 @@ impl ModuleList {
     pub fn sort_by_priority(&mut self) {
         self.modules.sort_by_key(|m| {
             match m.module_type {
-                ModuleType::Microcode => 0,    // Earliest
+                ModuleType::Microcode => 0, // Earliest
                 ModuleType::DeviceTree => 1,
                 ModuleType::AcpiTable => 2,
                 ModuleType::Initrd => 3,
@@ -496,7 +513,7 @@ impl Default for ModuleLoaderConfig {
             alignment: 4096,
             verify_hashes: true,
             decompress: true,
-            max_module_size: 1024 * 1024 * 1024, // 1 GB
+            max_module_size: 1024 * 1024 * 1024,    // 1 GB
             max_total_size: 4 * 1024 * 1024 * 1024, // 4 GB
         }
     }
@@ -540,8 +557,9 @@ impl ModuleLoader {
         }
 
         // Align address
-        let aligned_addr = PhysicalAddress((self.current_address.0 + self.config.alignment - 1) &
-                          !(self.config.alignment - 1));
+        let aligned_addr = PhysicalAddress(
+            (self.current_address.0 + self.config.alignment - 1) & !(self.config.alignment - 1),
+        );
 
         // Create module info
         let module = self.modules.add_auto(name, aligned_addr, size, data);
@@ -590,7 +608,7 @@ impl ModuleBuilder {
             module: ModuleInfo {
                 name: name.into(),
                 ..Default::default()
-            }
+            },
         }
     }
 
@@ -779,9 +797,7 @@ impl<'a> CpioReader<'a> {
         }
 
         match self.format {
-            CpioFormat::NewAscii | CpioFormat::NewAsciiCrc => {
-                self.read_new_ascii_entry()
-            }
+            CpioFormat::NewAscii | CpioFormat::NewAsciiCrc => self.read_new_ascii_entry(),
             _ => Err(Error::Unsupported),
         }
     }
@@ -829,8 +845,7 @@ impl<'a> CpioReader<'a> {
             return Err(Error::InvalidParameter);
         }
 
-        let name_str = core::str::from_utf8(&self.data[name_start..name_end])
-            .unwrap_or("");
+        let name_str = core::str::from_utf8(&self.data[name_start..name_end]).unwrap_or("");
         let name = alloc::string::String::from(name_str);
 
         // Check for trailer
@@ -891,15 +906,27 @@ mod tests {
     #[test]
     fn test_module_type_detection() {
         assert_eq!(ModuleType::from_filename("initrd.img"), ModuleType::Initrd);
-        assert_eq!(ModuleType::from_filename("test.ko"), ModuleType::KernelModule);
-        assert_eq!(ModuleType::from_filename("board.dtb"), ModuleType::DeviceTree);
+        assert_eq!(
+            ModuleType::from_filename("test.ko"),
+            ModuleType::KernelModule
+        );
+        assert_eq!(
+            ModuleType::from_filename("board.dtb"),
+            ModuleType::DeviceTree
+        );
         assert_eq!(ModuleType::from_filename("random.bin"), ModuleType::Unknown);
     }
 
     #[test]
     fn test_module_magic() {
-        assert_eq!(ModuleType::from_magic(&[0x7F, b'E', b'L', b'F']), ModuleType::Elf);
-        assert_eq!(ModuleType::from_magic(&[0x1F, 0x8B, 0x08, 0x00]), ModuleType::Initrd);
+        assert_eq!(
+            ModuleType::from_magic(&[0x7F, b'E', b'L', b'F']),
+            ModuleType::Elf
+        );
+        assert_eq!(
+            ModuleType::from_magic(&[0x1F, 0x8B, 0x08, 0x00]),
+            ModuleType::Initrd
+        );
     }
 
     #[test]

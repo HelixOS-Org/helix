@@ -19,7 +19,7 @@
 //! 4. Read TSC again
 //! 5. Calculate TSC frequency from elapsed ticks
 
-use super::{pit, tsc, hpet, TimerError};
+use super::{hpet, pit, tsc, TimerError};
 
 // =============================================================================
 // Calibration Methods
@@ -107,12 +107,15 @@ pub fn calibrate_tsc_with_pit() -> Result<CalibrationResult, TimerError> {
 /// Single TSC calibration iteration using PIT
 unsafe fn calibrate_tsc_single_pit(pit_ticks: u64) -> Result<u64, TimerError> {
     // Set up PIT channel 2 for one-shot
-    let ticks_u16 = if pit_ticks > 65535 { 65535u16 } else { pit_ticks as u16 };
+    let ticks_u16 = if pit_ticks > 65535 {
+        65535u16
+    } else {
+        pit_ticks as u16
+    };
 
     // Configure channel 2 in mode 0 (interrupt on terminal count)
-    let command = ((pit::PitChannel::Channel2 as u8) << 6)
-        | ((pit::PitAccess::LowHigh as u8) << 4)
-        | 0; // Mode 0
+    let command =
+        ((pit::PitChannel::Channel2 as u8) << 6) | ((pit::PitAccess::LowHigh as u8) << 4) | 0; // Mode 0
 
     outb(0x43, command);
 
@@ -263,7 +266,11 @@ pub fn calibrate_apic_with_tsc(tsc_frequency: u64) -> Result<CalibrationResult, 
 pub fn calibrate_apic_with_pit() -> Result<CalibrationResult, TimerError> {
     const CALIBRATION_MS: u64 = 10;
     let pit_ticks = pit::PIT_FREQUENCY * CALIBRATION_MS / 1000;
-    let pit_ticks_u16 = if pit_ticks > 65535 { 65535u16 } else { pit_ticks as u16 };
+    let pit_ticks_u16 = if pit_ticks > 65535 {
+        65535u16
+    } else {
+        pit_ticks as u16
+    };
 
     unsafe {
         // Configure APIC timer
@@ -308,7 +315,8 @@ pub fn calibrate_apic_with_pit() -> Result<CalibrationResult, TimerError> {
 
         // Calculate frequency
         let apic_elapsed = start_apic.wrapping_sub(end_apic);
-        let frequency = (apic_elapsed as u128 * pit::PIT_FREQUENCY as u128 / pit_ticks_u16 as u128) as u64;
+        let frequency =
+            (apic_elapsed as u128 * pit::PIT_FREQUENCY as u128 / pit_ticks_u16 as u128) as u64;
 
         Ok(CalibrationResult {
             frequency,
@@ -355,19 +363,17 @@ pub fn verify_calibration(frequency: u64, method: CalibrationMethod) -> Option<i
         CalibrationMethod::Cpuid => {
             // If we used CPUID, try PIT verification
             calibrate_tsc_with_pit().ok()?.frequency
-        }
+        },
         CalibrationMethod::Pit => {
             // If we used PIT, try CPUID
             tsc::get_frequency_from_cpuid()?
-        }
+        },
         CalibrationMethod::Hpet => {
             // Compare against CPUID or PIT
             tsc::get_frequency_from_cpuid()
                 .or_else(|| calibrate_tsc_with_pit().ok().map(|r| r.frequency))?
-        }
-        CalibrationMethod::AcpiPm => {
-            tsc::get_frequency_from_cpuid()?
-        }
+        },
+        CalibrationMethod::AcpiPm => tsc::get_frequency_from_cpuid()?,
     };
 
     // Calculate difference in PPM

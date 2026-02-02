@@ -6,9 +6,9 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::{Modification, ModificationType, RiskLevel, SelfModError};

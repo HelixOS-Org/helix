@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 use super::{ConnectionState, QosClass};
 use crate::core::NexusTimestamp;
-use crate::math;
+use crate::math::F64Ext;
 
 /// Network flow identifier (5-tuple)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -153,7 +153,7 @@ impl FlowStats {
             .sum::<f64>()
             / self.rtt_samples.len() as f64;
 
-        Some(math::sqrt(variance))
+        Some(variance.sqrt())
     }
 
     /// Calculate throughput in bytes per second

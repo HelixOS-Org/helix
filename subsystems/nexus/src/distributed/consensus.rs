@@ -6,20 +6,19 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use super::{ClusterId, Epoch, ImprovementId, NodeId, Term};
+use super::{ImprovementId, NodeId, Term};
 
 // ============================================================================
 // CONSENSUS TYPES
 // ============================================================================
 
 /// Proposal number
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ProposalNumber(pub u64);
 
 /// Log index

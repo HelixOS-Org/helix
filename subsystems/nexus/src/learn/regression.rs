@@ -3,13 +3,13 @@
 //! This module provides regression detection capabilities.
 
 extern crate alloc;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::types::Timestamp;
+use crate::math::F32Ext;
 
 /// Metric type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

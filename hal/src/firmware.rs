@@ -2,41 +2,42 @@
 //!
 //! This module defines traits for firmware interaction (ACPI, Device Tree, etc.)
 
-use crate::{HalResult, PhysAddr};
 use alloc::vec::Vec;
+
+use crate::{HalResult, PhysAddr};
 
 /// Firmware interface abstraction
 pub trait FirmwareInterface: Send + Sync {
     /// Get the firmware type
     fn firmware_type(&self) -> FirmwareType;
-    
+
     /// Get the firmware version string
     fn firmware_version(&self) -> Option<&str>;
-    
+
     /// Get the memory map from firmware
     fn memory_map(&self) -> Vec<crate::mmu::MemoryRegion>;
-    
+
     /// Get ACPI tables (if available)
     fn acpi_rsdp(&self) -> Option<PhysAddr>;
-    
+
     /// Get Device Tree blob (if available)
     fn device_tree_blob(&self) -> Option<&[u8]>;
-    
+
     /// Get command line arguments
     fn command_line(&self) -> Option<&str>;
-    
+
     /// Get the framebuffer info (if available)
     fn framebuffer(&self) -> Option<FramebufferInfo>;
-    
+
     /// Get the boot time (if available)
     fn boot_time(&self) -> Option<BootTime>;
-    
+
     /// Request system reboot through firmware
     fn request_reboot(&self) -> HalResult<()>;
-    
+
     /// Request system shutdown through firmware
     fn request_shutdown(&self) -> HalResult<()>;
-    
+
     /// Get EFI runtime services (if available)
     fn efi_runtime_services(&self) -> Option<PhysAddr>;
 }

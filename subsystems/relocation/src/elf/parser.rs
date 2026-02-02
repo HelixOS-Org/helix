@@ -3,7 +3,7 @@
 //! High-level ELF parsing utilities.
 
 use super::*;
-use crate::{RelocResult, RelocError, PhysAddr};
+use crate::{PhysAddr, RelocError, RelocResult};
 
 /// ELF parser for kernel images
 pub struct ElfParser<'a> {
@@ -97,7 +97,7 @@ impl<'a> ElfParser<'a> {
             match dyn_entry.d_tag {
                 DT_RELA => rela_addr = Some(dyn_entry.d_val),
                 DT_RELASZ => rela_size = dyn_entry.d_val as usize,
-                _ => {}
+                _ => {},
             }
         }
 
@@ -138,8 +138,7 @@ impl<'a> ElfParser<'a> {
 
     /// Parse into ElfInfo
     pub fn into_elf_info(self) -> RelocResult<ElfInfo> {
-        unsafe { ElfInfo::from_header(self.data.as_ptr()) }
-            .map_err(|_| RelocError::InvalidElfMagic)
+        unsafe { ElfInfo::from_header(self.data.as_ptr()) }.map_err(|_| RelocError::InvalidElfMagic)
     }
 }
 

@@ -9,10 +9,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::core::{ComponentId, NexusTimestamp};
-
 use super::entry::QuarantineEntry;
 use super::level::{QuarantineLevel, QuarantineReason};
+use crate::core::{ComponentId, NexusTimestamp};
 
 // ============================================================================
 // QUARANTINE HISTORY ENTRY
@@ -283,7 +282,8 @@ impl QuarantineSystem {
 
     /// Clear all quarantines (emergency)
     pub fn clear_all(&mut self) {
-        for (id, entry) in self.entries.drain() {
+        let entries = core::mem::take(&mut self.entries);
+        for (id, entry) in entries {
             let history_entry = QuarantineHistoryEntry {
                 component: ComponentId::new(id),
                 started: entry.started,

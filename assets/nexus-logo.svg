@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Core gradient - central singularity -->
+    <radialGradient id="coreGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#0088ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#4400ff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Inner glow gradient -->
+    <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="30%" stop-color="#00f0ff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0044aa" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Ring gradient -->
+    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="50%" stop-color="#7000ff"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </linearGradient>
+
+    <!-- Pathway gradient -->
+    <linearGradient id="pathwayGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#00d4ff" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#7000ff" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <!-- Node gradient -->
+    <radialGradient id="nodeGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#0066ff"/>
+    </radialGradient>
+
+    <!-- Outer aura -->
+    <radialGradient id="auraGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#4400ff" stop-opacity="0"/>
+      <stop offset="80%" stop-color="#7000ff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for core -->
+    <filter id="coreGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background aura -->
+  <circle cx="256" cy="256" r="240" fill="url(#auraGradient)"/>
+
+  <!-- Outer orbital rings -->
+  <g fill="none" stroke-width="1.5" opacity="0.6">
+    <circle cx="256" cy="256" r="200" stroke="url(#ringGradient)" stroke-dasharray="8 12"/>
+    <circle cx="256" cy="256" r="170" stroke="url(#ringGradient)" stroke-dasharray="4 8"/>
+    <circle cx="256" cy="256" r="140" stroke="url(#ringGradient)" stroke-dasharray="2 6"/>
+  </g>
+
+  <!-- Neural pathway lines - 12 directions -->
+  <g stroke="url(#pathwayGradient)" stroke-width="2" fill="none" filter="url(#glow)">
+    <!-- Primary axes -->
+    <line x1="256" y1="56" x2="256" y2="180"/>
+    <line x1="256" y1="332" x2="256" y2="456"/>
+    <line x1="56" y1="256" x2="180" y2="256"/>
+    <line x1="332" y1="256" x2="456" y2="256"/>
+
+    <!-- Diagonal axes -->
+    <line x1="114" y1="114" x2="202" y2="202"/>
+    <line x1="310" y1="310" x2="398" y2="398"/>
+    <line x1="398" y1="114" x2="310" y2="202"/>
+    <line x1="202" y1="310" x2="114" y2="398"/>
+
+    <!-- Secondary diagonals -->
+    <line x1="170" y1="80" x2="215" y2="175"/>
+    <line x1="297" y1="337" x2="342" y2="432"/>
+    <line x1="342" y1="80" x2="297" y2="175"/>
+    <line x1="215" y1="337" x2="170" y2="432"/>
+    <line x1="80" y1="170" x2="175" y2="215"/>
+    <line x1="337" y1="297" x2="432" y2="342"/>
+    <line x1="80" y1="342" x2="175" y2="297"/>
+    <line x1="337" y1="215" x2="432" y2="170"/>
+  </g>
+
+  <!-- Inner hexagonal structure -->
+  <g fill="none" stroke="url(#ringGradient)" stroke-width="2" opacity="0.8">
+    <polygon points="256,166 334,211 334,301 256,346 178,301 178,211" filter="url(#glow)"/>
+    <polygon points="256,196 304,223 304,289 256,316 208,289 208,223" opacity="0.6"/>
+  </g>
+
+  <!-- Connection nodes on outer ring -->
+  <g fill="url(#nodeGradient)" filter="url(#glow)">
+    <!-- Cardinal nodes -->
+    <circle cx="256" cy="56" r="6"/>
+    <circle cx="256" cy="456" r="6"/>
+    <circle cx="56" cy="256" r="6"/>
+    <circle cx="456" cy="256" r="6"/>
+
+    <!-- Diagonal nodes -->
+    <circle cx="114" cy="114" r="5"/>
+    <circle cx="398" cy="114" r="5"/>
+    <circle cx="114" cy="398" r="5"/>
+    <circle cx="398" cy="398" r="5"/>
+
+    <!-- Secondary nodes -->
+    <circle cx="170" cy="80" r="4"/>
+    <circle cx="342" cy="80" r="4"/>
+    <circle cx="80" cy="170" r="4"/>
+    <circle cx="432" cy="170" r="4"/>
+    <circle cx="80" cy="342" r="4"/>
+    <circle cx="432" cy="342" r="4"/>
+    <circle cx="170" cy="432" r="4"/>
+    <circle cx="342" cy="432" r="4"/>
+  </g>
+
+  <!-- Mid-ring nodes -->
+  <g fill="url(#nodeGradient)" opacity="0.8">
+    <circle cx="256" cy="140" r="4"/>
+    <circle cx="256" cy="372" r="4"/>
+    <circle cx="140" cy="256" r="4"/>
+    <circle cx="372" cy="256" r="4"/>
+    <circle cx="174" cy="174" r="3"/>
+    <circle cx="338" cy="174" r="3"/>
+    <circle cx="174" cy="338" r="3"/>
+    <circle cx="338" cy="338" r="3"/>
+  </g>
+
+  <!-- Core structure - triple ring -->
+  <g fill="none" stroke-width="3" filter="url(#coreGlow)">
+    <circle cx="256" cy="256" r="70" stroke="#00d4ff" opacity="0.4"/>
+    <circle cx="256" cy="256" r="55" stroke="#00f0ff" opacity="0.6"/>
+    <circle cx="256" cy="256" r="40" stroke="#00ffff" opacity="0.8"/>
+  </g>
+
+  <!-- Central singularity core -->
+  <circle cx="256" cy="256" r="50" fill="url(#coreGradient)" filter="url(#coreGlow)"/>
+  <circle cx="256" cy="256" r="25" fill="url(#innerGlow)"/>
+  <circle cx="256" cy="256" r="10" fill="#ffffff" opacity="0.95"/>
+  <circle cx="256" cy="256" r="4" fill="#00f0ff"/>
+
+  <!-- Inner core detail - quantum structure -->
+  <g stroke="#00f0ff" stroke-width="1" fill="none" opacity="0.6">
+    <ellipse cx="256" cy="256" rx="35" ry="15" transform="rotate(0 256 256)"/>
+    <ellipse cx="256" cy="256" rx="35" ry="15" transform="rotate(60 256 256)"/>
+    <ellipse cx="256" cy="256" rx="35" ry="15" transform="rotate(120 256 256)"/>
+  </g>
+
+  <!-- Energy arcs -->
+  <g fill="none" stroke="url(#ringGradient)" stroke-width="2" opacity="0.5">
+    <path d="M 186 186 Q 256 140 326 186" />
+    <path d="M 326 186 Q 372 256 326 326" />
+    <path d="M 326 326 Q 256 372 186 326" />
+    <path d="M 186 326 Q 140 256 186 186" />
+  </g>
+</svg>

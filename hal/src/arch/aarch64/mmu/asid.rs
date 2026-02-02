@@ -169,12 +169,11 @@ impl AsidAllocator {
             }
 
             // Try to increment
-            if self.next_asid.compare_exchange(
-                current,
-                current + 1,
-                Ordering::AcqRel,
-                Ordering::Relaxed,
-            ).is_ok() {
+            if self
+                .next_asid
+                .compare_exchange(current, current + 1, Ordering::AcqRel, Ordering::Relaxed)
+                .is_ok()
+            {
                 return AsidGeneration::new(gen, Asid::new(current));
             }
             // CAS failed, retry
@@ -373,8 +372,7 @@ impl PerCpuAsid {
 
     /// Check if context switch needs TLB flush
     pub fn needs_flush(&self, new_gen: AsidGeneration) -> bool {
-        self.current_gen != new_gen.generation ||
-        self.current_asid != new_gen.asid
+        self.current_gen != new_gen.generation || self.current_asid != new_gen.asid
     }
 
     /// Update state after context switch

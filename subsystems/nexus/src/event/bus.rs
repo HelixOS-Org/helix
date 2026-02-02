@@ -96,8 +96,16 @@ impl EventBus {
 
     /// Deliver event to handlers
     fn deliver(&mut self, event: &NexusEvent) {
-        for handler in &mut self.handlers {
-            if self.should_deliver(handler.as_ref(), event) {
+        // First collect which handlers should receive the event (immutable borrow)
+        let should_deliver: Vec<bool> = self
+            .handlers
+            .iter()
+            .map(|h| Self::should_deliver_to(h.as_ref(), event))
+            .collect();
+
+        // Then deliver to those handlers (mutable borrow)
+        for (idx, handler) in self.handlers.iter_mut().enumerate() {
+            if should_deliver[idx] {
                 let result = handler.handle(event);
                 self.events_delivered += 1;
 
@@ -108,7 +116,44 @@ impl EventBus {
         }
     }
 
+    /// Check if event should be delivered to handler (static version)
+    fn should_deliver_to(handler: &dyn EventHandler, event: &NexusEvent) -> bool {
+        let subscriptions = handler.subscriptions();
+
+        if subscriptions.is_empty() {
+            return true;
+        }
+
+        for sub in subscriptions {
+            match sub {
+                EventSubscription::All => return true,
+                EventSubscription::MinPriority(min) if event.priority >= *min => return true,
+                EventSubscription::FromComponent(comp) if event.source == Some(*comp) => {
+                    return true;
+                },
+                EventSubscription::Predictions if event.is_prediction() => return true,
+                EventSubscription::Healing if event.is_healing() => return true,
+                EventSubscription::Anomalies
+                    if matches!(event.kind, NexusEventKind::AnomalyDetected { .. }) =>
+                {
+                    return true;
+                },
+                EventSubscription::Custom(name) => {
+                    if let NexusEventKind::Custom { name: n, .. } = &event.kind {
+                        if n == name {
+                            return true;
+                        }
+                    }
+                },
+                _ => {},
+            }
+        }
+
+        false
+    }
+
     /// Check if event should be delivered to handler
+    #[allow(dead_code)]
     fn should_deliver(&self, handler: &dyn EventHandler, event: &NexusEvent) -> bool {
         let subscriptions = handler.subscriptions();
 

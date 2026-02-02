@@ -15,51 +15,51 @@ use crate::core::hash::Crc32c;
 #[repr(u8)]
 pub enum RecordType {
     /// Invalid/empty record
-    Invalid = 0,
+    Invalid         = 0,
     /// Block write (full block)
-    BlockWrite = 1,
+    BlockWrite      = 1,
     /// Block delta (partial update)
-    BlockDelta = 2,
+    BlockDelta      = 2,
     /// Inode update
-    InodeUpdate = 3,
+    InodeUpdate     = 3,
     /// Inode create
-    InodeCreate = 4,
+    InodeCreate     = 4,
     /// Inode delete
-    InodeDelete = 5,
+    InodeDelete     = 5,
     /// Directory entry add
-    DirAdd = 6,
+    DirAdd          = 6,
     /// Directory entry remove
-    DirRemove = 7,
+    DirRemove       = 7,
     /// Directory entry rename
-    DirRename = 8,
+    DirRename       = 8,
     /// Extent allocate
-    ExtentAlloc = 9,
+    ExtentAlloc     = 9,
     /// Extent free
-    ExtentFree = 10,
+    ExtentFree      = 10,
     /// Extent update
-    ExtentUpdate = 11,
+    ExtentUpdate    = 11,
     /// Xattr set
-    XattrSet = 12,
+    XattrSet        = 12,
     /// Xattr remove
-    XattrRemove = 13,
+    XattrRemove     = 13,
     /// Symlink data
-    Symlink = 14,
+    Symlink         = 14,
     /// Transaction begin
-    TxnBegin = 32,
+    TxnBegin        = 32,
     /// Transaction commit
-    TxnCommit = 33,
+    TxnCommit       = 33,
     /// Transaction abort
-    TxnAbort = 34,
+    TxnAbort        = 34,
     /// Checkpoint begin
     CheckpointBegin = 48,
     /// Checkpoint end
-    CheckpointEnd = 49,
+    CheckpointEnd   = 49,
     /// Block revoke (for checkpoint)
-    Revoke = 50,
+    Revoke          = 50,
     /// Descriptor block
-    Descriptor = 51,
+    Descriptor      = 51,
     /// Padding (filler)
-    Padding = 255,
+    Padding         = 255,
 }
 
 impl RecordType {
@@ -91,29 +91,42 @@ impl RecordType {
             _ => Self::Invalid,
         }
     }
-    
+
     /// Check if this is a data record
     #[inline]
     pub fn is_data(&self) -> bool {
-        matches!(self, Self::BlockWrite | Self::BlockDelta |
-                       Self::InodeUpdate | Self::InodeCreate |
-                       Self::DirAdd | Self::DirRemove |
-                       Self::ExtentAlloc | Self::ExtentFree)
+        matches!(
+            self,
+            Self::BlockWrite
+                | Self::BlockDelta
+                | Self::InodeUpdate
+                | Self::InodeCreate
+                | Self::DirAdd
+                | Self::DirRemove
+                | Self::ExtentAlloc
+                | Self::ExtentFree
+        )
     }
-    
+
     /// Check if this is a control record
     #[inline]
     pub fn is_control(&self) -> bool {
-        matches!(self, Self::TxnBegin | Self::TxnCommit | Self::TxnAbort |
-                       Self::CheckpointBegin | Self::CheckpointEnd)
+        matches!(
+            self,
+            Self::TxnBegin
+                | Self::TxnCommit
+                | Self::TxnAbort
+                | Self::CheckpointBegin
+                | Self::CheckpointEnd
+        )
     }
-    
+
     /// Check if this requires redo
     #[inline]
     pub fn needs_redo(&self) -> bool {
         self.is_data()
     }
-    
+
     /// Get record category
     pub fn category(&self) -> RecordCategory {
         match self {
@@ -123,7 +136,9 @@ impl RecordType {
             Self::ExtentAlloc | Self::ExtentFree | Self::ExtentUpdate => RecordCategory::Extent,
             Self::XattrSet | Self::XattrRemove => RecordCategory::Xattr,
             Self::TxnBegin | Self::TxnCommit | Self::TxnAbort => RecordCategory::Transaction,
-            Self::CheckpointBegin | Self::CheckpointEnd | Self::Revoke => RecordCategory::Checkpoint,
+            Self::CheckpointBegin | Self::CheckpointEnd | Self::Revoke => {
+                RecordCategory::Checkpoint
+            },
             _ => RecordCategory::Other,
         }
     }
@@ -169,7 +184,7 @@ pub struct RecordHeader {
 impl RecordHeader {
     /// Header size
     pub const SIZE: usize = 24;
-    
+
     /// Create new header
     pub fn new(record_type: RecordType, txn_id: u64, length: u32) -> Self {
         Self {
@@ -182,26 +197,26 @@ impl RecordHeader {
             crc: 0,
         }
     }
-    
+
     /// Get record type
     #[inline]
     pub fn record_type(&self) -> RecordType {
         RecordType::from_raw(self.record_type)
     }
-    
+
     /// Data length (excluding header)
     #[inline]
     pub fn data_length(&self) -> u32 {
         self.length.saturating_sub(Self::SIZE as u32)
     }
-    
+
     /// Compute CRC of data
     pub fn compute_crc(&self, data: &[u8]) -> u32 {
         let mut hasher = Crc32c::new();
         hasher.write(data);
         hasher.finish()
     }
-    
+
     /// Validate header
     pub fn validate(&self) -> HfsResult<()> {
         if self.record_type().is_control() || self.record_type().is_data() {
@@ -238,7 +253,7 @@ pub struct BlockWriteRecord {
 impl BlockWriteRecord {
     /// Record header size (excluding data)
     pub const HEADER_SIZE: usize = RecordHeader::SIZE + 16;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, block_num: u64, data_len: u16) -> Self {
         let total_len = Self::HEADER_SIZE as u32 + data_len as u32;
@@ -250,7 +265,7 @@ impl BlockWriteRecord {
             generation: 0,
         }
     }
-    
+
     /// Create partial write record
     pub fn partial(txn_id: u64, block_num: u64, offset: u16, data_len: u16) -> Self {
         let total_len = Self::HEADER_SIZE as u32 + data_len as u32;
@@ -286,7 +301,7 @@ pub struct InodeUpdateRecord {
 impl InodeUpdateRecord {
     /// Record header size
     pub const HEADER_SIZE: usize = RecordHeader::SIZE + 16;
-    
+
     /// Update mask: mode changed
     pub const MASK_MODE: u32 = 1 << 0;
     /// Update mask: owner changed
@@ -303,7 +318,7 @@ impl InodeUpdateRecord {
     pub const MASK_EXTENTS: u32 = 1 << 6;
     /// Update mask: full update
     pub const MASK_FULL: u32 = 0xFFFFFFFF;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, ino: u64, update_mask: u32, data_len: u16) -> Self {
         let total_len = Self::HEADER_SIZE as u32 + data_len as u32;
@@ -344,10 +359,16 @@ pub struct DirOpRecord {
 impl DirOpRecord {
     /// Record header size
     pub const HEADER_SIZE: usize = RecordHeader::SIZE + 32;
-    
+
     /// Create add entry record
-    pub fn add(txn_id: u64, parent: u64, target: u64, name_hash: u64, 
-               name_len: u8, file_type: u8) -> Self {
+    pub fn add(
+        txn_id: u64,
+        parent: u64,
+        target: u64,
+        name_hash: u64,
+        name_len: u8,
+        file_type: u8,
+    ) -> Self {
         let total_len = Self::HEADER_SIZE as u32 + name_len as u32;
         Self {
             header: RecordHeader::new(RecordType::DirAdd, txn_id, total_len),
@@ -359,10 +380,9 @@ impl DirOpRecord {
             _reserved: [0; 6],
         }
     }
-    
+
     /// Create remove entry record
-    pub fn remove(txn_id: u64, parent: u64, target: u64, name_hash: u64,
-                  name_len: u8) -> Self {
+    pub fn remove(txn_id: u64, parent: u64, target: u64, name_hash: u64, name_len: u8) -> Self {
         let total_len = Self::HEADER_SIZE as u32 + name_len as u32;
         Self {
             header: RecordHeader::new(RecordType::DirRemove, txn_id, total_len),
@@ -401,7 +421,7 @@ pub struct ExtentOpRecord {
 impl ExtentOpRecord {
     /// Record size
     pub const SIZE: usize = RecordHeader::SIZE + 32;
-    
+
     /// Create allocate record
     pub fn alloc(txn_id: u64, ino: u64, logical: u64, physical: u64, count: u32) -> Self {
         Self {
@@ -413,7 +433,7 @@ impl ExtentOpRecord {
             flags: 0,
         }
     }
-    
+
     /// Create free record
     pub fn free(txn_id: u64, ino: u64, logical: u64, physical: u64, count: u32) -> Self {
         Self {
@@ -448,7 +468,7 @@ pub struct TxnBeginRecord {
 impl TxnBeginRecord {
     /// Record size
     pub const SIZE: usize = RecordHeader::SIZE + 16;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, parent_txn: u64, flags: u32) -> Self {
         Self {
@@ -483,7 +503,7 @@ pub struct TxnCommitRecord {
 impl TxnCommitRecord {
     /// Record size
     pub const SIZE: usize = RecordHeader::SIZE + 32;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, timestamp: u64, record_count: u32, block_count: u32) -> Self {
         Self {
@@ -513,7 +533,7 @@ pub struct TxnAbortRecord {
 impl TxnAbortRecord {
     /// Record size
     pub const SIZE: usize = RecordHeader::SIZE + 8;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, reason: u32) -> Self {
         Self {
@@ -545,7 +565,7 @@ pub struct CheckpointBeginRecord {
 impl CheckpointBeginRecord {
     /// Record size
     pub const SIZE: usize = RecordHeader::SIZE + 24;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, generation: u64, oldest_txn: u64, first_uncommitted: u64) -> Self {
         Self {
@@ -574,7 +594,7 @@ pub struct CheckpointEndRecord {
 impl CheckpointEndRecord {
     /// Record size
     pub const SIZE: usize = RecordHeader::SIZE + 24;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, generation: u64, new_tail: u64, blocks_freed: u64) -> Self {
         Self {
@@ -602,7 +622,7 @@ pub struct RevokeRecord {
 impl RevokeRecord {
     /// Record header size
     pub const HEADER_SIZE: usize = RecordHeader::SIZE + 8;
-    
+
     /// Create new record
     pub fn new(txn_id: u64, count: u32) -> Self {
         let total_len = Self::HEADER_SIZE as u32 + count * 8;
@@ -612,7 +632,7 @@ impl RevokeRecord {
             _reserved: 0,
         }
     }
-    
+
     /// Maximum blocks per revoke record
     pub const fn max_blocks(block_size: usize) -> u32 {
         ((block_size - Self::HEADER_SIZE) / 8) as u32
@@ -626,79 +646,79 @@ impl RevokeRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_record_type() {
         assert!(RecordType::BlockWrite.is_data());
         assert!(RecordType::TxnCommit.is_control());
         assert!(RecordType::BlockWrite.needs_redo());
-        
+
         assert_eq!(RecordType::BlockWrite.category(), RecordCategory::Block);
         assert_eq!(RecordType::InodeCreate.category(), RecordCategory::Inode);
     }
-    
+
     #[test]
     fn test_record_header() {
         let header = RecordHeader::new(RecordType::BlockWrite, 100, 512);
-        
+
         assert_eq!(header.record_type(), RecordType::BlockWrite);
         assert_eq!(header.txn_id, 100);
         assert_eq!(header.data_length(), 512 - RecordHeader::SIZE as u32);
         assert!(header.validate().is_ok());
     }
-    
+
     #[test]
     fn test_block_write_record() {
         let record = BlockWriteRecord::new(1, 100, 4096);
-        
+
         assert_eq!(record.header.record_type(), RecordType::BlockWrite);
         assert_eq!(record.block_num, 100);
         assert_eq!(record.data_len, 4096);
     }
-    
+
     #[test]
     fn test_inode_update_record() {
         let record = InodeUpdateRecord::new(1, 42, InodeUpdateRecord::MASK_SIZE, 256);
-        
+
         assert_eq!(record.header.record_type(), RecordType::InodeUpdate);
         assert_eq!(record.ino, 42);
         assert!((record.update_mask & InodeUpdateRecord::MASK_SIZE) != 0);
     }
-    
+
     #[test]
     fn test_dir_op_record() {
         let add = DirOpRecord::add(1, 2, 100, 0x12345678, 8, 1);
         let remove = DirOpRecord::remove(1, 2, 100, 0x12345678, 8);
-        
+
         assert_eq!(add.header.record_type(), RecordType::DirAdd);
         assert_eq!(remove.header.record_type(), RecordType::DirRemove);
     }
-    
+
     #[test]
     fn test_extent_op_record() {
         let alloc = ExtentOpRecord::alloc(1, 42, 0, 1000, 10);
         let free = ExtentOpRecord::free(1, 42, 0, 1000, 10);
-        
+
         assert_eq!(alloc.header.record_type(), RecordType::ExtentAlloc);
         assert_eq!(free.header.record_type(), RecordType::ExtentFree);
     }
-    
+
     #[test]
     fn test_txn_records() {
         let begin = TxnBeginRecord::new(1, 0, 0);
         let commit = TxnCommitRecord::new(1, 12345, 10, 5);
         let abort = TxnAbortRecord::new(1, 1);
-        
+
         assert_eq!(begin.header.record_type(), RecordType::TxnBegin);
         assert_eq!(commit.header.record_type(), RecordType::TxnCommit);
         assert_eq!(abort.header.record_type(), RecordType::TxnAbort);
     }
-    
+
     #[test]
     fn test_checkpoint_records() {
         let begin = CheckpointBeginRecord::new(1, 5, 10, 100);
         let end = CheckpointEndRecord::new(1, 5, 200, 50);
-        
+
         assert_eq!(begin.header.record_type(), RecordType::CheckpointBegin);
         assert_eq!(end.header.record_type(), RecordType::CheckpointEnd);
     }

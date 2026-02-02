@@ -27,7 +27,7 @@
 //!
 //! ```rust,no_run
 //! use helix_relocation::{
-//!     RelocationContext, RelocatableKernel, KaslrManager,
+//!     KaslrManager, RelocatableKernel, RelocationContext,
 //! };
 //!
 //! // Create KASLR manager and generate random base
@@ -102,26 +102,14 @@ pub mod validation;
 // RE-EXPORTS
 // ============================================================================
 
-pub use context::{
-    RelocationContext, RelocationContextBuilder, BootProtocol,
-    RelocationStrategy, KernelState,
-};
-
-pub use elf::{
-    Elf64Header, Elf64Phdr, Elf64Shdr, Elf64Rela, Elf64Sym, Elf64Dyn,
-    ElfInfo,
-};
-
-pub use engine::{
-    RelocationEngine, RelocatableKernel, Relocatable,
-    EarlyRelocator, FullRelocator,
-};
-
 pub use arch::current_arch;
-
-pub use kaslr::{Kaslr, KaslrConfig, EntropyQuality, EntropyCollector};
-
-pub use boot::{BootContext, BootAdapter};
+pub use boot::{BootAdapter, BootContext};
+pub use context::{
+    BootProtocol, KernelState, RelocationContext, RelocationContextBuilder, RelocationStrategy,
+};
+pub use elf::{Elf64Dyn, Elf64Header, Elf64Phdr, Elf64Rela, Elf64Shdr, Elf64Sym, ElfInfo};
+pub use engine::{EarlyRelocator, FullRelocator, Relocatable, RelocatableKernel, RelocationEngine};
+pub use kaslr::{EntropyCollector, EntropyQuality, Kaslr, KaslrConfig};
 
 // ============================================================================
 // ERROR TYPES
@@ -197,8 +185,12 @@ impl core::fmt::Display for RelocError {
             Self::InvalidKernelLayout => write!(f, "Invalid kernel layout"),
             Self::MisalignedAccess(addr) => write!(f, "Misaligned access at 0x{:x}", addr),
             Self::InvalidAlignment { required, actual } => {
-                write!(f, "Invalid alignment: need 0x{:x}, got 0x{:x}", required, actual)
-            }
+                write!(
+                    f,
+                    "Invalid alignment: need 0x{:x}, got 0x{:x}",
+                    required, actual
+                )
+            },
         }
     }
 }

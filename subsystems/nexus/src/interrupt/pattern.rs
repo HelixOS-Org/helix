@@ -6,11 +6,11 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use super::types::Irq;
+use crate::math::F64Ext;
 
 /// Pattern types
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -141,6 +141,9 @@ impl InterruptPatternDetector {
                 current_burst = 0;
             }
         }
+
+        // Suppress unused warning
+        let _ = current_burst;
 
         if burst_count >= 3 {
             Some((deltas.len() as u32 / burst_count).max(1))

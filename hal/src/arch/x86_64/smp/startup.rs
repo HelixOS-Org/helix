@@ -14,10 +14,10 @@
 //!    e. Send second SIPI (if needed)
 //!    f. Wait for AP to respond
 
-use core::sync::atomic::{AtomicU32, AtomicU64, Ordering, fence};
+use core::sync::atomic::{fence, AtomicU32, AtomicU64, Ordering};
 
-use super::{MAX_CPUS, CPU_STACK_SIZE, AP_TRAMPOLINE_ADDR, SmpError};
-use super::cpu_info::{CpuState, register_cpu, get_cpu_info};
+use super::cpu_info::{get_cpu_info, register_cpu, CpuState};
+use super::{SmpError, AP_TRAMPOLINE_ADDR, CPU_STACK_SIZE, MAX_CPUS};
 
 // =============================================================================
 // Trampoline
@@ -128,18 +128,14 @@ pub fn get_trampoline_data() -> Option<&'static TrampolineData> {
 /// # Returns
 /// * `Ok(())` if AP started successfully
 /// * `Err(SmpError)` if startup failed
-pub fn start_ap(
-    apic_id: u32,
-    cpu_id: usize,
-) -> Result<(), SmpError> {
+pub fn start_ap(apic_id: u32, cpu_id: usize) -> Result<(), SmpError> {
     // Register CPU if not already done
     if get_cpu_info(cpu_id).is_none() {
         register_cpu(cpu_id, apic_id, false)?;
     }
 
     // Get trampoline data
-    let trampoline = get_trampoline_data()
-        .ok_or(SmpError::TrampolineNotReady)?;
+    let trampoline = get_trampoline_data().ok_or(SmpError::TrampolineNotReady)?;
 
     // Set current AP being started
     trampoline.current_ap.store(apic_id, Ordering::SeqCst);
@@ -231,10 +227,10 @@ pub fn start_all_aps(ap_list: &[(u32, usize)]) -> Result<usize, SmpError> {
         match start_ap(apic_id, cpu_id) {
             Ok(()) => {
                 started += 1;
-            }
+            },
             Err(e) => {
                 log::warn!("Failed to start AP {} (CPU {}): {:?}", apic_id, cpu_id, e);
-            }
+            },
         }
     }
 
@@ -417,8 +413,7 @@ pub fn allocate_ap_stack(cpu_id: usize) -> Result<u64, SmpError> {
     // For now, return a placeholder
     // The actual stack allocation must be done by the memory manager
 
-    let trampoline = get_trampoline_data()
-        .ok_or(SmpError::TrampolineNotReady)?;
+    let trampoline = get_trampoline_data().ok_or(SmpError::TrampolineNotReady)?;
 
     // Check if stack already allocated
     let existing = trampoline.stacks[cpu_id];

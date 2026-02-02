@@ -6,11 +6,11 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
 use alloc::collections::BTreeMap;
 
 use super::record::InterruptRecord;
 use super::types::CpuId;
+use crate::math::F64Ext;
 
 /// Statistics for an IRQ
 #[derive(Debug, Clone)]

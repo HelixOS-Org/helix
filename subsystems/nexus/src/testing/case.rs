@@ -5,9 +5,8 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::core::NexusTimestamp;
-
 use super::result::{TestExecution, TestResult};
+use crate::core::NexusTimestamp;
 
 /// A test case
 pub struct TestCase {

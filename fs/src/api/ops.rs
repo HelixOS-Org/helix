@@ -3,9 +3,9 @@
 //! Implements high-level file system operations with proper
 //! error handling and atomic guarantees.
 
-use crate::core::error::{HfsError, HfsResult};
-use super::{FileStat, DirEntry, OpenFlags, SeekWhence};
 use super::vfs::{FileHandle, PathBuf};
+use super::{DirEntry, FileStat, OpenFlags, SeekWhence};
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants
@@ -70,23 +70,23 @@ impl ReadOp {
             direct: false,
         }
     }
-    
+
     /// Set direct I/O
     pub fn direct(mut self) -> Self {
         self.direct = true;
         self
     }
-    
+
     /// Validate operation
     pub fn validate(&self) -> HfsResult<()> {
         if self.len > MAX_IO_SIZE {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         if self.offset.checked_add(self.len as u64).is_none() {
             return Err(HfsError::Overflow);
         }
-        
+
         Ok(())
     }
 }
@@ -133,37 +133,37 @@ impl WriteOp {
             sync: false,
         }
     }
-    
+
     /// Set direct I/O
     pub fn direct(mut self) -> Self {
         self.direct = true;
         self
     }
-    
+
     /// Set append mode
     pub fn append(mut self) -> Self {
         self.append = true;
         self
     }
-    
+
     /// Set sync mode
     pub fn sync(mut self) -> Self {
         self.sync = true;
         self
     }
-    
+
     /// Validate operation
     pub fn validate(&self) -> HfsResult<()> {
         if self.len > MAX_IO_SIZE {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         if !self.append {
             if self.offset.checked_add(self.len as u64).is_none() {
                 return Err(HfsError::Overflow);
             }
         }
-        
+
         Ok(())
     }
 }
@@ -207,20 +207,20 @@ impl CreateOp {
             gid: 0,
         }
     }
-    
+
     /// Set flags
     pub fn flags(mut self, flags: OpenFlags) -> Self {
         self.flags = flags;
         self
     }
-    
+
     /// Set owner
     pub fn owner(mut self, uid: u32, gid: u32) -> Self {
         self.uid = uid;
         self.gid = gid;
         self
     }
-    
+
     /// Set exclusive creation
     pub fn exclusive(mut self) -> Self {
         self.flags = OpenFlags(self.flags.0 | OpenFlags::O_EXCL);
@@ -266,7 +266,7 @@ impl MkdirOp {
             gid: 0,
         }
     }
-    
+
     /// Set owner
     pub fn owner(mut self, uid: u32, gid: u32) -> Self {
         self.uid = uid;
@@ -364,13 +364,13 @@ impl RenameOp {
             flags: 0,
         }
     }
-    
+
     /// No replace
     pub fn noreplace(mut self) -> Self {
         self.flags |= rename_flags::RENAME_NOREPLACE;
         self
     }
-    
+
     /// Exchange
     pub fn exchange(mut self) -> Self {
         self.flags |= rename_flags::RENAME_EXCHANGE;
@@ -425,7 +425,7 @@ impl SeekOp {
             whence,
         }
     }
-    
+
     /// Calculate new position
     pub fn calculate(&self) -> HfsResult<u64> {
         let new_pos = match self.whence {
@@ -434,7 +434,7 @@ impl SeekOp {
                     return Err(HfsError::InvalidArgument);
                 }
                 self.offset as u64
-            }
+            },
             SeekWhence::Cur => {
                 if self.offset < 0 {
                     let abs_offset = (-self.offset) as u64;
@@ -443,10 +443,11 @@ impl SeekOp {
                     }
                     self.current - abs_offset
                 } else {
-                    self.current.checked_add(self.offset as u64)
+                    self.current
+                        .checked_add(self.offset as u64)
                         .ok_or(HfsError::Overflow)?
                 }
-            }
+            },
             SeekWhence::End => {
                 if self.offset < 0 {
                     let abs_offset = (-self.offset) as u64;
@@ -455,16 +456,17 @@ impl SeekOp {
                     }
                     self.size - abs_offset
                 } else {
-                    self.size.checked_add(self.offset as u64)
+                    self.size
+                        .checked_add(self.offset as u64)
                         .ok_or(HfsError::Overflow)?
                 }
-            }
+            },
             SeekWhence::Data | SeekWhence::Hole => {
                 // These require extent information
                 return Err(HfsError::NotSupported);
-            }
+            },
         };
-        
+
         Ok(new_pos)
     }
 }
@@ -496,50 +498,50 @@ impl FallocateOp {
             len,
         }
     }
-    
+
     /// Keep size
     pub fn keep_size(mut self) -> Self {
         self.mode |= falloc_mode::FALLOC_FL_KEEP_SIZE;
         self
     }
-    
+
     /// Punch hole
     pub fn punch_hole(mut self) -> Self {
         self.mode |= falloc_mode::FALLOC_FL_PUNCH_HOLE | falloc_mode::FALLOC_FL_KEEP_SIZE;
         self
     }
-    
+
     /// Zero range
     pub fn zero_range(mut self) -> Self {
         self.mode |= falloc_mode::FALLOC_FL_ZERO_RANGE;
         self
     }
-    
+
     /// Validate operation
     pub fn validate(&self) -> HfsResult<()> {
         if self.len == 0 {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         if self.offset.checked_add(self.len).is_none() {
             return Err(HfsError::Overflow);
         }
-        
+
         Ok(())
     }
-    
+
     /// Is punch hole
     #[inline]
     pub fn is_punch_hole(&self) -> bool {
         self.mode & falloc_mode::FALLOC_FL_PUNCH_HOLE != 0
     }
-    
+
     /// Is zero range
     #[inline]
     pub fn is_zero_range(&self) -> bool {
         self.mode & falloc_mode::FALLOC_FL_ZERO_RANGE != 0
     }
-    
+
     /// Is keep size
     #[inline]
     pub fn is_keep_size(&self) -> bool {
@@ -580,21 +582,21 @@ impl CopyFileRangeOp {
             flags: 0,
         }
     }
-    
+
     /// Validate operation
     pub fn validate(&self) -> HfsResult<()> {
         if self.len == 0 {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         if self.src_off.checked_add(self.len).is_none() {
             return Err(HfsError::Overflow);
         }
-        
+
         if self.dst_off.checked_add(self.len).is_none() {
             return Err(HfsError::Overflow);
         }
-        
+
         Ok(())
     }
 }
@@ -626,7 +628,7 @@ impl IoVec {
     pub fn new(base: usize, len: usize) -> Self {
         Self { base, len }
     }
-    
+
     /// Total length of vector array
     pub fn total_len(iov: &[IoVec]) -> usize {
         iov.iter().map(|v| v.len).sum()
@@ -656,18 +658,18 @@ impl ReadvOp {
             iovcnt: 0,
         }
     }
-    
+
     /// Add vector
     pub fn add_vec(&mut self, base: usize, len: usize) -> bool {
         if self.iovcnt >= 16 {
             return false;
         }
-        
+
         self.iov[self.iovcnt] = IoVec::new(base, len);
         self.iovcnt += 1;
         true
     }
-    
+
     /// Total length
     pub fn total_len(&self) -> usize {
         IoVec::total_len(&self.iov[..self.iovcnt])
@@ -700,18 +702,18 @@ impl WritevOp {
             sync: false,
         }
     }
-    
+
     /// Add vector
     pub fn add_vec(&mut self, base: usize, len: usize) -> bool {
         if self.iovcnt >= 16 {
             return false;
         }
-        
+
         self.iov[self.iovcnt] = IoVec::new(base, len);
         self.iovcnt += 1;
         true
     }
-    
+
     /// Total length
     pub fn total_len(&self) -> usize {
         IoVec::total_len(&self.iov[..self.iovcnt])
@@ -725,62 +727,62 @@ impl WritevOp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_read_op() {
         let op = ReadOp::new(100, 0, 4096).direct();
-        
+
         assert_eq!(op.ino, 100);
         assert!(op.direct);
         assert!(op.validate().is_ok());
     }
-    
+
     #[test]
     fn test_write_op() {
         let op = WriteOp::new(100, 0, 4096).sync().append();
-        
+
         assert!(op.sync);
         assert!(op.append);
         assert!(op.validate().is_ok());
     }
-    
+
     #[test]
     fn test_seek_op() {
         let op = SeekOp::new(100, 1000, 50, SeekWhence::Cur);
         assert_eq!(op.calculate().unwrap(), 150);
-        
+
         let op = SeekOp::new(100, 1000, -50, SeekWhence::End);
         assert_eq!(op.calculate().unwrap(), 950);
-        
+
         let op = SeekOp::new(100, 1000, 0, SeekWhence::Set);
         assert_eq!(op.calculate().unwrap(), 0);
     }
-    
+
     #[test]
     fn test_fallocate_op() {
         let op = FallocateOp::new(100, 0, 4096).punch_hole();
-        
+
         assert!(op.is_punch_hole());
         assert!(op.is_keep_size());
         assert!(op.validate().is_ok());
     }
-    
+
     #[test]
     fn test_copy_file_range() {
         let op = CopyFileRangeOp::new(1, 0, 2, 0, 1024);
-        
+
         assert_eq!(op.src_ino, 1);
         assert_eq!(op.dst_ino, 2);
         assert!(op.validate().is_ok());
     }
-    
+
     #[test]
     fn test_io_vec() {
         let mut op = ReadvOp::new(100, 0);
-        
+
         assert!(op.add_vec(0x1000, 4096));
         assert!(op.add_vec(0x2000, 4096));
-        
+
         assert_eq!(op.total_len(), 8192);
     }
 }

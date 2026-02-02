@@ -2,10 +2,10 @@
 //!
 //! High-level graphics abstraction for framebuffer operations.
 
-use crate::raw::types::*;
-use crate::raw::protocols::gop::*;
+use super::{EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
-use super::{Protocol, EnumerableProtocol};
+use crate::raw::protocols::gop::*;
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -69,9 +69,8 @@ impl GraphicsOutput {
         let mut size = 0usize;
         let mut info: *mut EfiGraphicsOutputModeInformation = core::ptr::null_mut();
 
-        let result = unsafe {
-            ((*self.protocol).query_mode)(self.protocol, mode, &mut size, &mut info)
-        };
+        let result =
+            unsafe { ((*self.protocol).query_mode)(self.protocol, mode, &mut size, &mut info) };
 
         if result != Status::SUCCESS {
             return Err(Error::from_status(result));
@@ -119,7 +118,8 @@ impl GraphicsOutput {
     pub fn set_best_mode(&self) -> Result<ModeInfo> {
         let modes = self.available_modes()?;
 
-        let best = modes.iter()
+        let best = modes
+            .iter()
             .max_by_key(|m| (m.width as u64) * (m.height as u64))
             .cloned()
             .ok_or(Error::NotFound)?;
@@ -132,7 +132,8 @@ impl GraphicsOutput {
     pub fn find_mode(&self, width: u32, height: u32) -> Result<u32> {
         let modes = self.available_modes()?;
 
-        modes.iter()
+        modes
+            .iter()
             .find(|m| m.width == width && m.height == height)
             .map(|m| m.mode_number)
             .ok_or(Error::NotFound)
@@ -163,9 +164,12 @@ impl GraphicsOutput {
                 self.protocol,
                 &blt_pixel as *const _ as *mut _,
                 EfiGraphicsOutputBltOperation::BltVideoFill,
-                0, 0,
-                x as usize, y as usize,
-                width as usize, height as usize,
+                0,
+                0,
+                x as usize,
+                y as usize,
+                width as usize,
+                height as usize,
                 0,
             )
         };
@@ -229,12 +233,16 @@ impl GraphicsOutput {
 
             let e2 = 2 * err;
             if e2 >= dy {
-                if x == x1 { break; }
+                if x == x1 {
+                    break;
+                }
                 err += dy;
                 x += sx;
             }
             if e2 <= dx {
-                if y == y1 { break; }
+                if y == y1 {
+                    break;
+                }
                 err += dx;
                 y += sy;
             }
@@ -274,7 +282,9 @@ impl GraphicsOutput {
 
     /// Integer square root approximation
     fn isqrt(n: i32) -> i32 {
-        if n <= 0 { return 0; }
+        if n <= 0 {
+            return 0;
+        }
         let mut x = n;
         let mut y = (x + 1) / 2;
         while y < x {
@@ -318,9 +328,12 @@ impl GraphicsOutput {
                 self.protocol,
                 buffer.as_ptr() as *mut EfiGraphicsOutputBltPixel,
                 EfiGraphicsOutputBltOperation::BltBufferToVideo,
-                src_x, src_y,
-                dest_x, dest_y,
-                width, height,
+                src_x,
+                src_y,
+                dest_x,
+                dest_y,
+                width,
+                height,
                 delta,
             )
         };
@@ -349,9 +362,12 @@ impl GraphicsOutput {
                 self.protocol,
                 buffer.as_mut_ptr() as *mut EfiGraphicsOutputBltPixel,
                 EfiGraphicsOutputBltOperation::BltVideoToBltBuffer,
-                src_x, src_y,
-                dest_x, dest_y,
-                width, height,
+                src_x,
+                src_y,
+                dest_x,
+                dest_y,
+                width,
+                height,
                 delta,
             )
         };
@@ -378,9 +394,12 @@ impl GraphicsOutput {
                 self.protocol,
                 core::ptr::null_mut(),
                 EfiGraphicsOutputBltOperation::BltVideoToVideo,
-                src_x, src_y,
-                dest_x, dest_y,
-                width, height,
+                src_x,
+                src_y,
+                dest_x,
+                dest_y,
+                width,
+                height,
                 0,
             )
         };
@@ -403,11 +422,7 @@ impl GraphicsOutput {
         }
 
         // Copy region up
-        self.blt_video_to_video(
-            0, lines as usize,
-            0, 0,
-            w as usize, (h - lines) as usize,
-        )?;
+        self.blt_video_to_video(0, lines as usize, 0, 0, w as usize, (h - lines) as usize)?;
 
         // Fill bottom
         self.fill_rect(0, h - lines, w, lines, fill_color)?;
@@ -420,16 +435,26 @@ impl GraphicsOutput {
     // =========================================================================
 
     /// Draw image from pixel buffer
-    pub fn draw_image(&self, x: u32, y: u32, width: u32, height: u32, pixels: &[Pixel]) -> Result<()> {
+    pub fn draw_image(
+        &self,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+        pixels: &[Pixel],
+    ) -> Result<()> {
         if pixels.len() < (width * height) as usize {
             return Err(Error::InvalidParameter);
         }
 
         self.blt_buffer_to_video(
             pixels,
-            0, 0,
-            x as usize, y as usize,
-            width as usize, height as usize,
+            0,
+            0,
+            x as usize,
+            y as usize,
+            width as usize,
+            height as usize,
             width as usize * core::mem::size_of::<Pixel>(),
         )
     }
@@ -440,9 +465,12 @@ impl GraphicsOutput {
 
         self.blt_video_to_buffer(
             &mut buffer,
-            x as usize, y as usize,
-            0, 0,
-            width as usize, height as usize,
+            x as usize,
+            y as usize,
+            0,
+            0,
+            width as usize,
+            height as usize,
             width as usize * core::mem::size_of::<Pixel>(),
         )?;
 
@@ -561,15 +589,42 @@ pub struct Resolution {
 
 impl Resolution {
     /// Common resolutions
-    pub const VGA: Self = Self { width: 640, height: 480 };
-    pub const SVGA: Self = Self { width: 800, height: 600 };
-    pub const XGA: Self = Self { width: 1024, height: 768 };
-    pub const HD: Self = Self { width: 1280, height: 720 };
-    pub const WXGA: Self = Self { width: 1366, height: 768 };
-    pub const SXGA: Self = Self { width: 1280, height: 1024 };
-    pub const FULL_HD: Self = Self { width: 1920, height: 1080 };
-    pub const QHD: Self = Self { width: 2560, height: 1440 };
-    pub const UHD: Self = Self { width: 3840, height: 2160 };
+    pub const VGA: Self = Self {
+        width: 640,
+        height: 480,
+    };
+    pub const SVGA: Self = Self {
+        width: 800,
+        height: 600,
+    };
+    pub const XGA: Self = Self {
+        width: 1024,
+        height: 768,
+    };
+    pub const HD: Self = Self {
+        width: 1280,
+        height: 720,
+    };
+    pub const WXGA: Self = Self {
+        width: 1366,
+        height: 768,
+    };
+    pub const SXGA: Self = Self {
+        width: 1280,
+        height: 1024,
+    };
+    pub const FULL_HD: Self = Self {
+        width: 1920,
+        height: 1080,
+    };
+    pub const QHD: Self = Self {
+        width: 2560,
+        height: 1440,
+    };
+    pub const UHD: Self = Self {
+        width: 3840,
+        height: 2160,
+    };
 
     /// Get pixel count
     pub fn pixels(&self) -> u64 {
@@ -689,10 +744,7 @@ impl Pixel {
 
     /// Convert to 32-bit ARGB
     pub const fn to_argb32(&self) -> u32 {
-        ((self.a as u32) << 24) |
-        ((self.r as u32) << 16) |
-        ((self.g as u32) << 8) |
-        (self.b as u32)
+        ((self.a as u32) << 24) | ((self.r as u32) << 16) | ((self.g as u32) << 8) | (self.b as u32)
     }
 
     /// Create grayscale
@@ -701,18 +753,42 @@ impl Pixel {
     }
 
     // Common colors
-    pub const fn black() -> Self { Self::rgb(0, 0, 0) }
-    pub const fn white() -> Self { Self::rgb(255, 255, 255) }
-    pub const fn red() -> Self { Self::rgb(255, 0, 0) }
-    pub const fn green() -> Self { Self::rgb(0, 255, 0) }
-    pub const fn blue() -> Self { Self::rgb(0, 0, 255) }
-    pub const fn cyan() -> Self { Self::rgb(0, 255, 255) }
-    pub const fn magenta() -> Self { Self::rgb(255, 0, 255) }
-    pub const fn yellow() -> Self { Self::rgb(255, 255, 0) }
-    pub const fn orange() -> Self { Self::rgb(255, 165, 0) }
-    pub const fn pink() -> Self { Self::rgb(255, 192, 203) }
-    pub const fn purple() -> Self { Self::rgb(128, 0, 128) }
-    pub const fn brown() -> Self { Self::rgb(139, 69, 19) }
+    pub const fn black() -> Self {
+        Self::rgb(0, 0, 0)
+    }
+    pub const fn white() -> Self {
+        Self::rgb(255, 255, 255)
+    }
+    pub const fn red() -> Self {
+        Self::rgb(255, 0, 0)
+    }
+    pub const fn green() -> Self {
+        Self::rgb(0, 255, 0)
+    }
+    pub const fn blue() -> Self {
+        Self::rgb(0, 0, 255)
+    }
+    pub const fn cyan() -> Self {
+        Self::rgb(0, 255, 255)
+    }
+    pub const fn magenta() -> Self {
+        Self::rgb(255, 0, 255)
+    }
+    pub const fn yellow() -> Self {
+        Self::rgb(255, 255, 0)
+    }
+    pub const fn orange() -> Self {
+        Self::rgb(255, 165, 0)
+    }
+    pub const fn pink() -> Self {
+        Self::rgb(255, 192, 203)
+    }
+    pub const fn purple() -> Self {
+        Self::rgb(128, 0, 128)
+    }
+    pub const fn brown() -> Self {
+        Self::rgb(139, 69, 19)
+    }
 
     /// Blend two pixels
     pub fn blend(&self, other: &Self, alpha: u8) -> Self {

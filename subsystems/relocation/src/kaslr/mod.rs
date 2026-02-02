@@ -2,7 +2,7 @@
 //!
 //! Framework-level KASLR implementation with hardware entropy.
 
-use crate::{RelocResult, RelocError, PhysAddr};
+use crate::{PhysAddr, RelocError, RelocResult};
 
 // ============================================================================
 // ENTROPY SOURCES
@@ -13,13 +13,13 @@ use crate::{RelocResult, RelocError, PhysAddr};
 #[repr(u8)]
 pub enum EntropyQuality {
     /// No entropy available
-    None = 0,
+    None     = 0,
     /// Low quality (TSC-based)
-    Low = 1,
+    Low      = 1,
     /// Medium quality (RDRAND)
-    Medium = 2,
+    Medium   = 2,
     /// High quality (RDSEED)
-    High = 3,
+    High     = 3,
     /// Hardware RNG
     Hardware = 4,
 }
@@ -206,9 +206,7 @@ fn x86_64_rdrand() -> Option<u64> {
 
 #[cfg(target_arch = "x86_64")]
 fn x86_64_rdtsc() -> u64 {
-    unsafe {
-        core::arch::x86_64::_rdtsc()
-    }
+    unsafe { core::arch::x86_64::_rdtsc() }
 }
 
 #[cfg(target_arch = "x86_64")]

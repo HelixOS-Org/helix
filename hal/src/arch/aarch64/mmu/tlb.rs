@@ -4,6 +4,7 @@
 //! operations for AArch64.
 
 use core::arch::asm;
+
 use super::asid::Asid;
 
 // =============================================================================
@@ -160,11 +161,7 @@ pub fn tlb_flush_range(start_va: u64, end_va: u64) {
     }
 
     unsafe {
-        asm!(
-            "dsb ish",
-            "isb",
-            options(nostack, preserves_flags)
-        );
+        asm!("dsb ish", "isb", options(nostack, preserves_flags));
     }
 }
 
@@ -192,11 +189,7 @@ pub fn tlb_flush_range_asid(start_va: u64, end_va: u64, asid: Asid) {
     }
 
     unsafe {
-        asm!(
-            "dsb ish",
-            "isb",
-            options(nostack, preserves_flags)
-        );
+        asm!("dsb ish", "isb", options(nostack, preserves_flags));
     }
 }
 
@@ -301,11 +294,7 @@ pub fn tlb_flush_vmid(vmid: u16) {
 #[inline]
 pub fn tlb_sync() {
     unsafe {
-        asm!(
-            "dsb ish",
-            "isb",
-            options(nostack, preserves_flags)
-        );
+        asm!("dsb ish", "isb", options(nostack, preserves_flags));
     }
 }
 
@@ -313,11 +302,7 @@ pub fn tlb_sync() {
 #[inline]
 pub fn tlb_sync_local() {
     unsafe {
-        asm!(
-            "dsb nsh",
-            "isb",
-            options(nostack, preserves_flags)
-        );
+        asm!("dsb nsh", "isb", options(nostack, preserves_flags));
     }
 }
 

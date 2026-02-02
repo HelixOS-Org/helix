@@ -75,85 +75,85 @@ pub const VIRTIO_VERSION_2: u32 = 2;
 #[repr(u32)]
 pub enum VirtioDeviceType {
     /// Invalid device
-    Invalid = 0,
+    Invalid           = 0,
     /// Network device
-    Network = 1,
+    Network           = 1,
     /// Block device (disk)
-    Block = 2,
+    Block             = 2,
     /// Console device
-    Console = 3,
+    Console           = 3,
     /// Entropy source (RNG)
-    Entropy = 4,
+    Entropy           = 4,
     /// Memory balloon
-    Balloon = 5,
+    Balloon           = 5,
     /// IO memory
-    IoMemory = 6,
+    IoMemory          = 6,
     /// RPMSG device
-    Rpmsg = 7,
+    Rpmsg             = 7,
     /// SCSI host
-    Scsi = 8,
+    Scsi              = 8,
     /// 9P transport
-    NineP = 9,
+    NineP             = 9,
     /// MAC 802.11 WLAN
-    Wlan = 10,
+    Wlan              = 10,
     /// RPROC serial
-    RprocSerial = 11,
+    RprocSerial       = 11,
     /// CAIF device
-    Caif = 12,
+    Caif              = 12,
     /// Memory balloon
-    MemoryBalloon = 13,
+    MemoryBalloon     = 13,
     /// GPU device
-    Gpu = 16,
+    Gpu               = 16,
     /// Timer device
-    Timer = 17,
+    Timer             = 17,
     /// Input device
-    Input = 18,
+    Input             = 18,
     /// Socket device
-    Socket = 19,
+    Socket            = 19,
     /// Crypto device
-    Crypto = 20,
+    Crypto            = 20,
     /// Signal distribution module
-    SignalDist = 21,
+    SignalDist        = 21,
     /// PSTORE device
-    Pstore = 22,
+    Pstore            = 22,
     /// IOMMU device
-    Iommu = 23,
+    Iommu             = 23,
     /// Memory device
-    Memory = 24,
+    Memory            = 24,
     /// Audio device
-    Audio = 25,
+    Audio             = 25,
     /// Filesystem device
-    Filesystem = 26,
+    Filesystem        = 26,
     /// PMEM device
-    Pmem = 27,
+    Pmem              = 27,
     /// RPMB device
-    Rpmb = 28,
+    Rpmb              = 28,
     /// MAC 802.11 WLAN (alt)
-    Mac80211Wlan = 29,
+    Mac80211Wlan      = 29,
     /// Video encoder
-    VideoEncoder = 30,
+    VideoEncoder      = 30,
     /// Video decoder
-    VideoDecoder = 31,
+    VideoDecoder      = 31,
     /// SCMI device
-    Scmi = 32,
+    Scmi              = 32,
     /// NitroSecureModule
     NitroSecureModule = 33,
     /// I2C adapter
-    I2cAdapter = 34,
+    I2cAdapter        = 34,
     /// Watchdog
-    Watchdog = 35,
+    Watchdog          = 35,
     /// CAN device
-    Can = 36,
+    Can               = 36,
     /// Parameter server
-    ParamServer = 38,
+    ParamServer       = 38,
     /// Audio policy
-    AudioPolicy = 39,
+    AudioPolicy       = 39,
     /// Bluetooth device
-    Bluetooth = 40,
+    Bluetooth         = 40,
     /// GPIO device
-    Gpio = 41,
+    Gpio              = 41,
     /// RDMA device
-    Rdma = 42,
+    Rdma              = 42,
 }
 
 impl VirtioDeviceType {
@@ -206,17 +206,13 @@ impl VirtioDeviceType {
     /// Get device type from PCI device ID
     pub const fn from_pci_device_id(device_id: u16) -> Option<Self> {
         // Modern device IDs (1040h + device type)
-        if device_id >= VIRTIO_MODERN_DEVICE_ID_START
-            && device_id <= VIRTIO_MODERN_DEVICE_ID_END
-        {
+        if device_id >= VIRTIO_MODERN_DEVICE_ID_START && device_id <= VIRTIO_MODERN_DEVICE_ID_END {
             let device_type = device_id - VIRTIO_MODERN_DEVICE_ID_START;
             return Self::from_u32(device_type as u32);
         }
 
         // Legacy device IDs (1000h + device type)
-        if device_id >= VIRTIO_LEGACY_DEVICE_ID_START
-            && device_id <= VIRTIO_LEGACY_DEVICE_ID_END
-        {
+        if device_id >= VIRTIO_LEGACY_DEVICE_ID_START && device_id <= VIRTIO_LEGACY_DEVICE_ID_END {
             let device_type = device_id - VIRTIO_LEGACY_DEVICE_ID_START;
             return Self::from_u32(device_type as u32);
         }
@@ -819,19 +815,19 @@ pub mod mmio_int {
 #[repr(u8)]
 pub enum VirtioPciCapType {
     /// Common configuration
-    CommonCfg = 1,
+    CommonCfg       = 1,
     /// Notifications
-    NotifyCfg = 2,
+    NotifyCfg       = 2,
     /// ISR status
-    IsrCfg = 3,
+    IsrCfg          = 3,
     /// Device-specific configuration
-    DeviceCfg = 4,
+    DeviceCfg       = 4,
     /// PCI configuration access
-    PciCfg = 5,
+    PciCfg          = 5,
     /// Shared memory region
     SharedMemoryCfg = 8,
     /// Vendor-specific data
-    VendorCfg = 9,
+    VendorCfg       = 9,
 }
 
 /// VirtIO PCI capability structure
@@ -1000,17 +996,17 @@ impl VirtioBlkConfig {
 #[repr(u32)]
 pub enum VirtioBlkReqType {
     /// Read
-    In = 0,
+    In          = 0,
     /// Write
-    Out = 1,
+    Out         = 1,
     /// Flush
-    Flush = 4,
+    Flush       = 4,
     /// Get ID
-    GetId = 8,
+    GetId       = 8,
     /// Get lifetime
     GetLifetime = 10,
     /// Discard
-    Discard = 11,
+    Discard     = 11,
     /// Write zeroes
     WriteZeroes = 13,
     /// Secure erase
@@ -1063,9 +1059,9 @@ impl VirtioBlkReqHeader {
 #[repr(u8)]
 pub enum VirtioBlkStatus {
     /// Success
-    Ok = 0,
+    Ok     = 0,
     /// I/O error
-    IoErr = 1,
+    IoErr  = 1,
     /// Unsupported operation
     Unsupp = 2,
 }
@@ -1266,56 +1262,56 @@ pub struct VirtioGpuConfig {
 #[repr(u32)]
 pub enum VirtioGpuCmd {
     /// Get display info
-    GetDisplayInfo = 0x0100,
+    GetDisplayInfo     = 0x0100,
     /// Resource create 2D
-    ResourceCreate2d = 0x0101,
+    ResourceCreate2d   = 0x0101,
     /// Resource unref
-    ResourceUnref = 0x0102,
+    ResourceUnref      = 0x0102,
     /// Set scanout
-    SetScanout = 0x0103,
+    SetScanout         = 0x0103,
     /// Resource flush
-    ResourceFlush = 0x0104,
+    ResourceFlush      = 0x0104,
     /// Transfer to host 2D
-    TransferToHost2d = 0x0105,
+    TransferToHost2d   = 0x0105,
     /// Resource attach backing
     ResourceAttachBacking = 0x0106,
     /// Resource detach backing
     ResourceDetachBacking = 0x0107,
     /// Get capset info
-    GetCapsetInfo = 0x0108,
+    GetCapsetInfo      = 0x0108,
     /// Get capset
-    GetCapset = 0x0109,
+    GetCapset          = 0x0109,
     /// Get EDID
-    GetEdid = 0x010A,
+    GetEdid            = 0x010A,
     /// Resource assign UUID
     ResourceAssignUuid = 0x010B,
     /// Resource create blob
     ResourceCreateBlob = 0x010C,
     /// Set scanout blob
-    SetScanoutBlob = 0x010D,
+    SetScanoutBlob     = 0x010D,
 
     /// Update cursor
-    UpdateCursor = 0x0300,
+    UpdateCursor       = 0x0300,
     /// Move cursor
-    MoveCursor = 0x0301,
+    MoveCursor         = 0x0301,
 
     /// Response OK (no data)
-    RespOkNodata = 0x1100,
+    RespOkNodata       = 0x1100,
     /// Response OK (display info)
-    RespOkDisplayInfo = 0x1101,
+    RespOkDisplayInfo  = 0x1101,
     /// Response OK (capset info)
-    RespOkCapsetInfo = 0x1102,
+    RespOkCapsetInfo   = 0x1102,
     /// Response OK (capset)
-    RespOkCapset = 0x1103,
+    RespOkCapset       = 0x1103,
     /// Response OK (EDID)
-    RespOkEdid = 0x1104,
+    RespOkEdid         = 0x1104,
     /// Response OK (resource UUID)
     RespOkResourceUuid = 0x1105,
     /// Response OK (map info)
-    RespOkMapInfo = 0x1106,
+    RespOkMapInfo      = 0x1106,
 
     /// Response error (unspecified)
-    RespErrUnspec = 0x1200,
+    RespErrUnspec      = 0x1200,
     /// Response error (out of memory)
     RespErrOutOfMemory = 0x1201,
     /// Response error (invalid scanout ID)
@@ -1417,9 +1413,9 @@ pub enum VirtioGpuFormats {
 #[repr(u8)]
 pub enum VirtioInputConfigSelect {
     /// Unset
-    Unset = 0x00,
+    Unset    = 0x00,
     /// ID name
-    IdName = 0x01,
+    IdName   = 0x01,
     /// ID serial
     IdSerial = 0x02,
     /// ID device IDs
@@ -1427,9 +1423,9 @@ pub enum VirtioInputConfigSelect {
     /// Properties bits
     PropBits = 0x10,
     /// Event bits
-    EvBits = 0x11,
+    EvBits   = 0x11,
     /// Abs info
-    AbsInfo = 0x12,
+    AbsInfo  = 0x12,
 }
 
 /// VirtIO input device IDs

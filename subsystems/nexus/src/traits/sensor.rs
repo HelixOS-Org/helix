@@ -7,8 +7,8 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::types::{MetricUnit, NexusResult};
 use super::component::NexusComponent;
+use crate::types::{MetricUnit, NexusResult};
 
 // ============================================================================
 // SENSOR TRAIT

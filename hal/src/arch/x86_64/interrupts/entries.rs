@@ -40,7 +40,7 @@ pub enum GateType {
     /// Trap Gate (does not clear IF flag)
     ///
     /// Use for software interrupts and breakpoints.
-    Trap = 0xF,
+    Trap      = 0xF,
 }
 
 impl GateType {
@@ -102,12 +102,12 @@ pub struct GateOptions(u16);
 
 impl GateOptions {
     /// Bit positions
-    const IST_MASK: u16 = 0x07;        // bits 0-2
-    const TYPE_SHIFT: u8 = 8;          // bits 8-11
+    const IST_MASK: u16 = 0x07; // bits 0-2
+    const TYPE_SHIFT: u8 = 8; // bits 8-11
     const TYPE_MASK: u16 = 0x0F00;
-    const DPL_SHIFT: u8 = 13;          // bits 13-14
+    const DPL_SHIFT: u8 = 13; // bits 13-14
     const DPL_MASK: u16 = 0x6000;
-    const PRESENT_BIT: u16 = 1 << 15;  // bit 15
+    const PRESENT_BIT: u16 = 1 << 15; // bit 15
 
     /// Create empty (not present) gate options
     #[inline]
@@ -275,7 +275,11 @@ impl IdtEntry {
     /// Create an interrupt gate with IST
     #[inline]
     pub const fn interrupt_with_ist(handler: u64, selector: u16, ist: u8) -> Self {
-        Self::new(handler, selector, GateOptions::new_interrupt().with_ist(ist))
+        Self::new(
+            handler,
+            selector,
+            GateOptions::new_interrupt().with_ist(ist),
+        )
     }
 
     /// Create a user-callable gate (DPL=3)

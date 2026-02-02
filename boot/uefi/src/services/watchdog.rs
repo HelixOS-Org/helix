@@ -2,8 +2,8 @@
 //!
 //! Safe wrappers for UEFI watchdog timer functionality.
 
-use crate::raw::types::*;
 use super::boot_services;
+use crate::raw::types::*;
 
 // =============================================================================
 // WATCHDOG TIMER
@@ -36,9 +36,8 @@ impl WatchdogTimer {
         let timeout = seconds;
 
         // SetWatchdogTimer(Timeout, WatchdogCode, DataSize, WatchdogData)
-        let result = unsafe {
-            ((*bs).set_watchdog_timer)(timeout as usize, 0x10000, 0, core::ptr::null())
-        };
+        let result =
+            unsafe { ((*bs).set_watchdog_timer)(timeout as usize, 0x10000, 0, core::ptr::null()) };
 
         if result == Status::SUCCESS {
             self.disabled = seconds == 0;
@@ -119,9 +118,7 @@ impl WatchdogGuard {
 
         let bs = unsafe { boot_services() };
 
-        let result = unsafe {
-            ((*bs).set_watchdog_timer)(0, 0, 0, core::ptr::null())
-        };
+        let result = unsafe { ((*bs).set_watchdog_timer)(0, 0, 0, core::ptr::null()) };
 
         if result == Status::SUCCESS {
             Ok(guard)
@@ -139,9 +136,8 @@ impl WatchdogGuard {
 
         let bs = unsafe { boot_services() };
 
-        let result = unsafe {
-            ((*bs).set_watchdog_timer)(seconds as usize, 0x10000, 0, core::ptr::null())
-        };
+        let result =
+            unsafe { ((*bs).set_watchdog_timer)(seconds as usize, 0x10000, 0, core::ptr::null()) };
 
         if result == Status::SUCCESS {
             Ok(guard)
@@ -213,9 +209,8 @@ impl WatchdogCode {
 pub fn set_watchdog_timeout(seconds: u64) -> Result<(), Status> {
     let bs = unsafe { boot_services() };
 
-    let result = unsafe {
-        ((*bs).set_watchdog_timer)(seconds as usize, 0x10000, 0, core::ptr::null())
-    };
+    let result =
+        unsafe { ((*bs).set_watchdog_timer)(seconds as usize, 0x10000, 0, core::ptr::null()) };
 
     if result == Status::SUCCESS {
         Ok(())
@@ -230,12 +225,17 @@ pub fn disable_watchdog() -> Result<(), Status> {
 }
 
 /// Set watchdog with message
-pub fn set_watchdog_with_message(seconds: u64, code: WatchdogCode, message: &str) -> Result<(), Status> {
+pub fn set_watchdog_with_message(
+    seconds: u64,
+    code: WatchdogCode,
+    message: &str,
+) -> Result<(), Status> {
     let bs = unsafe { boot_services() };
 
     // Convert message to UCS-2
     let mut buffer = [0u16; 256];
-    let len = message.chars()
+    let len = message
+        .chars()
         .take(255)
         .enumerate()
         .map(|(i, c)| {
@@ -247,12 +247,7 @@ pub fn set_watchdog_with_message(seconds: u64, code: WatchdogCode, message: &str
         .unwrap_or(0);
 
     let result = unsafe {
-        ((*bs).set_watchdog_timer)(
-            seconds as usize,
-            code.raw(),
-            len * 2,
-            buffer.as_ptr(),
-        )
+        ((*bs).set_watchdog_timer)(seconds as usize, code.raw(), len * 2, buffer.as_ptr())
     };
 
     if result == Status::SUCCESS {
@@ -327,18 +322,14 @@ impl LongOperationGuard {
 
         let guard = WatchdogGuard::with_timeout(timeout)?;
 
-        Ok(Self {
-            guard: Some(guard),
-        })
+        Ok(Self { guard: Some(guard) })
     }
 
     /// Create guard that completely disables watchdog
     pub fn disable() -> Result<Self, Status> {
         let guard = WatchdogGuard::disable()?;
 
-        Ok(Self {
-            guard: Some(guard),
-        })
+        Ok(Self { guard: Some(guard) })
     }
 
     /// Mark progress (extend timeout if needed)

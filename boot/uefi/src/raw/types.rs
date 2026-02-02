@@ -625,7 +625,12 @@ impl Guid {
 
     /// Create a GUID from its components
     pub const fn new(data1: u32, data2: u16, data3: u16, data4: [u8; 8]) -> Self {
-        Self { data1, data2, data3, data4 }
+        Self {
+            data1,
+            data2,
+            data3,
+            data4,
+        }
     }
 
     /// Create a GUID from a 128-bit value
@@ -635,8 +640,10 @@ impl Guid {
             data1: u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
             data2: u16::from_be_bytes([bytes[4], bytes[5]]),
             data3: u16::from_be_bytes([bytes[6], bytes[7]]),
-            data4: [bytes[8], bytes[9], bytes[10], bytes[11],
-                   bytes[12], bytes[13], bytes[14], bytes[15]],
+            data4: [
+                bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14],
+                bytes[15],
+            ],
         }
     }
 
@@ -646,11 +653,22 @@ impl Guid {
         let d2 = self.data2.to_le_bytes();
         let d3 = self.data3.to_le_bytes();
         [
-            d1[0], d1[1], d1[2], d1[3],
-            d2[0], d2[1],
-            d3[0], d3[1],
-            self.data4[0], self.data4[1], self.data4[2], self.data4[3],
-            self.data4[4], self.data4[5], self.data4[6], self.data4[7],
+            d1[0],
+            d1[1],
+            d1[2],
+            d1[3],
+            d2[0],
+            d2[1],
+            d3[0],
+            d3[1],
+            self.data4[0],
+            self.data4[1],
+            self.data4[2],
+            self.data4[3],
+            self.data4[4],
+            self.data4[5],
+            self.data4[6],
+            self.data4[7],
         ]
     }
 
@@ -660,17 +678,26 @@ impl Guid {
             data1: u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
             data2: u16::from_le_bytes([bytes[4], bytes[5]]),
             data3: u16::from_le_bytes([bytes[6], bytes[7]]),
-            data4: [bytes[8], bytes[9], bytes[10], bytes[11],
-                   bytes[12], bytes[13], bytes[14], bytes[15]],
+            data4: [
+                bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14],
+                bytes[15],
+            ],
         }
     }
 
     /// Check if this is the null GUID
     pub const fn is_null(self) -> bool {
-        self.data1 == 0 && self.data2 == 0 && self.data3 == 0 &&
-        self.data4[0] == 0 && self.data4[1] == 0 && self.data4[2] == 0 &&
-        self.data4[3] == 0 && self.data4[4] == 0 && self.data4[5] == 0 &&
-        self.data4[6] == 0 && self.data4[7] == 0
+        self.data1 == 0
+            && self.data2 == 0
+            && self.data3 == 0
+            && self.data4[0] == 0
+            && self.data4[1] == 0
+            && self.data4[2] == 0
+            && self.data4[3] == 0
+            && self.data4[4] == 0
+            && self.data4[5] == 0
+            && self.data4[6] == 0
+            && self.data4[7] == 0
     }
 }
 
@@ -682,11 +709,21 @@ impl fmt::Debug for Guid {
 
 impl fmt::Display for Guid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
-            self.data1, self.data2, self.data3,
-            self.data4[0], self.data4[1],
-            self.data4[2], self.data4[3], self.data4[4],
-            self.data4[5], self.data4[6], self.data4[7])
+        write!(
+            f,
+            "{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+            self.data1,
+            self.data2,
+            self.data3,
+            self.data4[0],
+            self.data4[1],
+            self.data4[2],
+            self.data4[3],
+            self.data4[4],
+            self.data4[5],
+            self.data4[6],
+            self.data4[7]
+        )
     }
 }
 
@@ -699,388 +736,325 @@ pub mod guids {
     use super::Guid;
 
     /// EFI_LOADED_IMAGE_PROTOCOL_GUID
-    pub const LOADED_IMAGE_PROTOCOL: Guid = Guid::new(
-        0x5B1B31A1, 0x9562, 0x11D2,
-        [0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const LOADED_IMAGE_PROTOCOL: Guid = Guid::new(0x5B1B31A1, 0x9562, 0x11D2, [
+        0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL_GUID
-    pub const LOADED_IMAGE_DEVICE_PATH_PROTOCOL: Guid = Guid::new(
-        0xBC62157E, 0x3E33, 0x4FEC,
-        [0x99, 0x20, 0x2D, 0x3B, 0x36, 0xD7, 0x50, 0xDF]
-    );
+    pub const LOADED_IMAGE_DEVICE_PATH_PROTOCOL: Guid = Guid::new(0xBC62157E, 0x3E33, 0x4FEC, [
+        0x99, 0x20, 0x2D, 0x3B, 0x36, 0xD7, 0x50, 0xDF,
+    ]);
 
     /// EFI_DEVICE_PATH_PROTOCOL_GUID
-    pub const DEVICE_PATH_PROTOCOL: Guid = Guid::new(
-        0x09576E91, 0x6D3F, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const DEVICE_PATH_PROTOCOL: Guid = Guid::new(0x09576E91, 0x6D3F, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_DEVICE_PATH_UTILITIES_PROTOCOL_GUID
-    pub const DEVICE_PATH_UTILITIES_PROTOCOL: Guid = Guid::new(
-        0x0379BE4E, 0xD706, 0x437D,
-        [0xB0, 0x37, 0xED, 0xB8, 0x2F, 0xB7, 0x72, 0xA4]
-    );
+    pub const DEVICE_PATH_UTILITIES_PROTOCOL: Guid = Guid::new(0x0379BE4E, 0xD706, 0x437D, [
+        0xB0, 0x37, 0xED, 0xB8, 0x2F, 0xB7, 0x72, 0xA4,
+    ]);
 
     /// EFI_DEVICE_PATH_TO_TEXT_PROTOCOL_GUID
-    pub const DEVICE_PATH_TO_TEXT_PROTOCOL: Guid = Guid::new(
-        0x8B843E20, 0x8132, 0x4852,
-        [0x90, 0xCC, 0x55, 0x1A, 0x4E, 0x4A, 0x7F, 0x1C]
-    );
+    pub const DEVICE_PATH_TO_TEXT_PROTOCOL: Guid = Guid::new(0x8B843E20, 0x8132, 0x4852, [
+        0x90, 0xCC, 0x55, 0x1A, 0x4E, 0x4A, 0x7F, 0x1C,
+    ]);
 
     /// EFI_DEVICE_PATH_FROM_TEXT_PROTOCOL_GUID
-    pub const DEVICE_PATH_FROM_TEXT_PROTOCOL: Guid = Guid::new(
-        0x05C99A21, 0xC70F, 0x4AD2,
-        [0x8A, 0x5F, 0x35, 0xDF, 0x33, 0x43, 0xF5, 0x1E]
-    );
+    pub const DEVICE_PATH_FROM_TEXT_PROTOCOL: Guid = Guid::new(0x05C99A21, 0xC70F, 0x4AD2, [
+        0x8A, 0x5F, 0x35, 0xDF, 0x33, 0x43, 0xF5, 0x1E,
+    ]);
 
     /// EFI_HASH_PROTOCOL_GUID
-    pub const HASH_PROTOCOL: Guid = Guid::new(
-        0xC5184932, 0xDBA5, 0x46DB,
-        [0xA5, 0xBA, 0xCC, 0x0B, 0xDA, 0x9C, 0x14, 0x35]
-    );
+    pub const HASH_PROTOCOL: Guid = Guid::new(0xC5184932, 0xDBA5, 0x46DB, [
+        0xA5, 0xBA, 0xCC, 0x0B, 0xDA, 0x9C, 0x14, 0x35,
+    ]);
 
     /// EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID
-    pub const SIMPLE_TEXT_INPUT_PROTOCOL: Guid = Guid::new(
-        0x387477C1, 0x69C7, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const SIMPLE_TEXT_INPUT_PROTOCOL: Guid = Guid::new(0x387477C1, 0x69C7, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID
-    pub const SIMPLE_TEXT_INPUT_EX_PROTOCOL: Guid = Guid::new(
-        0xDD9E7534, 0x7762, 0x4698,
-        [0x8C, 0x14, 0xF5, 0x85, 0x17, 0xA6, 0x25, 0xAA]
-    );
+    pub const SIMPLE_TEXT_INPUT_EX_PROTOCOL: Guid = Guid::new(0xDD9E7534, 0x7762, 0x4698, [
+        0x8C, 0x14, 0xF5, 0x85, 0x17, 0xA6, 0x25, 0xAA,
+    ]);
 
     /// EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID
-    pub const SIMPLE_TEXT_OUTPUT_PROTOCOL: Guid = Guid::new(
-        0x387477C2, 0x69C7, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const SIMPLE_TEXT_OUTPUT_PROTOCOL: Guid = Guid::new(0x387477C2, 0x69C7, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID
-    pub const GRAPHICS_OUTPUT_PROTOCOL: Guid = Guid::new(
-        0x9042A9DE, 0x23DC, 0x4A38,
-        [0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A]
-    );
+    pub const GRAPHICS_OUTPUT_PROTOCOL: Guid = Guid::new(0x9042A9DE, 0x23DC, 0x4A38, [
+        0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A,
+    ]);
 
     /// EFI_EDID_ACTIVE_PROTOCOL_GUID
-    pub const EDID_ACTIVE_PROTOCOL: Guid = Guid::new(
-        0xBD8C1056, 0x9F36, 0x44EC,
-        [0x92, 0xA8, 0xA6, 0x33, 0x7F, 0x81, 0x79, 0x86]
-    );
+    pub const EDID_ACTIVE_PROTOCOL: Guid = Guid::new(0xBD8C1056, 0x9F36, 0x44EC, [
+        0x92, 0xA8, 0xA6, 0x33, 0x7F, 0x81, 0x79, 0x86,
+    ]);
 
     /// EFI_EDID_DISCOVERED_PROTOCOL_GUID
-    pub const EDID_DISCOVERED_PROTOCOL: Guid = Guid::new(
-        0x1C0C34F6, 0xD380, 0x41FA,
-        [0xA0, 0x49, 0x8A, 0xD0, 0x6C, 0x1A, 0x66, 0xAA]
-    );
+    pub const EDID_DISCOVERED_PROTOCOL: Guid = Guid::new(0x1C0C34F6, 0xD380, 0x41FA, [
+        0xA0, 0x49, 0x8A, 0xD0, 0x6C, 0x1A, 0x66, 0xAA,
+    ]);
 
     /// EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID
-    pub const SIMPLE_FILE_SYSTEM_PROTOCOL: Guid = Guid::new(
-        0x0964E5B22, 0x6459, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const SIMPLE_FILE_SYSTEM_PROTOCOL: Guid = Guid::new(0x0964E5B22, 0x6459, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_FILE_INFO_ID
-    pub const FILE_INFO: Guid = Guid::new(
-        0x09576E92, 0x6D3F, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const FILE_INFO: Guid = Guid::new(0x09576E92, 0x6D3F, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_FILE_SYSTEM_INFO_ID
-    pub const FILE_SYSTEM_INFO: Guid = Guid::new(
-        0x09576E93, 0x6D3F, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const FILE_SYSTEM_INFO: Guid = Guid::new(0x09576E93, 0x6D3F, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_FILE_SYSTEM_VOLUME_LABEL_ID
-    pub const FILE_SYSTEM_VOLUME_LABEL: Guid = Guid::new(
-        0xDB47D7D3, 0xFE81, 0x11D3,
-        [0x9A, 0x35, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const FILE_SYSTEM_VOLUME_LABEL: Guid = Guid::new(0xDB47D7D3, 0xFE81, 0x11D3, [
+        0x9A, 0x35, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_BLOCK_IO_PROTOCOL_GUID
-    pub const BLOCK_IO_PROTOCOL: Guid = Guid::new(
-        0x964E5B21, 0x6459, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const BLOCK_IO_PROTOCOL: Guid = Guid::new(0x964E5B21, 0x6459, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_BLOCK_IO2_PROTOCOL_GUID
-    pub const BLOCK_IO2_PROTOCOL: Guid = Guid::new(
-        0xA77B2472, 0xE282, 0x4E9F,
-        [0xA2, 0x45, 0xC2, 0xC0, 0xE2, 0x7B, 0xBC, 0xC1]
-    );
+    pub const BLOCK_IO2_PROTOCOL: Guid = Guid::new(0xA77B2472, 0xE282, 0x4E9F, [
+        0xA2, 0x45, 0xC2, 0xC0, 0xE2, 0x7B, 0xBC, 0xC1,
+    ]);
 
     /// EFI_DISK_IO_PROTOCOL_GUID
-    pub const DISK_IO_PROTOCOL: Guid = Guid::new(
-        0xCE345171, 0xBA0B, 0x11D2,
-        [0x8E, 0x4F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B]
-    );
+    pub const DISK_IO_PROTOCOL: Guid = Guid::new(0xCE345171, 0xBA0B, 0x11D2, [
+        0x8E, 0x4F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     /// EFI_DISK_IO2_PROTOCOL_GUID
-    pub const DISK_IO2_PROTOCOL: Guid = Guid::new(
-        0x151C8EAE, 0x7F2C, 0x472C,
-        [0x9E, 0x54, 0x98, 0x28, 0x19, 0x4F, 0x6A, 0x88]
-    );
+    pub const DISK_IO2_PROTOCOL: Guid = Guid::new(0x151C8EAE, 0x7F2C, 0x472C, [
+        0x9E, 0x54, 0x98, 0x28, 0x19, 0x4F, 0x6A, 0x88,
+    ]);
 
     /// EFI_PARTITION_INFO_PROTOCOL_GUID
-    pub const PARTITION_INFO_PROTOCOL: Guid = Guid::new(
-        0x8CF2F62C, 0xBC9B, 0x4821,
-        [0x80, 0x8D, 0xEC, 0x9E, 0xC4, 0x21, 0xA1, 0xA0]
-    );
+    pub const PARTITION_INFO_PROTOCOL: Guid = Guid::new(0x8CF2F62C, 0xBC9B, 0x4821, [
+        0x80, 0x8D, 0xEC, 0x9E, 0xC4, 0x21, 0xA1, 0xA0,
+    ]);
 
     /// EFI_PCI_IO_PROTOCOL_GUID
-    pub const PCI_IO_PROTOCOL: Guid = Guid::new(
-        0x4CF5B200, 0x68B8, 0x4CA5,
-        [0x9E, 0xEC, 0xB2, 0x3E, 0x3F, 0x50, 0x02, 0x9A]
-    );
+    pub const PCI_IO_PROTOCOL: Guid = Guid::new(0x4CF5B200, 0x68B8, 0x4CA5, [
+        0x9E, 0xEC, 0xB2, 0x3E, 0x3F, 0x50, 0x02, 0x9A,
+    ]);
 
     /// EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_GUID
-    pub const PCI_ROOT_BRIDGE_IO_PROTOCOL: Guid = Guid::new(
-        0x2F707EBB, 0x4A1A, 0x11D4,
-        [0x9A, 0x38, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const PCI_ROOT_BRIDGE_IO_PROTOCOL: Guid = Guid::new(0x2F707EBB, 0x4A1A, 0x11D4, [
+        0x9A, 0x38, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_SERIAL_IO_PROTOCOL_GUID
-    pub const SERIAL_IO_PROTOCOL: Guid = Guid::new(
-        0xBB25CF6F, 0xF1D4, 0x11D2,
-        [0x9A, 0x0C, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0xFD]
-    );
+    pub const SERIAL_IO_PROTOCOL: Guid = Guid::new(0xBB25CF6F, 0xF1D4, 0x11D2, [
+        0x9A, 0x0C, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0xFD,
+    ]);
 
     /// EFI_USB_IO_PROTOCOL_GUID
-    pub const USB_IO_PROTOCOL: Guid = Guid::new(
-        0x2B2F68D6, 0x0CD2, 0x44CF,
-        [0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75]
-    );
+    pub const USB_IO_PROTOCOL: Guid = Guid::new(0x2B2F68D6, 0x0CD2, 0x44CF, [
+        0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75,
+    ]);
 
     /// EFI_SIMPLE_NETWORK_PROTOCOL_GUID
-    pub const SIMPLE_NETWORK_PROTOCOL: Guid = Guid::new(
-        0xA19832B9, 0xAC25, 0x11D3,
-        [0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const SIMPLE_NETWORK_PROTOCOL: Guid = Guid::new(0xA19832B9, 0xAC25, 0x11D3, [
+        0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_MANAGED_NETWORK_SERVICE_BINDING_PROTOCOL_GUID
-    pub const MANAGED_NETWORK_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(
-        0xF36FF770, 0xA7E1, 0x42CF,
-        [0x9E, 0xD2, 0x56, 0xF0, 0xF2, 0x71, 0xF4, 0x4C]
-    );
+    pub const MANAGED_NETWORK_SERVICE_BINDING_PROTOCOL: Guid =
+        Guid::new(0xF36FF770, 0xA7E1, 0x42CF, [
+            0x9E, 0xD2, 0x56, 0xF0, 0xF2, 0x71, 0xF4, 0x4C,
+        ]);
 
     /// EFI_MANAGED_NETWORK_PROTOCOL_GUID
-    pub const MANAGED_NETWORK_PROTOCOL: Guid = Guid::new(
-        0x7AB33A91, 0xACE5, 0x4326,
-        [0xB5, 0x72, 0xE7, 0xEE, 0x33, 0xD3, 0x9F, 0x16]
-    );
+    pub const MANAGED_NETWORK_PROTOCOL: Guid = Guid::new(0x7AB33A91, 0xACE5, 0x4326, [
+        0xB5, 0x72, 0xE7, 0xEE, 0x33, 0xD3, 0x9F, 0x16,
+    ]);
 
     /// EFI_ARP_SERVICE_BINDING_PROTOCOL_GUID
-    pub const ARP_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(
-        0xF44C00EE, 0x1F2C, 0x4A00,
-        [0xAA, 0x09, 0x1C, 0x9C, 0x4C, 0x85, 0x85, 0x45]
-    );
+    pub const ARP_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0xF44C00EE, 0x1F2C, 0x4A00, [
+        0xAA, 0x09, 0x1C, 0x9C, 0x4C, 0x85, 0x85, 0x45,
+    ]);
 
     /// EFI_ARP_PROTOCOL_GUID
-    pub const ARP_PROTOCOL: Guid = Guid::new(
-        0xF4B427BB, 0xBA21, 0x4F16,
-        [0xBC, 0x4E, 0x43, 0xE4, 0x16, 0xAB, 0x61, 0x9C]
-    );
+    pub const ARP_PROTOCOL: Guid = Guid::new(0xF4B427BB, 0xBA21, 0x4F16, [
+        0xBC, 0x4E, 0x43, 0xE4, 0x16, 0xAB, 0x61, 0x9C,
+    ]);
 
     /// EFI_IP4_SERVICE_BINDING_PROTOCOL_GUID
-    pub const IP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(
-        0xC51711E7, 0xB4BF, 0x404A,
-        [0xBF, 0xB8, 0x0A, 0x04, 0x8E, 0xF1, 0xFF, 0xE4]
-    );
+    pub const IP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0xC51711E7, 0xB4BF, 0x404A, [
+        0xBF, 0xB8, 0x0A, 0x04, 0x8E, 0xF1, 0xFF, 0xE4,
+    ]);
 
     /// EFI_IP4_PROTOCOL_GUID
-    pub const IP4_PROTOCOL: Guid = Guid::new(
-        0x41D94CD2, 0x35B6, 0x455A,
-        [0x82, 0x58, 0xD4, 0xE5, 0x13, 0x34, 0xAA, 0xDD]
-    );
+    pub const IP4_PROTOCOL: Guid = Guid::new(0x41D94CD2, 0x35B6, 0x455A, [
+        0x82, 0x58, 0xD4, 0xE5, 0x13, 0x34, 0xAA, 0xDD,
+    ]);
 
     /// EFI_IP4_CONFIG_PROTOCOL_GUID
-    pub const IP4_CONFIG_PROTOCOL: Guid = Guid::new(
-        0x3B95AA31, 0x3793, 0x434B,
-        [0x86, 0x67, 0xC8, 0x07, 0x08, 0x92, 0xE0, 0x5E]
-    );
+    pub const IP4_CONFIG_PROTOCOL: Guid = Guid::new(0x3B95AA31, 0x3793, 0x434B, [
+        0x86, 0x67, 0xC8, 0x07, 0x08, 0x92, 0xE0, 0x5E,
+    ]);
 
     /// EFI_IP4_CONFIG2_PROTOCOL_GUID
-    pub const IP4_CONFIG2_PROTOCOL: Guid = Guid::new(
-        0x5B446ED1, 0xE30B, 0x4FAA,
-        [0x87, 0x1A, 0x36, 0x54, 0xEC, 0xA3, 0x60, 0x80]
-    );
+    pub const IP4_CONFIG2_PROTOCOL: Guid = Guid::new(0x5B446ED1, 0xE30B, 0x4FAA, [
+        0x87, 0x1A, 0x36, 0x54, 0xEC, 0xA3, 0x60, 0x80,
+    ]);
 
     /// EFI_UDP4_SERVICE_BINDING_PROTOCOL_GUID
-    pub const UDP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(
-        0x83F01464, 0x99BD, 0x45E5,
-        [0xB3, 0x83, 0xAF, 0x63, 0x05, 0xD8, 0xE9, 0xE6]
-    );
+    pub const UDP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0x83F01464, 0x99BD, 0x45E5, [
+        0xB3, 0x83, 0xAF, 0x63, 0x05, 0xD8, 0xE9, 0xE6,
+    ]);
 
     /// EFI_UDP4_PROTOCOL_GUID
-    pub const UDP4_PROTOCOL: Guid = Guid::new(
-        0x3AD9DF29, 0x4501, 0x478D,
-        [0xB1, 0xF8, 0x7F, 0x7F, 0xE7, 0x0E, 0x50, 0xF3]
-    );
+    pub const UDP4_PROTOCOL: Guid = Guid::new(0x3AD9DF29, 0x4501, 0x478D, [
+        0xB1, 0xF8, 0x7F, 0x7F, 0xE7, 0x0E, 0x50, 0xF3,
+    ]);
 
     /// EFI_TCP4_SERVICE_BINDING_PROTOCOL_GUID
-    pub const TCP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(
-        0x00720665, 0x67EB, 0x4A99,
-        [0xBA, 0xF7, 0xD3, 0xC3, 0x3A, 0x1C, 0x7C, 0xC9]
-    );
+    pub const TCP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0x00720665, 0x67EB, 0x4A99, [
+        0xBA, 0xF7, 0xD3, 0xC3, 0x3A, 0x1C, 0x7C, 0xC9,
+    ]);
 
     /// EFI_TCP4_PROTOCOL_GUID
-    pub const TCP4_PROTOCOL: Guid = Guid::new(
-        0x65530BC7, 0xA359, 0x410F,
-        [0xB0, 0x10, 0x5A, 0xAD, 0xC7, 0xEC, 0x2B, 0x62]
-    );
+    pub const TCP4_PROTOCOL: Guid = Guid::new(0x65530BC7, 0xA359, 0x410F, [
+        0xB0, 0x10, 0x5A, 0xAD, 0xC7, 0xEC, 0x2B, 0x62,
+    ]);
 
     /// EFI_ACPI_TABLE_GUID (ACPI 1.0)
-    pub const ACPI_TABLE: Guid = Guid::new(
-        0xEB9D2D30, 0x2D88, 0x11D3,
-        [0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const ACPI_TABLE: Guid = Guid::new(0xEB9D2D30, 0x2D88, 0x11D3, [
+        0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_ACPI_20_TABLE_GUID (ACPI 2.0+)
-    pub const ACPI_20_TABLE: Guid = Guid::new(
-        0x8868E871, 0xE4F1, 0x11D3,
-        [0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81]
-    );
+    pub const ACPI_20_TABLE: Guid = Guid::new(0x8868E871, 0xE4F1, 0x11D3, [
+        0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81,
+    ]);
 
     /// SMBIOS_TABLE_GUID
-    pub const SMBIOS_TABLE: Guid = Guid::new(
-        0xEB9D2D31, 0x2D88, 0x11D3,
-        [0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const SMBIOS_TABLE: Guid = Guid::new(0xEB9D2D31, 0x2D88, 0x11D3, [
+        0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// SMBIOS3_TABLE_GUID
-    pub const SMBIOS3_TABLE: Guid = Guid::new(
-        0xF2FD1544, 0x9794, 0x4A2C,
-        [0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94]
-    );
+    pub const SMBIOS3_TABLE: Guid = Guid::new(0xF2FD1544, 0x9794, 0x4A2C, [
+        0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94,
+    ]);
 
     /// EFI_MPS_TABLE_GUID
-    pub const MPS_TABLE: Guid = Guid::new(
-        0xEB9D2D2F, 0x2D88, 0x11D3,
-        [0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const MPS_TABLE: Guid = Guid::new(0xEB9D2D2F, 0x2D88, 0x11D3, [
+        0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_DEVICE_TREE_GUID
-    pub const DEVICE_TREE: Guid = Guid::new(
-        0xB1B621D5, 0xF19C, 0x41A5,
-        [0x83, 0x0B, 0xD9, 0x15, 0x2C, 0x69, 0xAA, 0xE0]
-    );
+    pub const DEVICE_TREE: Guid = Guid::new(0xB1B621D5, 0xF19C, 0x41A5, [
+        0x83, 0x0B, 0xD9, 0x15, 0x2C, 0x69, 0xAA, 0xE0,
+    ]);
 
     /// EFI_GLOBAL_VARIABLE
-    pub const GLOBAL_VARIABLE: Guid = Guid::new(
-        0x8BE4DF61, 0x93CA, 0x11D2,
-        [0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C]
-    );
+    pub const GLOBAL_VARIABLE: Guid = Guid::new(0x8BE4DF61, 0x93CA, 0x11D2, [
+        0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
+    ]);
 
     /// EFI_IMAGE_SECURITY_DATABASE_GUID
-    pub const IMAGE_SECURITY_DATABASE: Guid = Guid::new(
-        0xD719B2CB, 0x3D3A, 0x4596,
-        [0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F]
-    );
+    pub const IMAGE_SECURITY_DATABASE: Guid = Guid::new(0xD719B2CB, 0x3D3A, 0x4596, [
+        0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F,
+    ]);
 
     /// EFI_CERT_SHA256_GUID
-    pub const CERT_SHA256: Guid = Guid::new(
-        0xC1C41626, 0x504C, 0x4092,
-        [0xAC, 0xA9, 0x41, 0xF9, 0x36, 0x93, 0x43, 0x28]
-    );
+    pub const CERT_SHA256: Guid = Guid::new(0xC1C41626, 0x504C, 0x4092, [
+        0xAC, 0xA9, 0x41, 0xF9, 0x36, 0x93, 0x43, 0x28,
+    ]);
 
     /// EFI_CERT_RSA2048_GUID
-    pub const CERT_RSA2048: Guid = Guid::new(
-        0x3C5766E8, 0x269C, 0x4E34,
-        [0xAA, 0x14, 0xED, 0x77, 0x6E, 0x85, 0xB3, 0xB6]
-    );
+    pub const CERT_RSA2048: Guid = Guid::new(0x3C5766E8, 0x269C, 0x4E34, [
+        0xAA, 0x14, 0xED, 0x77, 0x6E, 0x85, 0xB3, 0xB6,
+    ]);
 
     /// EFI_CERT_RSA2048_SHA256_GUID
-    pub const CERT_RSA2048_SHA256: Guid = Guid::new(
-        0xE2B36190, 0x879B, 0x4A3D,
-        [0xAD, 0x8D, 0xF2, 0xE7, 0xBB, 0xA3, 0x27, 0x84]
-    );
+    pub const CERT_RSA2048_SHA256: Guid = Guid::new(0xE2B36190, 0x879B, 0x4A3D, [
+        0xAD, 0x8D, 0xF2, 0xE7, 0xBB, 0xA3, 0x27, 0x84,
+    ]);
 
     /// EFI_CERT_X509_GUID
-    pub const CERT_X509: Guid = Guid::new(
-        0xA5C059A1, 0x94E4, 0x4AA7,
-        [0x87, 0xB5, 0xAB, 0x15, 0x5C, 0x2B, 0xF0, 0x72]
-    );
+    pub const CERT_X509: Guid = Guid::new(0xA5C059A1, 0x94E4, 0x4AA7, [
+        0x87, 0xB5, 0xAB, 0x15, 0x5C, 0x2B, 0xF0, 0x72,
+    ]);
 
     /// EFI_CERT_X509_SHA256_GUID
-    pub const CERT_X509_SHA256: Guid = Guid::new(
-        0x3BD2A492, 0x96C0, 0x4079,
-        [0xB4, 0x20, 0xFC, 0xF9, 0x8E, 0xF1, 0x03, 0xED]
-    );
+    pub const CERT_X509_SHA256: Guid = Guid::new(0x3BD2A492, 0x96C0, 0x4079, [
+        0xB4, 0x20, 0xFC, 0xF9, 0x8E, 0xF1, 0x03, 0xED,
+    ]);
 
     /// EFI_CERT_TYPE_PKCS7_GUID
-    pub const CERT_TYPE_PKCS7: Guid = Guid::new(
-        0x4AAFD29D, 0x68DF, 0x49EE,
-        [0x8A, 0xA9, 0x34, 0x7D, 0x37, 0x56, 0x65, 0xA7]
-    );
+    pub const CERT_TYPE_PKCS7: Guid = Guid::new(0x4AAFD29D, 0x68DF, 0x49EE, [
+        0x8A, 0xA9, 0x34, 0x7D, 0x37, 0x56, 0x65, 0xA7,
+    ]);
 
     /// EFI_RNG_PROTOCOL_GUID
-    pub const RNG_PROTOCOL: Guid = Guid::new(
-        0x3152BCA5, 0xEADE, 0x433D,
-        [0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44]
-    );
+    pub const RNG_PROTOCOL: Guid = Guid::new(0x3152BCA5, 0xEADE, 0x433D, [
+        0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44,
+    ]);
 
     /// EFI_RNG_ALGORITHM_SP800_90_CTR_256_GUID
-    pub const RNG_ALGORITHM_SP800_90_CTR_256: Guid = Guid::new(
-        0x44F0DE6E, 0x4D8C, 0x4045,
-        [0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E]
-    );
+    pub const RNG_ALGORITHM_SP800_90_CTR_256: Guid = Guid::new(0x44F0DE6E, 0x4D8C, 0x4045, [
+        0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E,
+    ]);
 
     /// EFI_RNG_ALGORITHM_RAW
-    pub const RNG_ALGORITHM_RAW: Guid = Guid::new(
-        0xE43176D7, 0xB6E8, 0x4827,
-        [0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61]
-    );
+    pub const RNG_ALGORITHM_RAW: Guid = Guid::new(0xE43176D7, 0xB6E8, 0x4827, [
+        0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61,
+    ]);
 
     /// EFI_TCG2_PROTOCOL_GUID
-    pub const TCG2_PROTOCOL: Guid = Guid::new(
-        0x607F766C, 0x7455, 0x42BE,
-        [0x93, 0x0B, 0xE4, 0xD7, 0x6D, 0xB2, 0x72, 0x0F]
-    );
+    pub const TCG2_PROTOCOL: Guid = Guid::new(0x607F766C, 0x7455, 0x42BE, [
+        0x93, 0x0B, 0xE4, 0xD7, 0x6D, 0xB2, 0x72, 0x0F,
+    ]);
 
     /// EFI_MEMORY_ATTRIBUTE_TABLE_GUID
-    pub const MEMORY_ATTRIBUTE_TABLE: Guid = Guid::new(
-        0xDCFA911D, 0x26EB, 0x469F,
-        [0xA2, 0x20, 0x38, 0xB7, 0xDC, 0x46, 0x12, 0x20]
-    );
+    pub const MEMORY_ATTRIBUTE_TABLE: Guid = Guid::new(0xDCFA911D, 0x26EB, 0x469F, [
+        0xA2, 0x20, 0x38, 0xB7, 0xDC, 0x46, 0x12, 0x20,
+    ]);
 
     /// EFI_CONSOLE_OUT_DEVICE_GUID
-    pub const CONSOLE_OUT_DEVICE: Guid = Guid::new(
-        0xD3B36F2C, 0xD551, 0x11D4,
-        [0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const CONSOLE_OUT_DEVICE: Guid = Guid::new(0xD3B36F2C, 0xD551, 0x11D4, [
+        0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_CONSOLE_IN_DEVICE_GUID
-    pub const CONSOLE_IN_DEVICE: Guid = Guid::new(
-        0xD3B36F2B, 0xD551, 0x11D4,
-        [0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const CONSOLE_IN_DEVICE: Guid = Guid::new(0xD3B36F2B, 0xD551, 0x11D4, [
+        0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_STANDARD_ERROR_DEVICE_GUID
-    pub const STANDARD_ERROR_DEVICE: Guid = Guid::new(
-        0xD3B36F2D, 0xD551, 0x11D4,
-        [0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const STANDARD_ERROR_DEVICE: Guid = Guid::new(0xD3B36F2D, 0xD551, 0x11D4, [
+        0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_HOB_LIST_GUID (Hand-Off Block List)
-    pub const HOB_LIST: Guid = Guid::new(
-        0x7739F24C, 0x93D7, 0x11D4,
-        [0x9A, 0x3A, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D]
-    );
+    pub const HOB_LIST: Guid = Guid::new(0x7739F24C, 0x93D7, 0x11D4, [
+        0x9A, 0x3A, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// EFI_MEMORY_TYPE_INFORMATION_GUID
-    pub const MEMORY_TYPE_INFORMATION: Guid = Guid::new(
-        0x4C19049F, 0x4137, 0x4DD3,
-        [0x9C, 0x10, 0x8B, 0x97, 0xA8, 0x3F, 0xFD, 0xFA]
-    );
+    pub const MEMORY_TYPE_INFORMATION: Guid = Guid::new(0x4C19049F, 0x4137, 0x4DD3, [
+        0x9C, 0x10, 0x8B, 0x97, 0xA8, 0x3F, 0xFD, 0xFA,
+    ]);
 
     /// EFI_DEBUG_IMAGE_INFO_TABLE_GUID
-    pub const DEBUG_IMAGE_INFO_TABLE: Guid = Guid::new(
-        0x49152E77, 0x1ADA, 0x4764,
-        [0xB7, 0xA2, 0x7A, 0xFE, 0xFE, 0xD9, 0x5E, 0x8B]
-    );
+    pub const DEBUG_IMAGE_INFO_TABLE: Guid = Guid::new(0x49152E77, 0x1ADA, 0x4764, [
+        0xB7, 0xA2, 0x7A, 0xFE, 0xFE, 0xD9, 0x5E, 0x8B,
+    ]);
 }
 
 // =============================================================================
@@ -1152,7 +1126,7 @@ pub mod event_type {
 #[repr(u32)]
 pub enum TimerDelay {
     /// Cancel timer
-    Cancel = 0,
+    Cancel   = 0,
     /// Periodic timer
     Periodic = 1,
     /// Relative timer
@@ -1201,14 +1175,7 @@ impl Time {
     pub const IN_DAYLIGHT: u8 = 0x02;
 
     /// Create a new time structure
-    pub const fn new(
-        year: u16,
-        month: u8,
-        day: u8,
-        hour: u8,
-        minute: u8,
-        second: u8,
-    ) -> Self {
+    pub const fn new(year: u16, month: u8, day: u8, hour: u8, minute: u8, second: u8) -> Self {
         Self {
             year,
             month,
@@ -1226,21 +1193,26 @@ impl Time {
 
     /// Check if this is a valid time
     pub fn is_valid(&self) -> bool {
-        self.year >= 1900 && self.year <= 9999 &&
-        self.month >= 1 && self.month <= 12 &&
-        self.day >= 1 && self.day <= 31 &&
-        self.hour <= 23 &&
-        self.minute <= 59 &&
-        self.second <= 59 &&
-        self.nanosecond < 1_000_000_000
+        self.year >= 1900
+            && self.year <= 9999
+            && self.month >= 1
+            && self.month <= 12
+            && self.day >= 1
+            && self.day <= 31
+            && self.hour <= 23
+            && self.minute <= 59
+            && self.second <= 59
+            && self.nanosecond < 1_000_000_000
     }
 }
 
 impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            self.year, self.month, self.day,
-            self.hour, self.minute, self.second)
+        write!(
+            f,
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+            self.year, self.month, self.day, self.hour, self.minute, self.second
+        )
     }
 }
 
@@ -1362,11 +1334,11 @@ impl ConfigurationTable {
 #[repr(u32)]
 pub enum ResetType {
     /// Cold reset
-    Cold = 0,
+    Cold             = 0,
     /// Warm reset
-    Warm = 1,
+    Warm             = 1,
     /// Shutdown
-    Shutdown = 2,
+    Shutdown         = 2,
     /// Platform-specific reset
     PlatformSpecific = 3,
 }
@@ -1380,11 +1352,11 @@ pub enum ResetType {
 #[repr(u32)]
 pub enum AllocateType {
     /// Allocate any available range
-    AllocateAnyPages = 0,
+    AllocateAnyPages   = 0,
     /// Allocate at or below a maximum address
     AllocateMaxAddress = 1,
     /// Allocate at a specific address
-    AllocateAddress = 2,
+    AllocateAddress    = 2,
 }
 
 // =============================================================================
@@ -1408,11 +1380,11 @@ pub enum InterfaceType {
 #[repr(u32)]
 pub enum LocateSearchType {
     /// All handles
-    AllHandles = 0,
+    AllHandles       = 0,
     /// By registration key
     ByRegisterNotify = 1,
     /// By protocol
-    ByProtocol = 2,
+    ByProtocol       = 2,
 }
 
 // =============================================================================

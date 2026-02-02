@@ -22,22 +22,19 @@
 extern crate alloc;
 
 // Submodules
-pub mod pattern;
 pub mod context;
-pub mod diagnosis;
 pub mod debugger;
+pub mod diagnosis;
+pub mod pattern;
 
 // Re-export pattern types
-pub use pattern::{BugCategory, BugPattern, BugSeverity};
-
 // Re-export context types
 pub use context::{DebugContext, StackFrame};
-
-// Re-export diagnosis types
-pub use diagnosis::{Diagnosis, Fix, FixType};
-
 // Re-export debugger
 pub use debugger::{Debugger, DebuggerStats};
+// Re-export diagnosis types
+pub use diagnosis::{Diagnosis, Fix, FixType};
+pub use pattern::{BugCategory, BugPattern, BugSeverity};
 
 // ============================================================================
 // TESTS

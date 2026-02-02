@@ -81,19 +81,19 @@ impl PciAddress {
 
     /// Calculate legacy config address for I/O access
     pub const fn config_address(self, offset: u8) -> u32 {
-        0x80000000 |
-        ((self.bus as u32) << 16) |
-        ((self.device as u32) << 11) |
-        ((self.function as u32) << 8) |
-        ((offset as u32) & 0xFC)
+        0x80000000
+            | ((self.bus as u32) << 16)
+            | ((self.device as u32) << 11)
+            | ((self.function as u32) << 8)
+            | ((offset as u32) & 0xFC)
     }
 
     /// Calculate ECAM (PCIe) address offset
     pub const fn ecam_offset(self, offset: u16) -> u64 {
-        ((self.bus as u64) << 20) |
-        ((self.device as u64) << 15) |
-        ((self.function as u64) << 12) |
-        ((offset as u64) & 0xFFF)
+        ((self.bus as u64) << 20)
+            | ((self.device as u64) << 15)
+            | ((self.function as u64) << 12)
+            | ((offset as u64) & 0xFFF)
     }
 
     /// Is root (bus 0, device 0, function 0)
@@ -110,8 +110,11 @@ impl PciAddress {
 impl fmt::Display for PciAddress {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.segment != 0 {
-            write!(f, "{:04x}:{:02x}:{:02x}.{}",
-                self.segment, self.bus, self.device, self.function)
+            write!(
+                f,
+                "{:04x}:{:02x}:{:02x}.{}",
+                self.segment, self.bus, self.device, self.function
+            )
         } else {
             write!(f, "{:02x}:{:02x}.{}", self.bus, self.device, self.function)
         }
@@ -210,9 +213,7 @@ impl PciConfigHeader {
 
     /// Get full class ID
     pub fn class_id(&self) -> u32 {
-        ((self.class_code as u32) << 16) |
-        ((self.subclass as u32) << 8) |
-        (self.prog_if as u32)
+        ((self.class_code as u32) << 16) | ((self.subclass as u32) << 8) | (self.prog_if as u32)
     }
 }
 
@@ -277,7 +278,9 @@ impl PciType0Header {
             subsystem_id: u16::from_le_bytes([bytes[46], bytes[47]]),
             expansion_rom: u32::from_le_bytes([bytes[48], bytes[49], bytes[50], bytes[51]]),
             capabilities_ptr: bytes[52],
-            _reserved: [bytes[53], bytes[54], bytes[55], bytes[56], bytes[57], bytes[58], bytes[59]],
+            _reserved: [
+                bytes[53], bytes[54], bytes[55], bytes[56], bytes[57], bytes[58], bytes[59],
+            ],
             interrupt_line: bytes[60],
             interrupt_pin: bytes[61],
             min_grant: bytes[62],
@@ -399,16 +402,18 @@ impl PciType1Header {
     /// Get I/O window
     pub fn io_window(&self) -> (u32, u32) {
         let base = ((self.io_base as u32 & 0xF0) << 8) | ((self.io_base_upper as u32) << 16);
-        let limit = ((self.io_limit as u32 & 0xF0) << 8) | ((self.io_limit_upper as u32) << 16) | 0xFFF;
+        let limit =
+            ((self.io_limit as u32 & 0xF0) << 8) | ((self.io_limit_upper as u32) << 16) | 0xFFF;
         (base, limit)
     }
 
     /// Get prefetchable memory window
     pub fn prefetch_window(&self) -> (u64, u64) {
-        let base = ((self.prefetch_base as u64 & 0xFFF0) << 16) |
-                   ((self.prefetch_base_upper as u64) << 32);
-        let limit = ((self.prefetch_limit as u64 & 0xFFF0) << 16) |
-                    ((self.prefetch_limit_upper as u64) << 32) | 0xFFFFF;
+        let base = ((self.prefetch_base as u64 & 0xFFF0) << 16)
+            | ((self.prefetch_base_upper as u64) << 32);
+        let limit = ((self.prefetch_limit as u64 & 0xFFF0) << 16)
+            | ((self.prefetch_limit_upper as u64) << 32)
+            | 0xFFFFF;
         (base, limit)
     }
 }
@@ -490,7 +495,7 @@ impl Bar {
                         size,
                         prefetchable,
                     })
-                }
+                },
                 2 => {
                     // 64-bit memory
                     let next = next_value?;
@@ -511,7 +516,7 @@ impl Bar {
                         size,
                         prefetchable,
                     })
-                }
+                },
                 _ => None,
             }
         }
@@ -542,47 +547,47 @@ impl Bar {
 #[repr(u8)]
 pub enum CapabilityId {
     /// Power Management
-    PowerManagement = 0x01,
+    PowerManagement    = 0x01,
     /// AGP
-    Agp = 0x02,
+    Agp                = 0x02,
     /// VPD
-    Vpd = 0x03,
+    Vpd                = 0x03,
     /// Slot Identification
-    SlotId = 0x04,
+    SlotId             = 0x04,
     /// MSI
-    Msi = 0x05,
+    Msi                = 0x05,
     /// CompactPCI Hot Swap
-    CpciHotSwap = 0x06,
+    CpciHotSwap        = 0x06,
     /// PCI-X
-    PciX = 0x07,
+    PciX               = 0x07,
     /// HyperTransport
-    HyperTransport = 0x08,
+    HyperTransport     = 0x08,
     /// Vendor Specific
-    VendorSpecific = 0x09,
+    VendorSpecific     = 0x09,
     /// Debug port
-    DebugPort = 0x0A,
+    DebugPort          = 0x0A,
     /// CompactPCI Resource Control
-    CpciResourceCtrl = 0x0B,
+    CpciResourceCtrl   = 0x0B,
     /// PCI Hot-Plug
-    PciHotPlug = 0x0C,
+    PciHotPlug         = 0x0C,
     /// PCI Bridge Subsystem Vendor ID
-    BridgeSubsystem = 0x0D,
+    BridgeSubsystem    = 0x0D,
     /// AGP 8x
-    Agp8x = 0x0E,
+    Agp8x              = 0x0E,
     /// Secure Device
-    SecureDevice = 0x0F,
+    SecureDevice       = 0x0F,
     /// PCI Express
-    PciExpress = 0x10,
+    PciExpress         = 0x10,
     /// MSI-X
-    MsiX = 0x11,
+    MsiX               = 0x11,
     /// SATA Configuration
-    Sata = 0x12,
+    Sata               = 0x12,
     /// Advanced Features
-    AdvancedFeatures = 0x13,
+    AdvancedFeatures   = 0x13,
     /// Enhanced Allocation
     EnhancedAllocation = 0x14,
     /// Flattening Portal Bridge
-    FpBridge = 0x15,
+    FpBridge           = 0x15,
 }
 
 impl CapabilityId {

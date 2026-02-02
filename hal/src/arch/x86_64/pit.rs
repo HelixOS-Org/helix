@@ -40,7 +40,7 @@ mod command {
     pub const CHANNEL_0: u8 = 0b00_000000;
     pub const ACCESS_LOHI: u8 = 0b00_110000;
     pub const MODE_RATE_GEN: u8 = 0b00_000100; // Mode 2: Rate generator
-    pub const MODE_SQUARE: u8 = 0b00_000110;   // Mode 3: Square wave
+    pub const MODE_SQUARE: u8 = 0b00_000110; // Mode 3: Square wave
     pub const BINARY: u8 = 0b00_000000;
 }
 
@@ -51,25 +51,29 @@ mod command {
 pub unsafe fn init(frequency: u32) {
     let divisor = PIT_FREQUENCY / frequency;
     let divisor = divisor.clamp(1, 65535) as u16;
-    
+
     // Calculate actual frequency and nanoseconds per tick
     let actual_freq = PIT_FREQUENCY / divisor as u32;
     let ns_per_tick = 1_000_000_000u64 / actual_freq as u64;
     NS_PER_TICK.store(ns_per_tick, Ordering::Relaxed);
-    
+
     let cmd = command::CHANNEL_0 | command::ACCESS_LOHI | command::MODE_RATE_GEN | command::BINARY;
-    
+
     unsafe {
         // Send command byte
         outb(ports::COMMAND, cmd);
-        
+
         // Send divisor (low byte first, then high byte)
         outb(ports::CHANNEL_0, divisor as u8);
         outb(ports::CHANNEL_0, (divisor >> 8) as u8);
     }
-    
-    log::info!("PIT initialized: {} Hz (divisor={}, {}ns/tick)", 
-               actual_freq, divisor, ns_per_tick);
+
+    log::info!(
+        "PIT initialized: {} Hz (divisor={}, {}ns/tick)",
+        actual_freq,
+        divisor,
+        ns_per_tick
+    );
 }
 
 /// Initialize with default 1000 Hz frequency
@@ -77,7 +81,9 @@ pub unsafe fn init(frequency: u32) {
 /// # Safety
 /// Must be called only once during early boot.
 pub unsafe fn init_default() {
-    unsafe { init(DEFAULT_FREQUENCY); }
+    unsafe {
+        init(DEFAULT_FREQUENCY);
+    }
 }
 
 /// Handle a timer tick interrupt

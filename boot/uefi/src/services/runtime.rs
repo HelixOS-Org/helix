@@ -2,9 +2,10 @@
 //!
 //! Safe wrappers for UEFI Runtime Services.
 
+use core::ptr::NonNull;
+
 use crate::raw::runtime_services::EfiRuntimeServices;
 use crate::raw::types::*;
-use core::ptr::NonNull;
 
 // =============================================================================
 // RUNTIME SERVICES
@@ -45,9 +46,7 @@ impl RuntimeServices {
         let mut time = Time::default();
         let mut capabilities = TimeCapabilities::default();
 
-        let status = unsafe {
-            (self.rs().get_time)(&mut time, &mut capabilities)
-        };
+        let status = unsafe { (self.rs().get_time)(&mut time, &mut capabilities) };
 
         status.to_status_result_with((time, Some(capabilities)))
     }
@@ -64,9 +63,7 @@ impl RuntimeServices {
         let mut pending: u8 = 0;
         let mut time = Time::default();
 
-        let status = unsafe {
-            (self.rs().get_wakeup_time)(&mut enabled, &mut pending, &mut time)
-        };
+        let status = unsafe { (self.rs().get_wakeup_time)(&mut enabled, &mut pending, &mut time) };
 
         status.to_status_result_with((enabled != 0, pending != 0, time))
     }

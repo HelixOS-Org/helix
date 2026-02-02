@@ -5,9 +5,9 @@
 //! - Stack size configuration
 //! - Boot time
 
-use crate::protocol::request_ids::{ENTRY_POINT_ID, STACK_SIZE_ID, BOOT_TIME_ID};
-use crate::protocol::raw::EntryPointFn;
 use super::{LimineRequest, ResponsePtr, SafeResponse};
+use crate::protocol::raw::EntryPointFn;
+use crate::protocol::request_ids::{BOOT_TIME_ID, ENTRY_POINT_ID, STACK_SIZE_ID};
 
 // =============================================================================
 // Entry Point Request
@@ -57,9 +57,15 @@ impl EntryPointRequest {
 impl LimineRequest for EntryPointRequest {
     type Response = EntryPointResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -171,9 +177,15 @@ impl Default for StackSizeRequest {
 impl LimineRequest for StackSizeRequest {
     type Response = StackSizeResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -262,9 +274,15 @@ impl Default for BootTimeRequest {
 impl LimineRequest for BootTimeRequest {
     type Response = BootTimeResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -356,8 +374,18 @@ impl DateTime {
 
         let leap = Self::is_leap_year(year);
         let days_in_month = [
-            31, if leap { 29 } else { 28 }, 31, 30, 31, 30,
-            31, 31, 30, 31, 30, 31
+            31,
+            if leap { 29 } else { 28 },
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31,
         ];
 
         let mut month = 0u8;
@@ -387,9 +415,10 @@ impl DateTime {
 
 impl core::fmt::Display for DateTime {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            self.year, self.month, self.day,
-            self.hour, self.minute, self.second
+        write!(
+            f,
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+            self.year, self.month, self.day, self.hour, self.minute, self.second
         )
     }
 }

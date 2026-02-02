@@ -2,11 +2,10 @@
 //!
 //! This module provides high-level memory mapping utilities for AArch64.
 
-use super::entries::{PageTableEntry, MemoryAttributes, MemoryAttributeIndex};
-use super::tables::{PageTable, TranslationLevel, PageTableAllocator};
-use super::tlb;
 use super::asid::Asid;
-use super::{PAGE_SIZE, PAGE_SHIFT, page_align_down, page_align_up};
+use super::entries::{MemoryAttributeIndex, MemoryAttributes, PageTableEntry};
+use super::tables::{PageTable, PageTableAllocator, TranslationLevel};
+use super::{page_align_down, page_align_up, tlb, PAGE_SHIFT, PAGE_SIZE};
 
 // =============================================================================
 // Map Flags
@@ -88,8 +87,12 @@ impl MapFlags {
             attr_index,
             shareability,
             permission,
-            uxn: !self.contains(Self::EXECUTE) || self.contains(Self::NO_EXECUTE) || !self.contains(Self::USER),
-            pxn: !self.contains(Self::EXECUTE) || self.contains(Self::NO_EXECUTE) || self.contains(Self::USER),
+            uxn: !self.contains(Self::EXECUTE)
+                || self.contains(Self::NO_EXECUTE)
+                || !self.contains(Self::USER),
+            pxn: !self.contains(Self::EXECUTE)
+                || self.contains(Self::NO_EXECUTE)
+                || self.contains(Self::USER),
             not_global: !self.contains(Self::GLOBAL),
             access_flag: true,
         }
@@ -139,7 +142,11 @@ pub struct VirtualMemoryMapper<'a, A: PageTableAllocator> {
 impl<'a, A: PageTableAllocator> VirtualMemoryMapper<'a, A> {
     /// Create a new mapper
     pub fn new(root: &'a mut PageTable, allocator: &'a mut A, asid: Asid) -> Self {
-        Self { root, allocator, asid }
+        Self {
+            root,
+            allocator,
+            asid,
+        }
     }
 
     /// Map a single page
@@ -157,7 +164,13 @@ impl<'a, A: PageTableAllocator> VirtualMemoryMapper<'a, A> {
     }
 
     /// Map a range of pages
-    pub fn map_range(&mut self, va_start: u64, pa_start: u64, size: usize, flags: MapFlags) -> MapResult<()> {
+    pub fn map_range(
+        &mut self,
+        va_start: u64,
+        pa_start: u64,
+        size: usize,
+        flags: MapFlags,
+    ) -> MapResult<()> {
         let va_end = va_start + size as u64;
         let mut va = page_align_down(va_start as usize) as u64;
         let mut pa = page_align_down(pa_start as usize) as u64;
@@ -313,9 +326,8 @@ impl<'a, A: PageTableAllocator> VirtualMemoryMapper<'a, A> {
 
         if target_level == TranslationLevel::L1 {
             // Create 1GB block mapping
-            l1_table[indices[1]] = PageTableEntry::from_bits(
-                (pa & 0x0000_FFFF_C000_0000) | attrs.to_bits()
-            );
+            l1_table[indices[1]] =
+                PageTableEntry::from_bits((pa & 0x0000_FFFF_C000_0000) | attrs.to_bits());
             return Ok(());
         }
 
@@ -324,9 +336,8 @@ impl<'a, A: PageTableAllocator> VirtualMemoryMapper<'a, A> {
 
         if target_level == TranslationLevel::L2 {
             // Create 2MB block mapping
-            l2_table[indices[2]] = PageTableEntry::from_bits(
-                (pa & 0x0000_FFFF_FFE0_0000) | attrs.to_bits()
-            );
+            l2_table[indices[2]] =
+                PageTableEntry::from_bits((pa & 0x0000_FFFF_FFE0_0000) | attrs.to_bits());
             return Ok(());
         }
 
@@ -344,7 +355,11 @@ impl<'a, A: PageTableAllocator> VirtualMemoryMapper<'a, A> {
     }
 
     /// Ensure a table entry exists, allocating if needed
-    fn ensure_table_at(&mut self, table: &mut PageTable, index: usize) -> MapResult<&mut PageTable> {
+    fn ensure_table_at(
+        &mut self,
+        table: &mut PageTable,
+        index: usize,
+    ) -> MapResult<&mut PageTable> {
         let entry = table[index];
 
         if entry.is_valid() && entry.is_table() {

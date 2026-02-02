@@ -36,16 +36,16 @@ use core::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 // SUBMODULES
 // ============================================================================
 
-pub mod identifiers;
-pub mod temporal;
 pub mod confidence;
-pub mod severity;
-pub mod metrics;
-pub mod version;
-pub mod tags;
-pub mod wrappers;
 pub mod envelope;
 pub mod errors;
+pub mod identifiers;
+pub mod metrics;
+pub mod severity;
+pub mod tags;
+pub mod temporal;
+pub mod version;
+pub mod wrappers;
 
 // ============================================================================
 // ID GENERATOR
@@ -68,85 +68,95 @@ pub fn reset_id_counter() {
 // RE-EXPORTS: IDENTIFIERS
 // ============================================================================
 
-pub use identifiers::{
-    // Core IDs
-    NexusId, DomainId, ComponentId,
-    // Perception IDs (SENSE)
-    ProbeId, SignalId, EventId, StreamId, SampleId,
-    // Comprehension IDs (UNDERSTAND)
-    PatternId, ModelId, FeatureId, KnowledgeId,
-    // Reasoning IDs (REASON)
-    CausalNodeId, CausalEdgeId, ConclusionId, HypothesisId, SimulationId,
-    // Decision IDs (DECIDE)
-    PolicyId, IntentId, OptionId, ConflictId,
-    // Execution IDs (ACT)
-    EffectorId, ActionId, TransactionId, CheckpointId,
-    // Memory IDs
-    MemoryId, EpisodeId, ConceptId, ProcedureId,
-    // Reflection IDs (REFLECT)
-    InsightId, DiagnosisId, FailureId, SuggestionId, PredictionId, DecisionId, IssueId,
-    // Message IDs (BUS)
-    MessageId, CorrelationId,
-};
-
-// ============================================================================
-// RE-EXPORTS: TEMPORAL
-// ============================================================================
-
-pub use temporal::{Timestamp, Duration, TimeRange};
-
 // ============================================================================
 // RE-EXPORTS: CONFIDENCE
 // ============================================================================
-
 pub use confidence::{Confidence, ConfidenceLevel, Probability};
-
-// ============================================================================
-// RE-EXPORTS: SEVERITY
-// ============================================================================
-
-pub use severity::{Severity, SeverityClass, Priority, Urgency};
-
-// ============================================================================
-// RE-EXPORTS: METRICS
-// ============================================================================
-
-pub use metrics::{Metric, MetricValue, MetricUnit};
-
-// ============================================================================
-// RE-EXPORTS: VERSION
-// ============================================================================
-
-pub use version::{Version, VersionReq};
-
-// ============================================================================
-// RE-EXPORTS: TAGS
-// ============================================================================
-
-pub use tags::{Tag, Tags, Label, Labels};
-
-// ============================================================================
-// RE-EXPORTS: WRAPPERS
-// ============================================================================
-
-pub use wrappers::{Versioned, Timestamped, Expiring, Counted, OptionalWith};
-
 // ============================================================================
 // RE-EXPORTS: ENVELOPE
 // ============================================================================
-
 pub use envelope::{
-    Signal, Knowledge, KnowledgeType,
-    Conclusion, ConclusionType,
-    Intent, ActionType,
-    Effect, Change, ChangeType,
+    ActionParameters, ActionTarget, ActionType, Change, ChangeId, ChangeType, Conclusion,
+    ConclusionType, Effect, EffectId, Intent, Knowledge, KnowledgeType, Signal,
 };
-
 // ============================================================================
 // RE-EXPORTS: ERRORS
 // ============================================================================
-
-pub use errors::{NexusError, ErrorCode, ErrorCategory, NexusResult};
+pub use errors::{ErrorCategory, ErrorCode, NexusError, NexusResult};
+pub use identifiers::{
+    ActionId,
+    AuditId,
+    CausalEdgeId,
+    // Reasoning IDs (REASON)
+    CausalNodeId,
+    CheckpointId,
+    ComponentId,
+    ConceptId,
+    ConclusionId,
+    ConflictId,
+    CorrelationId,
+    DecisionId,
+    DiagnosisId,
+    DomainId,
+    // Execution IDs (ACT)
+    EffectorId,
+    EpisodeId,
+    EventId,
+    FailureId,
+    FeatureId,
+    HypothesisId,
+    // Reflection IDs (REFLECT)
+    InsightId,
+    IntentId,
+    IssueId,
+    KnowledgeId,
+    // Memory IDs
+    MemoryId,
+    // Message IDs (BUS)
+    MessageId,
+    ModelId,
+    // Core IDs
+    NexusId,
+    OptionId,
+    // Comprehension IDs (UNDERSTAND)
+    PatternId,
+    // Decision IDs (DECIDE)
+    PolicyId,
+    PredictionId,
+    // Perception IDs (SENSE)
+    ProbeId,
+    ProcedureId,
+    SampleId,
+    SignalId,
+    SimulationId,
+    StreamId,
+    SuggestionId,
+    TransactionId,
+};
+// ============================================================================
+// RE-EXPORTS: METRICS
+// ============================================================================
+pub use metrics::{Metric, MetricUnit, MetricValue};
+// ============================================================================
+// RE-EXPORTS: SEVERITY
+// ============================================================================
+pub use severity::{Priority, Severity, SeverityClass, Urgency};
+// ============================================================================
+// RE-EXPORTS: TAGS
+// ============================================================================
+pub use tags::{Label, Labels, Tag, Tags};
+// ============================================================================
+// RE-EXPORTS: TEMPORAL
+// ============================================================================
+pub use temporal::{Duration, TimeRange, Timestamp};
+// ============================================================================
+// RE-EXPORTS: VERSION
+// ============================================================================
+pub use version::{Version, VersionReq};
+// ============================================================================
+// RE-EXPORTS: WRAPPERS
+// ============================================================================
+pub use wrappers::{Counted, Expiring, OptionalWith, Timestamped, Versioned};
 
 // ============================================================================
 // TESTS

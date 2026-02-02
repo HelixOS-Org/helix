@@ -319,7 +319,9 @@ impl X2Apic {
     /// Write Task Priority Register
     #[inline]
     pub fn write_tpr(priority: u8) {
-        unsafe { wrmsr(x2apic_msr::TPR, priority as u64); }
+        unsafe {
+            wrmsr(x2apic_msr::TPR, priority as u64);
+        }
     }
 
     /// Read Processor Priority Register
@@ -331,7 +333,9 @@ impl X2Apic {
     /// Send End-Of-Interrupt
     #[inline]
     pub fn eoi() {
-        unsafe { wrmsr(x2apic_msr::EOI, 0); }
+        unsafe {
+            wrmsr(x2apic_msr::EOI, 0);
+        }
     }
 
     /// Read Logical Destination Register
@@ -349,7 +353,9 @@ impl X2Apic {
     /// Write Spurious Vector Register
     #[inline]
     pub fn write_svr(value: u32) {
-        unsafe { wrmsr(x2apic_msr::SVR, value as u64); }
+        unsafe {
+            wrmsr(x2apic_msr::SVR, value as u64);
+        }
     }
 
     /// Enable APIC with spurious vector
@@ -384,7 +390,9 @@ impl X2Apic {
     /// Write LVT Timer
     #[inline]
     pub fn write_lvt_timer(value: u32) {
-        unsafe { wrmsr(x2apic_msr::LVT_TIMER, value as u64); }
+        unsafe {
+            wrmsr(x2apic_msr::LVT_TIMER, value as u64);
+        }
     }
 
     /// Read Timer Initial Count
@@ -396,7 +404,9 @@ impl X2Apic {
     /// Write Timer Initial Count
     #[inline]
     pub fn write_timer_icr(count: u32) {
-        unsafe { wrmsr(x2apic_msr::TIMER_ICR, count as u64); }
+        unsafe {
+            wrmsr(x2apic_msr::TIMER_ICR, count as u64);
+        }
     }
 
     /// Read Timer Current Count
@@ -414,7 +424,9 @@ impl X2Apic {
     /// Write Timer Divide Configuration
     #[inline]
     pub fn write_timer_dcr(divide: u32) {
-        unsafe { wrmsr(x2apic_msr::TIMER_DCR, divide as u64); }
+        unsafe {
+            wrmsr(x2apic_msr::TIMER_DCR, divide as u64);
+        }
     }
 
     /// Send IPI using ICR
@@ -435,13 +447,17 @@ impl X2Apic {
             | (1 << 14)  // Level: Assert
             | ((shorthand as u64) << 18);
 
-        unsafe { wrmsr(x2apic_msr::ICR, icr); }
+        unsafe {
+            wrmsr(x2apic_msr::ICR, icr);
+        }
     }
 
     /// Send self-IPI (faster than regular IPI to self)
     #[inline]
     pub fn send_self_ipi(vector: u8) {
-        unsafe { wrmsr(x2apic_msr::SELF_IPI, vector as u64); }
+        unsafe {
+            wrmsr(x2apic_msr::SELF_IPI, vector as u64);
+        }
     }
 
     /// Read ISR (In-Service Register) bit
@@ -559,7 +575,12 @@ pub fn send_sipi(dest: u32, vector: u8) {
 /// Broadcast an IPI to all CPUs (excluding self)
 #[inline]
 pub fn broadcast_ipi(vector: u8) {
-    X2Apic::send_ipi(0, vector, delivery_mode::FIXED, shorthand::ALL_EXCLUDING_SELF);
+    X2Apic::send_ipi(
+        0,
+        vector,
+        delivery_mode::FIXED,
+        shorthand::ALL_EXCLUDING_SELF,
+    );
 }
 
 /// Broadcast an NMI to all CPUs (excluding self)

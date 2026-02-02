@@ -2,10 +2,10 @@
 //!
 //! High-level file system abstraction for file operations.
 
-use crate::raw::types::*;
-use crate::raw::protocols::file::*;
+use super::{DevicePath, EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
-use super::{Protocol, EnumerableProtocol, DevicePath};
+use crate::raw::protocols::file::*;
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::string::{String, ToString};
@@ -31,7 +31,11 @@ impl FileSystem {
     /// # Safety
     /// Protocol pointer must be valid
     pub unsafe fn from_raw(protocol: *mut EfiSimpleFileSystemProtocol, handle: Handle) -> Self {
-        Self { protocol, handle, root: None }
+        Self {
+            protocol,
+            handle,
+            root: None,
+        }
     }
 
     /// Open root directory
@@ -41,9 +45,7 @@ impl FileSystem {
         }
 
         let mut root: *mut EfiFileProtocol = core::ptr::null_mut();
-        let result = unsafe {
-            ((*self.protocol).open_volume)(self.protocol, &mut root)
-        };
+        let result = unsafe { ((*self.protocol).open_volume)(self.protocol, &mut root) };
 
         if result != Status::SUCCESS {
             return Err(Error::from_status(result));
@@ -61,21 +63,17 @@ impl FileSystem {
         let path_ucs2 = to_ucs2(path);
 
         let mut file: *mut EfiFileProtocol = core::ptr::null_mut();
-        let result = unsafe {
-            ((*root).open)(
-                root,
-                &mut file,
-                path_ucs2.as_ptr(),
-                mode.to_raw(),
-                0,
-            )
-        };
+        let result =
+            unsafe { ((*root).open)(root, &mut file, path_ucs2.as_ptr(), mode.to_raw(), 0) };
 
         if result != Status::SUCCESS {
             return Err(Error::from_status(result));
         }
 
-        Ok(File { protocol: file, path: path.into() })
+        Ok(File {
+            protocol: file,
+            path: path.into(),
+        })
     }
 
     /// Open directory
@@ -98,7 +96,10 @@ impl FileSystem {
             return Err(Error::from_status(result));
         }
 
-        Ok(Directory { protocol: dir, path: path.into() })
+        Ok(Directory {
+            protocol: dir,
+            path: path.into(),
+        })
     }
 
     /// Check if file exists
@@ -304,13 +305,8 @@ impl File {
     pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
         let mut size = buffer.len();
 
-        let result = unsafe {
-            ((*self.protocol).read)(
-                self.protocol,
-                &mut size,
-                buffer.as_mut_ptr(),
-            )
-        };
+        let result =
+            unsafe { ((*self.protocol).read)(self.protocol, &mut size, buffer.as_mut_ptr()) };
 
         if result == Status::SUCCESS {
             Ok(size)
@@ -327,13 +323,8 @@ impl File {
         let mut buffer = alloc::vec![0u8; size];
         let mut read_size = size;
 
-        let result = unsafe {
-            ((*self.protocol).read)(
-                self.protocol,
-                &mut read_size,
-                buffer.as_mut_ptr(),
-            )
-        };
+        let result =
+            unsafe { ((*self.protocol).read)(self.protocol, &mut read_size, buffer.as_mut_ptr()) };
 
         if result == Status::SUCCESS {
             buffer.truncate(read_size);
@@ -353,13 +344,7 @@ impl File {
     pub fn write(&mut self, data: &[u8]) -> Result<usize> {
         let mut size = data.len();
 
-        let result = unsafe {
-            ((*self.protocol).write)(
-                self.protocol,
-                &mut size,
-                data.as_ptr(),
-            )
-        };
+        let result = unsafe { ((*self.protocol).write)(self.protocol, &mut size, data.as_ptr()) };
 
         if result == Status::SUCCESS {
             Ok(size)
@@ -383,9 +368,7 @@ impl File {
 
     /// Seek to position
     pub fn seek(&mut self, position: u64) -> Result<()> {
-        let result = unsafe {
-            ((*self.protocol).set_position)(self.protocol, position)
-        };
+        let result = unsafe { ((*self.protocol).set_position)(self.protocol, position) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -398,9 +381,7 @@ impl File {
     pub fn position(&self) -> Result<u64> {
         let mut position = 0u64;
 
-        let result = unsafe {
-            ((*self.protocol).get_position)(self.protocol, &mut position)
-        };
+        let result = unsafe { ((*self.protocol).get_position)(self.protocol, &mut position) };
 
         if result == Status::SUCCESS {
             Ok(position)
@@ -524,13 +505,8 @@ impl Directory {
         let mut buffer = [0u8; 512];
         let mut size = buffer.len();
 
-        let result = unsafe {
-            ((*self.protocol).read)(
-                self.protocol,
-                &mut size,
-                buffer.as_mut_ptr(),
-            )
-        };
+        let result =
+            unsafe { ((*self.protocol).read)(self.protocol, &mut size, buffer.as_mut_ptr()) };
 
         if result != Status::SUCCESS {
             return Err(Error::from_status(result));
@@ -559,9 +535,7 @@ impl Directory {
         let mut entries = Vec::new();
 
         // Rewind first
-        let result = unsafe {
-            ((*self.protocol).set_position)(self.protocol, 0)
-        };
+        let result = unsafe { ((*self.protocol).set_position)(self.protocol, 0) };
         if result != Status::SUCCESS {
             return Err(Error::from_status(result));
         }
@@ -597,7 +571,10 @@ impl Directory {
     /// Find files matching pattern (simple glob)
     pub fn find_pattern(&mut self, pattern: &str) -> Result<Vec<FileInfo>> {
         let entries = self.entries()?;
-        Ok(entries.into_iter().filter(|e| matches_pattern(&e.name, pattern)).collect())
+        Ok(entries
+            .into_iter()
+            .filter(|e| matches_pattern(&e.name, pattern))
+            .collect())
     }
 
     /// Get path
@@ -607,9 +584,7 @@ impl Directory {
 
     /// Rewind to beginning
     pub fn rewind(&mut self) -> Result<()> {
-        let result = unsafe {
-            ((*self.protocol).set_position)(self.protocol, 0)
-        };
+        let result = unsafe { ((*self.protocol).set_position)(self.protocol, 0) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -681,7 +656,10 @@ impl FileInfo {
 
     /// Get name without extension
     pub fn stem(&self) -> &str {
-        self.name.rfind('.').map(|i| &self.name[..i]).unwrap_or(&self.name)
+        self.name
+            .rfind('.')
+            .map(|i| &self.name[..i])
+            .unwrap_or(&self.name)
     }
 }
 
@@ -782,10 +760,15 @@ impl FileAttributes {
 
 /// Convert string to UCS-2
 fn to_ucs2(s: &str) -> Vec<u16> {
-    let mut buffer: Vec<u16> = s.chars()
+    let mut buffer: Vec<u16> = s
+        .chars()
         .map(|c| {
             // Replace forward slash with backslash for UEFI
-            if c == '/' { '\\' as u16 } else { c as u16 }
+            if c == '/' {
+                '\\' as u16
+            } else {
+                c as u16
+            }
         })
         .collect();
     buffer.push(0);
@@ -875,7 +858,9 @@ impl Path {
 
     /// Get extension
     pub fn extension(path: &str) -> Option<&str> {
-        Self::file_name(path).rfind('.').map(|i| &Self::file_name(path)[i + 1..])
+        Self::file_name(path)
+            .rfind('.')
+            .map(|i| &Self::file_name(path)[i + 1..])
     }
 }
 
@@ -899,7 +884,10 @@ mod tests {
     fn test_path_utilities() {
         assert_eq!(Path::file_name("\\EFI\\BOOT\\bootx64.efi"), "bootx64.efi");
         assert_eq!(Path::extension("test.txt"), Some("txt"));
-        assert_eq!(Path::parent("\\EFI\\BOOT\\bootx64.efi"), Some("\\EFI\\BOOT"));
+        assert_eq!(
+            Path::parent("\\EFI\\BOOT\\bootx64.efi"),
+            Some("\\EFI\\BOOT")
+        );
     }
 
     #[test]

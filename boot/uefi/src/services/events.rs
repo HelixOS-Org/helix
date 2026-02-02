@@ -2,8 +2,8 @@
 //!
 //! Safe wrappers for UEFI event and timer management.
 
-use crate::raw::types::*;
 use super::boot::{boot_services, EventType, TPL_CALLBACK};
+use crate::raw::types::*;
 
 // =============================================================================
 // EVENT WRAPPER
@@ -174,10 +174,7 @@ impl PeriodicCallback {
     ///
     /// # Safety
     /// The callback function must be safe to call from UEFI context.
-    pub unsafe fn new<F>(
-        interval_ms: u64,
-        callback: F,
-    ) -> Result<Self, Status>
+    pub unsafe fn new<F>(interval_ms: u64, callback: F) -> Result<Self, Status>
     where
         F: FnMut() + 'static,
     {
@@ -345,9 +342,7 @@ pub fn busy_wait(iterations: u64) {
 ///
 /// # Safety
 /// The callback function must be safe to call from UEFI context.
-pub unsafe fn create_notification_event<F>(
-    callback: F,
-) -> Result<EventGuard, Status>
+pub unsafe fn create_notification_event<F>(callback: F) -> Result<EventGuard, Status>
 where
     F: FnOnce() + 'static,
 {

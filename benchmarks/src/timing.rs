@@ -15,7 +15,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 pub fn read_tsc() -> u64 {
     let lo: u32;
     let hi: u32;
-    
+
     // RDTSC instruction reads 64-bit TSC into EDX:EAX
     unsafe {
         core::arch::asm!(
@@ -25,7 +25,7 @@ pub fn read_tsc() -> u64 {
             options(nostack, nomem, preserves_flags)
         );
     }
-    
+
     ((hi as u64) << 32) | (lo as u64)
 }
 
@@ -35,7 +35,7 @@ pub fn read_tsc() -> u64 {
 pub fn read_tsc_serialized() -> u64 {
     let lo: u32;
     let hi: u32;
-    
+
     // RDTSCP serializes and returns processor ID in ECX
     unsafe {
         core::arch::asm!(
@@ -46,7 +46,7 @@ pub fn read_tsc_serialized() -> u64 {
             options(nostack, nomem, preserves_flags)
         );
     }
-    
+
     ((hi as u64) << 32) | (lo as u64)
 }
 
@@ -137,10 +137,10 @@ pub fn read_tsc_fenced() -> u64 {
 pub trait TimingSource {
     /// Read current cycle count
     fn read(&self) -> u64;
-    
+
     /// Frequency in Hz
     fn frequency(&self) -> u64;
-    
+
     /// Name of timing source
     fn name(&self) -> &'static str;
 }
@@ -154,10 +154,12 @@ impl CycleCounter {
     pub fn new(frequency_mhz: u64) -> Self {
         Self { frequency_mhz }
     }
-    
+
     pub fn with_auto_detect() -> Self {
         // TODO: Auto-detect CPU frequency
-        Self { frequency_mhz: 2500 }
+        Self {
+            frequency_mhz: 2500,
+        }
     }
 }
 
@@ -165,11 +167,11 @@ impl TimingSource for CycleCounter {
     fn read(&self) -> u64 {
         read_tsc()
     }
-    
+
     fn frequency(&self) -> u64 {
         self.frequency_mhz * 1_000_000
     }
-    
+
     fn name(&self) -> &'static str {
         "TSC"
     }
@@ -231,7 +233,7 @@ where
     for _ in 0..warmup {
         f();
     }
-    
+
     // Actual measurement
     let start = read_tsc();
     f();
@@ -318,39 +320,39 @@ impl Stopwatch {
             freq_mhz,
         }
     }
-    
+
     /// Start with default frequency
     pub fn start_default() -> Self {
         Self::start(2500)
     }
-    
+
     /// Elapsed cycles since start
     pub fn elapsed_cycles(&self) -> u64 {
         read_tsc() - self.start
     }
-    
+
     /// Elapsed nanoseconds since start
     pub fn elapsed_ns(&self) -> u64 {
         cycles_to_ns(self.elapsed_cycles(), self.freq_mhz)
     }
-    
+
     /// Elapsed microseconds since start
     pub fn elapsed_us(&self) -> u64 {
         cycles_to_us(self.elapsed_cycles(), self.freq_mhz)
     }
-    
+
     /// Elapsed milliseconds since start
     pub fn elapsed_ms(&self) -> u64 {
         cycles_to_ms(self.elapsed_cycles(), self.freq_mhz)
     }
-    
+
     /// Lap: return elapsed and restart
     pub fn lap(&mut self) -> u64 {
         let elapsed = self.elapsed_cycles();
         self.start = read_tsc();
         elapsed
     }
-    
+
     /// Reset the stopwatch
     pub fn reset(&mut self) {
         self.start = read_tsc();
@@ -376,7 +378,7 @@ impl MultiSampleTimer {
             freq_mhz,
         }
     }
-    
+
     /// Record a sample
     pub fn record(&mut self, cycles: u64) {
         if self.count < 64 {
@@ -384,22 +386,30 @@ impl MultiSampleTimer {
             self.count += 1;
         }
     }
-    
+
     /// Get number of samples
     pub fn count(&self) -> usize {
         self.count
     }
-    
+
     /// Calculate minimum
     pub fn min(&self) -> u64 {
-        self.samples[..self.count].iter().copied().min().unwrap_or(0)
+        self.samples[..self.count]
+            .iter()
+            .copied()
+            .min()
+            .unwrap_or(0)
     }
-    
+
     /// Calculate maximum
     pub fn max(&self) -> u64 {
-        self.samples[..self.count].iter().copied().max().unwrap_or(0)
+        self.samples[..self.count]
+            .iter()
+            .copied()
+            .max()
+            .unwrap_or(0)
     }
-    
+
     /// Calculate mean
     pub fn mean(&self) -> u64 {
         if self.count == 0 {
@@ -408,7 +418,7 @@ impl MultiSampleTimer {
         let sum: u64 = self.samples[..self.count].iter().sum();
         sum / self.count as u64
     }
-    
+
     /// Reset
     pub fn reset(&mut self) {
         self.count = 0;

@@ -2,8 +2,8 @@
 //!
 //! Complete memory map handling and analysis.
 
+use crate::raw::memory::{MemoryAttribute, MemoryDescriptor, MemoryType};
 use crate::raw::types::*;
-use crate::raw::memory::{MemoryDescriptor, MemoryType, MemoryAttribute};
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -72,7 +72,8 @@ impl MemoryMapInfo {
 
     /// Get usable memory entries
     pub fn usable_entries(&self) -> impl Iterator<Item = &MemoryDescriptor> {
-        self.descriptors.iter()
+        self.descriptors
+            .iter()
             .filter(|d| d.memory_type == MemoryType::ConventionalMemory as u32 as u32)
     }
 
@@ -85,7 +86,8 @@ impl MemoryMapInfo {
 
     /// Get total memory
     pub fn total_memory(&self) -> u64 {
-        self.descriptors.iter()
+        self.descriptors
+            .iter()
             .map(|d| d.number_of_pages * 4096)
             .sum()
     }
@@ -100,13 +102,13 @@ impl MemoryMapInfo {
 
     /// Find largest usable region
     pub fn find_largest_usable(&self) -> Option<&MemoryDescriptor> {
-        self.usable_entries()
-            .max_by_key(|d| d.number_of_pages)
+        self.usable_entries().max_by_key(|d| d.number_of_pages)
     }
 
     /// Get runtime services entries
     pub fn runtime_entries(&self) -> impl Iterator<Item = &MemoryDescriptor> {
-        self.descriptors.iter()
+        self.descriptors
+            .iter()
             .filter(|d| d.attribute.contains(MemoryAttribute::RUNTIME))
     }
 
@@ -131,8 +133,9 @@ impl MemoryMapInfo {
 
             // Check if contiguous and same type
             if desc.physical_start == current_end
-               && desc.memory_type == current.memory_type
-               && desc.attribute == current.attribute {
+                && desc.memory_type == current.memory_type
+                && desc.attribute == current.attribute
+            {
                 // Merge
                 current.number_of_pages += desc.number_of_pages;
             } else {
@@ -147,7 +150,8 @@ impl MemoryMapInfo {
 
     /// Get memory below 4GB
     pub fn memory_below_4gb(&self) -> u64 {
-        self.descriptors.iter()
+        self.descriptors
+            .iter()
             .filter(|d| d.physical_start.0 < 0x1_0000_0000)
             .map(|d| {
                 let end = d.physical_start.0 + d.number_of_pages * 4096;
@@ -162,7 +166,8 @@ impl MemoryMapInfo {
 
     /// Get memory above 4GB
     pub fn memory_above_4gb(&self) -> u64 {
-        self.descriptors.iter()
+        self.descriptors
+            .iter()
             .filter(|d| d.physical_start.0 + d.number_of_pages * 4096 > 0x1_0000_0000)
             .map(|d| {
                 if d.physical_start.0 >= 0x1_0000_0000 {
@@ -319,7 +324,9 @@ impl From<MemoryType> for RangeType {
             MemoryType::MemoryMappedIo | MemoryType::MemoryMappedIoPortSpace => Self::Mmio,
             MemoryType::LoaderCode | MemoryType::LoaderData => Self::Loader,
             MemoryType::BootServicesCode | MemoryType::BootServicesData => Self::BootServices,
-            MemoryType::RuntimeServicesCode | MemoryType::RuntimeServicesData => Self::RuntimeServices,
+            MemoryType::RuntimeServicesCode | MemoryType::RuntimeServicesData => {
+                Self::RuntimeServices
+            },
             _ => Self::Unknown,
         }
     }
@@ -437,19 +444,19 @@ impl E820Entry {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum E820Type {
     /// Usable RAM
-    Usable = 1,
+    Usable           = 1,
     /// Reserved
-    Reserved = 2,
+    Reserved         = 2,
     /// ACPI reclaimable
-    AcpiReclaimable = 3,
+    AcpiReclaimable  = 3,
     /// ACPI NVS
-    AcpiNvs = 4,
+    AcpiNvs          = 4,
     /// Bad memory
-    BadMemory = 5,
+    BadMemory        = 5,
     /// Persistent memory (PRAM/PMEM)
     PersistentMemory = 7,
     /// Unknown type
-    Unknown = 0,
+    Unknown          = 0,
 }
 
 impl From<u32> for E820Type {
@@ -584,16 +591,22 @@ pub fn analyze_memory_map(map: &MemoryMapInfo) -> MemoryAnalysis {
             analysis.usable_entries += 1;
         } else if mt == MemoryType::LoaderCode as u32 || mt == MemoryType::LoaderData as u32 {
             analysis.loader_memory += size;
-        } else if mt == MemoryType::BootServicesCode as u32 || mt == MemoryType::BootServicesData as u32 {
+        } else if mt == MemoryType::BootServicesCode as u32
+            || mt == MemoryType::BootServicesData as u32
+        {
             analysis.boot_services_memory += size;
-        } else if mt == MemoryType::RuntimeServicesCode as u32 || mt == MemoryType::RuntimeServicesData as u32 {
+        } else if mt == MemoryType::RuntimeServicesCode as u32
+            || mt == MemoryType::RuntimeServicesData as u32
+        {
             analysis.runtime_memory += size;
             analysis.runtime_entries += 1;
         } else if mt == MemoryType::AcpiReclaimMemory as u32 {
             analysis.acpi_reclaim_memory += size;
         } else if mt == MemoryType::AcpiMemoryNvs as u32 {
             analysis.acpi_nvs_memory += size;
-        } else if mt == MemoryType::MemoryMappedIo as u32 || mt == MemoryType::MemoryMappedIoPortSpace as u32 {
+        } else if mt == MemoryType::MemoryMappedIo as u32
+            || mt == MemoryType::MemoryMappedIoPortSpace as u32
+        {
             analysis.mmio_memory += size;
         } else if mt == MemoryType::ReservedMemoryType as u32 {
             analysis.reserved_memory += size;
@@ -611,7 +624,9 @@ pub fn analyze_memory_map(map: &MemoryMapInfo) -> MemoryAnalysis {
 
         // Track lowest usable address
         if desc.memory_type == MemoryType::ConventionalMemory as u32 {
-            if analysis.lowest_usable_address == 0 || desc.physical_start.0 < analysis.lowest_usable_address {
+            if analysis.lowest_usable_address == 0
+                || desc.physical_start.0 < analysis.lowest_usable_address
+            {
                 analysis.lowest_usable_address = desc.physical_start.0;
             }
         }

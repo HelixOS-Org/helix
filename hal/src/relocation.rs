@@ -23,7 +23,7 @@
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use hal::relocation::{RelocationContext, apply_relocations};
+//! use hal::relocation::{apply_relocations, RelocationContext};
 //!
 //! // Create context with slide information
 //! let ctx = RelocationContext::new(
@@ -44,8 +44,7 @@
 // All unsafe operations are carefully documented and bounds-checked.
 #![allow(unsafe_op_in_unsafe_fn)]
 
-use core::fmt;
-use core::ptr;
+use core::{fmt, ptr};
 
 // ============================================================================
 // TYPES AND CONSTANTS
@@ -92,10 +91,10 @@ impl fmt::Display for RelocError {
             Self::UnsupportedRelocType(t) => write!(f, "Unsupported relocation type: {}", t),
             Self::OutOfBounds { offset, size } => {
                 write!(f, "Relocation at offset {} exceeds size {}", offset, size)
-            }
+            },
             Self::Overflow { offset, value } => {
                 write!(f, "Overflow at offset {}: value {}", offset, value)
-            }
+            },
             Self::NoRelocations => write!(f, "No relocations found"),
             Self::TooManyErrors(n) => write!(f, "Too many relocation errors: {}", n),
             Self::ValidationFailed(msg) => write!(f, "Validation failed: {}", msg),
@@ -603,7 +602,7 @@ unsafe fn apply_single_reloc(
                     size: ctx.kernel_size as u64,
                 });
             }
-        }
+        },
     };
 
     // Bounds check
@@ -623,7 +622,7 @@ unsafe fn apply_single_reloc(
             // No action needed
             stats.r_none += 1;
             stats.skipped += 1;
-        }
+        },
 
         R_X86_64_RELATIVE => {
             // B + A: Base-relative relocation
@@ -634,7 +633,7 @@ unsafe fn apply_single_reloc(
             unsafe { ptr::write_unaligned(target_ptr as *mut u64, value) };
             stats.r_relative += 1;
             stats.total_applied += 1;
-        }
+        },
 
         R_X86_64_64 => {
             // S + A: 64-bit absolute address
@@ -645,7 +644,7 @@ unsafe fn apply_single_reloc(
             unsafe { ptr::write_unaligned(target_ptr as *mut u64, new_value) };
             stats.r_64 += 1;
             stats.total_applied += 1;
-        }
+        },
 
         R_X86_64_32 => {
             // S + A: 32-bit zero-extended
@@ -666,7 +665,7 @@ unsafe fn apply_single_reloc(
             unsafe { ptr::write_unaligned(target_ptr as *mut u32, new_value) };
             stats.r_32 += 1;
             stats.total_applied += 1;
-        }
+        },
 
         R_X86_64_32S => {
             // S + A: 32-bit sign-extended
@@ -687,7 +686,7 @@ unsafe fn apply_single_reloc(
             unsafe { ptr::write_unaligned(target_ptr as *mut i32, new_value) };
             stats.r_32s += 1;
             stats.total_applied += 1;
-        }
+        },
 
         R_X86_64_PC32 | R_X86_64_PLT32 => {
             // S + A - P: 32-bit PC-relative
@@ -695,14 +694,14 @@ unsafe fn apply_single_reloc(
             // For external symbols, would need symbol resolution
             stats.r_pc32 += 1;
             stats.skipped += 1; // Usually no action needed for internal refs
-        }
+        },
 
         R_X86_64_PC64 => {
             // S + A - P: 64-bit PC-relative
             // Similar to PC32, usually no adjustment needed
             stats.r_pc64 += 1;
             stats.skipped += 1;
-        }
+        },
 
         R_X86_64_GLOB_DAT | R_X86_64_JUMP_SLOT => {
             // GOT/PLT entries - would need symbol resolution
@@ -713,7 +712,7 @@ unsafe fn apply_single_reloc(
             unsafe { ptr::write_unaligned(target_ptr as *mut u64, new_value) };
             stats.r_got += 1;
             stats.total_applied += 1;
-        }
+        },
 
         R_X86_64_GOTPCREL | R_X86_64_GOTPCRELX | R_X86_64_REX_GOTPCRELX => {
             // GOT-relative PC-relative
@@ -721,13 +720,13 @@ unsafe fn apply_single_reloc(
             // In a PIE kernel, GOT entries need adjustment
             stats.r_got += 1;
             stats.skipped += 1; // GOT entries handled by GLOB_DAT
-        }
+        },
 
         R_X86_64_COPY => {
             // Symbol copy - not expected in kernel
             stats.r_other += 1;
             stats.skipped += 1;
-        }
+        },
 
         _ => {
             // Unknown/unsupported relocation type
@@ -737,7 +736,7 @@ unsafe fn apply_single_reloc(
             if ctx.strict_mode {
                 return Err(RelocError::UnsupportedRelocType(rtype));
             }
-        }
+        },
     }
 
     Ok(())
@@ -856,7 +855,10 @@ pub unsafe fn find_rela_dyn_section(
         }
 
         let name_bytes = &shstrtab[name_offset..];
-        let name_end = name_bytes.iter().position(|&b| b == 0).unwrap_or(name_bytes.len());
+        let name_end = name_bytes
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(name_bytes.len());
         let name = match core::str::from_utf8(&name_bytes[..name_end]) {
             Ok(s) => s,
             Err(_) => continue,
@@ -943,15 +945,15 @@ pub unsafe fn find_rela_from_dynamic(
 
     let dyn_entries = dyn_sz / core::mem::size_of::<Elf64Dyn>();
     for i in 0..dyn_entries {
-        let dyn_entry = &*(elf_base.add(dyn_off + i * core::mem::size_of::<Elf64Dyn>())
-            as *const Elf64Dyn);
+        let dyn_entry =
+            &*(elf_base.add(dyn_off + i * core::mem::size_of::<Elf64Dyn>()) as *const Elf64Dyn);
 
         match dyn_entry.d_tag {
             Elf64Dyn::DT_NULL => break,
             Elf64Dyn::DT_RELA => rela_addr = Some(dyn_entry.d_val),
             Elf64Dyn::DT_RELASZ => rela_size = Some(dyn_entry.d_val),
             Elf64Dyn::DT_RELAENT => rela_ent = Some(dyn_entry.d_val),
-            _ => {}
+            _ => {},
         }
     }
 
@@ -971,7 +973,7 @@ pub unsafe fn find_rela_from_dynamic(
 
             let rela_ptr = elf_base.add(rela_offset) as *const Elf64Rela;
             Ok((rela_ptr, rela_count))
-        }
+        },
         _ => Err(RelocError::SectionNotFound(".rela.dyn (from DYNAMIC)")),
     }
 }

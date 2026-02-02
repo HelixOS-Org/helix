@@ -2,8 +2,8 @@
 //!
 //! Integrity checking and validation for relocations.
 
-use crate::{RelocResult, RelocError, PhysAddr, VirtAddr, RelocationStats};
-use crate::elf::{ElfInfo, Elf64Rela};
+use crate::elf::{Elf64Rela, ElfInfo};
+use crate::{PhysAddr, RelocError, RelocResult, RelocationStats, VirtAddr};
 
 // ============================================================================
 // VALIDATION CONFIGURATION
@@ -14,13 +14,13 @@ use crate::elf::{ElfInfo, Elf64Rela};
 #[repr(u8)]
 pub enum ValidationLevel {
     /// No validation (fastest)
-    None = 0,
+    None     = 0,
     /// Quick validation (bounds only)
-    Quick = 1,
+    Quick    = 1,
     /// Standard validation (bounds + alignment)
     Standard = 2,
     /// Full validation (all checks)
-    Full = 3,
+    Full     = 3,
     /// Paranoid (cryptographic verification)
     Paranoid = 4,
 }
@@ -366,10 +366,7 @@ impl SecurityValidator {
     }
 
     /// Verify no writable executable regions after relocation
-    pub fn verify_wx_policy(
-        _kernel_base: *const u8,
-        _kernel_size: usize,
-    ) -> RelocResult<()> {
+    pub fn verify_wx_policy(_kernel_base: *const u8, _kernel_size: usize) -> RelocResult<()> {
         // W^X policy verification
         // Would check page table entries after MMU setup
         Ok(())
@@ -412,8 +409,14 @@ mod tests {
         // 64-bit relocations need 8-byte alignment
         #[cfg(target_arch = "x86_64")]
         {
-            assert_eq!(relocation_alignment(crate::elf::relocations::x86_64::R_X86_64_64), 8);
-            assert_eq!(relocation_alignment(crate::elf::relocations::x86_64::R_X86_64_32), 4);
+            assert_eq!(
+                relocation_alignment(crate::elf::relocations::x86_64::R_X86_64_64),
+                8
+            );
+            assert_eq!(
+                relocation_alignment(crate::elf::relocations::x86_64::R_X86_64_32),
+                4
+            );
         }
     }
 }

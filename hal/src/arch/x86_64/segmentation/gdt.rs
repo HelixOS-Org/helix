@@ -25,8 +25,9 @@
 //!
 //! Note: User data comes before user code for SYSRET compatibility.
 
-use super::tss::{Tss, TssEntry, TSS_SIZE};
 use core::mem::size_of;
+
+use super::tss::{Tss, TssEntry, TSS_SIZE};
 
 // =============================================================================
 // CONSTANTS
@@ -298,10 +299,7 @@ impl Gdt {
 
     /// Get the GDT descriptor for LGDT
     pub fn descriptor(&self) -> GdtDescriptor {
-        GdtDescriptor::new(
-            self as *const Self as u64,
-            size_of::<Self>() as u16,
-        )
+        GdtDescriptor::new(self as *const Self as u64, size_of::<Self>() as u16)
     }
 
     /// Load this GDT

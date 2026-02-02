@@ -219,11 +219,24 @@ impl Language {
     /// Get script type
     pub const fn script(&self) -> Script {
         match self {
-            Language::En | Language::Fr | Language::De | Language::Es |
-            Language::It | Language::Pt | Language::Nl | Language::Pl |
-            Language::Cs | Language::Hu | Language::Tr | Language::Vi |
-            Language::Id | Language::Sv | Language::No | Language::Da |
-            Language::Fi | Language::Ro => Script::Latin,
+            Language::En
+            | Language::Fr
+            | Language::De
+            | Language::Es
+            | Language::It
+            | Language::Pt
+            | Language::Nl
+            | Language::Pl
+            | Language::Cs
+            | Language::Hu
+            | Language::Tr
+            | Language::Vi
+            | Language::Id
+            | Language::Sv
+            | Language::No
+            | Language::Da
+            | Language::Fi
+            | Language::Ro => Script::Latin,
             Language::Ru | Language::Uk => Script::Cyrillic,
             Language::Ja => Script::Japanese,
             Language::ZhCn | Language::ZhTw => Script::Chinese,
@@ -376,30 +389,60 @@ pub struct Locale {
 impl Locale {
     /// Create new locale
     pub const fn new(language: Language) -> Self {
-        Self { language, country: None }
+        Self {
+            language,
+            country: None,
+        }
     }
 
     /// Create with country
     pub const fn with_country(language: Language, country: Country) -> Self {
-        Self { language, country: Some(country) }
+        Self {
+            language,
+            country: Some(country),
+        }
     }
 
     /// US English
-    pub const EN_US: Self = Self { language: Language::En, country: Some(Country::Us) };
+    pub const EN_US: Self = Self {
+        language: Language::En,
+        country: Some(Country::Us),
+    };
     /// UK English
-    pub const EN_GB: Self = Self { language: Language::En, country: Some(Country::Gb) };
+    pub const EN_GB: Self = Self {
+        language: Language::En,
+        country: Some(Country::Gb),
+    };
     /// French (France)
-    pub const FR_FR: Self = Self { language: Language::Fr, country: Some(Country::Fr) };
+    pub const FR_FR: Self = Self {
+        language: Language::Fr,
+        country: Some(Country::Fr),
+    };
     /// German (Germany)
-    pub const DE_DE: Self = Self { language: Language::De, country: Some(Country::De) };
+    pub const DE_DE: Self = Self {
+        language: Language::De,
+        country: Some(Country::De),
+    };
     /// Spanish (Spain)
-    pub const ES_ES: Self = Self { language: Language::Es, country: Some(Country::Es) };
+    pub const ES_ES: Self = Self {
+        language: Language::Es,
+        country: Some(Country::Es),
+    };
     /// Japanese (Japan)
-    pub const JA_JP: Self = Self { language: Language::Ja, country: Some(Country::Jp) };
+    pub const JA_JP: Self = Self {
+        language: Language::Ja,
+        country: Some(Country::Jp),
+    };
     /// Chinese (China)
-    pub const ZH_CN: Self = Self { language: Language::ZhCn, country: Some(Country::Cn) };
+    pub const ZH_CN: Self = Self {
+        language: Language::ZhCn,
+        country: Some(Country::Cn),
+    };
     /// Chinese (Taiwan)
-    pub const ZH_TW: Self = Self { language: Language::ZhTw, country: Some(Country::Tw) };
+    pub const ZH_TW: Self = Self {
+        language: Language::ZhTw,
+        country: Some(Country::Tw),
+    };
 }
 
 impl Default for Locale {
@@ -714,7 +757,9 @@ impl DateFormat {
         match locale.language {
             Language::Ja | Language::ZhCn | Language::ZhTw | Language::Ko => DateFormat::Ymd,
             Language::De | Language::Pl | Language::Cs | Language::Hu => DateFormat::DmyDot,
-            Language::Fr | Language::Es | Language::It | Language::Pt | Language::Ru => DateFormat::Dmy,
+            Language::Fr | Language::Es | Language::It | Language::Pt | Language::Ru => {
+                DateFormat::Dmy
+            },
             _ => DateFormat::Mdy,
         }
     }
@@ -755,71 +800,104 @@ impl Default for TimeFormat {
 pub mod day_names {
     /// English day names
     pub const EN: [&str; 7] = [
-        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
     ];
 
     /// English abbreviated day names
-    pub const EN_SHORT: [&str; 7] = [
-        "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
-    ];
+    pub const EN_SHORT: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     /// French day names
     pub const FR: [&str; 7] = [
-        "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"
+        "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi",
     ];
 
     /// French abbreviated day names
-    pub const FR_SHORT: [&str; 7] = [
-        "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"
-    ];
+    pub const FR_SHORT: [&str; 7] = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
     /// German day names
     pub const DE: [&str; 7] = [
-        "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"
+        "Sonntag",
+        "Montag",
+        "Dienstag",
+        "Mittwoch",
+        "Donnerstag",
+        "Freitag",
+        "Samstag",
     ];
 
     /// German abbreviated day names
-    pub const DE_SHORT: [&str; 7] = [
-        "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"
-    ];
+    pub const DE_SHORT: [&str; 7] = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 }
 
 /// Month names
 pub mod month_names {
     /// English month names
     pub const EN: [&str; 12] = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ];
 
     /// English abbreviated month names
     pub const EN_SHORT: [&str; 12] = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
 
     /// French month names
     pub const FR: [&str; 12] = [
-        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+        "Janvier",
+        "Février",
+        "Mars",
+        "Avril",
+        "Mai",
+        "Juin",
+        "Juillet",
+        "Août",
+        "Septembre",
+        "Octobre",
+        "Novembre",
+        "Décembre",
     ];
 
     /// French abbreviated month names
     pub const FR_SHORT: [&str; 12] = [
-        "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
-        "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"
+        "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc",
     ];
 
     /// German month names
     pub const DE: [&str; 12] = [
-        "Januar", "Februar", "März", "April", "Mai", "Juni",
-        "Juli", "August", "September", "Oktober", "November", "Dezember"
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
     ];
 
     /// German abbreviated month names
     pub const DE_SHORT: [&str; 12] = [
-        "Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
-        "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"
+        "Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez",
     ];
 }
 
@@ -964,7 +1042,7 @@ pub const fn is_cjk(c: char) -> bool {
     let cp = c as u32;
     (cp >= 0x4E00 && cp < 0x9FFF) ||  // CJK Unified
     (cp >= 0x3400 && cp < 0x4DBF) ||  // CJK Extension A
-    (cp >= 0x3000 && cp < 0x303F)     // CJK Symbols
+    (cp >= 0x3000 && cp < 0x303F) // CJK Symbols
 }
 
 /// Check if character is wide (takes 2 cells)
@@ -976,7 +1054,7 @@ pub const fn is_wide(c: char) -> bool {
     (cp >= 0xAC00 && cp <= 0xD7A3) ||  // Hangul Syllables
     (cp >= 0xF900 && cp <= 0xFAFF) ||  // CJK Compat
     (cp >= 0xFE10 && cp <= 0xFE1F) ||  // Vertical forms
-    (cp >= 0xFF00 && cp <= 0xFF60)     // Fullwidth forms
+    (cp >= 0xFF00 && cp <= 0xFF60) // Fullwidth forms
 }
 
 /// Character direction
@@ -997,7 +1075,8 @@ pub const fn char_direction(c: char) -> CharDirection {
     let cp = c as u32;
     if (cp >= 0x0600 && cp <= 0x06FF) ||  // Arabic
        (cp >= 0x0590 && cp <= 0x05FF) ||  // Hebrew
-       (cp >= 0xFB50 && cp <= 0xFDFF)     // Arabic Presentation
+       (cp >= 0xFB50 && cp <= 0xFDFF)
+    // Arabic Presentation
     {
         CharDirection::RightToLeft
     } else if cp < 0x0080 && c.is_ascii_alphabetic() {

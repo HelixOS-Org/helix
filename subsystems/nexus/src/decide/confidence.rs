@@ -8,6 +8,8 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use alloc::format;
+use alloc::vec;
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
@@ -15,6 +17,8 @@ use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::types::Timestamp;
+use crate::types::Timestamp;
+use crate::math::F64Ext;
 
 // ============================================================================
 // CONFIDENCE TYPES

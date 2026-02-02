@@ -6,12 +6,10 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use super::{Individual, GenomeId, Fitness, Generation};
-use super::genome::CodeGenome;
+use super::{Fitness, GenomeId, Individual};
+use crate::math::F64Ext;
 
 // ============================================================================
 // POPULATION
@@ -78,7 +76,8 @@ impl Population {
 
     /// Get best individual
     pub fn best(&self) -> Option<&Individual> {
-        self.individuals.iter()
+        self.individuals
+            .iter()
             .filter(|i| i.fitness.is_some())
             .max_by(|a, b| {
                 let fa = a.fitness.as_ref().unwrap().scalar;
@@ -89,7 +88,8 @@ impl Population {
 
     /// Get worst individual
     pub fn worst(&self) -> Option<&Individual> {
-        self.individuals.iter()
+        self.individuals
+            .iter()
             .filter(|i| i.fitness.is_some())
             .min_by(|a, b| {
                 let fa = a.fitness.as_ref().unwrap().scalar;
@@ -100,7 +100,9 @@ impl Population {
 
     /// Get top N individuals
     pub fn elites(&self, n: usize) -> Vec<Individual> {
-        let mut sorted: Vec<_> = self.individuals.iter()
+        let mut sorted: Vec<_> = self
+            .individuals
+            .iter()
             .filter(|i| i.fitness.is_some())
             .collect();
 
@@ -158,11 +160,11 @@ impl Population {
 
                 let is_better = match (&best, &candidate.fitness) {
                     (None, Some(_)) => true,
-                    (Some(b), Some(cf)) => {
-                        b.fitness.as_ref()
-                            .map(|bf| cf.scalar > bf.scalar)
-                            .unwrap_or(true)
-                    }
+                    (Some(b), Some(cf)) => b
+                        .fitness
+                        .as_ref()
+                        .map(|bf| cf.scalar > bf.scalar)
+                        .unwrap_or(true),
                     _ => false,
                 };
 
@@ -181,14 +183,14 @@ impl Population {
 
     /// Roulette wheel selection
     pub fn roulette_selection(&self, count: usize) -> Vec<Individual> {
-        let fitnesses: Vec<f64> = self.individuals.iter()
+        let fitnesses: Vec<f64> = self
+            .individuals
+            .iter()
             .map(|i| i.fitness.as_ref().map(|f| f.scalar).unwrap_or(0.0))
             .collect();
 
         let min_fitness = fitnesses.iter().cloned().fold(f64::INFINITY, f64::min);
-        let adjusted: Vec<f64> = fitnesses.iter()
-            .map(|f| f - min_fitness + 1.0)
-            .collect();
+        let adjusted: Vec<f64> = fitnesses.iter().map(|f| f - min_fitness + 1.0).collect();
 
         let total: f64 = adjusted.iter().sum();
 
@@ -216,13 +218,19 @@ impl Population {
 
     /// Rank selection
     pub fn rank_selection(&self, count: usize) -> Vec<Individual> {
-        let mut indexed: Vec<(usize, &Individual)> = self.individuals.iter()
-            .enumerate()
-            .collect();
+        let mut indexed: Vec<(usize, &Individual)> = self.individuals.iter().enumerate().collect();
 
         indexed.sort_by(|(_, a), (_, b)| {
-            let fa = a.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
-            let fb = b.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
+            let fa = a
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
+            let fb = b
+                .fitness
+                .as_ref()
+                .map(|f| f.scalar)
+                .unwrap_or(f64::NEG_INFINITY);
             fb.partial_cmp(&fa).unwrap_or(core::cmp::Ordering::Equal)
         });
 
@@ -256,7 +264,9 @@ impl Population {
     /// NSGA-II selection
     pub fn nsga2_selection(&self, count: usize) -> Vec<Individual> {
         // Get fitness values
-        let fitnesses: Vec<Fitness> = self.individuals.iter()
+        let fitnesses: Vec<Fitness> = self
+            .individuals
+            .iter()
             .filter_map(|i| i.fitness.clone())
             .collect();
 
@@ -279,21 +289,23 @@ impl Population {
             let distances = super::fitness::crowding_distance(&fitnesses, front);
 
             // Sort by crowding distance (descending)
-            let mut front_with_distance: Vec<(usize, f64)> = front.iter()
+            let mut front_with_distance: Vec<(usize, f64)> = front
+                .iter()
                 .enumerate()
                 .map(|(i, &idx)| (idx, distances[i]))
                 .collect();
 
-            front_with_distance.sort_by(|a, b| {
-                b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal)
-            });
+            front_with_distance
+                .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
 
             for (idx, _) in front_with_distance {
                 if selected.len() >= count {
                     break;
                 }
                 // Find individual with this fitness
-                if let Some(individual) = self.individuals.iter()
+                if let Some(individual) = self
+                    .individuals
+                    .iter()
                     .filter(|i| i.fitness.is_some())
                     .nth(idx)
                 {
@@ -303,6 +315,9 @@ impl Population {
             }
         }
 
+        // Suppress unused warning
+        let _ = fitness_idx;
+
         selected
     }
 
@@ -311,7 +326,9 @@ impl Population {
         let mut selected = Vec::with_capacity(count);
 
         // Get objective count
-        let obj_count = self.individuals.iter()
+        let obj_count = self
+            .individuals
+            .iter()
             .filter_map(|i| i.fitness.as_ref())
             .map(|f| f.objectives.len())
             .max()
@@ -326,7 +343,9 @@ impl Population {
             let mut objectives: Vec<usize> = (0..obj_count).collect();
             shuffle(&mut objectives);
 
-            let mut candidates: Vec<&Individual> = self.individuals.iter()
+            let mut candidates: Vec<&Individual> = self
+                .individuals
+                .iter()
                 .filter(|i| i.fitness.is_some())
                 .collect();
 
@@ -336,7 +355,8 @@ impl Population {
                 }
 
                 // Find best value for this objective
-                let best_val = candidates.iter()
+                let best_val = candidates
+                    .iter()
                     .filter_map(|i| i.fitness.as_ref())
                     .map(|f| f.objectives.get(obj).copied().unwrap_or(0.0))
                     .fold(f64::NEG_INFINITY, f64::max);
@@ -344,7 +364,8 @@ impl Population {
                 // Keep only individuals with best value (within tolerance)
                 let tolerance = 0.001;
                 candidates.retain(|i| {
-                    i.fitness.as_ref()
+                    i.fitness
+                        .as_ref()
                         .and_then(|f| f.objectives.get(obj))
                         .map(|&v| (v - best_val).abs() < tolerance)
                         .unwrap_or(false)
@@ -368,7 +389,9 @@ impl Population {
 
     /// Calculate population statistics
     pub fn calculate_stats(&self) -> PopulationMetrics {
-        let fitnesses: Vec<f64> = self.individuals.iter()
+        let fitnesses: Vec<f64> = self
+            .individuals
+            .iter()
             .filter_map(|i| i.fitness.as_ref())
             .map(|f| f.scalar)
             .collect();
@@ -380,9 +403,8 @@ impl Population {
         let sum: f64 = fitnesses.iter().sum();
         let mean = sum / fitnesses.len() as f64;
 
-        let variance = fitnesses.iter()
-            .map(|f| (f - mean).powi(2))
-            .sum::<f64>() / fitnesses.len() as f64;
+        let variance =
+            fitnesses.iter().map(|f| (f - mean).powi(2)).sum::<f64>() / fitnesses.len() as f64;
 
         let std_dev = variance.sqrt();
 
@@ -409,7 +431,9 @@ impl Population {
 
         for i in 0..self.individuals.len() {
             for j in (i + 1)..self.individuals.len() {
-                total_distance += self.individuals[i].genome.distance(&self.individuals[j].genome);
+                total_distance += self.individuals[i]
+                    .genome
+                    .distance(&self.individuals[j].genome);
                 count += 1;
             }
         }
@@ -449,14 +473,22 @@ static mut POPULATION_SEED: u64 = 35791;
 
 fn rand_u64() -> u64 {
     unsafe {
-        POPULATION_SEED = POPULATION_SEED.wrapping_mul(6364136223846793005).wrapping_add(1);
+        POPULATION_SEED = POPULATION_SEED
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1);
         POPULATION_SEED
     }
 }
 
-fn rand_f64() -> f64 { (rand_u64() as f64) / (u64::MAX as f64) }
+fn rand_f64() -> f64 {
+    (rand_u64() as f64) / (u64::MAX as f64)
+}
 fn rand_usize(max: usize) -> usize {
-    if max == 0 { 0 } else { (rand_u64() as usize) % max }
+    if max == 0 {
+        0
+    } else {
+        (rand_u64() as usize) % max
+    }
 }
 
 // ============================================================================
@@ -465,8 +497,9 @@ fn rand_usize(max: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::sync::atomic::AtomicU64;
+
+    use super::*;
 
     fn create_test_individual(id: u64, fitness: f64) -> Individual {
         let counter = AtomicU64::new(1);

@@ -22,8 +22,9 @@
 //! - **Priority Grouping**: Configure preemption behavior
 //! - **Running Priority**: Read currently executing priority
 
-use super::Priority;
 use core::arch::asm;
+
+use super::Priority;
 
 // ============================================================================
 // Common CPU Interface Constants

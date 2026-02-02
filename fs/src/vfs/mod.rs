@@ -11,18 +11,16 @@
 
 #![allow(dead_code)]
 
-pub mod inode;
 pub mod dentry;
-pub mod superblock;
+pub mod inode;
 pub mod namespace;
+pub mod superblock;
 
-use crate::core::error::HfsResult;
-use crate::api::Credentials;
-use crate::api::{FileType, FileStat};
-
+pub use crate::api::FileStat as VfsFileStat;
 // Re-export FileType and FileStat from api for VFS use
 pub use crate::api::FileType as VfsFileType;
-pub use crate::api::FileStat as VfsFileStat;
+use crate::api::{Credentials, FileStat, FileType};
+use crate::core::error::HfsResult;
 
 // ============================================================================
 // Constants
@@ -76,30 +74,30 @@ impl VfsInodeFlags {
     pub const I_IMMUTABLE: u32 = 1 << 8;
     /// Inode is append-only
     pub const I_APPEND: u32 = 1 << 9;
-    
+
     /// Create empty flags
     pub const fn empty() -> Self {
         Self(0)
     }
-    
+
     /// Check flag
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set(&mut self, flag: u32) {
         self.0 |= flag;
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear(&mut self, flag: u32) {
         self.0 &= !flag;
     }
-    
+
     /// Is dirty (any dirty flag)
     #[inline]
     pub fn is_dirty(&self) -> bool {
@@ -176,7 +174,7 @@ impl VfsInode {
             refcount: 1,
         }
     }
-    
+
     /// Create directory inode
     pub fn new_dir(ino: u64, mode: u32) -> Self {
         let mut inode = Self::new(ino, FileType::Directory);
@@ -185,21 +183,21 @@ impl VfsInode {
         inode.nlink = 2; // . and parent
         inode
     }
-    
+
     /// Create regular file inode
     pub fn new_file(ino: u64, mode: u32) -> Self {
         let mut inode = Self::new(ino, FileType::Regular);
         inode.mode = mode & 0o7777;
         inode
     }
-    
+
     /// Create symlink inode
     pub fn new_symlink(ino: u64) -> Self {
         let mut inode = Self::new(ino, FileType::Symlink);
         inode.mode = 0o777;
         inode
     }
-    
+
     /// Convert to FileStat
     pub fn to_stat(&self) -> FileStat {
         FileStat {
@@ -221,40 +219,42 @@ impl VfsInode {
             st_ctime_nsec: self.ctime.nsec,
         }
     }
-    
+
     /// Is directory
     #[inline]
     pub fn is_dir(&self) -> bool {
         self.ftype == FileType::Directory
     }
-    
+
     /// Is regular file
     #[inline]
     pub fn is_file(&self) -> bool {
         self.ftype == FileType::Regular
     }
-    
+
     /// Is symlink
     #[inline]
     pub fn is_symlink(&self) -> bool {
         self.ftype == FileType::Symlink
     }
-    
+
     /// Mark dirty
     pub fn mark_dirty(&mut self) {
         self.flags.set(VfsInodeFlags::I_DIRTY);
     }
-    
+
     /// Clear dirty
     pub fn clear_dirty(&mut self) {
-        self.flags.clear(VfsInodeFlags::I_DIRTY | VfsInodeFlags::I_DIRTY_PAGES | VfsInodeFlags::I_DIRTY_META);
+        self.flags.clear(
+            VfsInodeFlags::I_DIRTY | VfsInodeFlags::I_DIRTY_PAGES | VfsInodeFlags::I_DIRTY_META,
+        );
     }
-    
+
     /// Check permission
     pub fn check_permission(&self, cred: &Credentials, want: u32) -> bool {
         cred.check_permission(self.mode, self.uid, self.gid, want)
     }
-    
+
     /// Update timestamps
     pub fn touch(&mut self, now: Timespec) {
         self.atime = now;
@@ -287,17 +287,17 @@ impl Timespec {
     pub const fn zero() -> Self {
         Self { sec: 0, nsec: 0 }
     }
-    
+
     /// Create from seconds
     pub const fn from_secs(sec: i64) -> Self {
         Self { sec, nsec: 0 }
     }
-    
+
     /// Create from seconds and nanoseconds
     pub const fn new(sec: i64, nsec: u32) -> Self {
         Self { sec, nsec }
     }
-    
+
     /// Add duration
     pub fn add(&self, sec: i64, nsec: u32) -> Self {
         let mut result = *self;
@@ -306,7 +306,7 @@ impl Timespec {
         result.nsec %= 1_000_000_000;
         result
     }
-    
+
     /// Compare times
     pub fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         match self.sec.cmp(&other.sec) {
@@ -324,22 +324,22 @@ impl Timespec {
 pub trait VfsSuperOps {
     /// Allocate new inode
     fn alloc_inode(&mut self) -> HfsResult<u64>;
-    
+
     /// Free inode
     fn free_inode(&mut self, ino: u64) -> HfsResult<()>;
-    
+
     /// Read inode from disk
     fn read_inode(&self, ino: u64) -> HfsResult<VfsInode>;
-    
+
     /// Write inode to disk
     fn write_inode(&mut self, inode: &VfsInode) -> HfsResult<()>;
-    
+
     /// Delete inode
     fn delete_inode(&mut self, ino: u64) -> HfsResult<()>;
-    
+
     /// Sync filesystem
     fn sync_fs(&mut self) -> HfsResult<()>;
-    
+
     /// Get filesystem stats
     fn statfs(&self) -> HfsResult<crate::api::FsStats>;
 }
@@ -347,26 +347,44 @@ pub trait VfsSuperOps {
 /// VFS inode operations.
 pub trait VfsInodeOps {
     /// Create file in directory
-    fn create(&mut self, parent: &VfsInode, name: &[u8], mode: u32, cred: &Credentials) -> HfsResult<VfsInode>;
-    
+    fn create(
+        &mut self,
+        parent: &VfsInode,
+        name: &[u8],
+        mode: u32,
+        cred: &Credentials,
+    ) -> HfsResult<VfsInode>;
+
     /// Lookup name in directory
     fn lookup(&self, dir: &VfsInode, name: &[u8]) -> HfsResult<VfsInode>;
-    
+
     /// Create hard link
     fn link(&mut self, old: &VfsInode, dir: &VfsInode, name: &[u8]) -> HfsResult<()>;
-    
+
     /// Remove file
     fn unlink(&mut self, dir: &VfsInode, name: &[u8]) -> HfsResult<()>;
-    
+
     /// Create symbolic link
-    fn symlink(&mut self, dir: &VfsInode, name: &[u8], target: &[u8], cred: &Credentials) -> HfsResult<VfsInode>;
-    
+    fn symlink(
+        &mut self,
+        dir: &VfsInode,
+        name: &[u8],
+        target: &[u8],
+        cred: &Credentials,
+    ) -> HfsResult<VfsInode>;
+
     /// Create directory
-    fn mkdir(&mut self, parent: &VfsInode, name: &[u8], mode: u32, cred: &Credentials) -> HfsResult<VfsInode>;
-    
+    fn mkdir(
+        &mut self,
+        parent: &VfsInode,
+        name: &[u8],
+        mode: u32,
+        cred: &Credentials,
+    ) -> HfsResult<VfsInode>;
+
     /// Remove directory
     fn rmdir(&mut self, parent: &VfsInode, name: &[u8]) -> HfsResult<()>;
-    
+
     /// Rename
     fn rename(
         &mut self,
@@ -375,10 +393,10 @@ pub trait VfsInodeOps {
         new_dir: &VfsInode,
         new_name: &[u8],
     ) -> HfsResult<()>;
-    
+
     /// Set attributes
     fn setattr(&mut self, inode: &mut VfsInode, attr: &SetAttr) -> HfsResult<()>;
-    
+
     /// Get attributes
     fn getattr(&self, inode: &VfsInode) -> HfsResult<FileStat>;
 }
@@ -415,7 +433,7 @@ impl SetAttr {
     pub const ATTR_ATIME: u32 = 1 << 4;
     /// Mtime is valid
     pub const ATTR_MTIME: u32 = 1 << 5;
-    
+
     /// Check if field is valid
     pub fn has(&self, flag: u32) -> bool {
         self.valid & flag != 0
@@ -426,16 +444,21 @@ impl SetAttr {
 pub trait VfsFileOps {
     /// Read from file
     fn read(&self, inode: &VfsInode, offset: u64, buf: &mut [u8]) -> HfsResult<usize>;
-    
+
     /// Write to file
     fn write(&mut self, inode: &VfsInode, offset: u64, buf: &[u8]) -> HfsResult<usize>;
-    
+
     /// Sync file data
     fn fsync(&mut self, inode: &VfsInode, datasync: bool) -> HfsResult<()>;
-    
+
     /// Read directory
-    fn readdir(&self, dir: &VfsInode, offset: u64, callback: &mut dyn FnMut(&[u8], u64, FileType) -> bool) -> HfsResult<()>;
-    
+    fn readdir(
+        &self,
+        dir: &VfsInode,
+        offset: u64,
+        callback: &mut dyn FnMut(&[u8], u64, FileType) -> bool,
+    ) -> HfsResult<()>;
+
     /// Read link target
     fn readlink(&self, inode: &VfsInode, buf: &mut [u8]) -> HfsResult<usize>;
 }
@@ -447,73 +470,73 @@ pub trait VfsFileOps {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_vfs_inode() {
         let inode = VfsInode::new_file(100, 0o644);
-        
+
         assert_eq!(inode.ino, 100);
         assert!(inode.is_file());
         assert_eq!(inode.mode, 0o644);
     }
-    
+
     #[test]
     fn test_vfs_inode_dir() {
         let inode = VfsInode::new_dir(100, 0o755);
-        
+
         assert!(inode.is_dir());
         assert_eq!(inode.nlink, 2);
     }
-    
+
     #[test]
     fn test_vfs_inode_stat() {
         let mut inode = VfsInode::new_file(100, 0o644);
         inode.size = 1024;
         inode.uid = 1000;
         inode.gid = 1000;
-        
+
         let stat = inode.to_stat();
         assert_eq!(stat.st_ino, 100);
         assert_eq!(stat.st_size, 1024);
         assert!(stat.is_file());
     }
-    
+
     #[test]
     fn test_vfs_inode_flags() {
         let mut inode = VfsInode::new_file(100, 0o644);
-        
+
         assert!(!inode.flags.is_dirty());
-        
+
         inode.mark_dirty();
         assert!(inode.flags.is_dirty());
-        
+
         inode.clear_dirty();
         assert!(!inode.flags.is_dirty());
     }
-    
+
     #[test]
     fn test_timespec() {
         let t1 = Timespec::from_secs(100);
         let t2 = t1.add(10, 500_000_000);
-        
+
         assert_eq!(t2.sec, 110);
         assert_eq!(t2.nsec, 500_000_000);
-        
+
         let t3 = t2.add(0, 600_000_000);
         assert_eq!(t3.sec, 111);
         assert_eq!(t3.nsec, 100_000_000);
     }
-    
+
     #[test]
     fn test_permission() {
         let inode = VfsInode::new_file(100, 0o644);
-        
+
         let root = Credentials::root();
         assert!(inode.check_permission(&root, 0o7)); // Root can do anything
-        
+
         let owner = Credentials::user(0, 0);
         assert!(inode.check_permission(&owner, 0o6)); // Owner: rw
-        
+
         let other = Credentials::user(1000, 1000);
         assert!(inode.check_permission(&other, 0o4)); // Other: r
         assert!(!inode.check_permission(&other, 0o2)); // Other: no write

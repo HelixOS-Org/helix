@@ -4,21 +4,21 @@
 
 extern crate alloc;
 
-pub mod types;
-pub mod scheduler;
-pub mod queue;
-pub mod stats;
 pub mod device;
-pub mod workload;
-pub mod manager;
 pub mod intelligence;
+pub mod manager;
+pub mod queue;
+pub mod scheduler;
+pub mod stats;
+pub mod types;
+pub mod workload;
 
 // Re-export all types
-pub use types::*;
-pub use scheduler::*;
-pub use queue::*;
-pub use stats::*;
 pub use device::*;
-pub use workload::*;
-pub use manager::*;
 pub use intelligence::*;
+pub use manager::*;
+pub use queue::*;
+pub use scheduler::*;
+pub use stats::*;
+pub use types::*;
+pub use workload::*;

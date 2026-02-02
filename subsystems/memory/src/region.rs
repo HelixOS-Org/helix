@@ -1,9 +1,11 @@
 //! # Memory Region Management
 
-use crate::MemResult;
-use helix_hal::PhysAddr;
 use alloc::vec::Vec;
+
+use helix_hal::PhysAddr;
 use spin::RwLock;
+
+use crate::MemResult;
 
 /// Memory region descriptor
 #[derive(Debug, Clone)]
@@ -67,7 +69,8 @@ impl RegionManager {
 
     /// Get regions by type
     pub fn by_type(&self, t: RegionType) -> Vec<MemoryRegionDescriptor> {
-        self.regions.read()
+        self.regions
+            .read()
             .iter()
             .filter(|r| r.region_type == t)
             .cloned()
@@ -76,7 +79,8 @@ impl RegionManager {
 
     /// Get usable RAM regions
     pub fn usable_ram(&self) -> Vec<MemoryRegionDescriptor> {
-        self.regions.read()
+        self.regions
+            .read()
             .iter()
             .filter(|r| r.region_type == RegionType::Ram && !r.reserved)
             .cloned()
@@ -85,7 +89,8 @@ impl RegionManager {
 
     /// Total RAM
     pub fn total_ram(&self) -> u64 {
-        self.regions.read()
+        self.regions
+            .read()
             .iter()
             .filter(|r| r.region_type == RegionType::Ram)
             .map(|r| r.size)

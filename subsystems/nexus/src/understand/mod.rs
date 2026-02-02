@@ -14,35 +14,28 @@ mod semantic;
 mod token;
 
 // Re-export token types
-pub use token::{SourceLoc, Span, Token, TokenId, TokenKind};
-
-// Re-export lexer
-pub use lexer::Lexer;
-
 // Re-export AST types
 pub use ast::{
     AstNode, Attribute, BinaryOp, EnumVariant, Expr, FnParam, FnSig, GenericParam, Item,
     LiteralKind, MatchArm, Mutability, NodeId, Pattern, Stmt, StructField, StructFields, TypeRef,
     UnaryOp, UseTree, Visibility, WherePredicate,
 };
-
-// Re-export semantic model
-pub use semantic::{Scope, SemanticModel, Symbol, SymbolId, SymbolKind};
-
+// Re-export control flow types
+pub use controlflow::{BasicBlock, BlockId, ControlFlowGraph, Terminator};
+// Re-export data flow types
+pub use dataflow::{DataFlowAnalyzer, DataFlowFact, DataFlowResult};
+// Re-export intelligence
+pub use intelligence::{CodeUnderstandingAnalysis, CodeUnderstandingIntelligence};
 // Re-export invariant types
 pub use invariant::{
     Invariant, InvariantConfidence, InvariantExpr, InvariantId, InvariantKind, InvariantMiner,
     InvariantOp, InvariantSource, InvariantUnaryOp, QuantifierKind,
 };
-
-// Re-export data flow types
-pub use dataflow::{DataFlowAnalyzer, DataFlowFact, DataFlowResult};
-
-// Re-export control flow types
-pub use controlflow::{BasicBlock, BlockId, ControlFlowGraph, Terminator};
-
-// Re-export intelligence
-pub use intelligence::{CodeUnderstandingAnalysis, CodeUnderstandingIntelligence};
+// Re-export lexer
+pub use lexer::Lexer;
+// Re-export semantic model
+pub use semantic::{Scope, SemanticModel, Symbol, SymbolId, SymbolKind};
+pub use token::{SourceLoc, Span, Token, TokenId, TokenKind};
 
 // ============================================================================
 // TESTS

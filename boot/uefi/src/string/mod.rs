@@ -76,7 +76,7 @@ impl Char16 {
     /// Is alphabetic
     pub fn is_alphabetic(self) -> bool {
         (self.0 >= 0x41 && self.0 <= 0x5A) || // A-Z
-        (self.0 >= 0x61 && self.0 <= 0x7A)    // a-z
+        (self.0 >= 0x61 && self.0 <= 0x7A) // a-z
     }
 
     /// Is numeric
@@ -468,10 +468,17 @@ impl<const N: usize> String16<N> {
         let slice = self.as_slice();
 
         // Find start
-        let start = slice.iter().position(|&c| !Char16(c).is_whitespace()).unwrap_or(slice.len());
+        let start = slice
+            .iter()
+            .position(|&c| !Char16(c).is_whitespace())
+            .unwrap_or(slice.len());
 
         // Find end
-        let end = slice.iter().rposition(|&c| !Char16(c).is_whitespace()).map(|i| i + 1).unwrap_or(0);
+        let end = slice
+            .iter()
+            .rposition(|&c| !Char16(c).is_whitespace())
+            .map(|i| i + 1)
+            .unwrap_or(0);
 
         if start >= end {
             return Self::new();
@@ -1071,7 +1078,8 @@ pub fn parse_binary_u64(s: &str) -> Option<u64> {
 
 /// Extract filename from path
 pub fn path_filename(path: &str) -> &str {
-    path.rsplit('\\').next()
+    path.rsplit('\\')
+        .next()
         .or_else(|| path.rsplit('/').next())
         .unwrap_or(path)
 }

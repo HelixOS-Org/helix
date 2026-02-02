@@ -7,10 +7,9 @@ use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::{
-    CausalEventId, CausalNodeId, CausalEventType,
-    CausalGraph, CausalChain, CausalChainBuilder,
-    CounterfactualModification, CounterfactualResult, CounterfactualEngine,
-    Explanation, ExplanationGenerator,
+    CausalChain, CausalChainBuilder, CausalEventId, CausalEventType, CausalGraph, CausalNodeId,
+    CounterfactualEngine, CounterfactualModification, CounterfactualResult, Explanation,
+    ExplanationGenerator,
 };
 
 /// CQL query type
@@ -23,11 +22,20 @@ pub enum CqlQuery {
     /// Find effects
     EffectsQuery { event: CausalEventId },
     /// Counterfactual query
-    CounterfactualQuery { event: CausalEventId, modification: CounterfactualModification },
+    CounterfactualQuery {
+        event: CausalEventId,
+        modification: CounterfactualModification,
+    },
     /// Pattern query
-    PatternQuery { event_type: CausalEventType, time_range: Option<(u64, u64)> },
+    PatternQuery {
+        event_type: CausalEventType,
+        time_range: Option<(u64, u64)>,
+    },
     /// Chain query
-    ChainQuery { from: CausalEventId, to: CausalEventId },
+    ChainQuery {
+        from: CausalEventId,
+        to: CausalEventId,
+    },
 }
 
 /// CQL result
@@ -88,12 +96,10 @@ impl CqlEngine {
         self.query_counter.fetch_add(1, Ordering::Relaxed);
 
         match query {
-            CqlQuery::WhyQuery { event } => {
-                match self.explainer.explain_why(graph, event) {
-                    Some(explanation) => CqlResult::Explanation(explanation),
-                    None => CqlResult::Error(String::from("Event not found")),
-                }
-            }
+            CqlQuery::WhyQuery { event } => match self.explainer.explain_why(graph, event) {
+                Some(explanation) => CqlResult::Explanation(explanation),
+                None => CqlResult::Error(String::from("Event not found")),
+            },
             CqlQuery::RootCausesQuery { event } => {
                 if let Some(node) = graph.get_node_by_event(event) {
                     let roots = graph.find_root_causes(node.id);
@@ -101,7 +107,7 @@ impl CqlEngine {
                 } else {
                     CqlResult::Error(String::from("Event not found"))
                 }
-            }
+            },
             CqlQuery::EffectsQuery { event } => {
                 if let Some(node) = graph.get_node_by_event(event) {
                     let effects = graph.find_effects(node.id);
@@ -109,8 +115,11 @@ impl CqlEngine {
                 } else {
                     CqlResult::Error(String::from("Event not found"))
                 }
-            }
-            CqlQuery::CounterfactualQuery { event, modification } => {
+            },
+            CqlQuery::CounterfactualQuery {
+                event,
+                modification,
+            } => {
                 let scenario = self.counterfactual.create_scenario(
                     String::from("What if this event didn't happen?"),
                     event,
@@ -118,8 +127,11 @@ impl CqlEngine {
                 );
                 let result = self.counterfactual.simulate(graph, scenario);
                 CqlResult::Counterfactual(result)
-            }
-            CqlQuery::PatternQuery { event_type, time_range } => {
+            },
+            CqlQuery::PatternQuery {
+                event_type,
+                time_range,
+            } => {
                 let mut matching = Vec::new();
                 for node in graph.nodes() {
                     if node.event.event_type == event_type {
@@ -133,20 +145,22 @@ impl CqlEngine {
                     }
                 }
                 CqlResult::NodeList(matching)
-            }
+            },
             CqlQuery::ChainQuery { from, to } => {
-                if let (Some(from_node), Some(to_node)) = (
-                    graph.get_node_by_event(from),
-                    graph.get_node_by_event(to),
-                ) {
-                    match self.chain_builder.build_chain(graph, from_node.id, to_node.id) {
+                if let (Some(from_node), Some(to_node)) =
+                    (graph.get_node_by_event(from), graph.get_node_by_event(to))
+                {
+                    match self
+                        .chain_builder
+                        .build_chain(graph, from_node.id, to_node.id)
+                    {
                         Some(chain) => CqlResult::Chain(chain),
                         None => CqlResult::Error(String::from("No path found")),
                     }
                 } else {
                     CqlResult::Error(String::from("Event not found"))
                 }
-            }
+            },
         }
     }
 

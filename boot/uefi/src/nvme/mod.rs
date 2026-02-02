@@ -212,59 +212,59 @@ pub mod shst {
 #[repr(u8)]
 pub enum AdminOpcode {
     /// Delete I/O Submission Queue
-    DeleteIoSq = 0x00,
+    DeleteIoSq           = 0x00,
     /// Create I/O Submission Queue
-    CreateIoSq = 0x01,
+    CreateIoSq           = 0x01,
     /// Get Log Page
-    GetLogPage = 0x02,
+    GetLogPage           = 0x02,
     /// Delete I/O Completion Queue
-    DeleteIoCq = 0x04,
+    DeleteIoCq           = 0x04,
     /// Create I/O Completion Queue
-    CreateIoCq = 0x05,
+    CreateIoCq           = 0x05,
     /// Identify
-    Identify = 0x06,
+    Identify             = 0x06,
     /// Abort
-    Abort = 0x08,
+    Abort                = 0x08,
     /// Set Features
-    SetFeatures = 0x09,
+    SetFeatures          = 0x09,
     /// Get Features
-    GetFeatures = 0x0A,
+    GetFeatures          = 0x0A,
     /// Asynchronous Event Request
-    AsyncEventReq = 0x0C,
+    AsyncEventReq        = 0x0C,
     /// Namespace Management
-    NsManagement = 0x0D,
+    NsManagement         = 0x0D,
     /// Firmware Commit
-    FirmwareCommit = 0x10,
+    FirmwareCommit       = 0x10,
     /// Firmware Image Download
-    FirmwareDownload = 0x11,
+    FirmwareDownload     = 0x11,
     /// Device Self-test
-    DeviceSelfTest = 0x14,
+    DeviceSelfTest       = 0x14,
     /// Namespace Attachment
-    NsAttachment = 0x15,
+    NsAttachment         = 0x15,
     /// Keep Alive
-    KeepAlive = 0x18,
+    KeepAlive            = 0x18,
     /// Directive Send
-    DirectiveSend = 0x19,
+    DirectiveSend        = 0x19,
     /// Directive Receive
-    DirectiveReceive = 0x1A,
+    DirectiveReceive     = 0x1A,
     /// Virtualization Management
-    VirtualizationMgmt = 0x1C,
+    VirtualizationMgmt   = 0x1C,
     /// NVMe-MI Send
-    NvmeMiSend = 0x1D,
+    NvmeMiSend           = 0x1D,
     /// NVMe-MI Receive
-    NvmeMiReceive = 0x1E,
+    NvmeMiReceive        = 0x1E,
     /// Doorbell Buffer Config
     DoorbellBufferConfig = 0x7C,
     /// Format NVM
-    FormatNvm = 0x80,
+    FormatNvm            = 0x80,
     /// Security Send
-    SecuritySend = 0x81,
+    SecuritySend         = 0x81,
     /// Security Receive
-    SecurityReceive = 0x82,
+    SecurityReceive      = 0x82,
     /// Sanitize
-    Sanitize = 0x84,
+    Sanitize             = 0x84,
     /// Get LBA Status
-    GetLbaStatus = 0x86,
+    GetLbaStatus         = 0x86,
 }
 
 /// NVM command opcodes (I/O commands)
@@ -272,31 +272,31 @@ pub enum AdminOpcode {
 #[repr(u8)]
 pub enum NvmOpcode {
     /// Flush
-    Flush = 0x00,
+    Flush               = 0x00,
     /// Write
-    Write = 0x01,
+    Write               = 0x01,
     /// Read
-    Read = 0x02,
+    Read                = 0x02,
     /// Write Uncorrectable
-    WriteUncorrectable = 0x04,
+    WriteUncorrectable  = 0x04,
     /// Compare
-    Compare = 0x05,
+    Compare             = 0x05,
     /// Write Zeroes
-    WriteZeroes = 0x08,
+    WriteZeroes         = 0x08,
     /// Dataset Management
-    DatasetManagement = 0x09,
+    DatasetManagement   = 0x09,
     /// Verify
-    Verify = 0x0C,
+    Verify              = 0x0C,
     /// Reservation Register
     ReservationRegister = 0x0D,
     /// Reservation Report
-    ReservationReport = 0x0E,
+    ReservationReport   = 0x0E,
     /// Reservation Acquire
-    ReservationAcquire = 0x11,
+    ReservationAcquire  = 0x11,
     /// Reservation Release
-    ReservationRelease = 0x15,
+    ReservationRelease  = 0x15,
     /// Copy
-    Copy = 0x19,
+    Copy                = 0x19,
 }
 
 // =============================================================================
@@ -584,15 +584,15 @@ impl Default for NvmeCompletion {
 #[repr(u8)]
 pub enum StatusCodeType {
     /// Generic command status
-    Generic = 0,
+    Generic         = 0,
     /// Command specific status
     CommandSpecific = 1,
     /// Media and data integrity errors
-    MediaError = 2,
+    MediaError      = 2,
     /// Path related status
-    PathRelated = 3,
+    PathRelated     = 3,
     /// Vendor specific
-    VendorSpecific = 7,
+    VendorSpecific  = 7,
 }
 
 /// Generic status codes

@@ -6,17 +6,17 @@
 //! - Crash recovery and replay
 //! - Checkpoint management
 
-pub mod wal;
-pub mod txn;
-pub mod record;
 pub mod checkpoint;
+pub mod record;
 pub mod recovery;
+pub mod txn;
+pub mod wal;
 
-pub use wal::*;
-pub use txn::*;
-pub use record::*;
 pub use checkpoint::*;
+pub use record::*;
 pub use recovery::*;
+pub use txn::*;
+pub use wal::*;
 
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
@@ -63,17 +63,17 @@ pub enum JournalState {
     /// Not initialized
     Uninitialized = 0,
     /// Clean (no uncommitted transactions)
-    Clean = 1,
+    Clean         = 1,
     /// Active (has uncommitted transactions)
-    Active = 2,
+    Active        = 2,
     /// Recovery needed
     NeedsRecovery = 3,
     /// Recovery in progress
-    Recovering = 4,
+    Recovering    = 4,
     /// Corrupted
-    Corrupted = 5,
+    Corrupted     = 5,
     /// Disabled
-    Disabled = 6,
+    Disabled      = 6,
 }
 
 impl JournalState {
@@ -89,13 +89,13 @@ impl JournalState {
             _ => Self::Uninitialized,
         }
     }
-    
+
     /// Check if journal needs recovery
     #[inline]
     pub fn needs_recovery(&self) -> bool {
         matches!(self, Self::NeedsRecovery | Self::Active)
     }
-    
+
     /// Check if journal is usable
     #[inline]
     pub fn is_usable(&self) -> bool {
@@ -118,11 +118,11 @@ impl Default for JournalState {
 #[repr(u8)]
 pub enum JournalMode {
     /// Metadata only (default)
-    Metadata = 0,
+    Metadata  = 0,
     /// Full data journaling
-    Full = 1,
+    Full      = 1,
     /// Ordered writes (data before metadata)
-    Ordered = 2,
+    Ordered   = 2,
     /// Writeback (maximum performance, less safety)
     Writeback = 3,
 }
@@ -138,13 +138,13 @@ impl JournalMode {
             _ => Self::Metadata,
         }
     }
-    
+
     /// Does this mode journal data?
     #[inline]
     pub fn journals_data(&self) -> bool {
         matches!(self, Self::Full)
     }
-    
+
     /// Does this mode order data?
     #[inline]
     pub fn orders_data(&self) -> bool {
@@ -209,7 +209,7 @@ pub struct JournalSuperblock {
 impl JournalSuperblock {
     /// Size in bytes
     pub const SIZE: usize = 512;
-    
+
     /// Create new journal superblock
     pub fn new(size_blocks: u64, mode: JournalMode) -> Self {
         Self {
@@ -234,34 +234,34 @@ impl JournalSuperblock {
             checksum: 0,
         }
     }
-    
+
     /// Validate superblock
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != JOURNAL_MAGIC {
             return Err(HfsError::JournalCorrupted);
         }
-        
+
         if self.version != JOURNAL_VERSION {
             return Err(HfsError::InvalidVersion);
         }
-        
+
         if self.size_blocks < (MIN_JOURNAL_SIZE / JOURNAL_BLOCK_SIZE as u64) {
             return Err(HfsError::InvalidJournalSize);
         }
-        
+
         // Verify checksum
         let computed = self.compute_checksum();
         if self.checksum != 0 && self.checksum != computed {
             return Err(HfsError::ChecksumMismatch);
         }
-        
+
         Ok(())
     }
-    
+
     /// Compute checksum
     pub fn compute_checksum(&self) -> u32 {
         let mut hasher = Crc32c::new();
-        
+
         // Hash all fields except checksum
         let bytes = unsafe {
             core::slice::from_raw_parts(
@@ -270,27 +270,27 @@ impl JournalSuperblock {
             )
         };
         hasher.write(bytes);
-        
+
         hasher.finish()
     }
-    
+
     /// Update checksum
     pub fn update_checksum(&mut self) {
         self.checksum = self.compute_checksum();
     }
-    
+
     /// Get journal state
     #[inline]
     pub fn state(&self) -> JournalState {
         JournalState::from_raw(self.state)
     }
-    
+
     /// Get journal mode
     #[inline]
     pub fn mode(&self) -> JournalMode {
         JournalMode::from_raw(self.mode)
     }
-    
+
     /// Calculate used space
     pub fn used_blocks(&self) -> u64 {
         if self.head_seq >= self.tail_seq {
@@ -300,12 +300,12 @@ impl JournalSuperblock {
             self.size_blocks - (self.tail_seq - self.head_seq)
         }
     }
-    
+
     /// Calculate free space
     pub fn free_blocks(&self) -> u64 {
         self.size_blocks.saturating_sub(self.used_blocks() + 1)
     }
-    
+
     /// Check if journal has space for transaction
     pub fn has_space(&self, blocks: u64) -> bool {
         self.free_blocks() >= blocks
@@ -357,7 +357,7 @@ impl JournalStats {
             peak_txn: 0,
         }
     }
-    
+
     /// Record transaction commit
     pub fn record_commit(&mut self, bytes: u64, records: u64) {
         self.txn_committed += 1;
@@ -365,13 +365,13 @@ impl JournalStats {
         self.records_written += records;
         self.active_txn = self.active_txn.saturating_sub(1);
     }
-    
+
     /// Record transaction abort
     pub fn record_abort(&mut self) {
         self.txn_aborted += 1;
         self.active_txn = self.active_txn.saturating_sub(1);
     }
-    
+
     /// Record new transaction
     pub fn record_begin(&mut self) {
         self.active_txn += 1;
@@ -379,12 +379,12 @@ impl JournalStats {
             self.peak_txn = self.active_txn;
         }
     }
-    
+
     /// Record checkpoint
     pub fn record_checkpoint(&mut self) {
         self.checkpoints += 1;
     }
-    
+
     /// Commit rate
     pub fn commit_rate(&self) -> f32 {
         let total = self.txn_committed + self.txn_aborted;
@@ -402,43 +402,43 @@ impl JournalStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_journal_state() {
         assert!(JournalState::NeedsRecovery.needs_recovery());
         assert!(JournalState::Active.needs_recovery());
         assert!(!JournalState::Clean.needs_recovery());
-        
+
         assert!(JournalState::Clean.is_usable());
         assert!(!JournalState::Corrupted.is_usable());
     }
-    
+
     #[test]
     fn test_journal_mode() {
         assert!(JournalMode::Full.journals_data());
         assert!(!JournalMode::Metadata.journals_data());
-        
+
         assert!(JournalMode::Ordered.orders_data());
         assert!(JournalMode::Full.orders_data());
     }
-    
+
     #[test]
     fn test_journal_superblock() {
         let size = MIN_JOURNAL_SIZE / JOURNAL_BLOCK_SIZE as u64;
         let sb = JournalSuperblock::new(size, JournalMode::Metadata);
-        
+
         assert_eq!(sb.magic, JOURNAL_MAGIC);
         assert_eq!(sb.version, JOURNAL_VERSION);
         assert!(sb.validate().is_ok());
     }
-    
+
     #[test]
     fn test_journal_stats() {
         let mut stats = JournalStats::new();
-        
+
         stats.record_begin();
         assert_eq!(stats.active_txn, 1);
-        
+
         stats.record_commit(1000, 10);
         assert_eq!(stats.txn_committed, 1);
         assert_eq!(stats.bytes_logged, 1000);

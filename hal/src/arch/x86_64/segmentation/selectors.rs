@@ -325,8 +325,8 @@ mod tests {
     fn test_selector_layout() {
         assert_eq!(KERNEL_CS.raw(), 0x08);
         assert_eq!(KERNEL_DS.raw(), 0x10);
-        assert_eq!(USER_DS.raw(), 0x1B);  // 3 << 3 | 3
-        assert_eq!(USER_CS.raw(), 0x23);  // 4 << 3 | 3
+        assert_eq!(USER_DS.raw(), 0x1B); // 3 << 3 | 3
+        assert_eq!(USER_CS.raw(), 0x23); // 4 << 3 | 3
         assert_eq!(TSS_SELECTOR.raw(), 0x28);
     }
 

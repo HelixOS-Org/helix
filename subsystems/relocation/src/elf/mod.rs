@@ -463,7 +463,7 @@ impl ElfInfo {
                         DT_PLTRELSZ => info.plt_rela_size = dyn_entry.d_val as usize,
                         DT_SYMTAB => info.symtab_addr = Some(dyn_entry.d_val),
                         DT_STRTAB => info.strtab_addr = Some(dyn_entry.d_val),
-                        _ => {}
+                        _ => {},
                     }
 
                     i += 1;
@@ -496,6 +496,6 @@ impl ElfInfo {
 // ============================================================================
 
 pub mod parser;
+pub mod relocations;
 pub mod sections;
 pub mod symbols;
-pub mod relocations;

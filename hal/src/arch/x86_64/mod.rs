@@ -72,30 +72,30 @@
 // NEW INDUSTRIAL-GRADE CORE FRAMEWORK
 // =============================================================================
 
+pub mod apic;
 pub mod core;
-pub mod segmentation;
 pub mod interrupts;
 pub mod paging_v2;
-pub mod apic;
-pub mod timers;
+pub mod segmentation;
 pub mod smp;
+pub mod timers;
 
 // =============================================================================
 // EXISTING MODULES (Legacy - To Be Refactored)
 // =============================================================================
 
-pub mod gdt;
-pub mod idt;
+pub mod context;
 pub mod cpu;
 pub mod exceptions;
+pub mod gdt;
+pub mod idt;
+pub mod irq;
+pub mod paging;
 pub mod pic;
 pub mod pit;
-pub mod task;
-pub mod context;
-pub mod irq;
 pub mod syscall;
+pub mod task;
 pub mod userspace;
-pub mod paging;
 
 use crate::HalResult;
 
@@ -114,10 +114,14 @@ impl X86_64Hal {
     /// This should only be called once during boot.
     pub unsafe fn init() -> HalResult<Self> {
         // Initialize GDT
-        unsafe { gdt::init(); }
+        unsafe {
+            gdt::init();
+        }
 
         // Initialize IDT
-        unsafe { idt::init(); }
+        unsafe {
+            idt::init();
+        }
 
         Ok(Self {
             cpu: cpu::X86_64Cpu::new(),

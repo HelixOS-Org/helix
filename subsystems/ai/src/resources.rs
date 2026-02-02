@@ -49,20 +49,18 @@
 //!                      └─────────────────────────────────────┘
 //! ```
 
+use alloc::collections::VecDeque;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
+use core::sync::atomic::{AtomicU64, Ordering};
+
+use spin::{Mutex, RwLock};
+
 use crate::core::{
     AiAction, AiDecision, AiEvent, AiPriority, Confidence, DecisionContext, DecisionId,
     PowerProfile, ResourceType,
 };
-
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use core::sync::atomic::{AtomicU64, Ordering};
-use spin::{Mutex, RwLock};
 
 // =============================================================================
 // Compute Devices
@@ -259,11 +257,11 @@ pub enum MemoryAccessPattern {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TaskPriority {
     Background = 0,
-    Low = 1,
-    Normal = 2,
-    High = 3,
-    RealTime = 4,
-    Critical = 5,
+    Low        = 1,
+    Normal     = 2,
+    High       = 3,
+    RealTime   = 4,
+    Critical   = 5,
 }
 
 /// Energy preference
@@ -422,7 +420,7 @@ impl ResourceOracle {
             id: 0,
             device_type: DeviceType::Cpu,
             name: "System CPU".to_string(),
-            compute_units: 8, // Would be detected
+            compute_units: 8,                      // Would be detected
             memory_bytes: 16 * 1024 * 1024 * 1024, // 16 GB
             utilization: 0,
             temperature_c: 45,
@@ -450,7 +448,7 @@ impl ResourceOracle {
                 id: 1,
                 device_type: DeviceType::Gpu,
                 name: "Discrete GPU".to_string(),
-                compute_units: 60, // Streaming multiprocessors
+                compute_units: 60,                    // Streaming multiprocessors
                 memory_bytes: 8 * 1024 * 1024 * 1024, // 8 GB VRAM
                 utilization: 0,
                 temperature_c: 40,
@@ -512,15 +510,16 @@ impl ResourceOracle {
         context: &DecisionContext,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         match event {
-            AiEvent::CpuThreshold { usage_percent, cpu_id } => {
-                self.handle_cpu_threshold(*usage_percent, *cpu_id, context)
-            }
+            AiEvent::CpuThreshold {
+                usage_percent,
+                cpu_id,
+            } => self.handle_cpu_threshold(*usage_percent, *cpu_id, context),
             AiEvent::MemoryPressure { available_percent } => {
                 self.handle_memory_pressure(*available_percent, context)
-            }
+            },
             AiEvent::ProcessResourceSpike { pid, resource } => {
                 self.handle_resource_spike(*pid, resource, context)
-            }
+            },
             _ => Ok(None),
         }
     }
@@ -547,8 +546,10 @@ impl ResourceOracle {
                             kernel_name: "parallel_compute".to_string(),
                         },
                         Confidence::new(0.75),
-                        format!("CPU {} at {}%, offloading to GPU ({}% utilized)",
-                            cpu_id, usage, gpu.utilization),
+                        format!(
+                            "CPU {} at {}%, offloading to GPU ({}% utilized)",
+                            cpu_id, usage, gpu.utilization
+                        ),
                     )));
                 }
             }
@@ -578,7 +579,10 @@ impl ResourceOracle {
                     profile: PowerProfile::Performance,
                 },
                 Confidence::new(0.8),
-                format!("CPU critically high ({}%), enabling performance mode", usage),
+                format!(
+                    "CPU critically high ({}%), enabling performance mode",
+                    usage
+                ),
             )));
         }
 
@@ -598,7 +602,8 @@ impl ResourceOracle {
         // Check if GPU has available memory to offload to
         if self.gpu_enabled && available < 15 {
             if let Some(gpu) = self.find_available_device(DeviceType::Gpu) {
-                let gpu_available = (gpu.available_memory as f64 / gpu.memory_bytes as f64 * 100.0) as u8;
+                let gpu_available =
+                    (gpu.available_memory as f64 / gpu.memory_bytes as f64 * 100.0) as u8;
                 if gpu_available > 50 {
                     return Ok(Some((
                         AiAction::PreallocateResources {
@@ -632,9 +637,12 @@ impl ResourceOracle {
                         to_cpu: self.find_least_loaded_cpu(),
                     },
                     Confidence::new(0.65),
-                    format!("Migrating CPU-intensive process {} to less loaded core", pid),
+                    format!(
+                        "Migrating CPU-intensive process {} to less loaded core",
+                        pid
+                    ),
                 )))
-            }
+            },
             ResourceType::Gpu => {
                 // May need to preempt lower priority GPU tasks
                 self.stats.preemptions.fetch_add(1, Ordering::Relaxed);
@@ -647,7 +655,7 @@ impl ResourceOracle {
                     Confidence::new(0.6),
                     format!("Boosting GPU process {} priority", pid),
                 )))
-            }
+            },
             _ => Ok(None),
         }
     }
@@ -819,7 +827,8 @@ impl ResourceOracle {
     ) -> Option<&'a ComputeDevice> {
         // Check preferred device first
         if let Some(preferred) = workload.preferred_device {
-            if let Some(device) = devices.iter()
+            if let Some(device) = devices
+                .iter()
                 .find(|d| d.device_type == preferred && d.status == DeviceStatus::Available)
             {
                 if device.available_memory >= workload.memory_requirement.min_bytes {
@@ -830,7 +839,8 @@ impl ResourceOracle {
 
         // Try fallback devices
         for fallback in &workload.fallback_devices {
-            if let Some(device) = devices.iter()
+            if let Some(device) = devices
+                .iter()
                 .find(|d| d.device_type == *fallback && d.status == DeviceStatus::Available)
             {
                 if device.available_memory >= workload.memory_requirement.min_bytes {
@@ -840,14 +850,18 @@ impl ResourceOracle {
         }
 
         // Default to CPU
-        devices.iter()
+        devices
+            .iter()
             .find(|d| d.device_type == DeviceType::Cpu && d.status == DeviceStatus::Available)
     }
 
     /// Release an allocation
     pub fn release(&self, workload_id: u64) {
         let mut allocations = self.active_allocations.write();
-        if let Some(pos) = allocations.iter().position(|a| a.workload_id == workload_id) {
+        if let Some(pos) = allocations
+            .iter()
+            .position(|a| a.workload_id == workload_id)
+        {
             let allocation = allocations.remove(pos);
 
             // Record in history
@@ -862,7 +876,9 @@ impl ResourceOracle {
                 actual_power_mw: 0,
             });
 
-            self.stats.allocations_successful.fetch_add(1, Ordering::Relaxed);
+            self.stats
+                .allocations_successful
+                .fetch_add(1, Ordering::Relaxed);
         }
     }
 

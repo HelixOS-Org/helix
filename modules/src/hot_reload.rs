@@ -2,14 +2,14 @@
 //!
 //! Enables replacing modules at runtime without system restart.
 
-use crate::{
-    Module, ModuleId, ModuleResult, ModuleError, ModuleState, ModuleFlags,
-    registry::{ModuleRegistry},
-};
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::any::Any;
+
 use spin::RwLock;
+
+use crate::registry::ModuleRegistry;
+use crate::{Module, ModuleError, ModuleFlags, ModuleId, ModuleResult, ModuleState};
 
 /// Hot reload state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,16 +78,16 @@ impl HotReloadEngine {
         }
 
         // Check module exists and supports hot reload
-        let metadata = registry.get(id)
-            .ok_or(ModuleError::NotFound)?;
+        let metadata = registry.get(id).ok_or(ModuleError::NotFound)?;
 
         if !metadata.flags.contains(ModuleFlags::HOT_RELOADABLE) {
-            return Err(ModuleError::Internal("Module does not support hot reload".into()));
+            return Err(ModuleError::Internal(
+                "Module does not support hot reload".into(),
+            ));
         }
 
         // Check module is running
-        let state = registry.get_state(id)
-            .ok_or(ModuleError::NotFound)?;
+        let state = registry.get_state(id).ok_or(ModuleError::NotFound)?;
 
         if state != ModuleState::Running {
             return Err(ModuleError::WrongState {
@@ -155,7 +155,7 @@ impl HotReloadEngine {
         log::error!("Hot reload failed: {:?}", error);
 
         *self.state.write() = ReloadState::Failed;
-        
+
         // TODO: Implement rollback
 
         *self.state.write() = ReloadState::Idle;
@@ -172,7 +172,7 @@ impl HotReloadEngine {
         id: ModuleId,
         new_binary: &[u8],
         get_module: F,
-    ) -> ReloadResult 
+    ) -> ReloadResult
     where
         F: FnOnce(ModuleId) -> Option<Arc<RwLock<dyn Module>>>,
     {
@@ -197,10 +197,12 @@ impl HotReloadEngine {
         // Step 3: Get current module and save state
         let module = match get_module(id) {
             Some(m) => m,
-            None => return ReloadResult {
-                success: false,
-                old_module: None,
-                error: Some(ModuleError::NotFound),
+            None => {
+                return ReloadResult {
+                    success: false,
+                    old_module: None,
+                    error: Some(ModuleError::NotFound),
+                }
             },
         };
 
@@ -214,13 +216,13 @@ impl HotReloadEngine {
 
         // Step 4: Load new module
         *self.state.write() = ReloadState::Loading;
-        
+
         // TODO: Actually load the new module from binary
         // For now, just demonstrate the framework
 
         // Step 5: Restore state
         *self.state.write() = ReloadState::RestoringState;
-        
+
         if let Some(state) = self.take_saved_state() {
             // TODO: Pass state to new module
             let _ = state;

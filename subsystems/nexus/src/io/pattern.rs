@@ -128,7 +128,7 @@ impl IoPatternAnalyzer {
         }
 
         // Check for strided
-        if let Some((&stride, &count)) = strides.iter().max_by_key(|(_, &c)| c) {
+        if let Some((&stride, &count)) = strides.iter().max_by_key(|&(_, c)| c) {
             let stride_ratio = count as f64 / (len - 1) as f64;
             if stride_ratio > 0.6 && stride != 0 {
                 self.detected_stride = Some(stride);

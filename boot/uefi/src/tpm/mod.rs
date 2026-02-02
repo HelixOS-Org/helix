@@ -239,77 +239,77 @@ pub mod crb_reg {
 #[repr(u16)]
 pub enum TpmAlgorithm {
     /// Error
-    Error = 0x0000,
+    Error        = 0x0000,
     /// RSA
-    Rsa = 0x0001,
+    Rsa          = 0x0001,
     /// Triple DES
-    TripleDes = 0x0003,
+    TripleDes    = 0x0003,
     /// SHA-1
-    Sha1 = 0x0004,
+    Sha1         = 0x0004,
     /// HMAC
-    Hmac = 0x0005,
+    Hmac         = 0x0005,
     /// AES
-    Aes = 0x0006,
+    Aes          = 0x0006,
     /// MGF1
-    Mgf1 = 0x0007,
+    Mgf1         = 0x0007,
     /// Key derivation function 1
-    KeyedHash = 0x0008,
+    KeyedHash    = 0x0008,
     /// XOR
-    Xor = 0x000A,
+    Xor          = 0x000A,
     /// SHA-256
-    Sha256 = 0x000B,
+    Sha256       = 0x000B,
     /// SHA-384
-    Sha384 = 0x000C,
+    Sha384       = 0x000C,
     /// SHA-512
-    Sha512 = 0x000D,
+    Sha512       = 0x000D,
     /// Null algorithm
-    Null = 0x0010,
+    Null         = 0x0010,
     /// SM3-256
-    Sm3_256 = 0x0012,
+    Sm3_256      = 0x0012,
     /// SM4
-    Sm4 = 0x0013,
+    Sm4          = 0x0013,
     /// RSA-SSA
-    RsaSsa = 0x0014,
+    RsaSsa       = 0x0014,
     /// RSA-ES
-    RsaEs = 0x0015,
+    RsaEs        = 0x0015,
     /// RSA-PSS
-    RsaPss = 0x0016,
+    RsaPss       = 0x0016,
     /// RSA-OAEP
-    RsaOaep = 0x0017,
+    RsaOaep      = 0x0017,
     /// ECDSA
-    Ecdsa = 0x0018,
+    Ecdsa        = 0x0018,
     /// ECDH
-    Ecdh = 0x0019,
+    Ecdh         = 0x0019,
     /// ECDAA
-    Ecdaa = 0x001A,
+    Ecdaa        = 0x001A,
     /// SM2
-    Sm2 = 0x001B,
+    Sm2          = 0x001B,
     /// EC Schnorr
-    EcSchnorr = 0x001C,
+    EcSchnorr    = 0x001C,
     /// ECMQV
-    Ecmqv = 0x001D,
+    Ecmqv        = 0x001D,
     /// KDF1 SP800-56A
     Kdf1Sp80056a = 0x0020,
     /// KDF2
-    Kdf2 = 0x0021,
+    Kdf2         = 0x0021,
     /// KDF1 SP800-108
     Kdf1Sp800108 = 0x0022,
     /// ECC
-    Ecc = 0x0023,
+    Ecc          = 0x0023,
     /// Symmetric cipher
-    SymCipher = 0x0025,
+    SymCipher    = 0x0025,
     /// Camellia
-    Camellia = 0x0026,
+    Camellia     = 0x0026,
     /// CTR mode
-    Ctr = 0x0040,
+    Ctr          = 0x0040,
     /// OFB mode
-    Ofb = 0x0041,
+    Ofb          = 0x0041,
     /// CBC mode
-    Cbc = 0x0042,
+    Cbc          = 0x0042,
     /// CFB mode
-    Cfb = 0x0043,
+    Cfb          = 0x0043,
     /// ECB mode
-    Ecb = 0x0044,
+    Ecb          = 0x0044,
 }
 
 impl TpmAlgorithm {
@@ -404,7 +404,7 @@ impl TpmAlgorithm {
 #[repr(u16)]
 pub enum TpmEccCurve {
     /// None
-    None = 0x0000,
+    None     = 0x0000,
     /// NIST P-192
     NistP192 = 0x0001,
     /// NIST P-224
@@ -416,11 +416,11 @@ pub enum TpmEccCurve {
     /// NIST P-521
     NistP521 = 0x0005,
     /// Barreto-Naehrig 256-bit
-    Bn256 = 0x0010,
+    Bn256    = 0x0010,
     /// Barreto-Naehrig 638-bit
-    Bn638 = 0x0011,
+    Bn638    = 0x0011,
     /// SM2 P-256
-    Sm2P256 = 0x0020,
+    Sm2P256  = 0x0020,
 }
 
 impl TpmEccCurve {
@@ -464,215 +464,215 @@ pub enum TpmCommand {
     /// NV UndefineSpaceSpecial
     NvUndefineSpaceSpecial = 0x0000011F,
     /// Evict Control
-    EvictControl = 0x00000120,
+    EvictControl        = 0x00000120,
     /// Hierarchy Control
-    HierarchyControl = 0x00000121,
+    HierarchyControl    = 0x00000121,
     /// NV UndefineSpace
-    NvUndefineSpace = 0x00000122,
+    NvUndefineSpace     = 0x00000122,
     /// Change EPS
-    ChangeEps = 0x00000124,
+    ChangeEps           = 0x00000124,
     /// Change PPS
-    ChangePps = 0x00000125,
+    ChangePps           = 0x00000125,
     /// Clear
-    Clear = 0x00000126,
+    Clear               = 0x00000126,
     /// Clear Control
-    ClearControl = 0x00000127,
+    ClearControl        = 0x00000127,
     /// Clock Set
-    ClockSet = 0x00000128,
+    ClockSet            = 0x00000128,
     /// Hierarchy Change Auth
     HierarchyChangeAuth = 0x00000129,
     /// NV Define Space
-    NvDefineSpace = 0x0000012A,
+    NvDefineSpace       = 0x0000012A,
     /// PCR Allocate
-    PcrAllocate = 0x0000012B,
+    PcrAllocate         = 0x0000012B,
     /// PCR Set Auth Policy
-    PcrSetAuthPolicy = 0x0000012C,
+    PcrSetAuthPolicy    = 0x0000012C,
     /// PP Commands
-    PpCommands = 0x0000012D,
+    PpCommands          = 0x0000012D,
     /// Set Primary Policy
-    SetPrimaryPolicy = 0x0000012E,
+    SetPrimaryPolicy    = 0x0000012E,
     /// Field Upgrade Start
-    FieldUpgradeStart = 0x0000012F,
+    FieldUpgradeStart   = 0x0000012F,
     /// Clock Rate Adjust
-    ClockRateAdjust = 0x00000130,
+    ClockRateAdjust     = 0x00000130,
     /// Create Primary
-    CreatePrimary = 0x00000131,
+    CreatePrimary       = 0x00000131,
     /// NV Global Write Lock
-    NvGlobalWriteLock = 0x00000132,
+    NvGlobalWriteLock   = 0x00000132,
     /// Get Command Audit Digest
     GetCommandAuditDigest = 0x00000133,
     /// NV Increment
-    NvIncrement = 0x00000134,
+    NvIncrement         = 0x00000134,
     /// NV Set Bits
-    NvSetBits = 0x00000135,
+    NvSetBits           = 0x00000135,
     /// NV Extend
-    NvExtend = 0x00000136,
+    NvExtend            = 0x00000136,
     /// NV Write
-    NvWrite = 0x00000137,
+    NvWrite             = 0x00000137,
     /// NV Write Lock
-    NvWriteLock = 0x00000138,
+    NvWriteLock         = 0x00000138,
     /// Dictionary Attack Lock Reset
     DictionaryAttackLockReset = 0x00000139,
     /// Dictionary Attack Parameters
     DictionaryAttackParameters = 0x0000013A,
     /// NV Change Auth
-    NvChangeAuth = 0x0000013B,
+    NvChangeAuth        = 0x0000013B,
     /// PCR Event
-    PcrEvent = 0x0000013C,
+    PcrEvent            = 0x0000013C,
     /// PCR Reset
-    PcrReset = 0x0000013D,
+    PcrReset            = 0x0000013D,
     /// Sequence Complete
-    SequenceComplete = 0x0000013E,
+    SequenceComplete    = 0x0000013E,
     /// Set Algorithm Set
-    SetAlgorithmSet = 0x0000013F,
+    SetAlgorithmSet     = 0x0000013F,
     /// Set Command Code Audit Status
     SetCommandCodeAuditStatus = 0x00000140,
     /// Field Upgrade Data
-    FieldUpgradeData = 0x00000141,
+    FieldUpgradeData    = 0x00000141,
     /// Incremental Self Test
     IncrementalSelfTest = 0x00000142,
     /// Self Test
-    SelfTest = 0x00000143,
+    SelfTest            = 0x00000143,
     /// Startup
-    Startup = 0x00000144,
+    Startup             = 0x00000144,
     /// Shutdown
-    Shutdown = 0x00000145,
+    Shutdown            = 0x00000145,
     /// Stir Random
-    StirRandom = 0x00000146,
+    StirRandom          = 0x00000146,
     /// Activate Credential
-    ActivateCredential = 0x00000147,
+    ActivateCredential  = 0x00000147,
     /// Certify
-    Certify = 0x00000148,
+    Certify             = 0x00000148,
     /// Policy NV
-    PolicyNv = 0x00000149,
+    PolicyNv            = 0x00000149,
     /// Certify Creation
-    CertifyCreation = 0x0000014A,
+    CertifyCreation     = 0x0000014A,
     /// Duplicate
-    Duplicate = 0x0000014B,
+    Duplicate           = 0x0000014B,
     /// Get Time
-    GetTime = 0x0000014C,
+    GetTime             = 0x0000014C,
     /// Get Session Audit Digest
     GetSessionAuditDigest = 0x0000014D,
     /// NV Read
-    NvRead = 0x0000014E,
+    NvRead              = 0x0000014E,
     /// NV Read Lock
-    NvReadLock = 0x0000014F,
+    NvReadLock          = 0x0000014F,
     /// Object Change Auth
-    ObjectChangeAuth = 0x00000150,
+    ObjectChangeAuth    = 0x00000150,
     /// Policy Secret
-    PolicySecret = 0x00000151,
+    PolicySecret        = 0x00000151,
     /// Rewrap
-    Rewrap = 0x00000152,
+    Rewrap              = 0x00000152,
     /// Create
-    Create = 0x00000153,
+    Create              = 0x00000153,
     /// ECDH Key Gen
-    EcdhKeyGen = 0x00000154,
+    EcdhKeyGen          = 0x00000154,
     /// HMAC
-    Hmac = 0x00000155,
+    Hmac                = 0x00000155,
     /// Import
-    Import = 0x00000156,
+    Import              = 0x00000156,
     /// Load
-    Load = 0x00000157,
+    Load                = 0x00000157,
     /// Quote
-    Quote = 0x00000158,
+    Quote               = 0x00000158,
     /// RSA Decrypt
-    RsaDecrypt = 0x00000159,
+    RsaDecrypt          = 0x00000159,
     /// HMAC Start
-    HmacStart = 0x0000015B,
+    HmacStart           = 0x0000015B,
     /// Sequence Update
-    SequenceUpdate = 0x0000015C,
+    SequenceUpdate      = 0x0000015C,
     /// Sign
-    Sign = 0x0000015D,
+    Sign                = 0x0000015D,
     /// Unseal
-    Unseal = 0x0000015E,
+    Unseal              = 0x0000015E,
     /// Policy Signed
-    PolicySigned = 0x00000160,
+    PolicySigned        = 0x00000160,
     /// Context Load
-    ContextLoad = 0x00000161,
+    ContextLoad         = 0x00000161,
     /// Context Save
-    ContextSave = 0x00000162,
+    ContextSave         = 0x00000162,
     /// ECDH Z Gen
-    EcdhZGen = 0x00000163,
+    EcdhZGen            = 0x00000163,
     /// Encrypt Decrypt
-    EncryptDecrypt = 0x00000164,
+    EncryptDecrypt      = 0x00000164,
     /// Flush Context
-    FlushContext = 0x00000165,
+    FlushContext        = 0x00000165,
     /// Load External
-    LoadExternal = 0x00000167,
+    LoadExternal        = 0x00000167,
     /// Make Credential
-    MakeCredential = 0x00000168,
+    MakeCredential      = 0x00000168,
     /// NV Read Public
-    NvReadPublic = 0x00000169,
+    NvReadPublic        = 0x00000169,
     /// Policy Authorize
-    PolicyAuthorize = 0x0000016A,
+    PolicyAuthorize     = 0x0000016A,
     /// Policy Auth Value
-    PolicyAuthValue = 0x0000016B,
+    PolicyAuthValue     = 0x0000016B,
     /// Policy Command Code
-    PolicyCommandCode = 0x0000016C,
+    PolicyCommandCode   = 0x0000016C,
     /// Policy Counter Timer
-    PolicyCounterTimer = 0x0000016D,
+    PolicyCounterTimer  = 0x0000016D,
     /// Policy CP Hash
-    PolicyCpHash = 0x0000016E,
+    PolicyCpHash        = 0x0000016E,
     /// Policy Locality
-    PolicyLocality = 0x0000016F,
+    PolicyLocality      = 0x0000016F,
     /// Policy Name Hash
-    PolicyNameHash = 0x00000170,
+    PolicyNameHash      = 0x00000170,
     /// Policy OR
-    PolicyOr = 0x00000171,
+    PolicyOr            = 0x00000171,
     /// Policy Ticket
-    PolicyTicket = 0x00000172,
+    PolicyTicket        = 0x00000172,
     /// Read Public
-    ReadPublic = 0x00000173,
+    ReadPublic          = 0x00000173,
     /// RSA Encrypt
-    RsaEncrypt = 0x00000174,
+    RsaEncrypt          = 0x00000174,
     /// Start Auth Session
-    StartAuthSession = 0x00000176,
+    StartAuthSession    = 0x00000176,
     /// Verify Signature
-    VerifySignature = 0x00000177,
+    VerifySignature     = 0x00000177,
     /// ECC Parameters
-    EccParameters = 0x00000178,
+    EccParameters       = 0x00000178,
     /// Firmware Read
-    FirmwareRead = 0x00000179,
+    FirmwareRead        = 0x00000179,
     /// Get Capability
-    GetCapability = 0x0000017A,
+    GetCapability       = 0x0000017A,
     /// Get Random
-    GetRandom = 0x0000017B,
+    GetRandom           = 0x0000017B,
     /// Get Test Result
-    GetTestResult = 0x0000017C,
+    GetTestResult       = 0x0000017C,
     /// Hash
-    Hash = 0x0000017D,
+    Hash                = 0x0000017D,
     /// PCR Read
-    PcrRead = 0x0000017E,
+    PcrRead             = 0x0000017E,
     /// Policy PCR
-    PolicyPcr = 0x0000017F,
+    PolicyPcr           = 0x0000017F,
     /// Policy Restart
-    PolicyRestart = 0x00000180,
+    PolicyRestart       = 0x00000180,
     /// Read Clock
-    ReadClock = 0x00000181,
+    ReadClock           = 0x00000181,
     /// PCR Extend
-    PcrExtend = 0x00000182,
+    PcrExtend           = 0x00000182,
     /// Policy Get Digest
-    PolicyGetDigest = 0x00000189,
+    PolicyGetDigest     = 0x00000189,
     /// Test Parms
-    TestParms = 0x0000018A,
+    TestParms           = 0x0000018A,
     /// Commit
-    Commit = 0x0000018B,
+    Commit              = 0x0000018B,
     /// Policy Password
-    PolicyPassword = 0x0000018C,
+    PolicyPassword      = 0x0000018C,
     /// Z Gen 2 Phase
-    ZGen2Phase = 0x0000018D,
+    ZGen2Phase          = 0x0000018D,
     /// EC Ephemeral
-    EcEphemeral = 0x0000018E,
+    EcEphemeral         = 0x0000018E,
     /// Policy NV Written
-    PolicyNvWritten = 0x0000018F,
+    PolicyNvWritten     = 0x0000018F,
     /// Policy Template
-    PolicyTemplate = 0x00000190,
+    PolicyTemplate      = 0x00000190,
     /// Create Loaded
-    CreateLoaded = 0x00000191,
+    CreateLoaded        = 0x00000191,
     /// Policy Authorize NV
-    PolicyAuthorizeNv = 0x00000192,
+    PolicyAuthorizeNv   = 0x00000192,
     /// Encrypt Decrypt 2
-    EncryptDecrypt2 = 0x00000193,
+    EncryptDecrypt2     = 0x00000193,
 }
 
 // =============================================================================
@@ -929,49 +929,49 @@ impl fmt::Debug for PcrValue {
 #[repr(u32)]
 pub enum EventType {
     /// Pre-boot cert
-    PrebootCert = 0x00000000,
+    PrebootCert          = 0x00000000,
     /// POST code
-    PostCode = 0x00000001,
+    PostCode             = 0x00000001,
     /// Unused
-    Unused = 0x00000002,
+    Unused               = 0x00000002,
     /// No action
-    NoAction = 0x00000003,
+    NoAction             = 0x00000003,
     /// Separator
-    Separator = 0x00000004,
+    Separator            = 0x00000004,
     /// Action
-    Action = 0x00000005,
+    Action               = 0x00000005,
     /// Event tag
-    EventTag = 0x00000006,
+    EventTag             = 0x00000006,
     /// S-CRTM contents
-    SCrtmContents = 0x00000007,
+    SCrtmContents        = 0x00000007,
     /// S-CRTM version
-    SCrtmVersion = 0x00000008,
+    SCrtmVersion         = 0x00000008,
     /// CPU microcode
-    CpuMicrocode = 0x00000009,
+    CpuMicrocode         = 0x00000009,
     /// Platform config flags
-    PlatformConfigFlags = 0x0000000A,
+    PlatformConfigFlags  = 0x0000000A,
     /// Table of devices
-    TableOfDevices = 0x0000000B,
+    TableOfDevices       = 0x0000000B,
     /// Compact hash
-    CompactHash = 0x0000000C,
+    CompactHash          = 0x0000000C,
     /// IPL
-    Ipl = 0x0000000D,
+    Ipl                  = 0x0000000D,
     /// IPL partition data
-    IplPartitionData = 0x0000000E,
+    IplPartitionData     = 0x0000000E,
     /// Non-host code
-    NonHostCode = 0x0000000F,
+    NonHostCode          = 0x0000000F,
     /// Non-host config
-    NonHostConfig = 0x00000010,
+    NonHostConfig        = 0x00000010,
     /// Non-host info
-    NonHostInfo = 0x00000011,
+    NonHostInfo          = 0x00000011,
     /// Omit boot device events
     OmitBootDeviceEvents = 0x00000012,
     /// EFI event base
-    EfiEventBase = 0x80000000,
+    EfiEventBase         = 0x80000000,
     /// EFI variable driver config
     EfiVariableDriverConfig = 0x80000001,
     /// EFI variable boot
-    EfiVariableBoot = 0x80000002,
+    EfiVariableBoot      = 0x80000002,
     /// EFI boot services application
     EfiBootServicesApplication = 0x80000003,
     /// EFI boot services driver
@@ -979,25 +979,25 @@ pub enum EventType {
     /// EFI runtime services driver
     EfiRuntimeServicesDriver = 0x80000005,
     /// EFI GPT event
-    EfiGptEvent = 0x80000006,
+    EfiGptEvent          = 0x80000006,
     /// EFI action
-    EfiAction = 0x80000007,
+    EfiAction            = 0x80000007,
     /// EFI platform firmware blob
     EfiPlatformFirmwareBlob = 0x80000008,
     /// EFI handoff tables
-    EfiHandoffTables = 0x80000009,
+    EfiHandoffTables     = 0x80000009,
     /// EFI platform firmware blob 2
     EfiPlatformFirmwareBlob2 = 0x8000000A,
     /// EFI handoff tables 2
-    EfiHandoffTables2 = 0x8000000B,
+    EfiHandoffTables2    = 0x8000000B,
     /// EFI variable boot 2
-    EfiVariableBoot2 = 0x8000000C,
+    EfiVariableBoot2     = 0x8000000C,
     /// EFI HCR event
-    EfiHcrEvent = 0x80000010,
+    EfiHcrEvent          = 0x80000010,
     /// EFI variable authority
     EfiVariableAuthority = 0x800000E0,
     /// EFI SPDM firmware blob
-    EfiSpdmFirmwareBlob = 0x800000E1,
+    EfiSpdmFirmwareBlob  = 0x800000E1,
     /// EFI SPDM firmware config
     EfiSpdmFirmwareConfig = 0x800000E2,
 }
@@ -1204,25 +1204,25 @@ impl NvPublic {
 #[repr(u32)]
 pub enum TpmCapability {
     /// Algorithms
-    Algorithms = 0x00000000,
+    Algorithms    = 0x00000000,
     /// Handles
-    Handles = 0x00000001,
+    Handles       = 0x00000001,
     /// Commands
-    Commands = 0x00000002,
+    Commands      = 0x00000002,
     /// PP Commands
-    PpCommands = 0x00000003,
+    PpCommands    = 0x00000003,
     /// Audit Commands
     AuditCommands = 0x00000004,
     /// Assigned PCRs
-    Pcrs = 0x00000005,
+    Pcrs          = 0x00000005,
     /// TPM Properties
     TpmProperties = 0x00000006,
     /// PCR Properties
     PcrProperties = 0x00000007,
     /// ECC Curves
-    EccCurves = 0x00000008,
+    EccCurves     = 0x00000008,
     /// Auth Policies
-    AuthPolicies = 0x00000009,
+    AuthPolicies  = 0x00000009,
 }
 
 /// TPM property tags
@@ -1230,65 +1230,65 @@ pub enum TpmCapability {
 #[repr(u32)]
 pub enum TpmProperty {
     /// TPM family indicator
-    FamilyIndicator = 0x100,
+    FamilyIndicator   = 0x100,
     /// Level
-    Level = 0x101,
+    Level             = 0x101,
     /// Revision
-    Revision = 0x102,
+    Revision          = 0x102,
     /// Day of year
-    DayOfYear = 0x103,
+    DayOfYear         = 0x103,
     /// Year
-    Year = 0x104,
+    Year              = 0x104,
     /// Manufacturer
-    Manufacturer = 0x105,
+    Manufacturer      = 0x105,
     /// Vendor string 1
-    VendorString1 = 0x106,
+    VendorString1     = 0x106,
     /// Vendor string 2
-    VendorString2 = 0x107,
+    VendorString2     = 0x107,
     /// Vendor string 3
-    VendorString3 = 0x108,
+    VendorString3     = 0x108,
     /// Vendor string 4
-    VendorString4 = 0x109,
+    VendorString4     = 0x109,
     /// Vendor TPM type
-    VendorTpmType = 0x10A,
+    VendorTpmType     = 0x10A,
     /// Firmware version 1
-    FirmwareVersion1 = 0x10B,
+    FirmwareVersion1  = 0x10B,
     /// Firmware version 2
-    FirmwareVersion2 = 0x10C,
+    FirmwareVersion2  = 0x10C,
     /// Input buffer size
-    InputBuffer = 0x10D,
+    InputBuffer       = 0x10D,
     /// Max response size
-    MaxResponseSize = 0x10E,
+    MaxResponseSize   = 0x10E,
     /// Max digest
-    MaxDigest = 0x10F,
+    MaxDigest         = 0x10F,
     /// Max object context size
-    MaxObjectContext = 0x110,
+    MaxObjectContext  = 0x110,
     /// Max session context size
     MaxSessionContext = 0x111,
     /// PS family indicator
     PsFamilyIndicator = 0x112,
     /// PS level
-    PsLevel = 0x113,
+    PsLevel           = 0x113,
     /// PS revision
-    PsRevision = 0x114,
+    PsRevision        = 0x114,
     /// PS day of year
-    PsDayOfYear = 0x115,
+    PsDayOfYear       = 0x115,
     /// PS year
-    PsYear = 0x116,
+    PsYear            = 0x116,
     /// Split max
-    SplitMax = 0x117,
+    SplitMax          = 0x117,
     /// Total commands
-    TotalCommands = 0x118,
+    TotalCommands     = 0x118,
     /// Library commands
-    LibraryCommands = 0x119,
+    LibraryCommands   = 0x119,
     /// Vendor commands
-    VendorCommands = 0x11A,
+    VendorCommands    = 0x11A,
     /// NV buffer max
-    NvBufferMax = 0x11B,
+    NvBufferMax       = 0x11B,
     /// Modes
-    Modes = 0x11C,
+    Modes             = 0x11C,
     /// Max cap buffer
-    MaxCapBuffer = 0x11D,
+    MaxCapBuffer      = 0x11D,
 }
 
 /// TPM startup type
@@ -1509,7 +1509,7 @@ impl TpmCommandBuffer {
         self.write_u16(0); // Nonce size
         self.write_u8(0); // Session attributes
         self.write_u16(0); // Auth value size
-        // Digest count
+                           // Digest count
         self.write_u32(1);
         // Algorithm
         self.write_u16(algorithm as u16);
@@ -1626,8 +1626,7 @@ impl<'a> TpmResponseBuffer<'a> {
     /// Read u16 (big-endian)
     pub fn read_u16(&mut self) -> Option<u16> {
         if self.pos + 2 <= self.data.len() {
-            let value =
-                u16::from_be_bytes([self.data[self.pos], self.data[self.pos + 1]]);
+            let value = u16::from_be_bytes([self.data[self.pos], self.data[self.pos + 1]]);
             self.pos += 2;
             Some(value)
         } else {
@@ -1843,19 +1842,19 @@ impl fmt::Display for TpmError {
 #[repr(u16)]
 pub enum AttestationType {
     /// Certification
-    Certify = 0x8017,
+    Certify      = 0x8017,
     /// Quote
-    Quote = 0x8018,
+    Quote        = 0x8018,
     /// Session audit
     SessionAudit = 0x8019,
     /// Command audit
     CommandAudit = 0x801A,
     /// Time
-    Time = 0x801B,
+    Time         = 0x801B,
     /// Creation
-    Creation = 0x801C,
+    Creation     = 0x801C,
     /// NV
-    Nv = 0x8014,
+    Nv           = 0x8014,
 }
 
 /// Quote info structure

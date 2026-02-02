@@ -2,9 +2,10 @@
 //!
 //! Safe wrappers for locating and using UEFI protocols.
 
-use crate::raw::types::*;
-use super::boot::boot_services;
 use core::marker::PhantomData;
+
+use super::boot::boot_services;
+use crate::raw::types::*;
 
 // =============================================================================
 // PROTOCOL TRAIT
@@ -134,9 +135,7 @@ impl ProtocolLocator {
             OPEN_PROTOCOL_BY_HANDLE_PROTOCOL,
         )?;
 
-        Ok(unsafe {
-            ProtocolHandle::new(interface, handle, agent, true)
-        })
+        Ok(unsafe { ProtocolHandle::new(interface, handle, agent, true) })
     }
 
     /// Find all handles supporting a protocol
@@ -161,9 +160,7 @@ impl ProtocolLocator {
             OPEN_PROTOCOL_EXCLUSIVE,
         )?;
 
-        Ok(unsafe {
-            ProtocolHandle::new(interface, handle, agent, true)
-        })
+        Ok(unsafe { ProtocolHandle::new(interface, handle, agent, true) })
     }
 
     /// Get protocol without opening (simple lookup)
@@ -384,7 +381,10 @@ impl ProtocolNotification {
             return Err(status);
         }
 
-        Ok(Self { event, registration })
+        Ok(Self {
+            event,
+            registration,
+        })
     }
 
     /// Get the registration key

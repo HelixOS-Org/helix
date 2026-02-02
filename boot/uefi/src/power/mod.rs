@@ -161,9 +161,7 @@ pub struct RsdpV1 {
 impl RsdpV1 {
     /// Validate checksum
     pub fn validate(&self) -> bool {
-        let bytes = unsafe {
-            core::slice::from_raw_parts(self as *const _ as *const u8, 20)
-        };
+        let bytes = unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, 20) };
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
     }
 
@@ -520,37 +518,37 @@ pub enum PmProfile {
 #[repr(u8)]
 pub enum MadtEntryType {
     /// Processor Local APIC
-    LocalApic = 0,
+    LocalApic            = 0,
     /// I/O APIC
-    IoApic = 1,
+    IoApic               = 1,
     /// Interrupt Source Override
     InterruptSourceOverride = 2,
     /// NMI Source
-    NmiSource = 3,
+    NmiSource            = 3,
     /// Local APIC NMI
-    LocalApicNmi = 4,
+    LocalApicNmi         = 4,
     /// Local APIC Address Override
     LocalApicAddressOverride = 5,
     /// I/O SAPIC
-    IoSapic = 6,
+    IoSapic              = 6,
     /// Local SAPIC
-    LocalSapic = 7,
+    LocalSapic           = 7,
     /// Platform Interrupt Sources
     PlatformInterruptSources = 8,
     /// Processor Local x2APIC
-    LocalX2Apic = 9,
+    LocalX2Apic          = 9,
     /// Local x2APIC NMI
-    LocalX2ApicNmi = 10,
+    LocalX2ApicNmi       = 10,
     /// GIC CPU Interface
-    GicCpuInterface = 11,
+    GicCpuInterface      = 11,
     /// GIC Distributor
-    GicDistributor = 12,
+    GicDistributor       = 12,
     /// GIC MSI Frame
-    GicMsiFrame = 13,
+    GicMsiFrame          = 13,
     /// GIC Redistributor
-    GicRedistributor = 14,
+    GicRedistributor     = 14,
     /// GIC ITS
-    GicIts = 15,
+    GicIts               = 15,
     /// Multiprocessor Wakeup
     MultiprocessorWakeup = 16,
 }
@@ -799,15 +797,15 @@ impl Hpet {
 #[repr(u8)]
 pub enum SratEntryType {
     /// Processor Local APIC/SAPIC Affinity
-    LocalApicAffinity = 0,
+    LocalApicAffinity   = 0,
     /// Memory Affinity
-    MemoryAffinity = 1,
+    MemoryAffinity      = 1,
     /// Processor Local x2APIC Affinity
     LocalX2ApicAffinity = 2,
     /// GICC Affinity
-    GiccAffinity = 3,
+    GiccAffinity        = 3,
     /// GIC ITS Affinity
-    GicItsAffinity = 4,
+    GicItsAffinity      = 4,
     /// Generic Initiator Affinity
     GenericInitiatorAffinity = 5,
 }

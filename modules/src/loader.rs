@@ -2,11 +2,13 @@
 //!
 //! Handles loading module binaries from various sources.
 
-use crate::{Module, ModuleMetadata, ModuleResult, ModuleError, ModuleState};
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+
 use spin::RwLock;
+
+use crate::{Module, ModuleError, ModuleMetadata, ModuleResult, ModuleState};
 
 /// Module binary format
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,15 +93,17 @@ impl ModuleLoader for ElfLoader {
 
     fn extract_metadata(&self, binary: &[u8]) -> ModuleResult<ModuleMetadata> {
         self.validate(binary)?;
-        
+
         // TODO: Parse ELF sections to extract .helix_meta section
-        
-        Err(ModuleError::Internal("ELF metadata extraction not yet implemented".into()))
+
+        Err(ModuleError::Internal(
+            "ELF metadata extraction not yet implemented".into(),
+        ))
     }
 
     fn load(&self, binary: &[u8]) -> ModuleResult<LoadedModule> {
         self.validate(binary)?;
-        
+
         // TODO: Full ELF loading
         // 1. Parse ELF headers
         // 2. Allocate memory for segments
@@ -107,8 +111,10 @@ impl ModuleLoader for ElfLoader {
         // 4. Perform relocations
         // 5. Resolve symbols
         // 6. Call module init function
-        
-        Err(ModuleError::Internal("ELF loading not yet implemented".into()))
+
+        Err(ModuleError::Internal(
+            "ELF loading not yet implemented".into(),
+        ))
     }
 
     fn unload(&self, module: &LoadedModule) -> ModuleResult<()> {
@@ -139,7 +145,8 @@ impl LoaderRegistry {
 
     /// Get a loader for a format
     pub fn get(&self, format: ModuleFormat) -> Option<Arc<dyn ModuleLoader>> {
-        self.loaders.read()
+        self.loaders
+            .read()
             .iter()
             .find(|l| l.format() == format)
             .cloned()

@@ -3,6 +3,42 @@
 //! Types for expressing importance and urgency levels.
 
 #![allow(dead_code)]
+#![allow(non_upper_case_globals)]
+
+// ============================================================================
+// SEVERITY LEVEL (Enum for pattern matching)
+// ============================================================================
+
+/// Severity level enum for pattern matching
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SeverityLevel {
+    /// Informational
+    Info,
+    /// Warning - attention needed
+    Warning,
+    /// Error - problem occurred
+    Error,
+    /// Critical - severe issue
+    Critical,
+}
+
+impl SeverityLevel {
+    /// Get level name
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::Info => "info",
+            Self::Warning => "warning",
+            Self::Error => "error",
+            Self::Critical => "critical",
+        }
+    }
+}
+
+impl Default for SeverityLevel {
+    fn default() -> Self {
+        Self::Info
+    }
+}
 
 // ============================================================================
 // SEVERITY
@@ -33,6 +69,8 @@ impl Severity {
     pub const DEBUG: Self = Self(2);
     /// Info level
     pub const INFO: Self = Self(3);
+    /// Info level (CamelCase alias)
+    pub const Info: Self = Self(3);
     /// Low severity
     pub const LOW: Self = Self(3);
     /// Notice level
@@ -41,12 +79,18 @@ impl Severity {
     pub const MEDIUM: Self = Self(5);
     /// Warning level
     pub const WARNING: Self = Self(6);
+    /// Warning level (CamelCase alias)
+    pub const Warning: Self = Self(6);
     /// High severity
     pub const HIGH: Self = Self(7);
     /// Error level
     pub const ERROR: Self = Self(8);
+    /// Error level (CamelCase alias)
+    pub const Error: Self = Self(8);
     /// Critical severity
     pub const CRITICAL: Self = Self(9);
+    /// Critical severity (CamelCase alias)
+    pub const Critical: Self = Self(9);
     /// Maximum severity (emergency)
     pub const MAX: Self = Self(10);
 
@@ -152,18 +196,26 @@ impl Priority {
     pub const VERY_LOW: Self = Self(2);
     /// Low priority
     pub const LOW: Self = Self(3);
+    /// Low priority (CamelCase alias)
+    pub const Low: Self = Self(3);
     /// Below normal priority
     pub const BELOW_NORMAL: Self = Self(4);
     /// Normal priority
     pub const NORMAL: Self = Self(5);
+    /// Normal priority (CamelCase alias)
+    pub const Normal: Self = Self(5);
     /// Above normal priority
     pub const ABOVE_NORMAL: Self = Self(6);
     /// High priority
     pub const HIGH: Self = Self(7);
+    /// High priority (CamelCase alias)
+    pub const High: Self = Self(7);
     /// Very high priority
     pub const VERY_HIGH: Self = Self(8);
     /// Critical priority
     pub const CRITICAL: Self = Self(9);
+    /// Critical priority (CamelCase alias)
+    pub const Critical: Self = Self(9);
     /// Highest priority (emergency)
     pub const HIGHEST: Self = Self(10);
 
@@ -246,10 +298,10 @@ impl Urgency {
     pub const fn deadline_ms(&self) -> u64 {
         match self {
             Self::None => u64::MAX,
-            Self::Low => 3_600_000,    // 1 hour
-            Self::Medium => 60_000,     // 1 minute
-            Self::High => 5_000,        // 5 seconds
-            Self::Critical => 100,      // 100ms
+            Self::Low => 3_600_000, // 1 hour
+            Self::Medium => 60_000, // 1 minute
+            Self::High => 5_000,    // 5 seconds
+            Self::Critical => 100,  // 100ms
         }
     }
 }

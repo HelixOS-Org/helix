@@ -7,8 +7,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::types::{ComponentId, Metric, Severity, Timestamp};
 use super::component::{ComponentStatus, NexusComponent};
+use crate::types::{ComponentId, Metric, Severity, Timestamp};
 
 // ============================================================================
 // INTROSPECTABLE TRAIT
@@ -329,7 +329,8 @@ impl CognitiveAssessment {
             ("execution", self.execution_success),
             ("memory", self.memory_utilization),
         ];
-        domains.iter()
+        domains
+            .iter()
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal))
             .map(|(name, _)| *name)
             .unwrap_or("unknown")

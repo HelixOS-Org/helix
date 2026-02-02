@@ -8,6 +8,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -308,21 +309,29 @@ impl HotPatcher {
 
     /// Revert a patch by ID
     pub fn revert_patch(&mut self, patch_id: PatchId) -> Result<(), SelfModError> {
-        let patch = self
-            .patches
-            .get_mut(&patch_id)
-            .ok_or(SelfModError::HotpatchError(String::from("Patch not found")))?;
+        // Extract data we need before mutating
+        let (target_addr, original, _status) = {
+            let patch = self
+                .patches
+                .get(&patch_id)
+                .ok_or(SelfModError::HotpatchError(String::from("Patch not found")))?;
 
-        if patch.status != PatchStatus::Applied {
-            return Err(SelfModError::HotpatchError(String::from(
-                "Patch not applied",
-            )));
-        }
+            if patch.status != PatchStatus::Applied {
+                return Err(SelfModError::HotpatchError(String::from(
+                    "Patch not applied",
+                )));
+            }
+
+            (patch.target_addr, patch.original.clone(), patch.status)
+        };
 
         // Restore original bytes
-        self.write_memory(patch.target_addr, &patch.original)?;
+        self.write_memory(target_addr, &original)?;
 
-        patch.status = PatchStatus::Reverted;
+        // Now mutably borrow to update status
+        if let Some(patch) = self.patches.get_mut(&patch_id) {
+            patch.status = PatchStatus::Reverted;
+        }
         self.stats.patches_reverted += 1;
 
         Ok(())

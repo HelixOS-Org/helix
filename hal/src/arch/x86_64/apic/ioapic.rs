@@ -357,17 +357,17 @@ impl Default for RedirectionEntryBuilder {
 #[repr(u8)]
 pub enum DeliveryMode {
     /// Fixed delivery to specific APIC
-    Fixed = 0b000,
+    Fixed          = 0b000,
     /// Lowest priority delivery
     LowestPriority = 0b001,
     /// System Management Interrupt
-    Smi = 0b010,
+    Smi            = 0b010,
     /// Non-Maskable Interrupt
-    Nmi = 0b100,
+    Nmi            = 0b100,
     /// INIT signal
-    Init = 0b101,
+    Init           = 0b101,
     /// External Interrupt
-    ExtInt = 0b111,
+    ExtInt         = 0b111,
 }
 
 /// Destination Mode
@@ -595,7 +595,9 @@ pub unsafe fn register_ioapic(base: u64, gsi_base: u32) -> Result<u8, ApicError>
     }
 
     IOAPICS[count as usize].base.store(base, Ordering::SeqCst);
-    IOAPICS[count as usize].gsi_base.store(gsi_base as u64, Ordering::SeqCst);
+    IOAPICS[count as usize]
+        .gsi_base
+        .store(gsi_base as u64, Ordering::SeqCst);
     IOAPIC_COUNT.store(count + 1, Ordering::Release);
 
     Ok(count)

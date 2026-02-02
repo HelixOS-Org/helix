@@ -568,7 +568,13 @@ impl UefiVersion {
 
 impl fmt::Display for UefiVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor_version(), self.revision())
+        write!(
+            f,
+            "{}.{}.{}",
+            self.major,
+            self.minor_version(),
+            self.revision()
+        )
     }
 }
 
@@ -1110,7 +1116,7 @@ impl DiagnosticReport {
         match entry.status {
             DiagnosticStatus::Warning => self.warnings += 1,
             DiagnosticStatus::Error | DiagnosticStatus::Critical => self.errors += 1,
-            _ => {}
+            _ => {},
         }
 
         self.entries[self.count] = entry;

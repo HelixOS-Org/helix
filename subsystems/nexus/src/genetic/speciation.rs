@@ -10,9 +10,10 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use super::{Individual, GenomeId, SpeciesId, Generation, Fitness};
 use super::genome::CodeGenome;
 use super::population::Population;
+use super::{GenomeId, SpeciesId};
+use crate::math::F64Ext;
 
 // ============================================================================
 // SPECIES
@@ -90,7 +91,9 @@ impl Species {
             return;
         }
 
-        self.adjusted_fitness_sum = self.members.iter()
+        self.adjusted_fitness_sum = self
+            .members
+            .iter()
             .filter_map(|&id| population.get(id))
             .filter_map(|ind| ind.fitness.as_ref())
             .map(|f| f.scalar / member_count)
@@ -262,7 +265,9 @@ impl SpeciesManager {
     }
 
     fn remove_empty_species(&mut self) {
-        let empty: Vec<SpeciesId> = self.species.iter()
+        let empty: Vec<SpeciesId> = self
+            .species
+            .iter()
             .filter(|(_, s)| s.is_empty())
             .map(|(id, _)| *id)
             .collect();
@@ -282,13 +287,15 @@ impl SpeciesManager {
             self.config.threshold += self.config.threshold_adjustment;
         } else if current > target {
             // Too many species, decrease threshold (less separation)
-            self.config.threshold = (self.config.threshold - self.config.threshold_adjustment)
-                .max(0.1);
+            self.config.threshold =
+                (self.config.threshold - self.config.threshold_adjustment).max(0.1);
         }
     }
 
-    fn handle_stagnation(&mut self, population: &Population) {
-        let stagnant: Vec<SpeciesId> = self.species.iter()
+    fn handle_stagnation(&mut self, _population: &Population) {
+        let stagnant: Vec<SpeciesId> = self
+            .species
+            .iter()
             .filter(|(_, s)| s.stagnant_generations > self.config.max_stagnation)
             .map(|(id, _)| *id)
             .collect();
@@ -304,9 +311,7 @@ impl SpeciesManager {
     }
 
     fn allocate_offspring(&mut self, total_offspring: usize) {
-        let total_adjusted: f64 = self.species.values()
-            .map(|s| s.adjusted_fitness_sum)
-            .sum();
+        let total_adjusted: f64 = self.species.values().map(|s| s.adjusted_fitness_sum).sum();
 
         if total_adjusted <= 0.0 {
             // Equal allocation
@@ -335,9 +340,12 @@ impl SpeciesManager {
     }
 
     fn best_species_mut(&mut self) -> Option<&mut Species> {
-        let best_id = self.species.iter()
+        let best_id = self
+            .species
+            .iter()
             .max_by(|a, b| {
-                a.1.best_fitness.partial_cmp(&b.1.best_fitness)
+                a.1.best_fitness
+                    .partial_cmp(&b.1.best_fitness)
                     .unwrap_or(core::cmp::Ordering::Equal)
             })
             .map(|(id, _)| *id)?;
@@ -348,9 +356,7 @@ impl SpeciesManager {
     fn update_stats(&mut self) {
         self.stats.current_species = self.species.len();
 
-        let total_members: usize = self.species.values()
-            .map(|s| s.size())
-            .sum();
+        let total_members: usize = self.species.values().map(|s| s.size()).sum();
 
         self.stats.avg_species_size = if self.species.is_empty() {
             0.0
@@ -376,11 +382,11 @@ impl SpeciesManager {
 
     /// Get best species
     pub fn best_species(&self) -> Option<&Species> {
-        self.species.values()
-            .max_by(|a, b| {
-                a.best_fitness.partial_cmp(&b.best_fitness)
-                    .unwrap_or(core::cmp::Ordering::Equal)
-            })
+        self.species.values().max_by(|a, b| {
+            a.best_fitness
+                .partial_cmp(&b.best_fitness)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        })
     }
 
     /// Get statistics
@@ -411,8 +417,9 @@ impl Default for SpeciesManager {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::sync::atomic::AtomicU64;
+
+    use super::*;
 
     #[test]
     fn test_species_creation() {

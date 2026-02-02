@@ -3,8 +3,8 @@
 //! This module defines the exception context (trap frame) saved when
 //! entering an exception handler.
 
-use crate::arch::aarch64::core::registers::Registers;
 use crate::arch::aarch64::core::fpu::FpuState;
+use crate::arch::aarch64::core::registers::Registers;
 
 // =============================================================================
 // Trap Frame
@@ -83,11 +83,42 @@ impl TrapFrame {
     /// Create a new zeroed trap frame
     pub const fn new() -> Self {
         Self {
-            x0: 0, x1: 0, x2: 0, x3: 0, x4: 0, x5: 0, x6: 0, x7: 0,
-            x8: 0, x9: 0, x10: 0, x11: 0, x12: 0, x13: 0, x14: 0, x15: 0,
-            x16: 0, x17: 0, x18: 0, x19: 0, x20: 0, x21: 0, x22: 0, x23: 0,
-            x24: 0, x25: 0, x26: 0, x27: 0, x28: 0, x29: 0, x30: 0,
-            sp: 0, elr: 0, spsr: 0, esr: 0, far: 0,
+            x0: 0,
+            x1: 0,
+            x2: 0,
+            x3: 0,
+            x4: 0,
+            x5: 0,
+            x6: 0,
+            x7: 0,
+            x8: 0,
+            x9: 0,
+            x10: 0,
+            x11: 0,
+            x12: 0,
+            x13: 0,
+            x14: 0,
+            x15: 0,
+            x16: 0,
+            x17: 0,
+            x18: 0,
+            x19: 0,
+            x20: 0,
+            x21: 0,
+            x22: 0,
+            x23: 0,
+            x24: 0,
+            x25: 0,
+            x26: 0,
+            x27: 0,
+            x28: 0,
+            x29: 0,
+            x30: 0,
+            sp: 0,
+            elr: 0,
+            spsr: 0,
+            esr: 0,
+            far: 0,
         }
     }
 
@@ -207,14 +238,46 @@ impl Default for TrapFrame {
 impl core::fmt::Debug for TrapFrame {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         writeln!(f, "TrapFrame {{")?;
-        writeln!(f, "  x0-x7:   {:016x} {:016x} {:016x} {:016x}", self.x0, self.x1, self.x2, self.x3)?;
-        writeln!(f, "           {:016x} {:016x} {:016x} {:016x}", self.x4, self.x5, self.x6, self.x7)?;
-        writeln!(f, "  x8-x15:  {:016x} {:016x} {:016x} {:016x}", self.x8, self.x9, self.x10, self.x11)?;
-        writeln!(f, "           {:016x} {:016x} {:016x} {:016x}", self.x12, self.x13, self.x14, self.x15)?;
-        writeln!(f, "  x16-x23: {:016x} {:016x} {:016x} {:016x}", self.x16, self.x17, self.x18, self.x19)?;
-        writeln!(f, "           {:016x} {:016x} {:016x} {:016x}", self.x20, self.x21, self.x22, self.x23)?;
-        writeln!(f, "  x24-x30: {:016x} {:016x} {:016x} {:016x}", self.x24, self.x25, self.x26, self.x27)?;
-        writeln!(f, "           {:016x} {:016x} {:016x}", self.x28, self.x29, self.x30)?;
+        writeln!(
+            f,
+            "  x0-x7:   {:016x} {:016x} {:016x} {:016x}",
+            self.x0, self.x1, self.x2, self.x3
+        )?;
+        writeln!(
+            f,
+            "           {:016x} {:016x} {:016x} {:016x}",
+            self.x4, self.x5, self.x6, self.x7
+        )?;
+        writeln!(
+            f,
+            "  x8-x15:  {:016x} {:016x} {:016x} {:016x}",
+            self.x8, self.x9, self.x10, self.x11
+        )?;
+        writeln!(
+            f,
+            "           {:016x} {:016x} {:016x} {:016x}",
+            self.x12, self.x13, self.x14, self.x15
+        )?;
+        writeln!(
+            f,
+            "  x16-x23: {:016x} {:016x} {:016x} {:016x}",
+            self.x16, self.x17, self.x18, self.x19
+        )?;
+        writeln!(
+            f,
+            "           {:016x} {:016x} {:016x} {:016x}",
+            self.x20, self.x21, self.x22, self.x23
+        )?;
+        writeln!(
+            f,
+            "  x24-x30: {:016x} {:016x} {:016x} {:016x}",
+            self.x24, self.x25, self.x26, self.x27
+        )?;
+        writeln!(
+            f,
+            "           {:016x} {:016x} {:016x}",
+            self.x28, self.x29, self.x30
+        )?;
         writeln!(f, "  sp:      {:016x}", self.sp)?;
         writeln!(f, "  elr:     {:016x}", self.elr)?;
         writeln!(f, "  spsr:    {:016x}", self.spsr)?;
@@ -347,9 +410,19 @@ impl ContextSwitchFrame {
     /// Create a new context switch frame
     pub const fn new() -> Self {
         Self {
-            x19: 0, x20: 0, x21: 0, x22: 0, x23: 0,
-            x24: 0, x25: 0, x26: 0, x27: 0, x28: 0,
-            fp: 0, lr: 0, sp: 0,
+            x19: 0,
+            x20: 0,
+            x21: 0,
+            x22: 0,
+            x23: 0,
+            x24: 0,
+            x25: 0,
+            x26: 0,
+            x27: 0,
+            x28: 0,
+            fp: 0,
+            lr: 0,
+            sp: 0,
         }
     }
 

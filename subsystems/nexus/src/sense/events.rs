@@ -7,8 +7,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::types::*;
 use super::probe::ProbeType;
+use crate::types::*;
 
 // ============================================================================
 // RAW EVENT
@@ -151,7 +151,9 @@ impl CpuSample {
 
     /// Total system overhead
     pub fn overhead_percent(&self) -> u8 {
-        self.system.saturating_add(self.irq).saturating_add(self.softirq)
+        self.system
+            .saturating_add(self.irq)
+            .saturating_add(self.softirq)
     }
 }
 

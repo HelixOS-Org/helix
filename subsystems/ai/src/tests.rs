@@ -4,20 +4,21 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::core::*;
-    use crate::cortex::Cortex;
-    use crate::intent::IntentEngine;
-    use crate::neural::{NeuralEngine, Tensor, TensorShape, TensorDtype};
-    use crate::optimizer::Optimizer;
-    use crate::healer::Healer;
-    use crate::security::SecurityOracle;
-    use crate::resources::ResourceOracle;
-    use crate::learning::{LearningEngine, StateVector, ActionVector};
-    use crate::memory::AiMemory;
-    use crate::metrics::MetricsCollector;
-    use crate::safety::SafetyChecker;
     use alloc::string::String;
     use alloc::vec;
+
+    use crate::core::*;
+    use crate::cortex::Cortex;
+    use crate::healer::Healer;
+    use crate::intent::IntentEngine;
+    use crate::learning::{ActionVector, LearningEngine, StateVector};
+    use crate::memory::AiMemory;
+    use crate::metrics::MetricsCollector;
+    use crate::neural::{NeuralEngine, Tensor, TensorDtype, TensorShape};
+    use crate::optimizer::Optimizer;
+    use crate::resources::ResourceOracle;
+    use crate::safety::SafetyChecker;
+    use crate::security::SecurityOracle;
 
     // =========================================================================
     // Core Types Tests
@@ -78,7 +79,11 @@ mod tests {
             preemption: true,
         };
 
-        if let AiAction::TuneScheduler { granularity_ns, preemption } = action {
+        if let AiAction::TuneScheduler {
+            granularity_ns,
+            preemption,
+        } = action
+        {
             assert_eq!(granularity_ns, 5_000_000);
             assert!(preemption);
         } else {
@@ -90,7 +95,10 @@ mod tests {
     fn test_ai_action_sequence() {
         let actions = vec![
             AiAction::NoOp,
-            AiAction::TuneScheduler { granularity_ns: 1000, preemption: true },
+            AiAction::TuneScheduler {
+                granularity_ns: 1000,
+                preemption: true,
+            },
             AiAction::ForceGarbageCollection,
         ];
         let seq = AiAction::Sequence(actions);
@@ -224,11 +232,7 @@ mod tests {
     #[test]
     fn test_state_vector_creation() {
         let features = vec![0.5, 0.6, 0.7];
-        let names = vec![
-            String::from("cpu"),
-            String::from("mem"),
-            String::from("io"),
-        ];
+        let names = vec![String::from("cpu"), String::from("mem"), String::from("io")];
         let state = StateVector::new(features.clone(), names);
         assert_eq!(state.dim(), 3);
         assert_eq!(state.features, features);
@@ -471,11 +475,18 @@ mod tests {
         cortex.initialize().unwrap();
 
         // Submit some events
-        cortex.submit_event(AiEvent::SystemBoot, AiPriority::Normal).unwrap();
-        cortex.submit_event(
-            AiEvent::CpuThreshold { usage_percent: 90, cpu_id: 0 },
-            AiPriority::High,
-        ).unwrap();
+        cortex
+            .submit_event(AiEvent::SystemBoot, AiPriority::Normal)
+            .unwrap();
+        cortex
+            .submit_event(
+                AiEvent::CpuThreshold {
+                    usage_percent: 90,
+                    cpu_id: 0,
+                },
+                AiPriority::High,
+            )
+            .unwrap();
 
         // Process events
         let decisions = cortex.process();
@@ -488,7 +499,9 @@ mod tests {
         let cortex = Cortex::new(config);
         cortex.initialize().unwrap();
 
-        cortex.submit_event(AiEvent::SystemBoot, AiPriority::Low).unwrap();
+        cortex
+            .submit_event(AiEvent::SystemBoot, AiPriority::Low)
+            .unwrap();
         let _ = cortex.process();
 
         let stats = cortex.statistics();
@@ -545,7 +558,7 @@ mod tests {
         // Simulate high CPU event
         let event = AiEvent::CpuThreshold {
             usage_percent: 95,
-            cpu_id: 0
+            cpu_id: 0,
         };
         cortex.submit_event(event, AiPriority::High).unwrap();
 
@@ -562,7 +575,9 @@ mod tests {
         let cortex = Cortex::new(config);
         cortex.initialize().unwrap();
 
-        let event = AiEvent::MemoryPressure { available_percent: 5 };
+        let event = AiEvent::MemoryPressure {
+            available_percent: 5,
+        };
         cortex.submit_event(event, AiPriority::Critical).unwrap();
 
         let decisions = cortex.process().unwrap();
@@ -620,18 +635,27 @@ mod tests {
         cortex.initialize().unwrap();
 
         // Submit multiple events
-        cortex.submit_event(AiEvent::SystemBoot, AiPriority::Low).unwrap();
-        cortex.submit_event(
-            AiEvent::ProcessSpawn {
-                pid: 1234,
-                name: String::from("cargo")
-            },
-            AiPriority::Normal
-        ).unwrap();
-        cortex.submit_event(
-            AiEvent::CpuThreshold { usage_percent: 85, cpu_id: 0 },
-            AiPriority::High
-        ).unwrap();
+        cortex
+            .submit_event(AiEvent::SystemBoot, AiPriority::Low)
+            .unwrap();
+        cortex
+            .submit_event(
+                AiEvent::ProcessSpawn {
+                    pid: 1234,
+                    name: String::from("cargo"),
+                },
+                AiPriority::Normal,
+            )
+            .unwrap();
+        cortex
+            .submit_event(
+                AiEvent::CpuThreshold {
+                    usage_percent: 85,
+                    cpu_id: 0,
+                },
+                AiPriority::High,
+            )
+            .unwrap();
 
         // Process all events
         let _decisions = cortex.process().unwrap();

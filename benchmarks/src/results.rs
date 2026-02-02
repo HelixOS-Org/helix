@@ -4,11 +4,11 @@
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use alloc::vec;
-use alloc::format;
+use alloc::{format, vec};
 use core::fmt::Write;
 
-use crate::{BenchmarkCategory, BenchmarkId, Statistics, engine::RunResult};
+use crate::engine::RunResult;
+use crate::{BenchmarkCategory, BenchmarkId, Statistics};
 
 // =============================================================================
 // Result Types
@@ -31,18 +31,25 @@ pub struct BenchmarkReport {
 
 impl BenchmarkReport {
     /// Create a report from BenchmarkResults
-    pub fn from_results(results: Vec<crate::BenchmarkResults>, config: &crate::BenchmarkConfig) -> Self {
+    pub fn from_results(
+        results: Vec<crate::BenchmarkResults>,
+        config: &crate::BenchmarkConfig,
+    ) -> Self {
         let mut categories_map: Vec<(BenchmarkCategory, Vec<BenchmarkResult>)> = Vec::new();
-        
+
         for result in &results {
             let category = result.category;
-            
+
             // Convert BenchmarkResults to BenchmarkResult
             let bench_result = BenchmarkResult {
                 id: result.id.clone(),
                 name: result.name.clone(),
                 stats: result.stats.clone(),
-                status: if result.failed { BenchmarkStatus::Failed } else { BenchmarkStatus::Passed },
+                status: if result.failed {
+                    BenchmarkStatus::Failed
+                } else {
+                    BenchmarkStatus::Passed
+                },
                 cycles: CycleStats {
                     min: result.stats.min,
                     max: result.stats.max,
@@ -62,18 +69,17 @@ impl BenchmarkReport {
                     std_dev_ns: result.stats.std_dev * 1000 / config.cpu_freq_mhz,
                 },
             };
-            
+
             // Find or create category
-            let found = categories_map.iter_mut()
-                .find(|(cat, _)| *cat == category);
-            
+            let found = categories_map.iter_mut().find(|(cat, _)| *cat == category);
+
             if let Some((_, benchmarks)) = found {
                 benchmarks.push(bench_result);
             } else {
                 categories_map.push((category, vec![bench_result]));
             }
         }
-        
+
         // Build category results with totals
         let mut categories = Vec::new();
         for (category, benchmarks) in categories_map {
@@ -84,12 +90,12 @@ impl BenchmarkReport {
                 totals,
             });
         }
-        
+
         // Build summary
         let mut summary = ReportSummary::default();
         let mut fastest_time = u64::MAX;
         let mut slowest_time = 0u64;
-        
+
         for cat in &categories {
             summary.total_benchmarks += cat.totals.total_benchmarks;
             summary.passed += cat.totals.passed;
@@ -97,7 +103,7 @@ impl BenchmarkReport {
             summary.failed += cat.totals.failed;
             summary.skipped += cat.totals.skipped;
             summary.total_time_ms += cat.totals.total_time_us / 1000;
-            
+
             for bench in &cat.benchmarks {
                 if bench.time.mean_ns < fastest_time && bench.time.mean_ns > 0 {
                     fastest_time = bench.time.mean_ns;
@@ -109,13 +115,13 @@ impl BenchmarkReport {
                 }
             }
         }
-        
+
         summary.performance_score = if summary.total_benchmarks > 0 {
             (summary.passed * 100) / summary.total_benchmarks
         } else {
             0
         };
-        
+
         Self {
             title: String::from("Helix Kernel Benchmark Report"),
             platform: PlatformInfo::default(),
@@ -271,43 +277,47 @@ impl ResultCollector {
             cpu_freq_hz,
         }
     }
-    
+
     /// Add a result
     pub fn add(&mut self, id: BenchmarkId, result: RunResult) {
         self.results.push((id, result));
     }
-    
+
     /// Get number of results
     pub fn len(&self) -> usize {
         self.results.len()
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.results.is_empty()
     }
-    
+
     /// Build report
-    pub fn build_report(self, title: &str, platform: PlatformInfo, config: ReportConfig) -> BenchmarkReport {
+    pub fn build_report(
+        self,
+        title: &str,
+        platform: PlatformInfo,
+        config: ReportConfig,
+    ) -> BenchmarkReport {
         let mut categories_map: Vec<(BenchmarkCategory, Vec<BenchmarkResult>)> = Vec::new();
-        
+
         for (id, run_result) in &self.results {
             let category = id.category;
-            
+
             // Convert to benchmark result
             let bench_result = self.convert_result(id.clone(), run_result);
-            
+
             // Find or create category
-            let found = categories_map.iter_mut()
-                .find(|(cat, _)| *cat == category);
-            
+            let found = categories_map.iter_mut().find(|(cat, _)| *cat == category);
+
             if let Some((_, results)) = found {
                 results.push(bench_result);
             } else {
                 categories_map.push((category, vec![bench_result]));
             }
         }
-        
+
         // Build category results
         let mut categories = Vec::new();
         for (category, benchmarks) in categories_map {
@@ -318,10 +328,10 @@ impl ResultCollector {
                 totals,
             });
         }
-        
+
         // Build summary
         let summary = self.build_summary(&categories);
-        
+
         BenchmarkReport {
             title: String::from(title),
             platform,
@@ -330,7 +340,7 @@ impl ResultCollector {
             summary,
         }
     }
-    
+
     /// Convert run result to benchmark result
     fn convert_result(&self, id: BenchmarkId, run: &RunResult) -> BenchmarkResult {
         let cycles = CycleStats {
@@ -342,7 +352,7 @@ impl ResultCollector {
             p99: run.p99_cycles,
             std_dev: run.std_dev_cycles,
         };
-        
+
         let time = TimeStats {
             min_ns: self.cycles_to_ns(run.min_cycles),
             max_ns: self.cycles_to_ns(run.max_cycles),
@@ -352,20 +362,20 @@ impl ResultCollector {
             p99_ns: self.cycles_to_ns(run.p99_cycles),
             std_dev_ns: self.cycles_to_ns(run.std_dev_cycles),
         };
-        
+
         // Determine status based on jitter
         let jitter_ratio = if run.mean_cycles > 0 {
             (run.std_dev_cycles * 100) / run.mean_cycles
         } else {
             0
         };
-        
+
         let status = if jitter_ratio > 50 {
             BenchmarkStatus::Warning
         } else {
             BenchmarkStatus::Passed
         };
-        
+
         // Build stats for the result
         let stats = crate::Statistics {
             min: run.min_cycles,
@@ -378,7 +388,7 @@ impl ResultCollector {
             variance: run.std_dev_cycles * run.std_dev_cycles,
             jitter: run.max_cycles.saturating_sub(run.min_cycles),
         };
-        
+
         BenchmarkResult {
             id: id.clone(),
             name: id.name,
@@ -388,16 +398,16 @@ impl ResultCollector {
             time,
         }
     }
-    
+
     /// Compute category totals
     fn compute_totals(benchmarks: &[BenchmarkResult]) -> CategoryTotals {
         let mut totals = CategoryTotals::default();
-        
+
         for bench in benchmarks {
             totals.total_benchmarks += 1;
             totals.total_cycles += bench.cycles.mean;
             totals.total_time_us += bench.time.mean_ns / 1000;
-            
+
             match bench.status {
                 BenchmarkStatus::Passed => totals.passed += 1,
                 BenchmarkStatus::Warning => totals.warnings += 1,
@@ -405,17 +415,17 @@ impl ResultCollector {
                 BenchmarkStatus::Skipped => totals.skipped += 1,
             }
         }
-        
+
         totals
     }
-    
+
     /// Build report summary
     fn build_summary(&self, categories: &[CategoryResults]) -> ReportSummary {
         let mut summary = ReportSummary::default();
-        
+
         let mut fastest_time = u64::MAX;
         let mut slowest_time = 0u64;
-        
+
         for cat in categories {
             summary.total_benchmarks += cat.totals.total_benchmarks;
             summary.passed += cat.totals.passed;
@@ -423,7 +433,7 @@ impl ResultCollector {
             summary.failed += cat.totals.failed;
             summary.skipped += cat.totals.skipped;
             summary.total_time_ms += cat.totals.total_time_us / 1000;
-            
+
             for bench in &cat.benchmarks {
                 if bench.time.mean_ns < fastest_time {
                     fastest_time = bench.time.mean_ns;
@@ -435,7 +445,7 @@ impl ResultCollector {
                 }
             }
         }
-        
+
         // Compute performance score (0-100)
         let pass_rate = if summary.total_benchmarks > 0 {
             (summary.passed * 100) / summary.total_benchmarks
@@ -443,10 +453,10 @@ impl ResultCollector {
             0
         };
         summary.performance_score = pass_rate;
-        
+
         summary
     }
-    
+
     /// Convert cycles to nanoseconds
     fn cycles_to_ns(&self, cycles: u64) -> u64 {
         if self.cpu_freq_hz == 0 {
@@ -467,164 +477,290 @@ impl ReportFormatter {
     /// Format report as text
     pub fn format_text(report: &BenchmarkReport) -> String {
         let mut output = String::new();
-        
+
         // Header
-        writeln!(output, "╔══════════════════════════════════════════════════════════════════════╗").unwrap();
-        writeln!(output, "║                    HELIX KERNEL BENCHMARK REPORT                      ║").unwrap();
-        writeln!(output, "╠══════════════════════════════════════════════════════════════════════╣").unwrap();
-        
+        writeln!(
+            output,
+            "╔══════════════════════════════════════════════════════════════════════╗"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║                    HELIX KERNEL BENCHMARK REPORT                      ║"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "╠══════════════════════════════════════════════════════════════════════╣"
+        )
+        .unwrap();
+
         // Platform info
-        writeln!(output, "║ Platform: {} ({} MHz, {} cores)                    ║", 
-            report.platform.arch, report.platform.cpu_freq_mhz, report.platform.cores).unwrap();
-        writeln!(output, "║ Config: {} iterations, {} warmup                              ║",
-            report.config.iterations, report.config.warmup_iterations).unwrap();
-        writeln!(output, "╠══════════════════════════════════════════════════════════════════════╣").unwrap();
-        
+        writeln!(
+            output,
+            "║ Platform: {} ({} MHz, {} cores)                    ║",
+            report.platform.arch, report.platform.cpu_freq_mhz, report.platform.cores
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║ Config: {} iterations, {} warmup                              ║",
+            report.config.iterations, report.config.warmup_iterations
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "╠══════════════════════════════════════════════════════════════════════╣"
+        )
+        .unwrap();
+
         // Categories
         for cat in &report.categories {
             Self::format_category(&mut output, cat);
         }
-        
+
         // Summary
-        writeln!(output, "╠══════════════════════════════════════════════════════════════════════╣").unwrap();
-        writeln!(output, "║                              SUMMARY                                  ║").unwrap();
-        writeln!(output, "╠══════════════════════════════════════════════════════════════════════╣").unwrap();
-        writeln!(output, "║ Total: {} | Passed: {} | Warnings: {} | Failed: {}               ║",
-            report.summary.total_benchmarks, report.summary.passed,
-            report.summary.warnings, report.summary.failed).unwrap();
-        writeln!(output, "║ Fastest: {}                                          ║",
-            report.summary.fastest_benchmark).unwrap();
-        writeln!(output, "║ Slowest: {}                                          ║",
-            report.summary.slowest_benchmark).unwrap();
-        writeln!(output, "║ Performance Score: {}/100                                           ║",
-            report.summary.performance_score).unwrap();
-        writeln!(output, "╚══════════════════════════════════════════════════════════════════════╝").unwrap();
-        
+        writeln!(
+            output,
+            "╠══════════════════════════════════════════════════════════════════════╣"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║                              SUMMARY                                  ║"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "╠══════════════════════════════════════════════════════════════════════╣"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║ Total: {} | Passed: {} | Warnings: {} | Failed: {}               ║",
+            report.summary.total_benchmarks,
+            report.summary.passed,
+            report.summary.warnings,
+            report.summary.failed
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║ Fastest: {}                                          ║",
+            report.summary.fastest_benchmark
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║ Slowest: {}                                          ║",
+            report.summary.slowest_benchmark
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║ Performance Score: {}/100                                           ║",
+            report.summary.performance_score
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "╚══════════════════════════════════════════════════════════════════════╝"
+        )
+        .unwrap();
+
         output
     }
-    
+
     /// Format a category
     fn format_category(output: &mut String, cat: &CategoryResults) {
-        writeln!(output, "║                                                                        ║").unwrap();
-        writeln!(output, "║ {:?} Benchmarks ({} tests)                                  ║",
-            cat.category, cat.totals.total_benchmarks).unwrap();
-        writeln!(output, "║────────────────────────────────────────────────────────────────────────║").unwrap();
-        writeln!(output, "║ Name                          │ Mean (ns) │ P95 (ns)  │ Jitter (%)   ║").unwrap();
-        writeln!(output, "║───────────────────────────────┼───────────┼───────────┼──────────────║").unwrap();
-        
+        writeln!(
+            output,
+            "║                                                                        ║"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║ {:?} Benchmarks ({} tests)                                  ║",
+            cat.category, cat.totals.total_benchmarks
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║────────────────────────────────────────────────────────────────────────║"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║ Name                          │ Mean (ns) │ P95 (ns)  │ Jitter (%)   ║"
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "║───────────────────────────────┼───────────┼───────────┼──────────────║"
+        )
+        .unwrap();
+
         for bench in &cat.benchmarks {
             let jitter = if bench.cycles.mean > 0 {
                 (bench.cycles.std_dev * 100) / bench.cycles.mean
             } else {
                 0
             };
-            
+
             let status_icon = match bench.status {
                 BenchmarkStatus::Passed => "✓",
                 BenchmarkStatus::Warning => "⚠",
                 BenchmarkStatus::Failed => "✗",
                 BenchmarkStatus::Skipped => "○",
             };
-            
+
             // Truncate name to 26 chars
             let name = if bench.name.len() > 26 {
                 format!("{}...", &bench.name[..23])
             } else {
                 bench.name.clone()
             };
-            
-            writeln!(output, "║ {} {:26} │ {:9} │ {:9} │ {:10}%  ║",
-                status_icon, name, bench.time.mean_ns, bench.time.p95_ns, jitter).unwrap();
+
+            writeln!(
+                output,
+                "║ {} {:26} │ {:9} │ {:9} │ {:10}%  ║",
+                status_icon, name, bench.time.mean_ns, bench.time.p95_ns, jitter
+            )
+            .unwrap();
         }
     }
-    
+
     /// Format report as markdown
     pub fn format_markdown(report: &BenchmarkReport) -> String {
         let mut output = String::new();
-        
+
         writeln!(output, "# {}", report.title).unwrap();
         writeln!(output).unwrap();
-        
+
         // Platform
         writeln!(output, "## Platform").unwrap();
         writeln!(output, "| Property | Value |").unwrap();
         writeln!(output, "|----------|-------|").unwrap();
         writeln!(output, "| Architecture | {} |", report.platform.arch).unwrap();
-        writeln!(output, "| CPU | {} @ {} MHz |", report.platform.cpu_model, report.platform.cpu_freq_mhz).unwrap();
+        writeln!(
+            output,
+            "| CPU | {} @ {} MHz |",
+            report.platform.cpu_model, report.platform.cpu_freq_mhz
+        )
+        .unwrap();
         writeln!(output, "| Cores | {} |", report.platform.cores).unwrap();
         writeln!(output, "| Memory | {} MB |", report.platform.memory_mb).unwrap();
         writeln!(output, "| Virtualized | {} |", report.platform.virtualized).unwrap();
         writeln!(output).unwrap();
-        
+
         // Configuration
         writeln!(output, "## Configuration").unwrap();
         writeln!(output, "- Iterations: {}", report.config.iterations).unwrap();
         writeln!(output, "- Warmup: {}", report.config.warmup_iterations).unwrap();
         writeln!(output).unwrap();
-        
+
         // Results by category
         for cat in &report.categories {
             writeln!(output, "## {:?}", cat.category).unwrap();
             writeln!(output).unwrap();
-            writeln!(output, "| Benchmark | Mean (ns) | P95 (ns) | P99 (ns) | Jitter (%) |").unwrap();
-            writeln!(output, "|-----------|-----------|----------|----------|------------|").unwrap();
-            
+            writeln!(
+                output,
+                "| Benchmark | Mean (ns) | P95 (ns) | P99 (ns) | Jitter (%) |"
+            )
+            .unwrap();
+            writeln!(
+                output,
+                "|-----------|-----------|----------|----------|------------|"
+            )
+            .unwrap();
+
             for bench in &cat.benchmarks {
                 let jitter = if bench.cycles.mean > 0 {
                     (bench.cycles.std_dev * 100) / bench.cycles.mean
                 } else {
                     0
                 };
-                
+
                 let status = match bench.status {
                     BenchmarkStatus::Passed => "✅",
                     BenchmarkStatus::Warning => "⚠️",
                     BenchmarkStatus::Failed => "❌",
                     BenchmarkStatus::Skipped => "⏭️",
                 };
-                
-                writeln!(output, "| {} {} | {} | {} | {} | {}% |",
-                    status, bench.name,
-                    bench.time.mean_ns, bench.time.p95_ns, bench.time.p99_ns,
-                    jitter).unwrap();
+
+                writeln!(
+                    output,
+                    "| {} {} | {} | {} | {} | {}% |",
+                    status,
+                    bench.name,
+                    bench.time.mean_ns,
+                    bench.time.p95_ns,
+                    bench.time.p99_ns,
+                    jitter
+                )
+                .unwrap();
             }
             writeln!(output).unwrap();
         }
-        
+
         // Summary
         writeln!(output, "## Summary").unwrap();
         writeln!(output).unwrap();
-        writeln!(output, "- **Total Benchmarks**: {}", report.summary.total_benchmarks).unwrap();
+        writeln!(
+            output,
+            "- **Total Benchmarks**: {}",
+            report.summary.total_benchmarks
+        )
+        .unwrap();
         writeln!(output, "- **Passed**: {} ✅", report.summary.passed).unwrap();
         writeln!(output, "- **Warnings**: {} ⚠️", report.summary.warnings).unwrap();
         writeln!(output, "- **Failed**: {} ❌", report.summary.failed).unwrap();
-        writeln!(output, "- **Fastest**: `{}`", report.summary.fastest_benchmark).unwrap();
-        writeln!(output, "- **Slowest**: `{}`", report.summary.slowest_benchmark).unwrap();
-        writeln!(output, "- **Performance Score**: {}/100", report.summary.performance_score).unwrap();
-        
+        writeln!(
+            output,
+            "- **Fastest**: `{}`",
+            report.summary.fastest_benchmark
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "- **Slowest**: `{}`",
+            report.summary.slowest_benchmark
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "- **Performance Score**: {}/100",
+            report.summary.performance_score
+        )
+        .unwrap();
+
         output
     }
-    
+
     /// Format compact table
     pub fn format_compact(report: &BenchmarkReport) -> String {
         let mut output = String::new();
-        
+
         writeln!(output, "Helix Benchmark Results").unwrap();
         writeln!(output, "========================").unwrap();
         writeln!(output).unwrap();
-        
+
         for cat in &report.categories {
             writeln!(output, "[{:?}]", cat.category).unwrap();
-            
+
             for bench in &cat.benchmarks {
-                writeln!(output, "  {}: {}ns (p99: {}ns)",
-                    bench.name, bench.time.mean_ns, bench.time.p99_ns).unwrap();
+                writeln!(
+                    output,
+                    "  {}: {}ns (p99: {}ns)",
+                    bench.name, bench.time.mean_ns, bench.time.p99_ns
+                )
+                .unwrap();
             }
             writeln!(output).unwrap();
         }
-        
+
         writeln!(output, "Score: {}/100", report.summary.performance_score).unwrap();
-        
+
         output
     }
 }
@@ -664,7 +800,7 @@ impl ReportComparison {
         let mut improvements = Vec::new();
         let mut regressions = Vec::new();
         let mut unchanged = 0u32;
-        
+
         // Build map of baseline results
         let mut baseline_map: Vec<(&str, u64)> = Vec::new();
         for cat in &baseline.categories {
@@ -672,23 +808,25 @@ impl ReportComparison {
                 baseline_map.push((&bench.name, bench.time.mean_ns));
             }
         }
-        
+
         // Compare current results
         for cat in &current.categories {
             for bench in &cat.benchmarks {
-                let baseline_result = baseline_map.iter()
+                let baseline_result = baseline_map
+                    .iter()
                     .find(|(name, _)| *name == bench.name.as_str());
-                
+
                 if let Some((_, baseline_ns)) = baseline_result {
                     let current_ns = bench.time.mean_ns;
-                    
+
                     if *baseline_ns == 0 {
                         unchanged += 1;
                         continue;
                     }
-                    
-                    let diff_pct = ((current_ns as i64 - *baseline_ns as i64) * 100 / *baseline_ns as i64) as i32;
-                    
+
+                    let diff_pct = ((current_ns as i64 - *baseline_ns as i64) * 100
+                        / *baseline_ns as i64) as i32;
+
                     if diff_pct < -5 {
                         // Improvement (faster)
                         improvements.push(Improvement {
@@ -711,7 +849,7 @@ impl ReportComparison {
                 }
             }
         }
-        
+
         Self {
             baseline: baseline.title.clone(),
             current: current.title.clone(),
@@ -720,35 +858,48 @@ impl ReportComparison {
             unchanged,
         }
     }
-    
+
     /// Format comparison
     pub fn format(&self) -> String {
         let mut output = String::new();
-        
+
         writeln!(output, "Performance Comparison").unwrap();
-        writeln!(output, "Baseline: {} vs Current: {}", self.baseline, self.current).unwrap();
+        writeln!(
+            output,
+            "Baseline: {} vs Current: {}",
+            self.baseline, self.current
+        )
+        .unwrap();
         writeln!(output).unwrap();
-        
+
         if !self.improvements.is_empty() {
             writeln!(output, "Improvements:").unwrap();
             for imp in &self.improvements {
-                writeln!(output, "  ✓ {}: {}ns → {}ns ({:+}%)",
-                    imp.benchmark, imp.baseline_ns, imp.current_ns, imp.improvement_pct).unwrap();
+                writeln!(
+                    output,
+                    "  ✓ {}: {}ns → {}ns ({:+}%)",
+                    imp.benchmark, imp.baseline_ns, imp.current_ns, imp.improvement_pct
+                )
+                .unwrap();
             }
             writeln!(output).unwrap();
         }
-        
+
         if !self.regressions.is_empty() {
             writeln!(output, "Regressions:").unwrap();
             for reg in &self.regressions {
-                writeln!(output, "  ✗ {}: {}ns → {}ns (+{}%)",
-                    reg.benchmark, reg.baseline_ns, reg.current_ns, reg.regression_pct).unwrap();
+                writeln!(
+                    output,
+                    "  ✗ {}: {}ns → {}ns (+{}%)",
+                    reg.benchmark, reg.baseline_ns, reg.current_ns, reg.regression_pct
+                )
+                .unwrap();
             }
             writeln!(output).unwrap();
         }
-        
+
         writeln!(output, "Unchanged: {}", self.unchanged).unwrap();
-        
+
         output
     }
 }

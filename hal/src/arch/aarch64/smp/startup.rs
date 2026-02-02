@@ -58,14 +58,13 @@
 //! | ARM FVP       | PSCI          | Full PSCI support                     |
 //! | Server SoCs   | PSCI/ACPI     | ACPI MADT + PSCI                      |
 
-use super::{
-    mpidr::Mpidr,
-    percpu::{self, PerCpuData},
-    psci::{self, Psci, PsciError},
-    CpuState, CpuTopology, SmpError, DEFAULT_AP_STACK_SIZE, MAX_CPUS,
-};
 use core::arch::asm;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+
+use super::mpidr::Mpidr;
+use super::percpu::{self, PerCpuData};
+use super::psci::{self, Psci, PsciError};
+use super::{CpuState, CpuTopology, SmpError, DEFAULT_AP_STACK_SIZE, MAX_CPUS};
 
 // ============================================================================
 // AP Startup State
@@ -127,7 +126,9 @@ impl ApStartupState {
         }
 
         if self.error.load(Ordering::Acquire) != 0 {
-            Err(SmpError::PsciFailed(self.error.load(Ordering::Acquire) as i32))
+            Err(SmpError::PsciFailed(
+                self.error.load(Ordering::Acquire) as i32
+            ))
         } else {
             Ok(())
         }
@@ -215,11 +216,11 @@ pub fn start_cpu_psci(
         Ok(()) => {
             // Wait for AP to signal ready (10 second timeout)
             AP_STARTUP.wait_ready(10_000_000)
-        }
+        },
         Err(PsciError::AlreadyOn) => {
             // CPU is already on, this might be okay
             Err(SmpError::AlreadyOnline)
-        }
+        },
         Err(e) => Err(SmpError::PsciFailed(e as i32)),
     }
 }
@@ -355,10 +356,10 @@ impl StartupConfig {
     pub fn rpi_spin_table(entry_point: u64) -> Self {
         let mut addrs = [0u64; MAX_CPUS];
         // RPi4 mailbox addresses
-        addrs[0] = 0xD8;  // CPU 0 (unused, BSP)
-        addrs[1] = 0xE0;  // CPU 1
-        addrs[2] = 0xE8;  // CPU 2
-        addrs[3] = 0xF0;  // CPU 3
+        addrs[0] = 0xD8; // CPU 0 (unused, BSP)
+        addrs[1] = 0xE0; // CPU 1
+        addrs[2] = 0xE8; // CPU 2
+        addrs[3] = 0xF0; // CPU 3
 
         Self {
             stack_size: DEFAULT_AP_STACK_SIZE,
@@ -396,12 +397,12 @@ impl StartupManager {
                     match self.start_cpu(cpu_id, cpu_info.mpidr, topology) {
                         Ok(()) => {
                             started += 1;
-                        }
+                        },
                         Err(e) => {
                             // Log error but continue with other CPUs
                             // In a real kernel: log::warn!("Failed to start CPU {}: {:?}", cpu_id, e);
                             let _ = e;
-                        }
+                        },
                     }
                 }
             }

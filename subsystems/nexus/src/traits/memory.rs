@@ -6,8 +6,8 @@
 
 use alloc::vec::Vec;
 
-use crate::types::{ConceptId, Duration, EpisodeId, NexusResult, ProcedureId, TimeRange};
 use super::component::NexusComponent;
+use crate::types::{ConceptId, Duration, EpisodeId, NexusResult, ProcedureId, TimeRange};
 
 // ============================================================================
 // MEMORY STORE TRAIT

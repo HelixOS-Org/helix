@@ -33,11 +33,11 @@ pub mod nr {
 
 /// Model Specific Registers for syscall
 mod msr {
-    pub const STAR: u32 = 0xC0000081;   // Segment selectors
-    pub const LSTAR: u32 = 0xC0000082;  // Syscall entry point (64-bit)
-    pub const CSTAR: u32 = 0xC0000083;  // Syscall entry point (compat mode)
+    pub const STAR: u32 = 0xC0000081; // Segment selectors
+    pub const LSTAR: u32 = 0xC0000082; // Syscall entry point (64-bit)
+    pub const CSTAR: u32 = 0xC0000083; // Syscall entry point (compat mode)
     pub const SFMASK: u32 = 0xC0000084; // Flags mask
-    pub const EFER: u32 = 0xC0000080;   // Extended features
+    pub const EFER: u32 = 0xC0000080; // Extended features
 }
 
 /// EFER bits
@@ -53,7 +53,7 @@ pub unsafe fn init() {
     // Enable syscall extensions in EFER
     let efer = rdmsr(msr::EFER);
     wrmsr(msr::EFER, efer | efer::SCE);
-    
+
     // STAR register layout:
     // Bits 31:0  - Reserved (EIP for 32-bit SYSCALL, not used in 64-bit)
     // Bits 47:32 - Kernel CS (SYSCALL loads this into CS)
@@ -80,24 +80,27 @@ pub unsafe fn init() {
     //
     // So: STAR[63:48] = 0x10 => SS = 0x10 + 8 | 3 = 0x1B ✓
     //                       => CS = 0x10 + 16 | 3 = 0x23 ✓
-    
+
     let kernel_base: u64 = 0x08;
-    let user_base: u64 = 0x10;  // SYSRET adds 8 for SS (0x18) and 16 for CS (0x20)
-    
+    let user_base: u64 = 0x10; // SYSRET adds 8 for SS (0x18) and 16 for CS (0x20)
+
     let star = (user_base << 48) | (kernel_base << 32);
     wrmsr(msr::STAR, star);
-    
+
     // Set syscall entry point
     wrmsr(msr::LSTAR, syscall_entry as u64);
-    
+
     // Set compat mode entry (not used, but required)
     wrmsr(msr::CSTAR, 0);
-    
+
     // Set flags mask (clear IF and TF on syscall entry)
     wrmsr(msr::SFMASK, 0x300); // Clear IF (0x200) and TF (0x100)
-    
-    log::info!("Syscall/sysret initialized (STAR={:#x}, LSTAR={:#x})", 
-               star, syscall_entry as u64);
+
+    log::info!(
+        "Syscall/sysret initialized (STAR={:#x}, LSTAR={:#x})",
+        star,
+        syscall_entry as u64
+    );
 }
 
 /// Syscall entry point
@@ -107,81 +110,85 @@ pub unsafe fn init() {
 /// RAX = syscall number
 #[naked]
 pub unsafe extern "C" fn syscall_entry() {
-    unsafe { naked_asm!(
-        // We're now in kernel mode (Ring 0)
-        // RCX = return RIP, R11 = return RFLAGS
-        // RAX = syscall number
-        // RDI, RSI, RDX, R10, R8, R9 = arguments
-        
-        // Save user state on current stack
-        // Note: In production, we'd switch to a kernel stack via TSS
-        "push rcx",      // User RIP
-        "push r11",      // User RFLAGS
-        "push rbp",
-        "push rbx",
-        "push r12",
-        "push r13",
-        "push r14",
-        "push r15",
-        "push rdi",      // Save arg0
-        "push rsi",      // Save arg1
-        "push rdx",      // Save arg2
-        
-        // Set up arguments for dispatcher
-        // dispatcher(syscall_nr, arg0, arg1, arg2, arg3, arg4)
-        // RDI = syscall number (was in RAX)
-        // RSI = arg0 (was in RDI)
-        // RDX = arg1 (was in RSI)
-        // RCX = arg2 (was in RDX)
-        // R8 = arg3 (was in R10)
-        // R9 = arg4 (was in R8)
-        "mov r9, r8",    // arg4
-        "mov r8, r10",   // arg3
-        "pop rcx",       // arg2 (restore RDX)
-        "pop rdx",       // arg1 (restore RSI)
-        "pop rsi",       // arg0 (restore RDI)
-        "mov rdi, rax",  // syscall_nr
-        
-        // Call the dispatcher
-        "call {dispatcher}",
-        
-        // Result is in RAX, keep it
-        
-        // Restore user state
-        "pop r15",
-        "pop r14",
-        "pop r13",
-        "pop r12",
-        "pop rbx",
-        "pop rbp",
-        "pop r11",      // User RFLAGS
-        "pop rcx",      // User RIP
-        
-        // Return to userspace (Ring 3)
-        "sysretq",
-        
-        dispatcher = sym syscall_dispatcher,
-    ); }
+    unsafe {
+        naked_asm!(
+            // We're now in kernel mode (Ring 0)
+            // RCX = return RIP, R11 = return RFLAGS
+            // RAX = syscall number
+            // RDI, RSI, RDX, R10, R8, R9 = arguments
+
+            // Save user state on current stack
+            // Note: In production, we'd switch to a kernel stack via TSS
+            "push rcx",      // User RIP
+            "push r11",      // User RFLAGS
+            "push rbp",
+            "push rbx",
+            "push r12",
+            "push r13",
+            "push r14",
+            "push r15",
+            "push rdi",      // Save arg0
+            "push rsi",      // Save arg1
+            "push rdx",      // Save arg2
+
+            // Set up arguments for dispatcher
+            // dispatcher(syscall_nr, arg0, arg1, arg2, arg3, arg4)
+            // RDI = syscall number (was in RAX)
+            // RSI = arg0 (was in RDI)
+            // RDX = arg1 (was in RSI)
+            // RCX = arg2 (was in RDX)
+            // R8 = arg3 (was in R10)
+            // R9 = arg4 (was in R8)
+            "mov r9, r8",    // arg4
+            "mov r8, r10",   // arg3
+            "pop rcx",       // arg2 (restore RDX)
+            "pop rdx",       // arg1 (restore RSI)
+            "pop rsi",       // arg0 (restore RDI)
+            "mov rdi, rax",  // syscall_nr
+
+            // Call the dispatcher
+            "call {dispatcher}",
+
+            // Result is in RAX, keep it
+
+            // Restore user state
+            "pop r15",
+            "pop r14",
+            "pop r13",
+            "pop r12",
+            "pop rbx",
+            "pop rbp",
+            "pop r11",      // User RFLAGS
+            "pop rcx",      // User RIP
+
+            // Return to userspace (Ring 3)
+            "sysretq",
+
+            dispatcher = sym syscall_dispatcher,
+        );
+    }
 }
 
 /// Syscall dispatcher (called from assembly)
-/// 
+///
 /// Arguments are already set up by the assembly stub.
 #[no_mangle]
 pub extern "C" fn syscall_dispatcher(
-    syscall_nr: u64,  // RDI - syscall number
-    arg0: u64,        // RSI - first argument
-    arg1: u64,        // RDX - second argument  
-    arg2: u64,        // RCX - third argument
-    arg3: u64,        // R8 - fourth argument
-    _arg4: u64,       // R9 - fifth argument
+    syscall_nr: u64, // RDI - syscall number
+    arg0: u64,       // RSI - first argument
+    arg1: u64,       // RDX - second argument
+    arg2: u64,       // RCX - third argument
+    arg3: u64,       // R8 - fourth argument
+    _arg4: u64,      // R9 - fifth argument
 ) -> u64 {
     match syscall_nr {
         nr::EXIT => {
             // Print exit message directly to serial
             let msg = b"\n[SYSCALL] exit(";
             for &c in msg {
-                unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+                unsafe {
+                    core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+                }
             }
             // Print exit code
             let code = arg0 as i32;
@@ -189,34 +196,44 @@ pub extern "C" fn syscall_dispatcher(
                 let tens = ((code / 10) as u8) + b'0';
                 let ones = ((code % 10) as u8) + b'0';
                 if tens > b'0' {
-                    unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") tens); }
+                    unsafe {
+                        core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") tens);
+                    }
                 }
-                unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") ones); }
+                unsafe {
+                    core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") ones);
+                }
             }
             let msg2 = b") - Task exiting from Ring 3!\n";
             for &c in msg2 {
-                unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+                unsafe {
+                    core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+                }
             }
-            
+
             // Exit the task
             super::task::scheduler().exit(code);
-            
+
             // Should never return, but halt just in case
             loop {
-                unsafe { core::arch::asm!("hlt"); }
+                unsafe {
+                    core::arch::asm!("hlt");
+                }
             }
-        }
+        },
         nr::WRITE => {
             // write(fd, buf, len)
             let _fd = arg0;
             let buf = arg1 as *const u8;
             let len = arg2 as usize;
-            
+
             // Write to serial port
             unsafe {
                 for i in 0..len {
                     let c = *buf.add(i);
-                    if c == 0 { break; } // Stop at null
+                    if c == 0 {
+                        break;
+                    } // Stop at null
                     core::arch::asm!(
                         "out dx, al",
                         in("dx") 0x3F8u16,
@@ -225,45 +242,55 @@ pub extern "C" fn syscall_dispatcher(
                     );
                 }
             }
-            
+
             len as u64
-        }
+        },
         nr::YIELD => {
             super::task::yield_now();
             0
-        }
-        nr::GETPID => {
-            super::task::scheduler().current_task_id().as_u64()
-        }
+        },
+        nr::GETPID => super::task::scheduler().current_task_id().as_u64(),
         nr::DEBUG => {
             // Debug syscall - print a value
             let msg = b"[DEBUG] value=";
             for &c in msg {
-                unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+                unsafe {
+                    core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+                }
             }
             // Print hex value
             let hex = b"0123456789abcdef";
             for i in (0..16).rev() {
                 let nibble = ((arg0 >> (i * 4)) & 0xF) as usize;
-                unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]); }
+                unsafe {
+                    core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]);
+                }
             }
-            unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n'); }
+            unsafe {
+                core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n');
+            }
             arg0
-        }
+        },
         _ => {
             // Unknown syscall
             let msg = b"[SYSCALL] Unknown syscall: ";
             for &c in msg {
-                unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+                unsafe {
+                    core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+                }
             }
             let hex = b"0123456789abcdef";
             for i in (0..4).rev() {
                 let nibble = ((syscall_nr >> (i * 4)) & 0xF) as usize;
-                unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]); }
+                unsafe {
+                    core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]);
+                }
             }
-            unsafe { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n'); }
+            unsafe {
+                core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n');
+            }
             u64::MAX // Error
-        }
+        },
     }
 }
 

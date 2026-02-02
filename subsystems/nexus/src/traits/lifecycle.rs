@@ -4,8 +4,8 @@
 
 #![allow(dead_code)]
 
-use crate::types::{Duration, NexusResult, Timestamp};
 use super::decider::ValidationResult;
+use crate::types::{Duration, NexusResult, Timestamp};
 
 // ============================================================================
 // TICKABLE TRAIT

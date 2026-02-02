@@ -4,11 +4,12 @@
 //! physical disk blocks. This allows efficient handling of large files
 //! and enables features like preallocation and sparse files.
 
-use crate::core::types::*;
+use core::cmp::Ordering;
+use core::mem::size_of;
+
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
-use core::mem::size_of;
-use core::cmp::Ordering;
+use crate::core::types::*;
 
 // ============================================================================
 // Constants
@@ -60,7 +61,7 @@ pub struct ExtentEntry {
 impl ExtentEntry {
     /// Size in bytes
     pub const SIZE: usize = 40;
-    
+
     /// Create a new extent entry
     #[inline]
     pub const fn new(logical_start: u64, physical_start: u64, length: u32) -> Self {
@@ -75,43 +76,43 @@ impl ExtentEntry {
             _reserved: 0,
         }
     }
-    
+
     /// Create with flags
     pub const fn with_flags(mut self, flags: u16) -> Self {
         self.flags = flags;
         self
     }
-    
+
     /// Create with generation
     pub const fn with_generation(mut self, gen: u64) -> Self {
         self.generation = gen;
         self
     }
-    
+
     /// Get ending logical block (exclusive)
     #[inline]
     pub fn logical_end(&self) -> u64 {
         self.logical_start + self.length as u64
     }
-    
+
     /// Get ending physical block (exclusive)
     #[inline]
     pub fn physical_end(&self) -> u64 {
         self.physical_start + self.length as u64
     }
-    
+
     /// Check if this extent contains a logical block
     #[inline]
     pub fn contains_logical(&self, block: u64) -> bool {
         block >= self.logical_start && block < self.logical_end()
     }
-    
+
     /// Check if this extent contains a physical block
     #[inline]
     pub fn contains_physical(&self, block: u64) -> bool {
         block >= self.physical_start && block < self.physical_end()
     }
-    
+
     /// Map logical block to physical block
     #[inline]
     pub fn map_logical(&self, logical: u64) -> Option<u64> {
@@ -121,37 +122,37 @@ impl ExtentEntry {
             None
         }
     }
-    
+
     /// Check if compressed
     #[inline]
     pub fn is_compressed(&self) -> bool {
         (self.flags & ExtentFlags::COMPRESSED) != 0
     }
-    
+
     /// Check if encrypted
     #[inline]
     pub fn is_encrypted(&self) -> bool {
         (self.flags & ExtentFlags::ENCRYPTED) != 0
     }
-    
+
     /// Check if this is a hole (unwritten extent)
     #[inline]
     pub fn is_hole(&self) -> bool {
         (self.flags & ExtentFlags::HOLE) != 0
     }
-    
+
     /// Check if preallocated but unwritten
     #[inline]
     pub fn is_prealloc(&self) -> bool {
         (self.flags & ExtentFlags::PREALLOC) != 0
     }
-    
+
     /// Check if shared (CoW reference)
     #[inline]
     pub fn is_shared(&self) -> bool {
         (self.flags & ExtentFlags::SHARED) != 0
     }
-    
+
     /// Convert to core Extent type
     pub fn to_extent(&self) -> Extent {
         Extent {
@@ -162,7 +163,7 @@ impl ExtentEntry {
             checksum: 0,
         }
     }
-    
+
     /// Create from core Extent type
     pub fn from_extent(e: &Extent, generation: u64) -> Self {
         Self {
@@ -176,7 +177,7 @@ impl ExtentEntry {
             _reserved: 0,
         }
     }
-    
+
     /// Compare by logical start for sorting
     pub fn cmp_logical(&self, other: &Self) -> Ordering {
         // Copy packed fields to avoid unaligned reference
@@ -211,7 +212,7 @@ pub struct ExtentPtr {
 impl ExtentPtr {
     /// Size in bytes
     pub const SIZE: usize = 24;
-    
+
     /// Create new extent pointer
     #[inline]
     pub const fn new(logical_start: u64, child_block: u64, generation: u64) -> Self {
@@ -237,7 +238,7 @@ pub enum ExtentNodeType {
     /// Internal node with pointers
     Internal = 1,
     /// Leaf node with extent entries
-    Leaf = 2,
+    Leaf     = 2,
 }
 
 impl ExtentNodeType {
@@ -282,7 +283,7 @@ pub struct ExtentNodeHeader {
 impl ExtentNodeHeader {
     /// Size in bytes
     pub const SIZE: usize = 64;
-    
+
     /// Create new header
     pub const fn new(node_type: ExtentNodeType, depth: u8, owner_ino: u64) -> Self {
         Self {
@@ -299,7 +300,7 @@ impl ExtentNodeHeader {
             _padding: [0; 12],
         }
     }
-    
+
     /// Validate header
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != EXTENT_TREE_MAGIC {
@@ -313,13 +314,13 @@ impl ExtentNodeHeader {
         }
         Ok(())
     }
-    
+
     /// Check if leaf node
     #[inline]
     pub fn is_leaf(&self) -> bool {
         self.node_type == ExtentNodeType::Leaf as u8
     }
-    
+
     /// Check if internal node
     #[inline]
     pub fn is_internal(&self) -> bool {
@@ -351,47 +352,47 @@ impl ExtentLeafNode {
     pub fn new(owner_ino: u64, block_num: u64) -> Self {
         let mut header = ExtentNodeHeader::new(ExtentNodeType::Leaf, 0, owner_ino);
         header.block_num = block_num;
-        
+
         Self {
             header,
             entries: [ExtentEntry::new(0, 0, 0); MAX_LEAF_EXTENTS],
         }
     }
-    
+
     /// Get entry count
     #[inline]
     pub fn count(&self) -> usize {
         self.header.entry_count as usize
     }
-    
+
     /// Check if full
     #[inline]
     pub fn is_full(&self) -> bool {
         self.count() >= MAX_LEAF_EXTENTS
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.count() == 0
     }
-    
+
     /// Get entries as slice
     pub fn entries(&self) -> &[ExtentEntry] {
         &self.entries[..self.count()]
     }
-    
+
     /// Find entry containing logical block
     pub fn find_extent(&self, logical_block: u64) -> Option<&ExtentEntry> {
         // Binary search
         let entries = self.entries();
         let mut left = 0;
         let mut right = entries.len();
-        
+
         while left < right {
             let mid = left + (right - left) / 2;
             let entry = &entries[mid];
-            
+
             if entry.contains_logical(logical_block) {
                 return Some(entry);
             } else if entry.logical_start > logical_block {
@@ -400,18 +401,18 @@ impl ExtentLeafNode {
                 left = mid + 1;
             }
         }
-        
+
         None
     }
-    
+
     /// Insert extent entry (maintains sorted order)
     pub fn insert(&mut self, entry: ExtentEntry) -> HfsResult<()> {
         if self.is_full() {
             return Err(HfsError::ExtentTreeFull);
         }
-        
+
         let count = self.count();
-        
+
         // Find insertion point
         let mut pos = count;
         for i in 0..count {
@@ -420,62 +421,59 @@ impl ExtentLeafNode {
                 break;
             }
         }
-        
+
         // Shift entries
         for i in (pos..count).rev() {
             self.entries[i + 1] = self.entries[i];
         }
-        
+
         // Insert
         self.entries[pos] = entry;
         self.header.entry_count += 1;
-        
+
         Ok(())
     }
-    
+
     /// Remove extent at index
     pub fn remove(&mut self, index: usize) -> HfsResult<ExtentEntry> {
         let count = self.count();
         if index >= count {
             return Err(HfsError::ExtentNotFound);
         }
-        
+
         let entry = self.entries[index];
-        
+
         // Shift entries
         for i in index..count - 1 {
             self.entries[i] = self.entries[i + 1];
         }
-        
+
         self.header.entry_count -= 1;
         Ok(entry)
     }
-    
+
     /// Calculate checksum
     pub fn calculate_checksum(&self) -> u32 {
         // Hash header without checksum field
         let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const Self as *const u8,
-                EXTENT_NODE_SIZE - 4,
-            )
+            core::slice::from_raw_parts(self as *const Self as *const u8, EXTENT_NODE_SIZE - 4)
         };
         Crc32c::hash(bytes)
     }
-    
+
     /// Update checksum
     pub fn update_checksum(&mut self) {
         self.header.checksum = self.calculate_checksum();
     }
-    
+
     /// Validate node
     pub fn validate(&self) -> HfsResult<()> {
         self.header.validate()?;
-        
+
         if !self.header.is_leaf() {
             return Err(HfsError::ExtentCorruption);
         }
-        
+
         // Verify entries are sorted
         let entries = self.entries();
         for i in 1..entries.len() {
@@ -483,35 +481,35 @@ impl ExtentLeafNode {
                 return Err(HfsError::ExtentCorruption);
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Split node in half, return new node
     pub fn split(&mut self, new_block_num: u64) -> Self {
         let count = self.count();
         let mid = count / 2;
-        
+
         let mut new_node = Self::new(self.header.owner_ino, new_block_num);
         new_node.header.generation = self.header.generation;
-        
+
         // Copy second half to new node
         for i in mid..count {
             new_node.entries[i - mid] = self.entries[i];
         }
         new_node.header.entry_count = (count - mid) as u16;
-        
+
         // Update this node
         self.header.entry_count = mid as u16;
-        
+
         // Update sibling links
         new_node.header.prev_block = self.header.block_num;
         new_node.header.next_block = self.header.next_block;
         self.header.next_block = new_block_num;
-        
+
         new_node
     }
-    
+
     /// Get first key (minimum logical block)
     #[inline]
     pub fn first_key(&self) -> u64 {
@@ -521,7 +519,7 @@ impl ExtentLeafNode {
             self.entries[0].logical_start
         }
     }
-    
+
     /// Get last key (maximum logical block start)
     #[inline]
     pub fn last_key(&self) -> u64 {
@@ -555,41 +553,41 @@ impl ExtentInternalNode {
     pub fn new(owner_ino: u64, depth: u8, block_num: u64) -> Self {
         let mut header = ExtentNodeHeader::new(ExtentNodeType::Internal, depth, owner_ino);
         header.block_num = block_num;
-        
+
         Self {
             header,
             pointers: [ExtentPtr::new(0, 0, 0); MAX_INTERNAL_KEYS],
         }
     }
-    
+
     /// Get entry count
     #[inline]
     pub fn count(&self) -> usize {
         self.header.entry_count as usize
     }
-    
+
     /// Check if full
     #[inline]
     pub fn is_full(&self) -> bool {
         self.count() >= MAX_INTERNAL_KEYS
     }
-    
+
     /// Get pointers as slice
     pub fn pointers(&self) -> &[ExtentPtr] {
         &self.pointers[..self.count()]
     }
-    
+
     /// Find child for logical block
     pub fn find_child(&self, logical_block: u64) -> Option<u64> {
         let ptrs = self.pointers();
         if ptrs.is_empty() {
             return None;
         }
-        
+
         // Binary search for the appropriate child
         let mut left = 0;
         let mut right = ptrs.len();
-        
+
         while left < right {
             let mid = left + (right - left) / 2;
             if ptrs[mid].logical_start <= logical_block {
@@ -598,7 +596,7 @@ impl ExtentInternalNode {
                 right = mid;
             }
         }
-        
+
         // left is now the first pointer with logical_start > logical_block
         // We want the previous one
         if left == 0 {
@@ -607,15 +605,15 @@ impl ExtentInternalNode {
             Some(ptrs[left - 1].child_block)
         }
     }
-    
+
     /// Insert pointer (maintains sorted order)
     pub fn insert(&mut self, ptr: ExtentPtr) -> HfsResult<()> {
         if self.is_full() {
             return Err(HfsError::ExtentTreeFull);
         }
-        
+
         let count = self.count();
-        
+
         // Find insertion point
         let mut pos = count;
         for i in 0..count {
@@ -624,68 +622,65 @@ impl ExtentInternalNode {
                 break;
             }
         }
-        
+
         // Shift pointers
         for i in (pos..count).rev() {
             self.pointers[i + 1] = self.pointers[i];
         }
-        
+
         // Insert
         self.pointers[pos] = ptr;
         self.header.entry_count += 1;
-        
+
         Ok(())
     }
-    
+
     /// Remove pointer at index
     pub fn remove(&mut self, index: usize) -> HfsResult<ExtentPtr> {
         let count = self.count();
         if index >= count {
             return Err(HfsError::ExtentNotFound);
         }
-        
+
         let ptr = self.pointers[index];
-        
+
         // Shift pointers
         for i in index..count - 1 {
             self.pointers[i] = self.pointers[i + 1];
         }
-        
+
         self.header.entry_count -= 1;
         Ok(ptr)
     }
-    
+
     /// Update key for child at index
     pub fn update_key(&mut self, index: usize, new_key: u64) {
         if index < self.count() {
             self.pointers[index].logical_start = new_key;
         }
     }
-    
+
     /// Calculate checksum
     pub fn calculate_checksum(&self) -> u32 {
         let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const Self as *const u8,
-                EXTENT_NODE_SIZE - 4,
-            )
+            core::slice::from_raw_parts(self as *const Self as *const u8, EXTENT_NODE_SIZE - 4)
         };
         Crc32c::hash(bytes)
     }
-    
+
     /// Update checksum
     pub fn update_checksum(&mut self) {
         self.header.checksum = self.calculate_checksum();
     }
-    
+
     /// Validate node
     pub fn validate(&self) -> HfsResult<()> {
         self.header.validate()?;
-        
+
         if !self.header.is_internal() {
             return Err(HfsError::ExtentCorruption);
         }
-        
+
         // Verify pointers are sorted
         let ptrs = self.pointers();
         for i in 1..ptrs.len() {
@@ -693,30 +688,30 @@ impl ExtentInternalNode {
                 return Err(HfsError::ExtentCorruption);
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Split node in half
     pub fn split(&mut self, new_block_num: u64) -> Self {
         let count = self.count();
         let mid = count / 2;
-        
+
         let mut new_node = Self::new(self.header.owner_ino, self.header.depth, new_block_num);
         new_node.header.generation = self.header.generation;
-        
+
         // Copy second half to new node
         for i in mid..count {
             new_node.pointers[i - mid] = self.pointers[i];
         }
         new_node.header.entry_count = (count - mid) as u16;
-        
+
         // Update this node
         self.header.entry_count = mid as u16;
-        
+
         new_node
     }
-    
+
     /// Get first key
     #[inline]
     pub fn first_key(&self) -> u64 {
@@ -758,7 +753,7 @@ pub struct ExtentTreeRoot {
 impl ExtentTreeRoot {
     /// Size in bytes
     pub const SIZE: usize = 192;
-    
+
     /// Create new empty root
     pub const fn new() -> Self {
         Self {
@@ -771,13 +766,13 @@ impl ExtentTreeRoot {
             total_blocks: 0,
         }
     }
-    
+
     /// Check if tree is inline (no external nodes)
     #[inline]
     pub fn is_inline(&self) -> bool {
         self.depth == 0 && self.root_block == 0
     }
-    
+
     /// Get inline extents if present
     pub fn inline_extents(&self) -> Option<&[ExtentEntry]> {
         if self.is_inline() {
@@ -786,28 +781,28 @@ impl ExtentTreeRoot {
             None
         }
     }
-    
+
     /// Check if can fit more inline extents
     #[inline]
     pub fn can_inline(&self) -> bool {
         self.is_inline() && (self.inline_count as usize) < 4
     }
-    
+
     /// Add inline extent
     pub fn add_inline(&mut self, extent: ExtentEntry) -> HfsResult<()> {
         if !self.can_inline() {
             return Err(HfsError::ExtentTreeFull);
         }
-        
+
         let idx = self.inline_count as usize;
         self.inline_extents[idx] = extent;
         self.inline_count += 1;
         self.total_extents += 1;
         self.total_blocks += extent.length as u64;
-        
+
         Ok(())
     }
-    
+
     /// Find extent for logical block in inline extents
     pub fn find_inline(&self, logical_block: u64) -> Option<&ExtentEntry> {
         if let Some(extents) = self.inline_extents() {
@@ -854,13 +849,13 @@ impl ExtentAllocHint {
             flags: 0,
         }
     }
-    
+
     /// Set preferred start
     pub const fn with_start(mut self, block: BlockNum) -> Self {
         self.preferred_start = Some(block);
         self
     }
-    
+
     /// Set minimum length
     pub const fn with_min_length(mut self, len: u32) -> Self {
         self.min_length = len;
@@ -898,7 +893,7 @@ impl ExtentMapResult {
             is_compressed: false,
         }
     }
-    
+
     /// Create result for hole
     pub fn hole(length: u32) -> Self {
         Self {
@@ -918,93 +913,93 @@ impl ExtentMapResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_extent_entry_size() {
         assert_eq!(size_of::<ExtentEntry>(), 40);
     }
-    
+
     #[test]
     fn test_extent_ptr_size() {
         assert_eq!(size_of::<ExtentPtr>(), 24);
     }
-    
+
     #[test]
     fn test_extent_header_size() {
         assert_eq!(size_of::<ExtentNodeHeader>(), 64);
     }
-    
+
     #[test]
     fn test_extent_entry_mapping() {
         let entry = ExtentEntry::new(100, 5000, 50);
-        
+
         assert!(entry.contains_logical(100));
         assert!(entry.contains_logical(149));
         assert!(!entry.contains_logical(150));
-        
+
         assert_eq!(entry.map_logical(100), Some(5000));
         assert_eq!(entry.map_logical(125), Some(5025));
         assert_eq!(entry.map_logical(200), None);
     }
-    
+
     #[test]
     fn test_leaf_node_insert() {
         let mut leaf = ExtentLeafNode::new(1, 100);
-        
+
         assert!(leaf.insert(ExtentEntry::new(100, 1000, 10)).is_ok());
         assert!(leaf.insert(ExtentEntry::new(50, 500, 20)).is_ok());
         assert!(leaf.insert(ExtentEntry::new(200, 2000, 30)).is_ok());
-        
+
         assert_eq!(leaf.count(), 3);
-        
+
         // Should be sorted
         let entries = leaf.entries();
         assert_eq!(entries[0].logical_start, 50);
         assert_eq!(entries[1].logical_start, 100);
         assert_eq!(entries[2].logical_start, 200);
     }
-    
+
     #[test]
     fn test_leaf_node_find() {
         let mut leaf = ExtentLeafNode::new(1, 100);
         leaf.insert(ExtentEntry::new(0, 1000, 100)).unwrap();
         leaf.insert(ExtentEntry::new(200, 2000, 100)).unwrap();
         leaf.insert(ExtentEntry::new(400, 3000, 100)).unwrap();
-        
+
         assert!(leaf.find_extent(50).is_some());
         assert!(leaf.find_extent(99).is_some());
         assert!(leaf.find_extent(100).is_none()); // Gap
         assert!(leaf.find_extent(200).is_some());
         assert!(leaf.find_extent(500).is_none());
     }
-    
+
     #[test]
     fn test_internal_node_find_child() {
         let mut internal = ExtentInternalNode::new(1, 1, 100);
         internal.insert(ExtentPtr::new(0, 1000, 0)).unwrap();
         internal.insert(ExtentPtr::new(100, 1001, 0)).unwrap();
         internal.insert(ExtentPtr::new(200, 1002, 0)).unwrap();
-        
+
         assert_eq!(internal.find_child(0), Some(1000));
         assert_eq!(internal.find_child(50), Some(1000));
         assert_eq!(internal.find_child(100), Some(1001));
         assert_eq!(internal.find_child(150), Some(1001));
         assert_eq!(internal.find_child(300), Some(1002));
     }
-    
+
     #[test]
     fn test_extent_tree_root() {
         let mut root = ExtentTreeRoot::new();
-        
+
         assert!(root.is_inline());
         assert!(root.can_inline());
-        
+
         root.add_inline(ExtentEntry::new(0, 100, 50)).unwrap();
         root.add_inline(ExtentEntry::new(50, 200, 50)).unwrap();
-        
+
         assert_eq!(root.total_extents, 2);
         assert_eq!(root.total_blocks, 100);
-        
+
         assert!(root.find_inline(0).is_some());
         assert!(root.find_inline(75).is_some());
         assert!(root.find_inline(100).is_none());

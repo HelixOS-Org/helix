@@ -11,8 +11,7 @@ use core::fmt;
 
 /// EFI Graphics Output Protocol GUID
 pub const EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID: [u8; 16] = [
-    0xDE, 0xA9, 0x42, 0x90, 0xDC, 0x23, 0x38, 0x4A,
-    0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A,
+    0xDE, 0xA9, 0x42, 0x90, 0xDC, 0x23, 0x38, 0x4A, 0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A,
 ];
 
 /// Pixel format
@@ -28,7 +27,7 @@ pub enum PixelFormat {
     /// BLT only (no framebuffer)
     BltOnly = 3,
     /// Reserved
-    Max = 4,
+    Max     = 4,
 }
 
 impl PixelFormat {
@@ -164,9 +163,9 @@ pub struct GraphicsMode {
 impl GraphicsMode {
     /// Is this mode suitable for console
     pub fn is_suitable_for_console(&self) -> bool {
-        self.info.width() >= 640 &&
-        self.info.height() >= 480 &&
-        self.info.pixel_format != PixelFormat::BltOnly
+        self.info.width() >= 640
+            && self.info.height() >= 480
+            && self.info.pixel_format != PixelFormat::BltOnly
     }
 
     /// Calculate aspect ratio
@@ -178,7 +177,11 @@ impl GraphicsMode {
 
 /// Calculate GCD
 fn gcd(a: u32, b: u32) -> u32 {
-    if b == 0 { a } else { gcd(b, a % b) }
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
 }
 
 // =============================================================================
@@ -294,7 +297,10 @@ impl GraphicsOutput {
         }
 
         unsafe {
-            Some(core::slice::from_raw_parts_mut(self.framebuffer, self.framebuffer_size))
+            Some(core::slice::from_raw_parts_mut(
+                self.framebuffer,
+                self.framebuffer_size,
+            ))
         }
     }
 
@@ -306,7 +312,8 @@ impl GraphicsOutput {
             return None;
         }
 
-        let offset = (y * mode.info.stride() + x * mode.info.pixel_format.bytes_per_pixel() as u32) as usize;
+        let offset =
+            (y * mode.info.stride() + x * mode.info.pixel_format.bytes_per_pixel() as u32) as usize;
 
         if offset + 4 > self.framebuffer_size {
             return None;
@@ -326,7 +333,8 @@ impl GraphicsOutput {
             return Err(GraphicsError::OutOfBounds);
         }
 
-        let offset = (y * mode.info.stride() + x * mode.info.pixel_format.bytes_per_pixel() as u32) as usize;
+        let offset =
+            (y * mode.info.stride() + x * mode.info.pixel_format.bytes_per_pixel() as u32) as usize;
 
         if offset + 4 > self.framebuffer_size {
             return Err(GraphicsError::OutOfBounds);
@@ -345,26 +353,32 @@ impl GraphicsOutput {
     fn encode_pixel(&self, color: Color32, info: &GraphicsModeInfo) -> u32 {
         match info.pixel_format {
             PixelFormat::RedGreenBlueReserved8BitPerColor => {
-                ((color.r as u32) << 16) |
-                ((color.g as u32) << 8) |
-                (color.b as u32) |
-                ((color.a as u32) << 24)
-            }
+                ((color.r as u32) << 16)
+                    | ((color.g as u32) << 8)
+                    | (color.b as u32)
+                    | ((color.a as u32) << 24)
+            },
             PixelFormat::BlueGreenRedReserved8BitPerColor => {
-                (color.b as u32) |
-                ((color.g as u32) << 8) |
-                ((color.r as u32) << 16) |
-                ((color.a as u32) << 24)
-            }
+                (color.b as u32)
+                    | ((color.g as u32) << 8)
+                    | ((color.r as u32) << 16)
+                    | ((color.a as u32) << 24)
+            },
             PixelFormat::BitMask => {
-                let (r_shift, _) = info.pixel_information.channel_info(info.pixel_information.red_mask);
-                let (g_shift, _) = info.pixel_information.channel_info(info.pixel_information.green_mask);
-                let (b_shift, _) = info.pixel_information.channel_info(info.pixel_information.blue_mask);
+                let (r_shift, _) = info
+                    .pixel_information
+                    .channel_info(info.pixel_information.red_mask);
+                let (g_shift, _) = info
+                    .pixel_information
+                    .channel_info(info.pixel_information.green_mask);
+                let (b_shift, _) = info
+                    .pixel_information
+                    .channel_info(info.pixel_information.blue_mask);
 
-                ((color.r as u32) << r_shift) |
-                ((color.g as u32) << g_shift) |
-                ((color.b as u32) << b_shift)
-            }
+                ((color.r as u32) << r_shift)
+                    | ((color.g as u32) << g_shift)
+                    | ((color.b as u32) << b_shift)
+            },
             _ => 0,
         }
     }
@@ -372,26 +386,28 @@ impl GraphicsOutput {
     /// Decode pixel value to color
     fn decode_pixel(&self, pixel: u32, info: &GraphicsModeInfo) -> Color32 {
         match info.pixel_format {
-            PixelFormat::RedGreenBlueReserved8BitPerColor => {
-                Color32 {
-                    r: ((pixel >> 16) & 0xFF) as u8,
-                    g: ((pixel >> 8) & 0xFF) as u8,
-                    b: (pixel & 0xFF) as u8,
-                    a: ((pixel >> 24) & 0xFF) as u8,
-                }
-            }
-            PixelFormat::BlueGreenRedReserved8BitPerColor => {
-                Color32 {
-                    b: (pixel & 0xFF) as u8,
-                    g: ((pixel >> 8) & 0xFF) as u8,
-                    r: ((pixel >> 16) & 0xFF) as u8,
-                    a: ((pixel >> 24) & 0xFF) as u8,
-                }
-            }
+            PixelFormat::RedGreenBlueReserved8BitPerColor => Color32 {
+                r: ((pixel >> 16) & 0xFF) as u8,
+                g: ((pixel >> 8) & 0xFF) as u8,
+                b: (pixel & 0xFF) as u8,
+                a: ((pixel >> 24) & 0xFF) as u8,
+            },
+            PixelFormat::BlueGreenRedReserved8BitPerColor => Color32 {
+                b: (pixel & 0xFF) as u8,
+                g: ((pixel >> 8) & 0xFF) as u8,
+                r: ((pixel >> 16) & 0xFF) as u8,
+                a: ((pixel >> 24) & 0xFF) as u8,
+            },
             PixelFormat::BitMask => {
-                let (r_shift, _) = info.pixel_information.channel_info(info.pixel_information.red_mask);
-                let (g_shift, _) = info.pixel_information.channel_info(info.pixel_information.green_mask);
-                let (b_shift, _) = info.pixel_information.channel_info(info.pixel_information.blue_mask);
+                let (r_shift, _) = info
+                    .pixel_information
+                    .channel_info(info.pixel_information.red_mask);
+                let (g_shift, _) = info
+                    .pixel_information
+                    .channel_info(info.pixel_information.green_mask);
+                let (b_shift, _) = info
+                    .pixel_information
+                    .channel_info(info.pixel_information.blue_mask);
 
                 Color32 {
                     r: ((pixel >> r_shift) & 0xFF) as u8,
@@ -399,7 +415,7 @@ impl GraphicsOutput {
                     b: ((pixel >> b_shift) & 0xFF) as u8,
                     a: 255,
                 }
-            }
+            },
             _ => Color32::BLACK,
         }
     }
@@ -428,18 +444,25 @@ impl GraphicsOutput {
                     return Err(GraphicsError::OutOfBounds);
                 }
 
-                let pixel = blt_buffer.and_then(|b| b.first())
+                let pixel = blt_buffer
+                    .and_then(|b| b.first())
                     .ok_or(GraphicsError::InvalidParameter)?;
 
-                self.fill_rect(dst_x as u32, dst_y as u32, width as u32, height as u32, pixel.to_color())?;
-            }
+                self.fill_rect(
+                    dst_x as u32,
+                    dst_y as u32,
+                    width as u32,
+                    height as u32,
+                    pixel.to_color(),
+                )?;
+            },
             BltOperation::VideoToBltBuffer => {
                 // Copy from video to buffer
                 if src_x + width > screen_width || src_y + height > screen_height {
                     return Err(GraphicsError::OutOfBounds);
                 }
                 // Would read pixels into buffer
-            }
+            },
             BltOperation::BufferToVideo => {
                 // Copy from buffer to video
                 if dst_x + width > screen_width || dst_y + height > screen_height {
@@ -460,22 +483,32 @@ impl GraphicsOutput {
                         }
                     }
                 }
-            }
+            },
             BltOperation::VideoToVideo => {
                 // Copy within video memory
-                if src_x + width > screen_width || src_y + height > screen_height ||
-                   dst_x + width > screen_width || dst_y + height > screen_height {
+                if src_x + width > screen_width
+                    || src_y + height > screen_height
+                    || dst_x + width > screen_width
+                    || dst_y + height > screen_height
+                {
                     return Err(GraphicsError::OutOfBounds);
                 }
                 // Would copy pixels within framebuffer
-            }
+            },
         }
 
         Ok(())
     }
 
     /// Fill rectangle
-    pub fn fill_rect(&mut self, x: u32, y: u32, width: u32, height: u32, color: Color32) -> Result<(), GraphicsError> {
+    pub fn fill_rect(
+        &mut self,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+        color: Color32,
+    ) -> Result<(), GraphicsError> {
         let mode = self.current_mode().ok_or(GraphicsError::NoMode)?;
         let info = mode.info.clone();
 
@@ -554,18 +587,12 @@ impl Color32 {
 
     /// To u32 (ARGB)
     pub const fn to_u32_argb(&self) -> u32 {
-        ((self.a as u32) << 24) |
-        ((self.r as u32) << 16) |
-        ((self.g as u32) << 8) |
-        (self.b as u32)
+        ((self.a as u32) << 24) | ((self.r as u32) << 16) | ((self.g as u32) << 8) | (self.b as u32)
     }
 
     /// To u32 (RGBA)
     pub const fn to_u32_rgba(&self) -> u32 {
-        ((self.r as u32) << 24) |
-        ((self.g as u32) << 16) |
-        ((self.b as u32) << 8) |
-        (self.a as u32)
+        ((self.r as u32) << 24) | ((self.g as u32) << 16) | ((self.b as u32) << 8) | (self.a as u32)
     }
 
     /// Blend with another color
@@ -715,7 +742,13 @@ impl<'a> DrawingContext<'a> {
     }
 
     /// Draw horizontal line
-    pub fn draw_hline(&mut self, x1: i32, x2: i32, y: i32, color: Color32) -> Result<(), GraphicsError> {
+    pub fn draw_hline(
+        &mut self,
+        x1: i32,
+        x2: i32,
+        y: i32,
+        color: Color32,
+    ) -> Result<(), GraphicsError> {
         let (start, end) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
 
         for x in start..=end {
@@ -725,7 +758,13 @@ impl<'a> DrawingContext<'a> {
     }
 
     /// Draw vertical line
-    pub fn draw_vline(&mut self, x: i32, y1: i32, y2: i32, color: Color32) -> Result<(), GraphicsError> {
+    pub fn draw_vline(
+        &mut self,
+        x: i32,
+        y1: i32,
+        y2: i32,
+        color: Color32,
+    ) -> Result<(), GraphicsError> {
         let (start, end) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
 
         for y in start..=end {
@@ -735,7 +774,14 @@ impl<'a> DrawingContext<'a> {
     }
 
     /// Draw line (Bresenham's algorithm)
-    pub fn draw_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: Color32) -> Result<(), GraphicsError> {
+    pub fn draw_line(
+        &mut self,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        color: Color32,
+    ) -> Result<(), GraphicsError> {
         let dx = (x1 - x0).abs();
         let dy = -(y1 - y0).abs();
         let sx = if x0 < x1 { 1 } else { -1 };
@@ -754,12 +800,16 @@ impl<'a> DrawingContext<'a> {
 
             let e2 = 2 * err;
             if e2 >= dy {
-                if x == x1 { break; }
+                if x == x1 {
+                    break;
+                }
                 err += dy;
                 x += sx;
             }
             if e2 <= dx {
-                if y == y1 { break; }
+                if y == y1 {
+                    break;
+                }
                 err += dx;
                 y += sy;
             }
@@ -786,7 +836,8 @@ impl<'a> DrawingContext<'a> {
     /// Fill rectangle
     pub fn fill_rect(&mut self, rect: &Rect, color: Color32) -> Result<(), GraphicsError> {
         if rect.x >= 0 && rect.y >= 0 {
-            self.gop.fill_rect(rect.x as u32, rect.y as u32, rect.width, rect.height, color)
+            self.gop
+                .fill_rect(rect.x as u32, rect.y as u32, rect.width, rect.height, color)
         } else {
             // Handle negative coordinates
             for y in rect.y..(rect.y + rect.height as i32) {
@@ -799,7 +850,13 @@ impl<'a> DrawingContext<'a> {
     }
 
     /// Draw circle outline (Midpoint algorithm)
-    pub fn draw_circle(&mut self, cx: i32, cy: i32, radius: i32, color: Color32) -> Result<(), GraphicsError> {
+    pub fn draw_circle(
+        &mut self,
+        cx: i32,
+        cy: i32,
+        radius: i32,
+        color: Color32,
+    ) -> Result<(), GraphicsError> {
         let mut x = radius;
         let mut y = 0;
         let mut err = 0;
@@ -828,7 +885,13 @@ impl<'a> DrawingContext<'a> {
     }
 
     /// Fill circle
-    pub fn fill_circle(&mut self, cx: i32, cy: i32, radius: i32, color: Color32) -> Result<(), GraphicsError> {
+    pub fn fill_circle(
+        &mut self,
+        cx: i32,
+        cy: i32,
+        radius: i32,
+        color: Color32,
+    ) -> Result<(), GraphicsError> {
         let mut x = radius;
         let mut y = 0;
         let mut err = 0;
@@ -853,7 +916,12 @@ impl<'a> DrawingContext<'a> {
     }
 
     /// Draw rounded rectangle
-    pub fn draw_rounded_rect(&mut self, rect: &Rect, radius: i32, color: Color32) -> Result<(), GraphicsError> {
+    pub fn draw_rounded_rect(
+        &mut self,
+        rect: &Rect,
+        radius: i32,
+        color: Color32,
+    ) -> Result<(), GraphicsError> {
         let x1 = rect.x;
         let y1 = rect.y;
         let x2 = rect.x + rect.width as i32 - 1;
@@ -898,9 +966,12 @@ impl<'a> DrawingContext<'a> {
     /// Draw triangle outline
     pub fn draw_triangle(
         &mut self,
-        x0: i32, y0: i32,
-        x1: i32, y1: i32,
-        x2: i32, y2: i32,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        x2: i32,
+        y2: i32,
         color: Color32,
     ) -> Result<(), GraphicsError> {
         self.draw_line(x0, y0, x1, y1, color)?;
@@ -912,17 +983,26 @@ impl<'a> DrawingContext<'a> {
     /// Fill triangle (using scan line)
     pub fn fill_triangle(
         &mut self,
-        x0: i32, y0: i32,
-        x1: i32, y1: i32,
-        x2: i32, y2: i32,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        x2: i32,
+        y2: i32,
         color: Color32,
     ) -> Result<(), GraphicsError> {
         // Sort vertices by y
         let (mut v0, mut v1, mut v2) = ((x0, y0), (x1, y1), (x2, y2));
 
-        if v1.1 < v0.1 { core::mem::swap(&mut v0, &mut v1); }
-        if v2.1 < v0.1 { core::mem::swap(&mut v0, &mut v2); }
-        if v2.1 < v1.1 { core::mem::swap(&mut v1, &mut v2); }
+        if v1.1 < v0.1 {
+            core::mem::swap(&mut v0, &mut v1);
+        }
+        if v2.1 < v0.1 {
+            core::mem::swap(&mut v0, &mut v2);
+        }
+        if v2.1 < v1.1 {
+            core::mem::swap(&mut v1, &mut v2);
+        }
 
         let (x0, y0) = v0;
         let (x1, y1) = v1;
@@ -947,13 +1027,18 @@ impl<'a> DrawingContext<'a> {
 
     fn fill_flat_bottom_triangle(
         &mut self,
-        x0: i32, y0: i32,
-        x1: i32, y1: i32,
-        x2: i32, _y2: i32,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        x2: i32,
+        _y2: i32,
         color: Color32,
     ) -> Result<(), GraphicsError> {
         let dy = y1 - y0;
-        if dy == 0 { return Ok(()); }
+        if dy == 0 {
+            return Ok(());
+        }
 
         let invslope1 = (x1 - x0) as f32 / dy as f32;
         let invslope2 = (x2 - x0) as f32 / dy as f32;
@@ -974,13 +1059,18 @@ impl<'a> DrawingContext<'a> {
 
     fn fill_flat_top_triangle(
         &mut self,
-        x0: i32, y0: i32,
-        x1: i32, _y1: i32,
-        x2: i32, y2: i32,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        _y1: i32,
+        x2: i32,
+        y2: i32,
         color: Color32,
     ) -> Result<(), GraphicsError> {
         let dy = y2 - y0;
-        if dy == 0 { return Ok(()); }
+        if dy == 0 {
+            return Ok(());
+        }
 
         let invslope1 = (x2 - x0) as f32 / dy as f32;
         let invslope2 = (x2 - x1) as f32 / dy as f32;
@@ -1060,7 +1150,12 @@ pub struct Rect {
 impl Rect {
     /// Create new rectangle
     pub const fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Create from corners
@@ -1077,7 +1172,12 @@ impl Rect {
             (y2, (y1 - y2) as u32)
         };
 
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Right edge
@@ -1102,14 +1202,15 @@ impl Rect {
 
     /// Check if point is inside
     pub fn contains(&self, x: i32, y: i32) -> bool {
-        x >= self.x && x < self.right() &&
-        y >= self.y && y < self.bottom()
+        x >= self.x && x < self.right() && y >= self.y && y < self.bottom()
     }
 
     /// Check if rectangles intersect
     pub fn intersects(&self, other: &Rect) -> bool {
-        self.x < other.right() && self.right() > other.x &&
-        self.y < other.bottom() && self.bottom() > other.y
+        self.x < other.right()
+            && self.right() > other.x
+            && self.y < other.bottom()
+            && self.bottom() > other.y
     }
 
     /// Get intersection

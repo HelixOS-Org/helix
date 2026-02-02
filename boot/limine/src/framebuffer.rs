@@ -13,7 +13,7 @@
 
 use core::ptr;
 
-use crate::requests::{Framebuffer, PixelFormat, Color};
+use crate::requests::{Color, Framebuffer, PixelFormat};
 
 // =============================================================================
 // Re-export Color for convenience
@@ -113,22 +113,22 @@ impl<'a, 'b> Console<'a, 'b> {
             '\n' => {
                 self.cursor_x = 0;
                 self.newline();
-            }
+            },
             '\r' => {
                 self.cursor_x = 0;
-            }
+            },
             '\t' => {
                 let spaces = self.tab_width - (self.cursor_x % self.tab_width);
                 for _ in 0..spaces {
                     self.write_char(' ');
                 }
-            }
+            },
             '\x08' => {
                 // Backspace
                 if self.cursor_x > 0 {
                     self.cursor_x -= 1;
                 }
-            }
+            },
             c => {
                 if self.cursor_x >= self.columns() {
                     self.cursor_x = 0;
@@ -136,7 +136,7 @@ impl<'a, 'b> Console<'a, 'b> {
                 }
                 self.draw_char(c, self.cursor_x, self.cursor_y);
                 self.cursor_x += 1;
-            }
+            },
         }
     }
 
@@ -228,19 +228,19 @@ impl<'a, 'b> Console<'a, 'b> {
         match bpp {
             8 => {
                 *ptr = encoded as u8;
-            }
+            },
             16 => {
                 *(ptr as *mut u16) = encoded as u16;
-            }
+            },
             24 => {
                 *ptr = encoded as u8;
                 *ptr.add(1) = (encoded >> 8) as u8;
                 *ptr.add(2) = (encoded >> 16) as u8;
-            }
+            },
             32 => {
                 *(ptr as *mut u32) = encoded;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }
@@ -284,7 +284,12 @@ pub struct Rect {
 
 impl Rect {
     pub const fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     pub const fn from_points(p1: Point, p2: Point) -> Self {
@@ -292,7 +297,12 @@ impl Rect {
         let y = if p1.y < p2.y { p1.y } else { p2.y };
         let width = (p1.x - p2.x).unsigned_abs();
         let height = (p1.y - p2.y).unsigned_abs();
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     pub const fn right(&self) -> i32 {
@@ -623,9 +633,9 @@ impl DoubleBuffer {
                     *ptr = encoded as u8;
                     *ptr.add(1) = (encoded >> 8) as u8;
                     *ptr.add(2) = (encoded >> 16) as u8;
-                }
+                },
                 4 => *(ptr as *mut u32) = encoded,
-                _ => {}
+                _ => {},
             }
         }
     }
@@ -647,9 +657,9 @@ impl DoubleBuffer {
                             *ptr = encoded as u8;
                             *ptr.add(1) = (encoded >> 8) as u8;
                             *ptr.add(2) = (encoded >> 16) as u8;
-                        }
+                        },
                         4 => *(ptr as *mut u32) = encoded,
-                        _ => {}
+                        _ => {},
                     }
                 }
             }
@@ -675,11 +685,7 @@ impl DoubleBuffer {
         unsafe {
             for row in y..y + height {
                 let offset = row * self.pitch + x * bytes_per_pixel;
-                ptr::copy_nonoverlapping(
-                    self.back.add(offset),
-                    self.front.add(offset),
-                    row_bytes,
-                );
+                ptr::copy_nonoverlapping(self.back.add(offset), self.front.add(offset), row_bytes);
             }
         }
     }
@@ -713,7 +719,11 @@ impl Bitmap {
     ///
     /// Data must point to valid pixel data of size width * height * 4 bytes.
     pub const unsafe fn from_raw(width: u32, height: u32, data: *const u32) -> Self {
-        Self { width, height, data }
+        Self {
+            width,
+            height,
+            data,
+        }
     }
 
     /// Get width

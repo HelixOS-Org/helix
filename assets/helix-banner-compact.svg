@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 160" width="600" height="160" role="img" aria-label="Helix banner">
+  <defs>
+    <linearGradient id="hb" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00e5ff"/>
+      <stop offset="50%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#00e5ff"/>
+    </linearGradient>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#00e5ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#4b00ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- background transparent strip -->
+  <rect width="600" height="160" fill="transparent"/>
+
+  <!-- left symbol (stylized helix core) -->
+  <g transform="translate(60,80) scale(1.2)" filter="url(#glow)">
+    <ellipse cx="0" cy="0" rx="42" ry="14" fill="none" stroke="url(#hb)" stroke-width="4" opacity="0.95" transform="rotate(0)"/>
+    <ellipse cx="0" cy="0" rx="42" ry="14" fill="none" stroke="url(#hb)" stroke-width="4" opacity="0.95" transform="rotate(60)"/>
+    <ellipse cx="0" cy="0" rx="42" ry="14" fill="url(#core)"/>
+    <circle cx="0" cy="0" r="6" fill="#ffffff"/>
+  </g>
+
+  <!-- subtle divider -->
+  <rect x="140" y="40" width="1" height="80" fill="rgba(255,255,255,0.06)"/>
+
+  <!-- right composition: geometric waves symbolizing system layers -->
+  <g transform="translate(200,48)" fill="none" stroke="url(#hb)" stroke-width="3">
+    <path d="M0,24 C40,0 120,0 160,24" opacity="0.9"/>
+    <path d="M0,54 C40,30 120,30 160,54" opacity="0.7"/>
+    <path d="M0,84 C40,60 120,60 160,84" opacity="0.5"/>
+  </g>
+
+</svg>

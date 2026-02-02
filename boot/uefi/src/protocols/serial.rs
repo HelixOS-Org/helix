@@ -2,14 +2,14 @@
 //!
 //! High-level serial port abstraction for debug output and communication.
 
-use crate::raw::types::*;
-use crate::raw::protocols::serial::*;
+use super::{EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
-use super::{Protocol, EnumerableProtocol};
+use crate::raw::protocols::serial::*;
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt::Write;
 
 /// Serial I/O Protocol GUID
@@ -45,7 +45,11 @@ impl SerialPort {
             fifo_depth: mode.receive_fifo_depth as u32,
         };
 
-        Self { protocol, handle, config }
+        Self {
+            protocol,
+            handle,
+            config,
+        }
     }
 
     /// Get current configuration
@@ -202,9 +206,7 @@ impl SerialPort {
     pub fn available(&self) -> bool {
         // Check control bits
         let mut control = 0u32;
-        let result = unsafe {
-            ((*self.protocol).get_control)(self.protocol, &mut control)
-        };
+        let result = unsafe { ((*self.protocol).get_control)(self.protocol, &mut control) };
 
         if result == Status::SUCCESS {
             // Check if input buffer is not empty
@@ -219,9 +221,7 @@ impl SerialPort {
         // Wait for output to complete
         loop {
             let mut control = 0u32;
-            let result = unsafe {
-                ((*self.protocol).get_control)(self.protocol, &mut control)
-            };
+            let result = unsafe { ((*self.protocol).get_control)(self.protocol, &mut control) };
 
             if result != Status::SUCCESS {
                 return Err(Error::from_status(result));
@@ -242,9 +242,7 @@ impl SerialPort {
 
     /// Set control bits
     pub fn set_control(&mut self, control: SerialControl) -> Result<()> {
-        let result = unsafe {
-            ((*self.protocol).set_control)(self.protocol, control.0)
-        };
+        let result = unsafe { ((*self.protocol).set_control)(self.protocol, control.0) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -256,9 +254,7 @@ impl SerialPort {
     /// Get control bits
     pub fn get_control(&self) -> Result<SerialControl> {
         let mut control = 0u32;
-        let result = unsafe {
-            ((*self.protocol).get_control)(self.protocol, &mut control)
-        };
+        let result = unsafe { ((*self.protocol).get_control)(self.protocol, &mut control) };
 
         if result == Status::SUCCESS {
             Ok(SerialControl(control))

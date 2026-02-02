@@ -2,10 +2,10 @@
 //!
 //! Central state management for kernel relocation operations.
 
-use crate::{PhysAddr, VirtAddr, RelocResult, RelocError};
 #[cfg(feature = "stats")]
 use crate::RelocationStats;
 use crate::elf::ElfInfo;
+use crate::{PhysAddr, RelocError, RelocResult, VirtAddr};
 
 // ============================================================================
 // BOOT PROTOCOL
@@ -333,7 +333,9 @@ mod tests {
 
         assert_eq!(ctx.slide, 0);
         assert_eq!(ctx.kernel_size, 0x200000);
-        assert!(!ctx.needs_relocation() || matches!(ctx.strategy, RelocationStrategy::FullPie { .. }));
+        assert!(
+            !ctx.needs_relocation() || matches!(ctx.strategy, RelocationStrategy::FullPie { .. })
+        );
     }
 
     #[test]

@@ -2,14 +2,14 @@
 //!
 //! Platform-specific code for AMD64/Intel 64.
 
+pub mod apic;
 pub mod cpu;
 pub mod gdt;
 pub mod idt;
 pub mod paging;
-pub mod apic;
 
+use crate::arch::{ArchOperations, CpuFeatures, MemoryModel};
 use crate::error::Result;
-use crate::arch::{CpuFeatures, MemoryModel, ArchOperations};
 use crate::raw::types::*;
 
 // =============================================================================
@@ -19,7 +19,9 @@ use crate::raw::types::*;
 /// Early platform initialization
 pub fn early_init() -> Result<()> {
     // Disable interrupts during early init
-    unsafe { core::arch::asm!("cli", options(nomem, nostack)); }
+    unsafe {
+        core::arch::asm!("cli", options(nomem, nostack));
+    }
 
     // TODO: Set up minimal GDT if needed
     // TODO: Check CPU compatibility
@@ -236,12 +238,12 @@ pub unsafe fn write_cr4(value: u64) {
 
 /// CR0 bits
 pub mod cr0 {
-    pub const PE: u64 = 1 << 0;  // Protected Mode Enable
-    pub const MP: u64 = 1 << 1;  // Monitor Co-Processor
-    pub const EM: u64 = 1 << 2;  // Emulation
-    pub const TS: u64 = 1 << 3;  // Task Switched
-    pub const ET: u64 = 1 << 4;  // Extension Type
-    pub const NE: u64 = 1 << 5;  // Numeric Error
+    pub const PE: u64 = 1 << 0; // Protected Mode Enable
+    pub const MP: u64 = 1 << 1; // Monitor Co-Processor
+    pub const EM: u64 = 1 << 2; // Emulation
+    pub const TS: u64 = 1 << 3; // Task Switched
+    pub const ET: u64 = 1 << 4; // Extension Type
+    pub const NE: u64 = 1 << 5; // Numeric Error
     pub const WP: u64 = 1 << 16; // Write Protect
     pub const AM: u64 = 1 << 18; // Alignment Mask
     pub const NW: u64 = 1 << 29; // Not Write-Through
@@ -251,30 +253,30 @@ pub mod cr0 {
 
 /// CR4 bits
 pub mod cr4 {
-    pub const VME: u64 = 1 << 0;        // Virtual 8086 Mode Extensions
-    pub const PVI: u64 = 1 << 1;        // Protected-mode Virtual Interrupts
-    pub const TSD: u64 = 1 << 2;        // Time Stamp Disable
-    pub const DE: u64 = 1 << 3;         // Debugging Extensions
-    pub const PSE: u64 = 1 << 4;        // Page Size Extension
-    pub const PAE: u64 = 1 << 5;        // Physical Address Extension
-    pub const MCE: u64 = 1 << 6;        // Machine Check Exception
-    pub const PGE: u64 = 1 << 7;        // Page Global Enable
-    pub const PCE: u64 = 1 << 8;        // Performance-Monitoring Counter Enable
-    pub const OSFXSR: u64 = 1 << 9;     // FXSAVE/FXRSTOR Support
+    pub const VME: u64 = 1 << 0; // Virtual 8086 Mode Extensions
+    pub const PVI: u64 = 1 << 1; // Protected-mode Virtual Interrupts
+    pub const TSD: u64 = 1 << 2; // Time Stamp Disable
+    pub const DE: u64 = 1 << 3; // Debugging Extensions
+    pub const PSE: u64 = 1 << 4; // Page Size Extension
+    pub const PAE: u64 = 1 << 5; // Physical Address Extension
+    pub const MCE: u64 = 1 << 6; // Machine Check Exception
+    pub const PGE: u64 = 1 << 7; // Page Global Enable
+    pub const PCE: u64 = 1 << 8; // Performance-Monitoring Counter Enable
+    pub const OSFXSR: u64 = 1 << 9; // FXSAVE/FXRSTOR Support
     pub const OSXMMEXCPT: u64 = 1 << 10; // Unmasked SIMD Exceptions
-    pub const UMIP: u64 = 1 << 11;      // User-Mode Instruction Prevention
-    pub const LA57: u64 = 1 << 12;      // 5-Level Paging
-    pub const VMXE: u64 = 1 << 13;      // Virtual Machine Extensions Enable
-    pub const SMXE: u64 = 1 << 14;      // Safer Mode Extensions Enable
-    pub const FSGSBASE: u64 = 1 << 16;  // FSGSBASE Instructions Enable
-    pub const PCIDE: u64 = 1 << 17;     // PCID Enable
-    pub const OSXSAVE: u64 = 1 << 18;   // XSAVE Enable
-    pub const KL: u64 = 1 << 19;        // Key Locker Enable
-    pub const SMEP: u64 = 1 << 20;      // SMEP Enable
-    pub const SMAP: u64 = 1 << 21;      // SMAP Enable
-    pub const PKE: u64 = 1 << 22;       // PKU Enable
-    pub const CET: u64 = 1 << 23;       // Control-flow Enforcement
-    pub const PKS: u64 = 1 << 24;       // Protection Keys for Supervisor
+    pub const UMIP: u64 = 1 << 11; // User-Mode Instruction Prevention
+    pub const LA57: u64 = 1 << 12; // 5-Level Paging
+    pub const VMXE: u64 = 1 << 13; // Virtual Machine Extensions Enable
+    pub const SMXE: u64 = 1 << 14; // Safer Mode Extensions Enable
+    pub const FSGSBASE: u64 = 1 << 16; // FSGSBASE Instructions Enable
+    pub const PCIDE: u64 = 1 << 17; // PCID Enable
+    pub const OSXSAVE: u64 = 1 << 18; // XSAVE Enable
+    pub const KL: u64 = 1 << 19; // Key Locker Enable
+    pub const SMEP: u64 = 1 << 20; // SMEP Enable
+    pub const SMAP: u64 = 1 << 21; // SMAP Enable
+    pub const PKE: u64 = 1 << 22; // PKU Enable
+    pub const CET: u64 = 1 << 23; // Control-flow Enforcement
+    pub const PKS: u64 = 1 << 24; // Protection Keys for Supervisor
 }
 
 // =============================================================================

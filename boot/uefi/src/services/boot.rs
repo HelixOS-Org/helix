@@ -2,10 +2,11 @@
 //!
 //! Safe wrappers for UEFI Boot Services.
 
-use crate::raw::boot_services::EfiBootServices;
-use crate::raw::memory::{MemoryType, MemoryDescriptor, MemoryMapKey};
-use crate::raw::types::*;
 use core::ptr::NonNull;
+
+use crate::raw::boot_services::EfiBootServices;
+use crate::raw::memory::{MemoryDescriptor, MemoryMapKey, MemoryType};
+use crate::raw::types::*;
 
 // =============================================================================
 // BOOT SERVICES
@@ -80,9 +81,7 @@ impl BootServices {
     pub fn allocate_pool(&self, memory_type: MemoryType, size: usize) -> Result<*mut u8, Status> {
         let mut buffer: *mut u8 = core::ptr::null_mut();
 
-        let status = unsafe {
-            (self.bs().allocate_pool)(memory_type, size, &mut buffer)
-        };
+        let status = unsafe { (self.bs().allocate_pool)(memory_type, size, &mut buffer) };
 
         status.to_status_result_with(buffer)
     }
@@ -93,9 +92,7 @@ impl BootServices {
             return Ok(());
         }
 
-        let status = unsafe {
-            (self.bs().free_pool)(buffer)
-        };
+        let status = unsafe { (self.bs().free_pool)(buffer) };
 
         status.to_status_result()
     }
@@ -108,25 +105,18 @@ impl BootServices {
         pages: usize,
         address: &mut PhysicalAddress,
     ) -> Result<(), Status> {
-        let status = unsafe {
-            (self.bs().allocate_pages)(alloc_type, memory_type, pages, address)
-        };
+        let status = unsafe { (self.bs().allocate_pages)(alloc_type, memory_type, pages, address) };
         status.to_status_result()
     }
 
     /// Free pages
     pub fn free_pages(&self, address: PhysicalAddress, pages: usize) -> Result<(), Status> {
-        let status = unsafe {
-            (self.bs().free_pages)(address, pages)
-        };
+        let status = unsafe { (self.bs().free_pages)(address, pages) };
         status.to_status_result()
     }
 
     /// Get memory map
-    pub fn get_memory_map(
-        &self,
-        buffer: &mut [u8],
-    ) -> Result<MemoryMapInfo, Status> {
+    pub fn get_memory_map(&self, buffer: &mut [u8]) -> Result<MemoryMapInfo, Status> {
         let mut map_size = buffer.len();
         let mut key_val: usize = 0;
         let mut descriptor_size = 0;
@@ -201,12 +191,7 @@ impl BootServices {
 
     /// Create a timer event
     pub fn create_timer_event(&self) -> Result<Event, Status> {
-        self.create_event(
-            EventType::TIMER,
-            TPL_CALLBACK,
-            None,
-            core::ptr::null_mut(),
-        )
+        self.create_event(EventType::TIMER, TPL_CALLBACK, None, core::ptr::null_mut())
     }
 
     /// Close an event
@@ -225,13 +210,8 @@ impl BootServices {
     pub fn wait_for_event(&self, events: &[Event]) -> Result<usize, Status> {
         let mut index = 0;
 
-        let status = unsafe {
-            (self.bs().wait_for_event)(
-                events.len(),
-                events.as_ptr(),
-                &mut index,
-            )
-        };
+        let status =
+            unsafe { (self.bs().wait_for_event)(events.len(), events.as_ptr(), &mut index) };
 
         status.to_status_result_with(index)
     }
@@ -254,9 +234,7 @@ impl BootServices {
         timer_type: TimerDelay,
         trigger_time: u64,
     ) -> Result<(), Status> {
-        let status = unsafe {
-            (self.bs().set_timer)(event, timer_type, trigger_time)
-        };
+        let status = unsafe { (self.bs().set_timer)(event, timer_type, trigger_time) };
         status.to_status_result()
     }
 }
@@ -306,7 +284,9 @@ impl BootServices {
         let status = unsafe {
             (self.bs().locate_handle)(
                 search_type,
-                protocol.map(|g| g as *const Guid).unwrap_or(core::ptr::null()),
+                protocol
+                    .map(|g| g as *const Guid)
+                    .unwrap_or(core::ptr::null()),
                 search_key,
                 &mut buffer_size,
                 buffer.as_mut_ptr(),
@@ -320,28 +300,17 @@ impl BootServices {
     pub fn locate_protocol<T>(&self, protocol: &Guid) -> Result<*mut T, Status> {
         let mut interface: *mut core::ffi::c_void = core::ptr::null_mut();
 
-        let status = unsafe {
-            (self.bs().locate_protocol)(
-                protocol,
-                core::ptr::null_mut(),
-                &mut interface,
-            )
-        };
+        let status =
+            unsafe { (self.bs().locate_protocol)(protocol, core::ptr::null_mut(), &mut interface) };
 
         status.to_status_result_with(interface as *mut T)
     }
 
     /// Handle protocol
-    pub fn handle_protocol<T>(
-        &self,
-        handle: Handle,
-        protocol: &Guid,
-    ) -> Result<*mut T, Status> {
+    pub fn handle_protocol<T>(&self, handle: Handle, protocol: &Guid) -> Result<*mut T, Status> {
         let mut interface: *mut core::ffi::c_void = core::ptr::null_mut();
 
-        let status = unsafe {
-            (self.bs().handle_protocol)(handle, protocol, &mut interface)
-        };
+        let status = unsafe { (self.bs().handle_protocol)(handle, protocol, &mut interface) };
 
         status.to_status_result_with(interface as *mut T)
     }
@@ -380,12 +349,7 @@ impl BootServices {
         controller_handle: Handle,
     ) -> Result<(), Status> {
         let status = unsafe {
-            (self.bs().close_protocol)(
-                handle,
-                protocol,
-                agent_handle,
-                controller_handle,
-            )
+            (self.bs().close_protocol)(handle, protocol, agent_handle, controller_handle)
         };
         status.to_status_result()
     }
@@ -402,7 +366,9 @@ impl BootServices {
         let status = unsafe {
             (self.bs().locate_handle_buffer)(
                 search_type,
-                protocol.map(|g| g as *const Guid).unwrap_or(core::ptr::null()),
+                protocol
+                    .map(|g| g as *const Guid)
+                    .unwrap_or(core::ptr::null()),
                 core::ptr::null_mut(),
                 &mut count,
                 &mut buffer,
@@ -417,13 +383,8 @@ impl BootServices {
         let mut protocols: *mut *const Guid = core::ptr::null_mut();
         let mut count = 0;
 
-        let status = unsafe {
-            (self.bs().protocols_per_handle)(
-                handle,
-                &mut protocols,
-                &mut count,
-            )
-        };
+        let status =
+            unsafe { (self.bs().protocols_per_handle)(handle, &mut protocols, &mut count) };
 
         status.to_status_result_with(ProtocolBuffer { protocols, count })
     }
@@ -524,9 +485,8 @@ impl BootServices {
         let mut exit_data_size = 0;
         let mut exit_data: *mut u16 = core::ptr::null_mut();
 
-        let status = unsafe {
-            (self.bs().start_image)(image_handle, &mut exit_data_size, &mut exit_data)
-        };
+        let status =
+            unsafe { (self.bs().start_image)(image_handle, &mut exit_data_size, &mut exit_data) };
 
         status.to_status_result()
     }
@@ -538,12 +498,7 @@ impl BootServices {
     }
 
     /// Exit from an image
-    pub fn exit(
-        &self,
-        image_handle: Handle,
-        exit_status: Status,
-        exit_data: Option<&[u16]>,
-    ) -> ! {
+    pub fn exit(&self, image_handle: Handle, exit_status: Status, exit_data: Option<&[u16]>) -> ! {
         let (data, size) = match exit_data {
             Some(d) => (d.as_ptr() as *mut u16, d.len()),
             None => (core::ptr::null_mut(), 0),
@@ -596,9 +551,8 @@ impl BootServices {
             None => (core::ptr::null(), 0),
         };
 
-        let status = unsafe {
-            (self.bs().set_watchdog_timer)(timeout, watchdog_code, data_size, data_ptr)
-        };
+        let status =
+            unsafe { (self.bs().set_watchdog_timer)(timeout, watchdog_code, data_size, data_ptr) };
 
         status.to_status_result()
     }
@@ -611,22 +565,14 @@ impl BootServices {
     /// Copy memory
     pub fn copy_mem(&self, dest: *mut u8, src: *const u8, length: usize) {
         unsafe {
-            (self.bs().copy_mem)(
-                dest,
-                src,
-                length,
-            );
+            (self.bs().copy_mem)(dest, src, length);
         }
     }
 
     /// Set memory
     pub fn set_mem(&self, buffer: *mut u8, size: usize, value: u8) {
         unsafe {
-            (self.bs().set_mem)(
-                buffer,
-                size,
-                value,
-            );
+            (self.bs().set_mem)(buffer, size, value);
         }
     }
 
@@ -643,22 +589,14 @@ impl BootServices {
         guid: &Guid,
         table: *mut core::ffi::c_void,
     ) -> Result<(), Status> {
-        let status = unsafe {
-            (self.bs().install_configuration_table)(guid, table)
-        };
+        let status = unsafe { (self.bs().install_configuration_table)(guid, table) };
         status.to_status_result()
     }
 
     /// Calculate CRC32
     pub fn calculate_crc32(&self, data: &[u8]) -> Result<u32, Status> {
         let mut crc = 0u32;
-        let status = unsafe {
-            (self.bs().calculate_crc32)(
-                data.as_ptr(),
-                data.len(),
-                &mut crc,
-            )
-        };
+        let status = unsafe { (self.bs().calculate_crc32)(data.as_ptr(), data.len(), &mut crc) };
         status.to_status_result_with(crc)
     }
 }

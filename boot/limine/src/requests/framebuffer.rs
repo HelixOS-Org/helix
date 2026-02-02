@@ -4,12 +4,11 @@
 //! It includes comprehensive pixel format handling, drawing primitives,
 //! and multi-monitor support.
 
-use core::ptr;
-use core::slice;
+use core::{ptr, slice};
 
-use crate::protocol::request_ids::FRAMEBUFFER_ID;
-use crate::protocol::raw::{RawFramebuffer, RawVideoMode};
 use super::{LimineRequest, ResponsePtr, SafeResponse};
+use crate::protocol::raw::{RawFramebuffer, RawVideoMode};
+use crate::protocol::request_ids::FRAMEBUFFER_ID;
 
 /// Framebuffer request
 ///
@@ -71,9 +70,15 @@ impl Default for FramebufferRequest {
 impl LimineRequest for FramebufferRequest {
     type Response = FramebufferResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -139,7 +144,8 @@ impl FramebufferResponse {
 
     /// Find a framebuffer with at least the given dimensions
     pub fn find_min_size(&self, min_width: usize, min_height: usize) -> Option<Framebuffer<'_>> {
-        self.iter().find(|fb| fb.width() >= min_width && fb.height() >= min_height)
+        self.iter()
+            .find(|fb| fb.width() >= min_width && fb.height() >= min_height)
     }
 }
 
@@ -153,7 +159,10 @@ impl core::fmt::Debug for FramebufferResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("FramebufferResponse")
             .field("count", &self.count())
-            .field("primary", &self.primary().map(|fb| (fb.width(), fb.height())))
+            .field(
+                "primary",
+                &self.primary().map(|fb| (fb.width(), fb.height())),
+            )
             .finish()
     }
 }
@@ -250,7 +259,10 @@ impl<'a> Framebuffer<'a> {
             return None;
         }
         unsafe {
-            Some(slice::from_raw_parts(self.raw.edid, self.raw.edid_size as usize))
+            Some(slice::from_raw_parts(
+                self.raw.edid,
+                self.raw.edid_size as usize,
+            ))
         }
     }
 
@@ -274,16 +286,12 @@ impl<'a> Framebuffer<'a> {
     /// This is safe because the bootloader guarantees the framebuffer
     /// memory is accessible and properly mapped.
     pub fn as_slice(&self) -> &[u8] {
-        unsafe {
-            slice::from_raw_parts(self.raw.address, self.size())
-        }
+        unsafe { slice::from_raw_parts(self.raw.address, self.size()) }
     }
 
     /// Get the framebuffer as a mutable byte slice
     pub fn as_slice_mut(&self) -> &mut [u8] {
-        unsafe {
-            slice::from_raw_parts_mut(self.raw.address, self.size())
-        }
+        unsafe { slice::from_raw_parts_mut(self.raw.address, self.size()) }
     }
 
     /// Get a pixel as a mutable reference (32-bit)
@@ -295,9 +303,7 @@ impl<'a> Framebuffer<'a> {
         }
 
         let offset = y * self.pitch() + x * 4;
-        unsafe {
-            Some(&mut *(self.raw.address.add(offset) as *mut u32))
-        }
+        unsafe { Some(&mut *(self.raw.address.add(offset) as *mut u32)) }
     }
 
     /// Set a pixel to a specific color
@@ -315,10 +321,7 @@ impl<'a> Framebuffer<'a> {
         // Fast path for 32bpp
         if self.bpp() == 32 {
             let pixels = unsafe {
-                slice::from_raw_parts_mut(
-                    buffer.as_mut_ptr() as *mut u32,
-                    buffer.len() / 4
-                )
+                slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u32, buffer.len() / 4)
             };
             for pixel in pixels {
                 *pixel = encoded;
@@ -384,7 +387,7 @@ impl<'a> Framebuffer<'a> {
                 ptr::copy_nonoverlapping(
                     data.as_ptr().add(src_offset),
                     self.raw.address.add(dst_offset),
-                    copy_len
+                    copy_len,
                 );
             }
         }
@@ -401,22 +404,14 @@ impl<'a> Framebuffer<'a> {
         let copy_len = (self.height() - pixels) * self.pitch();
 
         unsafe {
-            ptr::copy(
-                self.raw.address.add(src_offset),
-                self.raw.address,
-                copy_len
-            );
+            ptr::copy(self.raw.address.add(src_offset), self.raw.address, copy_len);
         }
 
         // Clear the bottom portion
         let clear_offset = copy_len;
         let clear_len = pixels * self.pitch();
         unsafe {
-            ptr::write_bytes(
-                self.raw.address.add(clear_offset),
-                0,
-                clear_len
-            );
+            ptr::write_bytes(self.raw.address.add(clear_offset), 0, clear_len);
         }
     }
 }
@@ -576,9 +571,7 @@ impl PixelFormat {
         let g = (color.g >> (8 - self.green_mask_size)) as u32;
         let b = (color.b >> (8 - self.blue_mask_size)) as u32;
 
-        (r << self.red_mask_shift) |
-        (g << self.green_mask_shift) |
-        (b << self.blue_mask_shift)
+        (r << self.red_mask_shift) | (g << self.green_mask_shift) | (b << self.blue_mask_shift)
     }
 
     /// Decode a pixel value to a color
@@ -596,18 +589,18 @@ impl PixelFormat {
 
     /// Check if this is a common BGRA format
     pub fn is_bgra(&self) -> bool {
-        self.bpp == 32 &&
-        self.red_mask_shift == 16 &&
-        self.green_mask_shift == 8 &&
-        self.blue_mask_shift == 0
+        self.bpp == 32
+            && self.red_mask_shift == 16
+            && self.green_mask_shift == 8
+            && self.blue_mask_shift == 0
     }
 
     /// Check if this is a common RGBA format
     pub fn is_rgba(&self) -> bool {
-        self.bpp == 32 &&
-        self.red_mask_shift == 0 &&
-        self.green_mask_shift == 8 &&
-        self.blue_mask_shift == 16
+        self.bpp == 32
+            && self.red_mask_shift == 0
+            && self.green_mask_shift == 8
+            && self.blue_mask_shift == 16
     }
 }
 
@@ -756,11 +749,19 @@ impl Color {
             return Color::rgba(0, 0, 0, 0);
         }
 
-        let r = ((self.r as u16 * src_a + other.r as u16 * dst_a * (255 - src_a) / 255) / out_a) as u8;
-        let g = ((self.g as u16 * src_a + other.g as u16 * dst_a * (255 - src_a) / 255) / out_a) as u8;
-        let b = ((self.b as u16 * src_a + other.b as u16 * dst_a * (255 - src_a) / 255) / out_a) as u8;
+        let r =
+            ((self.r as u16 * src_a + other.r as u16 * dst_a * (255 - src_a) / 255) / out_a) as u8;
+        let g =
+            ((self.g as u16 * src_a + other.g as u16 * dst_a * (255 - src_a) / 255) / out_a) as u8;
+        let b =
+            ((self.b as u16 * src_a + other.b as u16 * dst_a * (255 - src_a) / 255) / out_a) as u8;
 
-        Self { r, g, b, a: out_a as u8 }
+        Self {
+            r,
+            g,
+            b,
+            a: out_a as u8,
+        }
     }
 }
 

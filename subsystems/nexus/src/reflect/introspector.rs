@@ -4,21 +4,14 @@
 //! detecting anomalies and issues in the cognitive system.
 
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::*;
-use crate::bus::Domain;
 use super::metrics::DomainMetrics;
-
-// ============================================================================
-// ISSUE ID
-// ============================================================================
-
-/// Issue ID type
-define_id!(IssueId, "Cognitive issue identifier");
+use crate::bus::Domain;
+use crate::types::*;
 
 // ============================================================================
 // COGNITIVE STATUS
@@ -230,7 +223,10 @@ impl CognitiveHealth {
 
     /// Is healthy?
     pub fn is_healthy(&self) -> bool {
-        matches!(self.status, CognitiveStatus::Optimal | CognitiveStatus::Healthy)
+        matches!(
+            self.status,
+            CognitiveStatus::Optimal | CognitiveStatus::Healthy
+        )
     }
 
     /// Get critical issues
@@ -366,7 +362,8 @@ impl Introspector {
                     },
                     description: format!(
                         "{:?} domain has high error rate: {:.1}%",
-                        domain, latest.error_rate * 100.0
+                        domain,
+                        latest.error_rate * 100.0
                     ),
                     detected_at: Timestamp::now(),
                 });
@@ -390,7 +387,8 @@ impl Introspector {
             // Trend analysis
             if history.len() >= 5 {
                 let recent: Vec<_> = history.iter().rev().take(5).collect();
-                let health_trend: i32 = recent.windows(2)
+                let health_trend: i32 = recent
+                    .windows(2)
                     .map(|w| w[0].health_score as i32 - w[1].health_score as i32)
                     .sum();
 
@@ -400,10 +398,7 @@ impl Introspector {
                         domain,
                         issue_type: IssueType::DecliningHealth,
                         severity: Severity::Warning,
-                        description: format!(
-                            "{:?} domain health is declining",
-                            domain
-                        ),
+                        description: format!("{:?} domain health is declining", domain),
                         detected_at: Timestamp::now(),
                     });
                 }

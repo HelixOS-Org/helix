@@ -3,11 +3,12 @@
 //! Provides checkpoint creation and management to allow
 //! the journal to reclaim space by writing dirty data to disk.
 
-use crate::core::types::*;
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
+use crate::core::types::*;
 use crate::journal::{CHECKPOINT_INTERVAL, CHECKPOINT_TIME_NS};
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 
 // ============================================================================
 // Checkpoint State
@@ -18,19 +19,19 @@ use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 #[repr(u8)]
 pub enum CheckpointState {
     /// Idle (no checkpoint in progress)
-    Idle = 0,
+    Idle       = 0,
     /// Preparing (gathering dirty blocks)
-    Preparing = 1,
+    Preparing  = 1,
     /// Writing (flushing dirty blocks)
-    Writing = 2,
+    Writing    = 2,
     /// Syncing (syncing to disk)
-    Syncing = 3,
+    Syncing    = 3,
     /// Completing (updating journal)
     Completing = 4,
     /// Complete
-    Complete = 5,
+    Complete   = 5,
     /// Failed
-    Failed = 6,
+    Failed     = 6,
 }
 
 impl CheckpointState {
@@ -46,11 +47,14 @@ impl CheckpointState {
             _ => Self::Idle,
         }
     }
-    
+
     /// Check if checkpoint is active
     #[inline]
     pub fn is_active(&self) -> bool {
-        matches!(self, Self::Preparing | Self::Writing | Self::Syncing | Self::Completing)
+        matches!(
+            self,
+            Self::Preparing | Self::Writing | Self::Syncing | Self::Completing
+        )
     }
 }
 
@@ -130,10 +134,10 @@ pub struct CheckpointDescriptor {
 impl CheckpointDescriptor {
     /// Size in bytes
     pub const SIZE: usize = 512;
-    
+
     /// Magic number
     pub const MAGIC: u32 = 0x48435054; // "HCPT"
-    
+
     /// Create new descriptor
     pub fn new(generation: u64) -> Self {
         Self {
@@ -156,7 +160,7 @@ impl CheckpointDescriptor {
             checksum: 0,
         }
     }
-    
+
     /// Validate descriptor
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != Self::MAGIC {
@@ -164,26 +168,22 @@ impl CheckpointDescriptor {
         }
         Ok(())
     }
-    
+
     /// Get state
     #[inline]
     pub fn state(&self) -> CheckpointState {
         CheckpointState::from_raw(self.state)
     }
-    
+
     /// Compute checksum
     pub fn compute_checksum(&self) -> u32 {
         let mut hasher = Crc32c::new();
-        let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                Self::SIZE - 4,
-            )
-        };
+        let bytes =
+            unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, Self::SIZE - 4) };
         hasher.write(bytes);
         hasher.finish()
     }
-    
+
     /// Update checksum
     pub fn update_checksum(&mut self) {
         self.checksum = self.compute_checksum();
@@ -223,7 +223,7 @@ impl DirtyBlock {
             flags: 0,
         }
     }
-    
+
     /// Check if valid
     #[inline]
     pub fn is_valid(&self) -> bool {
@@ -253,7 +253,7 @@ impl DirtyTracker {
             newest_seq: 0,
         }
     }
-    
+
     /// Add dirty block
     pub fn add(&mut self, block: BlockNum, txn_id: u64, seq: u64) -> HfsResult<()> {
         // Check if already tracked
@@ -267,15 +267,15 @@ impl DirtyTracker {
                 return Ok(());
             }
         }
-        
+
         // Add new
         if self.count >= MAX_DIRTY_BLOCKS {
             return Err(HfsError::OutOfMemory);
         }
-        
+
         self.blocks[self.count] = DirtyBlock::new(block, txn_id, seq);
         self.count += 1;
-        
+
         // Update bounds
         if seq < self.oldest_seq {
             self.oldest_seq = seq;
@@ -283,10 +283,10 @@ impl DirtyTracker {
         if seq > self.newest_seq {
             self.newest_seq = seq;
         }
-        
+
         Ok(())
     }
-    
+
     /// Remove dirty block (after write)
     pub fn remove(&mut self, block: BlockNum) -> bool {
         for i in 0..self.count {
@@ -300,7 +300,7 @@ impl DirtyTracker {
         }
         false
     }
-    
+
     /// Clear all dirty blocks
     pub fn clear(&mut self) {
         for i in 0..self.count {
@@ -310,7 +310,7 @@ impl DirtyTracker {
         self.oldest_seq = u64::MAX;
         self.newest_seq = 0;
     }
-    
+
     /// Get blocks older than sequence
     pub fn blocks_before(&self, seq: u64) -> usize {
         let mut count = 0;
@@ -321,7 +321,7 @@ impl DirtyTracker {
         }
         count
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
@@ -367,29 +367,26 @@ impl CheckpointManager {
             stats: CheckpointStats::new(),
         }
     }
-    
+
     /// Get current generation
     #[inline]
     pub fn generation(&self) -> u64 {
         self.generation.load(Ordering::Relaxed)
     }
-    
+
     /// Check if checkpoint in progress
     #[inline]
     pub fn is_in_progress(&self) -> bool {
         self.in_progress.load(Ordering::Acquire)
     }
-    
+
     /// Try to start checkpoint
     pub fn try_start(&self) -> bool {
-        self.in_progress.compare_exchange(
-            false,
-            true,
-            Ordering::AcqRel,
-            Ordering::Acquire,
-        ).is_ok()
+        self.in_progress
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
     }
-    
+
     /// End checkpoint
     pub fn end(&self) {
         self.generation.fetch_add(1, Ordering::Relaxed);
@@ -397,36 +394,40 @@ impl CheckpointManager {
         self.txns_since.store(0, Ordering::Relaxed);
         self.in_progress.store(false, Ordering::Release);
     }
-    
+
     /// Record a transaction commit
     pub fn record_commit(&self, records: u64) {
         self.records_since.fetch_add(records, Ordering::Relaxed);
         self.txns_since.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Check if checkpoint should be triggered
-    pub fn should_checkpoint(&self, current_time: u64, free_space_pct: u8) -> Option<CheckpointTrigger> {
+    pub fn should_checkpoint(
+        &self,
+        current_time: u64,
+        free_space_pct: u8,
+    ) -> Option<CheckpointTrigger> {
         // Already in progress?
         if self.is_in_progress() {
             return None;
         }
-        
+
         // Low space (< 25%)
         if free_space_pct < 25 {
             return Some(CheckpointTrigger::SpaceLow);
         }
-        
+
         // Record count
         if self.records_since.load(Ordering::Relaxed) >= CHECKPOINT_INTERVAL {
             return Some(CheckpointTrigger::RecordCount);
         }
-        
+
         // Time-based
         let last = self.last_checkpoint_time.load(Ordering::Relaxed);
         if current_time.saturating_sub(last) >= CHECKPOINT_TIME_NS {
             return Some(CheckpointTrigger::Timer);
         }
-        
+
         None
     }
 }
@@ -469,27 +470,27 @@ impl CheckpointStats {
             max_duration_ns: 0,
         }
     }
-    
+
     /// Record checkpoint completion
     pub fn record_complete(&mut self, desc: &CheckpointDescriptor) {
         self.completed += 1;
         self.blocks_written += desc.blocks_written;
         self.bytes_written += desc.bytes_written;
         self.journal_freed += desc.journal_freed;
-        
+
         let duration = desc.end_time.saturating_sub(desc.start_time);
-        
+
         // Update average
         if self.completed > 0 {
-            self.avg_duration_ns = (self.avg_duration_ns * (self.completed - 1) + duration)
-                / self.completed;
+            self.avg_duration_ns =
+                (self.avg_duration_ns * (self.completed - 1) + duration) / self.completed;
         }
-        
+
         if duration > self.max_duration_ns {
             self.max_duration_ns = duration;
         }
     }
-    
+
     /// Record checkpoint failure
     pub fn record_failure(&mut self) {
         self.failed += 1;
@@ -531,77 +532,77 @@ pub enum WorkSource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_checkpoint_state() {
         assert!(!CheckpointState::Idle.is_active());
         assert!(CheckpointState::Writing.is_active());
         assert!(!CheckpointState::Complete.is_active());
     }
-    
+
     #[test]
     fn test_checkpoint_descriptor() {
         let desc = CheckpointDescriptor::new(1);
-        
+
         assert_eq!(desc.magic, CheckpointDescriptor::MAGIC);
         assert_eq!(desc.generation, 1);
         assert!(desc.validate().is_ok());
     }
-    
+
     #[test]
     fn test_dirty_tracker() {
         let mut tracker = DirtyTracker::new();
-        
+
         assert!(tracker.is_empty());
-        
+
         tracker.add(100, 1, 10).unwrap();
         tracker.add(200, 1, 20).unwrap();
-        
+
         assert_eq!(tracker.count, 2);
         assert_eq!(tracker.oldest_seq, 10);
         assert_eq!(tracker.newest_seq, 20);
-        
+
         // Duplicate should update
         tracker.add(100, 2, 15).unwrap();
         assert_eq!(tracker.count, 2);
-        
+
         // Remove
         assert!(tracker.remove(100));
         assert_eq!(tracker.count, 1);
-        
+
         tracker.clear();
         assert!(tracker.is_empty());
     }
-    
+
     #[test]
     fn test_checkpoint_manager() {
         let manager = CheckpointManager::new();
-        
+
         assert_eq!(manager.generation(), 0);
         assert!(!manager.is_in_progress());
-        
+
         assert!(manager.try_start());
         assert!(manager.is_in_progress());
         assert!(!manager.try_start()); // Can't start again
-        
+
         manager.end();
         assert!(!manager.is_in_progress());
         assert_eq!(manager.generation(), 1);
     }
-    
+
     #[test]
     fn test_checkpoint_trigger() {
         let manager = CheckpointManager::new();
-        
+
         // Should not trigger immediately
         assert!(manager.should_checkpoint(0, 100).is_none());
-        
+
         // Low space should trigger
         assert_eq!(
             manager.should_checkpoint(0, 20),
             Some(CheckpointTrigger::SpaceLow)
         );
-        
+
         // Add many records
         for _ in 0..CHECKPOINT_INTERVAL {
             manager.record_commit(1);

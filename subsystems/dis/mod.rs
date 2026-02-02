@@ -87,40 +87,39 @@ extern crate alloc;
 // Module Declarations
 // =============================================================================
 
-pub mod intent;
-pub mod policy;
-pub mod stats;
-pub mod optimizer;
-pub mod scheduler;
-pub mod isolation;
-pub mod queues;
-pub mod executor;
 pub mod api;
+pub mod executor;
+pub mod intent;
 pub mod ipc;
+pub mod isolation;
+pub mod optimizer;
+pub mod policy;
+pub mod queues;
+pub mod scheduler;
+pub mod stats;
 
 // =============================================================================
 // Re-exports
 // =============================================================================
 
-pub use intent::{Intent, IntentClass, IntentBuilder, IntentId, IntentFlags};
-pub use policy::{Policy, PolicyId, PolicyEngine, PolicyRule, PolicyAction};
-pub use stats::{TaskStats, SystemStats, StatsCollector, StatsSnapshot};
-pub use optimizer::{AdaptiveOptimizer, OptimizationHint};
-pub use scheduler::{DISScheduler, SchedulerConfig, SchedulerStats};
-pub use isolation::{SecurityDomain, Capability, IsolationLevel};
-pub use queues::{MultiLevelQueue, QueueManager};
-pub use executor::{Executor, ExecutionContext};
-pub use api::{DIS, DISEvent, TaskHandle};
-pub use ipc::{Message, Request, Response, MessagePayload, IPCManager};
-
 // =============================================================================
 // Core Types
 // =============================================================================
-
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
+pub use api::{DISEvent, TaskHandle, DIS};
+pub use executor::{ExecutionContext, Executor};
+pub use intent::{Intent, IntentBuilder, IntentClass, IntentFlags, IntentId};
+pub use ipc::{IPCManager, Message, MessagePayload, Request, Response};
+pub use isolation::{Capability, IsolationLevel, SecurityDomain};
+pub use optimizer::{AdaptiveOptimizer, OptimizationHint};
+pub use policy::{Policy, PolicyAction, PolicyEngine, PolicyId, PolicyRule};
+pub use queues::{MultiLevelQueue, QueueManager};
+pub use scheduler::{DISScheduler, SchedulerConfig, SchedulerStats};
 use spin::RwLock;
+pub use stats::{StatsCollector, StatsSnapshot, SystemStats, TaskStats};
 
 /// Unique identifier for a task in DIS
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -132,12 +131,12 @@ impl TaskId {
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
-    
+
     /// Get the raw ID value
     pub const fn raw(&self) -> u64 {
         self.0
     }
-    
+
     /// Invalid/null task ID
     pub const NULL: Self = Self(0);
 }
@@ -151,11 +150,11 @@ impl CpuId {
     pub const fn new(id: u32) -> Self {
         Self(id)
     }
-    
+
     pub const fn raw(&self) -> u32 {
         self.0
     }
-    
+
     pub fn id(&self) -> u32 {
         self.0
     }
@@ -169,40 +168,40 @@ pub struct Nanoseconds(pub u64);
 impl Nanoseconds {
     pub const ZERO: Self = Self(0);
     pub const MAX: Self = Self(u64::MAX);
-    
+
     pub const fn new(ns: u64) -> Self {
         Self(ns)
     }
-    
+
     /// Alias for ZERO
     pub const fn zero() -> Self {
         Self(0)
     }
-    
+
     pub const fn from_micros(us: u64) -> Self {
         Self(us * 1_000)
     }
-    
+
     pub const fn from_millis(ms: u64) -> Self {
         Self(ms * 1_000_000)
     }
-    
+
     pub const fn from_secs(s: u64) -> Self {
         Self(s * 1_000_000_000)
     }
-    
+
     pub const fn as_micros(&self) -> u64 {
         self.0 / 1_000
     }
-    
+
     pub const fn as_millis(&self) -> u64 {
         self.0 / 1_000_000
     }
-    
+
     pub const fn as_secs(&self) -> u64 {
         self.0 / 1_000_000_000
     }
-    
+
     pub const fn raw(&self) -> u64 {
         self.0
     }
@@ -236,7 +235,10 @@ pub enum CpuBudget {
     /// Percentage of CPU time (0-100)
     Percent(u8),
     /// Absolute time per period
-    Quota { quota: Nanoseconds, period: Nanoseconds },
+    Quota {
+        quota: Nanoseconds,
+        period: Nanoseconds,
+    },
     /// Shares-based (like Linux cgroups)
     Shares(u32),
 }
@@ -288,19 +290,19 @@ impl Default for IoBudget {
 #[repr(u8)]
 pub enum TaskState {
     /// Task is ready to run
-    Ready = 0,
+    Ready     = 0,
     /// Task is currently running
-    Running = 1,
+    Running   = 1,
     /// Task is blocked waiting for something
-    Blocked = 2,
+    Blocked   = 2,
     /// Task is sleeping
-    Sleeping = 3,
+    Sleeping  = 3,
     /// Task is suspended
     Suspended = 4,
     /// Task has completed
     Completed = 5,
     /// Task was killed
-    Killed = 6,
+    Killed    = 6,
     /// Task is being migrated between CPUs
     Migrating = 7,
 }
@@ -310,7 +312,7 @@ impl TaskState {
     pub fn is_runnable(&self) -> bool {
         matches!(self, Self::Ready | Self::Running)
     }
-    
+
     /// Check if task is terminated
     pub fn is_terminated(&self) -> bool {
         matches!(self, Self::Completed | Self::Killed)
@@ -424,7 +426,7 @@ impl Task {
         let flags = intent.compute_flags();
         let deadline = intent.deadline();
         let time_slice = intent.compute_time_slice();
-        
+
         Self {
             id,
             name,
@@ -454,41 +456,39 @@ impl Task {
             flags,
         }
     }
-    
+
     /// Recalculate effective priority
     pub fn recalculate_priority(&mut self) {
-        self.effective_priority = self.base_priority
-            .saturating_add(self.priority_adjustment);
-        
+        self.effective_priority = self.base_priority.saturating_add(self.priority_adjustment);
+
         // Apply wait time boost (tasks waiting longer get priority boost)
         let wait_boost = (self.wait_time.as_millis() / 100) as i32;
-        self.effective_priority = self.effective_priority
-            .saturating_sub(wait_boost.min(20)); // Max 20 points boost
+        self.effective_priority = self.effective_priority.saturating_sub(wait_boost.min(20));
+        // Max 20 points boost
     }
-    
+
     /// Check if this task should preempt another
     pub fn should_preempt(&self, other: &Task) -> bool {
         // Real-time always preempts non-real-time
-        if self.flags.contains(TaskFlags::REALTIME) && 
-           !other.flags.contains(TaskFlags::REALTIME) {
+        if self.flags.contains(TaskFlags::REALTIME) && !other.flags.contains(TaskFlags::REALTIME) {
             return true;
         }
-        
+
         // Deadline-based for real-time tasks
         if let (Some(my_deadline), Some(other_deadline)) = (self.deadline, other.deadline) {
             return my_deadline < other_deadline;
         }
-        
+
         // Priority-based for normal tasks
         self.effective_priority < other.effective_priority
     }
-    
+
     /// Update runtime statistics
     pub fn update_runtime(&mut self, delta: Nanoseconds) {
         self.runtime += delta;
         self.stats.update_runtime(delta);
     }
-    
+
     /// Update wait time
     pub fn update_wait_time(&mut self, delta: Nanoseconds) {
         self.wait_time += delta;
@@ -599,15 +599,15 @@ pub fn init() {
     if DIS_INITIALIZED.swap(true, Ordering::SeqCst) {
         return; // Already initialized
     }
-    
+
     log_dis("[DIS] Initializing Dynamic Intent Scheduling subsystem...");
-    
+
     // Create the scheduler
     let config = SchedulerConfig::default();
     let scheduler = DISScheduler::new(config);
-    
+
     *DIS_SCHEDULER.write() = Some(scheduler);
-    
+
     log_dis("[DIS] ✓ Scheduler core initialized");
     log_dis("[DIS] ✓ Intent engine ready");
     log_dis("[DIS] ✓ Policy engine ready");
@@ -664,7 +664,7 @@ fn log_dis(msg: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_task_id() {
         let id1 = generate_task_id();
@@ -672,7 +672,7 @@ mod tests {
         assert_ne!(id1, id2);
         assert!(id2.raw() > id1.raw());
     }
-    
+
     #[test]
     fn test_nanoseconds() {
         let ns = Nanoseconds::from_millis(1000);
@@ -680,7 +680,7 @@ mod tests {
         assert_eq!(ns.as_millis(), 1000);
         assert_eq!(ns.as_micros(), 1_000_000);
     }
-    
+
     #[test]
     fn test_task_state() {
         assert!(TaskState::Ready.is_runnable());

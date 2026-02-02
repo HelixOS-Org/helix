@@ -15,6 +15,7 @@
 //! simultaneously, reducing TLB misses on context switches.
 
 use core::fmt;
+
 use super::addresses::VirtualAddress;
 
 // =============================================================================
@@ -32,10 +33,10 @@ pub struct Pcid(u16);
 impl Pcid {
     /// Maximum PCID value (12-bit)
     pub const MAX: u16 = 0xFFF;
-    
+
     /// Kernel PCID (reserved)
     pub const KERNEL: Pcid = Pcid(0);
-    
+
     /// Create a new PCID
     ///
     /// # Panics
@@ -46,19 +47,19 @@ impl Pcid {
         assert!(value <= Self::MAX);
         Self(value)
     }
-    
+
     /// Create a new PCID, truncating to valid range
     #[inline]
     pub const fn new_truncate(value: u16) -> Self {
         Self(value & Self::MAX)
     }
-    
+
     /// Get the PCID value
     #[inline]
     pub const fn as_u16(self) -> u16 {
         self.0
     }
-    
+
     /// Check if this is the kernel PCID
     #[inline]
     pub const fn is_kernel(self) -> bool {
@@ -100,13 +101,13 @@ impl From<Pcid> for u16 {
 pub enum InvpcidType {
     /// Invalidate single address for specific PCID
     IndividualAddress = 0,
-    
+
     /// Invalidate all entries for specific PCID
-    SingleContext = 1,
-    
+    SingleContext     = 1,
+
     /// Invalidate all entries for all PCIDs including globals
     AllContextsIncludingGlobals = 2,
-    
+
     /// Invalidate all entries for all PCIDs except globals
     AllContextsExceptGlobals = 3,
 }
@@ -130,7 +131,7 @@ impl InvpcidDescriptor {
             address: address.as_u64(),
         }
     }
-    
+
     /// Create a descriptor for single context invalidation
     #[inline]
     pub const fn single_context(pcid: Pcid) -> Self {
@@ -139,7 +140,7 @@ impl InvpcidDescriptor {
             address: 0,
         }
     }
-    
+
     /// Create an empty descriptor for global operations
     #[inline]
     pub const fn global() -> Self {
@@ -417,21 +418,21 @@ pub unsafe fn enable_pge() {
 #[inline]
 pub unsafe fn flush_global_tlb() {
     let mut cr4: u64;
-    
+
     // Read CR4
     core::arch::asm!(
         "mov {}, cr4",
         out(reg) cr4,
         options(nomem, nostack, preserves_flags),
     );
-    
+
     // Clear PGE
     core::arch::asm!(
         "mov cr4, {}",
         in(reg) cr4 & !(1 << 7),
         options(nostack, preserves_flags),
     );
-    
+
     // Set PGE again
     core::arch::asm!(
         "mov cr4, {}",
@@ -448,23 +449,23 @@ pub unsafe fn flush_global_tlb() {
 #[cfg(feature = "tlb_stats")]
 pub mod stats {
     use core::sync::atomic::{AtomicU64, Ordering};
-    
+
     static INVLPG_COUNT: AtomicU64 = AtomicU64::new(0);
     static FULL_FLUSH_COUNT: AtomicU64 = AtomicU64::new(0);
     static INVPCID_COUNT: AtomicU64 = AtomicU64::new(0);
-    
+
     pub fn record_invlpg() {
         INVLPG_COUNT.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     pub fn record_full_flush() {
         FULL_FLUSH_COUNT.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     pub fn record_invpcid() {
         INVPCID_COUNT.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     pub fn get_stats() -> (u64, u64, u64) {
         (
             INVLPG_COUNT.load(Ordering::Relaxed),
@@ -472,7 +473,7 @@ pub mod stats {
             INVPCID_COUNT.load(Ordering::Relaxed),
         )
     }
-    
+
     pub fn reset_stats() {
         INVLPG_COUNT.store(0, Ordering::Relaxed);
         FULL_FLUSH_COUNT.store(0, Ordering::Relaxed);
@@ -486,10 +487,10 @@ pub mod stats {
 
 const _: () = {
     use core::mem::size_of;
-    
+
     // INVPCID descriptor must be 16 bytes
     assert!(size_of::<InvpcidDescriptor>() == 16);
-    
+
     // PCID must fit in 12 bits
     assert!(Pcid::MAX == 0xFFF);
 };

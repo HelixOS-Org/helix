@@ -6,13 +6,13 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::boxed::Box;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{NodeId, ClusterId, ImprovementId, Epoch, Term, SessionId, Improvement, NodeInfo};
+use super::{ClusterId, Epoch, Improvement, ImprovementId, NodeId, NodeInfo, Term};
 
 // ============================================================================
 // MESSAGE TYPES
@@ -52,7 +52,7 @@ pub struct Message {
 }
 
 /// Message type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MessageType {
     /// Heartbeat
     Heartbeat,
@@ -496,7 +496,8 @@ impl DefaultProtocolHandler {
 
 impl ProtocolHandler for DefaultProtocolHandler {
     fn handle(&self, message: &Message) -> Option<Message> {
-        self.handlers.get(&message.message_type)
+        self.handlers
+            .get(&message.message_type)
             .and_then(|h| h(message))
     }
 

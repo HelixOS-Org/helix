@@ -6,7 +6,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use super::{Feature, FeatureVector, LabeledSample};
+use super::{FeatureVector, LabeledSample};
 
 // ============================================================================
 // DECISION TREE

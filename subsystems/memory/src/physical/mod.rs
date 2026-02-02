@@ -2,15 +2,17 @@
 //!
 //! Framework for physical memory allocation.
 
-pub mod frame_allocator;
 pub mod bitmap;
 pub mod buddy;
+pub mod frame_allocator;
 
-use crate::{Frame, MemResult, MemError, MemoryZone};
-use helix_hal::{PhysAddr, PageSize};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+
+use helix_hal::{PageSize, PhysAddr};
 use spin::RwLock;
+
+use crate::{Frame, MemError, MemResult, MemoryZone};
 
 /// Physical memory allocator trait
 ///
@@ -61,7 +63,12 @@ impl PhysicalRegion {
     /// Create a new region
     pub fn new(start: PhysAddr, size: u64, region_type: PhysicalRegionType) -> Self {
         let zone = Self::determine_zone(start);
-        Self { start, size, region_type, zone }
+        Self {
+            start,
+            size,
+            region_type,
+            zone,
+        }
     }
 
     /// Determine zone based on address
@@ -158,7 +165,7 @@ impl PhysicalMemoryManager {
     pub fn init(&self) -> MemResult<()> {
         let regions = self.regions.read().clone();
         let mut allocator = self.allocator.write();
-        
+
         if let Some(ref mut alloc) = *allocator {
             // Can't mutate through Arc, would need different design
             // For now, just verify it's set
@@ -170,7 +177,8 @@ impl PhysicalMemoryManager {
 
     /// Allocate a frame
     pub fn allocate(&self, size: PageSize) -> MemResult<Frame> {
-        self.allocator.read()
+        self.allocator
+            .read()
             .as_ref()
             .ok_or(MemError::NotInitialized)?
             .allocate(size)
@@ -178,7 +186,8 @@ impl PhysicalMemoryManager {
 
     /// Deallocate a frame
     pub fn deallocate(&self, frame: Frame) -> MemResult<()> {
-        self.allocator.read()
+        self.allocator
+            .read()
             .as_ref()
             .ok_or(MemError::NotInitialized)?
             .deallocate(frame)

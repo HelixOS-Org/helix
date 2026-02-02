@@ -17,13 +17,11 @@
 
 #[cfg(feature = "relocation")]
 pub use helix_relocation::{
-    RelocationContext, RelocationContextBuilder, RelocationStrategy,
-    RelocatableKernel, RelocationEngine, RelocationStats, Relocatable,
-    RelocError, RelocResult,
-    kaslr::{Kaslr, KaslrConfig, EntropyQuality},
     boot::BootContext,
     context::BootProtocol,
-    PhysAddr, VirtAddr,
+    kaslr::{EntropyQuality, Kaslr, KaslrConfig},
+    PhysAddr, RelocError, RelocResult, Relocatable, RelocatableKernel, RelocationContext,
+    RelocationContextBuilder, RelocationEngine, RelocationStats, RelocationStrategy, VirtAddr,
 };
 
 // ============================================================================
@@ -68,9 +66,7 @@ impl Default for UefiKernelInfo {
 
 /// Create relocation context from UEFI kernel info
 #[cfg(feature = "relocation")]
-pub fn create_context_from_uefi(
-    info: &UefiKernelInfo,
-) -> RelocResult<RelocationContext> {
+pub fn create_context_from_uefi(info: &UefiKernelInfo) -> RelocResult<RelocationContext> {
     RelocationContextBuilder::new()
         .phys_base(info.phys_base)
         .virt_base(info.virt_base)
@@ -205,11 +201,9 @@ impl Default for UefiKaslr {
 /// - Kernel memory must be mapped and writable
 /// - RELA section must be valid
 #[cfg(feature = "relocation")]
-pub unsafe fn apply_early_relocations(
-    info: &UefiKernelInfo,
-) -> RelocResult<RelocationStats> {
-    use helix_relocation::engine::EarlyRelocator;
+pub unsafe fn apply_early_relocations(info: &UefiKernelInfo) -> RelocResult<RelocationStats> {
     use helix_relocation::elf::Elf64Rela;
+    use helix_relocation::engine::EarlyRelocator;
 
     let slide = info.phys_base as i64 - info.link_base as i64;
 
@@ -238,8 +232,8 @@ pub unsafe fn apply_kaslr_relocations(
     info: &UefiKernelInfo,
     kaslr_slide: u64,
 ) -> RelocResult<RelocationStats> {
-    use helix_relocation::engine::EarlyRelocator;
     use helix_relocation::elf::Elf64Rela;
+    use helix_relocation::engine::EarlyRelocator;
 
     let effective_slide = info.phys_base as i64 - info.link_base as i64 + kaslr_slide as i64;
 
@@ -371,7 +365,7 @@ macro_rules! apply_uefi_relocations {
     ($load_addr:expr) => {{
         #[cfg(feature = "relocation")]
         {
-            use $crate::relocation::{get_kernel_info_from_symbols, apply_early_relocations};
+            use $crate::relocation::{apply_early_relocations, get_kernel_info_from_symbols};
             let info = unsafe { get_kernel_info_from_symbols($load_addr) };
             unsafe { apply_early_relocations(&info) }
         }

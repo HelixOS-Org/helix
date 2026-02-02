@@ -2,8 +2,8 @@
 //!
 //! Memory Management Unit setup for ARM64.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 // =============================================================================
 // PAGE TABLE CONSTANTS
@@ -197,11 +197,11 @@ pub mod mair {
 
 /// Build MAIR_EL1 value with standard attributes
 pub fn build_mair() -> u64 {
-    (mair::DEVICE_NGNRNE as u64) << (mair::ATTR_DEVICE_NGNRNE * 8) |
-    (mair::DEVICE_NGNRE as u64) << (mair::ATTR_DEVICE_NGNRE * 8) |
-    (mair::NORMAL_NC as u64) << (mair::ATTR_NORMAL_NC * 8) |
-    (mair::NORMAL_WT as u64) << (mair::ATTR_NORMAL_WT * 8) |
-    (mair::NORMAL_WB as u64) << (mair::ATTR_NORMAL_WB * 8)
+    (mair::DEVICE_NGNRNE as u64) << (mair::ATTR_DEVICE_NGNRNE * 8)
+        | (mair::DEVICE_NGNRE as u64) << (mair::ATTR_DEVICE_NGNRE * 8)
+        | (mair::NORMAL_NC as u64) << (mair::ATTR_NORMAL_NC * 8)
+        | (mair::NORMAL_WT as u64) << (mair::ATTR_NORMAL_WT * 8)
+        | (mair::NORMAL_WB as u64) << (mair::ATTR_NORMAL_WB * 8)
 }
 
 // =============================================================================
@@ -236,9 +236,9 @@ pub mod desc {
 
     /// Shareability (SH)
     pub const SH_SHIFT: u64 = 8;
-    pub const SH_NS: u64 = 0b00 << 8;  // Non-shareable
-    pub const SH_OS: u64 = 0b10 << 8;  // Outer shareable
-    pub const SH_IS: u64 = 0b11 << 8;  // Inner shareable
+    pub const SH_NS: u64 = 0b00 << 8; // Non-shareable
+    pub const SH_OS: u64 = 0b10 << 8; // Outer shareable
+    pub const SH_IS: u64 = 0b11 << 8; // Inner shareable
 
     /// Access Flag
     pub const AF: u64 = 1 << 10;
@@ -285,28 +285,34 @@ pub mod desc {
     // Common attribute combinations
 
     /// Kernel code (read-only, executable)
-    pub const KERNEL_CODE: u64 = VALID | AF | SH_IS | AP_RO_EL1 | UXN |
-                                  (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
+    pub const KERNEL_CODE: u64 =
+        VALID | AF | SH_IS | AP_RO_EL1 | UXN | (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
 
     /// Kernel data (read-write, non-executable)
-    pub const KERNEL_DATA: u64 = VALID | AF | SH_IS | AP_RW_EL1 | PXN | UXN |
-                                  (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
+    pub const KERNEL_DATA: u64 =
+        VALID | AF | SH_IS | AP_RW_EL1 | PXN | UXN | (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
 
     /// Kernel read-only data
-    pub const KERNEL_RODATA: u64 = VALID | AF | SH_IS | AP_RO_EL1 | PXN | UXN |
-                                    (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
+    pub const KERNEL_RODATA: u64 =
+        VALID | AF | SH_IS | AP_RO_EL1 | PXN | UXN | (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
 
     /// User code
-    pub const USER_CODE: u64 = VALID | AF | SH_IS | AP_RO_EL1_EL0 | PXN | NG |
-                                (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
+    pub const USER_CODE: u64 =
+        VALID | AF | SH_IS | AP_RO_EL1_EL0 | PXN | NG | (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
 
     /// User data
-    pub const USER_DATA: u64 = VALID | AF | SH_IS | AP_RW_EL1_EL0 | PXN | UXN | NG |
-                                (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
+    pub const USER_DATA: u64 = VALID
+        | AF
+        | SH_IS
+        | AP_RW_EL1_EL0
+        | PXN
+        | UXN
+        | NG
+        | (super::mair::ATTR_NORMAL_WB << ATTR_SHIFT);
 
     /// Device MMIO
-    pub const DEVICE: u64 = VALID | AF | SH_OS | AP_RW_EL1 | PXN | UXN |
-                            (super::mair::ATTR_DEVICE_NGNRE << ATTR_SHIFT);
+    pub const DEVICE: u64 =
+        VALID | AF | SH_OS | AP_RW_EL1 | PXN | UXN | (super::mair::ATTR_DEVICE_NGNRE << ATTR_SHIFT);
 
     /// Table descriptor
     pub const TABLE_DESC: u64 = VALID | TABLE;
@@ -422,9 +428,15 @@ impl core::fmt::Debug for PageTableEntry {
             write!(f, "PTE(table -> {:#x})", self.address().0)
         } else {
             write!(f, "PTE(block {:#x}, ", self.address().0)?;
-            if self.is_pxn() { write!(f, "PXN ")?; }
-            if self.is_uxn() { write!(f, "UXN ")?; }
-            if self.is_non_global() { write!(f, "nG ")?; }
+            if self.is_pxn() {
+                write!(f, "PXN ")?;
+            }
+            if self.is_uxn() {
+                write!(f, "UXN ")?;
+            }
+            if self.is_non_global() {
+                write!(f, "nG ")?;
+            }
             write!(f, "attr={})", self.attr_index())
         }
     }

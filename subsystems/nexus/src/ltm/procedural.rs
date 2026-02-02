@@ -7,10 +7,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{ProcedureId, PatternId};
+use super::{PatternId, ProcedureId};
 
 /// Procedure type
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ProcedureType {
     /// Recovery procedure
     Recovery,

@@ -360,7 +360,6 @@ pub const DEFAULT_BINDINGS: &[KeyBinding] = &[
     KeyBinding::simple(keys::END, cmd_ids::MENU_END),
     KeyBinding::simple(keys::PAGE_UP, cmd_ids::MENU_PAGE_UP),
     KeyBinding::simple(keys::PAGE_DOWN, cmd_ids::MENU_PAGE_DOWN),
-
     // Function keys
     KeyBinding::simple(keys::F1, cmd_ids::MENU_HELP),
     KeyBinding::simple(keys::F2, cmd_ids::ENTRY_EDIT),
@@ -369,7 +368,6 @@ pub const DEFAULT_BINDINGS: &[KeyBinding] = &[
     KeyBinding::simple(keys::F6, cmd_ids::SET_DEFAULT),
     KeyBinding::simple(keys::F10, cmd_ids::CONFIG_SAVE),
     KeyBinding::simple(keys::F12, cmd_ids::DEBUG_CONSOLE),
-
     // Boot shortcuts
     KeyBinding::simple(keys::char('b'), cmd_ids::BOOT_SELECTED),
     KeyBinding::simple(keys::char('d'), cmd_ids::BOOT_DEFAULT),
@@ -377,7 +375,6 @@ pub const DEFAULT_BINDINGS: &[KeyBinding] = &[
     KeyBinding::simple(keys::char('s'), cmd_ids::BOOT_SAFE),
     KeyBinding::simple(keys::char('e'), cmd_ids::ENTRY_EDIT),
     KeyBinding::simple(keys::char('c'), cmd_ids::DEBUG_CONSOLE),
-
     // Ctrl combinations
     KeyBinding::with_mod(keys::char('q'), KeyModifiers::CTRL, cmd_ids::QUIT),
     KeyBinding::with_mod(keys::char('r'), KeyModifiers::CTRL, cmd_ids::REBOOT),
@@ -684,7 +681,10 @@ impl Default for CommandResult {
 impl CommandResult {
     /// Check if successful
     pub const fn is_success(&self) -> bool {
-        matches!(self, CommandResult::Success | CommandResult::SuccessValue(_))
+        matches!(
+            self,
+            CommandResult::Success | CommandResult::SuccessValue(_)
+        )
     }
 
     /// Check if failed

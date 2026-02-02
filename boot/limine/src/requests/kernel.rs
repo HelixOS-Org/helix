@@ -6,12 +6,11 @@
 //! - Boot modules
 
 use core::ffi::CStr;
-use core::ptr;
-use core::slice;
+use core::{ptr, slice};
 
-use crate::protocol::request_ids::{KERNEL_FILE_ID, KERNEL_ADDRESS_ID, MODULE_ID};
-use crate::protocol::raw::{RawFile, RawUuid};
 use super::{LimineRequest, ResponsePtr, SafeResponse};
+use crate::protocol::raw::{RawFile, RawUuid};
+use crate::protocol::request_ids::{KERNEL_ADDRESS_ID, KERNEL_FILE_ID, MODULE_ID};
 
 // =============================================================================
 // Kernel File Request
@@ -31,7 +30,8 @@ use super::{LimineRequest, ResponsePtr, SafeResponse};
 /// static KERNEL_FILE: KernelFileRequest = KernelFileRequest::new();
 ///
 /// fn get_kernel_size() -> usize {
-///     KERNEL_FILE.response()
+///     KERNEL_FILE
+///         .response()
 ///         .and_then(|r| r.file())
 ///         .map(|f| f.size())
 ///         .unwrap_or(0)
@@ -67,9 +67,15 @@ impl Default for KernelFileRequest {
 impl LimineRequest for KernelFileRequest {
     type Response = KernelFileResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -155,9 +161,15 @@ impl Default for KernelAddressRequest {
 impl LimineRequest for KernelAddressRequest {
     type Response = KernelAddressResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -217,7 +229,10 @@ unsafe impl SafeResponse for KernelAddressResponse {
 impl core::fmt::Debug for KernelAddressResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("KernelAddressResponse")
-            .field("physical_base", &format_args!("{:#018x}", self.physical_base))
+            .field(
+                "physical_base",
+                &format_args!("{:#018x}", self.physical_base),
+            )
             .field("virtual_base", &format_args!("{:#018x}", self.virtual_base))
             .field("offset", &format_args!("{:#x}", self.offset()))
             .finish()
@@ -300,9 +315,15 @@ impl Default for ModuleRequest {
 impl LimineRequest for ModuleRequest {
     type Response = ModuleResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -457,11 +478,7 @@ impl<'a> File<'a> {
         if self.raw.path.is_null() {
             return "";
         }
-        unsafe {
-            CStr::from_ptr(self.raw.path)
-                .to_str()
-                .unwrap_or("")
-        }
+        unsafe { CStr::from_ptr(self.raw.path).to_str().unwrap_or("") }
     }
 
     /// Get the command line / string
@@ -469,11 +486,7 @@ impl<'a> File<'a> {
         if self.raw.cmdline.is_null() {
             return "";
         }
-        unsafe {
-            CStr::from_ptr(self.raw.cmdline)
-                .to_str()
-                .unwrap_or("")
-        }
+        unsafe { CStr::from_ptr(self.raw.cmdline).to_str().unwrap_or("") }
     }
 
     /// Get the command line as a 'static reference
@@ -484,11 +497,7 @@ impl<'a> File<'a> {
         if self.raw.cmdline.is_null() {
             return "";
         }
-        unsafe {
-            CStr::from_ptr(self.raw.cmdline)
-                .to_str()
-                .unwrap_or("")
-        }
+        unsafe { CStr::from_ptr(self.raw.cmdline).to_str().unwrap_or("") }
     }
 
     /// Get the file contents as a byte slice
@@ -501,9 +510,7 @@ impl<'a> File<'a> {
         if self.raw.address.is_null() || self.raw.size == 0 {
             return &[];
         }
-        unsafe {
-            slice::from_raw_parts(self.raw.address, self.raw.size as usize)
-        }
+        unsafe { slice::from_raw_parts(self.raw.address, self.raw.size as usize) }
     }
 
     /// Get the media type

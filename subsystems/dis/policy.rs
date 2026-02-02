@@ -52,16 +52,15 @@
 //! ```
 
 use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
+
 use spin::RwLock;
 
-use super::{
-    TaskId, Task, Nanoseconds,
-    intent::{IntentClass, IntentFlags},
-};
+use super::intent::{IntentClass, IntentFlags};
+use super::{Nanoseconds, Task, TaskId};
 
 // =============================================================================
 // Policy Identification
@@ -76,11 +75,11 @@ impl PolicyId {
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
-    
+
     pub const fn raw(&self) -> u64 {
         self.0
     }
-    
+
     pub const NULL: Self = Self(0);
 }
 
@@ -121,23 +120,32 @@ pub enum Condition {
     RunnableTasks { op: Comparison, count: u32 },
     /// Time of day (hour 0-23)
     TimeOfDay { op: Comparison, hour: u8 },
-    
+
     // Task-level conditions
     /// Task class
     TaskClass { op: Comparison, class: IntentClass },
     /// Task priority
     TaskPriority { op: Comparison, priority: i32 },
     /// Task runtime
-    TaskRuntime { op: Comparison, duration: Nanoseconds },
+    TaskRuntime {
+        op: Comparison,
+        duration: Nanoseconds,
+    },
     /// Task wait time
-    TaskWaitTime { op: Comparison, duration: Nanoseconds },
+    TaskWaitTime {
+        op: Comparison,
+        duration: Nanoseconds,
+    },
     /// Task CPU usage (0-100)
     TaskCpuUsage { op: Comparison, percent: u8 },
     /// Task has flag
     TaskHasFlag { flag: IntentFlags, expected: bool },
     /// Task age
-    TaskAge { op: Comparison, duration: Nanoseconds },
-    
+    TaskAge {
+        op: Comparison,
+        duration: Nanoseconds,
+    },
+
     // Combined conditions
     /// All conditions must be true
     All(Vec<Condition>),
@@ -145,7 +153,7 @@ pub enum Condition {
     Any(Vec<Condition>),
     /// Condition must be false
     Not(Box<Condition>),
-    
+
     // Custom condition
     Custom {
         name: String,
@@ -158,22 +166,14 @@ impl Condition {
     pub fn evaluate(&self, ctx: &PolicyContext) -> bool {
         match self {
             // System conditions
-            Self::SystemCpuLoad { op, threshold } => {
-                compare(*op, ctx.system.cpu_load, *threshold)
-            }
+            Self::SystemCpuLoad { op, threshold } => compare(*op, ctx.system.cpu_load, *threshold),
             Self::SystemMemoryUsage { op, threshold } => {
                 compare(*op, ctx.system.memory_usage, *threshold)
-            }
-            Self::SystemIoWait { op, threshold } => {
-                compare(*op, ctx.system.io_wait, *threshold)
-            }
-            Self::RunnableTasks { op, count } => {
-                compare(*op, ctx.system.runnable_tasks, *count)
-            }
-            Self::TimeOfDay { op, hour } => {
-                compare(*op, ctx.system.hour, *hour)
-            }
-            
+            },
+            Self::SystemIoWait { op, threshold } => compare(*op, ctx.system.io_wait, *threshold),
+            Self::RunnableTasks { op, count } => compare(*op, ctx.system.runnable_tasks, *count),
+            Self::TimeOfDay { op, hour } => compare(*op, ctx.system.hour, *hour),
+
             // Task conditions
             Self::TaskClass { op, class } => {
                 if let Some(task) = &ctx.task {
@@ -185,53 +185,53 @@ impl Condition {
                 } else {
                     false
                 }
-            }
+            },
             Self::TaskPriority { op, priority } => {
                 if let Some(task) = &ctx.task {
                     compare(*op, task.priority as i32, *priority)
                 } else {
                     false
                 }
-            }
+            },
             Self::TaskRuntime { op, duration } => {
                 if let Some(task) = &ctx.task {
                     compare(*op, task.age_ms * 1_000_000, duration.raw())
                 } else {
                     false
                 }
-            }
+            },
             Self::TaskWaitTime { op, duration } => {
                 if let Some(task) = &ctx.task {
                     compare(*op, task.wait_time_ms * 1_000_000, duration.raw())
                 } else {
                     false
                 }
-            }
+            },
             Self::TaskCpuUsage { op, percent } => {
                 if let Some(task) = &ctx.task {
                     compare(*op, task.cpu_percent, *percent)
                 } else {
                     false
                 }
-            }
+            },
             Self::TaskHasFlag { flag: _, expected } => {
                 // Simplified: TaskContext doesn't have flags directly
                 // Return expected == false as default
                 !expected
-            }
+            },
             Self::TaskAge { op, duration } => {
                 if let Some(task) = &ctx.task {
                     compare(*op, task.age_ms * 1_000_000, duration.raw())
                 } else {
                     false
                 }
-            }
-            
+            },
+
             // Combined
             Self::All(conditions) => conditions.iter().all(|c| c.evaluate(ctx)),
             Self::Any(conditions) => conditions.iter().any(|c| c.evaluate(ctx)),
             Self::Not(condition) => !condition.evaluate(ctx),
-            
+
             // Custom
             Self::Custom { evaluator, .. } => evaluator(ctx),
         }
@@ -263,14 +263,17 @@ pub enum PolicyAction {
     /// Adjust priority by delta
     AdjustPriority(i32),
     /// Boost priority temporarily
-    BoostPriority { amount: i32, duration: Nanoseconds },
-    
+    BoostPriority {
+        amount: i32,
+        duration: Nanoseconds,
+    },
+
     // Time slice modifications
     /// Set absolute time slice
     SetTimeSlice(Nanoseconds),
     /// Multiply time slice by factor
     ScaleTimeSlice(f32),
-    
+
     // CPU affinity
     /// Set CPU affinity mask
     SetAffinity(u64),
@@ -278,31 +281,34 @@ pub enum PolicyAction {
     PinToCpu(u32),
     /// Allow migration
     AllowMigration,
-    
+
     // Queue assignment
     /// Move to specific queue
     MoveToQueue(QueueType),
     /// Change intent class
     ChangeClass(IntentClass),
-    
+
     // Resource limits
     /// Set CPU budget
     SetCpuBudget(u8),
     /// Throttle task
-    Throttle { percent: u8, duration: Nanoseconds },
-    
+    Throttle {
+        percent: u8,
+        duration: Nanoseconds,
+    },
+
     // Preemption
     /// Force preemption
     ForcePreempt,
     /// Disable preemption
     DisablePreempt(Nanoseconds),
-    
+
     // Custom actions
     Custom {
         name: String,
         executor: fn(&mut Task, &PolicyContext),
     },
-    
+
     // Composite actions
     Multiple(Vec<PolicyAction>),
 }
@@ -324,61 +330,64 @@ impl PolicyAction {
         match self {
             Self::SetPriority(p) => {
                 task.effective_priority = *p;
-            }
+            },
             Self::AdjustPriority(delta) => {
                 task.priority_adjustment = task.priority_adjustment.saturating_add(*delta);
                 task.recalculate_priority();
-            }
-            Self::BoostPriority { amount, duration: _ } => {
+            },
+            Self::BoostPriority {
+                amount,
+                duration: _,
+            } => {
                 task.priority_adjustment = task.priority_adjustment.saturating_sub(*amount);
                 task.recalculate_priority();
-            }
+            },
             Self::SetTimeSlice(ts) => {
                 task.time_slice = *ts;
-            }
+            },
             Self::ScaleTimeSlice(factor) => {
                 let new_slice = (task.time_slice.raw() as f32 * factor) as u64;
                 task.time_slice = Nanoseconds::new(new_slice.max(1000)); // Min 1µs
-            }
+            },
             Self::SetAffinity(mask) => {
                 task.affinity = *mask;
-            }
+            },
             Self::PinToCpu(cpu) => {
                 task.affinity = 1u64 << cpu;
                 task.flags |= super::TaskFlags::PINNED;
-            }
+            },
             Self::AllowMigration => {
                 task.affinity = u64::MAX;
                 task.flags.remove(super::TaskFlags::PINNED);
-            }
+            },
             Self::MoveToQueue(_queue) => {
                 // Queue assignment is handled by scheduler
-            }
+            },
             Self::ChangeClass(class) => {
                 task.intent.class = *class;
                 task.base_priority = class.base_priority();
                 task.recalculate_priority();
-            }
+            },
             Self::SetCpuBudget(_percent) => {
                 // Resource accounting handled separately
-            }
+            },
             Self::Throttle { .. } => {
                 // Throttling handled by resource manager
-            }
+            },
             Self::ForcePreempt => {
                 task.preempt_count += 1;
-            }
+            },
             Self::DisablePreempt(_) => {
                 task.flags |= super::TaskFlags::NO_PREEMPT;
-            }
+            },
             Self::Custom { executor, .. } => {
                 executor(task, ctx);
-            }
+            },
             Self::Multiple(actions) => {
                 for action in actions {
                     action.execute(task, ctx);
                 }
-            }
+            },
         }
     }
 }
@@ -422,45 +431,45 @@ impl PolicyRule {
             activation_count: 0,
         }
     }
-    
+
     /// Set rule priority
     pub fn with_priority(mut self, priority: i32) -> Self {
         self.priority = priority;
         self
     }
-    
+
     /// Set cooldown
     pub fn with_cooldown(mut self, cooldown: Nanoseconds) -> Self {
         self.cooldown = Some(cooldown);
         self
     }
-    
+
     /// Check if rule can be activated (respects cooldown)
     pub fn can_activate(&self, current_time: Nanoseconds) -> bool {
         if !self.enabled {
             return false;
         }
-        
+
         if let (Some(cooldown), Some(last)) = (self.cooldown, self.last_activated) {
             return current_time >= last + cooldown;
         }
-        
+
         true
     }
-    
+
     /// Evaluate and potentially execute this rule
     pub fn evaluate(&mut self, task: &mut Task, ctx: &PolicyContext) -> bool {
         if !self.can_activate(ctx.current_time) {
             return false;
         }
-        
+
         if self.condition.evaluate(ctx) {
             self.action.execute(task, ctx);
             self.last_activated = Some(ctx.current_time);
             self.activation_count += 1;
             return true;
         }
-        
+
         false
     }
 }
@@ -627,54 +636,54 @@ impl Policy {
             stats: PolicyStats::default(),
         }
     }
-    
+
     /// Add a rule to this policy
     pub fn add_rule(&mut self, rule: PolicyRule) {
         self.rules.push(rule);
         // Sort by priority
         self.rules.sort_by_key(|r| r.priority);
     }
-    
+
     /// Evaluate this policy for a task
     pub fn evaluate(&mut self, task: &mut Task, ctx: &PolicyContext) -> u32 {
         if !self.enabled {
             return 0;
         }
-        
+
         // Check scope
         match self.scope {
-            PolicyScope::Global => {}
+            PolicyScope::Global => {},
             PolicyScope::Class(class) => {
                 if task.intent.class != class {
                     return 0;
                 }
-            }
+            },
             PolicyScope::Group(group) => {
                 if task.intent.group_id != Some(group) {
                     return 0;
                 }
-            }
+            },
             PolicyScope::Task(id) => {
                 if task.id != id {
                     return 0;
                 }
-            }
+            },
         }
-        
+
         self.stats.evaluations += 1;
-        
+
         let mut actions = 0;
         for rule in &mut self.rules {
             if rule.evaluate(task, ctx) {
                 actions += 1;
             }
         }
-        
+
         if actions > 0 {
             self.stats.matches += 1;
             self.stats.actions_taken += actions as u64;
         }
-        
+
         actions
     }
 }
@@ -722,60 +731,60 @@ impl PolicyEngine {
             stats: RwLock::new(PolicyEngineStats::default()),
             max_events: 1000,
         };
-        
+
         // Register default policies
         engine.register_default_policies();
-        
+
         engine
     }
-    
+
     /// Register a policy
     pub fn register(&self, policy: Policy) -> PolicyId {
         let id = policy.id;
         let rules_count = policy.rules.len();
-        
+
         self.policies.write().insert(id, policy);
-        
+
         let mut stats = self.stats.write();
         stats.active_policies += 1;
         stats.total_rules += rules_count as u32;
-        
+
         id
     }
-    
+
     /// Unregister a policy
     pub fn unregister(&self, id: PolicyId) -> Option<Policy> {
         let policy = self.policies.write().remove(&id)?;
-        
+
         let mut stats = self.stats.write();
         stats.active_policies = stats.active_policies.saturating_sub(1);
         stats.total_rules = stats.total_rules.saturating_sub(policy.rules.len() as u32);
-        
+
         Some(policy)
     }
-    
+
     /// Get a policy by ID
     pub fn get(&self, id: PolicyId) -> Option<Policy> {
         self.policies.read().get(&id).cloned()
     }
-    
+
     /// Update system context
     pub fn update_context(&self, ctx: SystemContext) {
         *self.system_context.write() = ctx;
     }
-    
+
     /// Record an event
     pub fn record_event(&self, event: PolicyEvent) {
         let mut events = self.events.write();
         events.push(event);
-        
+
         // Trim if too many
         if events.len() > self.max_events {
             let drain_count = events.len() - self.max_events;
             events.drain(0..drain_count);
         }
     }
-    
+
     /// Evaluate all policies for a task
     pub fn evaluate(&self, task: &mut Task, current_time: Nanoseconds) -> u32 {
         let task_context = TaskContext {
@@ -784,26 +793,28 @@ impl PolicyEngine {
             priority: task.base_priority as i8,
             cpu_percent: 0, // Computed from stats if available
             memory_bytes: task.memory_usage,
-            age_ms: 0, // Computed from creation time
+            age_ms: 0,       // Computed from creation time
             wait_time_ms: 0, // Computed from wait start
         };
-        
+
         let ctx = PolicyContext {
             system: self.system_context.read().clone(),
             task: Some(task_context),
             current_time,
             events: self.events.read().clone(),
         };
-        
+
         let mut total_actions = 0;
-        
+
         // Collect policies sorted by priority
-        let mut policies: Vec<_> = self.policies.read()
+        let mut policies: Vec<_> = self
+            .policies
+            .read()
             .iter()
             .map(|(id, p)| (*id, p.priority))
             .collect();
         policies.sort_by_key(|(_, p)| *p);
-        
+
         // Evaluate in priority order
         for (id, _) in policies {
             if let Some(mut policy) = self.policies.write().remove(&id) {
@@ -812,14 +823,14 @@ impl PolicyEngine {
                 self.policies.write().insert(id, policy);
             }
         }
-        
+
         let mut stats = self.stats.write();
         stats.total_evaluations += 1;
         stats.total_actions += total_actions as u64;
-        
+
         total_actions
     }
-    
+
     /// Get engine statistics
     pub fn stats(&self) -> PolicyEngineStats {
         PolicyEngineStats {
@@ -830,7 +841,7 @@ impl PolicyEngine {
             total_rules: self.stats.read().total_rules,
         }
     }
-    
+
     /// Register default policies
     fn register_default_policies(&mut self) {
         // Policy: Boost starving tasks
@@ -838,35 +849,41 @@ impl PolicyEngine {
             "starvation_prevention",
             "Boost priority of tasks that have been waiting too long",
         );
-        starvation_policy.add_rule(PolicyRule::new(
-            "boost_starving",
-            Condition::TaskWaitTime {
-                op: Comparison::GreaterThan,
-                duration: Nanoseconds::from_millis(1000),
-            },
-            PolicyAction::AdjustPriority(-20),
-        ).with_cooldown(Nanoseconds::from_millis(500)));
-        
+        starvation_policy.add_rule(
+            PolicyRule::new(
+                "boost_starving",
+                Condition::TaskWaitTime {
+                    op: Comparison::GreaterThan,
+                    duration: Nanoseconds::from_millis(1000),
+                },
+                PolicyAction::AdjustPriority(-20),
+            )
+            .with_cooldown(Nanoseconds::from_millis(500)),
+        );
+
         // Policy: Penalize CPU hogs
         let mut cpu_hog_policy = Policy::new(
             "cpu_hog_penalty",
             "Reduce priority of tasks using too much CPU",
         );
-        cpu_hog_policy.add_rule(PolicyRule::new(
-            "penalize_cpu_hog",
-            Condition::All(vec![
-                Condition::TaskCpuUsage {
-                    op: Comparison::GreaterThan,
-                    percent: 90,
-                },
-                Condition::TaskHasFlag {
-                    flag: IntentFlags::HIGH_THROUGHPUT,
-                    expected: false,
-                },
-            ]),
-            PolicyAction::AdjustPriority(10),
-        ).with_cooldown(Nanoseconds::from_millis(1000)));
-        
+        cpu_hog_policy.add_rule(
+            PolicyRule::new(
+                "penalize_cpu_hog",
+                Condition::All(vec![
+                    Condition::TaskCpuUsage {
+                        op: Comparison::GreaterThan,
+                        percent: 90,
+                    },
+                    Condition::TaskHasFlag {
+                        flag: IntentFlags::HIGH_THROUGHPUT,
+                        expected: false,
+                    },
+                ]),
+                PolicyAction::AdjustPriority(10),
+            )
+            .with_cooldown(Nanoseconds::from_millis(1000)),
+        );
+
         // Policy: Boost interactive during low load
         let mut interactive_boost = Policy::new(
             "interactive_boost",
@@ -881,7 +898,7 @@ impl PolicyEngine {
             },
             PolicyAction::ScaleTimeSlice(2.0),
         ));
-        
+
         // Policy: Throttle background during high load
         let mut background_throttle = Policy::new(
             "background_throttle",
@@ -899,7 +916,7 @@ impl PolicyEngine {
                 PolicyAction::ScaleTimeSlice(0.25),
             ]),
         ));
-        
+
         // Register all default policies
         self.register(starvation_policy);
         self.register(cpu_hog_policy);
@@ -930,37 +947,38 @@ impl PolicyBuilder {
             policy: Policy::new(name, ""),
         }
     }
-    
+
     /// Set description
     pub fn description(mut self, desc: &str) -> Self {
         self.policy.description = String::from(desc);
         self
     }
-    
+
     /// Set priority
     pub fn priority(mut self, priority: i32) -> Self {
         self.policy.priority = priority;
         self
     }
-    
+
     /// Set scope
     pub fn scope(mut self, scope: PolicyScope) -> Self {
         self.policy.scope = scope;
         self
     }
-    
+
     /// Add a rule
     pub fn rule(mut self, rule: PolicyRule) -> Self {
         self.policy.add_rule(rule);
         self
     }
-    
+
     /// Add a simple rule (condition -> action)
     pub fn when(mut self, name: &str, condition: Condition, action: PolicyAction) -> Self {
-        self.policy.add_rule(PolicyRule::new(name, condition, action));
+        self.policy
+            .add_rule(PolicyRule::new(name, condition, action));
         self
     }
-    
+
     /// Build the policy
     pub fn build(self) -> Policy {
         self.policy
@@ -974,7 +992,7 @@ impl PolicyBuilder {
 /// Predefined policy templates
 pub mod templates {
     use super::*;
-    
+
     /// Policy for real-time workloads
     pub fn realtime() -> Policy {
         PolicyBuilder::new("realtime")
@@ -990,7 +1008,7 @@ pub mod templates {
             )
             .build()
     }
-    
+
     /// Policy for interactive workloads
     pub fn interactive() -> Policy {
         PolicyBuilder::new("interactive")
@@ -1006,7 +1024,7 @@ pub mod templates {
             )
             .build()
     }
-    
+
     /// Policy for server workloads
     pub fn server() -> Policy {
         PolicyBuilder::new("server")
@@ -1022,7 +1040,7 @@ pub mod templates {
             )
             .build()
     }
-    
+
     /// Policy for batch workloads
     pub fn batch() -> Policy {
         PolicyBuilder::new("batch")
@@ -1038,7 +1056,7 @@ pub mod templates {
             )
             .build()
     }
-    
+
     /// Policy for power saving
     pub fn power_save() -> Policy {
         PolicyBuilder::new("power_save")
@@ -1071,7 +1089,7 @@ pub mod templates {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_condition_evaluation() {
         let ctx = PolicyContext {
@@ -1084,15 +1102,15 @@ mod tests {
             current_time: Nanoseconds::ZERO,
             events: Vec::new(),
         };
-        
+
         let cond = Condition::SystemCpuLoad {
             op: Comparison::GreaterThan,
             threshold: 50,
         };
-        
+
         assert!(cond.evaluate(&ctx));
     }
-    
+
     #[test]
     fn test_policy_builder() {
         let policy = PolicyBuilder::new("test")
@@ -1108,7 +1126,7 @@ mod tests {
                 PolicyAction::AdjustPriority(-10),
             )
             .build();
-        
+
         assert_eq!(policy.name, "test");
         assert_eq!(policy.rules.len(), 1);
     }

@@ -371,13 +371,13 @@ pub unsafe fn prepare_eret(
 ) {
     // Build SPSR
     let mode = match (target, use_sp_elx) {
-        (ExceptionLevel::EL0, _) => 0b0000, // EL0t
+        (ExceptionLevel::EL0, _) => 0b0000,     // EL0t
         (ExceptionLevel::EL1, false) => 0b0100, // EL1t
-        (ExceptionLevel::EL1, true) => 0b0101, // EL1h
+        (ExceptionLevel::EL1, true) => 0b0101,  // EL1h
         (ExceptionLevel::EL2, false) => 0b1000, // EL2t
-        (ExceptionLevel::EL2, true) => 0b1001, // EL2h
+        (ExceptionLevel::EL2, true) => 0b1001,  // EL2h
         (ExceptionLevel::EL3, false) => 0b1100, // EL3t
-        (ExceptionLevel::EL3, true) => 0b1101, // EL3h
+        (ExceptionLevel::EL3, true) => 0b1101,  // EL3h
     };
 
     let mut spsr = mode as u64;
@@ -396,7 +396,7 @@ pub unsafe fn prepare_eret(
                 spsr = in(reg) spsr,
                 options(nomem, nostack, preserves_flags)
             );
-        }
+        },
         ExceptionLevel::EL3 => {
             asm!(
                 "msr ELR_EL3, {elr}",
@@ -405,7 +405,7 @@ pub unsafe fn prepare_eret(
                 spsr = in(reg) spsr,
                 options(nomem, nostack, preserves_flags)
             );
-        }
+        },
         _ => {
             asm!(
                 "msr ELR_EL1, {elr}",
@@ -414,7 +414,7 @@ pub unsafe fn prepare_eret(
                 spsr = in(reg) spsr,
                 options(nomem, nostack, preserves_flags)
             );
-        }
+        },
     }
 }
 

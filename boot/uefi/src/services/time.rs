@@ -2,9 +2,10 @@
 //!
 //! High-level interface for UEFI time services.
 
-use crate::raw::types::*;
-use super::runtime::runtime_services;
 use core::fmt;
+
+use super::runtime::runtime_services;
+use crate::raw::types::*;
 
 // =============================================================================
 // DATE TIME
@@ -35,14 +36,7 @@ pub struct DateTime {
 
 impl DateTime {
     /// Create a new date time
-    pub const fn new(
-        year: u16,
-        month: u8,
-        day: u8,
-        hour: u8,
-        minute: u8,
-        second: u8,
-    ) -> Self {
+    pub const fn new(year: u16, month: u8, day: u8, hour: u8, minute: u8, second: u8) -> Self {
         Self {
             year,
             month,
@@ -113,13 +107,16 @@ impl DateTime {
 
     /// Check if valid
     pub fn is_valid(&self) -> bool {
-        self.year >= 1900 && self.year <= 9999 &&
-        self.month >= 1 && self.month <= 12 &&
-        self.day >= 1 && self.day <= 31 &&
-        self.hour <= 23 &&
-        self.minute <= 59 &&
-        self.second <= 59 &&
-        self.nanosecond < 1_000_000_000
+        self.year >= 1900
+            && self.year <= 9999
+            && self.month >= 1
+            && self.month <= 12
+            && self.day >= 1
+            && self.day <= 31
+            && self.hour <= 23
+            && self.minute <= 59
+            && self.second <= 59
+            && self.nanosecond < 1_000_000_000
     }
 
     /// Get day of week (0 = Sunday, 6 = Saturday)
@@ -168,16 +165,21 @@ impl DateTime {
     pub fn format_iso8601(&self) -> alloc::string::String {
         alloc::format!(
             "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
-            self.year, self.month, self.day,
-            self.hour, self.minute, self.second
+            self.year,
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second
         )
     }
 
     /// Format as RFC 2822
     pub fn format_rfc2822(&self) -> alloc::string::String {
         let day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        let month_names = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let month_names = [
+            "", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ];
 
         let dow = self.day_of_week() as usize;
 
@@ -187,7 +189,9 @@ impl DateTime {
             self.day,
             month_names[self.month as usize],
             self.year,
-            self.hour, self.minute, self.second
+            self.hour,
+            self.minute,
+            self.second
         )
     }
 
@@ -198,7 +202,11 @@ impl DateTime {
 
         // Years
         for y in 1970..self.year {
-            days += if (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0) { 366 } else { 365 };
+            days += if (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0) {
+                366
+            } else {
+                365
+            };
         }
 
         // Months
@@ -234,7 +242,11 @@ impl DateTime {
         // Calculate year
         let mut year = 1970u16;
         loop {
-            let days_in_year = if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) { 366 } else { 365 };
+            let days_in_year = if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) {
+                366
+            } else {
+                365
+            };
             let seconds_in_year = days_in_year * 86400;
 
             if remaining < seconds_in_year {
@@ -447,27 +459,37 @@ impl Duration {
 
     /// Create from microseconds
     pub const fn from_micros(micros: u64) -> Self {
-        Self { nanos: micros.saturating_mul(1000) }
+        Self {
+            nanos: micros.saturating_mul(1000),
+        }
     }
 
     /// Create from milliseconds
     pub const fn from_millis(millis: u64) -> Self {
-        Self { nanos: millis.saturating_mul(1_000_000) }
+        Self {
+            nanos: millis.saturating_mul(1_000_000),
+        }
     }
 
     /// Create from seconds
     pub const fn from_secs(secs: u64) -> Self {
-        Self { nanos: secs.saturating_mul(1_000_000_000) }
+        Self {
+            nanos: secs.saturating_mul(1_000_000_000),
+        }
     }
 
     /// Create from minutes
     pub const fn from_mins(mins: u64) -> Self {
-        Self { nanos: mins.saturating_mul(60_000_000_000) }
+        Self {
+            nanos: mins.saturating_mul(60_000_000_000),
+        }
     }
 
     /// Create from hours
     pub const fn from_hours(hours: u64) -> Self {
-        Self { nanos: hours.saturating_mul(3_600_000_000_000) }
+        Self {
+            nanos: hours.saturating_mul(3_600_000_000_000),
+        }
     }
 
     /// Get total nanoseconds
@@ -502,12 +524,16 @@ impl Duration {
 
     /// Saturating add
     pub const fn saturating_add(self, other: Self) -> Self {
-        Self { nanos: self.nanos.saturating_add(other.nanos) }
+        Self {
+            nanos: self.nanos.saturating_add(other.nanos),
+        }
     }
 
     /// Saturating sub
     pub const fn saturating_sub(self, other: Self) -> Self {
-        Self { nanos: self.nanos.saturating_sub(other.nanos) }
+        Self {
+            nanos: self.nanos.saturating_sub(other.nanos),
+        }
     }
 
     /// Convert to UEFI 100ns units
@@ -520,7 +546,9 @@ impl core::ops::Add for Duration {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
-        Self { nanos: self.nanos + rhs.nanos }
+        Self {
+            nanos: self.nanos + rhs.nanos,
+        }
     }
 }
 
@@ -528,7 +556,9 @@ impl core::ops::Sub for Duration {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
-        Self { nanos: self.nanos - rhs.nanos }
+        Self {
+            nanos: self.nanos - rhs.nanos,
+        }
     }
 }
 

@@ -8,11 +8,12 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{ImprovementId, NodeId};
+use super::NodeId;
+use crate::math::F64Ext;
 
 // ============================================================================
 // PRIVACY TYPES
@@ -539,16 +540,24 @@ impl PrivacyManager {
             return Ok(());
         }
 
-        let budget = self.get_budget(node);
-        if !budget.can_spend(epsilon, 0.0) {
+        // Extract config value before borrowing self through get_budget
+        let clip_norm = self.config.clip_norm;
+
+        // Check budget first, then release borrow before other operations
+        let can_spend = {
+            let budget = self.get_budget(node);
+            budget.can_spend(epsilon, 0.0)
+        };
+
+        if !can_spend {
             self.stats.budget_exhaustions += 1;
             return Err(PrivacyError::BudgetExhausted);
         }
 
         // Clip values
         let norm: f64 = values.iter().map(|v| v * v).sum::<f64>().sqrt();
-        if norm > self.config.clip_norm {
-            let scale = self.config.clip_norm / norm;
+        if norm > clip_norm {
+            let scale = clip_norm / norm;
             for v in values.iter_mut() {
                 *v *= scale;
             }
@@ -557,7 +566,9 @@ impl PrivacyManager {
         // Add noise
         self.dp_mechanism
             .add_noise_vec(values, sensitivity, epsilon);
-        budget.spend(epsilon, 0.0);
+
+        // Now get budget again to spend it
+        self.get_budget(node).spend(epsilon, 0.0);
         self.stats.dp_queries += 1;
 
         Ok(())

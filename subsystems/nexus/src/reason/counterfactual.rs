@@ -6,7 +6,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{CausalEventId, CausalEventType, EventSeverity, CausalEvent, CausalGraph};
+use super::{CausalEvent, CausalEventId, CausalEventType, CausalGraph, EventSeverity};
 
 /// Counterfactual scenario
 #[derive(Debug, Clone)]
@@ -140,7 +140,8 @@ impl CounterfactualEngine {
         }
 
         // Calculate impact
-        let errors_prevented = prevented.iter()
+        let errors_prevented = prevented
+            .iter()
             .filter_map(|id| graph.get_node_by_event(*id))
             .filter(|n| n.event.event_type.is_error())
             .count() as u32;

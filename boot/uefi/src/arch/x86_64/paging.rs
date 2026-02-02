@@ -3,8 +3,9 @@
 //! 4-level and 5-level page table implementation.
 
 use core::ops::{Index, IndexMut};
-use crate::raw::types::*;
+
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 // =============================================================================
 // PAGE TABLE CONSTANTS
@@ -215,11 +216,31 @@ impl core::fmt::Debug for PageTableEntry {
             write!(f, "PageTableEntry(not present)")
         } else {
             write!(f, "PageTableEntry(addr={:#x}, ", self.address().0)?;
-            if self.is_writable() { write!(f, "W")?; } else { write!(f, "-")?; }
-            if self.is_user() { write!(f, "U")?; } else { write!(f, "-")?; }
-            if self.is_huge() { write!(f, "H")?; } else { write!(f, "-")?; }
-            if self.is_global() { write!(f, "G")?; } else { write!(f, "-")?; }
-            if self.is_no_execute() { write!(f, "X")?; } else { write!(f, "-")?; }
+            if self.is_writable() {
+                write!(f, "W")?;
+            } else {
+                write!(f, "-")?;
+            }
+            if self.is_user() {
+                write!(f, "U")?;
+            } else {
+                write!(f, "-")?;
+            }
+            if self.is_huge() {
+                write!(f, "H")?;
+            } else {
+                write!(f, "-")?;
+            }
+            if self.is_global() {
+                write!(f, "G")?;
+            } else {
+                write!(f, "-")?;
+            }
+            if self.is_no_execute() {
+                write!(f, "X")?;
+            } else {
+                write!(f, "-")?;
+            }
             write!(f, ")")
         }
     }
@@ -272,7 +293,10 @@ impl PageTable {
 
     /// Iterate present entries with index
     pub fn present_entries(&self) -> impl Iterator<Item = (usize, &PageTableEntry)> {
-        self.entries.iter().enumerate().filter(|(_, e)| e.is_present())
+        self.entries
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| e.is_present())
     }
 
     /// Count present entries
@@ -430,7 +454,11 @@ impl PageTableWalker {
     }
 
     /// Translate virtual to physical address
-    pub fn translate(&self, pml4: PhysicalAddress, virt: VirtualAddress) -> Option<PhysicalAddress> {
+    pub fn translate(
+        &self,
+        pml4: PhysicalAddress,
+        virt: VirtualAddress,
+    ) -> Option<PhysicalAddress> {
         let components = VirtualAddressComponents::from_address(virt);
 
         // Walk PML4
@@ -505,9 +533,7 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
         let root = allocator.allocate()?;
 
         // Clear root table
-        let root_table = unsafe {
-            &mut *((root + phys_offset).0 as *mut PageTable)
-        };
+        let root_table = unsafe { &mut *((root + phys_offset).0 as *mut PageTable) };
         root_table.clear();
 
         Ok(Self {
@@ -548,7 +574,12 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
     }
 
     /// Map 4KB page
-    pub fn map_4k(&mut self, virt: VirtualAddress, phys: PhysicalAddress, entry_flags: u64) -> Result<()> {
+    pub fn map_4k(
+        &mut self,
+        virt: VirtualAddress,
+        phys: PhysicalAddress,
+        entry_flags: u64,
+    ) -> Result<()> {
         let components = VirtualAddressComponents::from_address(virt);
 
         // Get/create tables
@@ -568,7 +599,12 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
     }
 
     /// Map 2MB large page
-    pub fn map_2m(&mut self, virt: VirtualAddress, phys: PhysicalAddress, entry_flags: u64) -> Result<()> {
+    pub fn map_2m(
+        &mut self,
+        virt: VirtualAddress,
+        phys: PhysicalAddress,
+        entry_flags: u64,
+    ) -> Result<()> {
         let components = VirtualAddressComponents::from_address(virt);
 
         // Ensure alignment
@@ -590,7 +626,12 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
     }
 
     /// Map 1GB huge page
-    pub fn map_1g(&mut self, virt: VirtualAddress, phys: PhysicalAddress, entry_flags: u64) -> Result<()> {
+    pub fn map_1g(
+        &mut self,
+        virt: VirtualAddress,
+        phys: PhysicalAddress,
+        entry_flags: u64,
+    ) -> Result<()> {
         let components = VirtualAddressComponents::from_address(virt);
 
         // Ensure alignment
@@ -609,25 +650,33 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
     }
 
     /// Map range with appropriate page sizes
-    pub fn map_range(&mut self, virt: VirtualAddress, phys: PhysicalAddress, size: u64, entry_flags: u64) -> Result<()> {
+    pub fn map_range(
+        &mut self,
+        virt: VirtualAddress,
+        phys: PhysicalAddress,
+        size: u64,
+        entry_flags: u64,
+    ) -> Result<()> {
         let mut virt = virt;
         let mut phys = phys;
         let mut remaining = size;
 
         while remaining > 0 {
             // Try 1GB page
-            if remaining >= HUGE_PAGE_SIZE &&
-               (virt & (HUGE_PAGE_SIZE - 1)) == 0 &&
-               (phys & (HUGE_PAGE_SIZE - 1)) == 0 {
+            if remaining >= HUGE_PAGE_SIZE
+                && (virt & (HUGE_PAGE_SIZE - 1)) == 0
+                && (phys & (HUGE_PAGE_SIZE - 1)) == 0
+            {
                 self.map_1g(virt, phys, entry_flags)?;
                 virt += HUGE_PAGE_SIZE;
                 phys += HUGE_PAGE_SIZE;
                 remaining -= HUGE_PAGE_SIZE;
             }
             // Try 2MB page
-            else if remaining >= LARGE_PAGE_SIZE &&
-                    (virt & (LARGE_PAGE_SIZE - 1)) == 0 &&
-                    (phys & (LARGE_PAGE_SIZE - 1)) == 0 {
+            else if remaining >= LARGE_PAGE_SIZE
+                && (virt & (LARGE_PAGE_SIZE - 1)) == 0
+                && (phys & (LARGE_PAGE_SIZE - 1)) == 0
+            {
                 self.map_2m(virt, phys, entry_flags)?;
                 virt += LARGE_PAGE_SIZE;
                 phys += LARGE_PAGE_SIZE;
@@ -646,7 +695,12 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
     }
 
     /// Identity map range
-    pub fn identity_map(&mut self, phys: PhysicalAddress, size: u64, entry_flags: u64) -> Result<()> {
+    pub fn identity_map(
+        &mut self,
+        phys: PhysicalAddress,
+        size: u64,
+        entry_flags: u64,
+    ) -> Result<()> {
         self.map_range(VirtualAddress(phys.0), phys, size, entry_flags)
     }
 }
@@ -696,6 +750,9 @@ mod tests {
         assert_eq!(components.pt, 0x101);
         // Verify reconstruction
         let reconstructed = components.to_address();
-        assert_eq!(reconstructed & 0xFFFF_FFFF_FFFF_F000, addr & 0xFFFF_FFFF_FFFF_F000);
+        assert_eq!(
+            reconstructed & 0xFFFF_FFFF_FFFF_F000,
+            addr & 0xFFFF_FFFF_FFFF_F000
+        );
     }
 }

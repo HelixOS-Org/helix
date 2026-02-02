@@ -12,10 +12,10 @@
 
 #![allow(dead_code)]
 
-pub mod cipher;
-pub mod key;
-pub mod integrity;
 pub mod aead;
+pub mod cipher;
+pub mod integrity;
+pub mod key;
 
 use crate::core::error::HfsError;
 
@@ -71,15 +71,15 @@ pub const KEY_DERIVE_ITERATIONS: u32 = 100_000;
 #[repr(u8)]
 pub enum CipherAlgorithm {
     /// No encryption
-    None = 0,
+    None             = 0,
     /// AES-256-XTS (disk encryption standard)
-    Aes256Xts = 1,
+    Aes256Xts        = 1,
     /// AES-256-GCM (AEAD)
-    Aes256Gcm = 2,
+    Aes256Gcm        = 2,
     /// ChaCha20-Poly1305 (AEAD)
     ChaCha20Poly1305 = 3,
     /// AES-256-CBC (legacy)
-    Aes256Cbc = 4,
+    Aes256Cbc        = 4,
 }
 
 impl CipherAlgorithm {
@@ -93,7 +93,7 @@ impl CipherAlgorithm {
             _ => Self::None,
         }
     }
-    
+
     /// Key size for algorithm
     pub fn key_size(&self) -> usize {
         match self {
@@ -104,7 +104,7 @@ impl CipherAlgorithm {
             Self::Aes256Cbc => AES_256_KEY_SIZE,
         }
     }
-    
+
     /// Nonce/IV size
     pub fn nonce_size(&self) -> usize {
         match self {
@@ -115,7 +115,7 @@ impl CipherAlgorithm {
             Self::Aes256Cbc => AES_BLOCK_SIZE,
         }
     }
-    
+
     /// Tag size (for AEAD)
     pub fn tag_size(&self) -> usize {
         match self {
@@ -124,7 +124,7 @@ impl CipherAlgorithm {
             _ => 0,
         }
     }
-    
+
     /// Is AEAD algorithm
     #[inline]
     pub fn is_aead(&self) -> bool {
@@ -147,15 +147,15 @@ impl Default for CipherAlgorithm {
 #[repr(u8)]
 pub enum HashAlgorithm {
     /// No hashing
-    None = 0,
+    None     = 0,
     /// CRC32C (fast, non-cryptographic)
-    Crc32c = 1,
+    Crc32c   = 1,
     /// XXHash64 (fast, non-cryptographic)
     XxHash64 = 2,
     /// SHA-256 (cryptographic)
-    Sha256 = 3,
+    Sha256   = 3,
     /// BLAKE3 (fast cryptographic)
-    Blake3 = 4,
+    Blake3   = 4,
 }
 
 impl HashAlgorithm {
@@ -169,7 +169,7 @@ impl HashAlgorithm {
             _ => Self::None,
         }
     }
-    
+
     /// Digest size
     pub fn digest_size(&self) -> usize {
         match self {
@@ -180,7 +180,7 @@ impl HashAlgorithm {
             Self::Blake3 => BLAKE3_SIZE,
         }
     }
-    
+
     /// Is cryptographic
     #[inline]
     pub fn is_cryptographic(&self) -> bool {
@@ -203,15 +203,15 @@ impl Default for HashAlgorithm {
 #[repr(u8)]
 pub enum KdfAlgorithm {
     /// No KDF
-    None = 0,
+    None         = 0,
     /// PBKDF2-HMAC-SHA256
     Pbkdf2Sha256 = 1,
     /// Argon2id
-    Argon2id = 2,
+    Argon2id     = 2,
     /// HKDF-SHA256
-    HkdfSha256 = 3,
+    HkdfSha256   = 3,
     /// scrypt
-    Scrypt = 4,
+    Scrypt       = 4,
 }
 
 impl KdfAlgorithm {
@@ -225,7 +225,7 @@ impl KdfAlgorithm {
             _ => Self::None,
         }
     }
-    
+
     /// Is password-based
     #[inline]
     pub fn is_password_based(&self) -> bool {
@@ -281,7 +281,7 @@ impl CryptoConfig {
             argon2_parallelism: 1,
         }
     }
-    
+
     /// Standard encryption (AES-256-XTS)
     pub const fn standard() -> Self {
         Self {
@@ -296,7 +296,7 @@ impl CryptoConfig {
             argon2_parallelism: 4,
         }
     }
-    
+
     /// High security (AEAD + per-file keys)
     pub const fn high_security() -> Self {
         Self {
@@ -311,13 +311,13 @@ impl CryptoConfig {
             argon2_parallelism: 8,
         }
     }
-    
+
     /// Is encryption enabled
     #[inline]
     pub fn is_encrypted(&self) -> bool {
         self.cipher != CipherAlgorithm::None
     }
-    
+
     /// Has integrity checking
     #[inline]
     pub fn has_integrity(&self) -> bool {
@@ -342,11 +342,11 @@ pub enum CryptoState {
     /// Not initialized
     Uninitialized = 0,
     /// Keys not loaded
-    Locked = 1,
+    Locked        = 1,
     /// Keys loaded, ready to use
-    Unlocked = 2,
+    Unlocked      = 2,
     /// Error state
-    Error = 3,
+    Error         = 3,
 }
 
 impl CryptoState {
@@ -359,7 +359,7 @@ impl CryptoState {
             _ => Self::Uninitialized,
         }
     }
-    
+
     /// Is usable
     #[inline]
     pub fn is_usable(&self) -> bool {
@@ -415,7 +415,7 @@ impl CryptoStats {
             decrypt_errors: 0,
         }
     }
-    
+
     /// Integrity failure rate
     pub fn integrity_failure_rate(&self) -> f32 {
         let total = self.integrity_passed + self.integrity_failed;
@@ -435,27 +435,27 @@ impl CryptoStats {
 #[repr(u8)]
 pub enum CryptoError {
     /// No error
-    None = 0,
+    None                 = 0,
     /// Invalid key
-    InvalidKey = 1,
+    InvalidKey           = 1,
     /// Invalid nonce/IV
-    InvalidNonce = 2,
+    InvalidNonce         = 2,
     /// Authentication failed
-    AuthFailed = 3,
+    AuthFailed           = 3,
     /// Integrity check failed
-    IntegrityFailed = 4,
+    IntegrityFailed      = 4,
     /// Key derivation failed
-    KdfFailed = 5,
+    KdfFailed            = 5,
     /// Algorithm not supported
     UnsupportedAlgorithm = 6,
     /// Crypto not initialized
-    NotInitialized = 7,
+    NotInitialized       = 7,
     /// Crypto locked
-    Locked = 8,
+    Locked               = 8,
     /// Buffer too small
-    BufferTooSmall = 9,
+    BufferTooSmall       = 9,
     /// Invalid data
-    InvalidData = 10,
+    InvalidData          = 10,
 }
 
 impl CryptoError {
@@ -475,7 +475,7 @@ impl CryptoError {
             _ => Self::None,
         }
     }
-    
+
     /// To HFS error
     pub fn to_hfs_error(&self) -> HfsError {
         match self {
@@ -501,7 +501,7 @@ impl CryptoError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_cipher_algorithm() {
         assert_eq!(CipherAlgorithm::Aes256Gcm.key_size(), 32);
@@ -509,7 +509,7 @@ mod tests {
         assert!(CipherAlgorithm::Aes256Gcm.is_aead());
         assert!(!CipherAlgorithm::Aes256Xts.is_aead());
     }
-    
+
     #[test]
     fn test_hash_algorithm() {
         assert_eq!(HashAlgorithm::Sha256.digest_size(), 32);
@@ -517,21 +517,21 @@ mod tests {
         assert!(HashAlgorithm::Sha256.is_cryptographic());
         assert!(!HashAlgorithm::Crc32c.is_cryptographic());
     }
-    
+
     #[test]
     fn test_crypto_config() {
         let none = CryptoConfig::none();
         assert!(!none.is_encrypted());
-        
+
         let std = CryptoConfig::standard();
         assert!(std.is_encrypted());
         assert!(std.has_integrity());
-        
+
         let high = CryptoConfig::high_security();
         assert!(high.per_file_keys);
         assert!(high.encrypt_filenames);
     }
-    
+
     #[test]
     fn test_crypto_state() {
         assert!(!CryptoState::Locked.is_usable());

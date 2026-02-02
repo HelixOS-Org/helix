@@ -77,7 +77,7 @@ fn read_block(block_num: u64, buffer: &mut [u8]) -> HfsResult<()> {
     if buffer.len() < BLOCK_SIZE {
         return Err(HfsError::BufferTooSmall);
     }
-    
+
     unsafe {
         if !RAMDISK_INITIALIZED {
             return Err(HfsError::NotInitialized);
@@ -96,7 +96,7 @@ fn write_block(block_num: u64, data: &[u8]) -> HfsResult<()> {
     if data.len() < BLOCK_SIZE {
         return Err(HfsError::BufferTooSmall);
     }
-    
+
     unsafe {
         if !RAMDISK_INITIALIZED {
             return Err(HfsError::NotInitialized);
@@ -154,13 +154,13 @@ static mut FS_STATE: HelixFsState = HelixFsState::new();
 pub fn init_helixfs() -> HfsResult<()> {
     serial_write_str("  [HelixFS] Initializing RAM disk backend...\n");
     init_ramdisk();
-    
+
     serial_write_str("  [HelixFS] Formatting filesystem...\n");
     format_filesystem()?;
-    
+
     serial_write_str("  [HelixFS] Mounting root filesystem...\n");
     mount_root()?;
-    
+
     Ok(())
 }
 
@@ -168,7 +168,7 @@ pub fn init_helixfs() -> HfsResult<()> {
 fn format_filesystem() -> HfsResult<()> {
     // Create superblock at block 0
     let mut superblock = [0u8; BLOCK_SIZE];
-    
+
     // Magic number "HLXF"
     superblock[0..4].copy_from_slice(&[0x48, 0x4C, 0x58, 0x46]);
     // Version
@@ -183,14 +183,14 @@ fn format_filesystem() -> HfsResult<()> {
     superblock[28..36].copy_from_slice(&2u64.to_le_bytes());
     // Features: journaling | snapshots | compression
     superblock[36..40].copy_from_slice(&0x0007u32.to_le_bytes());
-    
+
     write_block(0, &superblock)?;
-    
+
     // Create root directory inode at block 2
     let mut root_inode = [0u8; BLOCK_SIZE];
     // Mode: directory + 0755
     root_inode[0..4].copy_from_slice(&0x41EDu32.to_le_bytes()); // S_IFDIR | 0755
-    // UID
+                                                                // UID
     root_inode[4..8].copy_from_slice(&0u32.to_le_bytes());
     // GID
     root_inode[8..12].copy_from_slice(&0u32.to_le_bytes());
@@ -202,28 +202,28 @@ fn format_filesystem() -> HfsResult<()> {
     root_inode[24..28].copy_from_slice(&1u32.to_le_bytes());
     // Data block pointer (block 16 for root dir data)
     root_inode[32..40].copy_from_slice(&16u64.to_le_bytes());
-    
+
     write_block(2, &root_inode)?;
-    
+
     // Initialize root directory data at block 16
     let mut root_dir = [0u8; BLOCK_SIZE];
-    
+
     // Entry 0: "." -> inode 2
     root_dir[0..8].copy_from_slice(&2u64.to_le_bytes()); // inode
     root_dir[8..10].copy_from_slice(&24u16.to_le_bytes()); // rec_len
     root_dir[10] = 1; // name_len
     root_dir[11] = 2; // file_type (directory)
     root_dir[12] = b'.'; // name
-    
+
     // Entry 1: ".." -> inode 2 (root is its own parent)
     root_dir[24..32].copy_from_slice(&2u64.to_le_bytes()); // inode
     root_dir[32..34].copy_from_slice(&24u16.to_le_bytes()); // rec_len
     root_dir[34] = 2; // name_len
     root_dir[35] = 2; // file_type (directory)
     root_dir[36..38].copy_from_slice(b".."); // name
-    
+
     write_block(16, &root_dir)?;
-    
+
     Ok(())
 }
 
@@ -232,26 +232,30 @@ fn mount_root() -> HfsResult<()> {
     // Read and verify superblock
     let mut superblock = [0u8; BLOCK_SIZE];
     read_block(0, &mut superblock)?;
-    
+
     // Check magic
     if &superblock[0..4] != &[0x48, 0x4C, 0x58, 0x46] {
         return Err(HfsError::BadMagic);
     }
-    
+
     unsafe {
         FS_STATE.mounted = true;
         FS_STATE.total_blocks = u64::from_le_bytes(superblock[12..20].try_into().unwrap());
         FS_STATE.free_blocks = u64::from_le_bytes(superblock[20..28].try_into().unwrap());
         FS_STATE.root_ino = u64::from_le_bytes(superblock[28..36].try_into().unwrap());
     }
-    
+
     Ok(())
 }
 
 /// Get filesystem statistics
 pub fn get_fs_stats() -> (u64, u64, u32) {
     unsafe {
-        (FS_STATE.total_blocks, FS_STATE.free_blocks, FS_STATE.block_size)
+        (
+            FS_STATE.total_blocks,
+            FS_STATE.free_blocks,
+            FS_STATE.block_size,
+        )
     }
 }
 
@@ -285,26 +289,27 @@ pub fn list_dir(path: &str) -> HfsResult<Vec<SimpleFile>> {
     if !is_mounted() {
         return Err(HfsError::NotInitialized);
     }
-    
+
     let mut entries = Vec::new();
-    
+
     // For demo, only support root directory
     if path == "/" || path.is_empty() {
         // Read root directory
         let mut dir_data = [0u8; BLOCK_SIZE];
         read_block(16, &mut dir_data)?;
-        
+
         let mut offset = 0;
         while offset < BLOCK_SIZE {
-            let inode = u64::from_le_bytes(dir_data[offset..offset+8].try_into().unwrap());
+            let inode = u64::from_le_bytes(dir_data[offset..offset + 8].try_into().unwrap());
             if inode == 0 {
                 break;
             }
-            
-            let rec_len = u16::from_le_bytes(dir_data[offset+8..offset+10].try_into().unwrap()) as usize;
-            let name_len = dir_data[offset+10] as usize;
-            let file_type = dir_data[offset+11];
-            
+
+            let rec_len =
+                u16::from_le_bytes(dir_data[offset + 8..offset + 10].try_into().unwrap()) as usize;
+            let name_len = dir_data[offset + 10] as usize;
+            let file_type = dir_data[offset + 11];
+
             if name_len > 0 && rec_len > 0 {
                 let mut file = SimpleFile {
                     name: [0u8; 64],
@@ -313,17 +318,18 @@ pub fn list_dir(path: &str) -> HfsResult<Vec<SimpleFile>> {
                     size: 0,
                     is_dir: file_type == 2,
                 };
-                file.name[..name_len].copy_from_slice(&dir_data[offset+12..offset+12+name_len]);
+                file.name[..name_len]
+                    .copy_from_slice(&dir_data[offset + 12..offset + 12 + name_len]);
                 entries.push(file);
             }
-            
+
             offset += rec_len;
             if rec_len == 0 {
                 break;
             }
         }
     }
-    
+
     Ok(entries)
 }
 
@@ -332,64 +338,65 @@ pub fn create_file(parent: &str, name: &str) -> HfsResult<u64> {
     if !is_mounted() {
         return Err(HfsError::NotInitialized);
     }
-    
+
     if parent != "/" {
         return Err(HfsError::NotSupported);
     }
-    
+
     if name.len() > 60 {
         return Err(HfsError::NameTooLong);
     }
-    
+
     // Allocate new inode
     let new_ino = unsafe {
         let ino = FS_STATE.next_ino;
         FS_STATE.next_ino += 1;
         ino
     };
-    
+
     // Create inode block (simplified: use inode number as block number)
     let inode_block = new_ino + 10; // Simple mapping
     let mut inode_data = [0u8; BLOCK_SIZE];
     // Mode: regular file + 0644
     inode_data[0..4].copy_from_slice(&0x81A4u32.to_le_bytes()); // S_IFREG | 0644
-    // Size: 0
+                                                                // Size: 0
     inode_data[12..20].copy_from_slice(&0u64.to_le_bytes());
     // Links: 1
     inode_data[20..24].copy_from_slice(&1u32.to_le_bytes());
-    
+
     if inode_block < BLOCK_COUNT as u64 {
         write_block(inode_block, &inode_data)?;
     }
-    
+
     // Add entry to root directory
     let mut dir_data = [0u8; BLOCK_SIZE];
     read_block(16, &mut dir_data)?;
-    
+
     // Find end of directory entries
     let mut offset = 0;
     while offset < BLOCK_SIZE - 128 {
-        let inode = u64::from_le_bytes(dir_data[offset..offset+8].try_into().unwrap());
+        let inode = u64::from_le_bytes(dir_data[offset..offset + 8].try_into().unwrap());
         if inode == 0 {
             break;
         }
-        let rec_len = u16::from_le_bytes(dir_data[offset+8..offset+10].try_into().unwrap()) as usize;
+        let rec_len =
+            u16::from_le_bytes(dir_data[offset + 8..offset + 10].try_into().unwrap()) as usize;
         if rec_len == 0 {
             break;
         }
         offset += rec_len;
     }
-    
+
     // Add new entry
     let entry_len = 24; // Minimum entry size
-    dir_data[offset..offset+8].copy_from_slice(&new_ino.to_le_bytes());
-    dir_data[offset+8..offset+10].copy_from_slice(&(entry_len as u16).to_le_bytes());
-    dir_data[offset+10] = name.len() as u8;
-    dir_data[offset+11] = 1; // Regular file
-    dir_data[offset+12..offset+12+name.len()].copy_from_slice(name.as_bytes());
-    
+    dir_data[offset..offset + 8].copy_from_slice(&new_ino.to_le_bytes());
+    dir_data[offset + 8..offset + 10].copy_from_slice(&(entry_len as u16).to_le_bytes());
+    dir_data[offset + 10] = name.len() as u8;
+    dir_data[offset + 11] = 1; // Regular file
+    dir_data[offset + 12..offset + 12 + name.len()].copy_from_slice(name.as_bytes());
+
     write_block(16, &dir_data)?;
-    
+
     Ok(new_ino)
 }
 
@@ -398,64 +405,65 @@ pub fn create_dir(parent: &str, name: &str) -> HfsResult<u64> {
     if !is_mounted() {
         return Err(HfsError::NotInitialized);
     }
-    
+
     if parent != "/" {
         return Err(HfsError::NotSupported);
     }
-    
+
     if name.len() > 60 {
         return Err(HfsError::NameTooLong);
     }
-    
+
     // Allocate new inode
     let new_ino = unsafe {
         let ino = FS_STATE.next_ino;
         FS_STATE.next_ino += 1;
         ino
     };
-    
+
     // Create directory inode
     let inode_block = new_ino + 10;
     let mut inode_data = [0u8; BLOCK_SIZE];
     // Mode: directory + 0755
     inode_data[0..4].copy_from_slice(&0x41EDu32.to_le_bytes()); // S_IFDIR | 0755
-    // Size
+                                                                // Size
     inode_data[12..20].copy_from_slice(&(BLOCK_SIZE as u64).to_le_bytes());
     // Links: 2 (. and parent's link)
     inode_data[20..24].copy_from_slice(&2u32.to_le_bytes());
-    
+
     if inode_block < BLOCK_COUNT as u64 {
         write_block(inode_block, &inode_data)?;
     }
-    
+
     // Add entry to root directory
     let mut dir_data = [0u8; BLOCK_SIZE];
     read_block(16, &mut dir_data)?;
-    
+
     // Find end of directory entries
     let mut offset = 0;
     while offset < BLOCK_SIZE - 128 {
-        let inode = u64::from_le_bytes(dir_data[offset..offset+8].try_into().unwrap());
+        let inode = u64::from_le_bytes(dir_data[offset..offset + 8].try_into().unwrap());
         if inode == 0 {
             break;
         }
-        let rec_len = u16::from_le_bytes(dir_data[offset+8..offset+10].try_into().unwrap()) as usize;
+        let rec_len =
+            u16::from_le_bytes(dir_data[offset + 8..offset + 10].try_into().unwrap()) as usize;
         if rec_len == 0 {
             break;
         }
         offset += rec_len;
     }
-    
+
     // Add new entry
     let entry_len = 24;
-    dir_data[offset..offset+8].copy_from_slice(&new_ino.to_le_bytes());
-    dir_data[offset+8..offset+10].copy_from_slice(&(entry_len as u16).to_le_bytes());
-    dir_data[offset+10] = name.len() as u8;
-    dir_data[offset+11] = 2; // Directory
-    dir_data[offset+12..offset+12+name.len()].copy_from_slice(name.as_bytes());
-    
+    dir_data[offset..offset + 8].copy_from_slice(&new_ino.to_le_bytes());
+    dir_data[offset + 8..offset + 10].copy_from_slice(&(entry_len as u16).to_le_bytes());
+    dir_data[offset + 10] = name.len() as u8;
+    dir_data[offset + 11] = 2; // Directory
+    dir_data[offset + 12..offset + 12 + name.len()].copy_from_slice(name.as_bytes());
+
     write_block(16, &dir_data)?;
-    
+
     Ok(new_ino)
 }
 
@@ -470,7 +478,7 @@ pub fn run_demo() {
     serial_write_str("║  HELIXFS - Revolutionary Filesystem Demo                     ║\n");
     serial_write_str("╚══════════════════════════════════════════════════════════════╝\n");
     serial_write_str("\n");
-    
+
     // Show filesystem stats
     let (total, free, block_size) = get_fs_stats();
     serial_write_str("[HelixFS] Filesystem Statistics:\n");
@@ -486,58 +494,58 @@ pub fn run_demo() {
     serial_write_str("  Total size:   ");
     crate::print_num(total * block_size as u64 / 1024);
     serial_write_str(" KB\n\n");
-    
+
     // Create some files
     serial_write_str("[HelixFS] Creating files...\n");
-    
+
     match create_file("/", "hello.txt") {
         Ok(ino) => {
             serial_write_str("  Created: hello.txt (inode ");
             crate::print_num(ino);
             serial_write_str(")\n");
-        }
+        },
         Err(e) => {
             serial_write_str("  Failed to create hello.txt\n");
-        }
+        },
     }
-    
+
     match create_file("/", "kernel.rs") {
         Ok(ino) => {
             serial_write_str("  Created: kernel.rs (inode ");
             crate::print_num(ino);
             serial_write_str(")\n");
-        }
+        },
         Err(_) => {
             serial_write_str("  Failed to create kernel.rs\n");
-        }
+        },
     }
-    
+
     match create_dir("/", "src") {
         Ok(ino) => {
             serial_write_str("  Created: src/ (inode ");
             crate::print_num(ino);
             serial_write_str(")\n");
-        }
+        },
         Err(_) => {
             serial_write_str("  Failed to create src/\n");
-        }
+        },
     }
-    
+
     match create_dir("/", "docs") {
         Ok(ino) => {
             serial_write_str("  Created: docs/ (inode ");
             crate::print_num(ino);
             serial_write_str(")\n");
-        }
+        },
         Err(_) => {
             serial_write_str("  Failed to create docs/\n");
-        }
+        },
     }
-    
+
     // List root directory
     serial_write_str("\n[HelixFS] Listing root directory:\n");
     serial_write_str("  ──────────────────────────────────\n");
-    
+
     match list_dir("/") {
         Ok(entries) => {
             for entry in entries {
@@ -549,13 +557,13 @@ pub fn run_demo() {
                 serial_write_str(entry.name_str());
                 serial_write_str("\n");
             }
-        }
+        },
         Err(_) => {
             serial_write_str("  Failed to list directory\n");
-        }
+        },
     }
     serial_write_str("  ──────────────────────────────────\n");
-    
+
     // Show features
     serial_write_str("\n[HelixFS] Enabled Features:\n");
     serial_write_str("  ✅ Copy-on-Write (CoW)\n");

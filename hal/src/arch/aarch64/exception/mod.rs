@@ -11,7 +11,7 @@ pub mod vectors;
 
 // Re-exports
 pub use context::{ExceptionContext, TrapFrame};
-pub use el::{ExceptionLevel, current_el, in_el1, in_el2};
+pub use el::{current_el, in_el1, in_el2, ExceptionLevel};
 pub use handlers::{ExceptionHandler, ExceptionInfo, ExceptionType};
 pub use syscall::{SyscallHandler, SyscallResult};
 pub use vectors::{install_vectors, ExceptionVectors};

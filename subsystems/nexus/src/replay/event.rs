@@ -64,6 +64,8 @@ impl ReplayEvent {
 pub enum ReplayEventType {
     /// Interrupt delivery
     Interrupt,
+    /// System call (combined entry/exit)
+    Syscall,
     /// System call entry
     SyscallEntry,
     /// System call exit

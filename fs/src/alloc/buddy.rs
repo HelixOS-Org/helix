@@ -3,7 +3,7 @@
 //! Uses power-of-2 sized chunks for efficient coalescing.
 //! Good for large contiguous allocations.
 
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 // ============================================================================
 // Constants
@@ -43,7 +43,7 @@ impl BuddyBlock {
             prev: 0,
         }
     }
-    
+
     /// Check if end of list
     #[inline]
     pub fn is_end(&self) -> bool {
@@ -72,31 +72,31 @@ impl FreeListHead {
             count: AtomicU32::new(0),
         }
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.head.load(Ordering::Relaxed) == 0
     }
-    
+
     /// Get count
     #[inline]
     pub fn count(&self) -> u32 {
         self.count.load(Ordering::Relaxed)
     }
-    
+
     /// Get head block
     #[inline]
     pub fn head(&self) -> u64 {
         self.head.load(Ordering::Relaxed)
     }
-    
+
     /// Push block to front (requires external locking)
     pub fn push_front(&self, block: u64) {
         self.head.store(block, Ordering::Relaxed);
         self.count.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Pop block from front (requires external locking)
     pub fn pop_front(&self, new_head: u64) -> Option<u64> {
         let old = self.head.swap(new_head, Ordering::Relaxed);
@@ -107,12 +107,12 @@ impl FreeListHead {
             None
         }
     }
-    
+
     /// Update head
     pub fn set_head(&self, head: u64) {
         self.head.store(head, Ordering::Relaxed);
     }
-    
+
     /// Decrement count
     pub fn dec_count(&self) {
         self.count.fetch_sub(1, Ordering::Relaxed);
@@ -128,9 +128,9 @@ impl FreeListHead {
 #[repr(u8)]
 pub enum BuddyState {
     /// Block is free
-    Free = 0,
+    Free      = 0,
     /// Block is split (children exist)
-    Split = 1,
+    Split     = 1,
     /// Block is allocated
     Allocated = 2,
 }
@@ -170,7 +170,7 @@ impl BuddyAllocState {
             total_allocs: 0,
             total_frees: 0,
         };
-        
+
         Self {
             free_lists: [EMPTY_LIST; NUM_ORDERS],
             total_blocks,
@@ -178,30 +178,30 @@ impl BuddyAllocState {
             order_stats: [EMPTY_STATS; NUM_ORDERS],
         }
     }
-    
+
     /// Get free list for order
     #[inline]
     pub fn free_list(&self, order: usize) -> &FreeListHead {
         &self.free_lists[order]
     }
-    
+
     /// Get total blocks
     #[inline]
     pub fn total_blocks(&self) -> u64 {
         self.total_blocks
     }
-    
+
     /// Get free blocks
     #[inline]
     pub fn free_blocks(&self) -> u64 {
         self.free_blocks.load(Ordering::Relaxed)
     }
-    
+
     /// Add to free blocks
     pub fn add_free(&self, count: u64) {
         self.free_blocks.fetch_add(count, Ordering::Relaxed);
     }
-    
+
     /// Remove from free blocks
     pub fn remove_free(&self, count: u64) {
         self.free_blocks.fetch_sub(count, Ordering::Relaxed);
@@ -227,7 +227,7 @@ pub fn size_to_order(blocks: u64) -> usize {
     if blocks == 1 {
         return 0;
     }
-    
+
     // Find ceiling log2
     let leading_zeros = (blocks - 1).leading_zeros();
     (64 - leading_zeros) as usize
@@ -288,28 +288,28 @@ impl BuddyBitmap {
         let bits = pairs * 2; // 2 bits per pair
         ((bits + 63) / 64) as usize
     }
-    
+
     /// Get state of block at order
     pub fn get_state(&self, block: u64, order: usize) -> BuddyState {
         if order >= NUM_ORDERS {
             return BuddyState::Allocated;
         }
-        
+
         // Calculate bit position
         let pair_idx = block / (1 << (order + 1));
         let is_right = (block / (1 << order)) % 2 == 1;
-        
+
         let word_idx = (pair_idx / 32) as usize;
         let bit_idx = ((pair_idx % 32) * 2) as u32;
-        
+
         if word_idx >= self.words_per_order[order] {
             return BuddyState::Allocated;
         }
-        
+
         // SAFETY: We've checked bounds
         let word = unsafe { *self.order_bitmaps[order].add(word_idx) };
         let pair_bits = (word >> bit_idx) & 0b11;
-        
+
         match (pair_bits, is_right) {
             (0b00, _) => BuddyState::Free,
             (0b01, false) => BuddyState::Allocated,
@@ -320,55 +320,55 @@ impl BuddyBitmap {
             _ => BuddyState::Allocated,
         }
     }
-    
+
     /// Set state of block at order
     pub fn set_state(&mut self, block: u64, order: usize, state: BuddyState) {
         if order >= NUM_ORDERS {
             return;
         }
-        
+
         let pair_idx = block / (1 << (order + 1));
         let is_right = (block / (1 << order)) % 2 == 1;
-        
+
         let word_idx = (pair_idx / 32) as usize;
         let bit_idx = ((pair_idx % 32) * 2) as u32;
-        
+
         if word_idx >= self.words_per_order[order] {
             return;
         }
-        
+
         // SAFETY: We've checked bounds
         let word = unsafe { &mut *self.order_bitmaps[order].add(word_idx) };
-        
+
         // Clear the bit for this block
         let clear_mask = if is_right { 0b10 } else { 0b01 };
         let set_mask = if is_right { 0b10 } else { 0b01 };
-        
+
         *word &= !(clear_mask << bit_idx);
-        
+
         if state == BuddyState::Allocated {
             *word |= set_mask << bit_idx;
         }
     }
-    
+
     /// Check if buddy pair can coalesce
     pub fn can_coalesce(&self, block: u64, order: usize) -> bool {
         if order >= NUM_ORDERS - 1 {
             return false;
         }
-        
+
         let pair_idx = block / (1 << (order + 1));
         let word_idx = (pair_idx / 32) as usize;
         let bit_idx = ((pair_idx % 32) * 2) as u32;
-        
+
         if word_idx >= self.words_per_order[order] {
             return false;
         }
-        
+
         // SAFETY: We've checked bounds
         let word = unsafe { *self.order_bitmaps[order].add(word_idx) };
         let pair_bits = (word >> bit_idx) & 0b11;
-        
+
         // Both free = can coalesce
         pair_bits == 0b00
     }
@@ -381,7 +381,7 @@ impl BuddyBitmap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_order_size() {
         assert_eq!(order_size(0), 1);
@@ -389,7 +389,7 @@ mod tests {
         assert_eq!(order_size(10), 1024);
         assert_eq!(order_size(20), 1 << 20);
     }
-    
+
     #[test]
     fn test_size_to_order() {
         assert_eq!(size_to_order(0), 0);
@@ -401,24 +401,24 @@ mod tests {
         assert_eq!(size_to_order(1024), 10);
         assert_eq!(size_to_order(1025), 11);
     }
-    
+
     #[test]
     fn test_buddy_of() {
         // Order 0: buddies are adjacent
         assert_eq!(buddy_of(0, 0), 1);
         assert_eq!(buddy_of(1, 0), 0);
         assert_eq!(buddy_of(2, 0), 3);
-        
+
         // Order 1: buddies are 2 apart
         assert_eq!(buddy_of(0, 1), 2);
         assert_eq!(buddy_of(2, 1), 0);
         assert_eq!(buddy_of(4, 1), 6);
-        
+
         // Order 2: buddies are 4 apart
         assert_eq!(buddy_of(0, 2), 4);
         assert_eq!(buddy_of(4, 2), 0);
     }
-    
+
     #[test]
     fn test_alignment() {
         assert!(is_aligned(0, 0));
@@ -427,7 +427,7 @@ mod tests {
         assert!(!is_aligned(1, 1));
         assert!(!is_aligned(3, 2));
     }
-    
+
     #[test]
     fn test_parent() {
         assert_eq!(parent_of(0, 0), 0);
@@ -435,34 +435,34 @@ mod tests {
         assert_eq!(parent_of(2, 1), 0);
         assert_eq!(parent_of(6, 1), 4);
     }
-    
+
     #[test]
     fn test_free_list_head() {
         let list = FreeListHead::new();
-        
+
         assert!(list.is_empty());
         assert_eq!(list.count(), 0);
-        
+
         list.push_front(100);
         assert!(!list.is_empty());
         assert_eq!(list.count(), 1);
         assert_eq!(list.head(), 100);
-        
+
         list.push_front(200);
         assert_eq!(list.count(), 2);
         assert_eq!(list.head(), 200);
     }
-    
+
     #[test]
     fn test_buddy_state() {
         let state = BuddyAllocState::new(1024);
-        
+
         assert_eq!(state.total_blocks(), 1024);
         assert_eq!(state.free_blocks(), 0);
-        
+
         state.add_free(512);
         assert_eq!(state.free_blocks(), 512);
-        
+
         state.remove_free(100);
         assert_eq!(state.free_blocks(), 412);
     }

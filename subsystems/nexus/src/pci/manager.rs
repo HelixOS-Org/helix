@@ -48,7 +48,7 @@ impl PciManager {
         self.all_devices.insert(device.id, device);
 
         // Also add to bus if exists
-        if let Some(bus) = self.buses.get_mut(&bus_num) {
+        if let Some(_bus) = self.buses.get_mut(&bus_num) {
             if let Some(dev) = self.all_devices.get(&PciDeviceId::from_bdf(
                 bus_num,
                 self.all_devices

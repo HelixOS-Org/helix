@@ -10,26 +10,22 @@ use core::fmt;
 
 /// EFI Simple File System Protocol GUID
 pub const EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID: [u8; 16] = [
-    0x22, 0x5B, 0x4E, 0x96, 0x59, 0x64, 0xD2, 0x11,
-    0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    0x22, 0x5B, 0x4E, 0x96, 0x59, 0x64, 0xD2, 0x11, 0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ];
 
 /// EFI File Info GUID
 pub const EFI_FILE_INFO_GUID: [u8; 16] = [
-    0xDD, 0x8B, 0xA6, 0x09, 0x60, 0x9A, 0xD3, 0x11,
-    0x8A, 0x39, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    0xDD, 0x8B, 0xA6, 0x09, 0x60, 0x9A, 0xD3, 0x11, 0x8A, 0x39, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ];
 
 /// EFI File System Info GUID
 pub const EFI_FILE_SYSTEM_INFO_GUID: [u8; 16] = [
-    0xDD, 0x8B, 0xA6, 0x09, 0x60, 0x9A, 0xD3, 0x11,
-    0x8A, 0x39, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4E,
+    0xDD, 0x8B, 0xA6, 0x09, 0x60, 0x9A, 0xD3, 0x11, 0x8A, 0x39, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4E,
 ];
 
 /// EFI File System Volume Label GUID
 pub const EFI_FILE_SYSTEM_VOLUME_LABEL_GUID: [u8; 16] = [
-    0x7A, 0x3E, 0xA5, 0xDB, 0x00, 0x20, 0xD3, 0x11,
-    0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    0x7A, 0x3E, 0xA5, 0xDB, 0x00, 0x20, 0xD3, 0x11, 0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ];
 
 // =============================================================================
@@ -250,7 +246,9 @@ impl FileSystemInfo {
         let mut pos = 0;
 
         for i in 0..self.label_len {
-            if pos >= buffer.len() { break; }
+            if pos >= buffer.len() {
+                break;
+            }
             let c = self.volume_label[i];
             if c < 128 {
                 buffer[pos] = c as u8;
@@ -329,12 +327,15 @@ impl EfiTime {
 
     /// Is valid
     pub fn is_valid(&self) -> bool {
-        self.year >= 1900 && self.year <= 9999 &&
-        self.month >= 1 && self.month <= 12 &&
-        self.day >= 1 && self.day <= 31 &&
-        self.hour <= 23 &&
-        self.minute <= 59 &&
-        self.second <= 59
+        self.year >= 1900
+            && self.year <= 9999
+            && self.month >= 1
+            && self.month <= 12
+            && self.day >= 1
+            && self.day <= 31
+            && self.hour <= 23
+            && self.minute <= 59
+            && self.second <= 59
     }
 }
 
@@ -343,8 +344,7 @@ impl fmt::Display for EfiTime {
         write!(
             f,
             "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            self.year, self.month, self.day,
-            self.hour, self.minute, self.second
+            self.year, self.month, self.day, self.hour, self.minute, self.second
         )
     }
 }
@@ -424,14 +424,14 @@ impl FileHandle {
                 } else {
                     self.position.saturating_sub((-offset) as u64)
                 }
-            }
+            },
             SeekFrom::End(offset) => {
                 if offset >= 0 {
                     self.size.saturating_add(offset as u64)
                 } else {
                     self.size.saturating_sub((-offset) as u64)
                 }
-            }
+            },
         };
 
         self.position = new_pos;
@@ -650,7 +650,11 @@ impl FileSystem {
 
     /// Create directory
     pub fn create_directory(&mut self, path: &str) -> Result<FileHandle, FileError> {
-        self.open(path, modes::READ | modes::WRITE | modes::CREATE, attrs::DIRECTORY)
+        self.open(
+            path,
+            modes::READ | modes::WRITE | modes::CREATE,
+            attrs::DIRECTORY,
+        )
     }
 
     /// Delete file or directory
@@ -713,7 +717,11 @@ impl<'a> PathComponents<'a> {
     /// Create new iterator
     pub fn new(path: &'a str) -> Self {
         // Skip leading separator
-        let start = if path.starts_with('\\') || path.starts_with('/') { 1 } else { 0 };
+        let start = if path.starts_with('\\') || path.starts_with('/') {
+            1
+        } else {
+            0
+        };
         Self { path, pos: start }
     }
 }
@@ -913,9 +921,8 @@ impl<'a> KernelLoader<'a> {
         if &data[0..2] == b"MZ" {
             // Check for PE signature
             if data.len() >= 64 {
-                let pe_offset = u32::from_le_bytes(
-                    data[60..64].try_into().unwrap_or([0; 4])
-                ) as usize;
+                let pe_offset =
+                    u32::from_le_bytes(data[60..64].try_into().unwrap_or([0; 4])) as usize;
 
                 if pe_offset + 4 <= data.len() && &data[pe_offset..pe_offset + 4] == b"PE\x00\x00" {
                     return Ok(KernelType::Pe);

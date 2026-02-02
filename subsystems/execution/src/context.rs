@@ -2,9 +2,10 @@
 //!
 //! Context switch infrastructure.
 
-use crate::ThreadId;
-use crate::thread::ThreadContext;
 use core::sync::atomic::{AtomicBool, Ordering};
+
+use crate::thread::ThreadContext;
+use crate::ThreadId;
 
 /// Context switch reason
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,7 +40,7 @@ pub struct SwitchStats {
 pub trait ContextSwitchHook: Send + Sync {
     /// Called before context switch
     fn pre_switch(&self, from: ThreadId, to: ThreadId, reason: SwitchReason);
-    
+
     /// Called after context switch
     fn post_switch(&self, from: ThreadId, to: ThreadId, reason: SwitchReason);
 }
@@ -96,7 +97,9 @@ impl ContextSwitchEngine {
         // Actual context switch (architecture-specific)
         // This would call into HAL or assembly code
         // SAFETY: The caller is responsible for ensuring the contexts are valid
-        unsafe { self.do_switch(from_ctx, to_ctx); }
+        unsafe {
+            self.do_switch(from_ctx, to_ctx);
+        }
 
         // Post-switch hooks
         for hook in self.hooks.read().iter() {

@@ -9,10 +9,12 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use super::{Epoch, ImprovementId, NodeId};
+use super::{Epoch, NodeId};
+use crate::math::F64Ext;
 
 // ============================================================================
 // FEDERATED TYPES
@@ -720,19 +722,23 @@ impl FederatedEngine {
 
     /// Aggregate updates for a round
     pub fn aggregate(&mut self, round_id: RoundId) -> Result<AggregatedUpdate, FederatedError> {
-        let round = self
-            .rounds
-            .get(&round_id)
-            .ok_or(FederatedError::RoundNotFound(round_id))?;
+        // Extract needed data before mutable operations
+        let (model_id, updates) = {
+            let round = self
+                .rounds
+                .get(&round_id)
+                .ok_or(FederatedError::RoundNotFound(round_id))?;
+            (round.model_id, round.updates.clone())
+        };
 
         let model = self
             .models
-            .get(&round.model_id)
-            .ok_or(FederatedError::ModelNotFound(round.model_id))?;
+            .get(&model_id)
+            .ok_or(FederatedError::ModelNotFound(model_id))?;
 
         let aggregated = self
             .aggregator
-            .aggregate(model, &round.updates)
+            .aggregate(model, &updates)
             .map_err(FederatedError::Aggregation)?;
 
         // Update round
@@ -743,7 +749,7 @@ impl FederatedEngine {
         }
 
         // Update model
-        if let Some(model) = self.models.get_mut(&round.model_id) {
+        if let Some(model) = self.models.get_mut(&model_id) {
             model.weights = aggregated.weights.clone();
             model.version += 1;
             model.metrics.rounds_completed += 1;

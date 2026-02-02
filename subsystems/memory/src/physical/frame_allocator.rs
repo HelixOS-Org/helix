@@ -1,13 +1,14 @@
 //! # Frame Allocator Trait
 
-use crate::{Frame, MemResult};
 use helix_hal::PageSize;
+
+use crate::{Frame, MemResult};
 
 /// Simple frame allocator trait for boot-time allocation
 pub trait FrameAllocator {
     /// Allocate a frame
     fn allocate_frame(&mut self) -> MemResult<Frame>;
-    
+
     /// Deallocate a frame
     fn deallocate_frame(&mut self, frame: Frame);
 }
@@ -28,7 +29,7 @@ impl BumpAllocator {
         // Align start to page boundary
         let page_mask = page_size.size() as u64 - 1;
         let aligned_start = (start + page_mask) & !page_mask;
-        
+
         Self {
             next: aligned_start,
             end,
@@ -49,16 +50,13 @@ impl BumpAllocator {
 impl FrameAllocator for BumpAllocator {
     fn allocate_frame(&mut self) -> MemResult<Frame> {
         let size = self.page_size.size() as u64;
-        
+
         if self.next + size > self.end {
             return Err(crate::MemError::OutOfMemory);
         }
-        
-        let frame = Frame::new(
-            helix_hal::PhysAddr::new(self.next),
-            self.page_size,
-        );
-        
+
+        let frame = Frame::new(helix_hal::PhysAddr::new(self.next), self.page_size);
+
         self.next += size;
         Ok(frame)
     }

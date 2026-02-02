@@ -5,10 +5,9 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::core::NexusTimestamp;
-
 use super::case::TestCase;
 use super::result::{TestExecution, TestResult};
+use crate::core::NexusTimestamp;
 
 /// A collection of tests
 pub struct TestSuite {

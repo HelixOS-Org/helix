@@ -237,17 +237,17 @@ impl fmt::Debug for MsiData {
 #[repr(u8)]
 pub enum MsiDeliveryMode {
     /// Fixed delivery to specific APIC
-    Fixed = 0b000,
+    Fixed          = 0b000,
     /// Lowest priority delivery
     LowestPriority = 0b001,
     /// System Management Interrupt
-    Smi = 0b010,
+    Smi            = 0b010,
     /// Non-Maskable Interrupt
-    Nmi = 0b100,
+    Nmi            = 0b100,
     /// INIT signal
-    Init = 0b101,
+    Init           = 0b101,
     /// External interrupt
-    ExtInt = 0b111,
+    ExtInt         = 0b111,
 }
 
 // =============================================================================

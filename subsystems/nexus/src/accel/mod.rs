@@ -20,19 +20,15 @@ mod simd;
 mod vector;
 
 // Re-export SIMD types
-pub use simd::SimdType;
-
-// Re-export vector ops
-pub use vector::VectorOps;
-
-// Re-export crypto
-pub use crypto::CryptoAccel;
-
 // Re-export atomic ops
 pub use atomic::{AtomicOps, Prefetch};
-
+// Re-export crypto
+pub use crypto::CryptoAccel;
 // Re-export registry
 pub use registry::{AcceleratorCapabilities, AcceleratorRegistry};
+pub use simd::SimdType;
+// Re-export vector ops
+pub use vector::VectorOps;
 
 // ============================================================================
 // TESTS

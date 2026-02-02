@@ -20,19 +20,17 @@ mod runner;
 mod suite;
 
 // Re-export result types
-pub use result::{TestExecution, TestResult};
-
+// Re-export assertions
+pub use assertions::{
+    assert_eq, assert_err, assert_false, assert_in_range, assert_ne, assert_ok, assert_true,
+};
 // Re-export case
 pub use case::TestCase;
-
-// Re-export suite
-pub use suite::{SuiteExecution, TestSuite};
-
+pub use result::{TestExecution, TestResult};
 // Re-export runner
 pub use runner::TestRunner;
-
-// Re-export assertions
-pub use assertions::{assert_eq, assert_err, assert_false, assert_in_range, assert_ne, assert_ok, assert_true};
+// Re-export suite
+pub use suite::{SuiteExecution, TestSuite};
 
 // ============================================================================
 // TESTS

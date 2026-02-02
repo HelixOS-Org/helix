@@ -476,9 +476,7 @@ impl BootPreset {
             name: *b"Quick Boot\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
             name_len: 10,
             flags: PresetFlags::new(
-                PresetFlags::SKIP_MEMORY_TEST
-                    | PresetFlags::SKIP_DEVICE_ENUM
-                    | PresetFlags::QUIET,
+                PresetFlags::SKIP_MEMORY_TEST | PresetFlags::SKIP_DEVICE_ENUM | PresetFlags::QUIET,
             ),
             timeout: 0,
             log_level: 1, // Error only
@@ -494,7 +492,7 @@ impl BootPreset {
             name: *b"Normal Boot\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
             name_len: 11,
             flags: PresetFlags::empty(),
-            timeout: -1, // Use default
+            timeout: -1,  // Use default
             log_level: 2, // Warning
             extra_params: [0u8; 256],
             extra_params_len: 0,
@@ -527,9 +525,7 @@ impl BootPreset {
             preset_type: PresetType::Safe,
             name: *b"Safe Mode\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
             name_len: 9,
-            flags: PresetFlags::new(
-                PresetFlags::SAFE_MODE | PresetFlags::SKIP_USB_INIT,
-            ),
+            flags: PresetFlags::new(PresetFlags::SAFE_MODE | PresetFlags::SKIP_USB_INIT),
             timeout: 10,
             log_level: 3, // Info
             extra_params: [0u8; 256],
@@ -544,9 +540,7 @@ impl BootPreset {
             name: *b"Recovery Mode\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
             name_len: 13,
             flags: PresetFlags::new(
-                PresetFlags::RECOVERY_MODE
-                    | PresetFlags::SINGLE_USER
-                    | PresetFlags::ENABLE_LOGGING,
+                PresetFlags::RECOVERY_MODE | PresetFlags::SINGLE_USER | PresetFlags::ENABLE_LOGGING,
             ),
             timeout: 15,
             log_level: 4, // Debug

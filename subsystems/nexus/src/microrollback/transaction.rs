@@ -2,11 +2,10 @@
 
 use alloc::vec::Vec;
 
-use crate::core::ComponentId;
-use crate::error::NexusResult;
-
 use super::engine::MicroRollbackEngine;
 use super::entry::RollbackEntry;
+use crate::core::ComponentId;
+use crate::error::NexusResult;
 
 /// A transaction that can be rolled back atomically
 pub struct RollbackTransaction<'a> {

@@ -7,11 +7,11 @@
 //! The IDT is a 256-entry table of gate descriptors. Each entry is 16 bytes,
 //! making the total IDT size 4096 bytes (4KB).
 
-use super::entries::{IdtEntry, GateType, GateOptions, Dpl};
-use super::vectors::ExceptionVector;
-use super::handlers;
-use super::segmentation;
 use core::mem::size_of;
+
+use super::entries::{Dpl, GateOptions, GateType, IdtEntry};
+use super::vectors::ExceptionVector;
+use super::{handlers, segmentation};
 
 // =============================================================================
 // IDT Descriptor (for LIDT instruction)
@@ -120,7 +120,13 @@ impl Idt {
 
     /// Set an interrupt gate handler with IST
     #[inline]
-    pub fn set_interrupt_handler_with_ist(&mut self, vector: u8, handler: u64, selector: u16, ist: u8) {
+    pub fn set_interrupt_handler_with_ist(
+        &mut self,
+        vector: u8,
+        handler: u64,
+        selector: u16,
+        ist: u8,
+    ) {
         self.entries[vector as usize] = IdtEntry::interrupt_with_ist(handler, selector, ist);
     }
 
@@ -232,11 +238,7 @@ pub unsafe fn init_idt() {
     );
 
     // Set up spurious interrupt handler
-    idt.set_interrupt_handler(
-        0xFF,
-        handlers::spurious_interrupt_handler as u64,
-        kernel_cs,
-    );
+    idt.set_interrupt_handler(0xFF, handlers::spurious_interrupt_handler as u64, kernel_cs);
 
     log::debug!("IDT: Exception handlers configured");
 }
@@ -405,7 +407,9 @@ fn setup_exception_handlers(idt: &mut Idt, selector: u16) {
 /// The IDT must be properly initialized.
 pub unsafe fn load_idt() {
     let idt = unsafe { get_idt() };
-    unsafe { idt.load(); }
+    unsafe {
+        idt.load();
+    }
 }
 
 /// Set a handler for a specific vector
@@ -419,11 +423,7 @@ pub unsafe fn set_handler(vector: u8, handler: usize, gate_type: GateType) {
 
     idt.set(
         vector,
-        IdtEntry::new(
-            handler as u64,
-            selector,
-            GateOptions::from_type(gate_type),
-        ),
+        IdtEntry::new(handler as u64, selector, GateOptions::from_type(gate_type)),
     );
 }
 

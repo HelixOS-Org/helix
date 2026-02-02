@@ -37,32 +37,28 @@
 //!                           └─────────────────────────────────────────┘
 //! ```
 
-use crate::{
-    core::{
-        AiAction, AiConfig, AiDecision, AiError, AiEvent, AiPriority, AiResult, AiState,
-        Confidence, DecisionContext, DecisionId, RollbackStrategy, SystemMetrics,
-    },
-    healer::Healer,
-    intent::IntentEngine,
-    learning::LearningEngine,
-    memory::AiMemory,
-    metrics::MetricsCollector,
-    neural::NeuralEngine,
-    optimizer::Optimizer,
-    resources::ResourceOracle,
-    safety::SafetyChecker,
-    security::SecurityOracle,
-};
-
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::collections::VecDeque;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
+
+use crate::core::{
+    AiAction, AiConfig, AiDecision, AiError, AiEvent, AiPriority, AiResult, AiState, Confidence,
+    DecisionContext, DecisionId, RollbackStrategy, SystemMetrics,
+};
+use crate::healer::Healer;
+use crate::intent::IntentEngine;
+use crate::learning::LearningEngine;
+use crate::memory::AiMemory;
+use crate::metrics::MetricsCollector;
+use crate::neural::NeuralEngine;
+use crate::optimizer::Optimizer;
+use crate::resources::ResourceOracle;
+use crate::safety::SafetyChecker;
+use crate::security::SecurityOracle;
 
 // =============================================================================
 // Cortex Core
@@ -149,9 +145,16 @@ pub struct DecisionRecord {
 #[derive(Debug, Clone)]
 pub enum DecisionOutcome {
     Success,
-    PartialSuccess { completed_actions: usize, total_actions: usize },
-    Failed { error: String },
-    RolledBack { reason: String },
+    PartialSuccess {
+        completed_actions: usize,
+        total_actions: usize,
+    },
+    Failed {
+        error: String,
+    },
+    RolledBack {
+        reason: String,
+    },
 }
 
 /// Active rollback operation
@@ -228,17 +231,11 @@ impl Cortex {
         // Initialize all components
         let components = CortexComponents {
             intent_engine: IntentEngine::new(config.intent_engine_enabled),
-            neural_engine: NeuralEngine::new(
-                config.gpu_acceleration,
-                config.npu_acceleration,
-            ),
+            neural_engine: NeuralEngine::new(config.gpu_acceleration, config.npu_acceleration),
             optimizer: Optimizer::new(config.self_optimization_enabled),
             healer: Healer::new(config.self_healing_enabled),
             security_oracle: SecurityOracle::new(config.predictive_security_enabled),
-            resource_oracle: ResourceOracle::new(
-                config.gpu_acceleration,
-                config.npu_acceleration,
-            ),
+            resource_oracle: ResourceOracle::new(config.gpu_acceleration, config.npu_acceleration),
             learning_engine: LearningEngine::new(config.continuous_learning_enabled),
             memory: AiMemory::new(config.memory_budget as u64),
             metrics: MetricsCollector::new(),
@@ -274,7 +271,10 @@ impl Cortex {
                 return Err(AiError::ResourceExhausted("Event queue full".to_string()));
             }
             // Remove oldest background event
-            if let Some(pos) = queue.iter().position(|e| e.priority == AiPriority::Background) {
+            if let Some(pos) = queue
+                .iter()
+                .position(|e| e.priority == AiPriority::Background)
+            {
                 queue.remove(pos);
             }
         }
@@ -287,7 +287,9 @@ impl Cortex {
         });
 
         // Sort by priority (higher first)
-        queue.make_contiguous().sort_by(|a, b| b.priority.cmp(&a.priority));
+        queue
+            .make_contiguous()
+            .sort_by(|a, b| b.priority.cmp(&a.priority));
 
         Ok(())
     }
@@ -310,10 +312,10 @@ impl Cortex {
         for queued_event in events {
             match self.process_event(queued_event) {
                 Ok(Some(decision)) => decisions.push(decision),
-                Ok(None) => {}
+                Ok(None) => {},
                 Err(e) => {
                     log::warn!("Error processing event: {:?}", e);
-                }
+                },
             }
             self.stats.events_processed.fetch_add(1, Ordering::Relaxed);
         }
@@ -352,9 +354,7 @@ impl Cortex {
     /// Process a single event
     fn process_event(&self, queued: QueuedEvent) -> AiResult<Option<AiDecision>> {
         let components = self.components.read();
-        let components = components
-            .as_ref()
-            .ok_or(AiError::NotInitialized)?;
+        let components = components.as_ref().ok_or(AiError::NotInitialized)?;
 
         let context = self.build_context(&queued.event);
 
@@ -376,8 +376,7 @@ impl Cortex {
         }
 
         // Healer analysis
-        if let Ok(Some((action, conf, reason))) =
-            components.healer.analyze(&queued.event, &context)
+        if let Ok(Some((action, conf, reason))) = components.healer.analyze(&queued.event, &context)
         {
             recommendations.push((action, conf, reason));
         }
@@ -397,8 +396,9 @@ impl Cortex {
         }
 
         // Neural Engine pattern matching
-        if let Ok(Some((action, conf, reason))) =
-            components.neural_engine.match_pattern(&queued.event, &context)
+        if let Ok(Some((action, conf, reason))) = components
+            .neural_engine
+            .match_pattern(&queued.event, &context)
         {
             recommendations.push((action, conf, reason));
         }
@@ -411,9 +411,7 @@ impl Cortex {
         let decision = self.fuse_recommendations(recommendations, queued.priority, context)?;
 
         // Record event for learning (using current timestamp approximation)
-        components
-            .learning_engine
-            .record_event(&queued.event, 0); // TODO: Get actual timestamp
+        components.learning_engine.record_event(&queued.event, 0); // TODO: Get actual timestamp
 
         Ok(Some(decision))
     }
@@ -433,10 +431,7 @@ impl Cortex {
         let (primary_action, confidence, primary_reason) = sorted.remove(0);
 
         // Collect reasoning from all recommendations
-        let reasoning: Vec<String> = sorted
-            .iter()
-            .map(|(_, _, reason)| reason.clone())
-            .collect();
+        let reasoning: Vec<String> = sorted.iter().map(|(_, _, reason)| reason.clone()).collect();
 
         // Determine if actions can be combined
         let final_action = if sorted.is_empty() {
@@ -508,16 +503,14 @@ impl Cortex {
                     description: format!("Restore scheduler granularity to default"),
                     action: TuneScheduler {
                         granularity_ns: 10_000_000, // default 10ms
-                        preemption: true, // default to preemptive
+                        preemption: true,           // default to preemptive
                     },
                 }],
                 timeout_ms: 5000,
                 guaranteed: true,
             }),
 
-            TuneAllocator {
-                strategy,
-            } => Some(RollbackStrategy {
+            TuneAllocator { strategy } => Some(RollbackStrategy {
                 steps: vec![crate::core::RollbackStep {
                     description: format!("Restore allocator to default strategy"),
                     action: TuneAllocator {
@@ -565,7 +558,7 @@ impl Cortex {
                         guaranteed: false,
                     })
                 }
-            }
+            },
 
             _ => None,
         }
@@ -742,9 +735,11 @@ impl Cortex {
 
         let outcome = match result {
             Ok(()) => {
-                self.stats.actions_successful.fetch_add(1, Ordering::Relaxed);
+                self.stats
+                    .actions_successful
+                    .fetch_add(1, Ordering::Relaxed);
                 DecisionOutcome::Success
-            }
+            },
             Err(e) => {
                 self.stats.actions_failed.fetch_add(1, Ordering::Relaxed);
 
@@ -756,7 +751,7 @@ impl Cortex {
                 DecisionOutcome::Failed {
                     error: format!("{:?}", e),
                 }
-            }
+            },
         };
 
         // Update decision record
@@ -764,9 +759,14 @@ impl Cortex {
 
         // Feed outcome to learning engine
         if let Some(ref components) = *self.components.read() {
-            let success = matches!(outcome, DecisionOutcome::Success | DecisionOutcome::PartialSuccess { .. });
+            let success = matches!(
+                outcome,
+                DecisionOutcome::Success | DecisionOutcome::PartialSuccess { .. }
+            );
             let impact = crate::learning::ImpactMetrics::default();
-            components.learning_engine.record_outcome(decision, success, impact, None);
+            components
+                .learning_engine
+                .record_outcome(decision, success, impact, None);
         }
 
         *self.state.write() = AiState::Idle;
@@ -781,149 +781,194 @@ impl Cortex {
         match action {
             NoOp => Ok(()),
 
-            TuneScheduler { granularity_ns, preemption } => {
-                log::info!("Tuning scheduler: granularity={}ns, preemption={}", granularity_ns, preemption);
+            TuneScheduler {
+                granularity_ns,
+                preemption,
+            } => {
+                log::info!(
+                    "Tuning scheduler: granularity={}ns, preemption={}",
+                    granularity_ns,
+                    preemption
+                );
                 // In real implementation: call scheduler API
                 Ok(())
-            }
+            },
 
             TuneAllocator { strategy } => {
                 log::info!("Tuning allocator: strategy={}", strategy);
                 // In real implementation: call allocator API
                 Ok(())
-            }
+            },
 
             TuneIoScheduler { parameter, value } => {
                 log::info!("Tuning I/O scheduler: {} = {}", parameter, value);
                 Ok(())
-            }
+            },
 
             PreallocateResources { resource, amount } => {
                 log::info!("Preallocating {:?}: {} units", resource, amount);
                 Ok(())
-            }
+            },
 
-            MigrateProcess { pid, from_cpu, to_cpu } => {
-                log::info!("Migrating process {} from CPU {} to {}", pid, from_cpu, to_cpu);
+            MigrateProcess {
+                pid,
+                from_cpu,
+                to_cpu,
+            } => {
+                log::info!(
+                    "Migrating process {} from CPU {} to {}",
+                    pid,
+                    from_cpu,
+                    to_cpu
+                );
                 Ok(())
-            }
+            },
 
-            AdjustProcessPriority { pid, new_priority, .. } => {
+            AdjustProcessPriority {
+                pid, new_priority, ..
+            } => {
                 log::info!("Setting process {} priority to {}", pid, new_priority);
                 Ok(())
-            }
+            },
 
-            RestartModule { module_id, module_name } => {
+            RestartModule {
+                module_id,
+                module_name,
+            } => {
                 log::info!("Restarting module {} ({})", module_id, module_name);
                 Ok(())
-            }
+            },
 
             ApplyPatch { patch_id, target } => {
                 log::info!("Applying patch {} to {}", patch_id, target);
                 Ok(())
-            }
+            },
 
-            RollbackModule { module_id, target_version } => {
-                log::info!("Rolling back module {} to version {}", module_id, target_version);
+            RollbackModule {
+                module_id,
+                target_version,
+            } => {
+                log::info!(
+                    "Rolling back module {} to version {}",
+                    module_id,
+                    target_version
+                );
                 Ok(())
-            }
+            },
 
-            IsolateProcess { pid, isolation_level } => {
+            IsolateProcess {
+                pid,
+                isolation_level,
+            } => {
                 log::info!("Isolating process {} at level {}", pid, isolation_level);
                 Ok(())
-            }
+            },
 
             ResetCache { cache_id } => {
                 log::info!("Resetting cache {}", cache_id);
                 Ok(())
-            }
+            },
 
             BlockProcess { pid, reason } => {
                 log::warn!("BLOCKING process {}: {}", pid, reason);
                 Ok(())
-            }
+            },
 
             QuarantineFile { path, threat_id } => {
                 log::warn!("QUARANTINING file {} (threat {})", path, threat_id);
                 Ok(())
-            }
+            },
 
             BlockConnection { address, port } => {
                 log::warn!("BLOCKING connection to {}:{}", address, port);
                 Ok(())
-            }
+            },
 
             EscalateSecurityLevel { from, to } => {
                 log::warn!("ESCALATING security level {} -> {}", from, to);
                 Ok(())
-            }
+            },
 
             TriggerSecurityScan { scope } => {
                 log::info!("Triggering security scan: {:?}", scope);
                 Ok(())
-            }
+            },
 
-            OffloadToGpu { task_id, kernel_name } => {
-                log::info!("Offloading task {} to GPU (kernel: {})", task_id, kernel_name);
+            OffloadToGpu {
+                task_id,
+                kernel_name,
+            } => {
+                log::info!(
+                    "Offloading task {} to GPU (kernel: {})",
+                    task_id,
+                    kernel_name
+                );
                 Ok(())
-            }
+            },
 
             OffloadToNpu { task_id, model_id } => {
                 log::info!("Offloading task {} to NPU (model: {})", task_id, model_id);
                 Ok(())
-            }
+            },
 
             SetPowerProfile { profile } => {
                 log::info!("Setting power profile: {:?}", profile);
                 Ok(())
-            }
+            },
 
             SuspendIdleProcesses { threshold_seconds } => {
                 log::info!("Suspending processes idle > {}s", threshold_seconds);
                 Ok(())
-            }
+            },
 
             LoadModule { module_name, .. } => {
                 log::info!("Loading module: {}", module_name);
                 Ok(())
-            }
+            },
 
             UnloadModule { module_id } => {
                 log::info!("Unloading module: {}", module_id);
                 Ok(())
-            }
+            },
 
-            HotReloadModule { module_id, new_version } => {
-                log::info!("Hot-reloading module {} to version {}", module_id, new_version);
+            HotReloadModule {
+                module_id,
+                new_version,
+            } => {
+                log::info!(
+                    "Hot-reloading module {} to version {}",
+                    module_id,
+                    new_version
+                );
                 Ok(())
-            }
+            },
 
             UpdateModel { model_id, .. } => {
                 log::info!("Updating AI model: {}", model_id);
                 Ok(())
-            }
+            },
 
             RecordPattern { category, .. } => {
                 log::debug!("Recording pattern: {}", category);
                 Ok(())
-            }
+            },
 
             InvalidatePattern { pattern_id } => {
                 log::debug!("Invalidating pattern: {}", pattern_id);
                 Ok(())
-            }
+            },
 
             ForceGarbageCollection => {
                 log::info!("Forcing garbage collection");
                 // In real implementation: trigger memory reclamation
                 Ok(())
-            }
+            },
 
             TerminateProcess { pid } => {
                 log::warn!("TERMINATING process {}", pid);
                 // In real implementation: kill the process
                 Ok(())
-            }
+            },
 
             Sequence(actions) => {
                 for (i, action) in actions.iter().enumerate() {
@@ -935,7 +980,7 @@ impl Cortex {
                     }
                 }
                 Ok(())
-            }
+            },
 
             Parallel(actions) => {
                 // In kernel context, execute sequentially but mark as parallel-safe
@@ -943,9 +988,13 @@ impl Cortex {
                     self.execute_action(action)?;
                 }
                 Ok(())
-            }
+            },
 
-            Conditional { condition, if_true, if_false } => {
+            Conditional {
+                condition,
+                if_true,
+                if_false,
+            } => {
                 // Evaluate condition (simplified)
                 let result = !condition.is_empty(); // Placeholder
                 if result {
@@ -953,13 +1002,15 @@ impl Cortex {
                 } else {
                     self.execute_action(if_false)
                 }
-            }
+            },
         }
     }
 
     /// Initiate a rollback operation
     fn initiate_rollback(&self, decision_id: DecisionId, strategy: RollbackStrategy) {
-        self.stats.rollbacks_initiated.fetch_add(1, Ordering::Relaxed);
+        self.stats
+            .rollbacks_initiated
+            .fetch_add(1, Ordering::Relaxed);
 
         let mut rollbacks = self.active_rollbacks.lock();
         rollbacks.push(ActiveRollback {
@@ -977,7 +1028,9 @@ impl Cortex {
             }
         }
 
-        self.stats.rollbacks_successful.fetch_add(1, Ordering::Relaxed);
+        self.stats
+            .rollbacks_successful
+            .fetch_add(1, Ordering::Relaxed);
         log::info!("Rollback for decision {:?} completed", decision_id);
     }
 
@@ -1046,12 +1099,7 @@ impl Cortex {
     /// Get decision history (most recent first)
     pub fn decision_history(&self, limit: usize) -> Vec<DecisionRecord> {
         let history = self.decision_history.lock();
-        history
-            .iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        history.iter().rev().take(limit).cloned().collect()
     }
 }
 

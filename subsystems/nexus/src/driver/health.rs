@@ -191,7 +191,7 @@ impl DriverHealthMonitor {
     pub fn unhealthy_drivers(&self) -> Vec<(DriverId, f64)> {
         self.scores
             .iter()
-            .filter(|(_, &score)| score < 0.8)
+            .filter(|&(_, score)| *score < 0.8)
             .map(|(&id, &score)| (id, score))
             .collect()
     }

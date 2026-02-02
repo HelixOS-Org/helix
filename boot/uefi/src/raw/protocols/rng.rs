@@ -2,8 +2,9 @@
 //!
 //! Provides cryptographically secure random numbers.
 
-use crate::raw::types::*;
 use core::fmt;
+
+use crate::raw::types::*;
 
 // =============================================================================
 // RNG PROTOCOL
@@ -36,16 +37,9 @@ impl EfiRngProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer is valid.
-    pub unsafe fn get_supported_algorithms(
-        &self,
-        buffer: &mut [Guid],
-    ) -> Result<usize, Status> {
+    pub unsafe fn get_supported_algorithms(&self, buffer: &mut [Guid]) -> Result<usize, Status> {
         let mut size = buffer.len() * core::mem::size_of::<Guid>();
-        let status = (self.get_info)(
-            self as *const _ as *mut _,
-            &mut size,
-            buffer.as_mut_ptr(),
-        );
+        let status = (self.get_info)(self as *const _ as *mut _, &mut size, buffer.as_mut_ptr());
 
         match status {
             Status::SUCCESS => Ok(size / core::mem::size_of::<Guid>()),
@@ -175,46 +169,39 @@ pub mod rng_algorithm {
     use super::*;
 
     /// Raw RDRAND/RDSEED output (x86)
-    pub const RAW: Guid = Guid::new(
-        0xE43176D7, 0xB6E8, 0x4827,
-        [0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61],
-    );
+    pub const RAW: Guid = Guid::new(0xE43176D7, 0xB6E8, 0x4827, [
+        0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61,
+    ]);
 
     /// SP800-90 Hash DRBG
-    pub const SP800_90_HASH_256_DRBG: Guid = Guid::new(
-        0xA7AF67CB, 0x603B, 0x4D42,
-        [0xBA, 0x21, 0x70, 0xBF, 0xB6, 0x29, 0x3F, 0x96],
-    );
+    pub const SP800_90_HASH_256_DRBG: Guid = Guid::new(0xA7AF67CB, 0x603B, 0x4D42, [
+        0xBA, 0x21, 0x70, 0xBF, 0xB6, 0x29, 0x3F, 0x96,
+    ]);
 
     /// SP800-90 HMAC DRBG
-    pub const SP800_90_HMAC_256_DRBG: Guid = Guid::new(
-        0xC5149B43, 0xAE85, 0x4F53,
-        [0x99, 0x82, 0xB9, 0x43, 0x35, 0xD3, 0xA9, 0xE7],
-    );
+    pub const SP800_90_HMAC_256_DRBG: Guid = Guid::new(0xC5149B43, 0xAE85, 0x4F53, [
+        0x99, 0x82, 0xB9, 0x43, 0x35, 0xD3, 0xA9, 0xE7,
+    ]);
 
     /// SP800-90 CTR DRBG
-    pub const SP800_90_CTR_256_DRBG: Guid = Guid::new(
-        0x44F0DE6E, 0x4D8C, 0x4045,
-        [0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E],
-    );
+    pub const SP800_90_CTR_256_DRBG: Guid = Guid::new(0x44F0DE6E, 0x4D8C, 0x4045, [
+        0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E,
+    ]);
 
     /// X9.31 RNG using 3DES
-    pub const X9_31_3DES: Guid = Guid::new(
-        0x63C4785A, 0xCA34, 0x4012,
-        [0xA3, 0xC8, 0x0B, 0x6A, 0x32, 0x4F, 0x55, 0x46],
-    );
+    pub const X9_31_3DES: Guid = Guid::new(0x63C4785A, 0xCA34, 0x4012, [
+        0xA3, 0xC8, 0x0B, 0x6A, 0x32, 0x4F, 0x55, 0x46,
+    ]);
 
     /// X9.31 RNG using AES
-    pub const X9_31_AES: Guid = Guid::new(
-        0xACD03321, 0x777E, 0x4D3D,
-        [0xB1, 0xC8, 0x20, 0xCF, 0xD8, 0x82, 0x20, 0xE9],
-    );
+    pub const X9_31_AES: Guid = Guid::new(0xACD03321, 0x777E, 0x4D3D, [
+        0xB1, 0xC8, 0x20, 0xCF, 0xD8, 0x82, 0x20, 0xE9,
+    ]);
 
     /// ARM RNDR instruction
-    pub const ARM_RNDR: Guid = Guid::new(
-        0x43D2FDE3, 0x9D4E, 0x4D79,
-        [0xB5, 0xEC, 0xA0, 0xB1, 0xA3, 0xC7, 0x84, 0x29],
-    );
+    pub const ARM_RNDR: Guid = Guid::new(0x43D2FDE3, 0x9D4E, 0x4D79, [
+        0xB5, 0xEC, 0xA0, 0xB1, 0xA3, 0xC7, 0x84, 0x29,
+    ]);
 }
 
 // =============================================================================
@@ -318,11 +305,7 @@ impl EfiHashProtocol {
     /// The caller must ensure the protocol pointer is valid.
     pub unsafe fn get_size(&self, algorithm: &Guid) -> Result<usize, Status> {
         let mut size = 0;
-        let status = (self.get_hash_size)(
-            self as *const _ as *mut _,
-            algorithm,
-            &mut size,
-        );
+        let status = (self.get_hash_size)(self as *const _ as *mut _, algorithm, &mut size);
         status.to_status_result_with(size)
     }
 
@@ -380,40 +363,34 @@ pub mod hash_algorithm {
     use super::*;
 
     /// SHA-1
-    pub const SHA1: Guid = Guid::new(
-        0x2AE9D80F, 0x3FB2, 0x4095,
-        [0xB7, 0xB1, 0xE9, 0x31, 0x57, 0xB9, 0x46, 0xB6],
-    );
+    pub const SHA1: Guid = Guid::new(0x2AE9D80F, 0x3FB2, 0x4095, [
+        0xB7, 0xB1, 0xE9, 0x31, 0x57, 0xB9, 0x46, 0xB6,
+    ]);
 
     /// SHA-224
-    pub const SHA224: Guid = Guid::new(
-        0x8DF01A06, 0x9BD5, 0x4BF7,
-        [0xB0, 0x21, 0xDB, 0x4F, 0xD9, 0xCC, 0xF4, 0x5B],
-    );
+    pub const SHA224: Guid = Guid::new(0x8DF01A06, 0x9BD5, 0x4BF7, [
+        0xB0, 0x21, 0xDB, 0x4F, 0xD9, 0xCC, 0xF4, 0x5B,
+    ]);
 
     /// SHA-256
-    pub const SHA256: Guid = Guid::new(
-        0x51AA59DE, 0xFDF2, 0x4EA3,
-        [0xBC, 0x63, 0x87, 0x5F, 0xB7, 0x84, 0x2E, 0xE9],
-    );
+    pub const SHA256: Guid = Guid::new(0x51AA59DE, 0xFDF2, 0x4EA3, [
+        0xBC, 0x63, 0x87, 0x5F, 0xB7, 0x84, 0x2E, 0xE9,
+    ]);
 
     /// SHA-384
-    pub const SHA384: Guid = Guid::new(
-        0xEFA96432, 0xDE33, 0x4DD2,
-        [0xAE, 0xE6, 0x32, 0x8C, 0x33, 0xDF, 0x77, 0x7A],
-    );
+    pub const SHA384: Guid = Guid::new(0xEFA96432, 0xDE33, 0x4DD2, [
+        0xAE, 0xE6, 0x32, 0x8C, 0x33, 0xDF, 0x77, 0x7A,
+    ]);
 
     /// SHA-512
-    pub const SHA512: Guid = Guid::new(
-        0xCAA4381E, 0x750C, 0x4770,
-        [0xB8, 0x70, 0x7A, 0x23, 0xB4, 0xE4, 0x21, 0x30],
-    );
+    pub const SHA512: Guid = Guid::new(0xCAA4381E, 0x750C, 0x4770, [
+        0xB8, 0x70, 0x7A, 0x23, 0xB4, 0xE4, 0x21, 0x30,
+    ]);
 
     /// MD5 (deprecated, for compatibility only)
-    pub const MD5: Guid = Guid::new(
-        0xAF7C79C0, 0x8F39, 0x4535,
-        [0x8A, 0xD5, 0x83, 0x90, 0x11, 0x6B, 0x3E, 0xE0],
-    );
+    pub const MD5: Guid = Guid::new(0xAF7C79C0, 0x8F39, 0x4535, [
+        0x8A, 0xD5, 0x83, 0x90, 0x11, 0x6B, 0x3E, 0xE0,
+    ]);
 }
 
 // =============================================================================
@@ -424,9 +401,7 @@ pub mod hash_algorithm {
 #[repr(C)]
 pub struct EfiTimestampProtocol {
     /// Get timestamp
-    pub get_timestamp: unsafe extern "efiapi" fn(
-        this: *mut Self,
-    ) -> u64,
+    pub get_timestamp: unsafe extern "efiapi" fn(this: *mut Self) -> u64,
 
     /// Get properties
     pub get_properties: unsafe extern "efiapi" fn(
@@ -437,10 +412,9 @@ pub struct EfiTimestampProtocol {
 
 impl EfiTimestampProtocol {
     /// Protocol GUID
-    pub const GUID: Guid = Guid::new(
-        0xAFBFDE41, 0x2E6E, 0x4262,
-        [0xBA, 0x65, 0x62, 0xB9, 0x23, 0x6E, 0x54, 0x95],
-    );
+    pub const GUID: Guid = Guid::new(0xAFBFDE41, 0x2E6E, 0x4262, [
+        0xBA, 0x65, 0x62, 0xB9, 0x23, 0x6E, 0x54, 0x95,
+    ]);
 
     /// Get current timestamp
     ///
@@ -456,10 +430,7 @@ impl EfiTimestampProtocol {
     /// The caller must ensure the protocol pointer is valid.
     pub unsafe fn get_properties(&self) -> Result<EfiTimestampProperties, Status> {
         let mut props = EfiTimestampProperties::default();
-        let status = (self.get_properties)(
-            self as *const _ as *mut _,
-            &mut props,
-        );
+        let status = (self.get_properties)(self as *const _ as *mut _, &mut props);
         status.to_status_result_with(props)
     }
 }
@@ -562,7 +533,7 @@ impl SimpleRng {
     /// Create with seed
     pub const fn new(seed: u64) -> Self {
         Self {
-            state: if seed == 0 { 0x853C49E6748FEA9B } else { seed }
+            state: if seed == 0 { 0x853C49E6748FEA9B } else { seed },
         }
     }
 

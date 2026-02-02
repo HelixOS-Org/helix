@@ -2,8 +2,9 @@
 //!
 //! Provides access to PCI devices.
 
-use crate::raw::types::*;
 use core::fmt;
+
+use crate::raw::types::*;
 
 // =============================================================================
 // PCI I/O PROTOCOL
@@ -67,10 +68,8 @@ pub struct EfiPciIoProtocol {
     ) -> Status,
 
     /// Unmap DMA buffer
-    pub unmap: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        mapping: *mut core::ffi::c_void,
-    ) -> Status,
+    pub unmap:
+        unsafe extern "efiapi" fn(this: *mut Self, mapping: *mut core::ffi::c_void) -> Status,
 
     /// Allocate DMA buffer
     pub allocate_buffer: unsafe extern "efiapi" fn(
@@ -167,10 +166,7 @@ impl EfiPciIoProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer is valid.
-    pub unsafe fn pci_read<T: Copy>(
-        &mut self,
-        offset: u32,
-    ) -> Result<T, Status> {
+    pub unsafe fn pci_read<T: Copy>(&mut self, offset: u32) -> Result<T, Status> {
         let width = match core::mem::size_of::<T>() {
             1 => EfiPciIoProtocolWidth::Uint8,
             2 => EfiPciIoProtocolWidth::Uint16,
@@ -195,11 +191,7 @@ impl EfiPciIoProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer is valid.
-    pub unsafe fn pci_write<T: Copy>(
-        &mut self,
-        offset: u32,
-        value: T,
-    ) -> Result<(), Status> {
+    pub unsafe fn pci_write<T: Copy>(&mut self, offset: u32, value: T) -> Result<(), Status> {
         let width = match core::mem::size_of::<T>() {
             1 => EfiPciIoProtocolWidth::Uint8,
             2 => EfiPciIoProtocolWidth::Uint16,
@@ -223,11 +215,7 @@ impl EfiPciIoProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer and BAR are valid.
-    pub unsafe fn mem_read<T: Copy>(
-        &mut self,
-        bar_index: u8,
-        offset: u64,
-    ) -> Result<T, Status> {
+    pub unsafe fn mem_read<T: Copy>(&mut self, bar_index: u8, offset: u64) -> Result<T, Status> {
         let width = match core::mem::size_of::<T>() {
             1 => EfiPciIoProtocolWidth::Uint8,
             2 => EfiPciIoProtocolWidth::Uint16,
@@ -366,7 +354,12 @@ pub struct PciLocation {
 impl PciLocation {
     /// Create a new PCI location
     pub const fn new(segment: u16, bus: u8, device: u8, function: u8) -> Self {
-        Self { segment, bus, device, function }
+        Self {
+            segment,
+            bus,
+            device,
+            function,
+        }
     }
 
     /// Format as BDF (Bus:Device.Function)
@@ -377,8 +370,11 @@ impl PciLocation {
 
 impl fmt::Display for PciLocation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:04x}:{:02x}:{:02x}.{}",
-            self.segment, self.bus, self.device, self.function)
+        write!(
+            f,
+            "{:04x}:{:02x}:{:02x}.{}",
+            self.segment, self.bus, self.device, self.function
+        )
     }
 }
 
@@ -391,15 +387,15 @@ impl fmt::Display for PciLocation {
 #[repr(u32)]
 pub enum EfiPciIoProtocolWidth {
     /// 8-bit
-    Uint8 = 0,
+    Uint8      = 0,
     /// 16-bit
-    Uint16 = 1,
+    Uint16     = 1,
     /// 32-bit
-    Uint32 = 2,
+    Uint32     = 2,
     /// 64-bit
-    Uint64 = 3,
+    Uint64     = 3,
     /// FIFO 8-bit
-    FifoUint8 = 4,
+    FifoUint8  = 4,
     /// FIFO 16-bit
     FifoUint16 = 5,
     /// FIFO 32-bit
@@ -407,7 +403,7 @@ pub enum EfiPciIoProtocolWidth {
     /// FIFO 64-bit
     FifoUint64 = 7,
     /// Fill 8-bit
-    FillUint8 = 8,
+    FillUint8  = 8,
     /// Fill 16-bit
     FillUint16 = 9,
     /// Fill 32-bit
@@ -425,7 +421,7 @@ pub enum EfiPciIoProtocolWidth {
 #[repr(u32)]
 pub enum EfiPciIoProtocolOperation {
     /// Bus master read
-    BusMasterRead = 0,
+    BusMasterRead  = 0,
     /// Bus master write
     BusMasterWrite = 1,
     /// Bus master common buffer
@@ -441,13 +437,13 @@ pub enum EfiPciIoProtocolOperation {
 #[repr(u32)]
 pub enum EfiPciIoProtocolAttributeOperation {
     /// Get current attributes
-    Get = 0,
+    Get       = 0,
     /// Set attributes
-    Set = 1,
+    Set       = 1,
     /// Enable attributes
-    Enable = 2,
+    Enable    = 2,
     /// Disable attributes
-    Disable = 3,
+    Disable   = 3,
     /// Get supported attributes
     Supported = 4,
 }
@@ -591,10 +587,8 @@ pub struct EfiPciRootBridgeIoProtocol {
     ) -> Status,
 
     /// Unmap DMA buffer
-    pub unmap: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        mapping: *mut core::ffi::c_void,
-    ) -> Status,
+    pub unmap:
+        unsafe extern "efiapi" fn(this: *mut Self, mapping: *mut core::ffi::c_void) -> Status,
 
     /// Allocate DMA buffer
     pub allocate_buffer: unsafe extern "efiapi" fn(

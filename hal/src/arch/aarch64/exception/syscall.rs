@@ -17,105 +17,105 @@ pub const MAX_SYSCALL: usize = 512;
 #[repr(i64)]
 pub enum SyscallError {
     /// Operation not permitted
-    Eperm = -1,
+    Eperm        = -1,
     /// No such file or directory
-    Enoent = -2,
+    Enoent       = -2,
     /// No such process
-    Esrch = -3,
+    Esrch        = -3,
     /// Interrupted system call
-    Eintr = -4,
+    Eintr        = -4,
     /// I/O error
-    Eio = -5,
+    Eio          = -5,
     /// No such device or address
-    Enxio = -6,
+    Enxio        = -6,
     /// Argument list too long
-    E2big = -7,
+    E2big        = -7,
     /// Exec format error
-    Enoexec = -8,
+    Enoexec      = -8,
     /// Bad file number
-    Ebadf = -9,
+    Ebadf        = -9,
     /// No child processes
-    Echild = -10,
+    Echild       = -10,
     /// Try again / would block
-    Eagain = -11,
+    Eagain       = -11,
     /// Out of memory
-    Enomem = -12,
+    Enomem       = -12,
     /// Permission denied
-    Eacces = -13,
+    Eacces       = -13,
     /// Bad address
-    Efault = -14,
+    Efault       = -14,
     /// Device or resource busy
-    Ebusy = -16,
+    Ebusy        = -16,
     /// File exists
-    Eexist = -17,
+    Eexist       = -17,
     /// Cross-device link
-    Exdev = -18,
+    Exdev        = -18,
     /// No such device
-    Enodev = -19,
+    Enodev       = -19,
     /// Not a directory
-    Enotdir = -20,
+    Enotdir      = -20,
     /// Is a directory
-    Eisdir = -21,
+    Eisdir       = -21,
     /// Invalid argument
-    Einval = -22,
+    Einval       = -22,
     /// File table overflow
-    Enfile = -23,
+    Enfile       = -23,
     /// Too many open files
-    Emfile = -24,
+    Emfile       = -24,
     /// Not a typewriter
-    Enotty = -25,
+    Enotty       = -25,
     /// No space left on device
-    Enospc = -28,
+    Enospc       = -28,
     /// Illegal seek
-    Espipe = -29,
+    Espipe       = -29,
     /// Read-only file system
-    Erofs = -30,
+    Erofs        = -30,
     /// Too many links
-    Emlink = -31,
+    Emlink       = -31,
     /// Broken pipe
-    Epipe = -32,
+    Epipe        = -32,
     /// Math argument out of domain
-    Edom = -33,
+    Edom         = -33,
     /// Math result not representable
-    Erange = -34,
+    Erange       = -34,
     /// Resource deadlock would occur
-    Edeadlk = -35,
+    Edeadlk      = -35,
     /// File name too long
     Enametoolong = -36,
     /// No record locks available
-    Enolck = -37,
+    Enolck       = -37,
     /// Function not implemented
-    Enosys = -38,
+    Enosys       = -38,
     /// Directory not empty
-    Enotempty = -39,
+    Enotempty    = -39,
     /// Too many symbolic links
-    Eloop = -40,
+    Eloop        = -40,
     /// No message of desired type
-    Enomsg = -42,
+    Enomsg       = -42,
     /// Timer expired
-    Etime = -62,
+    Etime        = -62,
     /// Protocol not available
-    Enoprotoopt = -92,
+    Enoprotoopt  = -92,
     /// Operation not supported
-    Enotsup = -95,
+    Enotsup      = -95,
     /// Address family not supported
     Eafnosupport = -97,
     /// Connection refused
     Econnrefused = -111,
     /// Connection reset
-    Econnreset = -104,
+    Econnreset   = -104,
     /// No buffer space available
-    Enobufs = -105,
+    Enobufs      = -105,
     /// Transport endpoint already connected
-    Eisconn = -106,
+    Eisconn      = -106,
     /// Transport endpoint not connected
-    Enotconn = -107,
+    Enotconn     = -107,
     /// Connection timed out
-    Etimedout = -110,
+    Etimedout    = -110,
     /// Operation already in progress
-    Ealready = -114,
+    Ealready     = -114,
     /// Operation now in progress
-    Einprogress = -115,
+    Einprogress  = -115,
 }
 
 impl SyscallError {
@@ -161,7 +161,11 @@ pub struct SyscallEntry {
 impl SyscallEntry {
     /// Create a new syscall entry
     pub const fn new(handler: SyscallHandler, nargs: u8, name: &'static str) -> Self {
-        Self { handler, nargs, name }
+        Self {
+            handler,
+            nargs,
+            name,
+        }
     }
 }
 

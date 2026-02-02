@@ -20,38 +20,32 @@
 extern crate alloc;
 
 // Submodules
+pub mod cooling;
+pub mod event;
+pub mod fan;
+pub mod intelligence;
+pub mod manager;
 pub mod types;
 pub mod zone;
-pub mod cooling;
-pub mod fan;
-pub mod event;
-pub mod manager;
-pub mod intelligence;
 
 // Re-export core types
-pub use types::{CoolingDeviceId, Temperature, ThermalZoneId};
-
-// Re-export zone types
-pub use zone::{
-    ThermalGovernor, ThermalZone, ThermalZoneMode, ThermalZoneType, TripPoint, TripPointType,
-};
-
 // Re-export cooling types
 pub use cooling::{CoolingDevice, CoolingDeviceType};
-
-// Re-export fan types
-pub use fan::{FanInfo, FanMode};
-
 // Re-export event types
 pub use event::{ThermalEvent, ThermalEventType};
-
-// Re-export manager types
-pub use manager::ThermalManager;
-
+// Re-export fan types
+pub use fan::{FanInfo, FanMode};
 // Re-export intelligence types
 pub use intelligence::{
     ThermalAction, ThermalAnalysis, ThermalIntelligence, ThermalIssue, ThermalIssueType,
     ThermalRecommendation,
+};
+// Re-export manager types
+pub use manager::ThermalManager;
+pub use types::{CoolingDeviceId, Temperature, ThermalZoneId};
+// Re-export zone types
+pub use zone::{
+    ThermalGovernor, ThermalZone, ThermalZoneMode, ThermalZoneType, TripPoint, TripPointType,
 };
 
 // ============================================================================
@@ -60,8 +54,9 @@ pub use intelligence::{
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::String;
+
+    use super::*;
 
     #[test]
     fn test_temperature() {

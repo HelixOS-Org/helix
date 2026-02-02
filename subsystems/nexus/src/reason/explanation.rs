@@ -5,7 +5,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::{CausalEventId, ChainId, CausalGraph, CausalChainBuilder};
+use super::{CausalChainBuilder, CausalEventId, CausalGraph, ChainId};
 
 /// Explanation type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,11 +113,7 @@ impl ExplanationGenerator {
     }
 
     /// Generate "why did X happen" explanation
-    pub fn explain_why(
-        &self,
-        graph: &CausalGraph,
-        event_id: CausalEventId,
-    ) -> Option<Explanation> {
+    pub fn explain_why(&self, graph: &CausalGraph, event_id: CausalEventId) -> Option<Explanation> {
         let node = graph.get_node_by_event(event_id)?;
         let mut explanation = Explanation::new(ExplanationType::WhyDid, event_id);
 
@@ -177,7 +173,9 @@ impl ExplanationGenerator {
         let mut explanation = Explanation::new(ExplanationType::WhatCaused, event_id);
 
         // Get direct causes
-        let direct_causes: Vec<_> = node.causes.iter()
+        let direct_causes: Vec<_> = node
+            .causes
+            .iter()
             .filter_map(|&edge_id| graph.get_edge(edge_id))
             .filter_map(|edge| graph.get_node(edge.source))
             .collect();
@@ -225,7 +223,8 @@ impl ExplanationGenerator {
                 node.event.event_type.name()
             );
         } else {
-            let error_count = effects.iter()
+            let error_count = effects
+                .iter()
                 .filter_map(|&id| graph.get_node(id))
                 .filter(|n| n.event.event_type.is_error())
                 .count();

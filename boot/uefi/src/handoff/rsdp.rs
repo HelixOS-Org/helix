@@ -46,12 +46,8 @@ impl RsdpV1 {
 
     /// Validate checksum
     pub fn validate_checksum(&self) -> bool {
-        let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                Self::SIZE,
-            )
-        };
+        let bytes =
+            unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, Self::SIZE) };
 
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
     }
@@ -108,10 +104,7 @@ impl RsdpV2 {
     /// Validate extended checksum
     pub fn validate_extended_checksum(&self) -> bool {
         let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                self.length as usize,
-            )
+            core::slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
         };
 
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
@@ -253,9 +246,7 @@ impl AcpiSdtHeader {
 
     /// Get signature as string
     pub fn signature_str(&self) -> &str {
-        core::str::from_utf8(&self.signature)
-            .unwrap_or("")
-            .trim()
+        core::str::from_utf8(&self.signature).unwrap_or("").trim()
     }
 
     /// Get OEM ID as string
@@ -282,7 +273,8 @@ impl AcpiSdtHeader {
 
         data[..self.length as usize]
             .iter()
-            .fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
+            .fold(0u8, |acc, &b| acc.wrapping_add(b))
+            == 0
     }
 }
 
@@ -342,9 +334,7 @@ pub struct AcpiTableInfo {
 impl AcpiTableInfo {
     /// Get signature as string
     pub fn signature_str(&self) -> &str {
-        core::str::from_utf8(&self.signature)
-            .unwrap_or("")
-            .trim()
+        core::str::from_utf8(&self.signature).unwrap_or("").trim()
     }
 }
 
@@ -419,7 +409,10 @@ impl AcpiTableFinder {
     }
 
     /// Find all tables with signature
-    pub fn find_all<'a>(&'a self, signature: &'a [u8; 4]) -> impl Iterator<Item = &'a AcpiTableInfo> + 'a {
+    pub fn find_all<'a>(
+        &'a self,
+        signature: &'a [u8; 4],
+    ) -> impl Iterator<Item = &'a AcpiTableInfo> + 'a {
         self.tables[..self.table_count]
             .iter()
             .flatten()

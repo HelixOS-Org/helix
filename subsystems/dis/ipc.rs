@@ -48,11 +48,12 @@
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
 
-use super::{TaskId, Nanoseconds, DISError, DISResult};
 use super::intent::IntentClass;
+use super::{DISError, DISResult, Nanoseconds, TaskId};
 
 // =============================================================================
 // Message Types
@@ -67,7 +68,7 @@ impl MessageId {
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
-    
+
     /// Get raw ID
     pub fn raw(&self) -> u64 {
         self.0
@@ -83,7 +84,7 @@ impl ChannelId {
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
-    
+
     /// Get raw ID
     pub fn raw(&self) -> u64 {
         self.0
@@ -216,11 +217,11 @@ pub struct CustomPayload {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MessagePriority {
     /// Low priority
-    Low = 0,
+    Low    = 0,
     /// Normal priority
     Normal = 1,
     /// High priority
-    High = 2,
+    High   = 2,
     /// Urgent (bypasses queue)
     Urgent = 3,
 }
@@ -254,9 +255,14 @@ bitflags::bitflags! {
 
 impl Message {
     /// Create new message
-    pub fn new(sender: TaskId, recipient: Option<TaskId>, msg_type: MessageType, payload: MessagePayload) -> Self {
+    pub fn new(
+        sender: TaskId,
+        recipient: Option<TaskId>,
+        msg_type: MessageType,
+        payload: MessagePayload,
+    ) -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(1);
-        
+
         Self {
             id: MessageId::new(NEXT_ID.fetch_add(1, Ordering::Relaxed)),
             sender,
@@ -269,45 +275,55 @@ impl Message {
             expiry: None,
         }
     }
-    
+
     /// Create data message
     pub fn data(sender: TaskId, recipient: TaskId, data: Vec<u8>) -> Self {
-        Self::new(sender, Some(recipient), MessageType::Data, MessagePayload::Bytes(data))
+        Self::new(
+            sender,
+            Some(recipient),
+            MessageType::Data,
+            MessagePayload::Bytes(data),
+        )
     }
-    
+
     /// Create request message
     pub fn request(sender: TaskId, recipient: TaskId, payload: MessagePayload) -> Self {
         Self::new(sender, Some(recipient), MessageType::Request, payload)
     }
-    
+
     /// Create notification
     pub fn notification(sender: TaskId, payload: MessagePayload) -> Self {
         Self::new(sender, None, MessageType::Notification, payload)
     }
-    
+
     /// Create signal
     pub fn signal(sender: TaskId, recipient: TaskId, signal: i64) -> Self {
-        Self::new(sender, Some(recipient), MessageType::Signal, MessagePayload::Integer(signal))
+        Self::new(
+            sender,
+            Some(recipient),
+            MessageType::Signal,
+            MessagePayload::Integer(signal),
+        )
     }
-    
+
     /// Set priority
     pub fn with_priority(mut self, priority: MessagePriority) -> Self {
         self.priority = priority;
         self
     }
-    
+
     /// Set flags
     pub fn with_flags(mut self, flags: MessageFlags) -> Self {
         self.flags = flags;
         self
     }
-    
+
     /// Set expiry
     pub fn with_expiry(mut self, expiry: Nanoseconds) -> Self {
         self.expiry = Some(expiry);
         self
     }
-    
+
     /// Check if expired
     pub fn is_expired(&self, now: Nanoseconds) -> bool {
         self.expiry.map_or(false, |exp| now > exp)
@@ -346,7 +362,7 @@ impl MessageQueue {
             dropped: AtomicU64::new(0),
         }
     }
-    
+
     /// Enqueue message
     pub fn enqueue(&mut self, msg: Message) -> DISResult<()> {
         if self.queue.len() >= self.max_size {
@@ -354,14 +370,14 @@ impl MessageQueue {
             self.queue.pop_front();
             self.dropped.fetch_add(1, Ordering::Relaxed);
         }
-        
+
         self.queue.push_back(msg);
         self.pending.fetch_add(1, Ordering::Relaxed);
         self.received.fetch_add(1, Ordering::Relaxed);
-        
+
         Ok(())
     }
-    
+
     /// Dequeue message
     pub fn dequeue(&mut self) -> Option<Message> {
         let msg = self.queue.pop_front();
@@ -370,22 +386,22 @@ impl MessageQueue {
         }
         msg
     }
-    
+
     /// Peek at next message
     pub fn peek(&self) -> Option<&Message> {
         self.queue.front()
     }
-    
+
     /// Get pending count
     pub fn pending(&self) -> u32 {
         self.pending.load(Ordering::Relaxed)
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.pending() == 0
     }
-    
+
     /// Clear queue
     pub fn clear(&mut self) {
         self.queue.clear();
@@ -422,11 +438,11 @@ pub struct Channel {
 #[repr(u32)]
 pub enum ChannelState {
     /// Channel is open
-    Open = 0,
+    Open    = 0,
     /// Channel is closing
     Closing = 1,
     /// Channel is closed
-    Closed = 2,
+    Closed  = 2,
 }
 
 /// Channel statistics
@@ -452,13 +468,13 @@ impl Channel {
             stats: ChannelStats::default(),
         }
     }
-    
+
     /// Send message
     pub fn send(&self, from: TaskId, msg: Message) -> DISResult<()> {
         if self.state.load(Ordering::Relaxed) != ChannelState::Open as u32 {
             return Err(DISError::ChannelClosed);
         }
-        
+
         if from == self.endpoint_a {
             self.a_to_b.lock().push_back(msg);
             self.stats.messages_a_to_b.fetch_add(1, Ordering::Relaxed);
@@ -468,10 +484,10 @@ impl Channel {
         } else {
             return Err(DISError::NotChannelEndpoint);
         }
-        
+
         Ok(())
     }
-    
+
     /// Receive message
     pub fn receive(&self, to: TaskId) -> Option<Message> {
         if to == self.endpoint_a {
@@ -482,7 +498,7 @@ impl Channel {
             None
         }
     }
-    
+
     /// Check for pending messages
     pub fn has_pending(&self, to: TaskId) -> bool {
         if to == self.endpoint_a {
@@ -493,12 +509,13 @@ impl Channel {
             false
         }
     }
-    
+
     /// Close channel
     pub fn close(&self) {
-        self.state.store(ChannelState::Closed as u32, Ordering::SeqCst);
+        self.state
+            .store(ChannelState::Closed as u32, Ordering::SeqCst);
     }
-    
+
     /// Check if closed
     pub fn is_closed(&self) -> bool {
         self.state.load(Ordering::Relaxed) == ChannelState::Closed as u32
@@ -518,7 +535,7 @@ impl TopicId {
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
-    
+
     // Predefined topics
     pub const SCHEDULER: Self = Self(1);
     pub const TASK_EVENTS: Self = Self(2);
@@ -548,26 +565,26 @@ pub enum NotificationEvent {
     TaskDestroyed,
     TaskStateChanged,
     TaskMigrated,
-    
+
     // Scheduler events
     SchedulerTick,
     ContextSwitch,
     LoadBalance,
-    
+
     // Policy events
     PolicyAdded,
     PolicyRemoved,
     PolicyTriggered,
-    
+
     // Stats events
     StatsUpdate,
     ThresholdExceeded,
-    
+
     // Security events
     CapabilityGranted,
     CapabilityRevoked,
     SecurityViolation,
-    
+
     // Custom
     Custom(u32),
 }
@@ -594,24 +611,24 @@ impl Subscriber {
             filter: None,
         }
     }
-    
+
     /// Subscribe to topic
     pub fn subscribe(&mut self, topic: TopicId) {
         if !self.topics.contains(&topic) {
             self.topics.push(topic);
         }
     }
-    
+
     /// Unsubscribe from topic
     pub fn unsubscribe(&mut self, topic: TopicId) {
         self.topics.retain(|&t| t != topic);
     }
-    
+
     /// Check if subscribed
     pub fn is_subscribed(&self, topic: TopicId) -> bool {
         self.topics.contains(&topic)
     }
-    
+
     /// Receive notification
     pub fn receive(&self, notification: Notification) {
         if let Some(filter) = self.filter {
@@ -621,7 +638,7 @@ impl Subscriber {
         }
         self.queue.lock().push_back(notification);
     }
-    
+
     /// Get next notification
     pub fn next(&self) -> Option<Notification> {
         self.queue.lock().pop_front()
@@ -671,38 +688,44 @@ impl IPCManager {
             current_time: AtomicU64::new(0),
         }
     }
-    
+
     /// Register task
     pub fn register_task(&self, task_id: TaskId) {
-        self.queues.write().insert(task_id, Mutex::new(MessageQueue::new(task_id, 256)));
-        self.subscribers.write().insert(task_id, Subscriber::new(task_id));
+        self.queues
+            .write()
+            .insert(task_id, Mutex::new(MessageQueue::new(task_id, 256)));
+        self.subscribers
+            .write()
+            .insert(task_id, Subscriber::new(task_id));
     }
-    
+
     /// Unregister task
     pub fn unregister_task(&self, task_id: TaskId) {
         self.queues.write().remove(&task_id);
         self.subscribers.write().remove(&task_id);
-        
+
         // Close channels with this task
-        let channels_to_close: Vec<_> = self.channels.read()
+        let channels_to_close: Vec<_> = self
+            .channels
+            .read()
             .iter()
             .filter(|(_, ch)| ch.endpoint_a == task_id || ch.endpoint_b == task_id)
             .map(|(id, _)| *id)
             .collect();
-        
+
         for id in channels_to_close {
             self.close_channel(id);
         }
     }
-    
+
     // =========================================================================
     // Message Operations
     // =========================================================================
-    
+
     /// Send message
     pub fn send(&self, msg: Message) -> DISResult<()> {
         let recipient = msg.recipient.ok_or(DISError::NoRecipient)?;
-        
+
         let queues = self.queues.read();
         if let Some(queue) = queues.get(&recipient) {
             queue.lock().enqueue(msg)?;
@@ -712,7 +735,7 @@ impl IPCManager {
             Err(DISError::TaskNotFound(recipient))
         }
     }
-    
+
     /// Receive message
     pub fn receive(&self, task_id: TaskId) -> Option<Message> {
         let queues = self.queues.read();
@@ -726,44 +749,47 @@ impl IPCManager {
             None
         }
     }
-    
+
     /// Check for pending messages
     pub fn has_messages(&self, task_id: TaskId) -> bool {
-        self.queues.read()
+        self.queues
+            .read()
             .get(&task_id)
             .map(|q| !q.lock().is_empty())
             .unwrap_or(false)
     }
-    
+
     /// Broadcast message
     pub fn broadcast(&self, msg: Message) -> usize {
         let mut count = 0;
-        
+
         for (_, queue) in self.queues.read().iter() {
             if queue.lock().enqueue(msg.clone()).is_ok() {
                 count += 1;
             }
         }
-        
-        self.stats.messages_sent.fetch_add(count as u64, Ordering::Relaxed);
+
+        self.stats
+            .messages_sent
+            .fetch_add(count as u64, Ordering::Relaxed);
         count
     }
-    
+
     // =========================================================================
     // Channel Operations
     // =========================================================================
-    
+
     /// Create channel
     pub fn create_channel(&self, endpoint_a: TaskId, endpoint_b: TaskId) -> ChannelId {
         let id = ChannelId::new(self.next_channel_id.fetch_add(1, Ordering::Relaxed));
         let channel = Channel::new(id, endpoint_a, endpoint_b);
-        
+
         self.channels.write().insert(id, channel);
         self.stats.channels_created.fetch_add(1, Ordering::Relaxed);
-        
+
         id
     }
-    
+
     /// Close channel
     pub fn close_channel(&self, id: ChannelId) -> bool {
         if let Some(channel) = self.channels.write().remove(&id) {
@@ -774,7 +800,7 @@ impl IPCManager {
             false
         }
     }
-    
+
     /// Send on channel
     pub fn channel_send(&self, channel_id: ChannelId, from: TaskId, msg: Message) -> DISResult<()> {
         let channels = self.channels.read();
@@ -784,58 +810,62 @@ impl IPCManager {
             Err(DISError::ChannelNotFound)
         }
     }
-    
+
     /// Receive from channel
     pub fn channel_receive(&self, channel_id: ChannelId, to: TaskId) -> Option<Message> {
-        self.channels.read()
+        self.channels
+            .read()
             .get(&channel_id)
             .and_then(|ch| ch.receive(to))
     }
-    
+
     // =========================================================================
     // Notification Operations
     // =========================================================================
-    
+
     /// Subscribe to topic
     pub fn subscribe(&self, task_id: TaskId, topic: TopicId) {
         if let Some(sub) = self.subscribers.write().get_mut(&task_id) {
             sub.subscribe(topic);
         }
     }
-    
+
     /// Unsubscribe from topic
     pub fn unsubscribe(&self, task_id: TaskId, topic: TopicId) {
         if let Some(sub) = self.subscribers.write().get_mut(&task_id) {
             sub.unsubscribe(topic);
         }
     }
-    
+
     /// Publish notification
     pub fn publish(&self, notification: Notification) -> usize {
         let mut count = 0;
-        
+
         for sub in self.subscribers.read().values() {
             if sub.is_subscribed(notification.topic) {
                 sub.receive(notification.clone());
                 count += 1;
             }
         }
-        
-        self.stats.notifications_sent.fetch_add(count as u64, Ordering::Relaxed);
+
+        self.stats
+            .notifications_sent
+            .fetch_add(count as u64, Ordering::Relaxed);
         count
     }
-    
+
     /// Get notification
     pub fn get_notification(&self, task_id: TaskId) -> Option<Notification> {
-        self.subscribers.read()
+        self.subscribers
+            .read()
             .get(&task_id)
             .and_then(|sub| sub.next())
     }
-    
+
     // =========================================================================
     // Statistics
     // =========================================================================
-    
+
     /// Get IPC statistics
     pub fn statistics(&self) -> IPCStatistics {
         IPCStatistics {
@@ -904,7 +934,7 @@ impl Request {
     /// Create new request
     pub fn new(method: &str, params: MessagePayload) -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(1);
-        
+
         Self {
             id: MessageId::new(NEXT_ID.fetch_add(1, Ordering::Relaxed)),
             method: method.to_string(),
@@ -912,7 +942,7 @@ impl Request {
             timeout: None,
         }
     }
-    
+
     /// Set timeout
     pub fn with_timeout(mut self, timeout: Nanoseconds) -> Self {
         self.timeout = Some(timeout);
@@ -930,7 +960,7 @@ impl Response {
             error: None,
         }
     }
-    
+
     /// Create error response
     pub fn error(request_id: MessageId, error: &str) -> Self {
         Self {
@@ -949,75 +979,75 @@ impl Response {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_message_creation() {
         let msg = Message::data(TaskId::new(1), TaskId::new(2), vec![1, 2, 3]);
         assert_eq!(msg.sender, TaskId::new(1));
         assert_eq!(msg.recipient, Some(TaskId::new(2)));
     }
-    
+
     #[test]
     fn test_message_queue() {
         let mut queue = MessageQueue::new(TaskId::new(1), 10);
-        
+
         let msg = Message::data(TaskId::new(2), TaskId::new(1), vec![1, 2, 3]);
         queue.enqueue(msg).unwrap();
-        
+
         assert_eq!(queue.pending(), 1);
-        
+
         let received = queue.dequeue().unwrap();
         assert_eq!(received.sender, TaskId::new(2));
-        
+
         assert!(queue.is_empty());
     }
-    
+
     #[test]
     fn test_channel() {
         let channel = Channel::new(ChannelId::new(1), TaskId::new(1), TaskId::new(2));
-        
+
         let msg = Message::data(TaskId::new(1), TaskId::new(2), vec![1, 2, 3]);
         channel.send(TaskId::new(1), msg).unwrap();
-        
+
         assert!(channel.has_pending(TaskId::new(2)));
-        
+
         let received = channel.receive(TaskId::new(2)).unwrap();
         assert_eq!(received.sender, TaskId::new(1));
     }
-    
+
     #[test]
     fn test_ipc_manager() {
         let manager = IPCManager::new();
-        
+
         manager.register_task(TaskId::new(1));
         manager.register_task(TaskId::new(2));
-        
+
         let msg = Message::data(TaskId::new(1), TaskId::new(2), vec![1, 2, 3]);
         manager.send(msg).unwrap();
-        
+
         assert!(manager.has_messages(TaskId::new(2)));
-        
+
         let received = manager.receive(TaskId::new(2)).unwrap();
         assert_eq!(received.sender, TaskId::new(1));
     }
-    
+
     #[test]
     fn test_notifications() {
         let manager = IPCManager::new();
-        
+
         manager.register_task(TaskId::new(1));
         manager.subscribe(TaskId::new(1), TopicId::SCHEDULER);
-        
+
         let notification = Notification {
             topic: TopicId::SCHEDULER,
             event: NotificationEvent::SchedulerTick,
             payload: MessagePayload::Empty,
             timestamp: Nanoseconds::zero(),
         };
-        
+
         let count = manager.publish(notification);
         assert_eq!(count, 1);
-        
+
         let received = manager.get_notification(TaskId::new(1)).unwrap();
         assert_eq!(received.event, NotificationEvent::SchedulerTick);
     }

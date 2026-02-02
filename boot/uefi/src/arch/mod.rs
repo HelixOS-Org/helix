@@ -2,10 +2,10 @@
 //!
 //! Platform-specific implementations for x86_64 and aarch64.
 
-#[cfg(target_arch = "x86_64")]
-pub mod x86_64;
 #[cfg(target_arch = "aarch64")]
 pub mod aarch64;
+#[cfg(target_arch = "x86_64")]
+pub mod x86_64;
 
 use crate::error::Result;
 use crate::raw::types::*;
@@ -19,7 +19,7 @@ use crate::raw::types::*;
 #[repr(u8)]
 pub enum Architecture {
     /// x86-64 (AMD64)
-    X86_64 = 0,
+    X86_64  = 0,
     /// AArch64 (ARM64)
     Aarch64 = 1,
     /// RISC-V 64-bit
@@ -45,7 +45,11 @@ impl Architecture {
         Self::RiscV64
     }
 
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "riscv64")))]
+    #[cfg(not(any(
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "riscv64"
+    )))]
     pub const fn current() -> Self {
         Self::Unknown
     }
@@ -73,7 +77,7 @@ impl Architecture {
     /// Get virtual address bits
     pub fn virtual_address_bits(&self) -> u8 {
         match self {
-            Architecture::X86_64 => 48, // 57 with 5-level paging
+            Architecture::X86_64 => 48,  // 57 with 5-level paging
             Architecture::Aarch64 => 48, // Can be 52 with LVA
             Architecture::RiscV64 => 48, // Sv48
             Architecture::Unknown => 48,

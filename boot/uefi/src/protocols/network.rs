@@ -2,13 +2,13 @@
 //!
 //! High-level network abstraction for network access.
 
-use crate::raw::types::*;
-use crate::error::{Error, Result};
 use super::Protocol;
+use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // NETWORK INTERFACE
@@ -102,10 +102,9 @@ impl NetworkInterface {
 }
 
 impl Protocol for NetworkInterface {
-    const GUID: Guid = Guid::new(
-        0xE18541CD, 0xF755, 0x4F73,
-        [0x92, 0x8D, 0x64, 0x3C, 0x8A, 0x79, 0xB2, 0x29],
-    );
+    const GUID: Guid = Guid::new(0xE18541CD, 0xF755, 0x4F73, [
+        0x92, 0x8D, 0x64, 0x3C, 0x8A, 0x79, 0xB2, 0x29,
+    ]);
 
     fn open(handle: Handle) -> Result<Self> {
         Ok(Self::new(handle))
@@ -275,17 +274,23 @@ impl MacAddress {
     pub fn to_string(&self) -> String {
         alloc::format!(
             "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            self.0[0], self.0[1], self.0[2],
-            self.0[3], self.0[4], self.0[5]
+            self.0[0],
+            self.0[1],
+            self.0[2],
+            self.0[3],
+            self.0[4],
+            self.0[5]
         )
     }
 }
 
 impl core::fmt::Display for MacAddress {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            self.0[0], self.0[1], self.0[2],
-            self.0[3], self.0[4], self.0[5])
+        write!(
+            f,
+            "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5]
+        )
     }
 }
 
@@ -396,10 +401,10 @@ impl Ipv4Address {
 
     /// Convert to u32 (network byte order)
     pub const fn to_u32(&self) -> u32 {
-        ((self.0[0] as u32) << 24) |
-        ((self.0[1] as u32) << 16) |
-        ((self.0[2] as u32) << 8) |
-        (self.0[3] as u32)
+        ((self.0[0] as u32) << 24)
+            | ((self.0[1] as u32) << 16)
+            | ((self.0[2] as u32) << 8)
+            | (self.0[3] as u32)
     }
 
     /// Get octets
@@ -545,9 +550,11 @@ impl Ipv6Address {
 impl core::fmt::Display for Ipv6Address {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let segs = self.segments();
-        write!(f, "{:x}:{:x}:{:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
-            segs[0], segs[1], segs[2], segs[3],
-            segs[4], segs[5], segs[6], segs[7])
+        write!(
+            f,
+            "{:x}:{:x}:{:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
+            segs[0], segs[1], segs[2], segs[3], segs[4], segs[5], segs[6], segs[7]
+        )
     }
 }
 

@@ -18,6 +18,7 @@
 #![no_std]
 
 extern crate alloc;
+use alloc::vec;
 
 pub mod types;
 pub mod info;

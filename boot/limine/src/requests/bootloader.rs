@@ -5,10 +5,9 @@
 
 use core::ffi::CStr;
 
-
-use crate::protocol::request_ids::BOOTLOADER_INFO_ID;
-use crate::protocol::raw::RawBootloaderInfoResponse;
 use super::{LimineRequest, ResponsePtr, SafeResponse};
+use crate::protocol::raw::RawBootloaderInfoResponse;
+use crate::protocol::request_ids::BOOTLOADER_INFO_ID;
 
 /// Bootloader information request
 ///
@@ -21,7 +20,8 @@ use super::{LimineRequest, ResponsePtr, SafeResponse};
 ///
 /// #[used]
 /// #[link_section = ".limine_requests"]
-/// static BOOTLOADER_INFO: BootloaderInfoRequest = BootloaderInfoRequest::new();
+/// static BOOTLOADER_INFO: BootloaderInfoRequest =
+///     BootloaderInfoRequest::new();
 ///
 /// fn print_bootloader_info() {
 ///     if let Some(info) = BOOTLOADER_INFO.response() {
@@ -108,11 +108,7 @@ impl BootloaderInfoResponse {
         }
 
         // Safety: Bootloader guarantees null-terminated ASCII string
-        unsafe {
-            CStr::from_ptr(self.raw.name)
-                .to_str()
-                .unwrap_or("")
-        }
+        unsafe { CStr::from_ptr(self.raw.name).to_str().unwrap_or("") }
     }
 
     /// Get the bootloader version as a string slice
@@ -124,11 +120,7 @@ impl BootloaderInfoResponse {
         }
 
         // Safety: Bootloader guarantees null-terminated ASCII string
-        unsafe {
-            CStr::from_ptr(self.raw.version)
-                .to_str()
-                .unwrap_or("")
-        }
+        unsafe { CStr::from_ptr(self.raw.version).to_str().unwrap_or("") }
     }
 
     /// Get the response revision

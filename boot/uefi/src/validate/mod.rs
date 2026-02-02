@@ -120,12 +120,18 @@ impl ValidationResult {
 
     /// Check if passed (valid or warning)
     pub const fn passed(&self) -> bool {
-        matches!(self.status, ValidationStatus::Valid | ValidationStatus::Warning)
+        matches!(
+            self.status,
+            ValidationStatus::Valid | ValidationStatus::Warning
+        )
     }
 
     /// Check if failed
     pub const fn failed(&self) -> bool {
-        matches!(self.status, ValidationStatus::Invalid | ValidationStatus::Error)
+        matches!(
+            self.status,
+            ValidationStatus::Invalid | ValidationStatus::Error
+        )
     }
 }
 
@@ -905,7 +911,7 @@ impl Default for HardwareRequirements {
         Self {
             cpu_features: [CpuFeature::LongMode; 16],
             feature_count: 0,
-            min_memory: 64 * 1024 * 1024, // 64 MB
+            min_memory: 64 * 1024 * 1024,          // 64 MB
             recommended_memory: 256 * 1024 * 1024, // 256 MB
             min_cores: 1,
             graphics_required: false,
@@ -1022,11 +1028,11 @@ impl ValidationSuite {
             ValidationStatus::Warning => {
                 self.passed_checks += 1;
                 self.warning_count += result.warnings as u32;
-            }
+            },
             ValidationStatus::Invalid | ValidationStatus::Error => {
                 self.failed_checks += 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -1090,8 +1096,7 @@ mod tests {
 
     #[test]
     fn test_file_validation_flags() {
-        let flags = FileValidationFlags::CHECK_EXISTS
-            .with(FileValidationFlags::CHECK_CHECKSUM);
+        let flags = FileValidationFlags::CHECK_EXISTS.with(FileValidationFlags::CHECK_CHECKSUM);
         assert!(flags.has(FileValidationFlags::CHECK_EXISTS));
         assert!(flags.has(FileValidationFlags::CHECK_CHECKSUM));
         assert!(!flags.has(FileValidationFlags::CHECK_SIGNATURE));

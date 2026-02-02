@@ -2,8 +2,8 @@
 //!
 //! Hard links, symbolic links, and rename operations.
 
-use crate::core::error::{HfsError, HfsResult};
 use super::MAX_SYMLINK_LOOPS;
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Link Parameters
@@ -36,29 +36,29 @@ impl LinkParams {
         params.name_len = len as u8;
         params
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
     }
-    
+
     /// Validate
     pub fn validate(&self) -> HfsResult<()> {
         if self.name_len == 0 {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         // Check for invalid names
         let name = self.name();
         if name == b"." || name == b".." {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         // Check for slashes
         if name.contains(&b'/') {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         Ok(())
     }
 }
@@ -90,14 +90,14 @@ impl UnlinkParams {
         params.name_len = len as u8;
         params
     }
-    
+
     /// Create rmdir params
     pub fn rmdir(parent_ino: u64, name: &[u8]) -> Self {
         let mut params = Self::new(parent_ino, name);
         params.is_dir = true;
         params
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
@@ -142,28 +142,28 @@ impl SymlinkParams {
             uid,
             gid,
         };
-        
+
         let name_len = core::cmp::min(name.len(), 255);
         params.name[..name_len].copy_from_slice(&name[..name_len]);
         params.name_len = name_len as u8;
-        
+
         let target_len = core::cmp::min(target.len(), MAX_SYMLINK_LEN);
         params.target[..target_len].copy_from_slice(&target[..target_len]);
         params.target_len = target_len as u16;
-        
+
         params
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
     }
-    
+
     /// Get target
     pub fn target(&self) -> &[u8] {
         &self.target[..self.target_len as usize]
     }
-    
+
     /// Validate
     pub fn validate(&self) -> HfsResult<()> {
         if self.name_len == 0 {
@@ -172,7 +172,7 @@ impl SymlinkParams {
         if self.target_len == 0 {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         let name = self.name();
         if name == b"." || name == b".." {
             return Err(HfsError::InvalidArgument);
@@ -180,7 +180,7 @@ impl SymlinkParams {
         if name.contains(&b'/') {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         Ok(())
     }
 }
@@ -206,7 +206,7 @@ impl ReadlinkResult {
         result.len = len as u16;
         result
     }
-    
+
     /// Get target
     pub fn target(&self) -> &[u8] {
         &self.target[..self.len as usize]
@@ -238,17 +238,17 @@ impl RenameFlags {
     pub const EXCHANGE: u32 = 1 << 1;
     /// Whiteout source
     pub const WHITEOUT: u32 = 1 << 2;
-    
+
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Is exchange
     pub fn is_exchange(&self) -> bool {
         self.has(Self::EXCHANGE)
     }
-    
+
     /// Is noreplace
     pub fn is_noreplace(&self) -> bool {
         self.has(Self::NOREPLACE)
@@ -276,12 +276,7 @@ pub struct RenameParams {
 
 impl RenameParams {
     /// Create new rename params
-    pub fn new(
-        src_parent_ino: u64,
-        src_name: &[u8],
-        dst_parent_ino: u64,
-        dst_name: &[u8],
-    ) -> Self {
+    pub fn new(src_parent_ino: u64, src_name: &[u8], dst_parent_ino: u64, dst_name: &[u8]) -> Self {
         let mut params = Self {
             src_parent_ino,
             src_name: [0; 256],
@@ -291,63 +286,63 @@ impl RenameParams {
             dst_name_len: 0,
             flags: RenameFlags::default(),
         };
-        
+
         let src_len = core::cmp::min(src_name.len(), 255);
         params.src_name[..src_len].copy_from_slice(&src_name[..src_len]);
         params.src_name_len = src_len as u8;
-        
+
         let dst_len = core::cmp::min(dst_name.len(), 255);
         params.dst_name[..dst_len].copy_from_slice(&dst_name[..dst_len]);
         params.dst_name_len = dst_len as u8;
-        
+
         params
     }
-    
+
     /// With flags
     pub fn with_flags(mut self, flags: RenameFlags) -> Self {
         self.flags = flags;
         self
     }
-    
+
     /// Get source name
     pub fn src_name(&self) -> &[u8] {
         &self.src_name[..self.src_name_len as usize]
     }
-    
+
     /// Get destination name
     pub fn dst_name(&self) -> &[u8] {
         &self.dst_name[..self.dst_name_len as usize]
     }
-    
+
     /// Is same directory
     pub fn is_same_dir(&self) -> bool {
         self.src_parent_ino == self.dst_parent_ino
     }
-    
+
     /// Validate
     pub fn validate(&self) -> HfsResult<()> {
         if self.src_name_len == 0 || self.dst_name_len == 0 {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         let src = self.src_name();
         let dst = self.dst_name();
-        
+
         // Cannot rename . or ..
         if src == b"." || src == b".." || dst == b"." || dst == b".." {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         // Check for slashes
         if src.contains(&b'/') || dst.contains(&b'/') {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         // EXCHANGE and NOREPLACE are mutually exclusive
         if self.flags.is_exchange() && self.flags.is_noreplace() {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         Ok(())
     }
 }
@@ -370,12 +365,12 @@ impl LinkCount {
     pub fn new(count: u32) -> Self {
         Self { count }
     }
-    
+
     /// Get count
     pub fn get(&self) -> u32 {
         self.count
     }
-    
+
     /// Increment
     pub fn inc(&mut self) -> HfsResult<u32> {
         if self.count >= MAX_LINKS {
@@ -384,13 +379,13 @@ impl LinkCount {
         self.count += 1;
         Ok(self.count)
     }
-    
+
     /// Decrement
     pub fn dec(&mut self) -> u32 {
         self.count = self.count.saturating_sub(1);
         self.count
     }
-    
+
     /// Is orphaned (no links)
     pub fn is_orphaned(&self) -> bool {
         self.count == 0
@@ -430,12 +425,12 @@ impl SymlinkContext {
             max_total: MAX_SYMLINK_LOOPS as u8,
         }
     }
-    
+
     /// Can follow another link
     pub fn can_follow(&self) -> bool {
         self.depth < self.max_depth && self.total_links < self.max_total
     }
-    
+
     /// Enter symlink
     pub fn enter(&mut self) -> HfsResult<()> {
         if !self.can_follow() {
@@ -445,7 +440,7 @@ impl SymlinkContext {
         self.total_links += 1;
         Ok(())
     }
-    
+
     /// Exit symlink
     pub fn exit(&mut self) {
         self.depth = self.depth.saturating_sub(1);
@@ -465,19 +460,19 @@ impl Default for SymlinkContext {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_link_params() {
         let params = LinkParams::new(100, 2, b"newlink");
         assert_eq!(params.name(), b"newlink");
         assert!(params.validate().is_ok());
-        
+
         // Invalid: contains slash
         let mut params = LinkParams::new(100, 2, b"invalid/name");
         params.name[7] = b'/';
         assert!(params.validate().is_err());
     }
-    
+
     #[test]
     fn test_symlink_params() {
         let params = SymlinkParams::new(2, b"link", b"/path/to/target", 1000, 1000);
@@ -485,7 +480,7 @@ mod tests {
         assert_eq!(params.target(), b"/path/to/target");
         assert!(params.validate().is_ok());
     }
-    
+
     #[test]
     fn test_rename_params() {
         let params = RenameParams::new(2, b"old.txt", 2, b"new.txt");
@@ -494,43 +489,43 @@ mod tests {
         assert!(params.is_same_dir());
         assert!(params.validate().is_ok());
     }
-    
+
     #[test]
     fn test_rename_flags() {
         let flags = RenameFlags(RenameFlags::NOREPLACE);
         assert!(flags.is_noreplace());
         assert!(!flags.is_exchange());
-        
+
         // EXCHANGE and NOREPLACE together is invalid
         let params = RenameParams::new(2, b"a", 2, b"b")
             .with_flags(RenameFlags(RenameFlags::NOREPLACE | RenameFlags::EXCHANGE));
         assert!(params.validate().is_err());
     }
-    
+
     #[test]
     fn test_link_count() {
         let mut lc = LinkCount::new(1);
         assert_eq!(lc.get(), 1);
-        
+
         assert!(lc.inc().is_ok());
         assert_eq!(lc.get(), 2);
-        
+
         lc.dec();
         assert_eq!(lc.get(), 1);
-        
+
         lc.dec();
         assert!(lc.is_orphaned());
     }
-    
+
     #[test]
     fn test_symlink_context() {
         let mut ctx = SymlinkContext::new();
-        
+
         for _ in 0..8 {
             assert!(ctx.can_follow());
             ctx.enter().unwrap();
         }
-        
+
         // Max depth reached
         assert!(!ctx.can_follow());
         assert!(ctx.enter().is_err());

@@ -61,7 +61,6 @@
 
 extern crate alloc;
 
-
 // =============================================================================
 // MODULES
 // =============================================================================
@@ -532,11 +531,11 @@ fn alloc_error(_layout: core::alloc::Layout) -> ! {
 // =============================================================================
 
 pub use error::{Error, Result};
-pub use raw::types::{Handle, Status, Guid, PhysicalAddress, VirtualAddress};
-pub use raw::system_table::{SystemTablePtr, EfiSystemTable};
+pub use handoff::BootInfo;
+pub use raw::system_table::{EfiSystemTable, SystemTablePtr};
+pub use raw::types::{Guid, Handle, PhysicalAddress, Status, VirtualAddress};
 pub use services::boot::BootServices;
 pub use services::runtime::RuntimeServices;
-pub use handoff::BootInfo;
 
 /// Alias for EfiSystemTable for convenience
 pub type SystemTable = EfiSystemTable;
@@ -553,83 +552,69 @@ pub mod prelude {
     //! use helix_uefi::prelude::*;
     //! ```
 
-    pub use crate::{
-        // Core types
-        Handle, Status, Guid,
-        SystemTablePtr, BootServices, RuntimeServices,
-
-        // Memory
-        PhysicalAddress, VirtualAddress,
-
-        // Handoff
-        BootInfo,
-
-        // Error handling
-        Error, Result,
-
-        // Entry macro
-        entry,
-    };
-
-    // Protocol traits
-    pub use crate::protocols::Protocol;
-
+    // ACPI tables
+    pub use crate::acpi::SdtHeader;
+    // Compression
+    pub use crate::compress::{rle_compress, rle_decompress, CompressionType};
+    // Debug utilities
+    pub use crate::debug::SerialPort;
+    // Diagnostics
+    pub use crate::diag::{BootProgress, BootStage};
+    // ELF parsing
+    pub use crate::elf::{Elf64Header, Elf64ProgramHeader};
+    // Event utilities
+    pub use crate::event::{Event, EventType, Mutex, Semaphore, Tpl};
+    // GUID utilities
+    pub use crate::guid::Guid as GuidExt;
+    // Allocator utilities
+    pub use crate::mem_alloc::{AllocError, BitmapAllocator, PoolAllocator};
+    // PCI utilities
+    pub use crate::pci::{Bar, PciAddress, PciConfigHeader};
+    // PE parsing
+    pub use crate::pe::DosHeader;
     // Console
     #[cfg(feature = "simple_text")]
     pub use crate::protocols::console::{Console, InputKey};
-
-    // Graphics
-    #[cfg(feature = "gop")]
-    pub use crate::protocols::graphics::{GraphicsOutput, PixelFormat, ModeInfo};
-
     // Filesystem
     #[cfg(feature = "filesystem")]
-    pub use crate::protocols::filesystem::{FileSystem, File, FileInfo};
-
-    // Time utilities
-    pub use crate::time::{Time, Duration, Instant, Timer};
-
-    // String utilities
-    pub use crate::string::{Char16, CStr16, String16};
-
-    // GUID utilities
-    pub use crate::guid::Guid as GuidExt;
-
-    // Allocator utilities
-    pub use crate::mem_alloc::{BitmapAllocator, PoolAllocator, AllocError};
-
-    // Event utilities
-    pub use crate::event::{Event, EventType, Tpl, Mutex, Semaphore};
-
-    // Variable utilities
-    pub use crate::variable::{VariableAttributes, VariableStorage};
-
-    // PCI utilities
-    pub use crate::pci::{PciAddress, PciConfigHeader, Bar};
-
-    // Debug utilities
-    pub use crate::debug::SerialPort;
-
-    // Diagnostics
-    pub use crate::diag::{BootProgress, BootStage};
-
-    // Compression
-    pub use crate::compress::{CompressionType, rle_compress, rle_decompress};
-
-    // ELF parsing
-    pub use crate::elf::{Elf64Header, Elf64ProgramHeader};
-
-    // PE parsing
-    pub use crate::pe::DosHeader;
-
-    // ACPI tables
-    pub use crate::acpi::SdtHeader;
-
+    pub use crate::protocols::filesystem::{File, FileInfo, FileSystem};
+    // Graphics
+    #[cfg(feature = "gop")]
+    pub use crate::protocols::graphics::{GraphicsOutput, ModeInfo, PixelFormat};
+    // Protocol traits
+    pub use crate::protocols::Protocol;
     // SMBIOS tables
     pub use crate::smbios::{Smbios2EntryPoint, SmbiosTable};
-
+    // String utilities
+    pub use crate::string::{CStr16, Char16, String16};
+    // Time utilities
+    pub use crate::time::{Duration, Instant, Time, Timer};
+    // Variable utilities
+    pub use crate::variable::{VariableAttributes, VariableStorage};
     // Environment
     pub use crate::UefiEnv;
+    pub use crate::{
+        // Entry macro
+        entry,
+        // Handoff
+        BootInfo,
+
+        BootServices,
+        // Error handling
+        Error,
+        Guid,
+        // Core types
+        Handle,
+        // Memory
+        PhysicalAddress,
+        Result,
+
+        RuntimeServices,
+
+        Status,
+        SystemTablePtr,
+        VirtualAddress,
+    };
 }
 
 // =============================================================================
@@ -643,8 +628,7 @@ static SYSTEM_TABLE: AtomicPtr<raw::system_table::EfiSystemTable> =
     AtomicPtr::new(core::ptr::null_mut());
 
 /// Global image handle (set by entry point)
-static IMAGE_HANDLE: AtomicPtr<core::ffi::c_void> =
-    AtomicPtr::new(core::ptr::null_mut());
+static IMAGE_HANDLE: AtomicPtr<core::ffi::c_void> = AtomicPtr::new(core::ptr::null_mut());
 
 /// Boot services exited flag
 static BOOT_SERVICES_EXITED: AtomicBool = AtomicBool::new(false);
@@ -845,7 +829,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
             let console = protocols::console::Console::new(st);
             let _ = console.set_color(
                 protocols::console::Color::RED,
-                protocols::console::Color::BLACK
+                protocols::console::Color::BLACK,
             );
             let _ = console.write("\r\n\r\n*** PANIC ***\r\n");
             if let Some(location) = info.location() {
@@ -861,10 +845,14 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     // Halt
     loop {
         #[cfg(target_arch = "x86_64")]
-        unsafe { core::arch::asm!("hlt") };
+        unsafe {
+            core::arch::asm!("hlt")
+        };
 
         #[cfg(target_arch = "aarch64")]
-        unsafe { core::arch::asm!("wfi") };
+        unsafe {
+            core::arch::asm!("wfi")
+        };
     }
 }
 
@@ -884,12 +872,9 @@ mod tests {
 
     #[test]
     fn test_guid_creation() {
-        let guid = Guid::new(
-            0x12345678,
-            0x1234,
-            0x5678,
-            [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0],
-        );
+        let guid = Guid::new(0x12345678, 0x1234, 0x5678, [
+            0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0,
+        ]);
         assert_eq!(guid.data1(), 0x12345678);
     }
 }

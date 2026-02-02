@@ -9,12 +9,12 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use crate::types::{DomainId, ProbeId, Timestamp};
 use super::collector::{CollectorStats, EventCollector, EventCollectorConfig};
 use super::probe::{Probe, ProbeError};
 use super::probes::{CpuProbe, MemoryProbe};
 use super::registry::ProbeRegistry;
 use super::signal::{NormalizerStats, Signal, SignalNormalizer};
+use crate::types::{DomainId, ProbeId, Timestamp};
 
 // ============================================================================
 // CONFIGURATION

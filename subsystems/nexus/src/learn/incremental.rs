@@ -8,12 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::math::F64Ext;
 use crate::types::Timestamp;
 
 // ============================================================================
@@ -112,7 +113,8 @@ pub struct RunningStats {
 }
 
 impl RunningStats {
-    fn new(dim: usize) -> Self {
+    /// Create new running stats with given dimension
+    pub fn new(dim: usize) -> Self {
         Self {
             count: 0,
             mean: vec![0.0; dim],
@@ -151,7 +153,10 @@ impl RunningStats {
         if self.count < 2 {
             return vec![0.0; self.m2.len()];
         }
-        self.m2.iter().map(|m| m / (self.count - 1) as f64).collect()
+        self.m2
+            .iter()
+            .map(|m| m / (self.count - 1) as f64)
+            .collect()
     }
 }
 
@@ -256,11 +261,13 @@ impl IncrementalEngine {
     pub fn update(&mut self, model_id: u64, example: Example) -> UpdateResult {
         let model = match self.models.get_mut(&model_id) {
             Some(m) => m,
-            None => return UpdateResult {
-                success: false,
-                parameters_changed: 0,
-                old_loss: None,
-                new_loss: None,
+            None => {
+                return UpdateResult {
+                    success: false,
+                    parameters_changed: 0,
+                    old_loss: None,
+                    new_loss: None,
+                };
             },
         };
 
@@ -296,11 +303,13 @@ impl IncrementalEngine {
     fn update_naive_bayes(&mut self, model_id: u64, example: &Example) -> UpdateResult {
         let class = match &example.label {
             Label::Class(c) => *c,
-            _ => return UpdateResult {
-                success: false,
-                parameters_changed: 0,
-                old_loss: None,
-                new_loss: None,
+            _ => {
+                return UpdateResult {
+                    success: false,
+                    parameters_changed: 0,
+                    old_loss: None,
+                    new_loss: None,
+                };
             },
         };
 
@@ -311,7 +320,9 @@ impl IncrementalEngine {
 
         // Update feature sums
         if let Some(sums) = self.feature_sums.get_mut(&model_id) {
-            let class_sums = sums.entry(class).or_insert_with(|| vec![0.0; example.features.len()]);
+            let class_sums = sums
+                .entry(class)
+                .or_insert_with(|| vec![0.0; example.features.len()]);
 
             for (i, &f) in example.features.iter().enumerate() {
                 if i < class_sums.len() {
@@ -330,23 +341,33 @@ impl IncrementalEngine {
 
     fn update_perceptron(&mut self, model_id: u64, example: &Example) -> UpdateResult {
         let target = match &example.label {
-            Label::Class(c) => if *c == 0 { -1.0 } else { 1.0 },
+            Label::Class(c) => {
+                if *c == 0 {
+                    -1.0
+                } else {
+                    1.0
+                }
+            },
             Label::Regression(r) => *r,
-            _ => return UpdateResult {
-                success: false,
-                parameters_changed: 0,
-                old_loss: None,
-                new_loss: None,
+            _ => {
+                return UpdateResult {
+                    success: false,
+                    parameters_changed: 0,
+                    old_loss: None,
+                    new_loss: None,
+                };
             },
         };
 
         let model = match self.models.get_mut(&model_id) {
             Some(m) => m,
-            None => return UpdateResult {
-                success: false,
-                parameters_changed: 0,
-                old_loss: None,
-                new_loss: None,
+            None => {
+                return UpdateResult {
+                    success: false,
+                    parameters_changed: 0,
+                    old_loss: None,
+                    new_loss: None,
+                };
             },
         };
 
@@ -416,21 +437,25 @@ impl IncrementalEngine {
         let target = match &example.label {
             Label::Regression(r) => *r,
             Label::Class(c) => *c as f64,
-            _ => return UpdateResult {
-                success: false,
-                parameters_changed: 0,
-                old_loss: None,
-                new_loss: None,
+            _ => {
+                return UpdateResult {
+                    success: false,
+                    parameters_changed: 0,
+                    old_loss: None,
+                    new_loss: None,
+                };
             },
         };
 
         let model = match self.models.get_mut(&model_id) {
             Some(m) => m,
-            None => return UpdateResult {
-                success: false,
-                parameters_changed: 0,
-                old_loss: None,
-                new_loss: None,
+            None => {
+                return UpdateResult {
+                    success: false,
+                    parameters_changed: 0,
+                    old_loss: None,
+                    new_loss: None,
+                };
             },
         };
 
@@ -566,9 +591,12 @@ impl IncrementalEngine {
 
         // Find k nearest
         let k = 3.min(buffer.len());
-        let mut distances: Vec<_> = buffer.iter()
+        let mut distances: Vec<_> = buffer
+            .iter()
             .map(|ex| {
-                let dist: f64 = ex.features.iter()
+                let dist: f64 = ex
+                    .features
+                    .iter()
                     .zip(features.iter())
                     .map(|(a, b)| (a - b) * (a - b))
                     .sum();
@@ -586,8 +614,7 @@ impl IncrementalEngine {
             }
         }
 
-        let (best_class, best_count) = votes.iter()
-            .max_by_key(|&(_, &count)| count)?;
+        let (best_class, best_count) = votes.iter().max_by_key(|&(_, &count)| count)?;
 
         Some(Prediction {
             label: Label::Class(*best_class),

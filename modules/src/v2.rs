@@ -5,11 +5,12 @@
 //! This module provides a simplified, consistent interface for all modules.
 //! It maintains backward compatibility while providing a cleaner API.
 
-use crate::{ModuleId, ModuleVersion, ModuleFlags, ModuleError};
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
+
+use crate::{ModuleError, ModuleFlags, ModuleId, ModuleVersion};
 
 // =============================================================================
 // Module Metadata v2
@@ -203,7 +204,11 @@ impl<'a> Context<'a> {
         config: &'a dyn Fn(&str) -> Option<&'a str>,
         request_service: &'a dyn Fn(&str, Request) -> Result<Response, ModuleError>,
     ) -> Self {
-        Self { id, config, request_service }
+        Self {
+            id,
+            config,
+            request_service,
+        }
     }
 
     /// Get a configuration value
@@ -330,7 +335,7 @@ pub trait ModuleTrait: Send + Sync {
 // Compatibility Layer
 // =============================================================================
 
-use crate::{Module, ModuleContext, ModuleMetadata, ModuleDependency};
+use crate::{Module, ModuleContext, ModuleDependency, ModuleMetadata};
 
 /// Adapter to use ModuleTrait with the old Module interface
 pub struct ModuleAdapter<T: ModuleTrait> {
@@ -367,7 +372,9 @@ impl<T: ModuleTrait> ModuleAdapter<T> {
             authors: alloc::vec![String::from(info.author)],
             license: String::from(info.license),
             flags: info.flags,
-            dependencies: info.dependencies.iter()
+            dependencies: info
+                .dependencies
+                .iter()
                 .map(|&dep| ModuleDependency {
                     name: String::from(dep),
                     min_version: ModuleVersion::new(0, 0, 0),
@@ -375,9 +382,7 @@ impl<T: ModuleTrait> ModuleAdapter<T> {
                     optional: false,
                 })
                 .collect(),
-            provides: info.provides.iter()
-                .map(|&p| String::from(p))
-                .collect(),
+            provides: info.provides.iter().map(|&p| String::from(p)).collect(),
             abi_version: crate::abi::AbiVersion::CURRENT,
         }
     }
@@ -405,13 +410,11 @@ impl<T: ModuleTrait + 'static> Module for ModuleAdapter<T> {
 
     fn init(&mut self, ctx: &ModuleContext) -> crate::ModuleResult<()> {
         // Create a v2 context from the old context
-        let config_fn = |key: &str| -> Option<&str> {
-            ctx.config.get(key).map(|s| s.as_str())
-        };
+        let config_fn = |key: &str| -> Option<&str> { ctx.config.get(key).map(|s| s.as_str()) };
         let request_fn = |_target: &str, _request: Request| -> Result<Response, ModuleError> {
             Err(ModuleError::NotFound)
         };
-        
+
         let v2_ctx = Context::new(ctx.id, &config_fn, &request_fn);
         self.inner.init(&v2_ctx)
     }
@@ -429,7 +432,9 @@ impl<T: ModuleTrait + 'static> Module for ModuleAdapter<T> {
     }
 
     fn get_state(&self) -> Option<Box<dyn Any + Send + Sync>> {
-        self.inner.save_state().map(|v| Box::new(v) as Box<dyn Any + Send + Sync>)
+        self.inner
+            .save_state()
+            .map(|v| Box::new(v) as Box<dyn Any + Send + Sync>)
     }
 
     fn restore_state(&mut self, state: Box<dyn Any + Send + Sync>) -> crate::ModuleResult<()> {
@@ -452,13 +457,13 @@ macro_rules! module_v2 {
         $vis:vis struct $name:ident {
             $($field:ident : $type:ty = $default:expr),* $(,)?
         }
-        
+
         info: {
             name: $mod_name:expr,
             version: ($major:expr, $minor:expr, $patch:expr),
             $($info_key:ident : $info_val:expr),* $(,)?
         }
-        
+
         $(impl { $($impl_body:tt)* })?
     ) => {
         $vis struct $name {

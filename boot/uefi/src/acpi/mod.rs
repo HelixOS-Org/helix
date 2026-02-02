@@ -57,7 +57,9 @@ impl Rsdp {
             return false;
         }
 
-        let sum: u8 = bytes[..Self::SIZE].iter().fold(0u8, |a, &b| a.wrapping_add(b));
+        let sum: u8 = bytes[..Self::SIZE]
+            .iter()
+            .fold(0u8, |a, &b| a.wrapping_add(b));
         sum == 0
     }
 
@@ -120,7 +122,9 @@ impl RsdpExtended {
             return false;
         }
 
-        let sum: u8 = bytes[..Self::SIZE].iter().fold(0u8, |a, &b| a.wrapping_add(b));
+        let sum: u8 = bytes[..Self::SIZE]
+            .iter()
+            .fold(0u8, |a, &b| a.wrapping_add(b));
         sum == 0
     }
 }
@@ -319,7 +323,7 @@ impl<'a> Rsdt<'a> {
         }
 
         Some(u32::from_le_bytes(
-            self.data[offset..offset + 4].try_into().ok()?
+            self.data[offset..offset + 4].try_into().ok()?,
         ))
     }
 
@@ -335,7 +339,7 @@ impl<'a> Rsdt<'a> {
             }
 
             Some(u32::from_le_bytes(
-                data[offset..offset + 4].try_into().ok()?
+                data[offset..offset + 4].try_into().ok()?,
             ))
         })
     }
@@ -382,7 +386,7 @@ impl<'a> Xsdt<'a> {
         }
 
         Some(u64::from_le_bytes(
-            self.data[offset..offset + 8].try_into().ok()?
+            self.data[offset..offset + 8].try_into().ok()?,
         ))
     }
 
@@ -398,7 +402,7 @@ impl<'a> Xsdt<'a> {
             }
 
             Some(u64::from_le_bytes(
-                data[offset..offset + 8].try_into().ok()?
+                data[offset..offset + 8].try_into().ok()?,
             ))
         })
     }
@@ -438,10 +442,14 @@ impl MadtHeader {
         Some(Self {
             header,
             local_apic_address: u32::from_le_bytes(
-                bytes[SdtHeader::SIZE..SdtHeader::SIZE + 4].try_into().ok()?
+                bytes[SdtHeader::SIZE..SdtHeader::SIZE + 4]
+                    .try_into()
+                    .ok()?,
             ),
             flags: u32::from_le_bytes(
-                bytes[SdtHeader::SIZE + 4..SdtHeader::SIZE + 8].try_into().ok()?
+                bytes[SdtHeader::SIZE + 4..SdtHeader::SIZE + 8]
+                    .try_into()
+                    .ok()?,
             ),
         })
     }
@@ -805,11 +813,10 @@ impl<'a> Madt<'a> {
 
     /// Count enabled processors
     pub fn processor_count(&self) -> usize {
-        let local_apic_count = self.local_apics()
-            .filter(|la| la.is_enabled())
-            .count();
+        let local_apic_count = self.local_apics().filter(|la| la.is_enabled()).count();
 
-        let x2apic_count = self.entries()
+        let x2apic_count = self
+            .entries()
             .filter_map(|e| {
                 if e.header.entry_type == madt_entry_type::LOCAL_X2APIC {
                     MadtLocalX2Apic::from_bytes(e.data)
@@ -1087,10 +1094,12 @@ impl Hpet {
         Some(Self {
             header,
             event_timer_block_id: u32::from_le_bytes(
-                bytes[SdtHeader::SIZE..SdtHeader::SIZE + 4].try_into().ok()?
+                bytes[SdtHeader::SIZE..SdtHeader::SIZE + 4]
+                    .try_into()
+                    .ok()?,
             ),
             base_address: GenericAddress::from_bytes(
-                &bytes[SdtHeader::SIZE + 4..SdtHeader::SIZE + 16]
+                &bytes[SdtHeader::SIZE + 4..SdtHeader::SIZE + 16],
             )?,
             hpet_number: bytes[SdtHeader::SIZE + 16],
             min_clock_tick: u16::from_le_bytes([

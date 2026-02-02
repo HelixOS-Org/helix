@@ -2,8 +2,9 @@
 //!
 //! Provides raw block-level access to storage devices.
 
-use crate::raw::types::*;
 use core::fmt;
+
+use crate::raw::types::*;
 
 // =============================================================================
 // BLOCK I/O PROTOCOL
@@ -19,10 +20,7 @@ pub struct EfiBlockIoProtocol {
     pub media: *mut EfiBlockIoMedia,
 
     /// Reset the block device
-    pub reset: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        extended_verification: Boolean,
-    ) -> Status,
+    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verification: Boolean) -> Status,
 
     /// Read blocks from the device
     pub read_blocks: unsafe extern "efiapi" fn(
@@ -70,19 +68,9 @@ impl EfiBlockIoProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer and buffer are valid.
-    pub unsafe fn read_blocks(
-        &mut self,
-        lba: u64,
-        buffer: &mut [u8],
-    ) -> Result<(), Status> {
+    pub unsafe fn read_blocks(&mut self, lba: u64, buffer: &mut [u8]) -> Result<(), Status> {
         let media_id = self.media_info().ok_or(Status::DEVICE_ERROR)?.media_id;
-        let status = (self.read_blocks)(
-            self,
-            media_id,
-            lba,
-            buffer.len(),
-            buffer.as_mut_ptr(),
-        );
+        let status = (self.read_blocks)(self, media_id, lba, buffer.len(), buffer.as_mut_ptr());
         status.to_status_result()
     }
 
@@ -90,19 +78,9 @@ impl EfiBlockIoProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer is valid.
-    pub unsafe fn write_blocks(
-        &mut self,
-        lba: u64,
-        buffer: &[u8],
-    ) -> Result<(), Status> {
+    pub unsafe fn write_blocks(&mut self, lba: u64, buffer: &[u8]) -> Result<(), Status> {
         let media_id = self.media_info().ok_or(Status::DEVICE_ERROR)?.media_id;
-        let status = (self.write_blocks)(
-            self,
-            media_id,
-            lba,
-            buffer.len(),
-            buffer.as_ptr(),
-        );
+        let status = (self.write_blocks)(self, media_id, lba, buffer.len(), buffer.as_ptr());
         status.to_status_result()
     }
 
@@ -148,7 +126,8 @@ impl EfiBlockIoProtocol {
     /// # Safety
     /// The caller must ensure the protocol pointer is valid.
     pub unsafe fn total_size(&self) -> Option<u64> {
-        self.media_info().map(|m| (m.last_block + 1) * m.block_size as u64)
+        self.media_info()
+            .map(|m| (m.last_block + 1) * m.block_size as u64)
     }
 }
 
@@ -247,10 +226,7 @@ pub struct EfiBlockIo2Protocol {
     pub media: *mut EfiBlockIoMedia,
 
     /// Reset the device
-    pub reset: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        extended_verification: Boolean,
-    ) -> Status,
+    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verification: Boolean) -> Status,
 
     /// Read blocks (async)
     pub read_blocks_ex: unsafe extern "efiapi" fn(
@@ -273,10 +249,8 @@ pub struct EfiBlockIo2Protocol {
     ) -> Status,
 
     /// Flush blocks (async)
-    pub flush_blocks_ex: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        token: *mut EfiBlockIo2Token,
-    ) -> Status,
+    pub flush_blocks_ex:
+        unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiBlockIo2Token) -> Status,
 }
 
 impl EfiBlockIo2Protocol {
@@ -348,13 +322,7 @@ impl EfiDiskIoProtocol {
         offset: u64,
         buffer: &mut [u8],
     ) -> Result<(), Status> {
-        let status = (self.read_disk)(
-            self,
-            media_id,
-            offset,
-            buffer.len(),
-            buffer.as_mut_ptr(),
-        );
+        let status = (self.read_disk)(self, media_id, offset, buffer.len(), buffer.as_mut_ptr());
         status.to_status_result()
     }
 
@@ -368,13 +336,7 @@ impl EfiDiskIoProtocol {
         offset: u64,
         buffer: &[u8],
     ) -> Result<(), Status> {
-        let status = (self.write_disk)(
-            self,
-            media_id,
-            offset,
-            buffer.len(),
-            buffer.as_ptr(),
-        );
+        let status = (self.write_disk)(self, media_id, offset, buffer.len(), buffer.as_ptr());
         status.to_status_result()
     }
 }
@@ -421,10 +383,8 @@ pub struct EfiDiskIo2Protocol {
     ) -> Status,
 
     /// Flush pending writes (async)
-    pub flush_disk_ex: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        token: *mut EfiDiskIo2Token,
-    ) -> Status,
+    pub flush_disk_ex:
+        unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiDiskIo2Token) -> Status,
 }
 
 impl EfiDiskIo2Protocol {
@@ -461,9 +421,9 @@ pub enum EfiPartitionType {
     /// Other partition type
     Other = 0,
     /// MBR partition
-    Mbr = 1,
+    Mbr   = 1,
     /// GPT partition
-    Gpt = 2,
+    Gpt   = 2,
 }
 
 /// Partition Info Protocol
@@ -620,52 +580,44 @@ pub mod partition_types {
     pub const UNUSED: Guid = Guid::NULL;
 
     /// EFI System Partition
-    pub const EFI_SYSTEM: Guid = Guid::new(
-        0xC12A7328, 0xF81F, 0x11D2,
-        [0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B]
-    );
+    pub const EFI_SYSTEM: Guid = Guid::new(0xC12A7328, 0xF81F, 0x11D2, [
+        0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B,
+    ]);
 
     /// Microsoft Reserved Partition
-    pub const MICROSOFT_RESERVED: Guid = Guid::new(
-        0xE3C9E316, 0x0B5C, 0x4DB8,
-        [0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE]
-    );
+    pub const MICROSOFT_RESERVED: Guid = Guid::new(0xE3C9E316, 0x0B5C, 0x4DB8, [
+        0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE,
+    ]);
 
     /// Microsoft Basic Data Partition
-    pub const MICROSOFT_BASIC_DATA: Guid = Guid::new(
-        0xEBD0A0A2, 0xB9E5, 0x4433,
-        [0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7]
-    );
+    pub const MICROSOFT_BASIC_DATA: Guid = Guid::new(0xEBD0A0A2, 0xB9E5, 0x4433, [
+        0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7,
+    ]);
 
     /// Linux Filesystem Data
-    pub const LINUX_FILESYSTEM: Guid = Guid::new(
-        0x0FC63DAF, 0x8483, 0x4772,
-        [0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4]
-    );
+    pub const LINUX_FILESYSTEM: Guid = Guid::new(0x0FC63DAF, 0x8483, 0x4772, [
+        0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4,
+    ]);
 
     /// Linux Swap
-    pub const LINUX_SWAP: Guid = Guid::new(
-        0x0657FD6D, 0xA4AB, 0x43C4,
-        [0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F]
-    );
+    pub const LINUX_SWAP: Guid = Guid::new(0x0657FD6D, 0xA4AB, 0x43C4, [
+        0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F,
+    ]);
 
     /// Linux Root (x86-64)
-    pub const LINUX_ROOT_X86_64: Guid = Guid::new(
-        0x4F68BCE3, 0xE8CD, 0x4DB1,
-        [0x96, 0xE7, 0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09]
-    );
+    pub const LINUX_ROOT_X86_64: Guid = Guid::new(0x4F68BCE3, 0xE8CD, 0x4DB1, [
+        0x96, 0xE7, 0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09,
+    ]);
 
     /// Linux Root (AArch64)
-    pub const LINUX_ROOT_ARM64: Guid = Guid::new(
-        0xB921B045, 0x1DF0, 0x41C3,
-        [0xAF, 0x44, 0x4C, 0x6F, 0x28, 0x0D, 0x3F, 0xAE]
-    );
+    pub const LINUX_ROOT_ARM64: Guid = Guid::new(0xB921B045, 0x1DF0, 0x41C3, [
+        0xAF, 0x44, 0x4C, 0x6F, 0x28, 0x0D, 0x3F, 0xAE,
+    ]);
 
     /// Linux Home
-    pub const LINUX_HOME: Guid = Guid::new(
-        0x933AC7E1, 0x2EB4, 0x4F13,
-        [0xB8, 0x44, 0x0E, 0x14, 0xE2, 0xAE, 0xF9, 0x15]
-    );
+    pub const LINUX_HOME: Guid = Guid::new(0x933AC7E1, 0x2EB4, 0x4F13, [
+        0xB8, 0x44, 0x0E, 0x14, 0xE2, 0xAE, 0xF9, 0x15,
+    ]);
 }
 
 // =============================================================================

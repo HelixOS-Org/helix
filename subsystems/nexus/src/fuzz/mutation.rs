@@ -166,7 +166,9 @@ impl Mutator {
             },
             MutationStrategy::Interesting => {
                 let idx = self.rand_range(data.len());
-                let val = self.interesting_8[self.rand_range(self.interesting_8.len())];
+                let interesting_len = self.interesting_8.len();
+                let val_idx = self.rand_range(interesting_len);
+                let val = self.interesting_8[val_idx];
                 data[idx] = val;
             },
             MutationStrategy::Random => {

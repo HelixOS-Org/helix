@@ -48,22 +48,22 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-pub mod propose;
 pub mod analyze;
-pub mod sandbox;
-pub mod validate;
-pub mod stage;
-pub mod rollback;
 pub mod audit;
-pub mod policy;
-pub mod metrics;
 pub mod hotpatch;
+pub mod metrics;
+pub mod policy;
+pub mod propose;
+pub mod rollback;
+pub mod sandbox;
+pub mod stage;
+pub mod validate;
 pub mod versioning;
 
 // ============================================================================
@@ -71,7 +71,7 @@ pub mod versioning;
 // ============================================================================
 
 /// Modification ID
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ModificationId(pub u64);
 
 /// Patch ID
@@ -392,7 +392,9 @@ impl SelfModEngine {
 
     /// Analyze a pending modification
     pub fn analyze(&mut self, id: ModificationId) -> Result<analyze::AnalysisResult, SelfModError> {
-        let modification = self.pending.get_mut(&id)
+        let modification = self
+            .pending
+            .get_mut(&id)
             .ok_or(SelfModError::NotFound(id))?;
 
         modification.status = ModificationStatus::Analyzing;
@@ -409,7 +411,9 @@ impl SelfModEngine {
 
     /// Approve modification for testing
     pub fn approve(&mut self, id: ModificationId) -> Result<(), SelfModError> {
-        let modification = self.pending.get_mut(&id)
+        let modification = self
+            .pending
+            .get_mut(&id)
             .ok_or(SelfModError::NotFound(id))?;
 
         if modification.status != ModificationStatus::PendingReview {
@@ -432,7 +436,9 @@ impl SelfModEngine {
 
     /// Test modification in sandbox
     pub fn test(&mut self, id: ModificationId) -> Result<sandbox::TestResult, SelfModError> {
-        let modification = self.pending.get_mut(&id)
+        let modification = self
+            .pending
+            .get_mut(&id)
             .ok_or(SelfModError::NotFound(id))?;
 
         if modification.status != ModificationStatus::Approved {
@@ -459,18 +465,14 @@ impl SelfModEngine {
 
     /// Stage modification for deployment
     pub fn stage(&mut self, id: ModificationId) -> Result<stage::StagedDeployment, SelfModError> {
-        let modification = self.pending.get(&id)
-            .ok_or(SelfModError::NotFound(id))?;
+        let modification = self.pending.get(&id).ok_or(SelfModError::NotFound(id))?;
 
         if modification.status != ModificationStatus::Verified {
             return Err(SelfModError::InvalidState(modification.status));
         }
 
         // Create staged deployment
-        let deployment = stage::StagedDeployment::new(
-            id,
-            stage::DeploymentStrategy::Canary,
-        );
+        let deployment = stage::StagedDeployment::new(id, stage::DeploymentStrategy::Canary);
 
         Ok(deployment)
     }
@@ -479,10 +481,14 @@ impl SelfModEngine {
     pub fn deploy(&mut self, id: ModificationId) -> Result<ModificationResult, SelfModError> {
         self.state = EngineState::Deploying;
 
-        let modification = self.pending.get_mut(&id)
-            .ok_or(SelfModError::NotFound(id))?;
-
-        modification.status = ModificationStatus::Staging;
+        // First check the modification exists and update status
+        {
+            let modification = self
+                .pending
+                .get_mut(&id)
+                .ok_or(SelfModError::NotFound(id))?;
+            modification.status = ModificationStatus::Staging;
+        }
 
         // Create new version
         let version_id = VersionId(VERSION_COUNTER.fetch_add(1, Ordering::SeqCst));
@@ -498,14 +504,29 @@ impl SelfModEngine {
 
         // Apply modification (hot-patch if enabled)
         let result = if self.config.enable_hotpatch {
-            hotpatch::HotPatcher::new().apply(modification)?
+            // Get immutable reference for hotpatcher
+            let modification = self.pending.get(&id).ok_or(SelfModError::NotFound(id))?;
+            let hotpatch_result = hotpatch::HotPatcher::new().apply(modification)?;
+            PatchResult {
+                success: hotpatch_result.success,
+                error: hotpatch_result.error,
+            }
         } else {
-            // Cold patch (requires restart)
+            // Cold patch (requires restart) - takes &self and &Modification
+            let modification = self.pending.get(&id).ok_or(SelfModError::NotFound(id))?;
             self.cold_patch(modification)?
         };
 
+        // Now get mutable reference to update status
+        if let Some(modification) = self.pending.get_mut(&id) {
+            if result.success {
+                modification.status = ModificationStatus::Deployed;
+            } else {
+                modification.status = ModificationStatus::Failed;
+            }
+        }
+
         if result.success {
-            modification.status = ModificationStatus::Deployed;
             self.versions.insert(version_id, version);
             self.current_version = version_id;
             self.deployed.push(id);
@@ -518,8 +539,6 @@ impl SelfModEngine {
                     version_id,
                 });
             }
-        } else {
-            modification.status = ModificationStatus::Failed;
         }
 
         self.state = EngineState::Idle;
@@ -527,7 +546,11 @@ impl SelfModEngine {
         Ok(ModificationResult {
             id,
             success: result.success,
-            version: if result.success { Some(version_id) } else { None },
+            version: if result.success {
+                Some(version_id)
+            } else {
+                None
+            },
             error: result.error,
             metrics_delta: MetricsDelta::default(),
         })
@@ -538,21 +561,36 @@ impl SelfModEngine {
         self.state = EngineState::RollingBack;
 
         // Find version
-        let version = self.versions.get(&target_version)
+        let version = self
+            .versions
+            .get(&target_version)
             .ok_or(SelfModError::VersionNotFound(target_version))?;
 
         // Restore snapshot if available
         if let Some(snapshot_id) = version.snapshot {
             rollback::RollbackManager::new().restore_snapshot(snapshot_id)?;
         } else {
-            // Revert modifications
-            for mod_id in &self.deployed {
-                if let Some(modification) = self.pending.get_mut(mod_id) {
-                    if modification.parent_version == Some(target_version)
-                        || Some(modification.parent_version.unwrap_or(VersionId(0))) > Some(target_version) {
-                        self.revert_modification(*mod_id)?;
-                    }
-                }
+            // Collect modification IDs to revert first to avoid borrow conflicts
+            let mods_to_revert: Vec<ModificationId> = self
+                .deployed
+                .iter()
+                .filter_map(|mod_id| {
+                    self.pending.get(mod_id).and_then(|modification| {
+                        if modification.parent_version == Some(target_version)
+                            || Some(modification.parent_version.unwrap_or(VersionId(0)))
+                                > Some(target_version)
+                        {
+                            Some(*mod_id)
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .collect();
+
+            // Now revert each modification
+            for mod_id in mods_to_revert {
+                self.revert_modification(mod_id)?;
             }
         }
 
@@ -564,7 +602,9 @@ impl SelfModEngine {
     }
 
     fn revert_modification(&mut self, id: ModificationId) -> Result<(), SelfModError> {
-        let modification = self.pending.get_mut(&id)
+        let modification = self
+            .pending
+            .get_mut(&id)
             .ok_or(SelfModError::NotFound(id))?;
 
         // Restore original code
@@ -655,6 +695,12 @@ pub enum SelfModError {
     HotpatchError(String),
     /// Rollback error
     RollbackError(String),
+}
+
+impl From<hotpatch::PatchError> for SelfModError {
+    fn from(err: hotpatch::PatchError) -> Self {
+        SelfModError::HotpatchError(alloc::format!("{:?}", err))
+    }
 }
 
 // ============================================================================

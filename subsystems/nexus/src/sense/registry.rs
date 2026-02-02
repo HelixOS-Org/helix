@@ -8,8 +8,8 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::types::ProbeId;
 use super::probe::{Probe, ProbeError, ProbeType};
+use crate::types::ProbeId;
 
 // ============================================================================
 // PROBE REGISTRY
@@ -68,8 +68,8 @@ impl ProbeRegistry {
     }
 
     /// Get mutable probe by ID
-    pub fn get_mut(&mut self, id: ProbeId) -> Option<&mut dyn Probe> {
-        self.probes.get_mut(&id).map(|p| p.as_mut())
+    pub fn get_mut(&mut self, id: ProbeId) -> Option<&mut (dyn Probe + 'static)> {
+        self.probes.get_mut(&id).map(|p| &mut **p)
     }
 
     /// Get probes by type
@@ -251,8 +251,8 @@ impl Default for ProbeRegistry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::probes::CpuProbe;
+    use super::*;
 
     #[test]
     fn test_registry_register() {

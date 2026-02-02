@@ -73,19 +73,19 @@
 
 #![allow(dead_code)]
 
-pub mod local;
 pub mod ioapic;
-pub mod x2apic;
 pub mod ipi;
+pub mod local;
 pub mod msi;
-
-pub use local::{LocalApic, LocalApicMode, ApicError, TimerMode, TimerDivide, LvtEntry};
-pub use ioapic::{IoApic, RedirectionEntry, DeliveryMode, DestinationMode, Polarity, TriggerMode};
-pub use x2apic::X2Apic;
-pub use ipi::{IpiDestination, IpiDeliveryMode, IpiBarrier};
-pub use msi::{MsiAddress, MsiData, MsiMessage, MsiDeliveryMode, MsixTableEntry};
+pub mod x2apic;
 
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+
+pub use ioapic::{DeliveryMode, DestinationMode, IoApic, Polarity, RedirectionEntry, TriggerMode};
+pub use ipi::{IpiBarrier, IpiDeliveryMode, IpiDestination};
+pub use local::{ApicError, LocalApic, LocalApicMode, LvtEntry, TimerDivide, TimerMode};
+pub use msi::{MsiAddress, MsiData, MsiDeliveryMode, MsiMessage, MsixTableEntry};
+pub use x2apic::X2Apic;
 
 // =============================================================================
 // Constants
@@ -447,7 +447,7 @@ pub mod x2apic_msr {
     pub const IRR_BASE: u32 = BASE + 0x20;
     pub const ESR: u32 = BASE + 0x28;
     pub const LVT_CMCI: u32 = BASE + 0x2F;
-    pub const ICR: u32 = BASE + 0x30;  // Combined in x2APIC
+    pub const ICR: u32 = BASE + 0x30; // Combined in x2APIC
     pub const LVT_TIMER: u32 = BASE + 0x32;
     pub const LVT_THERMAL: u32 = BASE + 0x33;
     pub const LVT_PERF: u32 = BASE + 0x34;

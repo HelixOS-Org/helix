@@ -30,16 +30,12 @@
 //! └─────────────────────────────────────────────────────────────────────────┘
 //! ```
 
-use core::fmt;
 use core::marker::PhantomData;
-use core::str;
+use core::{fmt, str};
 
 use crate::memory::MemoryMap;
-use crate::validate::{
-    ValidationResult,
-    validate_pointer, validate_header, validate_tag,
-};
-use crate::{tag_types, align_up, TAG_ALIGNMENT};
+use crate::validate::{validate_header, validate_pointer, validate_tag, ValidationResult};
+use crate::{align_up, tag_types, TAG_ALIGNMENT};
 
 // =============================================================================
 // Multiboot2 Information Structure
@@ -422,25 +418,15 @@ impl<'boot> Tag<'boot> {
     /// Parse a tag from raw data
     fn parse(tag_type: u32, size: u32, data: &'boot [u8]) -> Self {
         match tag_type {
-            tag_types::CMDLINE => {
-                Self::Cmdline(CmdlineTag::from_data(data))
-            }
+            tag_types::CMDLINE => Self::Cmdline(CmdlineTag::from_data(data)),
 
-            tag_types::BOOTLOADER_NAME => {
-                Self::BootloaderName(BootloaderNameTag::from_data(data))
-            }
+            tag_types::BOOTLOADER_NAME => Self::BootloaderName(BootloaderNameTag::from_data(data)),
 
-            tag_types::MODULE => {
-                Self::Module(BootModule::from_data(data))
-            }
+            tag_types::MODULE => Self::Module(BootModule::from_data(data)),
 
-            tag_types::BASIC_MEMINFO => {
-                Self::BasicMemInfo(BasicMemoryInfo::from_data(data))
-            }
+            tag_types::BASIC_MEMINFO => Self::BasicMemInfo(BasicMemoryInfo::from_data(data)),
 
-            tag_types::BOOT_DEVICE => {
-                Self::BootDevice(BootDevice::from_data(data))
-            }
+            tag_types::BOOT_DEVICE => Self::BootDevice(BootDevice::from_data(data)),
 
             tag_types::MEMORY_MAP => {
                 // Memory map: entry_size (u32), entry_version (u32), entries...
@@ -450,55 +436,61 @@ impl<'boot> Tag<'boot> {
                     let entries = &data[8..];
                     Self::MemoryMap(MemoryMap::new(entry_size, entry_version, entries))
                 } else {
-                    Self::Unknown { tag_type, size, data }
+                    Self::Unknown {
+                        tag_type,
+                        size,
+                        data,
+                    }
                 }
-            }
+            },
 
             #[cfg(feature = "framebuffer")]
-            tag_types::FRAMEBUFFER => {
-                Self::Framebuffer(FramebufferInfo::from_data(data))
-            }
+            tag_types::FRAMEBUFFER => Self::Framebuffer(FramebufferInfo::from_data(data)),
 
             #[cfg(feature = "elf_sections")]
-            tag_types::ELF_SECTIONS => {
-                Self::ElfSections(ElfSections::from_data(data))
-            }
+            tag_types::ELF_SECTIONS => Self::ElfSections(ElfSections::from_data(data)),
 
             #[cfg(feature = "acpi")]
-            tag_types::ACPI_OLD => {
-                Self::AcpiOld(data)
-            }
+            tag_types::ACPI_OLD => Self::AcpiOld(data),
 
             #[cfg(feature = "acpi")]
-            tag_types::ACPI_NEW => {
-                Self::AcpiNew(data)
-            }
+            tag_types::ACPI_NEW => Self::AcpiNew(data),
 
             tag_types::LOAD_BASE_ADDR => {
                 if data.len() >= 8 {
                     let addr = u64::from_le_bytes([
-                        data[0], data[1], data[2], data[3],
-                        data[4], data[5], data[6], data[7],
+                        data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
                     ]);
                     Self::LoadBaseAddr(addr)
                 } else {
-                    Self::Unknown { tag_type, size, data }
+                    Self::Unknown {
+                        tag_type,
+                        size,
+                        data,
+                    }
                 }
-            }
+            },
 
             tag_types::EFI64_ST => {
                 if data.len() >= 8 {
                     let addr = u64::from_le_bytes([
-                        data[0], data[1], data[2], data[3],
-                        data[4], data[5], data[6], data[7],
+                        data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
                     ]);
                     Self::Efi64SystemTable(addr)
                 } else {
-                    Self::Unknown { tag_type, size, data }
+                    Self::Unknown {
+                        tag_type,
+                        size,
+                        data,
+                    }
                 }
-            }
+            },
 
-            _ => Self::Unknown { tag_type, size, data },
+            _ => Self::Unknown {
+                tag_type,
+                size,
+                data,
+            },
         }
     }
 
@@ -544,14 +536,19 @@ impl fmt::Debug for Tag<'_> {
             Self::AcpiOld(d) => f.debug_tuple("AcpiOld").field(&d.len()).finish(),
             #[cfg(feature = "acpi")]
             Self::AcpiNew(d) => f.debug_tuple("AcpiNew").field(&d.len()).finish(),
-            Self::LoadBaseAddr(a) => f.debug_tuple("LoadBaseAddr").field(&format_args!("{:#x}", a)).finish(),
-            Self::Efi64SystemTable(a) => f.debug_tuple("Efi64SystemTable").field(&format_args!("{:#x}", a)).finish(),
-            Self::Unknown { tag_type, size, .. } => {
-                f.debug_struct("Unknown")
-                    .field("type", tag_type)
-                    .field("size", size)
-                    .finish()
-            }
+            Self::LoadBaseAddr(a) => f
+                .debug_tuple("LoadBaseAddr")
+                .field(&format_args!("{:#x}", a))
+                .finish(),
+            Self::Efi64SystemTable(a) => f
+                .debug_tuple("Efi64SystemTable")
+                .field(&format_args!("{:#x}", a))
+                .finish(),
+            Self::Unknown { tag_type, size, .. } => f
+                .debug_struct("Unknown")
+                .field("type", tag_type)
+                .field("size", size)
+                .finish(),
         }
     }
 }
@@ -578,7 +575,11 @@ impl<'boot> CmdlineTag<'boot> {
     #[must_use]
     pub fn as_str(&self) -> &'boot str {
         // Find null terminator
-        let len = self.data.iter().position(|&b| b == 0).unwrap_or(self.data.len());
+        let len = self
+            .data
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(self.data.len());
         str::from_utf8(&self.data[..len]).unwrap_or("")
     }
 
@@ -603,7 +604,11 @@ impl<'boot> BootloaderNameTag<'boot> {
     /// Get the bootloader name as a string
     #[must_use]
     pub fn as_str(&self) -> &'boot str {
-        let len = self.data.iter().position(|&b| b == 0).unwrap_or(self.data.len());
+        let len = self
+            .data
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(self.data.len());
         str::from_utf8(&self.data[..len]).unwrap_or("")
     }
 }
@@ -623,15 +628,23 @@ impl<'boot> BootModule<'boot> {
     fn from_data(data: &'boot [u8]) -> Self {
         let mod_start = if data.len() >= 4 {
             u32::from_le_bytes([data[0], data[1], data[2], data[3]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let mod_end = if data.len() >= 8 {
             u32::from_le_bytes([data[4], data[5], data[6], data[7]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let cmdline = if data.len() > 8 { &data[8..] } else { &[] };
 
-        Self { mod_start, mod_end, cmdline }
+        Self {
+            mod_start,
+            mod_end,
+            cmdline,
+        }
     }
 
     /// Get the module start address
@@ -655,7 +668,11 @@ impl<'boot> BootModule<'boot> {
     /// Get the module command line
     #[must_use]
     pub fn cmdline(&self) -> &'boot str {
-        let len = self.cmdline.iter().position(|&b| b == 0).unwrap_or(self.cmdline.len());
+        let len = self
+            .cmdline
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(self.cmdline.len());
         str::from_utf8(&self.cmdline[..len]).unwrap_or("")
     }
 }
@@ -684,13 +701,20 @@ impl BasicMemoryInfo {
     fn from_data(data: &[u8]) -> Self {
         let mem_lower = if data.len() >= 4 {
             u32::from_le_bytes([data[0], data[1], data[2], data[3]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let mem_upper = if data.len() >= 8 {
             u32::from_le_bytes([data[4], data[5], data[6], data[7]])
-        } else { 0 };
+        } else {
+            0
+        };
 
-        Self { mem_lower, mem_upper }
+        Self {
+            mem_lower,
+            mem_upper,
+        }
     }
 
     /// Get total memory in KB
@@ -715,17 +739,27 @@ impl BootDevice {
     fn from_data(data: &[u8]) -> Self {
         let biosdev = if data.len() >= 4 {
             u32::from_le_bytes([data[0], data[1], data[2], data[3]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let partition = if data.len() >= 8 {
             u32::from_le_bytes([data[4], data[5], data[6], data[7]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let sub_partition = if data.len() >= 12 {
             u32::from_le_bytes([data[8], data[9], data[10], data[11]])
-        } else { 0 };
+        } else {
+            0
+        };
 
-        Self { biosdev, partition, sub_partition }
+        Self {
+            biosdev,
+            partition,
+            sub_partition,
+        }
     }
 }
 
@@ -758,29 +792,44 @@ impl<'boot> FramebufferInfo<'boot> {
     fn from_data(data: &'boot [u8]) -> Self {
         let addr = if data.len() >= 8 {
             u64::from_le_bytes([
-                data[0], data[1], data[2], data[3],
-                data[4], data[5], data[6], data[7],
+                data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
             ])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let pitch = if data.len() >= 12 {
             u32::from_le_bytes([data[8], data[9], data[10], data[11]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let width = if data.len() >= 16 {
             u32::from_le_bytes([data[12], data[13], data[14], data[15]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let height = if data.len() >= 20 {
             u32::from_le_bytes([data[16], data[17], data[18], data[19]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let bpp = if data.len() >= 21 { data[20] } else { 0 };
         let fb_type = if data.len() >= 22 { data[21] } else { 0 };
 
         let color_info = if data.len() > 24 { &data[24..] } else { &[] };
 
-        Self { addr, pitch, width, height, bpp, fb_type, color_info }
+        Self {
+            addr,
+            pitch,
+            width,
+            height,
+            bpp,
+            fb_type,
+            color_info,
+        }
     }
 
     /// Get framebuffer size in bytes
@@ -795,7 +844,10 @@ impl fmt::Debug for FramebufferInfo<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("FramebufferInfo")
             .field("addr", &format_args!("{:#x}", self.addr))
-            .field("resolution", &format_args!("{}x{}", self.width, self.height))
+            .field(
+                "resolution",
+                &format_args!("{}x{}", self.width, self.height),
+            )
             .field("bpp", &self.bpp)
             .field("pitch", &self.pitch)
             .finish()
@@ -821,19 +873,30 @@ impl<'boot> ElfSections<'boot> {
     fn from_data(data: &'boot [u8]) -> Self {
         let num = if data.len() >= 4 {
             u32::from_le_bytes([data[0], data[1], data[2], data[3]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let entsize = if data.len() >= 8 {
             u32::from_le_bytes([data[4], data[5], data[6], data[7]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let shndx = if data.len() >= 12 {
             u32::from_le_bytes([data[8], data[9], data[10], data[11]])
-        } else { 0 };
+        } else {
+            0
+        };
 
         let sections = if data.len() > 12 { &data[12..] } else { &[] };
 
-        Self { num, entsize, shndx, sections }
+        Self {
+            num,
+            entsize,
+            shndx,
+            sections,
+        }
     }
 }
 

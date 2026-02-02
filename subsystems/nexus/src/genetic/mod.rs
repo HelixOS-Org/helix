@@ -47,9 +47,7 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -390,27 +388,36 @@ impl GeneticEngine {
         while offspring.len() < self.config.population_size {
             let (p1, p2) = self.choose_parents(&parents);
 
-            let child_genome = if rand_f64() < self.config.crossover_rate {
+            // Extract data from borrowed parents before modifying self.stats
+            let p1_genome = p1.genome.clone();
+            let p2_genome = p2.genome.clone();
+            let p1_id = p1.id;
+            let p2_id = p2.id;
+            let p1_lineage = p1.lineage.clone();
+
+            let do_crossover = rand_f64() < self.config.crossover_rate;
+            let child_genome = if do_crossover {
                 // Crossover
                 self.stats.crossovers += 1;
-                crossover::uniform_crossover(&p1.genome, &p2.genome)
+                crossover::uniform_crossover(&p1_genome, &p2_genome)
             } else {
                 // Clone one parent
-                p1.genome.clone()
+                p1_genome
             };
 
             // Mutation
-            let mutated = if rand_f64() < self.config.mutation_rate {
+            let do_mutation = rand_f64() < self.config.mutation_rate;
+            let mutated = if do_mutation {
                 self.stats.mutations += 1;
                 mutation::point_mutation(&child_genome)
             } else {
                 child_genome
             };
 
-            let mut lineage = p1.lineage.clone();
-            lineage.ancestors.push(p1.id);
-            if p1.id != p2.id {
-                lineage.ancestors.push(p2.id);
+            let mut lineage = p1_lineage;
+            lineage.ancestors.push(p1_id);
+            if p1_id != p2_id {
+                lineage.ancestors.push(p2_id);
                 lineage.crossovers += 1;
             }
             if rand_f64() < self.config.mutation_rate {
@@ -423,7 +430,7 @@ impl GeneticEngine {
                 fitness: None,
                 species: None,
                 generation: Generation(self.generation.0 + 1),
-                parents: vec![p1.id, p2.id],
+                parents: vec![p1_id, p2_id],
                 lineage,
             };
 
@@ -460,7 +467,7 @@ impl GeneticEngine {
         }
     }
 
-    fn choose_parents(&self, parents: &[Individual]) -> (&Individual, &Individual) {
+    fn choose_parents<'a>(&self, parents: &'a [Individual]) -> (&'a Individual, &'a Individual) {
         let idx1 = rand_usize(parents.len());
         let mut idx2 = rand_usize(parents.len());
         while idx2 == idx1 && parents.len() > 1 {

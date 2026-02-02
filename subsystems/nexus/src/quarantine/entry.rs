@@ -6,9 +6,8 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use crate::core::{ComponentId, NexusTimestamp};
-
 use super::level::{QuarantineLevel, QuarantineReason};
+use crate::core::{ComponentId, NexusTimestamp};
 
 // ============================================================================
 // QUARANTINE ENTRY

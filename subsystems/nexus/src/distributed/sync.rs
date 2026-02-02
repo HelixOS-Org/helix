@@ -6,13 +6,12 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{Epoch, ImprovementId, NodeId};
+use super::{Epoch, NodeId};
 
 // ============================================================================
 // SYNC TYPES
@@ -236,7 +235,7 @@ impl MerkleTree {
         }
 
         let mut nodes = Vec::new();
-        let mut hashes: Vec<u64> = items.iter().map(|item| Self::hash_item(item)).collect();
+        let hashes: Vec<u64> = items.iter().map(|item| Self::hash_item(item)).collect();
 
         // Create leaf nodes
         for (i, item) in items.iter().enumerate() {

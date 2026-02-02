@@ -63,7 +63,7 @@ impl Default for RelocationConfig {
             kaslr_enabled: true,
             min_address: 0xFFFF_FFFF_8000_0000, // Higher-half start
             max_address: 0xFFFF_FFFF_C000_0000, // 1GB range
-            alignment: 0x20_0000,                // 2MB alignment
+            alignment: 0x20_0000,               // 2MB alignment
             link_address: 0xFFFF_FFFF_8000_0000, // Default link address
             strict_mode: false,
         }
@@ -123,10 +123,7 @@ pub struct RelocationStats {
 /// Generate a KASLR-randomized load address
 ///
 /// Uses hardware RNG (RDRAND/RDSEED) if available, falls back to TSC.
-pub fn generate_kaslr_address(
-    config: &RelocationConfig,
-    kernel_size: u64,
-) -> Result<(u64, u8)> {
+pub fn generate_kaslr_address(config: &RelocationConfig, kernel_size: u64) -> Result<(u64, u8)> {
     if !config.kaslr_enabled {
         return Ok((config.link_address, 0));
     }
@@ -249,11 +246,17 @@ fn rdtsc() -> u64 {
 }
 
 #[cfg(not(target_arch = "x86_64"))]
-fn rdseed64() -> Option<u64> { None }
+fn rdseed64() -> Option<u64> {
+    None
+}
 #[cfg(not(target_arch = "x86_64"))]
-fn rdrand64() -> Option<u64> { None }
+fn rdrand64() -> Option<u64> {
+    None
+}
 #[cfg(not(target_arch = "x86_64"))]
-fn rdtsc() -> u64 { 0 }
+fn rdtsc() -> u64 {
+    0
+}
 
 // ============================================================================
 // RELOCATION APPLICATION
@@ -297,8 +300,9 @@ pub unsafe fn apply_relocations(
     load_base: u64,
     rela_entries: &[Elf64Rela],
 ) -> Result<RelocationStats> {
-    use reloc_types::*;
     use core::ptr;
+
+    use reloc_types::*;
 
     let mut stats = RelocationStats::default();
     stats.total_entries = rela_entries.len();
@@ -333,14 +337,14 @@ pub unsafe fn apply_relocations(
         match rtype {
             R_X86_64_NONE => {
                 stats.skipped += 1;
-            }
+            },
 
             R_X86_64_RELATIVE => {
                 // B + A: Most common for PIE
                 let value = (load_base as i64 + rela.r_addend) as u64;
                 ptr::write_unaligned(target_ptr as *mut u64, value);
                 stats.applied += 1;
-            }
+            },
 
             R_X86_64_64 => {
                 // S + A: Add slide to current value
@@ -348,12 +352,12 @@ pub unsafe fn apply_relocations(
                 let new_value = (current as i64 + slide) as u64;
                 ptr::write_unaligned(target_ptr as *mut u64, new_value);
                 stats.applied += 1;
-            }
+            },
 
             R_X86_64_PC32 => {
                 // PC-relative, usually no adjustment needed
                 stats.skipped += 1;
-            }
+            },
 
             R_X86_64_GLOB_DAT | R_X86_64_JUMP_SLOT => {
                 // GOT/PLT entries
@@ -361,11 +365,11 @@ pub unsafe fn apply_relocations(
                 let new_value = (current as i64 + slide) as u64;
                 ptr::write_unaligned(target_ptr as *mut u64, new_value);
                 stats.applied += 1;
-            }
+            },
 
             _ => {
                 stats.errors += 1;
-            }
+            },
         }
     }
 
@@ -458,7 +462,10 @@ pub unsafe fn find_rela_section(
         }
 
         let name_bytes = &shstrtab[name_offset..];
-        let name_end = name_bytes.iter().position(|&b| b == 0).unwrap_or(name_bytes.len());
+        let name_end = name_bytes
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(name_bytes.len());
         let name = core::str::from_utf8(&name_bytes[..name_end]).ok()?;
 
         if name == ".rela.dyn" {
@@ -496,8 +503,8 @@ pub unsafe fn relocate_kernel_and_update_bootinfo(
     }
 
     // Find relocation section
-    let (rela_ptr, rela_count) = find_rela_section(kernel_data, kernel_size)
-        .ok_or(Error::NotFound)?;
+    let (rela_ptr, rela_count) =
+        find_rela_section(kernel_data, kernel_size).ok_or(Error::NotFound)?;
 
     let rela_entries = core::slice::from_raw_parts(rela_ptr, rela_count);
 

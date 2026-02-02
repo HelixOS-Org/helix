@@ -5,9 +5,8 @@
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::core::NexusTimestamp;
-
 use super::LockId;
+use crate::core::NexusTimestamp;
 
 /// Wait time model
 #[derive(Debug, Clone)]
@@ -100,15 +99,12 @@ impl WaitTimePredictor {
 
         let base = y_mean - slope * x_mean;
 
-        self.models.insert(
+        self.models.insert(lock_id, WaitTimeModel {
             lock_id,
-            WaitTimeModel {
-                lock_id,
-                base_wait_ns: base.max(0.0),
-                wait_per_waiter_ns: slope.max(0.0),
-                samples: samples.len() as u32,
-            },
-        );
+            base_wait_ns: base.max(0.0),
+            wait_per_waiter_ns: slope.max(0.0),
+            samples: samples.len() as u32,
+        });
     }
 
     /// Predict wait time

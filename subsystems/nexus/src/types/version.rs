@@ -23,7 +23,11 @@ impl Version {
     /// Create new version
     #[inline]
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self { major, minor, patch }
+        Self {
+            major,
+            minor,
+            patch,
+        }
     }
 
     /// Initial version (1.0.0)

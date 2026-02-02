@@ -33,7 +33,10 @@
 //!         .build()
 //!         .expect("Failed to collect boot info");
 //!
-//!     println!("Total memory: {} MB", boot_info.total_memory() / (1024 * 1024));
+//!     println!(
+//!         "Total memory: {} MB",
+//!         boot_info.total_memory() / (1024 * 1024)
+//!     );
 //! }
 //! ```
 
@@ -131,9 +134,7 @@ impl<'a> BootInfo<'a> {
 
     /// Iterate over memory regions
     pub fn memory_regions(&self) -> impl Iterator<Item = MemoryEntry> + 'a {
-        self.memory_map
-            .into_iter()
-            .flat_map(|m| m.entries())
+        self.memory_map.into_iter().flat_map(|m| m.entries())
     }
 
     /// Get usable memory regions
@@ -148,7 +149,9 @@ impl<'a> BootInfo<'a> {
 
     /// Get total usable memory
     pub fn usable_memory_size(&self) -> u64 {
-        self.memory_map.map(|m| m.total_usable_memory()).unwrap_or(0)
+        self.memory_map
+            .map(|m| m.total_usable_memory())
+            .unwrap_or(0)
     }
 
     /// Get HHDM response
@@ -163,9 +166,7 @@ impl<'a> BootInfo<'a> {
 
     /// Convert physical address to virtual using HHDM
     pub fn phys_to_virt(&self, phys: u64) -> u64 {
-        self.hhdm
-            .map(|h| h.phys_to_virt(phys))
-            .unwrap_or(phys)
+        self.hhdm.map(|h| h.phys_to_virt(phys)).unwrap_or(phys)
     }
 
     /// Convert virtual address to physical using HHDM
@@ -323,20 +324,28 @@ impl<'a> BootInfo<'a> {
     /// Get the architecture type
     pub fn architecture(&self) -> Architecture {
         #[cfg(target_arch = "x86_64")]
-        { Architecture::X86_64 }
+        {
+            Architecture::X86_64
+        }
 
         #[cfg(target_arch = "aarch64")]
-        { Architecture::AArch64 }
+        {
+            Architecture::AArch64
+        }
 
         #[cfg(target_arch = "riscv64")]
-        { Architecture::RiscV64 }
+        {
+            Architecture::RiscV64
+        }
 
         #[cfg(not(any(
             target_arch = "x86_64",
             target_arch = "aarch64",
             target_arch = "riscv64"
         )))]
-        { Architecture::Unknown }
+        {
+            Architecture::Unknown
+        }
     }
 
     /// Get firmware type
@@ -356,7 +365,10 @@ impl<'a> fmt::Debug for BootInfo<'a> {
         f.debug_struct("BootInfo")
             .field("bootloader", &self.bootloader_name())
             .field("total_memory_mb", &(self.total_memory() / (1024 * 1024)))
-            .field("usable_memory_mb", &(self.usable_memory_size() / (1024 * 1024)))
+            .field(
+                "usable_memory_mb",
+                &(self.usable_memory_size() / (1024 * 1024)),
+            )
             .field("cpu_count", &self.cpu_count())
             .field("has_framebuffer", &self.has_framebuffer())
             .field("has_acpi", &self.has_acpi())

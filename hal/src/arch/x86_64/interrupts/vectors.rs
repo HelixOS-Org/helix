@@ -29,91 +29,91 @@ use core::fmt;
 #[repr(u8)]
 pub enum ExceptionVector {
     /// #DE - Divide Error (fault, no error code)
-    DivideError = 0x00,
+    DivideError          = 0x00,
 
     /// #DB - Debug Exception (fault/trap, no error code)
-    Debug = 0x01,
+    Debug                = 0x01,
 
     /// NMI - Non-Maskable Interrupt (interrupt, no error code)
     NonMaskableInterrupt = 0x02,
 
     /// #BP - Breakpoint (trap, no error code)
-    Breakpoint = 0x03,
+    Breakpoint           = 0x03,
 
     /// #OF - Overflow (trap, no error code)
-    Overflow = 0x04,
+    Overflow             = 0x04,
 
     /// #BR - Bound Range Exceeded (fault, no error code)
-    BoundRangeExceeded = 0x05,
+    BoundRangeExceeded   = 0x05,
 
     /// #UD - Invalid Opcode (fault, no error code)
-    InvalidOpcode = 0x06,
+    InvalidOpcode        = 0x06,
 
     /// #NM - Device Not Available (fault, no error code)
-    DeviceNotAvailable = 0x07,
+    DeviceNotAvailable   = 0x07,
 
     /// #DF - Double Fault (abort, error code = 0)
-    DoubleFault = 0x08,
+    DoubleFault          = 0x08,
 
     /// Coprocessor Segment Overrun (abort, no error code)
     /// Legacy - not generated on modern CPUs
     CoprocessorSegmentOverrun = 0x09,
 
     /// #TS - Invalid TSS (fault, error code)
-    InvalidTss = 0x0A,
+    InvalidTss           = 0x0A,
 
     /// #NP - Segment Not Present (fault, error code)
-    SegmentNotPresent = 0x0B,
+    SegmentNotPresent    = 0x0B,
 
     /// #SS - Stack Segment Fault (fault, error code)
-    StackSegmentFault = 0x0C,
+    StackSegmentFault    = 0x0C,
 
     /// #GP - General Protection Fault (fault, error code)
-    GeneralProtection = 0x0D,
+    GeneralProtection    = 0x0D,
 
     /// #PF - Page Fault (fault, error code)
-    PageFault = 0x0E,
+    PageFault            = 0x0E,
 
     /// Reserved (0x0F)
-    Reserved0F = 0x0F,
+    Reserved0F           = 0x0F,
 
     /// #MF - x87 FPU Floating-Point Error (fault, no error code)
-    X87FloatingPoint = 0x10,
+    X87FloatingPoint     = 0x10,
 
     /// #AC - Alignment Check (fault, error code = 0)
-    AlignmentCheck = 0x11,
+    AlignmentCheck       = 0x11,
 
     /// #MC - Machine Check (abort, no error code)
-    MachineCheck = 0x12,
+    MachineCheck         = 0x12,
 
     /// #XM/#XF - SIMD Floating-Point Exception (fault, no error code)
-    SimdFloatingPoint = 0x13,
+    SimdFloatingPoint    = 0x13,
 
     /// #VE - Virtualization Exception (fault, no error code)
     VirtualizationException = 0x14,
 
     /// #CP - Control Protection Exception (fault, error code)
-    ControlProtection = 0x15,
+    ControlProtection    = 0x15,
 
     // 0x16-0x1B: Reserved
-    Reserved16 = 0x16,
-    Reserved17 = 0x17,
-    Reserved18 = 0x18,
-    Reserved19 = 0x19,
-    Reserved1A = 0x1A,
-    Reserved1B = 0x1B,
+    Reserved16           = 0x16,
+    Reserved17           = 0x17,
+    Reserved18           = 0x18,
+    Reserved19           = 0x19,
+    Reserved1A           = 0x1A,
+    Reserved1B           = 0x1B,
 
     /// #HV - Hypervisor Injection Exception (fault, no error code)
-    HypervisorInjection = 0x1C,
+    HypervisorInjection  = 0x1C,
 
     /// #VC - VMM Communication Exception (fault, error code)
-    VmmCommunication = 0x1D,
+    VmmCommunication     = 0x1D,
 
     /// #SX - Security Exception (fault, error code)
-    SecurityException = 0x1E,
+    SecurityException    = 0x1E,
 
     /// Reserved (0x1F)
-    Reserved1F = 0x1F,
+    Reserved1F           = 0x1F,
 }
 
 impl ExceptionVector {
@@ -166,9 +166,7 @@ impl ExceptionVector {
     pub const fn is_trap(self) -> bool {
         matches!(
             self,
-            ExceptionVector::Debug
-                | ExceptionVector::Breakpoint
-                | ExceptionVector::Overflow
+            ExceptionVector::Debug | ExceptionVector::Breakpoint | ExceptionVector::Overflow
         )
     }
 
@@ -258,11 +256,11 @@ impl ExceptionVector {
     /// Get recommended IST for this exception (0 = no IST)
     pub const fn recommended_ist(self) -> u8 {
         match self {
-            ExceptionVector::DoubleFault => 1,      // IST1 - dedicated stack
+            ExceptionVector::DoubleFault => 1, // IST1 - dedicated stack
             ExceptionVector::NonMaskableInterrupt => 2, // IST2
-            ExceptionVector::MachineCheck => 3,     // IST3
-            ExceptionVector::Debug => 4,            // IST4
-            _ => 0,                                 // Use current stack
+            ExceptionVector::MachineCheck => 3, // IST3
+            ExceptionVector::Debug => 4,       // IST4
+            _ => 0,                            // Use current stack
         }
     }
 }
@@ -279,49 +277,49 @@ impl ExceptionVector {
 #[repr(u8)]
 pub enum IrqVector {
     /// IRQ 0 - PIT Timer
-    Timer = 0x20,
+    Timer        = 0x20,
 
     /// IRQ 1 - Keyboard
-    Keyboard = 0x21,
+    Keyboard     = 0x21,
 
     /// IRQ 2 - Cascade (PIC2)
-    Cascade = 0x22,
+    Cascade      = 0x22,
 
     /// IRQ 3 - COM2
-    Com2 = 0x23,
+    Com2         = 0x23,
 
     /// IRQ 4 - COM1
-    Com1 = 0x24,
+    Com1         = 0x24,
 
     /// IRQ 5 - LPT2 / Sound Card
-    Lpt2 = 0x25,
+    Lpt2         = 0x25,
 
     /// IRQ 6 - Floppy Disk
-    Floppy = 0x26,
+    Floppy       = 0x26,
 
     /// IRQ 7 - LPT1 / Spurious
-    Lpt1 = 0x27,
+    Lpt1         = 0x27,
 
     /// IRQ 8 - RTC
-    Rtc = 0x28,
+    Rtc          = 0x28,
 
     /// IRQ 9 - ACPI / Legacy redirect
-    Acpi = 0x29,
+    Acpi         = 0x29,
 
     /// IRQ 10 - Free
-    Free10 = 0x2A,
+    Free10       = 0x2A,
 
     /// IRQ 11 - Free
-    Free11 = 0x2B,
+    Free11       = 0x2B,
 
     /// IRQ 12 - PS/2 Mouse
-    Mouse = 0x2C,
+    Mouse        = 0x2C,
 
     /// IRQ 13 - FPU / Coprocessor
-    Fpu = 0x2D,
+    Fpu          = 0x2D,
 
     /// IRQ 14 - Primary ATA
-    PrimaryAta = 0x2E,
+    PrimaryAta   = 0x2E,
 
     /// IRQ 15 - Secondary ATA
     SecondaryAta = 0x2F,
@@ -378,27 +376,26 @@ impl IrqVector {
 #[repr(u8)]
 pub enum SystemVector {
     /// IPI: Reschedule request
-    IpiReschedule = 0x30,
+    IpiReschedule   = 0x30,
 
     /// IPI: TLB shootdown
     IpiTlbShootdown = 0x31,
 
     /// IPI: Halt processor
-    IpiHalt = 0x32,
+    IpiHalt         = 0x32,
 
     /// IPI: Call function
     IpiCallFunction = 0x33,
 
     /// IPI: Generic notification
-    IpiNotify = 0x34,
+    IpiNotify       = 0x34,
 
     /// IPI: Profiling
-    IpiProfile = 0x35,
+    IpiProfile      = 0x35,
 
     // 0x36-0x7F: Reserved for future system use
-
     /// System call (INT 0x80 fallback)
-    Syscall = 0x80,
+    Syscall         = 0x80,
 }
 
 impl SystemVector {
@@ -495,14 +492,14 @@ impl Vector {
                 } else {
                     Vector::Device(vector)
                 }
-            }
+            },
             0x20..=0x2F => {
                 if let Some(i) = IrqVector::from_irq(vector - 0x20) {
                     Vector::Irq(i)
                 } else {
                     Vector::Device(vector)
                 }
-            }
+            },
             0x30 => Vector::System(SystemVector::IpiReschedule),
             0x31 => Vector::System(SystemVector::IpiTlbShootdown),
             0x32 => Vector::System(SystemVector::IpiHalt),

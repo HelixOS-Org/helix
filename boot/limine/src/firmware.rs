@@ -80,9 +80,8 @@ impl AcpiSdtHeader {
 
     /// Validate checksum
     pub fn validate(&self) -> bool {
-        let bytes = unsafe {
-            slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
-        };
+        let bytes =
+            unsafe { slice::from_raw_parts(self as *const _ as *const u8, self.length as usize) };
         bytes.iter().fold(0u8, |sum, &b| sum.wrapping_add(b)) == 0
     }
 }
@@ -303,22 +302,22 @@ pub struct MadtEntryHeader {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum MadtEntryType {
-    LocalApic = 0,
-    IoApic = 1,
+    LocalApic         = 0,
+    IoApic            = 1,
     InterruptOverride = 2,
-    NmiSource = 3,
-    LocalApicNmi = 4,
+    NmiSource         = 3,
+    LocalApicNmi      = 4,
     LocalApicOverride = 5,
-    IoSapic = 6,
-    LocalSapic = 7,
+    IoSapic           = 6,
+    LocalSapic        = 7,
     PlatformInterrupt = 8,
-    LocalX2Apic = 9,
-    LocalX2ApicNmi = 10,
-    GicCpuInterface = 11,
-    GicDistributor = 12,
-    GicMsiFrame = 13,
-    GicRedistributor = 14,
-    GicIts = 15,
+    LocalX2Apic       = 9,
+    LocalX2ApicNmi    = 10,
+    GicCpuInterface   = 11,
+    GicDistributor    = 12,
+    GicMsiFrame       = 13,
+    GicRedistributor  = 14,
+    GicIts            = 15,
 }
 
 /// Local APIC entry
@@ -514,18 +513,18 @@ pub struct SmbiosHeader {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SmbiosType {
-    BiosInfo = 0,
-    SystemInfo = 1,
-    BaseboardInfo = 2,
-    ChassisInfo = 3,
-    ProcessorInfo = 4,
-    CacheInfo = 7,
-    SystemSlots = 9,
+    BiosInfo            = 0,
+    SystemInfo          = 1,
+    BaseboardInfo       = 2,
+    ChassisInfo         = 3,
+    ProcessorInfo       = 4,
+    CacheInfo           = 7,
+    SystemSlots         = 9,
     PhysicalMemoryArray = 16,
-    MemoryDevice = 17,
+    MemoryDevice        = 17,
     MemoryArrayMappedAddress = 19,
-    SystemBoot = 32,
-    EndOfTable = 127,
+    SystemBoot          = 32,
+    EndOfTable          = 127,
 }
 
 /// SMBIOS structure iterator
@@ -685,26 +684,28 @@ pub struct EfiGuid {
 impl EfiGuid {
     /// Create GUID from components
     pub const fn new(data1: u32, data2: u16, data3: u16, data4: [u8; 8]) -> Self {
-        Self { data1, data2, data3, data4 }
+        Self {
+            data1,
+            data2,
+            data3,
+            data4,
+        }
     }
 
     /// ACPI 2.0 table GUID
-    pub const ACPI_20_TABLE: Self = Self::new(
-        0x8868e871, 0xe4f1, 0x11d3,
-        [0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81]
-    );
+    pub const ACPI_20_TABLE: Self = Self::new(0x8868e871, 0xe4f1, 0x11d3, [
+        0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81,
+    ]);
 
     /// SMBIOS 3.0 table GUID
-    pub const SMBIOS3_TABLE: Self = Self::new(
-        0xf2fd1544, 0x9794, 0x4a2c,
-        [0x99, 0x2e, 0xe5, 0xbb, 0xcf, 0x20, 0xe3, 0x94]
-    );
+    pub const SMBIOS3_TABLE: Self = Self::new(0xf2fd1544, 0x9794, 0x4a2c, [
+        0x99, 0x2e, 0xe5, 0xbb, 0xcf, 0x20, 0xe3, 0x94,
+    ]);
 
     /// SMBIOS table GUID
-    pub const SMBIOS_TABLE: Self = Self::new(
-        0xeb9d2d31, 0x2d88, 0x11d3,
-        [0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d]
-    );
+    pub const SMBIOS_TABLE: Self = Self::new(0xeb9d2d31, 0x2d88, 0x11d3, [
+        0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d,
+    ]);
 }
 
 impl core::fmt::Debug for EfiGuid {
@@ -712,9 +713,17 @@ impl core::fmt::Debug for EfiGuid {
         write!(
             f,
             "{:08x}-{:04x}-{:04x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            self.data1, self.data2, self.data3,
-            self.data4[0], self.data4[1],
-            self.data4[2], self.data4[3], self.data4[4], self.data4[5], self.data4[6], self.data4[7]
+            self.data1,
+            self.data2,
+            self.data3,
+            self.data4[0],
+            self.data4[1],
+            self.data4[2],
+            self.data4[3],
+            self.data4[4],
+            self.data4[5],
+            self.data4[6],
+            self.data4[7]
         )
     }
 }
@@ -782,21 +791,21 @@ pub struct EfiRuntimeServices {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum EfiMemoryType {
-    ReservedMemoryType = 0,
-    LoaderCode = 1,
-    LoaderData = 2,
-    BootServicesCode = 3,
-    BootServicesData = 4,
+    ReservedMemoryType  = 0,
+    LoaderCode          = 1,
+    LoaderData          = 2,
+    BootServicesCode    = 3,
+    BootServicesData    = 4,
     RuntimeServicesCode = 5,
     RuntimeServicesData = 6,
-    ConventionalMemory = 7,
-    UnusableMemory = 8,
-    AcpiReclaimMemory = 9,
-    AcpiMemoryNvs = 10,
-    MemoryMappedIo = 11,
+    ConventionalMemory  = 7,
+    UnusableMemory      = 8,
+    AcpiReclaimMemory   = 9,
+    AcpiMemoryNvs       = 10,
+    MemoryMappedIo      = 11,
     MemoryMappedIoPortSpace = 12,
-    PalCode = 13,
-    PersistentMemory = 14,
+    PalCode             = 13,
+    PersistentMemory    = 14,
 }
 
 /// EFI memory descriptor
@@ -916,10 +925,10 @@ impl FdtHeader {
 #[repr(u32)]
 pub enum FdtToken {
     BeginNode = 0x00000001,
-    EndNode = 0x00000002,
-    Prop = 0x00000003,
-    Nop = 0x00000004,
-    End = 0x00000009,
+    EndNode   = 0x00000002,
+    Prop      = 0x00000003,
+    Nop       = 0x00000004,
+    End       = 0x00000009,
 }
 
 /// Device tree parser
@@ -975,9 +984,7 @@ impl DeviceTree {
 
     /// Get raw DTB data
     pub fn as_bytes(&self) -> &[u8] {
-        unsafe {
-            slice::from_raw_parts(self.base, self.header.total_size() as usize)
-        }
+        unsafe { slice::from_raw_parts(self.base, self.header.total_size() as usize) }
     }
 }
 

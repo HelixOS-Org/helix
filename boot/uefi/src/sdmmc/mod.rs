@@ -76,71 +76,71 @@ pub const EMMC_BOOT_MULT: u32 = 128 * 1024;
 #[repr(u8)]
 pub enum SdCommand {
     /// GO_IDLE_STATE - Reset all cards
-    GoIdleState = 0,
+    GoIdleState        = 0,
     /// ALL_SEND_CID - Request all cards send CID
-    AllSendCid = 2,
+    AllSendCid         = 2,
     /// SEND_RELATIVE_ADDR - Ask card to publish RCA
-    SendRelativeAddr = 3,
+    SendRelativeAddr   = 3,
     /// SET_DSR - Set driver stage register
-    SetDsr = 4,
+    SetDsr             = 4,
     /// SWITCH - Switch function/high speed
-    Switch = 6,
+    Switch             = 6,
     /// SELECT_CARD - Select/deselect card
-    SelectCard = 7,
+    SelectCard         = 7,
     /// SEND_IF_COND - Send interface condition
-    SendIfCond = 8,
+    SendIfCond         = 8,
     /// SEND_CSD - Request CSD from card
-    SendCsd = 9,
+    SendCsd            = 9,
     /// SEND_CID - Request CID from card
-    SendCid = 10,
+    SendCid            = 10,
     /// VOLTAGE_SWITCH - Switch to 1.8V signaling
-    VoltageSwitch = 11,
+    VoltageSwitch      = 11,
     /// STOP_TRANSMISSION - Stop transmission
-    StopTransmission = 12,
+    StopTransmission   = 12,
     /// SEND_STATUS - Request card status
-    SendStatus = 13,
+    SendStatus         = 13,
     /// GO_INACTIVE_STATE - Set card to inactive
-    GoInactiveState = 15,
+    GoInactiveState    = 15,
     /// SET_BLOCKLEN - Set block length
-    SetBlocklen = 16,
+    SetBlocklen        = 16,
     /// READ_SINGLE_BLOCK - Read single block
-    ReadSingleBlock = 17,
+    ReadSingleBlock    = 17,
     /// READ_MULTIPLE_BLOCK - Read multiple blocks
-    ReadMultipleBlock = 18,
+    ReadMultipleBlock  = 18,
     /// SEND_TUNING_BLOCK - Send tuning pattern
-    SendTuningBlock = 19,
+    SendTuningBlock    = 19,
     /// SPEED_CLASS_CONTROL - Speed class control
-    SpeedClassControl = 20,
+    SpeedClassControl  = 20,
     /// SET_BLOCK_COUNT - Set block count for multi-block
-    SetBlockCount = 23,
+    SetBlockCount      = 23,
     /// WRITE_BLOCK - Write single block
-    WriteBlock = 24,
+    WriteBlock         = 24,
     /// WRITE_MULTIPLE_BLOCK - Write multiple blocks
     WriteMultipleBlock = 25,
     /// PROGRAM_CSD - Program CSD
-    ProgramCsd = 27,
+    ProgramCsd         = 27,
     /// SET_WRITE_PROT - Set write protection
-    SetWriteProt = 28,
+    SetWriteProt       = 28,
     /// CLR_WRITE_PROT - Clear write protection
-    ClrWriteProt = 29,
+    ClrWriteProt       = 29,
     /// SEND_WRITE_PROT - Send write protection status
-    SendWriteProt = 30,
+    SendWriteProt      = 30,
     /// ERASE_WR_BLK_START - Set first erase block
-    EraseWrBlkStart = 32,
+    EraseWrBlkStart    = 32,
     /// ERASE_WR_BLK_END - Set last erase block
-    EraseWrBlkEnd = 33,
+    EraseWrBlkEnd      = 33,
     /// ERASE - Erase blocks
-    Erase = 38,
+    Erase              = 38,
     /// LOCK_UNLOCK - Lock/unlock card
-    LockUnlock = 42,
+    LockUnlock         = 42,
     /// APP_CMD - Next command is application command
-    AppCmd = 55,
+    AppCmd             = 55,
     /// GEN_CMD - General command
-    GenCmd = 56,
+    GenCmd             = 56,
     /// READ_OCR - Read OCR register (SPI mode)
-    ReadOcr = 58,
+    ReadOcr            = 58,
     /// CRC_ON_OFF - Turn CRC on/off (SPI mode)
-    CrcOnOff = 59,
+    CrcOnOff           = 59,
 }
 
 /// SD Application commands (ACMD)
@@ -148,19 +148,19 @@ pub enum SdCommand {
 #[repr(u8)]
 pub enum SdAcmd {
     /// SET_BUS_WIDTH
-    SetBusWidth = 6,
+    SetBusWidth        = 6,
     /// SD_STATUS
-    SdStatus = 13,
+    SdStatus           = 13,
     /// SEND_NUM_WR_BLOCKS
-    SendNumWrBlocks = 22,
+    SendNumWrBlocks    = 22,
     /// SET_WR_BLK_ERASE_COUNT
     SetWrBlkEraseCount = 23,
     /// SD_SEND_OP_COND
-    SdSendOpCond = 41,
+    SdSendOpCond       = 41,
     /// SET_CLR_CARD_DETECT
-    SetClrCardDetect = 42,
+    SetClrCardDetect   = 42,
     /// SEND_SCR
-    SendScr = 51,
+    SendScr            = 51,
 }
 
 /// MMC-specific commands
@@ -168,23 +168,23 @@ pub enum SdAcmd {
 #[repr(u8)]
 pub enum MmcCommand {
     /// SEND_OP_COND - Request OCR from card
-    SendOpCond = 1,
+    SendOpCond      = 1,
     /// SET_RELATIVE_ADDR - Assign RCA
     SetRelativeAddr = 3,
     /// SLEEP_AWAKE - Toggle sleep mode
-    SleepAwake = 5,
+    SleepAwake      = 5,
     /// SWITCH - Extended CSD access
-    Switch = 6,
+    Switch          = 6,
     /// SEND_EXT_CSD - Send extended CSD
-    SendExtCsd = 8,
+    SendExtCsd      = 8,
     /// BUSTEST_W - Bus test write
-    BustestW = 19,
+    BustestW        = 19,
     /// BUSTEST_R - Bus test read
-    BustestR = 14,
+    BustestR        = 14,
     /// ERASE_GROUP_START - Set first erase group
     EraseGroupStart = 35,
     /// ERASE_GROUP_END - Set last erase group
-    EraseGroupEnd = 36,
+    EraseGroupEnd   = 36,
 }
 
 // =============================================================================
@@ -496,27 +496,27 @@ impl CardStatus {
 #[repr(u8)]
 pub enum CardState {
     /// Idle state
-    Idle = 0,
+    Idle    = 0,
     /// Ready state
-    Ready = 1,
+    Ready   = 1,
     /// Identification state
-    Ident = 2,
+    Ident   = 2,
     /// Stand-by state
-    Stby = 3,
+    Stby    = 3,
     /// Transfer state
-    Tran = 4,
+    Tran    = 4,
     /// Data state
-    Data = 5,
+    Data    = 5,
     /// Receive state
-    Rcv = 6,
+    Rcv     = 6,
     /// Programming state
-    Prg = 7,
+    Prg     = 7,
     /// Disconnect state
-    Dis = 8,
+    Dis     = 8,
     /// Bus test state
-    Btst = 9,
+    Btst    = 9,
     /// Sleep state
-    Slp = 10,
+    Slp     = 10,
     /// Unknown state
     Unknown = 15,
 }
@@ -723,10 +723,10 @@ impl Csd {
     /// Max transfer speed in kHz
     pub fn max_transfer_rate_khz(&self) -> u32 {
         let rate_unit = match self.raw[3] & 0x07 {
-            0 => 100,      // 100 kbit/s
-            1 => 1_000,    // 1 Mbit/s
-            2 => 10_000,   // 10 Mbit/s
-            3 => 100_000,  // 100 Mbit/s
+            0 => 100,     // 100 kbit/s
+            1 => 1_000,   // 1 Mbit/s
+            2 => 10_000,  // 10 Mbit/s
+            3 => 100_000, // 100 Mbit/s
             _ => 0,
         };
 
@@ -795,13 +795,13 @@ impl Csd {
                 let c_size_mid = (self.raw[7] as u32) << 2;
                 let c_size_low = ((self.raw[8] >> 6) as u32) & 0x03;
                 c_size_high | c_size_mid | c_size_low
-            }
+            },
             CsdVersion::V2 | CsdVersion::V3 => {
                 let c_size_high = ((self.raw[7] & 0x3F) as u32) << 16;
                 let c_size_mid = (self.raw[8] as u32) << 8;
                 let c_size_low = self.raw[9] as u32;
                 c_size_high | c_size_mid | c_size_low
-            }
+            },
             CsdVersion::Unknown => 0,
         }
     }
@@ -822,15 +822,15 @@ impl Csd {
                 let blocknr = (c_size + 1) * mult;
                 let block_len = 1u64 << read_bl_len;
                 (blocknr * block_len) / 512
-            }
+            },
             CsdVersion::V2 => {
                 // (C_SIZE + 1) * 512K bytes
                 (self.c_size() as u64 + 1) * 1024
-            }
+            },
             CsdVersion::V3 => {
                 // (C_SIZE + 1) * 512K bytes (same as V2 for SDUC)
                 (self.c_size() as u64 + 1) * 1024
-            }
+            },
             CsdVersion::Unknown => 0,
         }
     }
@@ -1625,11 +1625,11 @@ impl ExtCsd {
 #[repr(u8)]
 pub enum BusWidth {
     /// 1-bit bus
-    Width1 = 0,
+    Width1    = 0,
     /// 4-bit bus
-    Width4 = 1,
+    Width4    = 1,
     /// 8-bit bus (MMC only)
-    Width8 = 2,
+    Width8    = 2,
     /// 4-bit DDR
     Width4Ddr = 5,
     /// 8-bit DDR
@@ -1641,13 +1641,13 @@ pub enum BusWidth {
 #[repr(u8)]
 pub enum TimingMode {
     /// Legacy timing
-    Legacy = 0,
+    Legacy    = 0,
     /// High Speed timing
     HighSpeed = 1,
     /// HS200 timing
-    Hs200 = 2,
+    Hs200     = 2,
     /// HS400 timing
-    Hs400 = 3,
+    Hs400     = 3,
 }
 
 /// UHS timing modes (SD)
@@ -1655,15 +1655,15 @@ pub enum TimingMode {
 #[repr(u8)]
 pub enum UhsMode {
     /// SDR12 (12.5MB/s)
-    Sdr12 = 0,
+    Sdr12  = 0,
     /// SDR25 (25MB/s)
-    Sdr25 = 1,
+    Sdr25  = 1,
     /// SDR50 (50MB/s)
-    Sdr50 = 2,
+    Sdr50  = 2,
     /// SDR104 (104MB/s)
     Sdr104 = 3,
     /// DDR50 (50MB/s)
-    Ddr50 = 4,
+    Ddr50  = 4,
 }
 
 // =============================================================================

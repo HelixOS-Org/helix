@@ -41,8 +41,9 @@
 //! }
 //! ```
 
-use super::{Timer, TimerOperations, TimerState};
 use core::arch::asm;
+
+use super::{Timer, TimerOperations, TimerState};
 
 // ============================================================================
 // System Register Access

@@ -8,6 +8,8 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use alloc::boxed::Box;
+use alloc::vec;
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;

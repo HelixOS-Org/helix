@@ -2,10 +2,11 @@
 //!
 //! Safe wrappers for UEFI memory allocation and management.
 
-use crate::raw::memory::{MemoryType, MemoryDescriptor, MemoryMapKey};
-use crate::raw::types::*;
 use core::alloc::{GlobalAlloc, Layout};
 use core::ptr::NonNull;
+
+use crate::raw::memory::{MemoryDescriptor, MemoryMapKey, MemoryType};
+use crate::raw::types::*;
 
 // =============================================================================
 // MEMORY ALLOCATION
@@ -15,10 +16,7 @@ use core::ptr::NonNull;
 ///
 /// # Safety
 /// Must only be called while boot services are available.
-pub unsafe fn allocate_pool(
-    memory_type: MemoryType,
-    size: usize,
-) -> Result<*mut u8, Status> {
+pub unsafe fn allocate_pool(memory_type: MemoryType, size: usize) -> Result<*mut u8, Status> {
     let bs = super::boot_services();
     let mut buffer: *mut u8 = core::ptr::null_mut();
 
@@ -184,16 +182,22 @@ impl MemoryMap {
             } else if mt == MemoryType::LoaderCode as u32 || mt == MemoryType::LoaderData as u32 {
                 stats.loader_pages += desc.number_of_pages;
                 stats.usable_memory += size; // Reclaimable after boot
-            } else if mt == MemoryType::BootServicesCode as u32 || mt == MemoryType::BootServicesData as u32 {
+            } else if mt == MemoryType::BootServicesCode as u32
+                || mt == MemoryType::BootServicesData as u32
+            {
                 stats.boot_services_pages += desc.number_of_pages;
                 stats.usable_memory += size; // Reclaimable after ExitBootServices
-            } else if mt == MemoryType::RuntimeServicesCode as u32 || mt == MemoryType::RuntimeServicesData as u32 {
+            } else if mt == MemoryType::RuntimeServicesCode as u32
+                || mt == MemoryType::RuntimeServicesData as u32
+            {
                 stats.runtime_services_pages += desc.number_of_pages;
             } else if mt == MemoryType::AcpiReclaimMemory as u32 {
                 stats.acpi_reclaim_pages += desc.number_of_pages;
             } else if mt == MemoryType::AcpiNvsMemory as u32 {
                 stats.acpi_nvs_pages += desc.number_of_pages;
-            } else if mt == MemoryType::MemoryMappedIo as u32 || mt == MemoryType::MemoryMappedIoPortSpace as u32 {
+            } else if mt == MemoryType::MemoryMappedIo as u32
+                || mt == MemoryType::MemoryMappedIoPortSpace as u32
+            {
                 stats.mmio_pages += desc.number_of_pages;
             } else if mt == MemoryType::ReservedMemoryType as u32 {
                 stats.reserved_pages += desc.number_of_pages;
@@ -213,11 +217,11 @@ impl MemoryMap {
                 match largest {
                     Some((_, s)) if size > s => {
                         largest = Some((desc.physical_start, size));
-                    }
+                    },
                     None => {
                         largest = Some((desc.physical_start, size));
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -376,13 +380,12 @@ unsafe impl GlobalAlloc for UefiAllocator {
         let align = layout.align();
         if align <= 8 {
             // Simple case
-            allocate_pool(MemoryType::LoaderData, layout.size())
-                .unwrap_or(core::ptr::null_mut())
+            allocate_pool(MemoryType::LoaderData, layout.size()).unwrap_or(core::ptr::null_mut())
         } else {
             // Need to allocate extra and align manually
             let total_size = layout.size() + align;
-            let raw = allocate_pool(MemoryType::LoaderData, total_size)
-                .unwrap_or(core::ptr::null_mut());
+            let raw =
+                allocate_pool(MemoryType::LoaderData, total_size).unwrap_or(core::ptr::null_mut());
 
             if raw.is_null() {
                 return core::ptr::null_mut();
@@ -418,12 +421,7 @@ unsafe impl GlobalAlloc for UefiAllocator {
         }
     }
 
-    unsafe fn realloc(
-        &self,
-        ptr: *mut u8,
-        layout: Layout,
-        new_size: usize,
-    ) -> *mut u8 {
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         let new_layout = Layout::from_size_align_unchecked(new_size, layout.align());
         let new_ptr = self.alloc(new_layout);
 
@@ -458,8 +456,16 @@ pub struct MemoryRegion {
 
 impl MemoryRegion {
     /// Create a new memory region
-    pub const fn new(start: PhysicalAddress, end: PhysicalAddress, region_type: MemoryRegionType) -> Self {
-        Self { start, end, region_type }
+    pub const fn new(
+        start: PhysicalAddress,
+        end: PhysicalAddress,
+        region_type: MemoryRegionType,
+    ) -> Self {
+        Self {
+            start,
+            end,
+            region_type,
+        }
     }
 
     /// Get size in bytes
@@ -488,21 +494,21 @@ impl MemoryRegion {
 #[repr(u32)]
 pub enum MemoryRegionType {
     /// Usable RAM
-    Usable = 0,
+    Usable          = 0,
     /// Reserved/unusable
-    Reserved = 1,
+    Reserved        = 1,
     /// ACPI reclaimable
     AcpiReclaimable = 2,
     /// ACPI NVS
-    AcpiNvs = 3,
+    AcpiNvs         = 3,
     /// Memory-mapped I/O
-    Mmio = 4,
+    Mmio            = 4,
     /// Kernel code/data
-    Kernel = 5,
+    Kernel          = 5,
     /// Bootloader data
-    Bootloader = 6,
+    Bootloader      = 6,
     /// Framebuffer
-    Framebuffer = 7,
+    Framebuffer     = 7,
 }
 
 impl From<MemoryType> for MemoryRegionType {
@@ -511,10 +517,14 @@ impl From<MemoryType> for MemoryRegionType {
             MemoryType::ConventionalMemory => MemoryRegionType::Usable,
             MemoryType::LoaderCode | MemoryType::LoaderData => MemoryRegionType::Bootloader,
             MemoryType::BootServicesCode | MemoryType::BootServicesData => MemoryRegionType::Usable,
-            MemoryType::RuntimeServicesCode | MemoryType::RuntimeServicesData => MemoryRegionType::Reserved,
+            MemoryType::RuntimeServicesCode | MemoryType::RuntimeServicesData => {
+                MemoryRegionType::Reserved
+            },
             MemoryType::AcpiReclaimMemory => MemoryRegionType::AcpiReclaimable,
             MemoryType::AcpiNvsMemory => MemoryRegionType::AcpiNvs,
-            MemoryType::MemoryMappedIo | MemoryType::MemoryMappedIoPortSpace => MemoryRegionType::Mmio,
+            MemoryType::MemoryMappedIo | MemoryType::MemoryMappedIoPortSpace => {
+                MemoryRegionType::Mmio
+            },
             _ => MemoryRegionType::Reserved,
         }
     }
@@ -539,7 +549,8 @@ impl PageAllocator {
             MemoryType::LoaderData,
             pages,
             &mut address,
-        ).ok()?;
+        )
+        .ok()?;
 
         NonNull::new(address.0 as *mut u8)
     }
@@ -562,14 +573,18 @@ impl PageAllocator {
     ///
     /// # Safety
     /// Must only be called while boot services are available.
-    pub unsafe fn allocate_below(max_address: PhysicalAddress, pages: usize) -> Option<PhysicalAddress> {
+    pub unsafe fn allocate_below(
+        max_address: PhysicalAddress,
+        pages: usize,
+    ) -> Option<PhysicalAddress> {
         let mut address = max_address;
         allocate_pages(
             AllocateType::AllocateMaxAddress,
             MemoryType::LoaderData,
             pages,
             &mut address,
-        ).ok()?;
+        )
+        .ok()?;
 
         Some(address)
     }

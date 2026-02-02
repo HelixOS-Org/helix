@@ -682,8 +682,14 @@ impl KeyEvent {
     pub const fn is_navigation_key(&self) -> bool {
         matches!(
             self.scancode,
-            scancode::UP | scancode::DOWN | scancode::LEFT | scancode::RIGHT |
-            scancode::HOME | scancode::END | scancode::PAGE_UP | scancode::PAGE_DOWN
+            scancode::UP
+                | scancode::DOWN
+                | scancode::LEFT
+                | scancode::RIGHT
+                | scancode::HOME
+                | scancode::END
+                | scancode::PAGE_UP
+                | scancode::PAGE_DOWN
         )
     }
 
@@ -812,11 +818,21 @@ impl MouseButtons {
     /// Convert to button mask
     pub const fn to_mask(&self) -> u8 {
         let mut mask = 0u8;
-        if self.left { mask |= 0x01; }
-        if self.right { mask |= 0x02; }
-        if self.middle { mask |= 0x04; }
-        if self.button4 { mask |= 0x08; }
-        if self.button5 { mask |= 0x10; }
+        if self.left {
+            mask |= 0x01;
+        }
+        if self.right {
+            mask |= 0x02;
+        }
+        if self.middle {
+            mask |= 0x04;
+        }
+        if self.button4 {
+            mask |= 0x08;
+        }
+        if self.button5 {
+            mask |= 0x10;
+        }
         mask
     }
 }
@@ -986,8 +1002,10 @@ impl TouchEvent {
 
     /// Check if this is a tap gesture (single quick touch)
     pub fn is_tap(&self) -> bool {
-        self.point_count == 1 &&
-            self.points[0].map(|p| p.state == TouchState::Up).unwrap_or(false)
+        self.point_count == 1
+            && self.points[0]
+                .map(|p| p.state == TouchState::Up)
+                .unwrap_or(false)
     }
 
     /// Check if this is a two-finger gesture

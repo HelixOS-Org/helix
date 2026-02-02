@@ -299,7 +299,8 @@ pub struct SimpleTextOutput {
     pub reset: Option<unsafe extern "efiapi" fn(*mut Self, bool) -> usize>,
     pub output_string: Option<unsafe extern "efiapi" fn(*mut Self, *const u16) -> usize>,
     pub test_string: Option<unsafe extern "efiapi" fn(*mut Self, *const u16) -> usize>,
-    pub query_mode: Option<unsafe extern "efiapi" fn(*mut Self, usize, *mut usize, *mut usize) -> usize>,
+    pub query_mode:
+        Option<unsafe extern "efiapi" fn(*mut Self, usize, *mut usize, *mut usize) -> usize>,
     pub set_mode: Option<unsafe extern "efiapi" fn(*mut Self, usize) -> usize>,
     pub set_attribute: Option<unsafe extern "efiapi" fn(*mut Self, usize) -> usize>,
     pub clear_screen: Option<unsafe extern "efiapi" fn(*mut Self) -> usize>,
@@ -345,22 +346,22 @@ pub struct InputKey {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Color {
-    Black = 0x00,
-    Blue = 0x01,
-    Green = 0x02,
-    Cyan = 0x03,
-    Red = 0x04,
-    Magenta = 0x05,
-    Brown = 0x06,
-    LightGray = 0x07,
-    DarkGray = 0x08,
-    LightBlue = 0x09,
-    LightGreen = 0x0A,
-    LightCyan = 0x0B,
-    LightRed = 0x0C,
+    Black        = 0x00,
+    Blue         = 0x01,
+    Green        = 0x02,
+    Cyan         = 0x03,
+    Red          = 0x04,
+    Magenta      = 0x05,
+    Brown        = 0x06,
+    LightGray    = 0x07,
+    DarkGray     = 0x08,
+    LightBlue    = 0x09,
+    LightGreen   = 0x0A,
+    LightCyan    = 0x0B,
+    LightRed     = 0x0C,
     LightMagenta = 0x0D,
-    Yellow = 0x0E,
-    White = 0x0F,
+    Yellow       = 0x0E,
+    White        = 0x0F,
 }
 
 impl Color {
@@ -448,12 +449,10 @@ impl Key {
                     0x0009 => Self::Tab,
                     0x000D => Self::Enter,
                     0x001B => Self::Escape,
-                    c if c >= 0x20 && c < 0x7F => {
-                        Self::Char(c as u8 as char)
-                    }
+                    c if c >= 0x20 && c < 0x7F => Self::Char(c as u8 as char),
                     _ => Self::Unknown(key.unicode_char),
                 }
-            }
+            },
             s => Self::Unknown(s),
         }
     }
@@ -506,12 +505,7 @@ pub struct FramebufferConsole {
 
 impl FramebufferConsole {
     /// Create new framebuffer console
-    pub fn new(
-        fb_base: *mut u32,
-        width: u32,
-        height: u32,
-        stride: u32,
-    ) -> Self {
+    pub fn new(fb_base: *mut u32, width: u32, height: u32, stride: u32) -> Self {
         let char_width = 8;
         let char_height = 16;
 
@@ -581,13 +575,13 @@ impl FramebufferConsole {
             '\n' => {
                 self.cursor_col = 0;
                 self.cursor_row += 1;
-            }
+            },
             '\r' => {
                 self.cursor_col = 0;
-            }
+            },
             '\t' => {
                 self.cursor_col = (self.cursor_col + 4) & !3;
-            }
+            },
             _ => {
                 if self.cursor_col >= self.max_cols {
                     self.cursor_col = 0;
@@ -604,7 +598,7 @@ impl FramebufferConsole {
 
                 self.draw_char(c, x, y);
                 self.cursor_col += 1;
-            }
+            },
         }
     }
 
@@ -669,20 +663,22 @@ fn get_glyph(c: char) -> [u8; 16] {
     // Very basic placeholder glyphs
     match c {
         'A'..='Z' => [
-            0x00, 0x00, 0x3C, 0x66, 0x66, 0x66, 0x7E,
-            0x66, 0x66, 0x66, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x3C, 0x66, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x66, 0x66, 0x00, 0x00, 0x00,
+            0x00, 0x00,
         ],
         'a'..='z' => [
-            0x00, 0x00, 0x00, 0x00, 0x3C, 0x06, 0x3E,
-            0x66, 0x66, 0x66, 0x3E, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x3C, 0x06, 0x3E, 0x66, 0x66, 0x66, 0x3E, 0x00, 0x00, 0x00,
+            0x00, 0x00,
         ],
         '0'..='9' => [
-            0x00, 0x00, 0x3C, 0x66, 0x66, 0x66, 0x66,
-            0x66, 0x66, 0x66, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x3C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00, 0x00, 0x00,
+            0x00, 0x00,
         ],
         ' ' => [0; 16],
-        _ => [0x00, 0x00, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E,
-              0x7E, 0x7E, 0x7E, 0x00, 0x00, 0x00, 0x00, 0x00],
+        _ => [
+            0x00, 0x00, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x7E, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ],
     }
 }
 

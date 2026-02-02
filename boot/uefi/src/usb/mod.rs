@@ -57,15 +57,15 @@ pub const MAX_PACKET_SUPER_SPEED: u16 = 1024;
 #[repr(u8)]
 pub enum UsbSpeed {
     /// Low speed (1.5 Mbps)
-    Low = 0,
+    Low         = 0,
     /// Full speed (12 Mbps)
-    Full = 1,
+    Full        = 1,
     /// High speed (480 Mbps)
-    High = 2,
+    High        = 2,
     /// Super speed (5 Gbps)
-    Super = 3,
+    Super       = 3,
     /// Super speed+ (10 Gbps)
-    SuperPlus = 4,
+    SuperPlus   = 4,
     /// Super speed+ 20 Gbps
     SuperPlus20 = 5,
 }
@@ -190,13 +190,13 @@ impl EndpointAddress {
 #[repr(u8)]
 pub enum EndpointType {
     /// Control endpoint
-    Control = 0,
+    Control     = 0,
     /// Isochronous endpoint (streaming)
     Isochronous = 1,
     /// Bulk endpoint (large data)
-    Bulk = 2,
+    Bulk        = 2,
     /// Interrupt endpoint (small, guaranteed latency)
-    Interrupt = 3,
+    Interrupt   = 3,
 }
 
 impl EndpointType {
@@ -1849,55 +1849,55 @@ pub mod xhci_usbsts {
 #[repr(u8)]
 pub enum TrbType {
     /// Reserved
-    Reserved = 0,
+    Reserved            = 0,
     /// Normal
-    Normal = 1,
+    Normal              = 1,
     /// Setup Stage
-    SetupStage = 2,
+    SetupStage          = 2,
     /// Data Stage
-    DataStage = 3,
+    DataStage           = 3,
     /// Status Stage
-    StatusStage = 4,
+    StatusStage         = 4,
     /// Isoch
-    Isoch = 5,
+    Isoch               = 5,
     /// Link
-    Link = 6,
+    Link                = 6,
     /// Event Data
-    EventData = 7,
+    EventData           = 7,
     /// No Op
-    NoOpTransfer = 8,
+    NoOpTransfer        = 8,
     /// Enable Slot
-    EnableSlot = 9,
+    EnableSlot          = 9,
     /// Disable Slot
-    DisableSlot = 10,
+    DisableSlot         = 10,
     /// Address Device
-    AddressDevice = 11,
+    AddressDevice       = 11,
     /// Configure Endpoint
-    ConfigureEndpoint = 12,
+    ConfigureEndpoint   = 12,
     /// Evaluate Context
-    EvaluateContext = 13,
+    EvaluateContext     = 13,
     /// Reset Endpoint
-    ResetEndpoint = 14,
+    ResetEndpoint       = 14,
     /// Stop Endpoint
-    StopEndpoint = 15,
+    StopEndpoint        = 15,
     /// Set TR Dequeue Pointer
     SetTRDequeuePointer = 16,
     /// Reset Device
-    ResetDevice = 17,
+    ResetDevice         = 17,
     /// Force Event
-    ForceEvent = 18,
+    ForceEvent          = 18,
     /// Negotiate Bandwidth
-    NegotiateBandwidth = 19,
+    NegotiateBandwidth  = 19,
     /// Set Latency Tolerance Value
     SetLatencyToleranceValue = 20,
     /// Get Port Bandwidth
-    GetPortBandwidth = 21,
+    GetPortBandwidth    = 21,
     /// Force Header
-    ForceHeader = 22,
+    ForceHeader         = 22,
     /// No Op Command
-    NoOpCommand = 23,
+    NoOpCommand         = 23,
     /// Transfer Event
-    TransferEvent = 32,
+    TransferEvent       = 32,
     /// Command Completion Event
     CommandCompletionEvent = 33,
     /// Port Status Change Event
@@ -1905,13 +1905,13 @@ pub enum TrbType {
     /// Bandwidth Request Event
     BandwidthRequestEvent = 35,
     /// Doorbell Event
-    DoorbellEvent = 36,
+    DoorbellEvent       = 36,
     /// Host Controller Event
     HostControllerEvent = 37,
     /// Device Notification Event
     DeviceNotificationEvent = 38,
     /// MFINDEX Wrap Event
-    MfindexWrapEvent = 39,
+    MfindexWrapEvent    = 39,
 }
 
 /// xHCI Transfer Request Block
@@ -1960,8 +1960,7 @@ impl Trb {
         Self {
             parameter: ring_addr,
             status: 0,
-            control: ((TrbType::Link as u32) << 10)
-                | if toggle_cycle { 1 << 1 } else { 0 },
+            control: ((TrbType::Link as u32) << 10) | if toggle_cycle { 1 << 1 } else { 0 },
         }
     }
 
@@ -2035,8 +2034,7 @@ impl Trb {
         Self {
             parameter: buffer,
             status: length & 0x1FFFF, // TD Size = 0, TRB transfer length
-            control: ((TrbType::DataStage as u32) << 10)
-                | if direction_in { 1 << 16 } else { 0 },
+            control: ((TrbType::DataStage as u32) << 10) | if direction_in { 1 << 16 } else { 0 },
         }
     }
 
@@ -2076,31 +2074,31 @@ impl Default for Trb {
 #[repr(u8)]
 pub enum LinkState {
     /// U0 - Fully operational
-    U0 = 0,
+    U0             = 0,
     /// U1 - Standby (fast exit)
-    U1 = 1,
+    U1             = 1,
     /// U2 - Standby (slower exit)
-    U2 = 2,
+    U2             = 2,
     /// U3 - Suspend
-    U3 = 3,
+    U3             = 3,
     /// Disabled
-    Disabled = 4,
+    Disabled       = 4,
     /// RxDetect
-    RxDetect = 5,
+    RxDetect       = 5,
     /// Inactive
-    Inactive = 6,
+    Inactive       = 6,
     /// Polling
-    Polling = 7,
+    Polling        = 7,
     /// Recovery
-    Recovery = 8,
+    Recovery       = 8,
     /// Hot Reset
-    HotReset = 9,
+    HotReset       = 9,
     /// Compliance Mode
     ComplianceMode = 10,
     /// Test Mode
-    TestMode = 11,
+    TestMode       = 11,
     /// Resume
-    Resume = 15,
+    Resume         = 15,
 }
 
 // =============================================================================

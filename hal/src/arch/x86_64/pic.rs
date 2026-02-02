@@ -1,4 +1,4 @@
-   //! # 8259 Programmable Interrupt Controller (PIC)
+//! # 8259 Programmable Interrupt Controller (PIC)
 //!
 //! The legacy dual PIC system (master + slave) for handling hardware interrupts.
 //! IRQs 0-7 are on the master, IRQs 8-15 are on the slave.
@@ -42,21 +42,21 @@ static PIC_INITIALIZED: AtomicBool = AtomicBool::new(false);
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Irq {
-    Timer = 0,
-    Keyboard = 1,
-    Cascade = 2, // Used internally for PIC cascading
-    Com2 = 3,
-    Com1 = 4,
-    Lpt2 = 5,
-    Floppy = 6,
-    Lpt1 = 7,
-    RtcClock = 8,
-    Acpi = 9,
-    Available1 = 10,
-    Available2 = 11,
-    Mouse = 12,
-    Coprocessor = 13,
-    PrimaryAta = 14,
+    Timer        = 0,
+    Keyboard     = 1,
+    Cascade      = 2, // Used internally for PIC cascading
+    Com2         = 3,
+    Com1         = 4,
+    Lpt2         = 5,
+    Floppy       = 6,
+    Lpt1         = 7,
+    RtcClock     = 8,
+    Acpi         = 9,
+    Available1   = 10,
+    Available2   = 11,
+    Mouse        = 12,
+    Coprocessor  = 13,
+    PrimaryAta   = 14,
     SecondaryAta = 15,
 }
 
@@ -65,7 +65,7 @@ impl Irq {
     pub const fn vector(self) -> u8 {
         IRQ_OFFSET + self as u8
     }
-    
+
     /// Check if this is a slave IRQ (8-15)
     pub const fn is_slave(self) -> bool {
         (self as u8) >= 8
@@ -82,46 +82,49 @@ pub unsafe fn init() {
     // Save current masks
     let master_mask = unsafe { inb(ports::MASTER_DATA) };
     let slave_mask = unsafe { inb(ports::SLAVE_DATA) };
-    
+
     unsafe {
         // Start initialization sequence (ICW1)
         outb(ports::MASTER_CMD, cmd::ICW1_INIT | cmd::ICW1_ICW4);
         io_wait();
         outb(ports::SLAVE_CMD, cmd::ICW1_INIT | cmd::ICW1_ICW4);
         io_wait();
-        
+
         // ICW2: Set vector offsets
-        outb(ports::MASTER_DATA, IRQ_OFFSET);      // Master: IRQ 0-7 -> 0x20-0x27
+        outb(ports::MASTER_DATA, IRQ_OFFSET); // Master: IRQ 0-7 -> 0x20-0x27
         io_wait();
-        outb(ports::SLAVE_DATA, IRQ_OFFSET + 8);   // Slave: IRQ 8-15 -> 0x28-0x2F
+        outb(ports::SLAVE_DATA, IRQ_OFFSET + 8); // Slave: IRQ 8-15 -> 0x28-0x2F
         io_wait();
-        
+
         // ICW3: Configure cascading
-        outb(ports::MASTER_DATA, 0x04);  // Master: slave on IRQ2
+        outb(ports::MASTER_DATA, 0x04); // Master: slave on IRQ2
         io_wait();
-        outb(ports::SLAVE_DATA, 0x02);   // Slave: cascade identity
+        outb(ports::SLAVE_DATA, 0x02); // Slave: cascade identity
         io_wait();
-        
+
         // ICW4: Set mode
         outb(ports::MASTER_DATA, cmd::ICW4_8086);
         io_wait();
         outb(ports::SLAVE_DATA, cmd::ICW4_8086);
         io_wait();
-        
+
         // Restore masks (all interrupts masked initially)
         outb(ports::MASTER_DATA, master_mask);
         outb(ports::SLAVE_DATA, slave_mask);
     }
-    
+
     PIC_INITIALIZED.store(true, Ordering::Release);
-    log::info!("PIC remapped: IRQs 0-15 -> vectors 0x{:02X}-0x{:02X}", 
-               IRQ_OFFSET, IRQ_OFFSET + 15);
+    log::info!(
+        "PIC remapped: IRQs 0-15 -> vectors 0x{:02X}-0x{:02X}",
+        IRQ_OFFSET,
+        IRQ_OFFSET + 15
+    );
 }
 
 /// Enable a specific IRQ
 pub fn enable_irq(irq: Irq) {
     let irq_num = irq as u8;
-    
+
     unsafe {
         if irq_num < 8 {
             // Master PIC
@@ -136,14 +139,14 @@ pub fn enable_irq(irq: Irq) {
             outb(ports::MASTER_DATA, master_mask & !(1 << 2));
         }
     }
-    
+
     log::debug!("IRQ{} enabled (vector 0x{:02X})", irq_num, irq.vector());
 }
 
 /// Disable a specific IRQ
 pub fn disable_irq(irq: Irq) {
     let irq_num = irq as u8;
-    
+
     unsafe {
         if irq_num < 8 {
             let mask = inb(ports::MASTER_DATA);

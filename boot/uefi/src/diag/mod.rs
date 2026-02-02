@@ -131,9 +131,18 @@ impl CpuDiagnostics {
 
         // Combine vendor string
         let vendor_bytes: [u8; 12] = [
-            ebx as u8, (ebx >> 8) as u8, (ebx >> 16) as u8, (ebx >> 24) as u8,
-            edx as u8, (edx >> 8) as u8, (edx >> 16) as u8, (edx >> 24) as u8,
-            ecx as u8, (ecx >> 8) as u8, (ecx >> 16) as u8, (ecx >> 24) as u8,
+            ebx as u8,
+            (ebx >> 8) as u8,
+            (ebx >> 16) as u8,
+            (ebx >> 24) as u8,
+            edx as u8,
+            (edx >> 8) as u8,
+            (edx >> 16) as u8,
+            (edx >> 24) as u8,
+            ecx as u8,
+            (ecx >> 8) as u8,
+            (ecx >> 16) as u8,
+            (ecx >> 24) as u8,
         ];
         if &vendor_bytes == b"GenuineIntel" {
             CpuVendor::Intel
@@ -288,7 +297,7 @@ impl CpuDiagnostics {
                 (1, 2) => l1i_size = size, // L1 Instruction
                 (2, 3) => l2_size = size,  // L2 Unified
                 (3, 3) => l3_size = size,  // L3 Unified
-                _ => {}
+                _ => {},
             }
         }
 
@@ -573,7 +582,9 @@ impl SimpleRng {
 
     fn next(&mut self) -> u64 {
         // LCG parameters from Numerical Recipes
-        self.state = self.state.wrapping_mul(6364136223846793005)
+        self.state = self
+            .state
+            .wrapping_mul(6364136223846793005)
             .wrapping_add(1442695040888963407);
         self.state
     }
@@ -604,23 +615,35 @@ impl MemoryTestResult {
 
     /// All tests passed
     pub fn all_passed(&self) -> bool {
-        self.zeros.is_success() &&
-        self.ones.is_success() &&
-        self.alternating.is_success() &&
-        self.address.is_success() &&
-        self.walking.is_success() &&
-        self.random.is_success()
+        self.zeros.is_success()
+            && self.ones.is_success()
+            && self.alternating.is_success()
+            && self.address.is_success()
+            && self.walking.is_success()
+            && self.random.is_success()
     }
 
     /// Count failures
     pub fn failure_count(&self) -> usize {
         let mut count = 0;
-        if self.zeros.is_failure() { count += 1; }
-        if self.ones.is_failure() { count += 1; }
-        if self.alternating.is_failure() { count += 1; }
-        if self.address.is_failure() { count += 1; }
-        if self.walking.is_failure() { count += 1; }
-        if self.random.is_failure() { count += 1; }
+        if self.zeros.is_failure() {
+            count += 1;
+        }
+        if self.ones.is_failure() {
+            count += 1;
+        }
+        if self.alternating.is_failure() {
+            count += 1;
+        }
+        if self.address.is_failure() {
+            count += 1;
+        }
+        if self.walking.is_failure() {
+            count += 1;
+        }
+        if self.random.is_failure() {
+            count += 1;
+        }
         count
     }
 }
@@ -633,27 +656,27 @@ impl MemoryTestResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BootStage {
     /// Entry point reached
-    Entry = 0,
+    Entry            = 0,
     /// UEFI services initialized
-    UefiInit = 1,
+    UefiInit         = 1,
     /// Console initialized
-    Console = 2,
+    Console          = 2,
     /// Memory map obtained
-    MemoryMap = 3,
+    MemoryMap        = 3,
     /// Graphics initialized
-    Graphics = 4,
+    Graphics         = 4,
     /// Configuration loaded
-    Config = 5,
+    Config           = 5,
     /// Kernel found
-    KernelFound = 6,
+    KernelFound      = 6,
     /// Kernel loaded
-    KernelLoaded = 7,
+    KernelLoaded     = 7,
     /// Kernel verified
-    KernelVerified = 8,
+    KernelVerified   = 8,
     /// Exit boot services
     ExitBootServices = 9,
     /// Jumping to kernel
-    JumpToKernel = 10,
+    JumpToKernel     = 10,
 }
 
 impl BootStage {
@@ -768,7 +791,12 @@ pub struct BootError {
 impl BootError {
     /// Create new error
     pub fn new(stage: BootStage, code: u32, message: &'static str, fatal: bool) -> Self {
-        Self { stage, code, message, fatal }
+        Self {
+            stage,
+            code,
+            message,
+            fatal,
+        }
     }
 }
 

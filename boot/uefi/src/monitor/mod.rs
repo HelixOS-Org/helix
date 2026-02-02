@@ -63,9 +63,9 @@ pub enum BootPhase {
     /// Transient System Load
     Tsl = 4,
     /// Runtime
-    Rt = 5,
+    Rt  = 5,
     /// After Life (post ExitBootServices)
-    Al = 6,
+    Al  = 6,
 }
 
 impl BootPhase {
@@ -174,13 +174,18 @@ impl BootStage {
         match self {
             BootStage::FirmwareInit => BootPhase::Sec,
             BootStage::MemoryDetect | BootStage::MemoryInit => BootPhase::Pei,
-            BootStage::CpuInit | BootStage::ChipsetInit |
-            BootStage::BoardInit | BootStage::PciEnumerate |
-            BootStage::ConsoleInit | BootStage::DriverLoad |
-            BootStage::ProtocolInstall => BootPhase::Dxe,
+            BootStage::CpuInit
+            | BootStage::ChipsetInit
+            | BootStage::BoardInit
+            | BootStage::PciEnumerate
+            | BootStage::ConsoleInit
+            | BootStage::DriverLoad
+            | BootStage::ProtocolInstall => BootPhase::Dxe,
             BootStage::BootOptionEnum | BootStage::BootOptionSelect => BootPhase::Bds,
-            BootStage::BootLoaderLoad | BootStage::BootLoaderStart |
-            BootStage::KernelLoad | BootStage::ExitBootServices => BootPhase::Tsl,
+            BootStage::BootLoaderLoad
+            | BootStage::BootLoaderStart
+            | BootStage::KernelLoad
+            | BootStage::ExitBootServices => BootPhase::Tsl,
             BootStage::KernelStart => BootPhase::Al,
         }
     }
@@ -207,11 +212,17 @@ pub struct Timestamp {
 
 impl Timestamp {
     /// Zero timestamp
-    pub const ZERO: Self = Self { seconds: 0, nanoseconds: 0 };
+    pub const ZERO: Self = Self {
+        seconds: 0,
+        nanoseconds: 0,
+    };
 
     /// Create new timestamp
     pub const fn new(seconds: u64, nanoseconds: u32) -> Self {
-        Self { seconds, nanoseconds }
+        Self {
+            seconds,
+            nanoseconds,
+        }
     }
 
     /// Create from microseconds
@@ -277,17 +288,23 @@ impl Duration {
 
     /// Create from microseconds
     pub const fn from_micros(micros: u64) -> Self {
-        Self { nanos: micros * 1000 }
+        Self {
+            nanos: micros * 1000,
+        }
     }
 
     /// Create from milliseconds
     pub const fn from_millis(millis: u64) -> Self {
-        Self { nanos: millis * 1_000_000 }
+        Self {
+            nanos: millis * 1_000_000,
+        }
     }
 
     /// Create from seconds
     pub const fn from_secs(secs: u64) -> Self {
-        Self { nanos: secs * 1_000_000_000 }
+        Self {
+            nanos: secs * 1_000_000_000,
+        }
     }
 
     /// Get total nanoseconds
@@ -322,12 +339,16 @@ impl Duration {
 
     /// Add durations
     pub const fn add(&self, other: &Self) -> Self {
-        Self { nanos: self.nanos + other.nanos }
+        Self {
+            nanos: self.nanos + other.nanos,
+        }
     }
 
     /// Subtract durations
     pub const fn sub(&self, other: &Self) -> Self {
-        Self { nanos: self.nanos.saturating_sub(other.nanos) }
+        Self {
+            nanos: self.nanos.saturating_sub(other.nanos),
+        }
     }
 }
 
@@ -338,9 +359,19 @@ impl fmt::Display for Duration {
         } else if self.nanos < 1_000_000 {
             write!(f, "{}.{:03}µs", self.nanos / 1000, self.nanos % 1000)
         } else if self.nanos < 1_000_000_000 {
-            write!(f, "{}.{:03}ms", self.nanos / 1_000_000, (self.nanos / 1000) % 1000)
+            write!(
+                f,
+                "{}.{:03}ms",
+                self.nanos / 1_000_000,
+                (self.nanos / 1000) % 1000
+            )
         } else {
-            write!(f, "{}.{:03}s", self.nanos / 1_000_000_000, (self.nanos / 1_000_000) % 1000)
+            write!(
+                f,
+                "{}.{:03}s",
+                self.nanos / 1_000_000_000,
+                (self.nanos / 1_000_000) % 1000
+            )
         }
     }
 }
@@ -363,7 +394,11 @@ pub struct BootTiming {
 impl BootTiming {
     /// Create new timing record
     pub const fn new(stage: BootStage, start: Timestamp) -> Self {
-        Self { stage, start, end: None }
+        Self {
+            stage,
+            start,
+            end: None,
+        }
     }
 
     /// Mark as completed
@@ -433,15 +468,23 @@ impl PerfCounter {
     /// Record a value
     pub fn record(&mut self, value: u64) {
         self.value = value;
-        if value < self.min { self.min = value; }
-        if value > self.max { self.max = value; }
+        if value < self.min {
+            self.min = value;
+        }
+        if value > self.max {
+            self.max = value;
+        }
         self.sum = self.sum.saturating_add(value);
         self.samples = self.samples.saturating_add(1);
     }
 
     /// Get average
     pub fn average(&self) -> u64 {
-        if self.samples == 0 { 0 } else { self.sum / self.samples as u64 }
+        if self.samples == 0 {
+            0
+        } else {
+            self.sum / self.samples as u64
+        }
     }
 
     /// Reset counter
@@ -463,8 +506,16 @@ impl fmt::Display for PerfCounter {
             CounterType::Percentage => "%",
             CounterType::Pages => " pages",
         };
-        write!(f, "{}: {}{} (min:{}, max:{}, avg:{})",
-            self.name, self.value, suffix, self.min, self.max, self.average())
+        write!(
+            f,
+            "{}: {}{} (min:{}, max:{}, avg:{})",
+            self.name,
+            self.value,
+            suffix,
+            self.min,
+            self.max,
+            self.average()
+        )
     }
 }
 
@@ -543,12 +594,15 @@ impl MemoryUsage {
 
 impl fmt::Display for MemoryUsage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Memory: {} / {} ({:.1}% used, peak: {}, frag: {}%)",
+        write!(
+            f,
+            "Memory: {} / {} ({:.1}% used, peak: {}, frag: {}%)",
             format_size(self.used),
             format_size(self.total_available),
             self.usage_percent() as f32,
             format_size(self.peak),
-            self.fragmentation)
+            self.fragmentation
+        )
     }
 }
 
@@ -575,15 +629,15 @@ fn format_size(bytes: u64) -> &'static str {
 #[repr(u8)]
 pub enum HealthLevel {
     /// Everything is working correctly
-    Healthy = 0,
+    Healthy  = 0,
     /// Minor issues detected
     Degraded = 1,
     /// Significant problems
-    Warning = 2,
+    Warning  = 2,
     /// Critical errors
     Critical = 3,
     /// System failed
-    Failed = 4,
+    Failed   = 4,
 }
 
 impl HealthLevel {
@@ -600,7 +654,10 @@ impl HealthLevel {
 
     /// Check if action needed
     pub const fn needs_attention(&self) -> bool {
-        matches!(self, HealthLevel::Warning | HealthLevel::Critical | HealthLevel::Failed)
+        matches!(
+            self,
+            HealthLevel::Warning | HealthLevel::Critical | HealthLevel::Failed
+        )
     }
 }
 
@@ -681,15 +738,15 @@ impl HealthCheck {
 #[repr(u8)]
 pub enum LogLevel {
     /// Trace (most verbose)
-    Trace = 0,
+    Trace    = 0,
     /// Debug
-    Debug = 1,
+    Debug    = 1,
     /// Info
-    Info = 2,
+    Info     = 2,
     /// Warning
-    Warning = 3,
+    Warning  = 3,
     /// Error
-    Error = 4,
+    Error    = 4,
     /// Critical (least verbose)
     Critical = 5,
 }
@@ -792,47 +849,47 @@ impl LogEntry {
 #[repr(u8)]
 pub enum PostCode {
     /// System power on
-    PowerOn = 0x00,
+    PowerOn          = 0x00,
     /// CPU initialization
-    CpuInit = 0x10,
+    CpuInit          = 0x10,
     /// Early chipset initialization
-    ChipsetEarly = 0x20,
+    ChipsetEarly     = 0x20,
     /// Memory detection
-    MemoryDetect = 0x30,
+    MemoryDetect     = 0x30,
     /// Memory initialization
-    MemoryInit = 0x31,
+    MemoryInit       = 0x31,
     /// Memory test
-    MemoryTest = 0x32,
+    MemoryTest       = 0x32,
     /// Cache initialization
-    CacheInit = 0x40,
+    CacheInit        = 0x40,
     /// Microcode update
-    MicrocodeUpdate = 0x50,
+    MicrocodeUpdate  = 0x50,
     /// PCI initialization
-    PciInit = 0x60,
+    PciInit          = 0x60,
     /// USB initialization
-    UsbInit = 0x70,
+    UsbInit          = 0x70,
     /// SATA initialization
-    SataInit = 0x71,
+    SataInit         = 0x71,
     /// NVMe initialization
-    NvmeInit = 0x72,
+    NvmeInit         = 0x72,
     /// Video initialization
-    VideoInit = 0x80,
+    VideoInit        = 0x80,
     /// Console initialization
-    ConsoleInit = 0x90,
+    ConsoleInit      = 0x90,
     /// Driver dispatch
-    DriverDispatch = 0xA0,
+    DriverDispatch   = 0xA0,
     /// BDS entry
-    BdsEntry = 0xB0,
+    BdsEntry         = 0xB0,
     /// Boot option
-    BootOption = 0xC0,
+    BootOption       = 0xC0,
     /// OS handoff
-    OsHandoff = 0xD0,
+    OsHandoff        = 0xD0,
     /// Ready to boot
-    ReadyToBoot = 0xE0,
+    ReadyToBoot      = 0xE0,
     /// Exit boot services
     ExitBootServices = 0xF0,
     /// Error
-    Error = 0xFF,
+    Error            = 0xFF,
 }
 
 impl PostCode {
@@ -878,7 +935,11 @@ pub struct BeepPattern {
 impl BeepPattern {
     /// Create pattern
     pub const fn new(beeps: u8, long_beeps: u8, repeats: u8) -> Self {
-        Self { beeps, long_beeps, repeats }
+        Self {
+            beeps,
+            long_beeps,
+            repeats,
+        }
     }
 
     /// Memory error pattern
@@ -1002,7 +1063,11 @@ impl Default for BootProgress {
 
 impl fmt::Display for BootProgress {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{:3}%] {}: {}", self.percent, self.stage, self.operation)
+        write!(
+            f,
+            "[{:3}%] {}: {}",
+            self.percent, self.stage, self.operation
+        )
     }
 }
 
@@ -1086,8 +1151,8 @@ mod tests {
     fn test_memory_usage() {
         let usage = MemoryUsage {
             total_available: 1024 * 1024 * 100, // 100 MB
-            used: 1024 * 1024 * 85, // 85 MB
-            free: 1024 * 1024 * 15, // 15 MB
+            used: 1024 * 1024 * 85,             // 85 MB
+            free: 1024 * 1024 * 15,             // 15 MB
             peak: 1024 * 1024 * 90,
             allocation_count: 1000,
             free_count: 500,

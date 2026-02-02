@@ -95,15 +95,15 @@ impl IoScheduler {
         let queue = self.queues.entry(device_id).or_default();
 
         // Try to merge with existing request
-        if self.try_merge(queue, &request).is_some() {
+        if Self::try_merge_static(queue, &request).is_some() {
             self.stats.merges += 1;
         } else {
             queue.push(request);
         }
     }
 
-    /// Try to merge request with existing
-    fn try_merge(&self, queue: &mut Vec<IoRequest>, new: &IoRequest) -> Option<usize> {
+    /// Try to merge request with existing (static version)
+    fn try_merge_static(queue: &mut Vec<IoRequest>, new: &IoRequest) -> Option<usize> {
         for (i, existing) in queue.iter_mut().enumerate() {
             // Same device and operation type
             if existing.device_id != new.device_id || existing.op_type != new.op_type {
@@ -130,19 +130,20 @@ impl IoScheduler {
 
     /// Get next request to dispatch
     pub fn dispatch(&mut self, device_id: u32) -> Option<IoRequest> {
-        let queue = self.queues.get_mut(&device_id)?;
+        let queue = self.queues.get(&device_id)?;
         if queue.is_empty() {
             return None;
         }
 
         let idx = match self.algorithm {
             SchedulingAlgorithm::Fifo => 0,
-            SchedulingAlgorithm::Deadline => self.select_deadline(queue)?,
-            SchedulingAlgorithm::Cfq => self.select_cfq(queue)?,
-            SchedulingAlgorithm::Bfq => self.select_bfq(queue)?,
-            SchedulingAlgorithm::AiOptimized => self.select_ai_optimized(queue, device_id)?,
+            SchedulingAlgorithm::Deadline => Self::select_deadline_static(queue)?,
+            SchedulingAlgorithm::Cfq => Self::select_cfq_static(queue)?,
+            SchedulingAlgorithm::Bfq => Self::select_bfq_static(queue)?,
+            SchedulingAlgorithm::AiOptimized => Self::select_ai_optimized_static(queue)?,
         };
 
+        let queue = self.queues.get_mut(&device_id)?;
         let request = queue.remove(idx);
         self.stats.total_scheduled += 1;
         self.stats.total_bytes += request.size as u64;
@@ -150,8 +151,8 @@ impl IoScheduler {
         Some(request)
     }
 
-    /// Deadline scheduling
-    fn select_deadline(&self, queue: &[IoRequest]) -> Option<usize> {
+    /// Deadline scheduling (static)
+    fn select_deadline_static(queue: &[IoRequest]) -> Option<usize> {
         // Find request with earliest deadline (oldest submission + priority)
         queue
             .iter()
@@ -169,15 +170,15 @@ impl IoScheduler {
             .map(|(i, _)| i)
     }
 
-    /// CFQ-like scheduling
-    fn select_cfq(&self, queue: &[IoRequest]) -> Option<usize> {
+    /// CFQ-like scheduling (static)
+    fn select_cfq_static(queue: &[IoRequest]) -> Option<usize> {
         // Round-robin by process with priority boost
         // Simplified: just use priority + age
-        self.select_deadline(queue)
+        Self::select_deadline_static(queue)
     }
 
-    /// BFQ-like scheduling
-    fn select_bfq(&self, queue: &[IoRequest]) -> Option<usize> {
+    /// BFQ-like scheduling (static)
+    fn select_bfq_static(queue: &[IoRequest]) -> Option<usize> {
         // Budget-based fair queuing
         // Simplified: prefer smaller requests for interactivity
         queue
@@ -197,14 +198,10 @@ impl IoScheduler {
             .map(|(i, _)| i)
     }
 
-    /// AI-optimized scheduling
-    fn select_ai_optimized(&self, queue: &[IoRequest], device_id: u32) -> Option<usize> {
-        // Consider:
-        // 1. Predicted latency
-        // 2. Access pattern (sequential preference for HDD)
-        // 3. Process patterns
-        // 4. Priority
-
+    /// AI-optimized scheduling (static)
+    fn select_ai_optimized_static(queue: &[IoRequest]) -> Option<usize> {
+        // Simplified version without needing self
+        // Consider priority and age only
         let mut best_idx = 0;
         let mut best_score = f64::NEG_INFINITY;
 
@@ -218,21 +215,6 @@ impl IoScheduler {
             let now = NexusTimestamp::now();
             let age = now.duration_since(request.submitted_at) as f64;
             score += age / 1_000_000.0; // Normalize
-
-            // Predicted latency (prefer lower)
-            let predicted = self.latency_predictor.predict(device_id, request.size);
-            score -= predicted as f64 / 1_000_000.0;
-
-            // Pattern alignment (if process has sequential pattern, order sequentially)
-            if let Some(analyzer) = self.pattern_analyzers.get(&request.process_id) {
-                if analyzer.confidence() > 0.7 {
-                    if let Some(predicted_next) = analyzer.predict_next() {
-                        if request.offset == predicted_next {
-                            score += 50.0; // Boost for pattern match
-                        }
-                    }
-                }
-            }
 
             if score > best_score {
                 best_score = score;

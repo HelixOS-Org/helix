@@ -140,6 +140,14 @@ pub struct AuditEntry {
 static mut GLOBAL_LOG: Option<AuditLog> = None;
 static LOG_INIT: AtomicU64 = AtomicU64::new(0);
 
+/// Get pointer to the global log
+/// # Safety
+/// Must only be called after LOG_INIT has been set
+#[inline]
+fn global_log_ptr() -> *mut Option<AuditLog> {
+    core::ptr::addr_of_mut!(GLOBAL_LOG)
+}
+
 /// Audit log
 pub struct AuditLog {
     /// Entries
@@ -213,9 +221,9 @@ impl AuditLog {
                 .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst)
                 .is_ok()
             {
-                GLOBAL_LOG = Some(AuditLog::new(AuditConfig::default()));
+                (*global_log_ptr()) = Some(AuditLog::new(AuditConfig::default()));
             }
-            GLOBAL_LOG.as_mut().unwrap()
+            (*global_log_ptr()).as_mut().unwrap()
         }
     }
 

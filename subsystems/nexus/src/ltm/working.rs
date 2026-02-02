@@ -42,25 +42,16 @@ pub enum WorkingMemoryContent {
         data: BTreeMap<String, String>,
     },
     /// Recent decision
-    RecentDecision {
-        decision: String,
-        outcome: String,
-    },
+    RecentDecision { decision: String, outcome: String },
     /// Active pattern match
     ActivePattern {
         pattern_id: PatternId,
         match_score: f32,
     },
     /// Pending action
-    PendingAction {
-        action: String,
-        deadline: Timestamp,
-    },
+    PendingAction { action: String, deadline: Timestamp },
     /// Context variable
-    Context {
-        key: String,
-        value: String,
-    },
+    Context { key: String, value: String },
 }
 
 impl WorkingMemoryContent {
@@ -76,7 +67,10 @@ impl WorkingMemoryContent {
 
     /// Create pattern match
     pub fn pattern(pattern_id: PatternId, match_score: f32) -> Self {
-        Self::ActivePattern { pattern_id, match_score }
+        Self::ActivePattern {
+            pattern_id,
+            match_score,
+        }
     }
 
     /// Create pending action

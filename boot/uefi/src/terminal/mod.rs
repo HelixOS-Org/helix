@@ -35,7 +35,6 @@
 
 #![no_std]
 
-
 // =============================================================================
 // ANSI ESCAPE SEQUENCES
 // =============================================================================
@@ -52,37 +51,37 @@ pub const OSC: &[u8] = &[0x1B, b']'];
 #[repr(u8)]
 pub enum AnsiColor {
     /// Black
-    Black = 0,
+    Black         = 0,
     /// Red
-    Red = 1,
+    Red           = 1,
     /// Green
-    Green = 2,
+    Green         = 2,
     /// Yellow
-    Yellow = 3,
+    Yellow        = 3,
     /// Blue
-    Blue = 4,
+    Blue          = 4,
     /// Magenta
-    Magenta = 5,
+    Magenta       = 5,
     /// Cyan
-    Cyan = 6,
+    Cyan          = 6,
     /// White
-    White = 7,
+    White         = 7,
     /// Bright black (gray)
-    BrightBlack = 8,
+    BrightBlack   = 8,
     /// Bright red
-    BrightRed = 9,
+    BrightRed     = 9,
     /// Bright green
-    BrightGreen = 10,
+    BrightGreen   = 10,
     /// Bright yellow
-    BrightYellow = 11,
+    BrightYellow  = 11,
     /// Bright blue
-    BrightBlue = 12,
+    BrightBlue    = 12,
     /// Bright magenta
     BrightMagenta = 13,
     /// Bright cyan
-    BrightCyan = 14,
+    BrightCyan    = 14,
     /// Bright white
-    BrightWhite = 15,
+    BrightWhite   = 15,
 }
 
 impl AnsiColor {
@@ -428,23 +427,23 @@ impl Default for TerminalMode {
 
 /// DEC private modes
 pub mod dec_modes {
-    pub const CURSOR_KEYS: u16 = 1;       // Application cursor keys
-    pub const VT52_MODE: u16 = 2;         // DECANM
-    pub const COLUMN_132: u16 = 3;        // 132 column mode
-    pub const SMOOTH_SCROLL: u16 = 4;     // Smooth scrolling
-    pub const REVERSE_VIDEO: u16 = 5;     // Reverse video
-    pub const ORIGIN_MODE: u16 = 6;       // Origin mode
-    pub const AUTO_WRAP: u16 = 7;         // Auto-wrap mode
-    pub const AUTO_REPEAT: u16 = 8;       // Auto-repeat keys
-    pub const MOUSE_X10: u16 = 9;         // X10 mouse reporting
-    pub const CURSOR_VISIBLE: u16 = 25;   // Show cursor
-    pub const MOUSE_VT200: u16 = 1000;    // VT200 mouse
-    pub const MOUSE_HILITE: u16 = 1001;   // Highlight mouse
-    pub const MOUSE_CELL: u16 = 1002;     // Cell motion mouse
-    pub const MOUSE_ALL: u16 = 1003;      // All motion mouse
-    pub const MOUSE_UTF8: u16 = 1005;     // UTF-8 mouse
-    pub const MOUSE_SGR: u16 = 1006;      // SGR mouse
-    pub const ALT_SCREEN: u16 = 1049;     // Alternate screen
+    pub const CURSOR_KEYS: u16 = 1; // Application cursor keys
+    pub const VT52_MODE: u16 = 2; // DECANM
+    pub const COLUMN_132: u16 = 3; // 132 column mode
+    pub const SMOOTH_SCROLL: u16 = 4; // Smooth scrolling
+    pub const REVERSE_VIDEO: u16 = 5; // Reverse video
+    pub const ORIGIN_MODE: u16 = 6; // Origin mode
+    pub const AUTO_WRAP: u16 = 7; // Auto-wrap mode
+    pub const AUTO_REPEAT: u16 = 8; // Auto-repeat keys
+    pub const MOUSE_X10: u16 = 9; // X10 mouse reporting
+    pub const CURSOR_VISIBLE: u16 = 25; // Show cursor
+    pub const MOUSE_VT200: u16 = 1000; // VT200 mouse
+    pub const MOUSE_HILITE: u16 = 1001; // Highlight mouse
+    pub const MOUSE_CELL: u16 = 1002; // Cell motion mouse
+    pub const MOUSE_ALL: u16 = 1003; // All motion mouse
+    pub const MOUSE_UTF8: u16 = 1005; // UTF-8 mouse
+    pub const MOUSE_SGR: u16 = 1006; // SGR mouse
+    pub const ALT_SCREEN: u16 = 1049; // Alternate screen
     pub const BRACKETED_PASTE: u16 = 2004; // Bracketed paste
 }
 
@@ -500,7 +499,10 @@ impl ScrollRegion {
 
     /// Full screen region
     pub const fn full_screen(height: u16) -> Self {
-        Self { top: 0, bottom: height.saturating_sub(1) }
+        Self {
+            top: 0,
+            bottom: height.saturating_sub(1),
+        }
     }
 }
 
@@ -776,22 +778,22 @@ pub mod special_chars {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum EfiColor {
-    Black = 0x00,
-    Blue = 0x01,
-    Green = 0x02,
-    Cyan = 0x03,
-    Red = 0x04,
-    Magenta = 0x05,
-    Brown = 0x06,
-    LightGray = 0x07,
-    DarkGray = 0x08,
-    LightBlue = 0x09,
-    LightGreen = 0x0A,
-    LightCyan = 0x0B,
-    LightRed = 0x0C,
+    Black        = 0x00,
+    Blue         = 0x01,
+    Green        = 0x02,
+    Cyan         = 0x03,
+    Red          = 0x04,
+    Magenta      = 0x05,
+    Brown        = 0x06,
+    LightGray    = 0x07,
+    DarkGray     = 0x08,
+    LightBlue    = 0x09,
+    LightGreen   = 0x0A,
+    LightCyan    = 0x0B,
+    LightRed     = 0x0C,
     LightMagenta = 0x0D,
-    Yellow = 0x0E,
-    White = 0x0F,
+    Yellow       = 0x0E,
+    White        = 0x0F,
 }
 
 impl EfiColor {
@@ -865,9 +867,15 @@ impl TerminalSize {
     /// Standard 80x24
     pub const STANDARD: Self = Self { cols: 80, rows: 24 };
     /// Extended 132x43
-    pub const EXTENDED: Self = Self { cols: 132, rows: 43 };
+    pub const EXTENDED: Self = Self {
+        cols: 132,
+        rows: 43,
+    };
     /// Modern 120x40
-    pub const MODERN: Self = Self { cols: 120, rows: 40 };
+    pub const MODERN: Self = Self {
+        cols: 120,
+        rows: 40,
+    };
 
     /// Create new size
     pub const fn new(cols: u16, rows: u16) -> Self {

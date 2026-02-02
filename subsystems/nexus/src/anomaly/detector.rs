@@ -3,10 +3,8 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::string::String;
-
 use alloc::collections::BTreeMap;
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 

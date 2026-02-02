@@ -4,6 +4,7 @@
 //! mapping UEFI status codes to Rust-idiomatic error types.
 
 use core::fmt;
+
 use crate::raw::types::Status;
 
 /// Result type for UEFI operations
@@ -18,7 +19,6 @@ pub enum Error {
     // =========================================================================
     // UEFI Status Errors
     // =========================================================================
-
     /// The image failed to load
     LoadError,
 
@@ -122,7 +122,6 @@ pub enum Error {
     // =========================================================================
     // Helix-Specific Errors
     // =========================================================================
-
     /// System table is invalid
     InvalidSystemTable,
 
@@ -285,33 +284,33 @@ impl Error {
 
     /// Check if this is a not-found type error
     pub fn is_not_found(&self) -> bool {
-        matches!(self,
-            Self::NotFound |
-            Self::FileNotFound |
-            Self::ProtocolNotFound |
-            Self::AcpiNotFound |
-            Self::SmbiosNotFound
+        matches!(
+            self,
+            Self::NotFound
+                | Self::FileNotFound
+                | Self::ProtocolNotFound
+                | Self::AcpiNotFound
+                | Self::SmbiosNotFound
         )
     }
 
     /// Check if this is a resource error
     pub fn is_resource_error(&self) -> bool {
-        matches!(self,
-            Self::OutOfResources |
-            Self::AllocationFailed |
-            Self::VolumeFull |
-            Self::BufferTooSmall
+        matches!(
+            self,
+            Self::OutOfResources | Self::AllocationFailed | Self::VolumeFull | Self::BufferTooSmall
         )
     }
 
     /// Check if this is a security error
     pub fn is_security_error(&self) -> bool {
-        matches!(self,
-            Self::SecurityViolation |
-            Self::SecureBootViolation |
-            Self::SignatureInvalid |
-            Self::CompromisedData |
-            Self::AccessDenied
+        matches!(
+            self,
+            Self::SecurityViolation
+                | Self::SecureBootViolation
+                | Self::SignatureInvalid
+                | Self::CompromisedData
+                | Self::AccessDenied
         )
     }
 

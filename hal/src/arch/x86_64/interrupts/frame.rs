@@ -24,6 +24,7 @@
 //! ```
 
 use core::fmt;
+
 use bitflags::bitflags;
 
 // =============================================================================
@@ -117,7 +118,12 @@ impl fmt::Display for InterruptStackFrame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Interrupt Stack Frame:")?;
         writeln!(f, "  RIP:    {:#018x}", self.rip)?;
-        writeln!(f, "  CS:     {:#06x} (CPL={})", self.cs, self.privilege_level())?;
+        writeln!(
+            f,
+            "  CS:     {:#06x} (CPL={})",
+            self.cs,
+            self.privilege_level()
+        )?;
         writeln!(f, "  RFLAGS: {:#018x}", self.rflags)?;
         writeln!(f, "  RSP:    {:#018x}", self.rsp)?;
         writeln!(f, "  SS:     {:#06x}", self.ss)?;
@@ -205,7 +211,12 @@ impl fmt::Display for ExceptionStackFrame {
         writeln!(f, "Exception Stack Frame:")?;
         writeln!(f, "  Error:  {:#018x}", self.error_code)?;
         writeln!(f, "  RIP:    {:#018x}", self.rip)?;
-        writeln!(f, "  CS:     {:#06x} (CPL={})", self.cs, self.privilege_level())?;
+        writeln!(
+            f,
+            "  CS:     {:#06x} (CPL={})",
+            self.cs,
+            self.privilege_level()
+        )?;
         writeln!(f, "  RFLAGS: {:#018x}", self.rflags)?;
         writeln!(f, "  RSP:    {:#018x}", self.rsp)?;
         write!(f, "  SS:     {:#06x}", self.ss)
@@ -458,10 +469,21 @@ impl RegisterState {
     /// Create empty register state
     pub const fn new() -> Self {
         Self {
-            r15: 0, r14: 0, r13: 0, r12: 0,
-            r11: 0, r10: 0, r9: 0, r8: 0,
-            rbp: 0, rdi: 0, rsi: 0, rdx: 0,
-            rcx: 0, rbx: 0, rax: 0,
+            r15: 0,
+            r14: 0,
+            r13: 0,
+            r12: 0,
+            r11: 0,
+            r10: 0,
+            r9: 0,
+            r8: 0,
+            rbp: 0,
+            rdi: 0,
+            rsi: 0,
+            rdx: 0,
+            rcx: 0,
+            rbx: 0,
+            rax: 0,
         }
     }
 }
@@ -531,7 +553,7 @@ const _: () = {
     use core::mem::size_of;
 
     // Stack frame sizes
-    assert!(size_of::<InterruptStackFrame>() == 40);  // 5 x 8 bytes
-    assert!(size_of::<ExceptionStackFrame>() == 48);  // 6 x 8 bytes
-    assert!(size_of::<RegisterState>() == 120);       // 15 x 8 bytes
+    assert!(size_of::<InterruptStackFrame>() == 40); // 5 x 8 bytes
+    assert!(size_of::<ExceptionStackFrame>() == 48); // 6 x 8 bytes
+    assert!(size_of::<RegisterState>() == 120); // 15 x 8 bytes
 };

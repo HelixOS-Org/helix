@@ -2,9 +2,9 @@
 //!
 //! Manages filesystem superblock and global state.
 
-use crate::core::error::{HfsError, HfsResult};
-use crate::api::FsStats as ApiFsStats;
 use super::ROOT_INO;
+use crate::api::FsStats as ApiFsStats;
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Superblock State
@@ -15,15 +15,15 @@ use super::ROOT_INO;
 #[repr(u8)]
 pub enum SuperblockState {
     /// Not mounted
-    Unmounted = 0,
+    Unmounted  = 0,
     /// Clean mount
-    Clean = 1,
+    Clean      = 1,
     /// Dirty (has uncommitted changes)
-    Dirty = 2,
+    Dirty      = 2,
     /// Error state
-    Error = 3,
+    Error      = 3,
     /// Mounting in progress
-    Mounting = 4,
+    Mounting   = 4,
     /// Unmounting in progress
     Unmounting = 5,
 }
@@ -62,25 +62,25 @@ impl SuperblockFlags {
     pub const SB_SYNCHRONOUS: u32 = 1 << 7;
     /// Lazy time
     pub const SB_LAZYTIME: u32 = 1 << 8;
-    
+
     /// Check flag
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set(&mut self, flag: u32) {
         self.0 |= flag;
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear(&mut self, flag: u32) {
         self.0 &= !flag;
     }
-    
+
     /// Is read-only
     #[inline]
     pub fn is_readonly(&self) -> bool {
@@ -160,45 +160,45 @@ impl VfsSuperblock {
             label_len: 0,
         }
     }
-    
+
     /// Set label
     pub fn set_label(&mut self, label: &[u8]) {
         let len = core::cmp::min(label.len(), 64);
         self.label[..len].copy_from_slice(&label[..len]);
         self.label_len = len as u8;
     }
-    
+
     /// Get label
     pub fn label(&self) -> &[u8] {
         &self.label[..self.label_len as usize]
     }
-    
+
     /// Is read-only
     #[inline]
     pub fn is_readonly(&self) -> bool {
         self.flags.is_readonly()
     }
-    
+
     /// Is clean
     #[inline]
     pub fn is_clean(&self) -> bool {
         self.state == SuperblockState::Clean
     }
-    
+
     /// Mark dirty
     pub fn mark_dirty(&mut self) {
         if self.state == SuperblockState::Clean {
             self.state = SuperblockState::Dirty;
         }
     }
-    
+
     /// Mark clean
     pub fn mark_clean(&mut self) {
         if self.state == SuperblockState::Dirty {
             self.state = SuperblockState::Clean;
         }
     }
-    
+
     /// Convert to FsStats
     pub fn to_stats(&self) -> ApiFsStats {
         ApiFsStats {
@@ -215,17 +215,17 @@ impl VfsSuperblock {
             f_namemax: 255,
         }
     }
-    
+
     /// Used blocks
     pub fn used_blocks(&self) -> u64 {
         self.total_blocks.saturating_sub(self.free_blocks)
     }
-    
+
     /// Used inodes
     pub fn used_inodes(&self) -> u64 {
         self.total_inodes.saturating_sub(self.free_inodes)
     }
-    
+
     /// Usage percentage
     pub fn usage_percent(&self) -> u32 {
         if self.total_blocks == 0 {
@@ -265,7 +265,7 @@ impl SuperblockTable {
             count: 0,
         }
     }
-    
+
     /// Register superblock
     pub fn register(&mut self, sb: VfsSuperblock) -> HfsResult<usize> {
         for i in 0..MAX_SUPERBLOCKS {
@@ -275,35 +275,35 @@ impl SuperblockTable {
                 return Ok(i);
             }
         }
-        
+
         Err(HfsError::NoSpace)
     }
-    
+
     /// Unregister superblock
     pub fn unregister(&mut self, idx: usize) -> HfsResult<VfsSuperblock> {
         if idx >= MAX_SUPERBLOCKS {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         match self.superblocks[idx].take() {
             Some(sb) => {
                 self.count -= 1;
                 Ok(sb)
-            }
+            },
             None => Err(HfsError::NotFound),
         }
     }
-    
+
     /// Get superblock
     pub fn get(&self, idx: usize) -> Option<&VfsSuperblock> {
         self.superblocks.get(idx).and_then(|s| s.as_ref())
     }
-    
+
     /// Get mutable superblock
     pub fn get_mut(&mut self, idx: usize) -> Option<&mut VfsSuperblock> {
         self.superblocks.get_mut(idx).and_then(|s| s.as_mut())
     }
-    
+
     /// Find by device
     pub fn find_by_dev(&self, dev: u64) -> Option<(usize, &VfsSuperblock)> {
         for i in 0..MAX_SUPERBLOCKS {
@@ -315,19 +315,20 @@ impl SuperblockTable {
         }
         None
     }
-    
+
     /// Iterate over superblocks
     pub fn iter(&self) -> impl Iterator<Item = (usize, &VfsSuperblock)> {
-        self.superblocks.iter()
+        self.superblocks
+            .iter()
             .enumerate()
             .filter_map(|(i, s)| s.as_ref().map(|sb| (i, sb)))
     }
-    
+
     /// Count
     pub fn count(&self) -> usize {
         self.count
     }
-    
+
     /// Sync all dirty superblocks
     pub fn sync_all(&mut self) {
         for sb in self.superblocks.iter_mut().flatten() {
@@ -352,32 +353,32 @@ impl Default for SuperblockTable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_superblock() {
         let mut sb = VfsSuperblock::new(1, 4096);
-        
+
         assert_eq!(sb.block_size, 4096);
         assert!(sb.state == SuperblockState::Unmounted);
-        
+
         sb.set_label(b"TestVolume");
         assert_eq!(sb.label(), b"TestVolume");
     }
-    
+
     #[test]
     fn test_superblock_dirty() {
         let mut sb = VfsSuperblock::new(1, 4096);
         sb.state = SuperblockState::Clean;
-        
+
         assert!(sb.is_clean());
-        
+
         sb.mark_dirty();
         assert!(!sb.is_clean());
-        
+
         sb.mark_clean();
         assert!(sb.is_clean());
     }
-    
+
     #[test]
     fn test_superblock_stats() {
         let mut sb = VfsSuperblock::new(1, 4096);
@@ -385,28 +386,28 @@ mod tests {
         sb.free_blocks = 500;
         sb.total_inodes = 100;
         sb.free_inodes = 50;
-        
+
         let stats = sb.to_stats();
         assert_eq!(stats.f_blocks, 1000);
         assert_eq!(stats.f_bfree, 500);
         assert_eq!(sb.usage_percent(), 50);
     }
-    
+
     #[test]
     fn test_superblock_table() {
         let mut table = SuperblockTable::new();
-        
+
         let sb = VfsSuperblock::new(1, 4096);
         let idx = table.register(sb).unwrap();
-        
+
         assert_eq!(table.count(), 1);
-        
+
         let sb = table.get(idx).unwrap();
         assert_eq!(sb.dev, 1);
-        
+
         let (found_idx, _) = table.find_by_dev(1).unwrap();
         assert_eq!(found_idx, idx);
-        
+
         table.unregister(idx).unwrap();
         assert_eq!(table.count(), 0);
     }

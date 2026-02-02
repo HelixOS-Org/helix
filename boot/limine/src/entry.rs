@@ -26,8 +26,8 @@
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use crate::requests::*;
 use crate::boot_info::{BootInfo, BootInfoBuilder};
+use crate::requests::*;
 
 /// Flag indicating if early boot has completed
 static EARLY_BOOT_COMPLETE: AtomicBool = AtomicBool::new(false);
@@ -173,9 +173,7 @@ impl Default for StandardRequests {
 /// ```
 #[macro_export]
 macro_rules! limine_entry {
-    (
-        fn $name:ident($info:ident: &BootInfo) -> ! $body:block
-    ) => {
+    (fn $name:ident($info:ident : &BootInfo) -> ! $body:block) => {
         #[used]
         #[link_section = ".limine_requests"]
         static __LIMINE_BOOTLOADER_INFO: $crate::requests::BootloaderInfoRequest =
@@ -188,8 +186,7 @@ macro_rules! limine_entry {
 
         #[used]
         #[link_section = ".limine_requests"]
-        static __LIMINE_HHDM: $crate::requests::HhdmRequest =
-            $crate::requests::HhdmRequest::new();
+        static __LIMINE_HHDM: $crate::requests::HhdmRequest = $crate::requests::HhdmRequest::new();
 
         #[used]
         #[link_section = ".limine_requests"]
@@ -218,14 +215,12 @@ macro_rules! limine_entry {
         }
     };
 
-    (
-        requests: $requests:expr,
-        fn $name:ident($info:ident: &BootInfo) -> ! $body:block
-    ) => {
+    (requests: $requests:expr,fn $name:ident($info:ident : &BootInfo) -> ! $body:block) => {
         #[no_mangle]
         extern "C" fn _start() -> ! {
             let requests = $requests;
-            let $info = requests.build_boot_info()
+            let $info = requests
+                .build_boot_info()
                 .expect("Failed to build boot info");
 
             $crate::entry::mark_early_boot_complete();
@@ -253,8 +248,7 @@ macro_rules! limine_standard_requests {
 
         #[used]
         #[link_section = ".limine_requests"]
-        static LIMINE_HHDM: $crate::requests::HhdmRequest =
-            $crate::requests::HhdmRequest::new();
+        static LIMINE_HHDM: $crate::requests::HhdmRequest = $crate::requests::HhdmRequest::new();
 
         #[used]
         #[link_section = ".limine_requests"]
@@ -273,13 +267,11 @@ macro_rules! limine_standard_requests {
 
         #[used]
         #[link_section = ".limine_requests"]
-        static LIMINE_RSDP: $crate::requests::RsdpRequest =
-            $crate::requests::RsdpRequest::new();
+        static LIMINE_RSDP: $crate::requests::RsdpRequest = $crate::requests::RsdpRequest::new();
 
         #[used]
         #[link_section = ".limine_requests"]
-        static LIMINE_SMP: $crate::requests::SmpRequest =
-            $crate::requests::SmpRequest::new();
+        static LIMINE_SMP: $crate::requests::SmpRequest = $crate::requests::SmpRequest::new();
 
         #[used]
         #[link_section = ".limine_requests"]
@@ -295,8 +287,7 @@ macro_rules! limine_standard_requests {
 
         #[used]
         #[link_section = ".limine_requests"]
-        static LIMINE_HHDM: $crate::requests::HhdmRequest =
-            $crate::requests::HhdmRequest::new();
+        static LIMINE_HHDM: $crate::requests::HhdmRequest = $crate::requests::HhdmRequest::new();
 
         #[used]
         #[link_section = ".limine_requests"]
@@ -494,7 +485,9 @@ impl SerialDebug {
         while !self.is_transmit_empty() {
             cpu_relax();
         }
-        unsafe { Self::outb(self.port, byte); }
+        unsafe {
+            Self::outb(self.port, byte);
+        }
     }
 }
 

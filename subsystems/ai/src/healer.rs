@@ -50,19 +50,15 @@
 //!                      └─────────────────────────────────────┘
 //! ```
 
-use crate::core::{
-    AiAction, AiEvent, Confidence, DecisionContext,
-};
-
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::collections::VecDeque;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
+
+use crate::core::{AiAction, AiEvent, Confidence, DecisionContext};
 
 // =============================================================================
 // Bug Signatures
@@ -99,11 +95,22 @@ pub enum BugPattern {
     /// Resource exhaustion
     ResourceExhaustion { resource: String, threshold: u64 },
     /// Repeated event pattern
-    RepeatedEvent { event_type: String, min_count: u32, window_ms: u64 },
+    RepeatedEvent {
+        event_type: String,
+        min_count: u32,
+        window_ms: u64,
+    },
     /// Metric threshold
-    MetricThreshold { metric: String, operator: ThresholdOperator, value: f64 },
+    MetricThreshold {
+        metric: String,
+        operator: ThresholdOperator,
+        value: f64,
+    },
     /// Crash signature
-    CrashSignature { signal: u32, address_range: Option<(u64, u64)> },
+    CrashSignature {
+        signal: u32,
+        address_range: Option<(u64, u64)>,
+    },
 }
 
 /// Comparison operators for thresholds
@@ -120,13 +127,13 @@ pub enum ThresholdOperator {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BugSeverity {
     /// Cosmetic or minor issue
-    Low = 0,
+    Low       = 0,
     /// Noticeable but not blocking
-    Medium = 1,
+    Medium    = 1,
     /// Significant impact on functionality
-    High = 2,
+    High      = 2,
     /// System stability at risk
-    Critical = 3,
+    Critical  = 3,
     /// System failure imminent
     Emergency = 4,
 }
@@ -153,16 +160,10 @@ pub enum HealingAction {
     },
 
     /// Reset module state
-    ResetState {
-        module_id: u64,
-        state_key: String,
-    },
+    ResetState { module_id: u64, state_key: String },
 
     /// Rollback to previous version
-    Rollback {
-        module_id: u64,
-        target_version: u64,
-    },
+    Rollback { module_id: u64, target_version: u64 },
 
     /// Clear cache or buffer
     ClearCache {
@@ -177,27 +178,16 @@ pub enum HealingAction {
     },
 
     /// Reinitialize subsystem
-    Reinitialize {
-        subsystem: String,
-        config: Vec<u8>,
-    },
+    Reinitialize { subsystem: String, config: Vec<u8> },
 
     /// Kill and restart process
-    RestartProcess {
-        pid: u64,
-        preserve_files: bool,
-    },
+    RestartProcess { pid: u64, preserve_files: bool },
 
     /// Increase resource limits
-    IncreaseResource {
-        resource: String,
-        amount: u64,
-    },
+    IncreaseResource { resource: String, amount: u64 },
 
     /// Force garbage collection
-    ForceGc {
-        scope: GcScope,
-    },
+    ForceGc { scope: GcScope },
 
     /// Apply workaround
     ApplyWorkaround {
@@ -227,13 +217,13 @@ pub enum CacheClearScope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IsolationLevel {
     /// Light isolation - monitor only
-    Monitor = 0,
+    Monitor       = 0,
     /// Restrict resources
     ResourceLimit = 1,
     /// Sandbox - limited syscalls
-    Sandbox = 2,
+    Sandbox       = 2,
     /// Full isolation - no external access
-    Full = 3,
+    Full          = 3,
 }
 
 /// Garbage collection scope
@@ -436,16 +426,16 @@ impl Healer {
                 id: 1,
                 name: "Memory Leak".to_string(),
                 description: "Gradual memory consumption increase".to_string(),
-                patterns: vec![
-                    BugPattern::MetricThreshold {
-                        metric: "memory_growth_rate".to_string(),
-                        operator: ThresholdOperator::GreaterThan,
-                        value: 0.1, // 10% growth per hour
-                    },
-                ],
+                patterns: vec![BugPattern::MetricThreshold {
+                    metric: "memory_growth_rate".to_string(),
+                    operator: ThresholdOperator::GreaterThan,
+                    value: 0.1, // 10% growth per hour
+                }],
                 severity: BugSeverity::High,
                 fixes: vec![
-                    HealingAction::ForceGc { scope: GcScope::Memory },
+                    HealingAction::ForceGc {
+                        scope: GcScope::Memory,
+                    },
                     HealingAction::RestartModule {
                         module_id: 0, // Will be filled
                         preserve_state: true,
@@ -459,20 +449,16 @@ impl Healer {
                 id: 2,
                 name: "Deadlock".to_string(),
                 description: "Suspected deadlock detected".to_string(),
-                patterns: vec![
-                    BugPattern::MetricThreshold {
-                        metric: "thread_blocked_time_ms".to_string(),
-                        operator: ThresholdOperator::GreaterThan,
-                        value: 30000.0, // 30 seconds
-                    },
-                ],
+                patterns: vec![BugPattern::MetricThreshold {
+                    metric: "thread_blocked_time_ms".to_string(),
+                    operator: ThresholdOperator::GreaterThan,
+                    value: 30000.0, // 30 seconds
+                }],
                 severity: BugSeverity::Critical,
-                fixes: vec![
-                    HealingAction::Escalate {
-                        reason: "Deadlock requires manual intervention".to_string(),
-                        severity: BugSeverity::Critical,
-                    },
-                ],
+                fixes: vec![HealingAction::Escalate {
+                    reason: "Deadlock requires manual intervention".to_string(),
+                    severity: BugSeverity::Critical,
+                }],
                 occurrence_count: 0,
                 last_seen: 0,
             },
@@ -480,13 +466,11 @@ impl Healer {
                 id: 3,
                 name: "Crash Loop".to_string(),
                 description: "Module crashing repeatedly".to_string(),
-                patterns: vec![
-                    BugPattern::RepeatedEvent {
-                        event_type: "module_crash".to_string(),
-                        min_count: 3,
-                        window_ms: 60000, // 3 crashes in 1 minute
-                    },
-                ],
+                patterns: vec![BugPattern::RepeatedEvent {
+                    event_type: "module_crash".to_string(),
+                    min_count: 3,
+                    window_ms: 60000, // 3 crashes in 1 minute
+                }],
                 severity: BugSeverity::Critical,
                 fixes: vec![
                     HealingAction::Rollback {
@@ -505,15 +489,15 @@ impl Healer {
                 id: 4,
                 name: "Resource Exhaustion".to_string(),
                 description: "System running out of resources".to_string(),
-                patterns: vec![
-                    BugPattern::ResourceExhaustion {
-                        resource: "file_descriptors".to_string(),
-                        threshold: 90, // 90% used
-                    },
-                ],
+                patterns: vec![BugPattern::ResourceExhaustion {
+                    resource: "file_descriptors".to_string(),
+                    threshold: 90, // 90% used
+                }],
                 severity: BugSeverity::High,
                 fixes: vec![
-                    HealingAction::ForceGc { scope: GcScope::FileDescriptors },
+                    HealingAction::ForceGc {
+                        scope: GcScope::FileDescriptors,
+                    },
                     HealingAction::IncreaseResource {
                         resource: "file_descriptors".to_string(),
                         amount: 1024,
@@ -526,16 +510,14 @@ impl Healer {
                 id: 5,
                 name: "Cache Corruption".to_string(),
                 description: "Cache data integrity failure".to_string(),
-                patterns: vec![
-                    BugPattern::ErrorMessage("cache checksum mismatch".to_string()),
-                ],
+                patterns: vec![BugPattern::ErrorMessage(
+                    "cache checksum mismatch".to_string(),
+                )],
                 severity: BugSeverity::Medium,
-                fixes: vec![
-                    HealingAction::ClearCache {
-                        cache_id: 0,
-                        scope: CacheClearScope::Full,
-                    },
-                ],
+                fixes: vec![HealingAction::ClearCache {
+                    cache_id: 0,
+                    scope: CacheClearScope::Full,
+                }],
                 occurrence_count: 0,
                 last_seen: 0,
             },
@@ -563,20 +545,21 @@ impl Healer {
         match event {
             AiEvent::ModuleError { module_id, error } => {
                 self.handle_module_error(*module_id, error, context)
-            }
-            AiEvent::HardwareError { device_id, error_code } => {
-                self.handle_hardware_error(*device_id, *error_code, context)
-            }
+            },
+            AiEvent::HardwareError {
+                device_id,
+                error_code,
+            } => self.handle_hardware_error(*device_id, *error_code, context),
             AiEvent::AnomalyDetected { source, severity } => {
                 self.handle_anomaly(source, *severity, context)
-            }
+            },
             AiEvent::ProcessResourceSpike { pid, resource } => {
                 self.handle_resource_spike(*pid, resource, context)
-            }
+            },
             _ => {
                 // Check for pattern matches
                 self.check_patterns(context)
-            }
+            },
         }
     }
 
@@ -641,7 +624,9 @@ impl Healer {
         let action = if error_code > 1000 {
             // Critical hardware error
             AiAction::Sequence(vec![
-                AiAction::ResetCache { cache_id: device_id },
+                AiAction::ResetCache {
+                    cache_id: device_id,
+                },
                 AiAction::TuneIoScheduler {
                     parameter: "device_timeout".to_string(),
                     value: 30000, // Increase timeout
@@ -658,7 +643,10 @@ impl Healer {
             Ok(Some((
                 action,
                 Confidence::new(0.7),
-                format!("Hardware error on device {}: code {}", device_id, error_code),
+                format!(
+                    "Hardware error on device {}: code {}",
+                    device_id, error_code
+                ),
             )))
         }
     }
@@ -707,19 +695,17 @@ impl Healer {
         use crate::core::ResourceType;
 
         let action = match resource {
-            ResourceType::Memory => {
-                AiAction::IsolateProcess {
-                    pid,
-                    isolation_level: 1,
-                }
-            }
+            ResourceType::Memory => AiAction::IsolateProcess {
+                pid,
+                isolation_level: 1,
+            },
             ResourceType::Cpu => {
                 AiAction::AdjustProcessPriority {
                     pid,
                     old_priority: 0,
                     new_priority: 19, // Nice to lowest priority
                 }
-            }
+            },
             _ => return Ok(None),
         };
 
@@ -740,7 +726,12 @@ impl Healer {
 
         for sig in signatures.iter() {
             for pattern in &sig.patterns {
-                if let BugPattern::RepeatedEvent { event_type, min_count, window_ms } = pattern {
+                if let BugPattern::RepeatedEvent {
+                    event_type,
+                    min_count,
+                    window_ms,
+                } = pattern
+                {
                     let count = self.count_events_in_window(&buffer, event_type, *window_ms);
                     if count >= *min_count {
                         if let Some(fix) = sig.fixes.first() {
@@ -794,53 +785,61 @@ impl Healer {
     /// Convert healing action to AI action
     fn healing_to_ai_action(&self, healing: &HealingAction, default_module: u64) -> AiAction {
         match healing {
-            HealingAction::HotPatch { patch_id, target_module, .. } => {
-                AiAction::ApplyPatch {
-                    patch_id: *patch_id,
-                    target: target_module.clone(),
-                }
-            }
-            HealingAction::RestartModule { module_id,  .. } => {
-                AiAction::RestartModule {
-                    module_id: if *module_id == 0 { default_module } else { *module_id },
-                    module_name: String::from("unknown"),
-                }
-            }
-            HealingAction::Rollback { module_id, target_version } => {
-                AiAction::RollbackModule {
-                    module_id: if *module_id == 0 { default_module } else { *module_id },
-                    target_version: *target_version,
-                }
-            }
-            HealingAction::ClearCache { cache_id, .. } => {
-                AiAction::ResetCache { cache_id: *cache_id }
-            }
-            HealingAction::Isolate { component_id, isolation_level } => {
-                AiAction::IsolateProcess {
-                    pid: *component_id,
-                    isolation_level: *isolation_level as u8,
-                }
-            }
+            HealingAction::HotPatch {
+                patch_id,
+                target_module,
+                ..
+            } => AiAction::ApplyPatch {
+                patch_id: *patch_id,
+                target: target_module.clone(),
+            },
+            HealingAction::RestartModule { module_id, .. } => AiAction::RestartModule {
+                module_id: if *module_id == 0 {
+                    default_module
+                } else {
+                    *module_id
+                },
+                module_name: String::from("unknown"),
+            },
+            HealingAction::Rollback {
+                module_id,
+                target_version,
+            } => AiAction::RollbackModule {
+                module_id: if *module_id == 0 {
+                    default_module
+                } else {
+                    *module_id
+                },
+                target_version: *target_version,
+            },
+            HealingAction::ClearCache { cache_id, .. } => AiAction::ResetCache {
+                cache_id: *cache_id,
+            },
+            HealingAction::Isolate {
+                component_id,
+                isolation_level,
+            } => AiAction::IsolateProcess {
+                pid: *component_id,
+                isolation_level: *isolation_level as u8,
+            },
             HealingAction::ForceGc { .. } => {
                 // Translate to memory reclaim
                 AiAction::TuneAllocator {
                     strategy: String::from("force_gc"),
                 }
-            }
-            HealingAction::Sequence(actions) => {
-                AiAction::Sequence(
-                    actions
-                        .iter()
-                        .map(|a| self.healing_to_ai_action(a, default_module))
-                        .collect(),
-                )
-            }
+            },
+            HealingAction::Sequence(actions) => AiAction::Sequence(
+                actions
+                    .iter()
+                    .map(|a| self.healing_to_ai_action(a, default_module))
+                    .collect(),
+            ),
             HealingAction::Escalate { reason, severity } => {
                 // Log escalation, return no-op (human intervention needed)
                 self.stats.escalations.fetch_add(1, Ordering::Relaxed);
                 log::warn!("ESCALATION ({:?}): {}", severity, reason);
                 AiAction::NoOp
-            }
+            },
             _ => AiAction::NoOp,
         }
     }
@@ -863,7 +862,12 @@ impl Healer {
         self.stats.issues_detected.fetch_add(1, Ordering::Relaxed);
 
         // Update bug signature occurrence
-        if let Some(sig) = self.bug_signatures.write().iter_mut().find(|s| s.id == bug_signature) {
+        if let Some(sig) = self
+            .bug_signatures
+            .write()
+            .iter_mut()
+            .find(|s| s.id == bug_signature)
+        {
             sig.occurrence_count += 1;
             sig.last_seen = 0; // Would be real timestamp
         }
@@ -891,7 +895,10 @@ impl Healer {
     /// Update component health
     pub fn update_health(&self, health: ComponentHealth) {
         let mut healths = self.component_health.write();
-        if let Some(existing) = healths.iter_mut().find(|h| h.component_id == health.component_id) {
+        if let Some(existing) = healths
+            .iter_mut()
+            .find(|h| h.component_id == health.component_id)
+        {
             *existing = health;
         } else {
             healths.push(health);

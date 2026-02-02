@@ -10,10 +10,10 @@
 //! - `SeqLock`: Sequence lock for read-mostly data
 //! - `ReaderWriterLock`: Read-write lock
 
-use core::sync::atomic::{AtomicU32, AtomicU64, AtomicBool, Ordering, fence};
 use core::cell::UnsafeCell;
 use core::hint::spin_loop;
 use core::marker::PhantomData;
+use core::sync::atomic::{fence, AtomicBool, AtomicU32, AtomicU64, Ordering};
 
 // =============================================================================
 // Barrier

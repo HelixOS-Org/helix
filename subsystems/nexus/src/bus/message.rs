@@ -8,8 +8,8 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::types::*;
 use super::domain::Domain;
+use crate::types::*;
 
 // ============================================================================
 // MESSAGE PRIORITY
@@ -156,12 +156,18 @@ impl MessagePayload {
 
     /// Is control message?
     pub const fn is_control(&self) -> bool {
-        matches!(self, Self::Pause | Self::Resume | Self::Shutdown | Self::ConfigUpdate(_))
+        matches!(
+            self,
+            Self::Pause | Self::Resume | Self::Shutdown | Self::ConfigUpdate(_)
+        )
     }
 
     /// Is health-related?
     pub const fn is_health(&self) -> bool {
-        matches!(self, Self::HealthCheckRequest | Self::HealthCheckResponse(_) | Self::CalibrationRequest)
+        matches!(
+            self,
+            Self::HealthCheckRequest | Self::HealthCheckResponse(_) | Self::CalibrationRequest
+        )
     }
 }
 

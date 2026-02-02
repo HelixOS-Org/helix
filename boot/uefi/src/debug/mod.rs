@@ -16,15 +16,15 @@ pub enum LogLevel {
     /// Debug level
     Debug = 1,
     /// Info level
-    Info = 2,
+    Info  = 2,
     /// Warning level
-    Warn = 3,
+    Warn  = 3,
     /// Error level
     Error = 4,
     /// Fatal level
     Fatal = 5,
     /// Off (no logging)
-    Off = 6,
+    Off   = 6,
 }
 
 impl LogLevel {
@@ -159,8 +159,8 @@ pub mod line_status {
     pub const PARITY_ERROR: u8 = 0x04;
     pub const FRAMING_ERROR: u8 = 0x08;
     pub const BREAK_INTERRUPT: u8 = 0x10;
-    pub const THRE: u8 = 0x20;  // Transmit holding register empty
-    pub const TEMT: u8 = 0x40;  // Transmitter empty
+    pub const THRE: u8 = 0x20; // Transmit holding register empty
+    pub const TEMT: u8 = 0x40; // Transmitter empty
     pub const FIFO_ERROR: u8 = 0x80;
 }
 
@@ -461,7 +461,13 @@ impl LogBuffer {
     }
 
     /// Add log entry
-    pub fn push(&mut self, level: LogLevel, message: &str, module: Option<&'static str>, line: Option<u32>) {
+    pub fn push(
+        &mut self,
+        level: LogLevel,
+        message: &str,
+        module: Option<&'static str>,
+        line: Option<u32>,
+    ) {
         let message_bytes = message.as_bytes();
         let len = message_bytes.len().min(LOG_BUFFER_SIZE);
 
@@ -514,7 +520,8 @@ impl LogBuffer {
 
     /// Get recent entries
     pub fn recent_entries(&self, count: usize) -> impl Iterator<Item = &LogEntry> {
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter_map(|e| e.as_ref())
             .rev()
             .take(count)
@@ -621,16 +628,16 @@ impl Logger {
         match self.config.target {
             DebugTarget::Serial | DebugTarget::Both => {
                 self.output_serial(level, module, line, message);
-            }
+            },
             DebugTarget::DebugPort => {
                 self.output_debug_port(level, module, line, message);
-            }
+            },
             DebugTarget::Console => {
                 // Console output would need EFI handle
-            }
+            },
             DebugTarget::Buffer => {
                 // Already stored
-            }
+            },
         }
     }
 

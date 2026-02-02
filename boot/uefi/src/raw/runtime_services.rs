@@ -3,8 +3,8 @@
 //! Runtime Services remain available after ExitBootServices is called.
 //! They provide time, variable storage, and system control services.
 
-use super::types::*;
 use super::memory::MemoryDescriptor;
+use super::types::*;
 
 // =============================================================================
 // RUNTIME SERVICES TABLE
@@ -21,12 +21,9 @@ pub struct EfiRuntimeServices {
     // =========================================================================
     // Time Services
     // =========================================================================
-
     /// Get the current time
-    pub get_time: unsafe extern "efiapi" fn(
-        time: *mut Time,
-        capabilities: *mut TimeCapabilities,
-    ) -> Status,
+    pub get_time:
+        unsafe extern "efiapi" fn(time: *mut Time, capabilities: *mut TimeCapabilities) -> Status,
 
     /// Set the current time
     pub set_time: unsafe extern "efiapi" fn(time: *const Time) -> Status,
@@ -39,15 +36,11 @@ pub struct EfiRuntimeServices {
     ) -> Status,
 
     /// Set the wakeup alarm time
-    pub set_wakeup_time: unsafe extern "efiapi" fn(
-        enable: Boolean,
-        time: *const Time,
-    ) -> Status,
+    pub set_wakeup_time: unsafe extern "efiapi" fn(enable: Boolean, time: *const Time) -> Status,
 
     // =========================================================================
     // Virtual Memory Services
     // =========================================================================
-
     /// Set virtual address map
     pub set_virtual_address_map: unsafe extern "efiapi" fn(
         memory_map_size: usize,
@@ -65,7 +58,6 @@ pub struct EfiRuntimeServices {
     // =========================================================================
     // Variable Services
     // =========================================================================
-
     /// Get a variable
     pub get_variable: unsafe extern "efiapi" fn(
         variable_name: *const Char16,
@@ -94,11 +86,8 @@ pub struct EfiRuntimeServices {
     // =========================================================================
     // Miscellaneous Services
     // =========================================================================
-
     /// Get the next high monotonic count
-    pub get_next_high_monotonic_count: unsafe extern "efiapi" fn(
-        high_count: *mut u32,
-    ) -> Status,
+    pub get_next_high_monotonic_count: unsafe extern "efiapi" fn(high_count: *mut u32) -> Status,
 
     /// Reset the system
     pub reset_system: unsafe extern "efiapi" fn(
@@ -111,7 +100,6 @@ pub struct EfiRuntimeServices {
     // =========================================================================
     // Capsule Services (UEFI 2.0+)
     // =========================================================================
-
     /// Update capsule
     pub update_capsule: unsafe extern "efiapi" fn(
         capsule_header_array: *const *const CapsuleHeader,
@@ -130,7 +118,6 @@ pub struct EfiRuntimeServices {
     // =========================================================================
     // Variable Query Services (UEFI 2.0+)
     // =========================================================================
-
     /// Query variable info
     pub query_variable_info: unsafe extern "efiapi" fn(
         attributes: u32,
@@ -236,10 +223,7 @@ impl EfiRuntimeServices {
     ///
     /// # Safety
     /// This must only be called after SetVirtualAddressMap.
-    pub unsafe fn convert_pointer<T>(
-        &self,
-        ptr: *mut *mut T,
-    ) -> Result<(), Status> {
+    pub unsafe fn convert_pointer<T>(&self, ptr: *mut *mut T) -> Result<(), Status> {
         let status = (self.convert_pointer)(0, ptr as *mut *mut core::ffi::c_void);
         status.to_status_result()
     }
@@ -310,13 +294,7 @@ impl EfiRuntimeServices {
         attributes: u32,
         data: &[u8],
     ) -> Result<(), Status> {
-        let status = (self.set_variable)(
-            name,
-            vendor_guid,
-            attributes,
-            data.len(),
-            data.as_ptr(),
-        );
+        let status = (self.set_variable)(name, vendor_guid, attributes, data.len(), data.as_ptr());
         status.to_status_result()
     }
 
@@ -329,13 +307,7 @@ impl EfiRuntimeServices {
         name: *const Char16,
         vendor_guid: &Guid,
     ) -> Result<(), Status> {
-        let status = (self.set_variable)(
-            name,
-            vendor_guid,
-            0,
-            0,
-            core::ptr::null(),
-        );
+        let status = (self.set_variable)(name, vendor_guid, 0, 0, core::ptr::null());
         status.to_status_result()
     }
 
@@ -371,12 +343,7 @@ impl EfiRuntimeServices {
     /// # Safety
     /// This function never returns.
     pub unsafe fn reset_cold(&self) -> ! {
-        (self.reset_system)(
-            ResetType::Cold,
-            Status::SUCCESS,
-            0,
-            core::ptr::null(),
-        )
+        (self.reset_system)(ResetType::Cold, Status::SUCCESS, 0, core::ptr::null())
     }
 
     /// Reset the system (warm reboot)
@@ -384,12 +351,7 @@ impl EfiRuntimeServices {
     /// # Safety
     /// This function never returns.
     pub unsafe fn reset_warm(&self) -> ! {
-        (self.reset_system)(
-            ResetType::Warm,
-            Status::SUCCESS,
-            0,
-            core::ptr::null(),
-        )
+        (self.reset_system)(ResetType::Warm, Status::SUCCESS, 0, core::ptr::null())
     }
 
     /// Shutdown the system
@@ -397,24 +359,14 @@ impl EfiRuntimeServices {
     /// # Safety
     /// This function never returns.
     pub unsafe fn shutdown(&self) -> ! {
-        (self.reset_system)(
-            ResetType::Shutdown,
-            Status::SUCCESS,
-            0,
-            core::ptr::null(),
-        )
+        (self.reset_system)(ResetType::Shutdown, Status::SUCCESS, 0, core::ptr::null())
     }
 
     /// Reset the system with a specific type and optional data
     ///
     /// # Safety
     /// This function never returns.
-    pub unsafe fn reset(
-        &self,
-        reset_type: ResetType,
-        status: Status,
-        data: Option<&[u8]>,
-    ) -> ! {
+    pub unsafe fn reset(&self, reset_type: ResetType, status: Status, data: Option<&[u8]>) -> ! {
         let (size, ptr) = match data {
             Some(d) => (d.len(), d.as_ptr()),
             None => (0, core::ptr::null()),
@@ -539,41 +491,37 @@ pub struct CapsuleCapabilities {
 pub mod variable_names {
     /// Boot order variable name
     pub const BOOT_ORDER: &[u16] = &[
-        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16,
-        'O' as u16, 'r' as u16, 'd' as u16, 'e' as u16, 'r' as u16, 0
+        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'O' as u16, 'r' as u16, 'd' as u16,
+        'e' as u16, 'r' as u16, 0,
     ];
 
     /// Boot current variable name
     pub const BOOT_CURRENT: &[u16] = &[
-        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16,
-        'C' as u16, 'u' as u16, 'r' as u16, 'r' as u16,
-        'e' as u16, 'n' as u16, 't' as u16, 0
+        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'C' as u16, 'u' as u16, 'r' as u16,
+        'r' as u16, 'e' as u16, 'n' as u16, 't' as u16, 0,
     ];
 
     /// Boot next variable name
     pub const BOOT_NEXT: &[u16] = &[
-        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16,
-        'N' as u16, 'e' as u16, 'x' as u16, 't' as u16, 0
+        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'N' as u16, 'e' as u16, 'x' as u16,
+        't' as u16, 0,
     ];
 
     /// Timeout variable name
     pub const TIMEOUT: &[u16] = &[
-        'T' as u16, 'i' as u16, 'm' as u16, 'e' as u16,
-        'o' as u16, 'u' as u16, 't' as u16, 0
+        'T' as u16, 'i' as u16, 'm' as u16, 'e' as u16, 'o' as u16, 'u' as u16, 't' as u16, 0,
     ];
 
     /// Secure Boot variable name
     pub const SECURE_BOOT: &[u16] = &[
-        'S' as u16, 'e' as u16, 'c' as u16, 'u' as u16,
-        'r' as u16, 'e' as u16, 'B' as u16, 'o' as u16,
-        'o' as u16, 't' as u16, 0
+        'S' as u16, 'e' as u16, 'c' as u16, 'u' as u16, 'r' as u16, 'e' as u16, 'B' as u16,
+        'o' as u16, 'o' as u16, 't' as u16, 0,
     ];
 
     /// Setup Mode variable name
     pub const SETUP_MODE: &[u16] = &[
-        'S' as u16, 'e' as u16, 't' as u16, 'u' as u16,
-        'p' as u16, 'M' as u16, 'o' as u16, 'd' as u16,
-        'e' as u16, 0
+        'S' as u16, 'e' as u16, 't' as u16, 'u' as u16, 'p' as u16, 'M' as u16, 'o' as u16,
+        'd' as u16, 'e' as u16, 0,
     ];
 
     /// Platform Key variable name
@@ -593,20 +541,16 @@ pub mod variable_names {
 
     /// OS Indications
     pub const OS_INDICATIONS: &[u16] = &[
-        'O' as u16, 'S' as u16, 'I' as u16, 'n' as u16,
-        'd' as u16, 'i' as u16, 'c' as u16, 'a' as u16,
-        't' as u16, 'i' as u16, 'o' as u16, 'n' as u16,
-        's' as u16, 0
+        'O' as u16, 'S' as u16, 'I' as u16, 'n' as u16, 'd' as u16, 'i' as u16, 'c' as u16,
+        'a' as u16, 't' as u16, 'i' as u16, 'o' as u16, 'n' as u16, 's' as u16, 0,
     ];
 
     /// OS Indications Supported
     pub const OS_INDICATIONS_SUPPORTED: &[u16] = &[
-        'O' as u16, 'S' as u16, 'I' as u16, 'n' as u16,
-        'd' as u16, 'i' as u16, 'c' as u16, 'a' as u16,
-        't' as u16, 'i' as u16, 'o' as u16, 'n' as u16,
-        's' as u16, 'S' as u16, 'u' as u16, 'p' as u16,
-        'p' as u16, 'o' as u16, 'r' as u16, 't' as u16,
-        'e' as u16, 'd' as u16, 0
+        'O' as u16, 'S' as u16, 'I' as u16, 'n' as u16, 'd' as u16, 'i' as u16, 'c' as u16,
+        'a' as u16, 't' as u16, 'i' as u16, 'o' as u16, 'n' as u16, 's' as u16, 'S' as u16,
+        'u' as u16, 'p' as u16, 'p' as u16, 'o' as u16, 'r' as u16, 't' as u16, 'e' as u16,
+        'd' as u16, 0,
     ];
 }
 

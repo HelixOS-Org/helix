@@ -2,10 +2,11 @@
 //!
 //! Provides internal and leaf node structures for the B+tree.
 
+use core::mem::size_of;
+
+use super::{SearchResult, TreeType};
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
-use super::{TreeType, SearchResult};
-use core::mem::size_of;
 
 // ============================================================================
 // Constants
@@ -30,7 +31,7 @@ pub enum NodeType {
     /// Internal node (keys + child pointers)
     Internal = 1,
     /// Leaf node (keys + values)
-    Leaf = 2,
+    Leaf     = 2,
     /// Overflow node (for large values)
     Overflow = 3,
 }
@@ -105,25 +106,25 @@ impl NodeHeader {
             checksum: 0,
         }
     }
-    
+
     /// Check if leaf node
     #[inline]
     pub fn is_leaf(&self) -> bool {
         self.node_type == NodeType::Leaf as u8
     }
-    
+
     /// Check if internal node
     #[inline]
     pub fn is_internal(&self) -> bool {
         self.node_type == NodeType::Internal as u8
     }
-    
+
     /// Check if root
     #[inline]
     pub fn is_root(&self) -> bool {
         self.parent_block == 0
     }
-    
+
     /// Validate header
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != NODE_MAGIC {
@@ -156,13 +157,13 @@ pub struct ItemPtr {
 impl ItemPtr {
     /// Size in bytes
     pub const SIZE: usize = 4;
-    
+
     /// Create new pointer
     #[inline]
     pub const fn new(offset: u16, size: u16) -> Self {
         Self { offset, size }
     }
-    
+
     /// Check if valid
     #[inline]
     pub fn is_valid(&self) -> bool {
@@ -187,7 +188,7 @@ pub struct InternalEntry64 {
 impl InternalEntry64 {
     /// Size in bytes
     pub const SIZE: usize = 16;
-    
+
     /// Create new entry
     #[inline]
     pub const fn new(key: u64, child: u64) -> Self {
@@ -238,42 +239,42 @@ impl InternalNode64 {
     pub fn new(level: u8, tree_type: TreeType, block_num: u64) -> Self {
         let mut header = NodeHeader::new(NodeType::Internal, level, tree_type);
         header.block_num = block_num;
-        
+
         Self {
             header,
             entries: [InternalEntry64::new(0, 0); MAX_INTERNAL_ENTRIES_64],
         }
     }
-    
+
     /// Get entry count
     #[inline]
     pub fn count(&self) -> usize {
         self.header.item_count as usize
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.count() == 0
     }
-    
+
     /// Check if full
     #[inline]
     pub fn is_full(&self) -> bool {
         self.count() >= MAX_INTERNAL_ENTRIES_64
     }
-    
+
     /// Get entries slice
     pub fn entries(&self) -> &[InternalEntry64] {
         &self.entries[..self.count()]
     }
-    
+
     /// Binary search for key
     pub fn search(&self, key: u64) -> SearchResult {
         let entries = self.entries();
         let mut left = 0;
         let mut right = entries.len();
-        
+
         while left < right {
             let mid = left + (right - left) / 2;
             if entries[mid].key == key {
@@ -284,17 +285,17 @@ impl InternalNode64 {
                 right = mid;
             }
         }
-        
+
         SearchResult::NotFound(left)
     }
-    
+
     /// Find child for key
     pub fn find_child(&self, key: u64) -> Option<u64> {
         let entries = self.entries();
         if entries.is_empty() {
             return None;
         }
-        
+
         match self.search(key) {
             SearchResult::Found(i) => Some(entries[i].child),
             SearchResult::NotFound(i) => {
@@ -303,53 +304,53 @@ impl InternalNode64 {
                 } else {
                     Some(entries[i - 1].child)
                 }
-            }
+            },
         }
     }
-    
+
     /// Insert entry (must have space)
     pub fn insert(&mut self, key: u64, child: u64) -> HfsResult<()> {
         if self.is_full() {
             return Err(HfsError::BtreeFull);
         }
-        
+
         let pos = match self.search(key) {
             SearchResult::Found(i) => i,
             SearchResult::NotFound(i) => i,
         };
-        
+
         let count = self.count();
-        
+
         // Shift entries
         for i in (pos..count).rev() {
             self.entries[i + 1] = self.entries[i];
         }
-        
+
         // Insert
         self.entries[pos] = InternalEntry64::new(key, child);
         self.header.item_count += 1;
-        
+
         Ok(())
     }
-    
+
     /// Remove entry at index
     pub fn remove(&mut self, index: usize) -> HfsResult<InternalEntry64> {
         let count = self.count();
         if index >= count {
             return Err(HfsError::BtreeKeyNotFound);
         }
-        
+
         let entry = self.entries[index];
-        
+
         // Shift entries
         for i in index..count - 1 {
             self.entries[i] = self.entries[i + 1];
         }
-        
+
         self.header.item_count -= 1;
         Ok(entry)
     }
-    
+
     /// Get first key
     pub fn first_key(&self) -> Option<u64> {
         if self.is_empty() {
@@ -358,7 +359,7 @@ impl InternalNode64 {
             Some(self.entries[0].key)
         }
     }
-    
+
     /// Get last key
     pub fn last_key(&self) -> Option<u64> {
         let count = self.count();
@@ -368,48 +369,44 @@ impl InternalNode64 {
             Some(self.entries[count - 1].key)
         }
     }
-    
+
     /// Split node, returns new node and split key
     pub fn split(&mut self, new_block: u64) -> (Self, u64) {
         let count = self.count();
         let mid = count / 2;
-        
+
         let mut new_node = Self::new(
             self.header.level,
             TreeType::from_u8(self.header.tree_type).unwrap_or(TreeType::KeyValue),
             new_block,
         );
         new_node.header.generation = self.header.generation;
-        
+
         // Copy second half to new node
         for i in mid..count {
             new_node.entries[i - mid] = self.entries[i];
         }
         new_node.header.item_count = (count - mid) as u16;
-        
+
         // Update this node
         let split_key = self.entries[mid].key;
         self.header.item_count = mid as u16;
-        
+
         // Update sibling links
         new_node.header.left_sibling = self.header.block_num;
         new_node.header.right_sibling = self.header.right_sibling;
         self.header.right_sibling = new_block;
-        
+
         (new_node, split_key)
     }
-    
+
     /// Calculate checksum
     pub fn calculate_checksum(&self) -> u32 {
-        let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const Self as *const u8,
-                NODE_SIZE - 8,
-            )
-        };
+        let bytes =
+            unsafe { core::slice::from_raw_parts(self as *const Self as *const u8, NODE_SIZE - 8) };
         Crc32c::hash(bytes)
     }
-    
+
     /// Update checksum
     pub fn update_checksum(&mut self) {
         self.header.checksum = self.calculate_checksum();
@@ -436,7 +433,7 @@ pub struct LeafEntry8_24 {
 impl LeafEntry8_24 {
     /// Size
     pub const SIZE: usize = 32;
-    
+
     /// Create new
     pub fn new(key: u64, value: &[u8]) -> Self {
         let mut entry = Self {
@@ -464,42 +461,45 @@ impl LeafNode8_24 {
     pub fn new(tree_type: TreeType, block_num: u64) -> Self {
         let mut header = NodeHeader::new(NodeType::Leaf, 0, tree_type);
         header.block_num = block_num;
-        
+
         Self {
             header,
-            entries: [LeafEntry8_24 { key: 0, value: [0; 24] }; MAX_LEAF_ENTRIES_8_24],
+            entries: [LeafEntry8_24 {
+                key: 0,
+                value: [0; 24],
+            }; MAX_LEAF_ENTRIES_8_24],
         }
     }
-    
+
     /// Get entry count
     #[inline]
     pub fn count(&self) -> usize {
         self.header.item_count as usize
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.count() == 0
     }
-    
+
     /// Check if full
     #[inline]
     pub fn is_full(&self) -> bool {
         self.count() >= MAX_LEAF_ENTRIES_8_24
     }
-    
+
     /// Get entries
     pub fn entries(&self) -> &[LeafEntry8_24] {
         &self.entries[..self.count()]
     }
-    
+
     /// Binary search
     pub fn search(&self, key: u64) -> SearchResult {
         let entries = self.entries();
         let mut left = 0;
         let mut right = entries.len();
-        
+
         while left < right {
             let mid = left + (right - left) / 2;
             if entries[mid].key == key {
@@ -510,10 +510,10 @@ impl LeafNode8_24 {
                 right = mid;
             }
         }
-        
+
         SearchResult::NotFound(left)
     }
-    
+
     /// Get value for key
     pub fn get(&self, key: u64) -> Option<&[u8; 24]> {
         match self.search(key) {
@@ -521,65 +521,65 @@ impl LeafNode8_24 {
             SearchResult::NotFound(_) => None,
         }
     }
-    
+
     /// Insert entry
     pub fn insert(&mut self, key: u64, value: &[u8]) -> HfsResult<()> {
         if self.is_full() {
             return Err(HfsError::BtreeFull);
         }
-        
+
         let pos = match self.search(key) {
             SearchResult::Found(i) => {
                 // Update existing
                 self.entries[i] = LeafEntry8_24::new(key, value);
                 return Ok(());
-            }
+            },
             SearchResult::NotFound(i) => i,
         };
-        
+
         let count = self.count();
-        
+
         // Shift entries
         for i in (pos..count).rev() {
             self.entries[i + 1] = self.entries[i];
         }
-        
+
         // Insert
         self.entries[pos] = LeafEntry8_24::new(key, value);
         self.header.item_count += 1;
-        
+
         Ok(())
     }
-    
+
     /// Remove entry at index
     pub fn remove(&mut self, index: usize) -> HfsResult<LeafEntry8_24> {
         let count = self.count();
         if index >= count {
             return Err(HfsError::BtreeKeyNotFound);
         }
-        
+
         let entry = self.entries[index];
-        
+
         // Shift entries
         for i in index..count - 1 {
             self.entries[i] = self.entries[i + 1];
         }
-        
+
         self.header.item_count -= 1;
         Ok(entry)
     }
-    
+
     /// Delete by key
     pub fn delete(&mut self, key: u64) -> HfsResult<()> {
         match self.search(key) {
             SearchResult::Found(i) => {
                 self.remove(i)?;
                 Ok(())
-            }
+            },
             SearchResult::NotFound(_) => Err(HfsError::BtreeKeyNotFound),
         }
     }
-    
+
     /// First key
     pub fn first_key(&self) -> Option<u64> {
         if self.is_empty() {
@@ -588,33 +588,33 @@ impl LeafNode8_24 {
             Some(self.entries[0].key)
         }
     }
-    
+
     /// Split node
     pub fn split(&mut self, new_block: u64) -> (Self, u64) {
         let count = self.count();
         let mid = count / 2;
-        
+
         let mut new_node = Self::new(
             TreeType::from_u8(self.header.tree_type).unwrap_or(TreeType::KeyValue),
             new_block,
         );
         new_node.header.generation = self.header.generation;
-        
+
         // Copy second half
         for i in mid..count {
             new_node.entries[i - mid] = self.entries[i];
         }
         new_node.header.item_count = (count - mid) as u16;
-        
+
         // Update this node
         let split_key = new_node.entries[0].key;
         self.header.item_count = mid as u16;
-        
+
         // Update sibling links
         new_node.header.left_sibling = self.header.block_num;
         new_node.header.right_sibling = self.header.right_sibling;
         self.header.right_sibling = new_block;
-        
+
         (new_node, split_key)
     }
 }
@@ -637,47 +637,47 @@ impl NodeBuffer {
             data: [0; NODE_SIZE],
         }
     }
-    
+
     /// Get header reference
     pub fn header(&self) -> &NodeHeader {
         unsafe { &*(self.data.as_ptr() as *const NodeHeader) }
     }
-    
+
     /// Get mutable header
     pub fn header_mut(&mut self) -> &mut NodeHeader {
         unsafe { &mut *(self.data.as_mut_ptr() as *mut NodeHeader) }
     }
-    
+
     /// Get as internal node
     pub fn as_internal64(&self) -> &InternalNode64 {
         unsafe { &*(self.data.as_ptr() as *const InternalNode64) }
     }
-    
+
     /// Get as mutable internal node
     pub fn as_internal64_mut(&mut self) -> &mut InternalNode64 {
         unsafe { &mut *(self.data.as_mut_ptr() as *mut InternalNode64) }
     }
-    
+
     /// Get as leaf node
     pub fn as_leaf8_24(&self) -> &LeafNode8_24 {
         unsafe { &*(self.data.as_ptr() as *const LeafNode8_24) }
     }
-    
+
     /// Get as mutable leaf node
     pub fn as_leaf8_24_mut(&mut self) -> &mut LeafNode8_24 {
         unsafe { &mut *(self.data.as_mut_ptr() as *mut LeafNode8_24) }
     }
-    
+
     /// Get raw bytes
     pub fn as_bytes(&self) -> &[u8; NODE_SIZE] {
         &self.data
     }
-    
+
     /// Get mutable bytes
     pub fn as_bytes_mut(&mut self) -> &mut [u8; NODE_SIZE] {
         &mut self.data
     }
-    
+
     /// Validate buffer as node
     pub fn validate(&self) -> HfsResult<()> {
         self.header().validate()
@@ -697,76 +697,76 @@ impl Default for NodeBuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_node_header() {
         let header = NodeHeader::new(NodeType::Leaf, 0, TreeType::Inode);
-        
+
         assert!(header.is_leaf());
         assert!(!header.is_internal());
         assert_eq!(header.item_count, 0);
         assert!(header.validate().is_ok());
     }
-    
+
     #[test]
     fn test_internal_node() {
         let mut node = InternalNode64::new(1, TreeType::Inode, 100);
-        
+
         assert!(node.is_empty());
-        
+
         node.insert(50, 1000).unwrap();
         node.insert(100, 2000).unwrap();
         node.insert(25, 500).unwrap();
-        
+
         assert_eq!(node.count(), 3);
-        
+
         // Should be sorted
         let entries = node.entries();
         assert_eq!(entries[0].key, 25);
         assert_eq!(entries[1].key, 50);
         assert_eq!(entries[2].key, 100);
-        
+
         // Find child
         assert_eq!(node.find_child(75), Some(1000));
         assert_eq!(node.find_child(200), Some(2000));
     }
-    
+
     #[test]
     fn test_leaf_node() {
         let mut node = LeafNode8_24::new(TreeType::Inode, 100);
-        
+
         node.insert(50, b"value50value50value50xxx").unwrap();
         node.insert(100, b"value100").unwrap();
         node.insert(25, b"value25").unwrap();
-        
+
         assert_eq!(node.count(), 3);
-        
+
         // Get value
         let val = node.get(50).unwrap();
         assert_eq!(&val[..8], b"value50v");
-        
+
         // Delete
         node.delete(50).unwrap();
         assert_eq!(node.count(), 2);
         assert!(node.get(50).is_none());
     }
-    
+
     #[test]
     fn test_node_split() {
         let mut node = InternalNode64::new(1, TreeType::Inode, 100);
-        
+
         // Fill node
         for i in 0..50 {
             node.insert(i * 10, i * 1000).unwrap();
         }
-        
+
         let (new_node, split_key) = node.split(200);
-        
+
         // Check split
         assert!(node.count() > 0);
         assert!(new_node.count() > 0);
         assert_eq!(node.count() + new_node.count(), 50);
-        
+
         // Keys should be partitioned
         assert!(node.last_key().unwrap() < split_key);
         assert!(new_node.first_key().unwrap() >= split_key);

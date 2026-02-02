@@ -3,12 +3,11 @@
 //! This module provides SMP support for multi-core initialization.
 //! It handles CPU enumeration and startup for all supported architectures.
 
-
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::protocol::request_ids::SMP_ID;
-use crate::protocol::raw::RawSmpInfo;
 use super::{LimineRequest, ResponsePtr, SafeResponse};
+use crate::protocol::raw::RawSmpInfo;
+use crate::protocol::request_ids::SMP_ID;
 
 /// SMP request flags
 pub mod smp_flags {
@@ -30,12 +29,11 @@ pub mod smp_response_flags {
 /// # Example
 ///
 /// ```rust,no_run
-/// use helix_limine::requests::{SmpRequest, smp_flags};
+/// use helix_limine::requests::{smp_flags, SmpRequest};
 ///
 /// #[used]
 /// #[link_section = ".limine_requests"]
-/// static SMP: SmpRequest = SmpRequest::new()
-///     .with_flags(smp_flags::X2APIC);
+/// static SMP: SmpRequest = SmpRequest::new().with_flags(smp_flags::X2APIC);
 ///
 /// extern "C" fn ap_entry() -> ! {
 ///     // Application Processor entry point
@@ -95,9 +93,15 @@ impl Default for SmpRequest {
 impl LimineRequest for SmpRequest {
     type Response = SmpResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }

@@ -3,10 +3,10 @@
 //! Automatically selects the best compression algorithm based on
 //! data characteristics, workload patterns, and performance requirements.
 
-use crate::core::error::{HfsError, HfsResult};
+use super::lz4::{lz4_compress, lz4_decompress, Lz4Compressor};
+use super::zstd::{zstd_decompress, ZstdCompressor};
 use super::*;
-use super::lz4::{Lz4Compressor, lz4_compress, lz4_decompress};
-use super::zstd::{ZstdCompressor, zstd_decompress};
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants
@@ -36,17 +36,17 @@ const HISTORY_SIZE: usize = 16;
 #[repr(u8)]
 pub enum DataClass {
     /// Unknown/mixed data
-    Unknown = 0,
+    Unknown    = 0,
     /// Text data (high compressibility)
-    Text = 1,
+    Text       = 1,
     /// Binary data
-    Binary = 2,
+    Binary     = 2,
     /// Already compressed (JPEG, PNG, etc.)
     Compressed = 3,
     /// Encrypted data
-    Encrypted = 4,
+    Encrypted  = 4,
     /// Sparse data (lots of zeros)
-    Sparse = 5,
+    Sparse     = 5,
     /// Sequential/repeating patterns
     Sequential = 6,
 }
@@ -63,7 +63,7 @@ impl DataClass {
             Self::Unknown => CompressionType::Lz4,
         }
     }
-    
+
     /// Expected compression ratio (0-100, lower is better)
     pub fn expected_ratio(&self) -> u32 {
         match self {
@@ -109,53 +109,53 @@ impl DataAnalysis {
     /// Analyze data sample
     pub fn analyze(data: &[u8]) -> Self {
         let mut analysis = Self::default();
-        
+
         if data.is_empty() {
             return analysis;
         }
-        
+
         let sample_size = core::cmp::min(data.len(), SAMPLE_SIZE);
         let sample = &data[..sample_size];
-        
+
         // Count byte frequencies
         let mut freq = [0u32; 256];
         let mut zeros = 0u32;
-        
+
         for &b in sample {
             freq[b as usize] += 1;
             if b == 0 {
                 zeros += 1;
             }
         }
-        
+
         // Count unique bytes
         let unique: u32 = freq.iter().filter(|&&f| f > 0).count() as u32;
         analysis.unique_bytes = unique;
-        
+
         // Calculate entropy estimate
         let entropy = unique * 256 / sample_size as u32;
         analysis.entropy = entropy.min(255);
-        
+
         // Zero percentage
         analysis.zero_percent = zeros * 100 / sample_size as u32;
-        
+
         // Detect patterns
         analysis.repetition = detect_repetition(sample);
-        
+
         // Classify data
         analysis.class = classify_data(&analysis, sample);
-        
+
         // Recommend algorithm
         analysis.recommended = analysis.class.recommended_algorithm();
-        
+
         analysis
     }
-    
+
     /// Is data compressible
     pub fn is_compressible(&self) -> bool {
         self.entropy < HIGH_ENTROPY_THRESHOLD
     }
-    
+
     /// Is data highly compressible
     pub fn is_highly_compressible(&self) -> bool {
         self.entropy < LOW_ENTROPY_THRESHOLD || self.zero_percent > 50
@@ -167,16 +167,16 @@ fn detect_repetition(sample: &[u8]) -> u32 {
     if sample.len() < 8 {
         return 0;
     }
-    
+
     let mut matches = 0u32;
-    
+
     // Check 4-byte pattern repetition
     for i in 4..sample.len() {
         if sample[i] == sample[i - 4] {
             matches += 1;
         }
     }
-    
+
     matches * 100 / (sample.len() - 4) as u32
 }
 
@@ -186,40 +186,41 @@ fn classify_data(analysis: &DataAnalysis, sample: &[u8]) -> DataClass {
     if analysis.zero_percent > 70 {
         return DataClass::Sparse;
     }
-    
+
     // Check for already compressed/encrypted
     if analysis.entropy > HIGH_ENTROPY_THRESHOLD {
         // Check for compression magic numbers
         if sample.len() >= 4 {
             let magic = u32::from_le_bytes([sample[0], sample[1], sample[2], sample[3]]);
-            
+
             match magic {
                 0x04034b50 => return DataClass::Compressed, // ZIP
                 0x1F8B0800 => return DataClass::Compressed, // GZIP
                 0xFD377A58 => return DataClass::Compressed, // XZ
                 0x28B52FFD => return DataClass::Compressed, // ZSTD
                 0x89504E47 => return DataClass::Compressed, // PNG
-                _ => {}
+                _ => {},
             }
         }
-        
+
         return DataClass::Encrypted; // Or random
     }
-    
+
     // Check for text
-    let printable = sample.iter().filter(|&&b| {
-        (b >= 0x20 && b <= 0x7E) || b == b'\n' || b == b'\r' || b == b'\t'
-    }).count();
-    
+    let printable = sample
+        .iter()
+        .filter(|&&b| (b >= 0x20 && b <= 0x7E) || b == b'\n' || b == b'\r' || b == b'\t')
+        .count();
+
     if printable > sample.len() * 90 / 100 {
         return DataClass::Text;
     }
-    
+
     // Check for sequential patterns
     if analysis.repetition > 50 {
         return DataClass::Sequential;
     }
-    
+
     DataClass::Binary
 }
 
@@ -248,7 +249,7 @@ impl HistoryEntry {
         }
         (self.output_size as u64 * 100 / self.input_size as u64) as u32
     }
-    
+
     /// Throughput (MB/s)
     fn throughput(&self) -> u32 {
         if self.time_us == 0 {
@@ -267,13 +268,13 @@ impl HistoryEntry {
 #[repr(u8)]
 pub enum AdaptiveMode {
     /// Optimize for speed
-    Speed = 0,
+    Speed    = 0,
     /// Balance speed and ratio
     Balanced = 1,
     /// Optimize for ratio
-    Ratio = 2,
+    Ratio    = 2,
     /// Always use specific algorithm
-    Fixed = 3,
+    Fixed    = 3,
 }
 
 impl Default for AdaptiveMode {
@@ -328,25 +329,25 @@ impl AdaptiveCompressor {
             stats: AdaptiveStats::default(),
         }
     }
-    
+
     /// Set mode
     pub fn mode(mut self, mode: AdaptiveMode) -> Self {
         self.mode = mode;
         self
     }
-    
+
     /// Set default algorithm
     pub fn default_algorithm(mut self, algo: CompressionType) -> Self {
         self.default_algo = algo;
         self
     }
-    
+
     /// Select best algorithm for data
     pub fn select_algorithm(&self, data: &[u8]) -> CompressionType {
         if data.len() < MIN_ADAPTIVE_SIZE {
             return self.default_algo;
         }
-        
+
         match self.mode {
             AdaptiveMode::Fixed => self.default_algo,
             AdaptiveMode::Speed => CompressionType::Lz4,
@@ -354,44 +355,44 @@ impl AdaptiveCompressor {
             AdaptiveMode::Balanced => self.select_balanced(data),
         }
     }
-    
+
     /// Select for best ratio
     fn select_for_ratio(&self, data: &[u8]) -> CompressionType {
         let analysis = DataAnalysis::analyze(data);
-        
+
         if !analysis.is_compressible() {
             return CompressionType::None;
         }
-        
+
         // ZSTD for ratio
         CompressionType::Zstd
     }
-    
+
     /// Select balanced algorithm
     fn select_balanced(&self, data: &[u8]) -> CompressionType {
         let analysis = DataAnalysis::analyze(data);
-        
+
         if !analysis.is_compressible() {
             return CompressionType::None;
         }
-        
+
         // Use history to guide selection
         let lz4_avg = self.avg_ratio_for(CompressionType::Lz4);
         let zstd_avg = self.avg_ratio_for(CompressionType::Zstd);
-        
+
         // Consider data class recommendation
         let recommended = analysis.recommended;
-        
+
         // If highly compressible, ZSTD is worth the overhead
         if analysis.is_highly_compressible() {
             return CompressionType::Zstd;
         }
-        
+
         // If history shows ZSTD significantly better, use it
         if zstd_avg > 0 && lz4_avg > 0 && lz4_avg > zstd_avg + 20 {
             return CompressionType::Zstd;
         }
-        
+
         // Default to recommendation or LZ4
         if recommended.is_compressed() {
             recommended
@@ -399,26 +400,26 @@ impl AdaptiveCompressor {
             CompressionType::Lz4
         }
     }
-    
+
     /// Get average ratio for algorithm from history
     fn avg_ratio_for(&self, algo: CompressionType) -> u32 {
         let mut sum = 0u32;
         let mut count = 0u32;
-        
+
         for entry in &self.history {
             if entry.algorithm == algo && entry.input_size > 0 {
                 sum += entry.ratio();
                 count += 1;
             }
         }
-        
+
         if count == 0 {
             return 0;
         }
-        
+
         sum / count
     }
-    
+
     /// Record compression result
     fn record(&mut self, algo: CompressionType, input: usize, output: usize, time_us: u32) {
         self.history[self.history_idx] = HistoryEntry {
@@ -427,29 +428,33 @@ impl AdaptiveCompressor {
             output_size: output as u32,
             time_us,
         };
-        
+
         self.history_idx = (self.history_idx + 1) % HISTORY_SIZE;
-        
+
         match algo {
             CompressionType::Lz4 | CompressionType::Lz4Hc => self.stats.lz4_selected += 1,
             CompressionType::Zstd => self.stats.zstd_selected += 1,
             CompressionType::None => self.stats.none_selected += 1,
-            _ => {}
+            _ => {},
         }
-        
+
         if output < input {
             self.stats.bytes_saved += (input - output) as u64;
         }
     }
-    
+
     /// Compress with adaptive algorithm selection
-    pub fn compress_adaptive(&mut self, input: &[u8], output: &mut [u8]) -> HfsResult<CompressionResult> {
+    pub fn compress_adaptive(
+        &mut self,
+        input: &[u8],
+        output: &mut [u8],
+    ) -> HfsResult<CompressionResult> {
         if input.is_empty() {
             return Ok(CompressionResult::new(CompressionType::None, 0, 0));
         }
-        
+
         let algo = self.select_algorithm(input);
-        
+
         if algo == CompressionType::None {
             // Store uncompressed
             if output.len() < input.len() {
@@ -457,27 +462,27 @@ impl AdaptiveCompressor {
             }
             output[..input.len()].copy_from_slice(input);
             self.record(CompressionType::None, input.len(), input.len(), 0);
-            return Ok(CompressionResult::new(CompressionType::None, input.len(), input.len()));
+            return Ok(CompressionResult::new(
+                CompressionType::None,
+                input.len(),
+                input.len(),
+            ));
         }
-        
+
         // Try compression
         let result = match algo {
-            CompressionType::Lz4 | CompressionType::Lz4Hc => {
-                lz4_compress(input, output)
-            }
-            CompressionType::Zstd => {
-                self.zstd.compress(input, output)
-            }
+            CompressionType::Lz4 | CompressionType::Lz4Hc => lz4_compress(input, output),
+            CompressionType::Zstd => self.zstd.compress(input, output),
             _ => {
                 return Err(HfsError::NotSupported);
-            }
+            },
         };
-        
+
         match result {
             Ok(size) if size < input.len() => {
                 self.record(algo, input.len(), size, 0);
                 Ok(CompressionResult::new(algo, input.len(), size))
-            }
+            },
             _ => {
                 // Compression didn't help, store raw
                 if output.len() < input.len() {
@@ -485,29 +490,33 @@ impl AdaptiveCompressor {
                 }
                 output[..input.len()].copy_from_slice(input);
                 self.record(CompressionType::None, input.len(), input.len(), 0);
-                Ok(CompressionResult::new(CompressionType::None, input.len(), input.len()))
-            }
+                Ok(CompressionResult::new(
+                    CompressionType::None,
+                    input.len(),
+                    input.len(),
+                ))
+            },
         }
     }
-    
+
     /// Decompress with auto-detection
     pub fn decompress_auto(&self, input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
         if input.len() < 4 {
             return Err(HfsError::CorruptedData);
         }
-        
+
         let magic = u32::from_le_bytes([input[0], input[1], input[2], input[3]]);
-        
+
         match magic {
             LZ4_MAGIC => lz4_decompress(&input[4..], output),
             ZSTD_MAGIC => zstd_decompress(input, output),
             _ => {
                 // Try LZ4 format (no magic)
                 lz4_decompress(input, output)
-            }
+            },
         }
     }
-    
+
     /// Get statistics
     pub fn stats(&self) -> &AdaptiveStats {
         &self.stats
@@ -527,59 +536,67 @@ impl Default for AdaptiveCompressor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_data_analysis() {
         // Text data
-        let text = b"The quick brown fox jumps over the lazy dog. This is a test of text compression.";
+        let text =
+            b"The quick brown fox jumps over the lazy dog. This is a test of text compression.";
         let analysis = DataAnalysis::analyze(text);
         assert!(analysis.is_compressible());
-        
+
         // Sparse data
         let sparse = [0u8; 256];
         let analysis = DataAnalysis::analyze(&sparse);
         assert_eq!(analysis.class, DataClass::Sparse);
         assert!(analysis.is_highly_compressible());
-        
+
         // Random-like data
         let random: [u8; 256] = core::array::from_fn(|i| (i * 17 + 31) as u8);
         let analysis = DataAnalysis::analyze(&random);
         // May or may not be compressible depending on pattern
     }
-    
+
     #[test]
     fn test_data_class() {
-        assert_eq!(DataClass::Text.recommended_algorithm(), CompressionType::Zstd);
-        assert_eq!(DataClass::Compressed.recommended_algorithm(), CompressionType::None);
-        assert_eq!(DataClass::Sparse.recommended_algorithm(), CompressionType::Lz4);
+        assert_eq!(
+            DataClass::Text.recommended_algorithm(),
+            CompressionType::Zstd
+        );
+        assert_eq!(
+            DataClass::Compressed.recommended_algorithm(),
+            CompressionType::None
+        );
+        assert_eq!(
+            DataClass::Sparse.recommended_algorithm(),
+            CompressionType::Lz4
+        );
     }
-    
+
     #[test]
     fn test_adaptive_compressor() {
-        let mut compressor = AdaptiveCompressor::new()
-            .mode(AdaptiveMode::Balanced);
-        
+        let mut compressor = AdaptiveCompressor::new().mode(AdaptiveMode::Balanced);
+
         let input = b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         let mut output = [0u8; 256];
-        
+
         let result = compressor.compress_adaptive(input, &mut output).unwrap();
-        
+
         // Should be compressed
         assert!(result.output_size <= result.input_size);
     }
-    
+
     #[test]
     fn test_adaptive_mode() {
-        let compressor = AdaptiveCompressor::new()
-            .mode(AdaptiveMode::Speed);
-        
+        let compressor = AdaptiveCompressor::new().mode(AdaptiveMode::Speed);
+
         let data = b"Test data for compression selection";
         assert_eq!(compressor.select_algorithm(data), CompressionType::Lz4);
-        
+
         let compressor = AdaptiveCompressor::new()
             .mode(AdaptiveMode::Fixed)
             .default_algorithm(CompressionType::Zstd);
-        
+
         assert_eq!(compressor.select_algorithm(data), CompressionType::Zstd);
     }
 }

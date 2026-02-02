@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use alloc::string::String;
+
 use crate::types::{Priority, ProbeId, Timestamp};
 
 // ============================================================================
@@ -12,7 +13,7 @@ use crate::types::{Priority, ProbeId, Timestamp};
 // ============================================================================
 
 /// Type of probe
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ProbeType {
     /// CPU metrics
     Cpu,
@@ -285,7 +286,8 @@ impl ProbeStats {
 
     /// Get uptime
     pub fn uptime(&self) -> Option<crate::types::Duration> {
-        self.start_time.map(|start| Timestamp::now().elapsed_since(start))
+        self.start_time
+            .map(|start| Timestamp::now().elapsed_since(start))
     }
 }
 

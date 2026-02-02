@@ -629,9 +629,9 @@ impl MemoryRegion {
 
     /// Check if this memory can be reclaimed
     pub fn is_reclaimable(&self) -> bool {
-        matches!(self.kind,
-            MemoryRegionKind::BootloaderReclaimable |
-            MemoryRegionKind::AcpiReclaimable
+        matches!(
+            self.kind,
+            MemoryRegionKind::BootloaderReclaimable | MemoryRegionKind::AcpiReclaimable
         )
     }
 
@@ -643,7 +643,9 @@ impl MemoryRegion {
 
 impl fmt::Display for MemoryRegion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} - {} ({:?}, {} KB)",
+        write!(
+            f,
+            "{} - {} ({:?}, {} KB)",
             self.base,
             self.end(),
             self.kind,
@@ -751,11 +753,7 @@ mod tests {
 
     #[test]
     fn test_memory_region() {
-        let region = MemoryRegion::new(
-            PhysAddr::new(0x1000),
-            0x2000,
-            MemoryRegionKind::Usable
-        );
+        let region = MemoryRegion::new(PhysAddr::new(0x1000), 0x2000, MemoryRegionKind::Usable);
 
         assert!(region.contains(PhysAddr::new(0x1500)));
         assert!(!region.contains(PhysAddr::new(0x4000)));

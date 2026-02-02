@@ -86,47 +86,59 @@ impl fmt::Display for BootInfoError {
         match self {
             Self::NullPointer => write!(f, "boot info pointer is null"),
 
-            Self::MisalignedPointer { address, required_alignment } => {
+            Self::MisalignedPointer {
+                address,
+                required_alignment,
+            } => {
                 write!(
                     f,
                     "boot info pointer {:#x} is not {}-byte aligned",
                     address, required_alignment
                 )
-            }
+            },
 
             Self::InvalidTotalSize { size } => {
                 write!(f, "invalid total size: {} bytes", size)
-            }
+            },
 
             Self::InvalidTagSize { tag_type, size } => {
                 write!(f, "tag type {} has invalid size: {} bytes", tag_type, size)
-            }
+            },
 
             Self::MisalignedTag { tag_type, offset } => {
-                write!(f, "tag type {} at offset {} is not 8-byte aligned", tag_type, offset)
-            }
+                write!(
+                    f,
+                    "tag type {} at offset {} is not 8-byte aligned",
+                    tag_type, offset
+                )
+            },
 
-            Self::TagOutOfBounds { tag_type, offset, size, total_size } => {
+            Self::TagOutOfBounds {
+                tag_type,
+                offset,
+                size,
+                total_size,
+            } => {
                 write!(
                     f,
                     "tag type {} at offset {} with size {} extends beyond boot info ({} bytes)",
                     tag_type, offset, size, total_size
                 )
-            }
+            },
 
             Self::MissingEndTag => write!(f, "end tag not found"),
 
             Self::InvalidUtf8 { tag_type } => {
                 write!(f, "tag type {} contains invalid UTF-8", tag_type)
-            }
+            },
 
             Self::InvalidMemoryType { type_value } => {
                 write!(f, "invalid memory region type: {}", type_value)
-            }
+            },
 
             Self::CorruptedTag { tag_type, reason } => {
                 write!(f, "tag type {} is corrupted: {}", tag_type, reason)
-            }
+            },
         }
     }
 }
@@ -219,7 +231,10 @@ pub fn validate_tag(
 
     // Minimum tag size is 8 bytes (type + size)
     if tag_size < 8 {
-        return Err(BootInfoError::InvalidTagSize { tag_type, size: tag_size });
+        return Err(BootInfoError::InvalidTagSize {
+            tag_type,
+            size: tag_size,
+        });
     }
 
     // Check bounds

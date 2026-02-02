@@ -2,14 +2,14 @@
 //!
 //! This module provides working memory to long-term memory consolidation.
 
+extern crate alloc;
+
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::{
-    Timestamp, TimeRange,
-    EpisodicMemory, EpisodeType,
-    SemanticMemory,
-    ProceduralMemory, ProcedureType,
-    WorkingMemory, WorkingMemoryContent,
+    EpisodeType, EpisodicMemory, ProceduralMemory, ProcedureType, SemanticMemory, TimeRange,
+    Timestamp, WorkingMemory, WorkingMemoryContent,
 };
 
 /// Consolidation strategy
@@ -106,7 +106,7 @@ impl MemoryConsolidator {
             ConsolidationStrategy::Periodic => {
                 let last = self.last_consolidation.load(Ordering::Relaxed);
                 current_time - last >= self.interval_ns
-            }
+            },
             ConsolidationStrategy::OnDemand => false,
             ConsolidationStrategy::Threshold => false, // Need more context
         }
@@ -156,7 +156,11 @@ impl MemoryConsolidator {
         }
 
         // Extract patterns from working memory
-        let pattern_items: Vec<_> = working.find_patterns().iter().map(|i| (*i).clone()).collect();
+        let pattern_items: Vec<_> = working
+            .find_patterns()
+            .iter()
+            .map(|i| (*i).clone())
+            .collect();
 
         for item in pattern_items {
             if let WorkingMemoryContent::ActivePattern {
@@ -174,7 +178,11 @@ impl MemoryConsolidator {
         }
 
         // Extract procedures from successful decisions
-        let decisions: Vec<_> = working.find_decisions().iter().map(|i| (*i).clone()).collect();
+        let decisions: Vec<_> = working
+            .find_decisions()
+            .iter()
+            .map(|i| (*i).clone())
+            .collect();
 
         for item in decisions {
             if let WorkingMemoryContent::RecentDecision { decision, outcome } = &item.content {
@@ -190,7 +198,8 @@ impl MemoryConsolidator {
             }
         }
 
-        self.last_consolidation.store(current_time, Ordering::Relaxed);
+        self.last_consolidation
+            .store(current_time, Ordering::Relaxed);
         self.total_consolidations.fetch_add(1, Ordering::Relaxed);
 
         let duration = current_time.saturating_sub(start);

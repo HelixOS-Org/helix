@@ -5,16 +5,15 @@
 //! Limine fully supports PIE kernels and can perform KASLR automatically.
 //! This module provides the integration layer for manual relocation when needed.
 
-use crate::requests::{KernelAddressRequest, LimineRequest};
-
+pub use helix_relocation::boot::BootContext;
+pub use helix_relocation::context::BootProtocol;
+pub use helix_relocation::kaslr::{EntropyQuality, Kaslr, KaslrConfig};
 pub use helix_relocation::{
-    RelocationContext, RelocationContextBuilder, RelocationStrategy,
-    RelocatableKernel, RelocationEngine, RelocationStats, Relocatable,
-    RelocError, RelocResult,
-    kaslr::{Kaslr, KaslrConfig, EntropyQuality},
-    boot::BootContext,
-    context::BootProtocol,
+    RelocError, RelocResult, Relocatable, RelocatableKernel, RelocationContext,
+    RelocationContextBuilder, RelocationEngine, RelocationStats, RelocationStrategy,
 };
+
+use crate::requests::{KernelAddressRequest, LimineRequest};
 
 // ============================================================================
 // LIMINE RELOCATION CONTEXT
@@ -32,8 +31,7 @@ pub fn create_context_from_limine(
     kernel_addr: &KernelAddressRequest,
     kernel_size: usize,
 ) -> RelocResult<RelocationContext> {
-    let response = kernel_addr.response()
-        .ok_or(RelocError::NotInitialized)?;
+    let response = kernel_addr.response().ok_or(RelocError::NotInitialized)?;
 
     // Limine provides both physical and virtual base addresses
     let phys_base = response.physical_base();
@@ -58,8 +56,7 @@ pub fn create_boot_context(
     kernel_addr: &KernelAddressRequest,
     kernel_size: usize,
 ) -> RelocResult<BootContext> {
-    let response = kernel_addr.response()
-        .ok_or(RelocError::NotInitialized)?;
+    let response = kernel_addr.response().ok_or(RelocError::NotInitialized)?;
 
     Ok(BootContext {
         protocol: BootProtocol::Limine,
@@ -149,8 +146,8 @@ pub unsafe fn apply_early_relocations(
     kernel_size: usize,
     slide: i64,
 ) -> RelocResult<RelocationStats> {
-    use helix_relocation::engine::EarlyRelocator;
     use helix_relocation::elf::Elf64Rela;
+    use helix_relocation::engine::EarlyRelocator;
 
     // Limine typically handles all relocations, so slide is usually 0
     if slide == 0 {
@@ -278,7 +275,8 @@ macro_rules! apply_limine_relocations {
         let (rela_base, rela_size) = $crate::relocation::rela_section();
 
         // Get slide from Limine
-        let response = $kernel_addr.response()
+        let response = $kernel_addr
+            .response()
             .expect("Kernel address response required");
         let slide = response.virtual_base as i64 - response.physical_base as i64;
 

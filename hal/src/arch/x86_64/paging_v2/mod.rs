@@ -80,13 +80,13 @@ mod table;
 mod tlb;
 mod walker;
 
-pub use addresses::{PhysicalAddress, VirtualAddress, PageSize, Frame, Page};
-pub use entries::{PageTableEntry, PageFlags, PageTableLevel};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
+pub use addresses::{Frame, Page, PageSize, PhysicalAddress, VirtualAddress};
+pub use entries::{PageFlags, PageTableEntry, PageTableLevel};
 pub use table::{PageTable, PageTableIndex};
 pub use tlb::{flush_tlb, flush_tlb_all, flush_tlb_pcid, Pcid};
-pub use walker::{PageTableWalker, MappingInfo, TranslationError};
-
-use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+pub use walker::{MappingInfo, PageTableWalker, TranslationError};
 
 // =============================================================================
 // Constants
@@ -139,7 +139,7 @@ static FIVE_LEVEL_PAGING: AtomicBool = AtomicBool::new(false);
 static CURRENT_CR3: AtomicU64 = AtomicU64::new(0);
 
 /// Maximum supported physical address bits
-static PHYS_ADDR_BITS: core::sync::atomic::AtomicU8 = 
+static PHYS_ADDR_BITS: core::sync::atomic::AtomicU8 =
     core::sync::atomic::AtomicU8::new(PHYS_BITS_MAX);
 
 // =============================================================================
@@ -157,15 +157,15 @@ pub unsafe fn init() {
     // Detect 5-level paging support
     let la57_supported = detect_la57_support();
     FIVE_LEVEL_PAGING.store(la57_supported, Ordering::SeqCst);
-    
+
     // Detect physical address bits
     let phys_bits = detect_phys_addr_bits();
     PHYS_ADDR_BITS.store(phys_bits, Ordering::SeqCst);
-    
+
     // Read current CR3
     let cr3 = read_cr3();
     CURRENT_CR3.store(cr3, Ordering::SeqCst);
-    
+
     log::info!(
         "Paging: initialized (5-level={}, phys_bits={}, CR3={:#x})",
         la57_supported,
@@ -273,14 +273,14 @@ pub unsafe fn switch_page_table_pcid(root: PhysicalAddress, pcid: Pcid, noflush:
 pub fn is_canonical(addr: u64) -> bool {
     let bits = virtual_address_bits();
     let mask = 1u64 << (bits - 1);
-    
+
     // All bits above the virtual address range must match the sign bit
     let sign_extended = if addr & mask != 0 {
         addr | !((1u64 << bits) - 1)
     } else {
         addr & ((1u64 << bits) - 1)
     };
-    
+
     addr == sign_extended
 }
 
@@ -289,7 +289,7 @@ pub fn is_canonical(addr: u64) -> bool {
 pub fn canonicalize(addr: u64) -> u64 {
     let bits = virtual_address_bits();
     let mask = 1u64 << (bits - 1);
-    
+
     if addr & mask != 0 {
         addr | !((1u64 << bits) - 1)
     } else {
@@ -318,7 +318,7 @@ fn detect_la57_support() -> bool {
             options(nostack, preserves_flags),
         );
     }
-    
+
     // Also check CR4.LA57 to see if it's actually enabled
     let cr4: u64;
     unsafe {
@@ -328,11 +328,11 @@ fn detect_la57_support() -> bool {
             options(nomem, nostack, preserves_flags),
         );
     }
-    
+
     // LA57 is bit 12 of CR4
     let la57_supported = result & (1 << 16) != 0;
     let la57_enabled = cr4 & (1 << 12) != 0;
-    
+
     la57_supported && la57_enabled
 }
 
@@ -351,7 +351,7 @@ fn detect_phys_addr_bits() -> u8 {
             options(nostack, preserves_flags),
         );
     }
-    
+
     if max_leaf >= 0x80000008 {
         let result: u32;
         unsafe {

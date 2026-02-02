@@ -71,19 +71,19 @@ pub const IST_COUNT: usize = 7;
 #[repr(u8)]
 pub enum IstIndex {
     /// IST 1: Double Fault (#DF)
-    DoubleFault = 1,
+    DoubleFault  = 1,
     /// IST 2: Non-Maskable Interrupt (#NMI)
-    Nmi = 2,
+    Nmi          = 2,
     /// IST 3: Machine Check (#MC)
     MachineCheck = 3,
     /// IST 4: Debug (#DB)
-    Debug = 4,
+    Debug        = 4,
     /// IST 5: Reserved for future use
-    Reserved5 = 5,
+    Reserved5    = 5,
     /// IST 6: Reserved for future use
-    Reserved6 = 6,
+    Reserved6    = 6,
     /// IST 7: Reserved for future use
-    Reserved7 = 7,
+    Reserved7    = 7,
 }
 
 impl IstIndex {

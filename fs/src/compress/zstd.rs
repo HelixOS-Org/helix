@@ -8,8 +8,8 @@
 //! For production use with full ZSTD support, integrate the official
 //! zstd crate with proper feature flags.
 
-use crate::core::error::{HfsError, HfsResult};
 use super::{CompressionType, Compressor, ZSTD_MAGIC};
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants
@@ -49,13 +49,13 @@ const BLOCK_HEADER_SIZE: usize = 3;
 #[repr(u8)]
 pub enum BlockType {
     /// Raw (uncompressed) block
-    Raw = 0,
+    Raw        = 0,
     /// RLE (run-length encoded) block
-    Rle = 1,
+    Rle        = 1,
     /// Compressed block
     Compressed = 2,
     /// Reserved
-    Reserved = 3,
+    Reserved   = 3,
 }
 
 impl BlockType {
@@ -98,19 +98,19 @@ impl FrameHeader {
             content_size: content_size as u16,
         }
     }
-    
+
     /// Parse from bytes
     pub fn from_bytes(data: &[u8]) -> Option<Self> {
         if data.len() < FRAME_HEADER_SIZE {
             return None;
         }
-        
+
         let magic = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-        
+
         if magic != ZSTD_MAGIC {
             return None;
         }
-        
+
         Some(Self {
             magic,
             descriptor: data[4],
@@ -118,7 +118,7 @@ impl FrameHeader {
             content_size: u16::from_le_bytes([data[6], data[7]]),
         })
     }
-    
+
     /// Write to bytes
     pub fn to_bytes(&self, buf: &mut [u8]) {
         buf[0..4].copy_from_slice(&self.magic.to_le_bytes());
@@ -148,28 +148,26 @@ impl BlockHeader {
     pub fn new(btype: BlockType, last: bool, size: u32) -> Self {
         Self { btype, last, size }
     }
-    
+
     /// Parse from bytes (3 bytes)
     pub fn from_bytes(data: &[u8]) -> Option<Self> {
         if data.len() < 3 {
             return None;
         }
-        
+
         let raw = u32::from_le_bytes([data[0], data[1], data[2], 0]);
-        
+
         Some(Self {
             last: (raw & 1) != 0,
             btype: BlockType::from_raw(((raw >> 1) & 3) as u8),
             size: raw >> 3,
         })
     }
-    
+
     /// Write to bytes
     pub fn to_bytes(&self, buf: &mut [u8]) {
-        let raw = (self.last as u32) 
-            | ((self.btype as u32) << 1) 
-            | (self.size << 3);
-        
+        let raw = (self.last as u32) | ((self.btype as u32) << 1) | (self.size << 3);
+
         buf[0] = raw as u8;
         buf[1] = (raw >> 8) as u8;
         buf[2] = (raw >> 16) as u8;
@@ -186,12 +184,18 @@ fn hash5(data: &[u8], pos: usize) -> usize {
     if pos + 5 > data.len() {
         return 0;
     }
-    
+
     let raw = u64::from_le_bytes([
-        data[pos], data[pos + 1], data[pos + 2], data[pos + 3],
-        data[pos + 4], 0, 0, 0,
+        data[pos],
+        data[pos + 1],
+        data[pos + 2],
+        data[pos + 3],
+        data[pos + 4],
+        0,
+        0,
+        0,
     ]);
-    
+
     ((raw.wrapping_mul(889523592379_u64)) >> (64 - HASH_SIZE_LOG2)) as usize
 }
 
@@ -230,7 +234,7 @@ impl ZstdCompressor {
             level: 3,
         }
     }
-    
+
     /// Create with level
     pub fn with_level(level: i32) -> Self {
         Self {
@@ -238,98 +242,99 @@ impl ZstdCompressor {
             level: level.clamp(1, 22),
         }
     }
-    
+
     /// Reset hash table
     fn reset(&mut self) {
         self.hash_table.fill(0);
     }
-    
+
     /// Compress data
     pub fn compress_impl(&mut self, input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
         let input_len = input.len();
-        
+
         if input_len == 0 {
             return Ok(0);
         }
-        
+
         if output.len() < FRAME_HEADER_SIZE + BLOCK_HEADER_SIZE + 1 {
             return Err(HfsError::BufferTooSmall);
         }
-        
+
         self.reset();
-        
+
         let mut op = 0;
-        
+
         // Write frame header
         let frame_header = FrameHeader::new(input_len);
         frame_header.to_bytes(&mut output[op..]);
         op += FRAME_HEADER_SIZE;
-        
+
         // Compress in blocks
         let mut ip = 0;
-        
+
         while ip < input_len {
             let block_size = core::cmp::min(MAX_BLOCK_SIZE, input_len - ip);
             let block_input = &input[ip..ip + block_size];
             let is_last = ip + block_size >= input_len;
-            
+
             // Try to compress block
             let block_start = op + BLOCK_HEADER_SIZE;
             let max_compressed = output.len() - block_start;
-            
+
             match self.compress_block(block_input, &mut output[block_start..]) {
                 Ok(compressed_size) if compressed_size < block_size => {
                     // Use compressed block
-                    let header = BlockHeader::new(BlockType::Compressed, is_last, compressed_size as u32);
+                    let header =
+                        BlockHeader::new(BlockType::Compressed, is_last, compressed_size as u32);
                     header.to_bytes(&mut output[op..]);
                     op = block_start + compressed_size;
-                }
+                },
                 _ => {
                     // Store raw block
                     if block_start + block_size > output.len() {
                         return Err(HfsError::BufferTooSmall);
                     }
-                    
+
                     let header = BlockHeader::new(BlockType::Raw, is_last, block_size as u32);
                     header.to_bytes(&mut output[op..]);
                     output[block_start..block_start + block_size].copy_from_slice(block_input);
                     op = block_start + block_size;
-                }
+                },
             }
-            
+
             ip += block_size;
         }
-        
+
         Ok(op)
     }
-    
+
     /// Compress a single block
     fn compress_block(&mut self, input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
         let input_len = input.len();
-        
+
         if input_len < MIN_BLOCK_SIZE {
             return Err(HfsError::BufferTooSmall);
         }
-        
+
         // Collect sequences
         let mut sequences: [Sequence; 256] = [Sequence::default(); 256];
         let mut seq_count = 0;
-        
+
         let mut ip = 0;
         let mut anchor = 0;
-        
+
         let limit = if input_len > 12 { input_len - 12 } else { 0 };
-        
+
         // Match finding loop
         while ip < limit && seq_count < 255 {
             let h = hash5(input, ip);
             let ref_pos = self.hash_table[h] as usize;
             self.hash_table[h] = ip as u32;
-            
+
             // Check for match
             let offset = ip.saturating_sub(ref_pos);
-            
-            if offset > 0 
+
+            if offset > 0
                 && offset < MAX_OFFSET
                 && ref_pos + MIN_MATCH <= input_len
                 && ip + MIN_MATCH <= input_len
@@ -341,11 +346,11 @@ impl ZstdCompressor {
                     input_len - ip,
                     core::cmp::min(MAX_MATCH_LEN, input_len - ref_pos),
                 );
-                
+
                 while match_len < max_len && input[ref_pos + match_len] == input[ip + match_len] {
                     match_len += 1;
                 }
-                
+
                 if match_len >= MIN_MATCH {
                     // Record sequence
                     sequences[seq_count] = Sequence {
@@ -354,20 +359,20 @@ impl ZstdCompressor {
                         match_len: match_len as u16,
                     };
                     seq_count += 1;
-                    
+
                     ip += match_len;
                     anchor = ip;
                     continue;
                 }
             }
-            
+
             ip += 1;
         }
-        
+
         // Encode sequences to output
         self.encode_sequences(input, output, &sequences[..seq_count], anchor)
     }
-    
+
     /// Encode sequences to output buffer
     fn encode_sequences(
         &self,
@@ -378,13 +383,13 @@ impl ZstdCompressor {
     ) -> HfsResult<usize> {
         let mut op = 0;
         let mut lit_pos = 0;
-        
+
         // For each sequence
         for seq in sequences {
             let lit_len = seq.lit_len as usize;
             let match_len = seq.match_len as usize;
             let offset = seq.offset;
-            
+
             // Encode literal length (simplified variable-length encoding)
             if lit_len < 128 {
                 if op >= output.len() {
@@ -400,7 +405,7 @@ impl ZstdCompressor {
                 output[op + 1] = lit_len as u8;
                 op += 2;
             }
-            
+
             // Copy literals
             if op + lit_len > output.len() {
                 return Err(HfsError::BufferTooSmall);
@@ -408,7 +413,7 @@ impl ZstdCompressor {
             output[op..op + lit_len].copy_from_slice(&input[lit_pos..lit_pos + lit_len]);
             op += lit_len;
             lit_pos += lit_len;
-            
+
             // Encode offset (little-endian, 2-3 bytes)
             if offset < 256 {
                 if op >= output.len() {
@@ -434,7 +439,7 @@ impl ZstdCompressor {
                 output[op + 3] = (offset >> 8) as u8;
                 op += 4;
             }
-            
+
             // Encode match length
             let encoded_ml = match_len.saturating_sub(MIN_MATCH);
             if encoded_ml < 128 {
@@ -451,13 +456,13 @@ impl ZstdCompressor {
                 output[op + 1] = encoded_ml as u8;
                 op += 2;
             }
-            
+
             lit_pos += match_len;
         }
-        
+
         // Final literals
         let final_lit_len = input.len() - final_lit_start;
-        
+
         // Encode length
         if final_lit_len < 128 {
             if op >= output.len() {
@@ -473,14 +478,14 @@ impl ZstdCompressor {
             output[op + 1] = final_lit_len as u8;
             op += 2;
         }
-        
+
         // Copy literals
         if op + final_lit_len > output.len() {
             return Err(HfsError::BufferTooSmall);
         }
         output[op..op + final_lit_len].copy_from_slice(&input[final_lit_start..]);
         op += final_lit_len;
-        
+
         Ok(op)
     }
 }
@@ -499,16 +504,16 @@ impl Compressor for ZstdCompressor {
         };
         temp.compress_impl(input, output)
     }
-    
+
     fn decompress(&self, input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
         zstd_decompress(input, output)
     }
-    
+
     fn max_compressed_size(&self, input_size: usize) -> usize {
         // ZSTD worst case plus headers
         input_size + (input_size / 128) + FRAME_HEADER_SIZE + BLOCK_HEADER_SIZE + 128
     }
-    
+
     fn algorithm(&self) -> CompressionType {
         CompressionType::Zstd
     }
@@ -523,34 +528,32 @@ pub fn zstd_decompress(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
     if input.len() < FRAME_HEADER_SIZE {
         return Err(HfsError::CorruptedData);
     }
-    
+
     // Parse frame header
-    let frame_header = FrameHeader::from_bytes(input)
-        .ok_or(HfsError::CorruptedData)?;
-    
+    let frame_header = FrameHeader::from_bytes(input).ok_or(HfsError::CorruptedData)?;
+
     if frame_header.magic != ZSTD_MAGIC {
         return Err(HfsError::CorruptedData);
     }
-    
+
     let mut ip = FRAME_HEADER_SIZE;
     let mut op = 0;
-    
+
     // Process blocks
     loop {
         if ip + BLOCK_HEADER_SIZE > input.len() {
             return Err(HfsError::CorruptedData);
         }
-        
-        let block_header = BlockHeader::from_bytes(&input[ip..])
-            .ok_or(HfsError::CorruptedData)?;
+
+        let block_header = BlockHeader::from_bytes(&input[ip..]).ok_or(HfsError::CorruptedData)?;
         ip += BLOCK_HEADER_SIZE;
-        
+
         let block_size = block_header.size as usize;
-        
+
         if ip + block_size > input.len() {
             return Err(HfsError::CorruptedData);
         }
-        
+
         match block_header.btype {
             BlockType::Raw => {
                 // Copy raw data
@@ -559,7 +562,7 @@ pub fn zstd_decompress(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
                 }
                 output[op..op + block_size].copy_from_slice(&input[ip..ip + block_size]);
                 op += block_size;
-            }
+            },
             BlockType::Rle => {
                 // RLE block
                 if block_size == 0 || ip >= input.len() {
@@ -567,30 +570,31 @@ pub fn zstd_decompress(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
                 }
                 let byte = input[ip];
                 let rle_size = block_header.size as usize;
-                
+
                 if op + rle_size > output.len() {
                     return Err(HfsError::BufferTooSmall);
                 }
                 output[op..op + rle_size].fill(byte);
                 op += rle_size;
-            }
+            },
             BlockType::Compressed => {
                 // Decompress block
-                let decompressed = decompress_block(&input[ip..ip + block_size], &mut output[op..])?;
+                let decompressed =
+                    decompress_block(&input[ip..ip + block_size], &mut output[op..])?;
                 op += decompressed;
-            }
+            },
             BlockType::Reserved => {
                 return Err(HfsError::CorruptedData);
-            }
+            },
         }
-        
+
         ip += block_size;
-        
+
         if block_header.last {
             break;
         }
     }
-    
+
     Ok(op)
 }
 
@@ -598,19 +602,19 @@ pub fn zstd_decompress(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
 fn decompress_block(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
     let mut ip = 0;
     let mut op = 0;
-    
+
     while ip < input.len() {
         // Read literal length
         if ip >= input.len() {
             return Err(HfsError::CorruptedData);
         }
-        
+
         let lit_byte = input[ip];
         ip += 1;
-        
+
         let is_final = (lit_byte & 0x40) != 0;
         let is_long = (lit_byte & 0x80) != 0;
-        
+
         let lit_len = if is_long {
             if ip >= input.len() {
                 return Err(HfsError::CorruptedData);
@@ -621,7 +625,7 @@ fn decompress_block(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
         } else {
             (lit_byte & 0x3F) as usize
         };
-        
+
         // Copy literals
         if ip + lit_len > input.len() || op + lit_len > output.len() {
             return Err(HfsError::BufferTooSmall);
@@ -629,19 +633,19 @@ fn decompress_block(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
         output[op..op + lit_len].copy_from_slice(&input[ip..ip + lit_len]);
         ip += lit_len;
         op += lit_len;
-        
+
         if is_final {
             break;
         }
-        
+
         // Read offset
         if ip >= input.len() {
             return Err(HfsError::CorruptedData);
         }
-        
+
         let off_byte = input[ip];
         ip += 1;
-        
+
         let offset = if off_byte != 0 {
             off_byte as usize
         } else {
@@ -650,7 +654,7 @@ fn decompress_block(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
             }
             let b = input[ip];
             ip += 1;
-            
+
             if b != 0 {
                 if ip >= input.len() {
                     return Err(HfsError::CorruptedData);
@@ -668,19 +672,19 @@ fn decompress_block(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
                 low | (high << 8)
             }
         };
-        
+
         if offset == 0 || offset > op {
             return Err(HfsError::CorruptedData);
         }
-        
+
         // Read match length
         if ip >= input.len() {
             return Err(HfsError::CorruptedData);
         }
-        
+
         let ml_byte = input[ip];
         ip += 1;
-        
+
         let match_len = if (ml_byte & 0x80) != 0 {
             if ip >= input.len() {
                 return Err(HfsError::CorruptedData);
@@ -691,19 +695,19 @@ fn decompress_block(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
         } else {
             ml_byte as usize
         } + MIN_MATCH;
-        
+
         // Copy match
         if op + match_len > output.len() {
             return Err(HfsError::BufferTooSmall);
         }
-        
+
         let match_pos = op - offset;
         for i in 0..match_len {
             output[op + i] = output[match_pos + i];
         }
         op += match_len;
     }
-    
+
     Ok(op)
 }
 
@@ -714,40 +718,40 @@ fn decompress_block(input: &[u8], output: &mut [u8]) -> HfsResult<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_frame_header() {
         let header = FrameHeader::new(1000);
-        
+
         let mut buf = [0u8; 8];
         header.to_bytes(&mut buf);
-        
+
         let parsed = FrameHeader::from_bytes(&buf).unwrap();
         assert_eq!(parsed.magic, ZSTD_MAGIC);
         assert_eq!(parsed.content_size, 1000);
     }
-    
+
     #[test]
     fn test_block_header() {
         let header = BlockHeader::new(BlockType::Compressed, true, 500);
-        
+
         let mut buf = [0u8; 3];
         header.to_bytes(&mut buf);
-        
+
         let parsed = BlockHeader::from_bytes(&buf).unwrap();
         assert_eq!(parsed.btype, BlockType::Compressed);
         assert!(parsed.last);
         assert_eq!(parsed.size, 500);
     }
-    
+
     #[test]
     fn test_zstd_compressor() {
         let mut compressor = ZstdCompressor::new();
-        
+
         let input = b"Hello World! Hello World! Hello World! Testing ZSTD compression.";
         let mut compressed = [0u8; 512];
         let mut decompressed = [0u8; 128];
-        
+
         // This simplified implementation may not compress well or at all
         // for small inputs, but should round-trip correctly via raw blocks
         if let Ok(comp_size) = compressor.compress_impl(input, &mut compressed) {

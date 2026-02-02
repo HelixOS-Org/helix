@@ -74,7 +74,10 @@ impl Tags {
         if let Some(tag) = self.0.iter_mut().find(|t| t.key == key) {
             tag.value = value.into();
         } else {
-            self.0.push(Tag { key, value: value.into() });
+            self.0.push(Tag {
+                key,
+                value: value.into(),
+            });
         }
     }
 

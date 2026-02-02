@@ -242,7 +242,10 @@ impl MemoryMap {
     }
 
     /// Get regions of a specific kind
-    pub fn regions_of_kind(&self, target_kind: MemoryRegionKind) -> impl Iterator<Item = MemoryRegion> + '_ {
+    pub fn regions_of_kind(
+        &self,
+        target_kind: MemoryRegionKind,
+    ) -> impl Iterator<Item = MemoryRegion> + '_ {
         self.iter().filter(move |r| r.region_kind() == target_kind)
     }
 }
@@ -403,7 +406,9 @@ impl CpuInfo {
             // Write the argument first using volatile write
             core::ptr::write_volatile(core::ptr::addr_of_mut!((*info_ptr).extra_argument), arg);
             // Write goto_address last (atomic) - this triggers the CPU to start
-            (*info_ptr).goto_address.store(entry, core::sync::atomic::Ordering::Release);
+            (*info_ptr)
+                .goto_address
+                .store(entry, core::sync::atomic::Ordering::Release);
         }
     }
 }
@@ -729,10 +734,7 @@ mod tests {
 
     #[test]
     fn test_kernel_address() {
-        let ka = KernelAddress::new(
-            PhysAddr::new(0x100000),
-            VirtAddr::new(0xFFFFFFFF80000000),
-        );
+        let ka = KernelAddress::new(PhysAddr::new(0x100000), VirtAddr::new(0xFFFFFFFF80000000));
 
         let virt = VirtAddr::new(0xFFFFFFFF80001000);
         let phys = ka.virt_to_phys(virt);

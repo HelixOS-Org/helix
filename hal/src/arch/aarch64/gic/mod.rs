@@ -288,7 +288,7 @@ pub enum TriggerMode {
     /// Level-sensitive: Interrupt remains asserted while signal is active
     Level = 0,
     /// Edge-triggered: Interrupt on rising edge
-    Edge = 1,
+    Edge  = 1,
 }
 
 impl Default for TriggerMode {
@@ -522,7 +522,7 @@ impl Gic {
             },
             GicVersion::V3 | GicVersion::V4 => {
                 v3::Gicv3CpuInterface::init();
-            }
+            },
         }
     }
 
@@ -582,9 +582,7 @@ impl Gic {
     /// Returns the interrupt ID, or None if spurious.
     pub fn acknowledge(&self) -> Option<u32> {
         let intid = match self.version {
-            GicVersion::V2 => unsafe {
-                v2::Gicv2CpuInterface::new(self.gicc_base).acknowledge()
-            },
+            GicVersion::V2 => unsafe { v2::Gicv2CpuInterface::new(self.gicc_base).acknowledge() },
             GicVersion::V3 | GicVersion::V4 => v3::Gicv3CpuInterface::acknowledge(),
         };
 
@@ -603,7 +601,7 @@ impl Gic {
             },
             GicVersion::V3 | GicVersion::V4 => {
                 v3::Gicv3CpuInterface::end_of_interrupt(intid);
-            }
+            },
         }
     }
 
@@ -619,7 +617,7 @@ impl Gic {
             },
             GicVersion::V3 | GicVersion::V4 => {
                 v3::Gicv3CpuInterface::send_sgi(sgi_id, targets);
-            }
+            },
         }
     }
 
@@ -641,7 +639,7 @@ impl Gic {
             },
             GicVersion::V3 | GicVersion::V4 => {
                 v3::Gicv3CpuInterface::set_priority_mask(priority);
-            }
+            },
         }
     }
 }

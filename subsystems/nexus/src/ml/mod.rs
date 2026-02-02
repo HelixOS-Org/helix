@@ -11,34 +11,28 @@
 //! - **Feature Engineering**: Automatic feature extraction
 
 // Submodules
-mod types;
-mod tree;
-mod forest;
 mod clustering;
-mod sgd;
+mod forest;
 mod neural;
+mod sgd;
+mod tree;
+mod types;
 mod utils;
 
 // Re-export core types
-pub use types::{Feature, FeatureVector, LabeledSample};
-
-// Re-export decision tree
-pub use tree::{DecisionNode, DecisionTree};
-
-// Re-export random forest
-pub use forest::RandomForest;
-
 // Re-export clustering
 pub use clustering::KMeans;
-
-// Re-export SGD
-pub use sgd::SGDClassifier;
-
+// Re-export random forest
+pub use forest::RandomForest;
 // Re-export neural network
 pub use neural::{Activation, DenseLayer, TinyNN};
-
+// Re-export SGD
+pub use sgd::SGDClassifier;
+// Re-export decision tree
+pub use tree::{DecisionNode, DecisionTree};
+pub use types::{Feature, FeatureVector, LabeledSample};
 // Re-export utilities
-pub use utils::{sigmoid, Lcg, ModelRegistry};
+pub use utils::{Lcg, ModelRegistry, sigmoid};
 
 // ============================================================================
 // TESTS
@@ -77,12 +71,9 @@ mod tests {
 
     #[test]
     fn test_kmeans() {
-        let data = vec![
-            vec![0.0, 0.0],
-            vec![0.1, 0.1],
-            vec![10.0, 10.0],
-            vec![10.1, 10.1],
-        ];
+        let data = vec![vec![0.0, 0.0], vec![0.1, 0.1], vec![10.0, 10.0], vec![
+            10.1, 10.1,
+        ]];
 
         let mut kmeans = KMeans::new(2);
         kmeans.fit(&data);

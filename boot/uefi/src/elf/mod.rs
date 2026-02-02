@@ -4,7 +4,6 @@
 
 extern crate alloc;
 use alloc::format;
-
 use core::fmt;
 
 // =============================================================================
@@ -24,8 +23,8 @@ pub mod class {
 /// ELF data encoding
 pub mod encoding {
     pub const NONE: u8 = 0;
-    pub const LSB: u8 = 1;  // Little endian
-    pub const MSB: u8 = 2;  // Big endian
+    pub const LSB: u8 = 1; // Little endian
+    pub const MSB: u8 = 2; // Big endian
 }
 
 /// ELF OS/ABI
@@ -47,10 +46,10 @@ pub mod osabi {
 /// ELF type
 pub mod elf_type {
     pub const NONE: u16 = 0;
-    pub const REL: u16 = 1;      // Relocatable
-    pub const EXEC: u16 = 2;     // Executable
-    pub const DYN: u16 = 3;      // Shared object
-    pub const CORE: u16 = 4;     // Core dump
+    pub const REL: u16 = 1; // Relocatable
+    pub const EXEC: u16 = 2; // Executable
+    pub const DYN: u16 = 3; // Shared object
+    pub const CORE: u16 = 4; // Core dump
 }
 
 /// Machine types
@@ -80,9 +79,9 @@ pub mod segment_type {
 
 /// Segment flags
 pub mod segment_flags {
-    pub const X: u32 = 0x1;     // Executable
-    pub const W: u32 = 0x2;     // Writable
-    pub const R: u32 = 0x4;     // Readable
+    pub const X: u32 = 0x1; // Executable
+    pub const W: u32 = 0x2; // Writable
+    pub const R: u32 = 0x4; // Readable
 }
 
 /// Section types
@@ -254,9 +253,7 @@ impl Elf64Header {
 
     /// Is valid
     pub fn is_valid(&self) -> bool {
-        self.e_ident[0..4] == ELF_MAGIC &&
-        self.e_ident[4] == class::ELF64 &&
-        self.e_version == 1
+        self.e_ident[0..4] == ELF_MAGIC && self.e_ident[4] == class::ELF64 && self.e_version == 1
     }
 
     /// Is for x86_64
@@ -655,8 +652,7 @@ pub struct ElfFile<'a> {
 impl<'a> ElfFile<'a> {
     /// Parse ELF file from bytes
     pub fn parse(data: &'a [u8]) -> Result<Self, ElfError> {
-        let header = Elf64Header::from_bytes(data)
-            .ok_or(ElfError::InvalidHeader)?;
+        let header = Elf64Header::from_bytes(data).ok_or(ElfError::InvalidHeader)?;
 
         if !header.is_valid() {
             return Err(ElfError::InvalidHeader);
@@ -686,8 +682,7 @@ impl<'a> ElfFile<'a> {
             return None;
         }
 
-        let offset = self.header.e_phoff as usize +
-                     index * self.header.e_phentsize as usize;
+        let offset = self.header.e_phoff as usize + index * self.header.e_phentsize as usize;
 
         if offset + Elf64ProgramHeader::SIZE > self.data.len() {
             return None;
@@ -715,8 +710,7 @@ impl<'a> ElfFile<'a> {
             return None;
         }
 
-        let offset = self.header.e_shoff as usize +
-                     index * self.header.e_shentsize as usize;
+        let offset = self.header.e_shoff as usize + index * self.header.e_shentsize as usize;
 
         if offset + Elf64SectionHeader::SIZE > self.data.len() {
             return None;
@@ -777,8 +771,7 @@ impl<'a> ElfFile<'a> {
 
     /// Get loadable segments
     pub fn loadable_segments(&self) -> impl Iterator<Item = Elf64ProgramHeader> + '_ {
-        self.program_headers()
-            .filter(|ph| ph.is_load())
+        self.program_headers().filter(|ph| ph.is_load())
     }
 
     /// Calculate total memory needed
@@ -918,8 +911,7 @@ impl<'a> Iterator for SymbolIter<'a> {
             name_end += 1;
         }
 
-        let name = core::str::from_utf8(&self.elf_data[name_start..name_end])
-            .unwrap_or("");
+        let name = core::str::from_utf8(&self.elf_data[name_start..name_end]).unwrap_or("");
 
         self.index += 1;
         Some((symbol, name))
@@ -964,8 +956,7 @@ impl ElfLoader {
 
             // Copy file data
             if phdr.p_filesz > 0 {
-                let src = elf.segment_data(&phdr)
-                    .ok_or(ElfError::InvalidSegment)?;
+                let src = elf.segment_data(&phdr).ok_or(ElfError::InvalidSegment)?;
 
                 let dst_end = segment_offset + src.len();
                 if dst_end > memory.len() {
@@ -994,7 +985,8 @@ impl ElfLoader {
     ) -> Result<(), ElfError> {
         // Find .rela.dyn section
         if let Some(rela_section) = elf.find_section(".rela.dyn") {
-            let rela_data = elf.section_data(&rela_section)
+            let rela_data = elf
+                .section_data(&rela_section)
                 .ok_or(ElfError::InvalidSection)?;
 
             let delta = load_base.wrapping_sub(link_base) as i64;

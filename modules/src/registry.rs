@@ -2,15 +2,16 @@
 //!
 //! Central registry for all loaded modules.
 
-use crate::{
-    Module, ModuleId, ModuleMetadata, ModuleResult, ModuleError, 
-    ModuleState, ModuleFlags,
-    loader::LoadedModule,
-};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
 use spin::RwLock;
+
+use crate::loader::LoadedModule;
+use crate::{
+    Module, ModuleError, ModuleFlags, ModuleId, ModuleMetadata, ModuleResult, ModuleState,
+};
 
 /// Registered module entry
 pub struct RegisteredModule {
@@ -67,14 +68,14 @@ impl ModuleRegistry {
 
         // Register provides
         for cap in provides {
-            self.provides.write()
-                .entry(cap)
-                .or_default()
-                .push(id);
+            self.provides.write().entry(cap).or_default().push(id);
         }
 
-        log::info!("Registered module: {} (id={})", 
-            self.modules.read().get(&id).unwrap().metadata.name, id.as_u64());
+        log::info!(
+            "Registered module: {} (id={})",
+            self.modules.read().get(&id).unwrap().metadata.name,
+            id.as_u64()
+        );
 
         Ok(id)
     }
@@ -82,22 +83,21 @@ impl ModuleRegistry {
     /// Unregister a module
     pub fn unregister(&self, id: ModuleId) -> ModuleResult<()> {
         let mut modules = self.modules.write();
-        
-        let entry = modules.get(&id)
-            .ok_or(ModuleError::NotFound)?;
+
+        let entry = modules.get(&id).ok_or(ModuleError::NotFound)?;
 
         // Can't unregister if loaded
         if entry.loaded.is_some() {
-            return Err(ModuleError::WrongState { 
-                current: entry.state, 
-                required: ModuleState::Registered 
+            return Err(ModuleError::WrongState {
+                current: entry.state,
+                required: ModuleState::Registered,
             });
         }
 
         // Can't unregister if has dependents
         if !entry.dependents.is_empty() {
             return Err(ModuleError::DependencyNotSatisfied(
-                "Module has dependents".into()
+                "Module has dependents".into(),
             ));
         }
 
@@ -135,7 +135,8 @@ impl ModuleRegistry {
 
     /// Get modules that provide a capability
     pub fn get_providers(&self, capability: &str) -> Vec<ModuleId> {
-        self.provides.read()
+        self.provides
+            .read()
             .get(capability)
             .cloned()
             .unwrap_or_default()
@@ -148,7 +149,8 @@ impl ModuleRegistry {
 
     /// Set module state
     pub fn set_state(&self, id: ModuleId, state: ModuleState) -> ModuleResult<()> {
-        self.modules.write()
+        self.modules
+            .write()
             .get_mut(&id)
             .ok_or(ModuleError::NotFound)?
             .state = state;
@@ -157,7 +159,8 @@ impl ModuleRegistry {
 
     /// Get all registered modules
     pub fn list_all(&self) -> Vec<ModuleMetadata> {
-        self.modules.read()
+        self.modules
+            .read()
             .values()
             .map(|e| e.metadata.clone())
             .collect()
@@ -165,7 +168,8 @@ impl ModuleRegistry {
 
     /// Get all modules with a specific flag
     pub fn list_by_flag(&self, flag: ModuleFlags) -> Vec<ModuleMetadata> {
-        self.modules.read()
+        self.modules
+            .read()
             .values()
             .filter(|e| e.metadata.flags.contains(flag))
             .map(|e| e.metadata.clone())
@@ -174,7 +178,8 @@ impl ModuleRegistry {
 
     /// Get all running modules
     pub fn list_running(&self) -> Vec<ModuleMetadata> {
-        self.modules.read()
+        self.modules
+            .read()
             .values()
             .filter(|e| e.state == ModuleState::Running)
             .map(|e| e.metadata.clone())
@@ -183,7 +188,8 @@ impl ModuleRegistry {
 
     /// Add a dependent
     pub fn add_dependent(&self, id: ModuleId, dependent: ModuleId) -> ModuleResult<()> {
-        self.modules.write()
+        self.modules
+            .write()
             .get_mut(&id)
             .ok_or(ModuleError::NotFound)?
             .dependents
@@ -193,7 +199,8 @@ impl ModuleRegistry {
 
     /// Remove a dependent
     pub fn remove_dependent(&self, id: ModuleId, dependent: ModuleId) -> ModuleResult<()> {
-        self.modules.write()
+        self.modules
+            .write()
             .get_mut(&id)
             .ok_or(ModuleError::NotFound)?
             .dependents
@@ -203,7 +210,8 @@ impl ModuleRegistry {
 
     /// Get dependents of a module
     pub fn get_dependents(&self, id: ModuleId) -> Vec<ModuleId> {
-        self.modules.read()
+        self.modules
+            .read()
             .get(&id)
             .map(|e| e.dependents.clone())
             .unwrap_or_default()

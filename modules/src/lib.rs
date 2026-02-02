@@ -32,12 +32,12 @@
 
 extern crate alloc;
 
-pub mod loader;
-pub mod registry;
-pub mod dependencies;
 pub mod abi;
+pub mod dependencies;
 pub mod hot_reload;
 pub mod interface;
+pub mod loader;
+pub mod registry;
 pub mod v2;
 
 use alloc::boxed::Box;
@@ -46,6 +46,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::any::Any;
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use bitflags::bitflags;
 
 /// Module identifier
@@ -95,7 +96,11 @@ pub struct ModuleVersion {
 impl ModuleVersion {
     /// Create a new version
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self { major, minor, patch }
+        Self {
+            major,
+            minor,
+            patch,
+        }
     }
 
     /// Check if this version is compatible with another
@@ -219,7 +224,10 @@ pub enum ModuleError {
     /// Circular dependency detected
     CircularDependency,
     /// Version mismatch
-    VersionMismatch { expected: ModuleVersion, found: ModuleVersion },
+    VersionMismatch {
+        expected: ModuleVersion,
+        found: ModuleVersion,
+    },
     /// ABI incompatible
     AbiIncompatible,
     /// Load error
@@ -227,7 +235,10 @@ pub enum ModuleError {
     /// Initialization error
     InitError(String),
     /// Module in wrong state
-    WrongState { current: ModuleState, required: ModuleState },
+    WrongState {
+        current: ModuleState,
+        required: ModuleState,
+    },
     /// Module is essential and cannot be unloaded
     Essential,
     /// Internal error
@@ -283,7 +294,10 @@ pub trait Module: Send + Sync {
     }
 
     /// Handle a message from the IPC system
-    fn handle_message(&mut self, _message: &interface::ModuleMessage) -> ModuleResult<Option<interface::ModuleMessage>> {
+    fn handle_message(
+        &mut self,
+        _message: &interface::ModuleMessage,
+    ) -> ModuleResult<Option<interface::ModuleMessage>> {
         Ok(None)
     }
 }
@@ -305,7 +319,10 @@ impl ModuleContext {
     pub fn new(
         id: ModuleId,
         get_dependency: impl Fn(&str) -> Option<Arc<dyn Module>> + Send + Sync + 'static,
-        send_message: impl Fn(&str, interface::ModuleMessage) -> ModuleResult<()> + Send + Sync + 'static,
+        send_message: impl Fn(&str, interface::ModuleMessage) -> ModuleResult<()>
+            + Send
+            + Sync
+            + 'static,
     ) -> Self {
         Self {
             id,
@@ -321,7 +338,11 @@ impl ModuleContext {
     }
 
     /// Send a message to another module
-    pub fn send_message(&self, target: &str, message: interface::ModuleMessage) -> ModuleResult<()> {
+    pub fn send_message(
+        &self,
+        target: &str,
+        message: interface::ModuleMessage,
+    ) -> ModuleResult<()> {
         (self.send_message)(target, message)
     }
 }

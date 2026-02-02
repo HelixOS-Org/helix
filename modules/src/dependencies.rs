@@ -2,14 +2,12 @@
 //!
 //! Handles module dependency resolution and ordering.
 
-use crate::{
-    ModuleId, ModuleMetadata, ModuleDependency, ModuleVersion,
-    ModuleResult, ModuleError,
-    registry::{ModuleRegistry},
-};
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec;
 use alloc::vec::Vec;
+
+use crate::registry::ModuleRegistry;
+use crate::{ModuleDependency, ModuleError, ModuleId, ModuleMetadata, ModuleResult, ModuleVersion};
 
 /// Dependency graph
 pub struct DependencyGraph {
@@ -47,7 +45,10 @@ impl DependencyGraph {
 
     /// Get dependents of a module
     pub fn dependents(&self, id: ModuleId) -> &[ModuleId] {
-        self.reverse_edges.get(&id).map(|v| v.as_slice()).unwrap_or(&[])
+        self.reverse_edges
+            .get(&id)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
     }
 
     /// Check for circular dependencies
@@ -179,16 +180,15 @@ impl<'a> DependencyResolver<'a> {
 
     /// Resolve a single dependency
     fn resolve_dependency(&self, dep: &ModuleDependency) -> ModuleResult<ModuleMetadata> {
-        let metadata = self.registry.get_by_name(&dep.name)
-            .ok_or_else(|| {
-                if dep.optional {
-                    // For optional deps, return a placeholder error
-                    // The caller should handle this
-                    ModuleError::NotFound
-                } else {
-                    ModuleError::DependencyNotSatisfied(dep.name.clone())
-                }
-            })?;
+        let metadata = self.registry.get_by_name(&dep.name).ok_or_else(|| {
+            if dep.optional {
+                // For optional deps, return a placeholder error
+                // The caller should handle this
+                ModuleError::NotFound
+            } else {
+                ModuleError::DependencyNotSatisfied(dep.name.clone())
+            }
+        })?;
 
         // Check version compatibility
         if !metadata.version.is_compatible_with(&dep.min_version) {
@@ -231,7 +231,7 @@ impl<'a> DependencyResolver<'a> {
 
         while let Some(current) = to_unload.pop() {
             let dependents = self.registry.get_dependents(current);
-            
+
             for dep in dependents {
                 if !to_unload.contains(&dep) && !result.contains(&dep) {
                     to_unload.push(dep);

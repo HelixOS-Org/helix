@@ -8,11 +8,12 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{ImprovementId, NodeId};
+use super::NodeId;
 
 // ============================================================================
 // SHARDING TYPES
@@ -175,7 +176,7 @@ impl ConsistentHashRing {
         let keys_to_remove: Vec<_> = self
             .ring
             .iter()
-            .filter(|(_, &n)| n == node)
+            .filter(|&(_, n)| *n == node)
             .map(|(&k, _)| k)
             .collect();
 

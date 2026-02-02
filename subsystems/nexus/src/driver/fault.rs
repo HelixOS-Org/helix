@@ -154,7 +154,7 @@ impl DriverFaultPredictor {
 
         let likely_type = type_counts
             .iter()
-            .max_by_key(|(_, &count)| count)
+            .max_by_key(|&(_, count)| count)
             .map(|(&key, _)| match key {
                 0 => FaultType::Timeout,
                 1 => FaultType::DeviceError,

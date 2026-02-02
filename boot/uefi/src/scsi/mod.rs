@@ -182,27 +182,27 @@ pub mod opcode {
 #[repr(u8)]
 pub enum ScsiStatus {
     /// Command completed successfully
-    Good = 0x00,
+    Good                = 0x00,
     /// Check Condition status
-    CheckCondition = 0x02,
+    CheckCondition      = 0x02,
     /// Condition Met
-    ConditionMet = 0x04,
+    ConditionMet        = 0x04,
     /// Target is busy
-    Busy = 0x08,
+    Busy                = 0x08,
     /// Intermediate status
-    Intermediate = 0x10,
+    Intermediate        = 0x10,
     /// Intermediate Condition Met
     IntermediateConditionMet = 0x14,
     /// Reservation Conflict
     ReservationConflict = 0x18,
     /// Command Terminated
-    CommandTerminated = 0x22,
+    CommandTerminated   = 0x22,
     /// Task Set Full
-    TaskSetFull = 0x28,
+    TaskSetFull         = 0x28,
     /// ACA Active
-    AcaActive = 0x30,
+    AcaActive           = 0x30,
     /// Task Aborted
-    TaskAborted = 0x40,
+    TaskAborted         = 0x40,
 }
 
 impl ScsiStatus {
@@ -244,37 +244,37 @@ impl ScsiStatus {
 #[repr(u8)]
 pub enum SenseKey {
     /// No error or no sense information
-    NoSense = 0x00,
+    NoSense        = 0x00,
     /// Recovered error
     RecoveredError = 0x01,
     /// Device not ready
-    NotReady = 0x02,
+    NotReady       = 0x02,
     /// Medium error
-    MediumError = 0x03,
+    MediumError    = 0x03,
     /// Hardware error
-    HardwareError = 0x04,
+    HardwareError  = 0x04,
     /// Illegal request
     IllegalRequest = 0x05,
     /// Unit attention
-    UnitAttention = 0x06,
+    UnitAttention  = 0x06,
     /// Write protected
-    DataProtect = 0x07,
+    DataProtect    = 0x07,
     /// Blank check
-    BlankCheck = 0x08,
+    BlankCheck     = 0x08,
     /// Vendor specific
     VendorSpecific = 0x09,
     /// Copy aborted
-    CopyAborted = 0x0A,
+    CopyAborted    = 0x0A,
     /// Aborted command
     AbortedCommand = 0x0B,
     /// Equal (obsolete)
-    Equal = 0x0C,
+    Equal          = 0x0C,
     /// Volume overflow
     VolumeOverflow = 0x0D,
     /// Miscompare
-    Miscompare = 0x0E,
+    Miscompare     = 0x0E,
     /// Completed
-    Completed = 0x0F,
+    Completed      = 0x0F,
 }
 
 impl SenseKey {
@@ -574,25 +574,25 @@ pub mod sense_descriptor {
 #[repr(u8)]
 pub enum DeviceType {
     /// Direct access block device (disk)
-    DirectAccess = 0x00,
+    DirectAccess      = 0x00,
     /// Sequential access device (tape)
-    SequentialAccess = 0x01,
+    SequentialAccess  = 0x01,
     /// Printer device
-    Printer = 0x02,
+    Printer           = 0x02,
     /// Processor device
-    Processor = 0x03,
+    Processor         = 0x03,
     /// Write-once device
-    WriteOnce = 0x04,
+    WriteOnce         = 0x04,
     /// CD/DVD device
-    CdDvd = 0x05,
+    CdDvd             = 0x05,
     /// Scanner device
-    Scanner = 0x06,
+    Scanner           = 0x06,
     /// Optical memory device
-    OpticalMemory = 0x07,
+    OpticalMemory     = 0x07,
     /// Medium changer device
-    MediumChanger = 0x08,
+    MediumChanger     = 0x08,
     /// Communications device
-    Communications = 0x09,
+    Communications    = 0x09,
     /// Storage array controller
     StorageArrayController = 0x0C,
     /// Enclosure services device
@@ -600,21 +600,21 @@ pub enum DeviceType {
     /// Simplified direct access
     SimplifiedDirectAccess = 0x0E,
     /// Optical card reader/writer
-    OpticalCard = 0x0F,
+    OpticalCard       = 0x0F,
     /// Bridge controller
-    Bridge = 0x10,
+    Bridge            = 0x10,
     /// Object-based storage
-    ObjectStorage = 0x11,
+    ObjectStorage     = 0x11,
     /// Automation/drive interface
-    Automation = 0x12,
+    Automation        = 0x12,
     /// Security manager device
-    SecurityManager = 0x13,
+    SecurityManager   = 0x13,
     /// Host managed zoned block
-    ZonedBlock = 0x14,
+    ZonedBlock        = 0x14,
     /// Well known logical unit
-    WellKnown = 0x1E,
+    WellKnown         = 0x1E,
     /// Unknown or no device type
-    Unknown = 0x1F,
+    Unknown           = 0x1F,
 }
 
 impl DeviceType {
@@ -649,9 +649,7 @@ impl DeviceType {
     pub const fn is_block_device(&self) -> bool {
         matches!(
             self,
-            DeviceType::DirectAccess
-                | DeviceType::SimplifiedDirectAccess
-                | DeviceType::ZonedBlock
+            DeviceType::DirectAccess | DeviceType::SimplifiedDirectAccess | DeviceType::ZonedBlock
         )
     }
 }
@@ -1285,11 +1283,21 @@ impl CdbBuilder {
     }
 
     /// Build MODE SENSE (10) command
-    pub fn mode_sense_10(&mut self, llbaa: bool, dbd: bool, page_code: u8, allocation_length: u16) -> &[u8] {
+    pub fn mode_sense_10(
+        &mut self,
+        llbaa: bool,
+        dbd: bool,
+        page_code: u8,
+        allocation_length: u16,
+    ) -> &[u8] {
         self.cdb[0] = opcode::MODE_SENSE_10;
         let mut byte1 = 0u8;
-        if llbaa { byte1 |= 0x10; }
-        if dbd { byte1 |= 0x08; }
+        if llbaa {
+            byte1 |= 0x10;
+        }
+        if dbd {
+            byte1 |= 0x08;
+        }
         self.cdb[1] = byte1;
         self.cdb[2] = page_code;
         self.cdb[7] = (allocation_length >> 8) as u8;
@@ -1299,12 +1307,22 @@ impl CdbBuilder {
     }
 
     /// Build START STOP UNIT command
-    pub fn start_stop_unit(&mut self, immed: bool, power_condition: u8, start: bool, loej: bool) -> &[u8] {
+    pub fn start_stop_unit(
+        &mut self,
+        immed: bool,
+        power_condition: u8,
+        start: bool,
+        loej: bool,
+    ) -> &[u8] {
         self.cdb[0] = opcode::START_STOP_UNIT;
         self.cdb[1] = if immed { 0x01 } else { 0x00 };
         let mut byte4 = (power_condition & 0x0F) << 4;
-        if loej { byte4 |= 0x02; }
-        if start { byte4 |= 0x01; }
+        if loej {
+            byte4 |= 0x02;
+        }
+        if start {
+            byte4 |= 0x01;
+        }
         self.cdb[4] = byte4;
         self.len = 6;
         &self.cdb[..self.len]
@@ -1460,8 +1478,7 @@ impl fmt::Display for SasAddress {
         write!(
             f,
             "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            self.0[0], self.0[1], self.0[2], self.0[3],
-            self.0[4], self.0[5], self.0[6], self.0[7]
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6], self.0[7]
         )
     }
 }
@@ -1471,11 +1488,11 @@ impl fmt::Display for SasAddress {
 #[repr(u8)]
 pub enum SasDeviceType {
     /// No device attached
-    NoDevice = 0,
+    NoDevice       = 0,
     /// End device
-    EndDevice = 1,
+    EndDevice      = 1,
     /// Expander device (edge)
-    EdgeExpander = 2,
+    EdgeExpander   = 2,
     /// Expander device (fanout)
     FanoutExpander = 3,
 }
@@ -1485,25 +1502,25 @@ pub enum SasDeviceType {
 #[repr(u8)]
 pub enum SasLinkRate {
     /// Unknown
-    Unknown = 0,
+    Unknown      = 0,
     /// Disabled
-    Disabled = 1,
+    Disabled     = 1,
     /// Reset problem
     ResetProblem = 2,
     /// Spin-up hold
-    SpinupHold = 3,
+    SpinupHold   = 3,
     /// Port selector
     PortSelector = 4,
     /// 1.5 Gbps
-    Rate1_5 = 8,
+    Rate1_5      = 8,
     /// 3.0 Gbps
-    Rate3_0 = 9,
+    Rate3_0      = 9,
     /// 6.0 Gbps
-    Rate6_0 = 10,
+    Rate6_0      = 10,
     /// 12.0 Gbps
-    Rate12_0 = 11,
+    Rate12_0     = 11,
     /// 22.5 Gbps
-    Rate22_5 = 12,
+    Rate22_5     = 12,
 }
 
 impl SasLinkRate {
@@ -1561,10 +1578,19 @@ impl fmt::Display for ScsiError {
         match self {
             ScsiError::Timeout => write!(f, "Command timeout"),
             ScsiError::TransportError => write!(f, "Transport error"),
-            ScsiError::CheckCondition { sense_key, asc, ascq } => {
-                write!(f, "Check condition: {} (ASC={:#04X}, ASCQ={:#04X})",
-                       sense_key.description(), asc, ascq)
-            }
+            ScsiError::CheckCondition {
+                sense_key,
+                asc,
+                ascq,
+            } => {
+                write!(
+                    f,
+                    "Check condition: {} (ASC={:#04X}, ASCQ={:#04X})",
+                    sense_key.description(),
+                    asc,
+                    ascq
+                )
+            },
             ScsiError::Busy => write!(f, "Device busy"),
             ScsiError::ReservationConflict => write!(f, "Reservation conflict"),
             ScsiError::TaskSetFull => write!(f, "Task set full"),

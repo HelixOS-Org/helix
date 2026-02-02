@@ -2,9 +2,9 @@
 //!
 //! High-level ACPI table access abstraction.
 
-use crate::raw::types::*;
-use crate::error::{Error, Result};
 use super::Protocol;
+use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -206,14 +206,12 @@ impl AcpiTables {
     /// Get DSDT
     pub fn dsdt(&self) -> Option<PhysicalAddress> {
         // DSDT is referenced from FADT, not in RSDT/XSDT
-        self.fadt().and_then(|fadt_entry| {
-            unsafe {
-                let fadt = &*(fadt_entry.address.0 as *const Fadt);
-                if fadt.header.length >= 148 && fadt.x_dsdt != 0 {
-                    Some(PhysicalAddress(fadt.x_dsdt))
-                } else {
-                    Some(PhysicalAddress(fadt.dsdt as u64))
-                }
+        self.fadt().and_then(|fadt_entry| unsafe {
+            let fadt = &*(fadt_entry.address.0 as *const Fadt);
+            if fadt.header.length >= 148 && fadt.x_dsdt != 0 {
+                Some(PhysicalAddress(fadt.x_dsdt))
+            } else {
+                Some(PhysicalAddress(fadt.dsdt as u64))
             }
         })
     }
@@ -255,7 +253,7 @@ impl AcpiTables {
                             apic_id: lapic.apic_id,
                             flags: lapic.flags,
                         });
-                    }
+                    },
                     1 => {
                         // I/O APIC
                         let ioapic = &*(ptr.0 as *const MadtIoApic);
@@ -264,7 +262,7 @@ impl AcpiTables {
                             address: ioapic.io_apic_address,
                             gsi_base: ioapic.global_system_interrupt_base,
                         });
-                    }
+                    },
                     2 => {
                         // Interrupt Source Override
                         let iso = &*(ptr.0 as *const MadtInterruptOverride);
@@ -274,7 +272,7 @@ impl AcpiTables {
                             gsi: iso.global_system_interrupt,
                             flags: iso.flags,
                         });
-                    }
+                    },
                     3 => {
                         // NMI Source
                         let nmi = &*(ptr.0 as *const MadtNmiSource);
@@ -282,7 +280,7 @@ impl AcpiTables {
                             flags: nmi.flags,
                             gsi: nmi.global_system_interrupt,
                         });
-                    }
+                    },
                     4 => {
                         // Local APIC NMI
                         let lapic_nmi = &*(ptr.0 as *const MadtLocalApicNmi);
@@ -291,19 +289,19 @@ impl AcpiTables {
                             flags: lapic_nmi.flags,
                             lint: lapic_nmi.lint,
                         });
-                    }
+                    },
                     5 => {
                         // Local APIC Address Override
                         let addr_override = &*(ptr.0 as *const MadtLocalApicAddressOverride);
                         info.local_apic_address = addr_override.local_apic_address;
-                    }
+                    },
                     9 => {
                         // Processor Local x2APIC
                         // TODO: Handle x2APIC
-                    }
+                    },
                     _ => {
                         // Unknown entry type
-                    }
+                    },
                 }
 
                 ptr += entry_len as u64;
@@ -343,10 +341,9 @@ impl AcpiTables {
 }
 
 impl Protocol for AcpiTables {
-    const GUID: Guid = Guid::new(
-        0xEB9D2D30, 0x2D88, 0x11D3,
-        [0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D],
-    );
+    const GUID: Guid = Guid::new(0xEB9D2D30, 0x2D88, 0x11D3, [
+        0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     fn open(handle: Handle) -> Result<Self> {
         Ok(Self::new(handle))
@@ -411,12 +408,7 @@ pub struct Rsdp {
 impl Rsdp {
     /// Validate checksum
     pub fn validate_checksum(&self) -> bool {
-        let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                20,
-            )
-        };
+        let bytes = unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, 20) };
 
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
     }
@@ -441,10 +433,7 @@ impl Rsdp2 {
     /// Validate extended checksum
     pub fn validate_extended_checksum(&self) -> bool {
         let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                self.length as usize,
-            )
+            core::slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
         };
 
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
@@ -497,10 +486,7 @@ impl AcpiSdtHeader {
     /// Validate checksum
     pub fn validate_checksum(&self) -> bool {
         let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                self.length as usize,
-            )
+            core::slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
         };
 
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
@@ -978,16 +964,14 @@ pub mod acpi_guids {
     use super::*;
 
     /// ACPI 1.0 table GUID
-    pub const ACPI_10: Guid = Guid::new(
-        0xEB9D2D30, 0x2D88, 0x11D3,
-        [0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D],
-    );
+    pub const ACPI_10: Guid = Guid::new(0xEB9D2D30, 0x2D88, 0x11D3, [
+        0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// ACPI 2.0+ table GUID
-    pub const ACPI_20: Guid = Guid::new(
-        0x8868E871, 0xE4F1, 0x11D3,
-        [0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81],
-    );
+    pub const ACPI_20: Guid = Guid::new(0x8868E871, 0xE4F1, 0x11D3, [
+        0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81,
+    ]);
 }
 
 // =============================================================================

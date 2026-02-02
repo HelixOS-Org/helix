@@ -10,10 +10,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use crate::types::*;
 use super::domain::Domain;
 use super::message::{Message, MessagePayload, MessagePriority};
 use super::router::{Router, RouterStats};
+use crate::types::*;
 
 // ============================================================================
 // MESSAGE BUS

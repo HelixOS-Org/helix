@@ -19,27 +19,22 @@ mod syscall;
 mod types;
 
 // Re-export types
-pub use types::{Threat, ThreatSeverity, ThreatType};
-
 // Re-export behavioral
 pub use behavioral::{
     BehavioralProfile, CurrentBehavior, FileBaseline, MemoryBaseline, NetworkBaseline,
 };
-
-// Re-export syscall
-pub use syscall::{SyscallMonitor, SyscallMonitorStats, SyscallPattern};
-
+// Re-export IDS
+pub use ids::{DetectionMode, IDSStats, IntrusionDetectionSystem};
 // Re-export memory
 pub use memory::{
     MemoryProtectionFlags, MemorySecurityMonitor, MemoryViolation, MemoryViolationType,
     ProtectedRegion,
 };
-
 // Re-export network
 pub use network::{NetworkSecurityMonitor, NetworkThresholds};
-
-// Re-export IDS
-pub use ids::{DetectionMode, IDSStats, IntrusionDetectionSystem};
+// Re-export syscall
+pub use syscall::{SyscallMonitor, SyscallMonitorStats, SyscallPattern};
+pub use types::{Threat, ThreatSeverity, ThreatType};
 
 // ============================================================================
 // TESTS

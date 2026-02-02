@@ -17,24 +17,40 @@ pub struct Priority {
 
 impl Priority {
     /// Minimum priority (lowest)
-    pub const MIN: Self = Self { static_priority: 139, dynamic_adjustment: 0 };
-    
+    pub const MIN: Self = Self {
+        static_priority: 139,
+        dynamic_adjustment: 0,
+    };
+
     /// Maximum priority (highest, real-time)
-    pub const MAX: Self = Self { static_priority: 0, dynamic_adjustment: 0 };
-    
+    pub const MAX: Self = Self {
+        static_priority: 0,
+        dynamic_adjustment: 0,
+    };
+
     /// Default normal priority
-    pub const DEFAULT: Self = Self { static_priority: 120, dynamic_adjustment: 0 };
-    
+    pub const DEFAULT: Self = Self {
+        static_priority: 120,
+        dynamic_adjustment: 0,
+    };
+
     /// Idle priority
-    pub const IDLE: Self = Self { static_priority: 139, dynamic_adjustment: 0 };
-    
+    pub const IDLE: Self = Self {
+        static_priority: 139,
+        dynamic_adjustment: 0,
+    };
+
     /// Real-time threshold
     pub const REALTIME_THRESHOLD: u8 = 100;
 
     /// Create a new priority
     pub const fn new(static_priority: u8) -> Self {
         Self {
-            static_priority: if static_priority > 139 { 139 } else { static_priority },
+            static_priority: if static_priority > 139 {
+                139
+            } else {
+                static_priority
+            },
             dynamic_adjustment: 0,
         }
     }
@@ -42,10 +58,10 @@ impl Priority {
     /// Create a real-time priority
     pub const fn realtime(priority: u8) -> Self {
         Self {
-            static_priority: if priority >= Self::REALTIME_THRESHOLD { 
-                Self::REALTIME_THRESHOLD - 1 
-            } else { 
-                priority 
+            static_priority: if priority >= Self::REALTIME_THRESHOLD {
+                Self::REALTIME_THRESHOLD - 1
+            } else {
+                priority
             },
             dynamic_adjustment: 0,
         }

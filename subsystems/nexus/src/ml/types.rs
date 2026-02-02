@@ -46,7 +46,7 @@ impl FeatureVector {
         let features = values
             .iter()
             .enumerate()
-            .filter(|(_, &v)| v != 0.0)
+            .filter(|&(_, v)| *v != 0.0)
             .map(|(i, &v)| Feature::new(i, v))
             .collect();
 

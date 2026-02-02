@@ -4,10 +4,11 @@
 //! It contains pointers to the Boot Services, Runtime Services, and
 //! Configuration Tables.
 
-use super::types::*;
+use core::ptr::NonNull;
+
 use super::boot_services::EfiBootServices;
 use super::runtime_services::EfiRuntimeServices;
-use core::ptr::NonNull;
+use super::types::*;
 
 // =============================================================================
 // SYSTEM TABLE
@@ -203,10 +204,7 @@ impl EfiSystemTable {
             return &[];
         }
 
-        core::slice::from_raw_parts(
-            self.configuration_table,
-            self.number_of_table_entries
-        )
+        core::slice::from_raw_parts(self.configuration_table, self.number_of_table_entries)
     }
 
     /// Find a configuration table by GUID
@@ -269,16 +267,10 @@ unsafe impl Sync for EfiSystemTable {}
 #[repr(C)]
 pub struct EfiSimpleTextInputProtocol {
     /// Reset the input device
-    pub reset: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        extended_verification: Boolean,
-    ) -> Status,
+    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verification: Boolean) -> Status,
 
     /// Read a keystroke from the input device
-    pub read_key_stroke: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        key: *mut InputKey,
-    ) -> Status,
+    pub read_key_stroke: unsafe extern "efiapi" fn(this: *mut Self, key: *mut InputKey) -> Status,
 
     /// Event to wait for a keystroke
     pub wait_for_key: Event,
@@ -345,22 +337,13 @@ pub struct SimpleTextOutputMode {
 #[repr(C)]
 pub struct EfiSimpleTextOutputProtocol {
     /// Reset the text output device
-    pub reset: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        extended_verification: Boolean,
-    ) -> Status,
+    pub reset: unsafe extern "efiapi" fn(this: *mut Self, extended_verification: Boolean) -> Status,
 
     /// Write a string to the output device
-    pub output_string: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        string: *const Char16,
-    ) -> Status,
+    pub output_string: unsafe extern "efiapi" fn(this: *mut Self, string: *const Char16) -> Status,
 
     /// Test if a string can be output
-    pub test_string: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        string: *const Char16,
-    ) -> Status,
+    pub test_string: unsafe extern "efiapi" fn(this: *mut Self, string: *const Char16) -> Status,
 
     /// Query mode information
     pub query_mode: unsafe extern "efiapi" fn(
@@ -371,34 +354,20 @@ pub struct EfiSimpleTextOutputProtocol {
     ) -> Status,
 
     /// Set the output mode
-    pub set_mode: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        mode_number: usize,
-    ) -> Status,
+    pub set_mode: unsafe extern "efiapi" fn(this: *mut Self, mode_number: usize) -> Status,
 
     /// Set the text attribute
-    pub set_attribute: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        attribute: usize,
-    ) -> Status,
+    pub set_attribute: unsafe extern "efiapi" fn(this: *mut Self, attribute: usize) -> Status,
 
     /// Clear the screen
-    pub clear_screen: unsafe extern "efiapi" fn(
-        this: *mut Self,
-    ) -> Status,
+    pub clear_screen: unsafe extern "efiapi" fn(this: *mut Self) -> Status,
 
     /// Set cursor position
-    pub set_cursor_position: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        column: usize,
-        row: usize,
-    ) -> Status,
+    pub set_cursor_position:
+        unsafe extern "efiapi" fn(this: *mut Self, column: usize, row: usize) -> Status,
 
     /// Enable or disable cursor
-    pub enable_cursor: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        visible: Boolean,
-    ) -> Status,
+    pub enable_cursor: unsafe extern "efiapi" fn(this: *mut Self, visible: Boolean) -> Status,
 
     /// Pointer to mode information
     pub mode: *mut SimpleTextOutputMode,
@@ -522,12 +491,7 @@ impl EfiSimpleTextOutputProtocol {
     pub unsafe fn query_mode(&self, mode: usize) -> Result<(usize, usize), Status> {
         let mut columns = 0;
         let mut rows = 0;
-        let status = (self.query_mode)(
-            self as *const _ as *mut _,
-            mode,
-            &mut columns,
-            &mut rows,
-        );
+        let status = (self.query_mode)(self as *const _ as *mut _, mode, &mut columns, &mut rows);
         if status.is_success() {
             Ok((columns, rows))
         } else {
@@ -621,8 +585,8 @@ mod tests {
 
     #[test]
     fn test_text_attributes() {
-        let attr = EfiSimpleTextOutputProtocol::WHITE |
-                   EfiSimpleTextOutputProtocol::BACKGROUND_BLUE;
+        let attr =
+            EfiSimpleTextOutputProtocol::WHITE | EfiSimpleTextOutputProtocol::BACKGROUND_BLUE;
         assert_eq!(attr, 0x1F);
     }
 }

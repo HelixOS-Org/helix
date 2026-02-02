@@ -114,7 +114,7 @@ impl EventType {
 #[repr(u32)]
 pub enum TimerDelay {
     /// Cancel timer
-    Cancel = 0,
+    Cancel   = 0,
     /// Periodic timer
     Periodic = 1,
     /// Relative timer (one-shot)
@@ -311,7 +311,8 @@ impl Event {
 
             if period > 0 {
                 // Periodic - reschedule
-                self.timer_target.store(current_tick + period, Ordering::Release);
+                self.timer_target
+                    .store(current_tick + period, Ordering::Release);
             } else {
                 // One-shot - clear
                 self.timer_target.store(0, Ordering::Release);
@@ -441,12 +442,16 @@ impl Semaphore {
             let current = self.count.load(Ordering::Acquire);
 
             if current > 0 {
-                if self.count.compare_exchange_weak(
-                    current,
-                    current - 1,
-                    Ordering::AcqRel,
-                    Ordering::Relaxed
-                ).is_ok() {
+                if self
+                    .count
+                    .compare_exchange_weak(
+                        current,
+                        current - 1,
+                        Ordering::AcqRel,
+                        Ordering::Relaxed,
+                    )
+                    .is_ok()
+                {
                     return;
                 }
             }
@@ -464,12 +469,11 @@ impl Semaphore {
                 return false;
             }
 
-            if self.count.compare_exchange_weak(
-                current,
-                current - 1,
-                Ordering::AcqRel,
-                Ordering::Relaxed
-            ).is_ok() {
+            if self
+                .count
+                .compare_exchange_weak(current, current - 1, Ordering::AcqRel, Ordering::Relaxed)
+                .is_ok()
+            {
                 return true;
             }
         }
@@ -484,12 +488,11 @@ impl Semaphore {
                 return; // Already at max
             }
 
-            if self.count.compare_exchange_weak(
-                current,
-                current + 1,
-                Ordering::AcqRel,
-                Ordering::Relaxed
-            ).is_ok() {
+            if self
+                .count
+                .compare_exchange_weak(current, current + 1, Ordering::AcqRel, Ordering::Relaxed)
+                .is_ok()
+            {
                 return;
             }
         }
@@ -525,12 +528,11 @@ impl Mutex {
 
     /// Lock
     pub fn lock(&self) {
-        while self.locked.compare_exchange_weak(
-            false,
-            true,
-            Ordering::Acquire,
-            Ordering::Relaxed
-        ).is_err() {
+        while self
+            .locked
+            .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
             while self.locked.load(Ordering::Relaxed) {
                 core::hint::spin_loop();
             }
@@ -539,12 +541,9 @@ impl Mutex {
 
     /// Try lock
     pub fn try_lock(&self) -> bool {
-        self.locked.compare_exchange(
-            false,
-            true,
-            Ordering::Acquire,
-            Ordering::Relaxed
-        ).is_ok()
+        self.locked
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
 
     /// Unlock
@@ -590,12 +589,11 @@ impl RwLock {
             let state = self.state.load(Ordering::Acquire);
 
             if state != Self::WRITE_LOCKED {
-                if self.state.compare_exchange_weak(
-                    state,
-                    state + 1,
-                    Ordering::AcqRel,
-                    Ordering::Relaxed
-                ).is_ok() {
+                if self
+                    .state
+                    .compare_exchange_weak(state, state + 1, Ordering::AcqRel, Ordering::Relaxed)
+                    .is_ok()
+                {
                     return;
                 }
             }
@@ -613,12 +611,11 @@ impl RwLock {
                 return false;
             }
 
-            if self.state.compare_exchange_weak(
-                state,
-                state + 1,
-                Ordering::AcqRel,
-                Ordering::Relaxed
-            ).is_ok() {
+            if self
+                .state
+                .compare_exchange_weak(state, state + 1, Ordering::AcqRel, Ordering::Relaxed)
+                .is_ok()
+            {
                 return true;
             }
         }
@@ -631,12 +628,11 @@ impl RwLock {
 
     /// Acquire write lock
     pub fn write_lock(&self) {
-        while self.state.compare_exchange_weak(
-            0,
-            Self::WRITE_LOCKED,
-            Ordering::Acquire,
-            Ordering::Relaxed
-        ).is_err() {
+        while self
+            .state
+            .compare_exchange_weak(0, Self::WRITE_LOCKED, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
             while self.state.load(Ordering::Relaxed) != 0 {
                 core::hint::spin_loop();
             }
@@ -645,12 +641,9 @@ impl RwLock {
 
     /// Try write lock
     pub fn try_write_lock(&self) -> bool {
-        self.state.compare_exchange(
-            0,
-            Self::WRITE_LOCKED,
-            Ordering::Acquire,
-            Ordering::Relaxed
-        ).is_ok()
+        self.state
+            .compare_exchange(0, Self::WRITE_LOCKED, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
 
     /// Release write lock
@@ -661,7 +654,11 @@ impl RwLock {
     /// Get reader count
     pub fn reader_count(&self) -> u32 {
         let state = self.state.load(Ordering::Relaxed);
-        if state == Self::WRITE_LOCKED { 0 } else { state }
+        if state == Self::WRITE_LOCKED {
+            0
+        } else {
+            state
+        }
     }
 
     /// Is write locked
@@ -706,12 +703,16 @@ impl Once {
             return;
         }
 
-        if self.state.compare_exchange(
-            Self::INCOMPLETE,
-            Self::RUNNING,
-            Ordering::AcqRel,
-            Ordering::Relaxed
-        ).is_ok() {
+        if self
+            .state
+            .compare_exchange(
+                Self::INCOMPLETE,
+                Self::RUNNING,
+                Ordering::AcqRel,
+                Ordering::Relaxed,
+            )
+            .is_ok()
+        {
             f();
             self.state.store(Self::COMPLETE, Ordering::Release);
         } else {
@@ -816,12 +817,11 @@ impl Notification {
 
     /// Try receive notification
     pub fn try_receive(&self) -> Option<u64> {
-        if self.signaled.compare_exchange(
-            true,
-            false,
-            Ordering::AcqRel,
-            Ordering::Relaxed
-        ).is_ok() {
+        if self
+            .signaled
+            .compare_exchange(true, false, Ordering::AcqRel, Ordering::Relaxed)
+            .is_ok()
+        {
             Some(self.data.load(Ordering::Acquire))
         } else {
             None

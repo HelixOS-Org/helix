@@ -19,13 +19,13 @@
 
 extern crate alloc;
 
-pub mod physical;
-pub mod virtual_memory;
 pub mod allocator;
-pub mod region;
+pub mod physical;
 pub mod protection;
+pub mod region;
+pub mod virtual_memory;
 
-use helix_hal::{PhysAddr, VirtAddr, PageSize};
+use helix_hal::{PageSize, PhysAddr, VirtAddr};
 
 /// Memory subsystem result type
 pub type MemResult<T> = Result<T, MemError>;

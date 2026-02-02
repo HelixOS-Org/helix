@@ -38,16 +38,16 @@
 //! All types in this module are raw FFI types. Using them directly is unsafe
 //! and requires understanding the UEFI specification.
 
-pub mod types;
-pub mod system_table;
 pub mod boot_services;
-pub mod runtime_services;
-pub mod protocols;
 pub mod memory;
+pub mod protocols;
+pub mod runtime_services;
+pub mod system_table;
+pub mod types;
 
 // Re-export main types
-pub use types::*;
-pub use system_table::*;
 pub use boot_services::*;
-pub use runtime_services::*;
 pub use memory::*;
+pub use runtime_services::*;
+pub use system_table::*;
+pub use types::*;

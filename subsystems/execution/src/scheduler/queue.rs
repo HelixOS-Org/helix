@@ -2,12 +2,13 @@
 //!
 //! Various run queue implementations for schedulers.
 
-use crate::ThreadId;
-use super::Priority;
-use super::traits::RunQueue;
 use alloc::collections::{BinaryHeap, VecDeque};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
+
+use super::traits::RunQueue;
+use super::Priority;
+use crate::ThreadId;
 
 /// Thread entry in a queue
 #[derive(Debug, Clone)]

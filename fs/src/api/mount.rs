@@ -2,9 +2,9 @@
 //!
 //! Handles filesystem mounting, unmounting, and mount options.
 
-use crate::core::error::{HfsError, HfsResult};
 use super::vfs::PathBuf;
-use super::{FsStats, ROOT_INODE, Credentials};
+use super::{Credentials, FsStats, ROOT_INODE};
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants
@@ -72,42 +72,42 @@ impl MountFlags {
     pub const MS_RELATIME: u64 = 1 << 21;
     /// Lazy time updates
     pub const MS_LAZYTIME: u64 = 1 << 25;
-    
+
     /// Create empty flags
     pub const fn empty() -> Self {
         Self(0)
     }
-    
+
     /// Check flag
     #[inline]
     pub fn has(&self, flag: u64) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set(&mut self, flag: u64) {
         self.0 |= flag;
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear(&mut self, flag: u64) {
         self.0 &= !flag;
     }
-    
+
     /// Is read-only
     #[inline]
     pub fn is_readonly(&self) -> bool {
         self.has(Self::MS_RDONLY)
     }
-    
+
     /// Is noatime
     #[inline]
     pub fn is_noatime(&self) -> bool {
         self.has(Self::MS_NOATIME)
     }
-    
+
     /// Is sync
     #[inline]
     pub fn is_sync(&self) -> bool {
@@ -175,13 +175,13 @@ impl MountOptions {
             default_gid: 0,
         }
     }
-    
+
     /// Read-only mount
     pub fn readonly(mut self) -> Self {
         self.flags.set(MountFlags::MS_RDONLY);
         self
     }
-    
+
     /// Enable compression
     pub fn with_compression(mut self, algo: CompressionAlgo, level: u8) -> Self {
         self.compress = true;
@@ -189,13 +189,13 @@ impl MountOptions {
         self.compress_level = level;
         self
     }
-    
+
     /// Enable encryption
     pub fn with_encryption(mut self) -> Self {
         self.encrypt = true;
         self
     }
-    
+
     /// Set commit interval
     pub fn commit_interval(mut self, secs: u32) -> Self {
         self.commit_interval = secs;
@@ -216,11 +216,11 @@ pub enum CompressionAlgo {
     /// No compression
     None = 0,
     /// LZ4 (fast)
-    Lz4 = 1,
+    Lz4  = 1,
     /// ZSTD (balanced)
     Zstd = 2,
     /// LZO
-    Lzo = 3,
+    Lzo  = 3,
 }
 
 impl Default for CompressionAlgo {
@@ -234,11 +234,11 @@ impl Default for CompressionAlgo {
 #[repr(u8)]
 pub enum CacheMode {
     /// Normal caching
-    Normal = 0,
+    Normal       = 0,
     /// Write-through cache
     WriteThrough = 1,
     /// No caching
-    NoCache = 2,
+    NoCache      = 2,
     /// Metadata only caching
     MetadataOnly = 3,
 }
@@ -254,11 +254,11 @@ impl Default for CacheMode {
 #[repr(u8)]
 pub enum ErrorBehavior {
     /// Continue on errors
-    Continue = 0,
+    Continue  = 0,
     /// Remount read-only
     RemountRo = 1,
     /// Panic on error
-    Panic = 2,
+    Panic     = 2,
 }
 
 impl Default for ErrorBehavior {
@@ -276,15 +276,15 @@ impl Default for ErrorBehavior {
 #[repr(u8)]
 pub enum MountState {
     /// Mount point not active
-    Unmounted = 0,
+    Unmounted  = 0,
     /// Currently mounting
-    Mounting = 1,
+    Mounting   = 1,
     /// Mounted and active
-    Mounted = 2,
+    Mounted    = 2,
     /// Currently unmounting
     Unmounting = 3,
     /// Mount failed
-    Failed = 4,
+    Failed     = 4,
 }
 
 impl Default for MountState {
@@ -343,31 +343,31 @@ impl MountPoint {
             stats: FsStats::new(),
         }
     }
-    
+
     /// Set source
     pub fn set_source(&mut self, source: &[u8]) {
         let len = core::cmp::min(source.len(), MAX_SOURCE_LEN);
         self.source[..len].copy_from_slice(&source[..len]);
         self.source_len = len;
     }
-    
+
     /// Get source
     pub fn source(&self) -> &[u8] {
         &self.source[..self.source_len]
     }
-    
+
     /// Is mounted
     #[inline]
     pub fn is_mounted(&self) -> bool {
         self.state == MountState::Mounted
     }
-    
+
     /// Is read-only
     #[inline]
     pub fn is_readonly(&self) -> bool {
         self.options.flags.is_readonly()
     }
-    
+
     /// Get device ID
     pub fn device_id(&self) -> u64 {
         ((self.dev_major as u64) << 32) | (self.dev_minor as u64)
@@ -404,71 +404,78 @@ impl MountTable {
             next_id: 1,
         }
     }
-    
+
     /// Add mount point
     pub fn add(&mut self, source: &[u8], target: &[u8], options: MountOptions) -> HfsResult<u32> {
         // Find free slot
-        let slot = self.mounts.iter().position(|m| m.is_none())
+        let slot = self
+            .mounts
+            .iter()
+            .position(|m| m.is_none())
             .ok_or(HfsError::NoSpace)?;
-        
+
         let id = self.next_id;
         self.next_id += 1;
-        
+
         let mut mount = MountPoint::new(id, target);
         mount.set_source(source);
         mount.options = options;
         mount.state = MountState::Mounting;
-        
+
         self.mounts[slot] = Some(mount);
         self.count += 1;
-        
+
         Ok(id)
     }
-    
+
     /// Remove mount point
     pub fn remove(&mut self, id: u32) -> HfsResult<()> {
-        let slot = self.mounts.iter().position(|m| {
-            m.as_ref().map_or(false, |mp| mp.id == id)
-        }).ok_or(HfsError::NotFound)?;
-        
+        let slot = self
+            .mounts
+            .iter()
+            .position(|m| m.as_ref().map_or(false, |mp| mp.id == id))
+            .ok_or(HfsError::NotFound)?;
+
         let mount = self.mounts[slot].as_ref().unwrap();
-        
+
         if mount.refcount > 0 {
             return Err(HfsError::Busy);
         }
-        
+
         self.mounts[slot] = None;
         self.count -= 1;
-        
+
         Ok(())
     }
-    
+
     /// Get mount by ID
     pub fn get(&self, id: u32) -> Option<&MountPoint> {
-        self.mounts.iter()
+        self.mounts
+            .iter()
             .filter_map(|m| m.as_ref())
             .find(|m| m.id == id)
     }
-    
+
     /// Get mount by ID (mutable)
     pub fn get_mut(&mut self, id: u32) -> Option<&mut MountPoint> {
-        self.mounts.iter_mut()
+        self.mounts
+            .iter_mut()
             .filter_map(|m| m.as_mut())
             .find(|m| m.id == id)
     }
-    
+
     /// Find mount by path
     pub fn find_by_path(&self, path: &[u8]) -> Option<&MountPoint> {
         let mut best_match: Option<&MountPoint> = None;
         let mut best_len = 0;
-        
+
         for mount in self.mounts.iter().filter_map(|m| m.as_ref()) {
             if !mount.is_mounted() {
                 continue;
             }
-            
+
             let mount_path = mount.mount_path.as_slice();
-            
+
             if path.starts_with(mount_path) {
                 let len = mount_path.len();
                 // Ensure it's a proper prefix (at directory boundary)
@@ -480,34 +487,34 @@ impl MountTable {
                 }
             }
         }
-        
+
         best_match
     }
-    
+
     /// Iterate over mounts
     pub fn iter(&self) -> impl Iterator<Item = &MountPoint> {
         self.mounts.iter().filter_map(|m| m.as_ref())
     }
-    
+
     /// Count active mounts
     pub fn count(&self) -> usize {
         self.count
     }
-    
+
     /// Set mount state
     pub fn set_state(&mut self, id: u32, state: MountState) -> HfsResult<()> {
         let mount = self.get_mut(id).ok_or(HfsError::NotFound)?;
         mount.state = state;
         Ok(())
     }
-    
+
     /// Increment refcount
     pub fn acquire(&mut self, id: u32) -> HfsResult<()> {
         let mount = self.get_mut(id).ok_or(HfsError::NotFound)?;
         mount.refcount = mount.refcount.checked_add(1).ok_or(HfsError::Overflow)?;
         Ok(())
     }
-    
+
     /// Decrement refcount
     pub fn release(&mut self, id: u32) -> HfsResult<()> {
         let mount = self.get_mut(id).ok_or(HfsError::NotFound)?;
@@ -554,47 +561,47 @@ impl MountRequest {
             options: MountOptions::new(),
             cred: Credentials::root(),
         };
-        
+
         let len = core::cmp::min(source.len(), MAX_SOURCE_LEN);
         req.source[..len].copy_from_slice(&source[..len]);
         req.source_len = len;
-        
+
         req
     }
-    
+
     /// Set filesystem type
     pub fn fstype(mut self, fstype: FsType) -> Self {
         self.fstype = fstype;
         self
     }
-    
+
     /// Set options
     pub fn options(mut self, options: MountOptions) -> Self {
         self.options = options;
         self
     }
-    
+
     /// Set credentials
     pub fn credentials(mut self, cred: Credentials) -> Self {
         self.cred = cred;
         self
     }
-    
+
     /// Get source
     pub fn source(&self) -> &[u8] {
         &self.source[..self.source_len]
     }
-    
+
     /// Validate request
     pub fn validate(&self) -> HfsResult<()> {
         if self.source_len == 0 {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         if !self.target.is_absolute() {
             return Err(HfsError::InvalidPath);
         }
-        
+
         Ok(())
     }
 }
@@ -606,7 +613,7 @@ pub enum FsType {
     /// HelixFS
     HelixFs = 0,
     /// Unknown/auto-detect
-    Auto = 1,
+    Auto    = 1,
 }
 
 impl Default for FsType {
@@ -631,19 +638,19 @@ impl UnmountFlags {
     pub const MNT_DETACH: u32 = 1 << 1;
     /// Mark mount as expired
     pub const MNT_EXPIRE: u32 = 1 << 2;
-    
+
     /// Check flag
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Is force
     #[inline]
     pub fn is_force(&self) -> bool {
         self.has(Self::MNT_FORCE)
     }
-    
+
     /// Is lazy
     #[inline]
     pub fn is_lazy(&self) -> bool {
@@ -671,13 +678,13 @@ impl UnmountRequest {
             cred: Credentials::root(),
         }
     }
-    
+
     /// Force unmount
     pub fn force(mut self) -> Self {
         self.flags = UnmountFlags(self.flags.0 | UnmountFlags::MNT_FORCE);
         self
     }
-    
+
     /// Lazy unmount
     pub fn lazy(mut self) -> Self {
         self.flags = UnmountFlags(self.flags.0 | UnmountFlags::MNT_DETACH);
@@ -692,62 +699,64 @@ impl UnmountRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_mount_flags() {
         let mut flags = MountFlags::empty();
-        
+
         flags.set(MountFlags::MS_RDONLY);
         flags.set(MountFlags::MS_NOATIME);
-        
+
         assert!(flags.is_readonly());
         assert!(flags.is_noatime());
         assert!(!flags.is_sync());
     }
-    
+
     #[test]
     fn test_mount_options() {
         let opts = MountOptions::new()
             .readonly()
             .with_compression(CompressionAlgo::Zstd, 3)
             .commit_interval(10);
-        
+
         assert!(opts.flags.is_readonly());
         assert!(opts.compress);
         assert_eq!(opts.compress_algo, CompressionAlgo::Zstd);
         assert_eq!(opts.commit_interval, 10);
     }
-    
+
     #[test]
     fn test_mount_table() {
         let mut table = MountTable::new();
-        
-        let id = table.add(b"/dev/sda1", b"/mnt/test", MountOptions::new()).unwrap();
+
+        let id = table
+            .add(b"/dev/sda1", b"/mnt/test", MountOptions::new())
+            .unwrap();
         table.set_state(id, MountState::Mounted).unwrap();
-        
+
         assert_eq!(table.count(), 1);
-        
+
         let mount = table.get(id).unwrap();
         assert!(mount.is_mounted());
-        
+
         // Find by path
         let found = table.find_by_path(b"/mnt/test/subdir");
         assert!(found.is_some());
     }
-    
+
     #[test]
     fn test_mount_request() {
-        let req = MountRequest::new(b"/dev/sda1", b"/mnt/disk")
-            .options(MountOptions::new().readonly());
-        
+        let req =
+            MountRequest::new(b"/dev/sda1", b"/mnt/disk").options(MountOptions::new().readonly());
+
         assert!(req.validate().is_ok());
         assert!(req.options.flags.is_readonly());
     }
-    
+
     #[test]
     fn test_unmount_flags() {
         let flags = UnmountFlags(UnmountFlags::MNT_FORCE | UnmountFlags::MNT_DETACH);
-        
+
         assert!(flags.is_force());
         assert!(flags.is_lazy());
     }

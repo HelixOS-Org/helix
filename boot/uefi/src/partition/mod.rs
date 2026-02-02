@@ -54,7 +54,12 @@ pub struct Guid {
 impl Guid {
     /// Create GUID from components
     pub const fn new(data1: u32, data2: u16, data3: u16, data4: [u8; 8]) -> Self {
-        Self { data1, data2, data3, data4 }
+        Self {
+            data1,
+            data2,
+            data3,
+            data4,
+        }
     }
 
     /// Parse from bytes (mixed-endian format)
@@ -67,8 +72,10 @@ impl Guid {
             data1: u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
             data2: u16::from_le_bytes([bytes[4], bytes[5]]),
             data3: u16::from_le_bytes([bytes[6], bytes[7]]),
-            data4: [bytes[8], bytes[9], bytes[10], bytes[11],
-                    bytes[12], bytes[13], bytes[14], bytes[15]],
+            data4: [
+                bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14],
+                bytes[15],
+            ],
         })
     }
 
@@ -84,10 +91,17 @@ impl Guid {
 
     /// Check if null GUID
     pub const fn is_null(&self) -> bool {
-        self.data1 == 0 && self.data2 == 0 && self.data3 == 0 &&
-        self.data4[0] == 0 && self.data4[1] == 0 && self.data4[2] == 0 &&
-        self.data4[3] == 0 && self.data4[4] == 0 && self.data4[5] == 0 &&
-        self.data4[6] == 0 && self.data4[7] == 0
+        self.data1 == 0
+            && self.data2 == 0
+            && self.data3 == 0
+            && self.data4[0] == 0
+            && self.data4[1] == 0
+            && self.data4[2] == 0
+            && self.data4[3] == 0
+            && self.data4[4] == 0
+            && self.data4[5] == 0
+            && self.data4[6] == 0
+            && self.data4[7] == 0
     }
 
     /// Null GUID
@@ -96,11 +110,21 @@ impl Guid {
 
 impl fmt::Display for Guid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
-            self.data1, self.data2, self.data3,
-            self.data4[0], self.data4[1],
-            self.data4[2], self.data4[3], self.data4[4],
-            self.data4[5], self.data4[6], self.data4[7])
+        write!(
+            f,
+            "{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+            self.data1,
+            self.data2,
+            self.data3,
+            self.data4[0],
+            self.data4[1],
+            self.data4[2],
+            self.data4[3],
+            self.data4[4],
+            self.data4[5],
+            self.data4[6],
+            self.data4[7]
+        )
     }
 }
 
@@ -116,64 +140,54 @@ pub mod partition_types {
     pub const UNUSED: Guid = Guid::new(0x00000000, 0x0000, 0x0000, [0; 8]);
 
     /// EFI System Partition
-    pub const EFI_SYSTEM: Guid = Guid::new(
-        0xC12A7328, 0xF81F, 0x11D2,
-        [0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B]
-    );
+    pub const EFI_SYSTEM: Guid = Guid::new(0xC12A7328, 0xF81F, 0x11D2, [
+        0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B,
+    ]);
 
     /// Microsoft Reserved
-    pub const MS_RESERVED: Guid = Guid::new(
-        0xE3C9E316, 0x0B5C, 0x4DB8,
-        [0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE]
-    );
+    pub const MS_RESERVED: Guid = Guid::new(0xE3C9E316, 0x0B5C, 0x4DB8, [
+        0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE,
+    ]);
 
     /// Microsoft Basic Data
-    pub const MS_BASIC_DATA: Guid = Guid::new(
-        0xEBD0A0A2, 0xB9E5, 0x4433,
-        [0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7]
-    );
+    pub const MS_BASIC_DATA: Guid = Guid::new(0xEBD0A0A2, 0xB9E5, 0x4433, [
+        0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7,
+    ]);
 
     /// Linux Filesystem
-    pub const LINUX_FS: Guid = Guid::new(
-        0x0FC63DAF, 0x8483, 0x4772,
-        [0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4]
-    );
+    pub const LINUX_FS: Guid = Guid::new(0x0FC63DAF, 0x8483, 0x4772, [
+        0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4,
+    ]);
 
     /// Linux Swap
-    pub const LINUX_SWAP: Guid = Guid::new(
-        0x0657FD6D, 0xA4AB, 0x43C4,
-        [0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F]
-    );
+    pub const LINUX_SWAP: Guid = Guid::new(0x0657FD6D, 0xA4AB, 0x43C4, [
+        0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F,
+    ]);
 
     /// Linux Root (x86-64)
-    pub const LINUX_ROOT_X86_64: Guid = Guid::new(
-        0x4F68BCE3, 0xE8CD, 0x4DB1,
-        [0x96, 0xE7, 0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09]
-    );
+    pub const LINUX_ROOT_X86_64: Guid = Guid::new(0x4F68BCE3, 0xE8CD, 0x4DB1, [
+        0x96, 0xE7, 0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09,
+    ]);
 
     /// Linux /boot
-    pub const LINUX_BOOT: Guid = Guid::new(
-        0xBC13C2FF, 0x59E6, 0x4262,
-        [0xA3, 0x52, 0xB2, 0x75, 0xFD, 0x6F, 0x71, 0x72]
-    );
+    pub const LINUX_BOOT: Guid = Guid::new(0xBC13C2FF, 0x59E6, 0x4262, [
+        0xA3, 0x52, 0xB2, 0x75, 0xFD, 0x6F, 0x71, 0x72,
+    ]);
 
     /// Apple HFS+
-    pub const APPLE_HFS: Guid = Guid::new(
-        0x48465300, 0x0000, 0x11AA,
-        [0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC]
-    );
+    pub const APPLE_HFS: Guid = Guid::new(0x48465300, 0x0000, 0x11AA, [
+        0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC,
+    ]);
 
     /// Apple APFS
-    pub const APPLE_APFS: Guid = Guid::new(
-        0x7C3457EF, 0x0000, 0x11AA,
-        [0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC]
-    );
+    pub const APPLE_APFS: Guid = Guid::new(0x7C3457EF, 0x0000, 0x11AA, [
+        0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC,
+    ]);
 
     /// BIOS Boot
-    pub const BIOS_BOOT: Guid = Guid::new(
-        0x21686148, 0x6449, 0x6E6F,
-        [0x74, 0x4E, 0x65, 0x65, 0x64, 0x45, 0x46, 0x49]
-    );
+    pub const BIOS_BOOT: Guid = Guid::new(0x21686148, 0x6449, 0x6E6F, [
+        0x74, 0x4E, 0x65, 0x65, 0x64, 0x45, 0x46, 0x49,
+    ]);
 }
 
 /// Partition type identification
@@ -241,8 +255,8 @@ impl PartitionType {
         match type_byte {
             0x00 => PartitionType::Unknown,
             0x01 | 0x04 | 0x06 | 0x0B | 0x0C | 0x0E => PartitionType::MsBasicData, // FAT
-            0x07 => PartitionType::MsBasicData, // NTFS
-            0x0F | 0x05 => PartitionType::Other, // Extended
+            0x07 => PartitionType::MsBasicData,                                    // NTFS
+            0x0F | 0x05 => PartitionType::Other,                                   // Extended
             0x82 => PartitionType::LinuxSwap,
             0x83 => PartitionType::LinuxFs,
             0xEE => PartitionType::Other, // GPT Protective
@@ -452,8 +466,7 @@ impl GptHeader {
         }
 
         let signature = u64::from_le_bytes([
-            data[0], data[1], data[2], data[3],
-            data[4], data[5], data[6], data[7]
+            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
         ]);
 
         if signature != GPT_SIGNATURE {
@@ -467,25 +480,20 @@ impl GptHeader {
             header_crc32: u32::from_le_bytes([data[16], data[17], data[18], data[19]]),
             reserved: u32::from_le_bytes([data[20], data[21], data[22], data[23]]),
             current_lba: u64::from_le_bytes([
-                data[24], data[25], data[26], data[27],
-                data[28], data[29], data[30], data[31]
+                data[24], data[25], data[26], data[27], data[28], data[29], data[30], data[31],
             ]),
             backup_lba: u64::from_le_bytes([
-                data[32], data[33], data[34], data[35],
-                data[36], data[37], data[38], data[39]
+                data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39],
             ]),
             first_usable_lba: u64::from_le_bytes([
-                data[40], data[41], data[42], data[43],
-                data[44], data[45], data[46], data[47]
+                data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47],
             ]),
             last_usable_lba: u64::from_le_bytes([
-                data[48], data[49], data[50], data[51],
-                data[52], data[53], data[54], data[55]
+                data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55],
             ]),
             disk_guid: Guid::from_bytes(&data[56..72])?,
             partition_entries_lba: u64::from_le_bytes([
-                data[72], data[73], data[74], data[75],
-                data[76], data[77], data[78], data[79]
+                data[72], data[73], data[74], data[75], data[76], data[77], data[78], data[79],
             ]),
             num_partition_entries: u32::from_le_bytes([data[80], data[81], data[82], data[83]]),
             partition_entry_size: u32::from_le_bytes([data[84], data[85], data[86], data[87]]),
@@ -495,14 +503,17 @@ impl GptHeader {
 
     /// Check if valid
     pub fn is_valid(&self) -> bool {
-        self.signature == GPT_SIGNATURE &&
-        self.header_size >= 92 &&
-        self.partition_entry_size >= 128
+        self.signature == GPT_SIGNATURE
+            && self.header_size >= 92
+            && self.partition_entry_size >= 128
     }
 
     /// Get revision as string
     pub fn revision_string(&self) -> (u16, u16) {
-        ((self.revision >> 16) as u16, (self.revision & 0xFFFF) as u16)
+        (
+            (self.revision >> 16) as u16,
+            (self.revision & 0xFFFF) as u16,
+        )
     }
 }
 
@@ -550,23 +561,20 @@ impl GptPartition {
 
         let mut name = [0u16; 36];
         for i in 0..36 {
-            name[i] = u16::from_le_bytes([data[56 + i*2], data[57 + i*2]]);
+            name[i] = u16::from_le_bytes([data[56 + i * 2], data[57 + i * 2]]);
         }
 
         Some(Self {
             type_guid: Guid::from_bytes(&data[0..16])?,
             partition_guid: Guid::from_bytes(&data[16..32])?,
             start_lba: u64::from_le_bytes([
-                data[32], data[33], data[34], data[35],
-                data[36], data[37], data[38], data[39]
+                data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39],
             ]),
             end_lba: u64::from_le_bytes([
-                data[40], data[41], data[42], data[43],
-                data[44], data[45], data[46], data[47]
+                data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47],
             ]),
             attributes: u64::from_le_bytes([
-                data[48], data[49], data[50], data[51],
-                data[52], data[53], data[54], data[55]
+                data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55],
             ]),
             name,
         })
@@ -899,10 +907,7 @@ mod tests {
             PartitionType::from_guid(&partition_types::EFI_SYSTEM),
             PartitionType::EfiSystem
         );
-        assert_eq!(
-            PartitionType::from_mbr_type(0xEF),
-            PartitionType::EfiSystem
-        );
+        assert_eq!(PartitionType::from_mbr_type(0xEF), PartitionType::EfiSystem);
     }
 
     #[test]

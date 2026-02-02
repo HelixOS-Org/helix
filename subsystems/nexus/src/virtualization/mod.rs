@@ -51,7 +51,9 @@ pub mod vm;
 pub mod workload;
 
 // Re-export all public types
-pub use container::{CgroupStats, ContainerInfo, ContainerIntelligence, MountInfo, NamespaceInfo, NetworkMode};
+pub use container::{
+    CgroupStats, ContainerInfo, ContainerIntelligence, MountInfo, NamespaceInfo, NetworkMode,
+};
 pub use intelligence::VirtualizationIntelligence;
 pub use isolation::{
     EscapeAttempt, EscapeType, IsolationAnalyzer, IsolationViolation, SecurityBoundary,

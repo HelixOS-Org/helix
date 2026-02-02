@@ -67,7 +67,7 @@ impl QuarantineManager {
         reason: impl Into<String>,
         release_at: NexusTimestamp,
     ) {
-        let mut entry = QuarantinedComponent {
+        let entry = QuarantinedComponent {
             component,
             reason: reason.into(),
             timestamp: NexusTimestamp::now(),

@@ -60,17 +60,25 @@
 
 #![allow(dead_code)]
 
-pub mod startup;
+pub mod barriers;
 pub mod cpu_info;
 pub mod per_cpu;
-pub mod barriers;
-
-pub use startup::{TrampolineData, start_ap, start_all_aps, set_tsc_frequency, ApEntryFn};
-pub use cpu_info::{CpuInfo, CpuTopology, CpuState, detect_topology, enumerate_cpus, get_cpu_info, register_cpu};
-pub use per_cpu::{PerCpu, PerCpuRef, PerCpuData, PerCpuFlags, init_bsp, init_ap, current_cpu_id, current_apic_id, current_percpu};
-pub use barriers::{Barrier, SpinBarrier, SeqLock, SpinLock, TicketLock, RwLock, memory_barrier, mfence, lfence, sfence};
+pub mod startup;
 
 use core::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
+
+pub use barriers::{
+    lfence, memory_barrier, mfence, sfence, Barrier, RwLock, SeqLock, SpinBarrier, SpinLock,
+    TicketLock,
+};
+pub use cpu_info::{
+    detect_topology, enumerate_cpus, get_cpu_info, register_cpu, CpuInfo, CpuState, CpuTopology,
+};
+pub use per_cpu::{
+    current_apic_id, current_cpu_id, current_percpu, init_ap, init_bsp, PerCpu, PerCpuData,
+    PerCpuFlags, PerCpuRef,
+};
+pub use startup::{set_tsc_frequency, start_all_aps, start_ap, ApEntryFn, TrampolineData};
 
 // =============================================================================
 // Constants
@@ -106,14 +114,26 @@ static BSP_APIC_ID: AtomicU32 = AtomicU32::new(0);
 
 /// CPU presence bitmap (up to 256 CPUs)
 static CPU_PRESENT: [AtomicU32; 8] = [
-    AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0),
-    AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
 ];
 
 /// CPU online bitmap
 static CPU_ONLINE: [AtomicU32; 8] = [
-    AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0),
-    AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
 ];
 
 // =============================================================================

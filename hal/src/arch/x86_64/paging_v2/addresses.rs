@@ -6,7 +6,7 @@
 use core::fmt;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
-use super::{PAGE_SIZE_4K, PAGE_SIZE_2M, PAGE_SIZE_1G, PHYS_ADDR_MASK};
+use super::{PAGE_SIZE_1G, PAGE_SIZE_2M, PAGE_SIZE_4K, PHYS_ADDR_MASK};
 
 // =============================================================================
 // Page Size
@@ -33,7 +33,7 @@ impl PageSize {
             PageSize::Size1G => PAGE_SIZE_1G,
         }
     }
-    
+
     /// Get the page table level that handles this size
     #[inline]
     pub const fn level(self) -> u8 {
@@ -43,7 +43,7 @@ impl PageSize {
             PageSize::Size1G => 3, // PDPT level
         }
     }
-    
+
     /// Get the number of 4K pages in this page size
     #[inline]
     pub const fn pages_4k(self) -> usize {
@@ -53,25 +53,25 @@ impl PageSize {
             PageSize::Size1G => 512 * 512,
         }
     }
-    
+
     /// Get the alignment mask
     #[inline]
     pub const fn mask(self) -> u64 {
         !(self.size() as u64 - 1)
     }
-    
+
     /// Check if an address is aligned to this page size
     #[inline]
     pub const fn is_aligned(self, addr: u64) -> bool {
         addr & !self.mask() == 0
     }
-    
+
     /// Align an address down to this page size
     #[inline]
     pub const fn align_down(self, addr: u64) -> u64 {
         addr & self.mask()
     }
-    
+
     /// Align an address up to this page size
     #[inline]
     pub const fn align_up(self, addr: u64) -> u64 {
@@ -110,7 +110,7 @@ impl PhysicalAddress {
     pub const fn new(addr: u64) -> Self {
         Self(addr & PHYS_ADDR_MASK)
     }
-    
+
     /// Create a physical address without masking
     ///
     /// # Safety
@@ -120,67 +120,67 @@ impl PhysicalAddress {
     pub const unsafe fn new_unchecked(addr: u64) -> Self {
         Self(addr)
     }
-    
+
     /// Create a null (zero) physical address
     #[inline]
     pub const fn null() -> Self {
         Self(0)
     }
-    
+
     /// Check if this is a null address
     #[inline]
     pub const fn is_null(self) -> bool {
         self.0 == 0
     }
-    
+
     /// Get the raw address value
     #[inline]
     pub const fn as_u64(self) -> u64 {
         self.0
     }
-    
+
     /// Get the address as a usize (may truncate on 32-bit, but we're x86_64)
     #[inline]
     pub const fn as_usize(self) -> usize {
         self.0 as usize
     }
-    
+
     /// Check if the address is aligned to the given page size
     #[inline]
     pub const fn is_aligned(self, page_size: PageSize) -> bool {
         page_size.is_aligned(self.0)
     }
-    
+
     /// Check if the address is page-aligned (4KB)
     #[inline]
     pub const fn is_page_aligned(self) -> bool {
         self.0 & 0xFFF == 0
     }
-    
+
     /// Align the address down to the given page size
     #[inline]
     pub const fn align_down(self, page_size: PageSize) -> Self {
         Self(page_size.align_down(self.0))
     }
-    
+
     /// Align the address up to the given page size
     #[inline]
     pub const fn align_up(self, page_size: PageSize) -> Self {
         Self(page_size.align_up(self.0))
     }
-    
+
     /// Get the frame containing this address
     #[inline]
     pub const fn containing_frame(self, page_size: PageSize) -> Frame {
         Frame::containing_address(self, page_size)
     }
-    
+
     /// Add an offset to this address
     #[inline]
     pub const fn offset(self, offset: u64) -> Self {
         Self::new(self.0.wrapping_add(offset))
     }
-    
+
     /// Calculate the page offset (offset within a 4KB page)
     #[inline]
     pub const fn page_offset(self) -> u16 {
@@ -208,7 +208,7 @@ impl fmt::LowerHex for PhysicalAddress {
 
 impl Add<u64> for PhysicalAddress {
     type Output = Self;
-    
+
     #[inline]
     fn add(self, rhs: u64) -> Self::Output {
         Self::new(self.0 + rhs)
@@ -224,7 +224,7 @@ impl AddAssign<u64> for PhysicalAddress {
 
 impl Sub<u64> for PhysicalAddress {
     type Output = Self;
-    
+
     #[inline]
     fn sub(self, rhs: u64) -> Self::Output {
         Self::new(self.0 - rhs)
@@ -240,7 +240,7 @@ impl SubAssign<u64> for PhysicalAddress {
 
 impl Sub<PhysicalAddress> for PhysicalAddress {
     type Output = u64;
-    
+
     #[inline]
     fn sub(self, rhs: PhysicalAddress) -> Self::Output {
         self.0 - rhs.0
@@ -281,7 +281,7 @@ impl VirtualAddress {
     pub const fn new(addr: u64) -> Self {
         Self(addr)
     }
-    
+
     /// Create a virtual address, truncating to canonical form for 4-level paging
     #[inline]
     pub const fn new_truncate_4level(addr: u64) -> Self {
@@ -292,37 +292,37 @@ impl VirtualAddress {
             Self(addr & 0x0000_FFFF_FFFF_FFFF)
         }
     }
-    
+
     /// Create a null (zero) virtual address
     #[inline]
     pub const fn null() -> Self {
         Self(0)
     }
-    
+
     /// Check if this is a null address
     #[inline]
     pub const fn is_null(self) -> bool {
         self.0 == 0
     }
-    
+
     /// Get the raw address value
     #[inline]
     pub const fn as_u64(self) -> u64 {
         self.0
     }
-    
+
     /// Get the address as a pointer
     #[inline]
     pub const fn as_ptr<T>(self) -> *const T {
         self.0 as *const T
     }
-    
+
     /// Get the address as a mutable pointer
     #[inline]
     pub const fn as_mut_ptr<T>(self) -> *mut T {
         self.0 as *mut T
     }
-    
+
     /// Check if the address is canonical for 4-level paging
     #[inline]
     pub const fn is_canonical_4level(self) -> bool {
@@ -333,7 +333,7 @@ impl VirtualAddress {
         };
         self.0 == canonical
     }
-    
+
     /// Check if the address is canonical for 5-level paging
     #[inline]
     pub const fn is_canonical_5level(self) -> bool {
@@ -344,56 +344,56 @@ impl VirtualAddress {
         };
         self.0 == canonical
     }
-    
+
     /// Check if the address is in kernel space (higher half)
     #[inline]
     pub const fn is_kernel_space(self) -> bool {
         // For both 4-level and 5-level, kernel space has the high bit set
         self.0 & (1 << 63) != 0
     }
-    
+
     /// Check if the address is in user space (lower half)
     #[inline]
     pub const fn is_user_space(self) -> bool {
         self.0 & (1 << 63) == 0
     }
-    
+
     /// Get the page offset (bits 0-11)
     #[inline]
     pub const fn page_offset(self) -> u16 {
         (self.0 & 0xFFF) as u16
     }
-    
+
     /// Get the PT index (bits 12-20)
     #[inline]
     pub const fn pt_index(self) -> u16 {
         ((self.0 >> 12) & 0x1FF) as u16
     }
-    
+
     /// Get the PD index (bits 21-29)
     #[inline]
     pub const fn pd_index(self) -> u16 {
         ((self.0 >> 21) & 0x1FF) as u16
     }
-    
+
     /// Get the PDPT index (bits 30-38)
     #[inline]
     pub const fn pdpt_index(self) -> u16 {
         ((self.0 >> 30) & 0x1FF) as u16
     }
-    
+
     /// Get the PML4 index (bits 39-47)
     #[inline]
     pub const fn pml4_index(self) -> u16 {
         ((self.0 >> 39) & 0x1FF) as u16
     }
-    
+
     /// Get the PML5 index (bits 48-56)
     #[inline]
     pub const fn pml5_index(self) -> u16 {
         ((self.0 >> 48) & 0x1FF) as u16
     }
-    
+
     /// Get the index for a specific page table level
     ///
     /// Level 1 = PT, Level 2 = PD, Level 3 = PDPT, Level 4 = PML4, Level 5 = PML5
@@ -402,31 +402,31 @@ impl VirtualAddress {
         let shift = 12 + (level - 1) as u64 * 9;
         ((self.0 >> shift) & 0x1FF) as u16
     }
-    
+
     /// Check if the address is aligned to the given page size
     #[inline]
     pub const fn is_aligned(self, page_size: PageSize) -> bool {
         page_size.is_aligned(self.0)
     }
-    
+
     /// Align the address down to the given page size
     #[inline]
     pub const fn align_down(self, page_size: PageSize) -> Self {
         Self(page_size.align_down(self.0))
     }
-    
+
     /// Align the address up to the given page size
     #[inline]
     pub const fn align_up(self, page_size: PageSize) -> Self {
         Self(page_size.align_up(self.0))
     }
-    
+
     /// Get the page containing this address
     #[inline]
     pub const fn containing_page(self, page_size: PageSize) -> Page {
         Page::containing_address(self, page_size)
     }
-    
+
     /// Add an offset to this address
     #[inline]
     pub const fn offset(self, offset: i64) -> Self {
@@ -454,7 +454,7 @@ impl fmt::LowerHex for VirtualAddress {
 
 impl Add<u64> for VirtualAddress {
     type Output = Self;
-    
+
     #[inline]
     fn add(self, rhs: u64) -> Self::Output {
         Self(self.0 + rhs)
@@ -470,7 +470,7 @@ impl AddAssign<u64> for VirtualAddress {
 
 impl Sub<u64> for VirtualAddress {
     type Output = Self;
-    
+
     #[inline]
     fn sub(self, rhs: u64) -> Self::Output {
         Self(self.0 - rhs)
@@ -486,7 +486,7 @@ impl SubAssign<u64> for VirtualAddress {
 
 impl Sub<VirtualAddress> for VirtualAddress {
     type Output = i64;
-    
+
     #[inline]
     fn sub(self, rhs: VirtualAddress) -> Self::Output {
         (self.0 as i64).wrapping_sub(rhs.0 as i64)
@@ -547,7 +547,7 @@ impl Frame {
         assert!(addr.is_aligned(size), "Frame address not aligned");
         Self { start: addr, size }
     }
-    
+
     /// Create a frame without checking alignment
     ///
     /// # Safety
@@ -557,7 +557,7 @@ impl Frame {
     pub const unsafe fn new_unchecked(addr: PhysicalAddress, size: PageSize) -> Self {
         Self { start: addr, size }
     }
-    
+
     /// Get the frame containing the given address
     #[inline]
     pub const fn containing_address(addr: PhysicalAddress, size: PageSize) -> Self {
@@ -566,7 +566,7 @@ impl Frame {
             size,
         }
     }
-    
+
     /// Create a 4KB frame from a frame number
     #[inline]
     pub const fn from_number(number: u64) -> Self {
@@ -575,38 +575,38 @@ impl Frame {
             size: PageSize::Size4K,
         }
     }
-    
+
     /// Get the starting physical address
     #[inline]
     pub const fn start_address(self) -> PhysicalAddress {
         self.start
     }
-    
+
     /// Get the ending physical address (exclusive)
     #[inline]
     pub const fn end_address(self) -> PhysicalAddress {
         PhysicalAddress::new(self.start.as_u64() + self.size.size() as u64)
     }
-    
+
     /// Get the page size
     #[inline]
     pub const fn size(self) -> PageSize {
         self.size
     }
-    
+
     /// Get the frame number (for 4KB frames)
     #[inline]
     pub const fn number(self) -> u64 {
         self.start.as_u64() / PAGE_SIZE_4K as u64
     }
-    
+
     /// Check if this frame contains the given address
     #[inline]
     pub const fn contains(self, addr: PhysicalAddress) -> bool {
         addr.as_u64() >= self.start.as_u64()
             && addr.as_u64() < self.start.as_u64() + self.size.size() as u64
     }
-    
+
     /// Get the next frame
     #[inline]
     pub const fn next(self) -> Self {
@@ -649,7 +649,7 @@ impl Page {
         assert!(addr.is_aligned(size), "Page address not aligned");
         Self { start: addr, size }
     }
-    
+
     /// Create a page without checking alignment
     ///
     /// # Safety
@@ -659,7 +659,7 @@ impl Page {
     pub const unsafe fn new_unchecked(addr: VirtualAddress, size: PageSize) -> Self {
         Self { start: addr, size }
     }
-    
+
     /// Get the page containing the given address
     #[inline]
     pub const fn containing_address(addr: VirtualAddress, size: PageSize) -> Self {
@@ -668,7 +668,7 @@ impl Page {
             size,
         }
     }
-    
+
     /// Create a 4KB page from a page number
     #[inline]
     pub const fn from_number(number: u64) -> Self {
@@ -677,38 +677,38 @@ impl Page {
             size: PageSize::Size4K,
         }
     }
-    
+
     /// Get the starting virtual address
     #[inline]
     pub const fn start_address(self) -> VirtualAddress {
         self.start
     }
-    
+
     /// Get the ending virtual address (exclusive)
     #[inline]
     pub const fn end_address(self) -> VirtualAddress {
         VirtualAddress::new(self.start.as_u64() + self.size.size() as u64)
     }
-    
+
     /// Get the page size
     #[inline]
     pub const fn size(self) -> PageSize {
         self.size
     }
-    
+
     /// Get the page number (for 4KB pages)
     #[inline]
     pub const fn number(self) -> u64 {
         self.start.as_u64() / PAGE_SIZE_4K as u64
     }
-    
+
     /// Check if this page contains the given address
     #[inline]
     pub const fn contains(self, addr: VirtualAddress) -> bool {
         addr.as_u64() >= self.start.as_u64()
             && addr.as_u64() < self.start.as_u64() + self.size.size() as u64
     }
-    
+
     /// Get the next page
     #[inline]
     pub const fn next(self) -> Self {
@@ -717,7 +717,7 @@ impl Page {
             size: self.size,
         }
     }
-    
+
     /// Get the index into the page table at the given level
     #[inline]
     pub const fn table_index(self, level: u8) -> u16 {
@@ -738,7 +738,7 @@ impl fmt::Debug for Page {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_page_size_alignment() {
         assert!(PageSize::Size4K.is_aligned(0x1000));
@@ -746,19 +746,19 @@ mod tests {
         assert!(PageSize::Size2M.is_aligned(0x200000));
         assert!(PageSize::Size1G.is_aligned(0x40000000));
     }
-    
+
     #[test]
     fn test_virtual_address_indices() {
         let addr = VirtualAddress::new(0xFFFF_8000_0123_4567);
         assert_eq!(addr.page_offset(), 0x567);
         assert_eq!(addr.pt_index(), 0x234 >> 3);
     }
-    
+
     #[test]
     fn test_canonical_addresses() {
         let kernel = VirtualAddress::new(0xFFFF_8000_0000_0000);
         let user = VirtualAddress::new(0x0000_7FFF_FFFF_FFFF);
-        
+
         assert!(kernel.is_canonical_4level());
         assert!(user.is_canonical_4level());
         assert!(kernel.is_kernel_space());

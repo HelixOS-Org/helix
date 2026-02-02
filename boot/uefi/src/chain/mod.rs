@@ -5,8 +5,8 @@
 
 #![allow(unused)]
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 // =============================================================================
 // CHAIN OF TRUST

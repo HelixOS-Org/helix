@@ -14,10 +14,10 @@
 
 #![allow(dead_code)]
 
-pub mod buffer;
 pub mod arc;
-pub mod page;
+pub mod buffer;
 pub mod inode;
+pub mod page;
 
 use crate::core::error::HfsError;
 
@@ -55,19 +55,19 @@ pub const MAX_BUFFER_AGE_MS: u64 = 30000;
 #[repr(u8)]
 pub enum CacheState {
     /// Entry is free/unused
-    Free = 0,
+    Free     = 0,
     /// Entry is valid and clean
-    Clean = 1,
+    Clean    = 1,
     /// Entry is valid and dirty
-    Dirty = 2,
+    Dirty    = 2,
     /// Entry is being read from disk
-    Reading = 3,
+    Reading  = 3,
     /// Entry is being written to disk
-    Writing = 4,
+    Writing  = 4,
     /// Entry is locked for exclusive access
-    Locked = 5,
+    Locked   = 5,
     /// Entry is invalid (needs reread)
-    Invalid = 6,
+    Invalid  = 6,
     /// Entry is being evicted
     Evicting = 7,
 }
@@ -87,19 +87,22 @@ impl CacheState {
             _ => Self::Invalid,
         }
     }
-    
+
     /// Is this entry usable
     #[inline]
     pub fn is_usable(&self) -> bool {
         matches!(self, Self::Clean | Self::Dirty)
     }
-    
+
     /// Is this entry busy
     #[inline]
     pub fn is_busy(&self) -> bool {
-        matches!(self, Self::Reading | Self::Writing | Self::Locked | Self::Evicting)
+        matches!(
+            self,
+            Self::Reading | Self::Writing | Self::Locked | Self::Evicting
+        )
     }
-    
+
     /// Is this entry dirty
     #[inline]
     pub fn is_dirty(&self) -> bool {
@@ -147,36 +150,36 @@ impl CacheFlags {
     pub const HIGH_PRIORITY: u16 = 1 << 10;
     /// Entry is write-through
     pub const WRITE_THROUGH: u16 = 1 << 11;
-    
+
     /// Create empty flags
     pub const fn empty() -> Self {
         Self(0)
     }
-    
+
     /// Check if flag is set
     #[inline]
     pub fn has(&self, flag: u16) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set(&mut self, flag: u16) {
         self.0 |= flag;
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear(&mut self, flag: u16) {
         self.0 &= !flag;
     }
-    
+
     /// Is pinned
     #[inline]
     pub fn is_pinned(&self) -> bool {
         self.has(Self::PINNED)
     }
-    
+
     /// Is metadata
     #[inline]
     pub fn is_metadata(&self) -> bool {
@@ -202,24 +205,24 @@ impl CacheKey {
     pub const fn new(device: u32, block: u64) -> Self {
         Self { device, block }
     }
-    
+
     /// Hash for lookup
     pub fn hash(&self) -> u64 {
         // FNV-1a hash
         let mut hash: u64 = 0xcbf29ce484222325;
-        
+
         // Hash device
         for b in self.device.to_le_bytes() {
             hash ^= b as u64;
             hash = hash.wrapping_mul(0x100000001b3);
         }
-        
+
         // Hash block
         for b in self.block.to_le_bytes() {
             hash ^= b as u64;
             hash = hash.wrapping_mul(0x100000001b3);
         }
-        
+
         hash
     }
 }
@@ -242,7 +245,7 @@ impl CacheHandle {
     pub const fn new(index: u32, generation: u32) -> Self {
         Self { index, generation }
     }
-    
+
     /// Invalid handle
     pub const fn invalid() -> Self {
         Self {
@@ -250,7 +253,7 @@ impl CacheHandle {
             generation: 0,
         }
     }
-    
+
     /// Check if valid
     #[inline]
     pub fn is_valid(&self) -> bool {
@@ -309,7 +312,7 @@ impl CacheStats {
             prefetch_misses: 0,
         }
     }
-    
+
     /// Hit rate
     pub fn hit_rate(&self) -> f32 {
         if self.lookups == 0 {
@@ -317,7 +320,7 @@ impl CacheStats {
         }
         (self.hits as f32 / self.lookups as f32) * 100.0
     }
-    
+
     /// Dirty ratio
     pub fn dirty_ratio(&self) -> f32 {
         if self.current_entries == 0 {
@@ -325,14 +328,14 @@ impl CacheStats {
         }
         (self.dirty_entries as f32 / self.current_entries as f32) * 100.0
     }
-    
+
     /// Record hit
     #[inline]
     pub fn record_hit(&mut self) {
         self.lookups += 1;
         self.hits += 1;
     }
-    
+
     /// Record miss
     #[inline]
     pub fn record_miss(&mut self) {
@@ -383,7 +386,7 @@ impl CacheConfig {
             prefetch_window: 32,
         }
     }
-    
+
     /// Minimal configuration
     pub const fn minimal() -> Self {
         Self {
@@ -398,7 +401,7 @@ impl CacheConfig {
             prefetch_window: 0,
         }
     }
-    
+
     /// High-performance configuration
     pub const fn high_performance() -> Self {
         Self {
@@ -430,21 +433,21 @@ impl Default for CacheConfig {
 #[repr(u8)]
 pub enum CacheOp {
     /// Lookup (no read)
-    Lookup = 1,
+    Lookup     = 1,
     /// Read (load if not present)
-    Read = 2,
+    Read       = 2,
     /// Write (mark dirty)
-    Write = 3,
+    Write      = 3,
     /// Invalidate
     Invalidate = 4,
     /// Flush (write dirty)
-    Flush = 5,
+    Flush      = 5,
     /// Pin (prevent eviction)
-    Pin = 6,
+    Pin        = 6,
     /// Unpin
-    Unpin = 7,
+    Unpin      = 7,
     /// Prefetch
-    Prefetch = 8,
+    Prefetch   = 8,
 }
 
 /// Result of cache operation.
@@ -470,7 +473,7 @@ impl CacheOpResult {
             error: None,
         }
     }
-    
+
     /// Success with miss
     pub fn miss(handle: CacheHandle) -> Self {
         Self {
@@ -480,7 +483,7 @@ impl CacheOpResult {
             error: None,
         }
     }
-    
+
     /// Failure
     pub fn failure(error: HfsError) -> Self {
         Self {
@@ -501,11 +504,11 @@ impl CacheOpResult {
 #[repr(u8)]
 pub enum WritebackUrgency {
     /// Normal writeback
-    Normal = 0,
+    Normal   = 0,
     /// High priority
-    High = 1,
+    High     = 1,
     /// Urgent (low on space)
-    Urgent = 2,
+    Urgent   = 2,
     /// Critical (must free now)
     Critical = 3,
 }
@@ -533,7 +536,7 @@ impl WritebackRequest {
             sync: false,
         }
     }
-    
+
     /// Urgent writeback
     pub const fn urgent(count: u32) -> Self {
         Self {
@@ -543,7 +546,7 @@ impl WritebackRequest {
             sync: false,
         }
     }
-    
+
     /// Sync all dirty
     pub const fn sync_all() -> Self {
         Self {
@@ -588,7 +591,7 @@ impl WritebackResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_cache_state() {
         assert!(CacheState::Clean.is_usable());
@@ -596,55 +599,55 @@ mod tests {
         assert!(CacheState::Reading.is_busy());
         assert!(!CacheState::Free.is_busy());
     }
-    
+
     #[test]
     fn test_cache_flags() {
         let mut flags = CacheFlags::empty();
         assert!(!flags.is_pinned());
-        
+
         flags.set(CacheFlags::PINNED);
         assert!(flags.is_pinned());
-        
+
         flags.clear(CacheFlags::PINNED);
         assert!(!flags.is_pinned());
     }
-    
+
     #[test]
     fn test_cache_key() {
         let key1 = CacheKey::new(0, 100);
         let key2 = CacheKey::new(0, 200);
-        
+
         assert_ne!(key1.hash(), key2.hash());
         assert_eq!(key1, CacheKey::new(0, 100));
     }
-    
+
     #[test]
     fn test_cache_handle() {
         let handle = CacheHandle::new(42, 1);
         assert!(handle.is_valid());
-        
+
         let invalid = CacheHandle::invalid();
         assert!(!invalid.is_valid());
     }
-    
+
     #[test]
     fn test_cache_stats() {
         let mut stats = CacheStats::new();
         stats.record_hit();
         stats.record_hit();
         stats.record_miss();
-        
+
         assert_eq!(stats.lookups, 3);
         assert_eq!(stats.hits, 2);
         assert!((stats.hit_rate() - 66.66).abs() < 1.0);
     }
-    
+
     #[test]
     fn test_cache_config() {
         let config = CacheConfig::default();
         assert!(config.use_arc);
         assert!(config.prefetch_enabled);
-        
+
         let minimal = CacheConfig::minimal();
         assert!(!minimal.use_arc);
     }

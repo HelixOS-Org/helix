@@ -9,19 +9,20 @@
 
 pub mod bitmap;
 pub mod buddy;
-pub mod zone;
-pub mod freelist;
 pub mod cow;
+pub mod freelist;
+pub mod zone;
+
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 pub use bitmap::*;
 pub use buddy::*;
-pub use zone::*;
-pub use freelist::*;
 pub use cow::*;
+pub use freelist::*;
+pub use zone::*;
 
-use crate::core::types::*;
 use crate::core::error::HfsResult;
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use crate::core::types::*;
 
 // ============================================================================
 // Allocation Statistics
@@ -65,12 +66,13 @@ impl AllocStats {
             smallest_alloc: AtomicU32::new(u32::MAX),
         }
     }
-    
+
     /// Record allocation
     pub fn record_alloc(&self, blocks: u32) {
         self.total_allocs.fetch_add(1, Ordering::Relaxed);
-        self.blocks_allocated.fetch_add(blocks as u64, Ordering::Relaxed);
-        
+        self.blocks_allocated
+            .fetch_add(blocks as u64, Ordering::Relaxed);
+
         // Update largest
         let mut current = self.largest_alloc.load(Ordering::Relaxed);
         while blocks > current {
@@ -84,7 +86,7 @@ impl AllocStats {
                 Err(c) => current = c,
             }
         }
-        
+
         // Update smallest
         let mut current = self.smallest_alloc.load(Ordering::Relaxed);
         while blocks < current {
@@ -99,23 +101,24 @@ impl AllocStats {
             }
         }
     }
-    
+
     /// Record free
     pub fn record_free(&self, blocks: u32) {
         self.total_frees.fetch_add(1, Ordering::Relaxed);
-        self.blocks_freed.fetch_add(blocks as u64, Ordering::Relaxed);
+        self.blocks_freed
+            .fetch_add(blocks as u64, Ordering::Relaxed);
     }
-    
+
     /// Record failed allocation
     pub fn record_failed_alloc(&self) {
         self.failed_allocs.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Record CoW allocation
     pub fn record_cow_alloc(&self) {
         self.cow_allocs.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Get snapshot
     pub fn snapshot(&self) -> AllocStatsSnapshot {
         AllocStatsSnapshot {
@@ -152,7 +155,7 @@ impl AllocStatsSnapshot {
     pub fn blocks_in_use(&self) -> u64 {
         self.blocks_allocated.saturating_sub(self.blocks_freed)
     }
-    
+
     /// Average allocation size
     pub fn avg_alloc_size(&self) -> f64 {
         if self.total_allocs == 0 {
@@ -195,25 +198,25 @@ impl AllocFlags {
     pub const NEAR: u32 = 1 << 8;
     /// In specific zone
     pub const ZONE_PINNED: u32 = 1 << 9;
-    
+
     /// Create new flags
     #[inline]
     pub const fn new(bits: u32) -> Self {
         Self(bits)
     }
-    
+
     /// Check flag
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         (self.0 & flag) != 0
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set(&mut self, flag: u32) {
         self.0 |= flag;
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear(&mut self, flag: u32) {
@@ -254,39 +257,39 @@ impl AllocRequest {
             inode: None,
         }
     }
-    
+
     /// Create with goal block
     pub const fn with_goal(mut self, goal: BlockNum) -> Self {
         self.goal = Some(goal);
         self.flags.0 |= AllocFlags::NEAR;
         self
     }
-    
+
     /// Create with zone
     pub const fn with_zone(mut self, zone_id: u32) -> Self {
         self.zone_id = Some(zone_id);
         self.flags.0 |= AllocFlags::ZONE_PINNED;
         self
     }
-    
+
     /// Create with flags
     pub const fn with_flags(mut self, flags: u32) -> Self {
         self.flags.0 |= flags;
         self
     }
-    
+
     /// Create with minimum count (allows partial allocation)
     pub const fn with_min(mut self, min: u32) -> Self {
         self.min_count = min;
         self.flags.0 |= AllocFlags::BEST_EFFORT;
         self
     }
-    
+
     /// For metadata
     pub const fn metadata(count: u32) -> Self {
         Self::new(count).with_flags(AllocFlags::METADATA)
     }
-    
+
     /// For CoW
     pub const fn cow(count: u32, original: BlockNum) -> Self {
         Self::new(count)
@@ -314,15 +317,19 @@ impl AllocResult {
     /// Create new result
     #[inline]
     pub const fn new(start: BlockNum, count: u32, zone_id: u32) -> Self {
-        Self { start, count, zone_id }
+        Self {
+            start,
+            count,
+            zone_id,
+        }
     }
-    
+
     /// Get end block (exclusive)
     #[inline]
     pub fn end(&self) -> BlockNum {
         BlockNum::new(self.start.get() + self.count as u64)
     }
-    
+
     /// Convert to extent
     pub fn to_extent(&self, logical: BlockNum) -> Extent {
         Extent::new(logical.get(), self.start.get(), self.count)
@@ -337,21 +344,21 @@ impl AllocResult {
 pub trait BlockAllocator: Send + Sync {
     /// Allocate blocks
     fn allocate(&self, request: &AllocRequest) -> HfsResult<AllocResult>;
-    
+
     /// Free blocks
     fn free(&self, start: BlockNum, count: u32) -> HfsResult<()>;
-    
+
     /// Get free block count
     fn free_blocks(&self) -> u64;
-    
+
     /// Get total block count
     fn total_blocks(&self) -> u64;
-    
+
     /// Get used block count
     fn used_blocks(&self) -> u64 {
         self.total_blocks() - self.free_blocks()
     }
-    
+
     /// Get usage percentage
     fn usage_percent(&self) -> f64 {
         let total = self.total_blocks();
@@ -360,16 +367,16 @@ pub trait BlockAllocator: Send + Sync {
         }
         (self.used_blocks() as f64 / total as f64) * 100.0
     }
-    
+
     /// Check if block is free
     fn is_free(&self, block: BlockNum) -> bool;
-    
+
     /// Reserve blocks (mark as used but not allocated)
     fn reserve(&self, start: BlockNum, count: u32) -> HfsResult<()>;
-    
+
     /// Unreserve blocks
     fn unreserve(&self, start: BlockNum, count: u32) -> HfsResult<()>;
-    
+
     /// Sync allocator state
     fn sync(&self) -> HfsResult<()>;
 }
@@ -409,25 +416,25 @@ impl SpaceManager {
             low_space_threshold: 50, // 5%
         }
     }
-    
+
     /// Get total capacity in bytes
     #[inline]
     pub fn total_bytes(&self) -> u64 {
         self.total_blocks * self.block_size as u64
     }
-    
+
     /// Get free bytes
     #[inline]
     pub fn free_bytes(&self) -> u64 {
         self.free_blocks.load(Ordering::Relaxed) * self.block_size as u64
     }
-    
+
     /// Get used bytes
     #[inline]
     pub fn used_bytes(&self) -> u64 {
         self.total_bytes() - self.free_bytes()
     }
-    
+
     /// Check if space is low
     #[inline]
     pub fn is_low_space(&self) -> bool {
@@ -435,13 +442,13 @@ impl SpaceManager {
         let threshold = (self.total_blocks * self.low_space_threshold as u64) / 1000;
         free < threshold
     }
-    
+
     /// Get stats
     #[inline]
     pub fn stats(&self) -> &AllocStats {
         &self.stats
     }
-    
+
     /// Decrease free block count
     pub fn consume(&self, blocks: u32) -> bool {
         let mut current = self.free_blocks.load(Ordering::Relaxed);
@@ -458,18 +465,18 @@ impl SpaceManager {
                 Ok(_) => {
                     self.stats.record_alloc(blocks);
                     return true;
-                }
+                },
                 Err(c) => current = c,
             }
         }
     }
-    
+
     /// Increase free block count
     pub fn release(&self, blocks: u32) {
         self.free_blocks.fetch_add(blocks as u64, Ordering::Relaxed);
         self.stats.record_free(blocks);
     }
-    
+
     /// Reserve blocks for system use
     pub fn reserve(&self, blocks: u64) {
         self.reserved_blocks.fetch_add(blocks, Ordering::Relaxed);
@@ -497,62 +504,56 @@ impl SpaceManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_alloc_flags() {
         let mut flags = AllocFlags::new(AllocFlags::CONTIGUOUS);
-        
+
         assert!(flags.has(AllocFlags::CONTIGUOUS));
         assert!(!flags.has(AllocFlags::ZERO));
-        
+
         flags.set(AllocFlags::ZERO);
         assert!(flags.has(AllocFlags::ZERO));
-        
+
         flags.clear(AllocFlags::CONTIGUOUS);
         assert!(!flags.has(AllocFlags::CONTIGUOUS));
     }
-    
+
     #[test]
     fn test_alloc_request() {
         let req = AllocRequest::new(10)
             .with_goal(BlockNum::new(1000))
             .with_flags(AllocFlags::METADATA);
-        
+
         assert_eq!(req.count, 10);
         assert!(req.goal.is_some());
         assert!(req.flags.has(AllocFlags::NEAR));
         assert!(req.flags.has(AllocFlags::METADATA));
     }
-    
+
     #[test]
     fn test_space_manager() {
         let manager = SpaceManager::new(10000, 4096);
-        
+
         assert_eq!(manager.free_bytes(), 10000 * 4096);
-        
+
         assert!(manager.consume(100));
-        assert_eq!(
-            manager.free_blocks.load(Ordering::Relaxed),
-            9900
-        );
-        
+        assert_eq!(manager.free_blocks.load(Ordering::Relaxed), 9900);
+
         manager.release(50);
-        assert_eq!(
-            manager.free_blocks.load(Ordering::Relaxed),
-            9950
-        );
+        assert_eq!(manager.free_blocks.load(Ordering::Relaxed), 9950);
     }
-    
+
     #[test]
     fn test_alloc_stats() {
         let stats = AllocStats::new();
-        
+
         stats.record_alloc(10);
         stats.record_alloc(100);
         stats.record_free(50);
-        
+
         let snap = stats.snapshot();
-        
+
         assert_eq!(snap.total_allocs, 2);
         assert_eq!(snap.blocks_allocated, 110);
         assert_eq!(snap.blocks_freed, 50);

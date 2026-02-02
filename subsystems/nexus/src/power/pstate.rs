@@ -136,7 +136,7 @@ impl PStateGovernor {
     }
 
     /// Schedutil algorithm (scheduler-integrated)
-    fn select_schedutil(&self, load: f64) -> usize {
+    fn select_schedutil(&self, _load: f64) -> usize {
         let predicted = self.workload.predict();
         let target_perf = self.power_mode.target_performance();
 

@@ -7,8 +7,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::types::{Confidence, Duration, NexusResult};
 use super::component::NexusComponent;
+use crate::types::{Confidence, Duration, NexusResult};
 
 // ============================================================================
 // REASONER TRAIT
@@ -181,7 +181,8 @@ impl TrendInfo {
 
     /// Is significant trend?
     pub fn is_significant(&self) -> bool {
-        self.confidence.meets(Confidence::MEDIUM) && !matches!(self.direction, TrendDirection::Stable)
+        self.confidence.meets(Confidence::MEDIUM)
+            && !matches!(self.direction, TrendDirection::Stable)
     }
 }
 

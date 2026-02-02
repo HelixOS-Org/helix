@@ -10,8 +10,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use super::{Individual, GenomeId, IslandId, Fitness};
 use super::population::Population;
+use super::{GenomeId, Individual, IslandId};
 
 // ============================================================================
 // ISLAND MODEL
@@ -64,12 +64,12 @@ impl Island {
         if let Some(current_best) = self.population.best() {
             let should_update = match &self.best_ever {
                 None => true,
-                Some(best) => {
-                    current_best.fitness.as_ref()
-                        .zip(best.fitness.as_ref())
-                        .map(|(c, b)| c.scalar > b.scalar)
-                        .unwrap_or(false)
-                }
+                Some(best) => current_best
+                    .fitness
+                    .as_ref()
+                    .zip(best.fitness.as_ref())
+                    .map(|(c, b)| c.scalar > b.scalar)
+                    .unwrap_or(false),
             };
 
             if should_update {
@@ -211,7 +211,9 @@ impl IslandManager {
         // Create islands
         for i in 0..island_count {
             let id = IslandId(i as u64);
-            manager.islands.insert(id, Island::new(id, manager.config.population_size));
+            manager
+                .islands
+                .insert(id, Island::new(id, manager.config.population_size));
         }
 
         // Set up topology
@@ -234,7 +236,7 @@ impl IslandManager {
                         island.add_neighbor(right);
                     }
                 }
-            }
+            },
             Topology::FullyConnected => {
                 for &id1 in &island_ids {
                     for &id2 in &island_ids {
@@ -245,7 +247,7 @@ impl IslandManager {
                         }
                     }
                 }
-            }
+            },
             Topology::Star => {
                 if let Some(&center) = island_ids.first() {
                     for &id in &island_ids[1..] {
@@ -257,11 +259,11 @@ impl IslandManager {
                         }
                     }
                 }
-            }
+            },
             Topology::Grid { width } => {
                 for (i, &id) in island_ids.iter().enumerate() {
                     let x = i % width;
-                    let y = i / width;
+                    let _y = i / width;
 
                     // Right neighbor
                     if x + 1 < *width && i + 1 < n {
@@ -277,7 +279,7 @@ impl IslandManager {
                         }
                     }
                 }
-            }
+            },
             Topology::Random { connections } => {
                 for &id in &island_ids {
                     let mut added = 0;
@@ -293,7 +295,7 @@ impl IslandManager {
                         }
                     }
                 }
-            }
+            },
             Topology::Hypercube => {
                 // Connect islands differing by one bit in their ID
                 for &id1 in &island_ids {
@@ -305,7 +307,7 @@ impl IslandManager {
                         }
                     }
                 }
-            }
+            },
         }
     }
 
@@ -347,7 +349,11 @@ impl IslandManager {
                     for neighbor_id in neighbors {
                         if let Some(target) = self.islands.get_mut(&neighbor_id) {
                             for emigrant in source_emigrants {
-                                self.replace_immigrant(target, emigrant.clone());
+                                Self::replace_immigrant_static(
+                                    &self.config.migration.immigrant_replacement,
+                                    target,
+                                    emigrant.clone(),
+                                );
                                 self.stats.migrations += 1;
                             }
                         }
@@ -361,9 +367,7 @@ impl IslandManager {
         let count = self.config.migration.migrant_count;
 
         match &self.config.migration.emigrant_selection {
-            EmigrantSelection::Best => {
-                island.population.elites(count)
-            }
+            EmigrantSelection::Best => island.population.elites(count),
             EmigrantSelection::Random => {
                 let all: Vec<_> = island.population.iter().collect();
                 let mut selected = Vec::new();
@@ -372,15 +376,19 @@ impl IslandManager {
                     selected.push(all[idx].clone());
                 }
                 selected
-            }
+            },
             EmigrantSelection::Tournament { size } => {
                 island.population.tournament_selection(*size, count)
-            }
+            },
             EmigrantSelection::MostNovel => {
                 // Calculate novelty and select most novel
-                let mut with_novelty: Vec<(&Individual, f64)> = island.population.iter()
+                let mut with_novelty: Vec<(&Individual, f64)> = island
+                    .population
+                    .iter()
                     .map(|ind| {
-                        let novelty = island.population.iter()
+                        let novelty = island
+                            .population
+                            .iter()
                             .filter(|other| other.id != ind.id)
                             .map(|other| ind.genome.distance(&other.genome))
                             .sum::<f64>();
@@ -388,51 +396,66 @@ impl IslandManager {
                     })
                     .collect();
 
-                with_novelty.sort_by(|a, b| {
-                    b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal)
-                });
+                with_novelty
+                    .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
 
-                with_novelty.into_iter()
+                with_novelty
+                    .into_iter()
                     .take(count)
                     .map(|(ind, _)| ind.clone())
                     .collect()
-            }
+            },
         }
     }
 
     fn replace_immigrant(&mut self, island: &mut Island, immigrant: Individual) {
-        match &self.config.migration.immigrant_replacement {
+        Self::replace_immigrant_static(
+            &self.config.migration.immigrant_replacement,
+            island,
+            immigrant,
+        );
+    }
+
+    fn replace_immigrant_static(
+        replacement_strategy: &ImmigrantReplacement,
+        island: &mut Island,
+        immigrant: Individual,
+    ) {
+        match replacement_strategy {
             ImmigrantReplacement::Worst => {
                 if let Some(worst) = island.population.worst() {
                     let worst_id = worst.id;
                     island.population.remove(worst_id);
                 }
                 island.population.add(immigrant);
-            }
+            },
             ImmigrantReplacement::Random => {
-                let all: Vec<GenomeId> = island.population.iter()
-                    .map(|i| i.id)
-                    .collect();
+                let all: Vec<GenomeId> = island.population.iter().map(|i| i.id).collect();
                 if !all.is_empty() {
                     let idx = rand_usize(all.len());
                     island.population.remove(all[idx]);
                 }
                 island.population.add(immigrant);
-            }
+            },
             ImmigrantReplacement::MostSimilar => {
-                let all: Vec<(GenomeId, f64)> = island.population.iter()
+                let all: Vec<(GenomeId, f64)> = island
+                    .population
+                    .iter()
                     .map(|ind| (ind.id, ind.genome.distance(&immigrant.genome)))
                     .collect();
 
-                if let Some((id, _)) = all.iter()
+                if let Some((id, _)) = all
+                    .iter()
                     .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal))
                 {
                     island.population.remove(*id);
                 }
                 island.population.add(immigrant);
-            }
+            },
             ImmigrantReplacement::Oldest => {
-                let oldest = island.population.iter()
+                let oldest = island
+                    .population
+                    .iter()
                     .min_by_key(|i| i.generation.0)
                     .map(|i| i.id);
 
@@ -440,7 +463,7 @@ impl IslandManager {
                     island.population.remove(id);
                 }
                 island.population.add(immigrant);
-            }
+            },
         }
     }
 
@@ -461,11 +484,20 @@ impl IslandManager {
 
     /// Get global best
     pub fn global_best(&self) -> Option<&Individual> {
-        self.islands.values()
+        self.islands
+            .values()
             .filter_map(|island| island.best_ever.as_ref())
             .max_by(|a, b| {
-                let fa = a.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
-                let fb = b.fitness.as_ref().map(|f| f.scalar).unwrap_or(f64::NEG_INFINITY);
+                let fa = a
+                    .fitness
+                    .as_ref()
+                    .map(|f| f.scalar)
+                    .unwrap_or(f64::NEG_INFINITY);
+                let fb = b
+                    .fitness
+                    .as_ref()
+                    .map(|f| f.scalar)
+                    .unwrap_or(f64::NEG_INFINITY);
                 fa.partial_cmp(&fb).unwrap_or(core::cmp::Ordering::Equal)
             })
     }
@@ -484,14 +516,22 @@ static mut ISLAND_SEED: u64 = 57913;
 
 fn rand_u64() -> u64 {
     unsafe {
-        ISLAND_SEED = ISLAND_SEED.wrapping_mul(6364136223846793005).wrapping_add(1);
+        ISLAND_SEED = ISLAND_SEED
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1);
         ISLAND_SEED
     }
 }
 
-fn rand_f64() -> f64 { (rand_u64() as f64) / (u64::MAX as f64) }
+fn rand_f64() -> f64 {
+    (rand_u64() as f64) / (u64::MAX as f64)
+}
 fn rand_usize(max: usize) -> usize {
-    if max == 0 { 0 } else { (rand_u64() as usize) % max }
+    if max == 0 {
+        0
+    } else {
+        (rand_u64() as usize) % max
+    }
 }
 
 // ============================================================================

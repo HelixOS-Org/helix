@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::vec;
 use alloc::vec::Vec;
 
 /// Basic block ID
@@ -106,7 +107,7 @@ impl Terminator {
                 let mut succs: Vec<BlockId> = cases.iter().map(|(_, b)| *b).collect();
                 succs.push(*default);
                 succs
-            }
+            },
         }
     }
 

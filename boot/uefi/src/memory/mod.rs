@@ -30,14 +30,14 @@
 //! └─────────────────────────────────────────────────────────────────┘
 //! ```
 
+pub mod allocator;
 pub mod map;
 pub mod paging;
-pub mod allocator;
 pub mod regions;
 pub mod virtual_memory;
 
-use crate::raw::types::*;
 use crate::error::Result;
+use crate::raw::types::*;
 
 extern crate alloc;
 
@@ -111,13 +111,32 @@ impl MemoryManager {
 
                 use crate::raw::memory::MemoryType;
                 let mt = desc.memory_type;
-                if mt == MemoryType::ConventionalMemory as u32 { usable += size; }
-                else if mt == MemoryType::LoaderCode as u32 || mt == MemoryType::LoaderData as u32 { loader += size; }
-                else if mt == MemoryType::BootServicesCode as u32 || mt == MemoryType::BootServicesData as u32 { boot += size; }
-                else if mt == MemoryType::RuntimeServicesCode as u32 || mt == MemoryType::RuntimeServicesData as u32 { runtime += size; }
-                else if mt == MemoryType::AcpiReclaimMemory as u32 || mt == MemoryType::AcpiMemoryNvs as u32 { acpi += size; }
-                else if mt == MemoryType::MemoryMappedIo as u32 || mt == MemoryType::MemoryMappedIoPortSpace as u32 { mmio += size; }
-                else if mt == MemoryType::ReservedMemoryType as u32 || mt == MemoryType::UnusableMemory as u32 { reserved += size; }
+                if mt == MemoryType::ConventionalMemory as u32 {
+                    usable += size;
+                } else if mt == MemoryType::LoaderCode as u32 || mt == MemoryType::LoaderData as u32
+                {
+                    loader += size;
+                } else if mt == MemoryType::BootServicesCode as u32
+                    || mt == MemoryType::BootServicesData as u32
+                {
+                    boot += size;
+                } else if mt == MemoryType::RuntimeServicesCode as u32
+                    || mt == MemoryType::RuntimeServicesData as u32
+                {
+                    runtime += size;
+                } else if mt == MemoryType::AcpiReclaimMemory as u32
+                    || mt == MemoryType::AcpiMemoryNvs as u32
+                {
+                    acpi += size;
+                } else if mt == MemoryType::MemoryMappedIo as u32
+                    || mt == MemoryType::MemoryMappedIoPortSpace as u32
+                {
+                    mmio += size;
+                } else if mt == MemoryType::ReservedMemoryType as u32
+                    || mt == MemoryType::UnusableMemory as u32
+                {
+                    reserved += size;
+                }
             }
 
             self.stats = MemoryStats {
@@ -150,11 +169,16 @@ impl MemoryManager {
                     regions::RegionType::AcpiNvs
                 } else if mt == MemoryType::MemoryMappedIo as u32 {
                     regions::RegionType::Mmio
-                } else if mt == MemoryType::RuntimeServicesCode as u32 || mt == MemoryType::RuntimeServicesData as u32 {
+                } else if mt == MemoryType::RuntimeServicesCode as u32
+                    || mt == MemoryType::RuntimeServicesData as u32
+                {
                     regions::RegionType::RuntimeServices
-                } else if mt == MemoryType::BootServicesCode as u32 || mt == MemoryType::BootServicesData as u32 {
+                } else if mt == MemoryType::BootServicesCode as u32
+                    || mt == MemoryType::BootServicesData as u32
+                {
                     regions::RegionType::BootServices
-                } else if mt == MemoryType::LoaderCode as u32 || mt == MemoryType::LoaderData as u32 {
+                } else if mt == MemoryType::LoaderCode as u32 || mt == MemoryType::LoaderData as u32
+                {
                     regions::RegionType::Loader
                 } else {
                     regions::RegionType::Unknown
@@ -211,7 +235,8 @@ impl MemoryManager {
 
     /// Find largest usable region
     pub fn find_largest_usable_region(&self) -> Option<(PhysicalAddress, u64)> {
-        self.regions.find_largest_by_type(regions::RegionType::Usable)
+        self.regions
+            .find_largest_by_type(regions::RegionType::Usable)
     }
 
     /// Find suitable region for kernel
@@ -234,7 +259,8 @@ impl MemoryManager {
 
                 if region_size - offset >= size {
                     // Prefer higher memory
-                    if aligned_start >= 0x100000 { // Above 1MB
+                    if aligned_start >= 0x100000 {
+                        // Above 1MB
                         return Some(PhysicalAddress(aligned_start));
                     }
                 }

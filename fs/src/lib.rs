@@ -76,22 +76,22 @@ extern crate std;
 // Core Module Exports
 // ============================================================================
 
-pub mod core;
-pub mod disk;
 pub mod alloc;
-pub mod tree;
-pub mod journal;
-pub mod snapshot;
-pub mod crypto;
-pub mod cache;
 pub mod api;
+pub mod cache;
 pub mod compress;
-pub mod vfs;
+pub mod core;
+pub mod crypto;
+pub mod disk;
+pub mod journal;
 pub mod ops;
+pub mod snapshot;
+pub mod tree;
+pub mod vfs;
 
 // Re-exports for convenience
-pub use crate::core::types::*;
 pub use crate::core::error::{HfsError, HfsResult};
+pub use crate::core::types::*;
 pub use crate::disk::superblock::Superblock;
 // pub use crate::api::filesystem::HelixFs; // TODO: implement filesystem module
 

@@ -92,39 +92,33 @@ impl BootConfig {
         value: &str,
     ) -> Result<(), ConfigError> {
         match section.as_deref() {
-            None | Some("boot") => {
-                match key {
-                    "timeout" => self.timeout = parse_u32(value)?,
-                    "default" => self.default_entry = parse_usize(value)?,
-                    "verbose" => self.verbose = parse_bool(value)?,
-                    "debug" => self.debug = parse_bool(value)?,
-                    "log_level" | "loglevel" => self.log_level = LogLevel::from_str(value)?,
-                    _ => {}
-                }
-            }
-            Some("graphics") => {
-                match key {
-                    "mode" => self.graphics.mode = GraphicsMode::from_str(value)?,
-                    "width" => self.graphics.width = Some(parse_u32(value)?),
-                    "height" => self.graphics.height = Some(parse_u32(value)?),
-                    "depth" | "bpp" => self.graphics.depth = Some(parse_u32(value)?),
-                    _ => {}
-                }
-            }
-            Some("security") => {
-                match key {
-                    "require_signature" | "require-signature" => {
-                        self.security.require_signature = parse_bool(value)?;
-                    }
-                    "measure_boot" | "measure-boot" => {
-                        self.security.measure_boot = parse_bool(value)?;
-                    }
-                    "verify_hash" | "verify-hash" => {
-                        self.security.verify_hash = parse_bool(value)?;
-                    }
-                    _ => {}
-                }
-            }
+            None | Some("boot") => match key {
+                "timeout" => self.timeout = parse_u32(value)?,
+                "default" => self.default_entry = parse_usize(value)?,
+                "verbose" => self.verbose = parse_bool(value)?,
+                "debug" => self.debug = parse_bool(value)?,
+                "log_level" | "loglevel" => self.log_level = LogLevel::from_str(value)?,
+                _ => {},
+            },
+            Some("graphics") => match key {
+                "mode" => self.graphics.mode = GraphicsMode::from_str(value)?,
+                "width" => self.graphics.width = Some(parse_u32(value)?),
+                "height" => self.graphics.height = Some(parse_u32(value)?),
+                "depth" | "bpp" => self.graphics.depth = Some(parse_u32(value)?),
+                _ => {},
+            },
+            Some("security") => match key {
+                "require_signature" | "require-signature" => {
+                    self.security.require_signature = parse_bool(value)?;
+                },
+                "measure_boot" | "measure-boot" => {
+                    self.security.measure_boot = parse_bool(value)?;
+                },
+                "verify_hash" | "verify-hash" => {
+                    self.security.verify_hash = parse_bool(value)?;
+                },
+                _ => {},
+            },
             Some(section) if section.starts_with("entry.") => {
                 if let Some(entry) = self.entries.last_mut() {
                     match key {
@@ -135,11 +129,11 @@ impl BootConfig {
                         "icon" => entry.icon = Some(String::from(value)),
                         "default" => entry.is_default = parse_bool(value)?,
                         "hidden" => entry.hidden = parse_bool(value)?,
-                        _ => {}
+                        _ => {},
                     }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         Ok(())

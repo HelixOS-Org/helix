@@ -23,11 +23,11 @@
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
 
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
-use core::marker::PhantomData;
 use core::cell::UnsafeCell;
+use core::marker::PhantomData;
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
-use super::{MAX_CPUS, SmpError};
+use super::{SmpError, MAX_CPUS};
 
 // =============================================================================
 // Constants

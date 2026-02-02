@@ -13,7 +13,8 @@
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+
 use spin::RwLock;
 
 /// Task ID type
@@ -48,13 +49,13 @@ impl Default for TaskId {
 #[repr(u8)]
 pub enum TaskState {
     /// Task is ready to run
-    Ready = 0,
+    Ready   = 0,
     /// Task is currently running
     Running = 1,
     /// Task is blocked waiting for something
     Blocked = 2,
     /// Task has exited
-    Dead = 3,
+    Dead    = 3,
 }
 
 /// Task privilege level
@@ -64,7 +65,7 @@ pub enum TaskPrivilege {
     /// Kernel task (ring 0)
     Kernel = 0,
     /// User task (ring 3)
-    User = 3,
+    User   = 3,
 }
 
 /// CPU register context saved during context switch
@@ -78,16 +79,16 @@ pub struct CpuContext {
     pub r12: u64,
     pub rbx: u64,
     pub rbp: u64,
-    
+
     // Return address (rip when we switch back)
     pub rip: u64,
-    
+
     // Stack pointer
     pub rsp: u64,
-    
+
     // Flags
     pub rflags: u64,
-    
+
     // For userspace tasks
     pub cs: u64,
     pub ss: u64,
@@ -106,8 +107,8 @@ impl CpuContext {
             rip: entry_point,
             rsp: stack_top,
             rflags: 0x202, // Interrupts enabled
-            cs: 0x08, // Kernel code segment
-            ss: 0x10, // Kernel data segment
+            cs: 0x08,      // Kernel code segment
+            ss: 0x10,      // Kernel data segment
         }
     }
 
@@ -123,8 +124,8 @@ impl CpuContext {
             rip: entry_point,
             rsp: stack_top,
             rflags: 0x202, // Interrupts enabled
-            cs: 0x1B, // User code segment (ring 3) | 0x18 | 3
-            ss: 0x23, // User data segment (ring 3) | 0x20 | 3
+            cs: 0x1B,      // User code segment (ring 3) | 0x18 | 3
+            ss: 0x23,      // User data segment (ring 3) | 0x20 | 3
         }
     }
 }
@@ -195,7 +196,7 @@ impl Task {
     pub fn new_kernel(name: impl Into<String>, entry: extern "C" fn()) -> Self {
         let kernel_stack = KernelStack::new();
         let stack_top = kernel_stack.top();
-        
+
         // We need to set up the stack so context_switch can "return" to entry
         // The initial context switch will pop registers and ret to entry
         Self {
@@ -215,7 +216,7 @@ impl Task {
     /// Create a new user task (for future use)
     pub fn new_user(name: impl Into<String>, entry: u64, user_stack_top: u64) -> Self {
         let kernel_stack = KernelStack::new();
-        
+
         Self {
             id: TaskId::new(),
             name: name.into(),
@@ -266,7 +267,7 @@ impl Scheduler {
     /// Initialize with idle task
     pub fn init(&self) {
         let mut tasks = self.tasks.write();
-        
+
         // Create the idle task (always task 0)
         // Give it a tiny time slice so we switch to real tasks quickly
         let idle = Task {
@@ -282,7 +283,7 @@ impl Scheduler {
             exit_code: None,
         };
         tasks.push(idle);
-        
+
         log::info!("Scheduler initialized with idle task");
     }
 
@@ -290,10 +291,10 @@ impl Scheduler {
     pub fn spawn(&self, task: Task) -> TaskId {
         let id = task.id;
         let name = task.name.clone();
-        
+
         let mut tasks = self.tasks.write();
         tasks.push(task);
-        
+
         log::debug!("Spawned task '{}' (id={})", name, id.as_u64());
         id
     }
@@ -333,7 +334,7 @@ impl Scheduler {
 
         let idx = self.current.load(Ordering::Relaxed) as usize;
         let mut tasks = self.tasks.write();
-        
+
         if idx >= tasks.len() {
             return false;
         }
@@ -360,13 +361,13 @@ impl Scheduler {
 
         let mut tasks = self.tasks.write();
         let num_tasks = tasks.len();
-        
+
         if num_tasks <= 1 {
             return None; // Only idle task
         }
 
         let current_idx = self.current.load(Ordering::Relaxed) as usize;
-        
+
         // Mark current task as ready (if it was running)
         if tasks[current_idx].state == TaskState::Running {
             tasks[current_idx].state = TaskState::Ready;
@@ -376,7 +377,7 @@ impl Scheduler {
         // Find next runnable task (round-robin)
         let mut next_idx = (current_idx + 1) % num_tasks;
         let start = next_idx;
-        
+
         loop {
             if tasks[next_idx].is_runnable() && next_idx != 0 {
                 // Found a non-idle runnable task
@@ -402,9 +403,11 @@ impl Scheduler {
         let old_ctx = &mut tasks[current_idx].context as *mut CpuContext;
         let new_ctx = &tasks[next_idx].context as *const CpuContext;
 
-        log::trace!("Switch: {} -> {}", 
-                    tasks[current_idx].name, 
-                    tasks[next_idx].name);
+        log::trace!(
+            "Switch: {} -> {}",
+            tasks[current_idx].name,
+            tasks[next_idx].name
+        );
 
         Some((old_ctx, new_ctx))
     }
@@ -413,7 +416,7 @@ impl Scheduler {
     pub fn exit(&self, code: i32) {
         let idx = self.current.load(Ordering::Relaxed) as usize;
         let mut tasks = self.tasks.write();
-        
+
         if idx < tasks.len() && idx != 0 {
             tasks[idx].state = TaskState::Dead;
             tasks[idx].exit_code = Some(code);
@@ -473,10 +476,12 @@ pub fn spawn(name: impl Into<String>, entry: extern "C" fn()) -> TaskId {
 /// Exit the current task
 pub fn exit(code: i32) -> ! {
     scheduler().exit(code);
-    
+
     // Trigger reschedule
     loop {
-        unsafe { core::arch::asm!("hlt"); }
+        unsafe {
+            core::arch::asm!("hlt");
+        }
     }
 }
 

@@ -25,25 +25,25 @@ use core::fmt;
 pub enum HelpCategory {
     /// General help
     #[default]
-    General = 0,
+    General         = 0,
     /// Navigation
-    Navigation = 1,
+    Navigation      = 1,
     /// Boot options
-    BootOptions = 2,
+    BootOptions     = 2,
     /// Keyboard shortcuts
-    Shortcuts = 3,
+    Shortcuts       = 3,
     /// Boot entries
-    Entries = 4,
+    Entries         = 4,
     /// Configuration
-    Configuration = 5,
+    Configuration   = 5,
     /// Troubleshooting
     Troubleshooting = 6,
     /// Advanced
-    Advanced = 7,
+    Advanced        = 7,
     /// Security
-    Security = 8,
+    Security        = 8,
     /// Recovery
-    Recovery = 9,
+    Recovery        = 9,
 }
 
 impl fmt::Display for HelpCategory {
@@ -120,46 +120,46 @@ impl KeyModifier {
 #[repr(u16)]
 pub enum Key {
     #[default]
-    None = 0,
+    None      = 0,
     // Function keys (UEFI scan codes)
-    F1 = 0x0B,
-    F2 = 0x0C,
-    F3 = 0x100,  // Use extended code to avoid conflict with Enter
-    F4 = 0x0E,
-    F5 = 0x0F,
-    F6 = 0x10,
-    F7 = 0x11,
-    F8 = 0x12,
-    F9 = 0x13,
-    F10 = 0x14,
-    F11 = 0x15,
-    F12 = 0x16,
+    F1        = 0x0B,
+    F2        = 0x0C,
+    F3        = 0x100, // Use extended code to avoid conflict with Enter
+    F4        = 0x0E,
+    F5        = 0x0F,
+    F6        = 0x10,
+    F7        = 0x11,
+    F8        = 0x12,
+    F9        = 0x13,
+    F10       = 0x14,
+    F11       = 0x15,
+    F12       = 0x16,
     // Navigation
-    Up = 0x01,
-    Down = 0x02,
-    Left = 0x03,
-    Right = 0x04,
-    Home = 0x05,
-    End = 0x06,
-    PageUp = 0x07,
-    PageDown = 0x101,  // Use extended code to avoid conflict with Backspace
+    Up        = 0x01,
+    Down      = 0x02,
+    Left      = 0x03,
+    Right     = 0x04,
+    Home      = 0x05,
+    End       = 0x06,
+    PageUp    = 0x07,
+    PageDown  = 0x101, // Use extended code to avoid conflict with Backspace
     // Action
-    Enter = 0x0D,
-    Escape = 0x1B,
-    Tab = 0x09,
-    Space = 0x20,
+    Enter     = 0x0D,
+    Escape    = 0x1B,
+    Tab       = 0x09,
+    Space     = 0x20,
     Backspace = 0x08,
-    Delete = 0x7F,
-    Insert = 0x102,  // Use extended code to avoid conflict with Tab
+    Delete    = 0x7F,
+    Insert    = 0x102, // Use extended code to avoid conflict with Tab
     // Letters (for shortcuts)
-    A = 0x41,
-    B = 0x42,
-    C = 0x43,
-    D = 0x44,
-    E = 0x45,
-    R = 0x52,
-    S = 0x53,
-    Q = 0x51,
+    A         = 0x41,
+    B         = 0x42,
+    C         = 0x43,
+    D         = 0x44,
+    E         = 0x45,
+    R         = 0x52,
+    S         = 0x53,
+    Q         = 0x51,
 }
 
 impl fmt::Display for Key {
@@ -222,22 +222,34 @@ impl Shortcut {
 
     /// Create shortcut without modifier
     pub const fn key(key: Key) -> Self {
-        Self { key, modifier: KeyModifier::NONE }
+        Self {
+            key,
+            modifier: KeyModifier::NONE,
+        }
     }
 
     /// Create with shift
     pub const fn shift(key: Key) -> Self {
-        Self { key, modifier: KeyModifier::SHIFT }
+        Self {
+            key,
+            modifier: KeyModifier::SHIFT,
+        }
     }
 
     /// Create with ctrl
     pub const fn ctrl(key: Key) -> Self {
-        Self { key, modifier: KeyModifier::CTRL }
+        Self {
+            key,
+            modifier: KeyModifier::CTRL,
+        }
     }
 
     /// Create with alt
     pub const fn alt(key: Key) -> Self {
-        Self { key, modifier: KeyModifier::ALT }
+        Self {
+            key,
+            modifier: KeyModifier::ALT,
+        }
     }
 }
 
@@ -644,12 +656,12 @@ pub const SECURITY_TOPICS: &[HelpTopic] = &[
 #[repr(u8)]
 pub enum TipPriority {
     /// Low priority
-    Low = 0,
+    Low      = 0,
     /// Normal priority
     #[default]
-    Normal = 1,
+    Normal   = 1,
     /// High priority
-    High = 2,
+    High     = 2,
     /// Critical
     Critical = 3,
 }
@@ -868,17 +880,17 @@ impl HelpBrowser {
                 if self.category_index > 0 {
                     self.category_index -= 1;
                 }
-            }
+            },
             HelpPanel::Topics => {
                 if self.topic_index > 0 {
                     self.topic_index -= 1;
                 }
-            }
+            },
             HelpPanel::Content => {
                 if self.scroll_offset > 0 {
                     self.scroll_offset -= 1;
                 }
-            }
+            },
         }
     }
 
@@ -889,17 +901,17 @@ impl HelpBrowser {
                 if self.category_index < HELP_CATEGORY_COUNT - 1 {
                     self.category_index += 1;
                 }
-            }
+            },
             HelpPanel::Topics => {
                 if self.topic_index < max_topics.saturating_sub(1) {
                     self.topic_index += 1;
                 }
-            }
+            },
             HelpPanel::Content => {
                 if self.scroll_offset < max_lines.saturating_sub(1) {
                     self.scroll_offset += 1;
                 }
-            }
+            },
         }
     }
 
@@ -910,14 +922,14 @@ impl HelpBrowser {
                 self.category = HELP_CATEGORIES[self.category_index];
                 self.topic_index = 0;
                 self.panel = HelpPanel::Topics;
-            }
+            },
             HelpPanel::Topics => {
                 self.scroll_offset = 0;
                 self.panel = HelpPanel::Content;
-            }
+            },
             HelpPanel::Content => {
                 // No action
-            }
+            },
         }
     }
 

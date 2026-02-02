@@ -2,14 +2,14 @@
 //!
 //! High-level PCI device abstraction for device enumeration and access.
 
-use crate::raw::types::*;
-use crate::raw::protocols::pci::*;
+use super::{EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
-use super::{Protocol, EnumerableProtocol};
+use crate::raw::protocols::pci::*;
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// PCI I/O Protocol GUID
 const PCI_IO_PROTOCOL_GUID: Guid = guids::PCI_IO_PROTOCOL;
@@ -564,8 +564,11 @@ impl PciLocation {
 
 impl core::fmt::Display for PciLocation {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:04X}:{:02X}:{:02X}.{:X}",
-            self.segment, self.bus, self.device, self.function)
+        write!(
+            f,
+            "{:04X}:{:02X}:{:02X}.{:X}",
+            self.segment, self.bus, self.device, self.function
+        )
     }
 }
 
@@ -771,25 +774,45 @@ pub struct PciCommand(pub u16);
 
 impl PciCommand {
     /// I/O space enable
-    pub fn io_space(&self) -> bool { (self.0 & 0x0001) != 0 }
+    pub fn io_space(&self) -> bool {
+        (self.0 & 0x0001) != 0
+    }
     /// Memory space enable
-    pub fn memory_space(&self) -> bool { (self.0 & 0x0002) != 0 }
+    pub fn memory_space(&self) -> bool {
+        (self.0 & 0x0002) != 0
+    }
     /// Bus master enable
-    pub fn bus_master(&self) -> bool { (self.0 & 0x0004) != 0 }
+    pub fn bus_master(&self) -> bool {
+        (self.0 & 0x0004) != 0
+    }
     /// Special cycle enable
-    pub fn special_cycles(&self) -> bool { (self.0 & 0x0008) != 0 }
+    pub fn special_cycles(&self) -> bool {
+        (self.0 & 0x0008) != 0
+    }
     /// Memory write and invalidate
-    pub fn memory_write_invalidate(&self) -> bool { (self.0 & 0x0010) != 0 }
+    pub fn memory_write_invalidate(&self) -> bool {
+        (self.0 & 0x0010) != 0
+    }
     /// VGA palette snoop
-    pub fn vga_palette_snoop(&self) -> bool { (self.0 & 0x0020) != 0 }
+    pub fn vga_palette_snoop(&self) -> bool {
+        (self.0 & 0x0020) != 0
+    }
     /// Parity error response
-    pub fn parity_error_response(&self) -> bool { (self.0 & 0x0040) != 0 }
+    pub fn parity_error_response(&self) -> bool {
+        (self.0 & 0x0040) != 0
+    }
     /// SERR# enable
-    pub fn serr(&self) -> bool { (self.0 & 0x0100) != 0 }
+    pub fn serr(&self) -> bool {
+        (self.0 & 0x0100) != 0
+    }
     /// Fast back-to-back enable
-    pub fn fast_back_to_back(&self) -> bool { (self.0 & 0x0200) != 0 }
+    pub fn fast_back_to_back(&self) -> bool {
+        (self.0 & 0x0200) != 0
+    }
     /// Interrupt disable
-    pub fn interrupt_disable(&self) -> bool { (self.0 & 0x0400) != 0 }
+    pub fn interrupt_disable(&self) -> bool {
+        (self.0 & 0x0400) != 0
+    }
 }
 
 // =============================================================================
@@ -848,7 +871,8 @@ pub fn enumerate_pci() -> Result<Vec<PciDevice>> {
 pub fn find_by_class(base_class: u8, sub_class: Option<u8>) -> Result<Vec<PciDevice>> {
     let devices = enumerate_pci()?;
 
-    Ok(devices.into_iter()
+    Ok(devices
+        .into_iter()
         .filter(|d| {
             let c = d.class();
             c.base == base_class && sub_class.map(|s| c.sub == s).unwrap_or(true)
@@ -860,10 +884,10 @@ pub fn find_by_class(base_class: u8, sub_class: Option<u8>) -> Result<Vec<PciDev
 pub fn find_by_id(vendor_id: u16, device_id: Option<u16>) -> Result<Vec<PciDevice>> {
     let devices = enumerate_pci()?;
 
-    Ok(devices.into_iter()
+    Ok(devices
+        .into_iter()
         .filter(|d| {
-            d.vendor_id() == vendor_id &&
-            device_id.map(|id| d.device_id() == id).unwrap_or(true)
+            d.vendor_id() == vendor_id && device_id.map(|id| d.device_id() == id).unwrap_or(true)
         })
         .collect())
 }
@@ -884,7 +908,11 @@ mod tests {
 
     #[test]
     fn test_pci_class() {
-        let class = PciClass { base: 0x02, sub: 0x00, interface: 0x00 };
+        let class = PciClass {
+            base: 0x02,
+            sub: 0x00,
+            interface: 0x00,
+        };
         assert_eq!(class.name(), "Ethernet");
         assert!(class.is_network());
     }

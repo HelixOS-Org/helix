@@ -33,27 +33,27 @@
 #![allow(dead_code)]
 
 pub mod elf;
-pub mod pe;
 pub mod image;
+pub mod pe;
 pub mod relocate;
 pub mod relocation;
-pub mod verify;
 pub mod symbols;
+pub mod verify;
 
 pub use elf::*;
-pub use pe::*;
 pub use image::*;
+pub use pe::*;
 pub use relocate::*;
 pub use relocation::{RelocationConfig, RelocationStats};
-pub use verify::*;
 pub use symbols::*;
+pub use verify::*;
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // KERNEL LOADER
@@ -117,7 +117,8 @@ impl KernelLoader {
 
         // Apply relocations if needed
         if self.config.apply_relocations {
-            self.relocator.relocate(&mut self.elf_loader, self.config.base_address)?;
+            self.relocator
+                .relocate(&mut self.elf_loader, self.config.base_address)?;
         }
 
         // Extract symbols if enabled
@@ -218,8 +219,8 @@ impl Default for LoaderConfig {
             kaslr_enabled: false,
             kaslr_seed: 0,
             max_image_size: 256 * 1024 * 1024, // 256 MiB
-            stack_size: 2 * 1024 * 1024, // 2 MiB
-            heap_size: 16 * 1024 * 1024, // 16 MiB
+            stack_size: 2 * 1024 * 1024,       // 2 MiB
+            heap_size: 16 * 1024 * 1024,       // 16 MiB
         }
     }
 }
@@ -277,9 +278,9 @@ impl ImageFormat {
                 return Err(Error::InvalidData);
             }
             // Check PE signature
-            if data[pe_offset..pe_offset+4] == [b'P', b'E', 0, 0] {
+            if data[pe_offset..pe_offset + 4] == [b'P', b'E', 0, 0] {
                 // Check machine type for PE32 vs PE32+
-                let machine = u16::from_le_bytes([data[pe_offset+4], data[pe_offset+5]]);
+                let machine = u16::from_le_bytes([data[pe_offset + 4], data[pe_offset + 5]]);
                 return Ok(match machine {
                     0x8664 => Self::Pe32Plus, // AMD64
                     0x014c => Self::Pe32,     // i386
@@ -290,10 +291,11 @@ impl ImageFormat {
         }
 
         // Mach-O magic
-        if data[0..4] == [0xFE, 0xED, 0xFA, 0xCE] ||
-           data[0..4] == [0xFE, 0xED, 0xFA, 0xCF] ||
-           data[0..4] == [0xCE, 0xFA, 0xED, 0xFE] ||
-           data[0..4] == [0xCF, 0xFA, 0xED, 0xFE] {
+        if data[0..4] == [0xFE, 0xED, 0xFA, 0xCE]
+            || data[0..4] == [0xFE, 0xED, 0xFA, 0xCF]
+            || data[0..4] == [0xCE, 0xFA, 0xED, 0xFE]
+            || data[0..4] == [0xCF, 0xFA, 0xED, 0xFE]
+        {
             return Ok(Self::MachO);
         }
 
@@ -358,21 +360,24 @@ impl LoadedImage {
 
     /// Get code sections
     pub fn code_sections(&self) -> Vec<&ImageSection> {
-        self.sections.iter()
+        self.sections
+            .iter()
             .filter(|s| s.flags.executable)
             .collect()
     }
 
     /// Get data sections
     pub fn data_sections(&self) -> Vec<&ImageSection> {
-        self.sections.iter()
+        self.sections
+            .iter()
             .filter(|s| s.flags.writable && !s.flags.executable)
             .collect()
     }
 
     /// Get read-only sections
     pub fn readonly_sections(&self) -> Vec<&ImageSection> {
-        self.sections.iter()
+        self.sections
+            .iter()
             .filter(|s| !s.flags.writable && !s.flags.executable)
             .collect()
     }

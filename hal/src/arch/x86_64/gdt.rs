@@ -207,8 +207,8 @@ impl Gdt {
                 GdtEntry::null(),                // 0x00: Null
                 GdtEntry::kernel_code_segment(), // 0x08: Kernel code
                 GdtEntry::kernel_data_segment(), // 0x10: Kernel data
-                GdtEntry::user_data_segment(),   // 0x18: User data (must be before user code for SYSRET)
-                GdtEntry::user_code_segment(),   // 0x20: User code
+                GdtEntry::user_data_segment(), // 0x18: User data (must be before user code for SYSRET)
+                GdtEntry::user_code_segment(), // 0x20: User code
             ],
             tss_entry: TssDescriptor::new(0, 0), // Will be set during init
         }
@@ -258,27 +258,26 @@ struct KernelRing0Stack([u8; 32 * 1024]); // 32KB kernel stack
 static mut KERNEL_RING0_STACK: KernelRing0Stack = KernelRing0Stack([0; 32 * 1024]);
 
 /// Initialize the GDT and TSS
-/// 
+///
 /// # Safety
 /// Must be called only once during early boot.
 pub unsafe fn init() {
     unsafe {
         // Set up interrupt stacks in TSS
-        let double_fault_stack_end = DOUBLE_FAULT_STACK.0.as_ptr() as u64 
-            + INTERRUPT_STACK_SIZE as u64;
-        let page_fault_stack_end = PAGE_FAULT_STACK.0.as_ptr() as u64 
-            + INTERRUPT_STACK_SIZE as u64;
-        
+        let double_fault_stack_end =
+            DOUBLE_FAULT_STACK.0.as_ptr() as u64 + INTERRUPT_STACK_SIZE as u64;
+        let page_fault_stack_end = PAGE_FAULT_STACK.0.as_ptr() as u64 + INTERRUPT_STACK_SIZE as u64;
+
         TSS.interrupt_stack_table[0] = double_fault_stack_end; // IST1 for double fault
-        TSS.interrupt_stack_table[1] = page_fault_stack_end;   // IST2 for page fault
-        
+        TSS.interrupt_stack_table[1] = page_fault_stack_end; // IST2 for page fault
+
         // Set RSP0 - the kernel stack used when transitioning from Ring 3 to Ring 0
         let kernel_stack_top = KERNEL_RING0_STACK.0.as_ptr() as u64 + 32 * 1024;
         TSS.privilege_stack_table[0] = kernel_stack_top; // RSP0
-        
+
         // Set the TSS in the GDT
         GDT.set_tss(&TSS);
-        
+
         // Load the GDT
         let gdt_ptr = GDT.pointer();
         asm!(
@@ -286,7 +285,7 @@ pub unsafe fn init() {
             in(reg) &gdt_ptr,
             options(readonly, nostack, preserves_flags)
         );
-        
+
         // Reload segment registers
         // CS is loaded via a far return
         asm!(
@@ -299,7 +298,7 @@ pub unsafe fn init() {
             tmp = lateout(reg) _,
             options(preserves_flags),
         );
-        
+
         // Load other segment registers
         asm!(
             "mov ds, {0:x}",
@@ -310,21 +309,21 @@ pub unsafe fn init() {
             in(reg) KERNEL_DATA_SELECTOR,
             options(nostack, preserves_flags),
         );
-        
+
         // Load TSS
         asm!(
             "ltr {0:x}",
             in(reg) TSS_SELECTOR,
             options(nostack, preserves_flags),
         );
-        
+
         log::debug!("GDT initialized at {:p}", &GDT);
         log::debug!("TSS initialized with RSP0={:#x}", kernel_stack_top);
     }
 }
 
 /// Update RSP0 in TSS (for task switching with different kernel stacks)
-/// 
+///
 /// # Safety
 /// Must be called with a valid kernel stack pointer.
 pub unsafe fn set_kernel_stack(stack_top: u64) {

@@ -3,9 +3,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::math;
-
 use super::point::TimePoint;
+use crate::math;
 
 /// A time series of values
 pub struct TimeSeries {

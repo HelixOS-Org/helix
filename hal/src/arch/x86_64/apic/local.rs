@@ -6,10 +6,8 @@
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::registers;
-use super::x2apic_msr;
 use super::ipi::IpiDestination;
-use super::{SPURIOUS_VECTOR, ERROR_VECTOR, is_x2apic_enabled};
+use super::{is_x2apic_enabled, registers, x2apic_msr, ERROR_VECTOR, SPURIOUS_VECTOR};
 
 // =============================================================================
 // Error Type
@@ -359,13 +357,13 @@ pub enum TimerMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum TimerDivide {
-    By1 = 0b1011,
-    By2 = 0b0000,
-    By4 = 0b0001,
-    By8 = 0b0010,
-    By16 = 0b0011,
-    By32 = 0b1000,
-    By64 = 0b1001,
+    By1   = 0b1011,
+    By2   = 0b0000,
+    By4   = 0b0001,
+    By8   = 0b0010,
+    By16  = 0b0011,
+    By32  = 0b1000,
+    By64  = 0b1001,
     By128 = 0b1010,
 }
 

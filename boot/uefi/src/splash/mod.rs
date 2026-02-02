@@ -14,7 +14,6 @@
 
 #![no_std]
 
-
 // =============================================================================
 // COLORS
 // =============================================================================
@@ -185,7 +184,10 @@ impl Size {
 
     /// Zero size
     pub const fn zero() -> Self {
-        Self { width: 0, height: 0 }
+        Self {
+            width: 0,
+            height: 0,
+        }
     }
 
     /// Area
@@ -206,7 +208,12 @@ pub struct Rect {
 impl Rect {
     /// Create rectangle
     pub const fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Create from position and size
@@ -221,12 +228,18 @@ impl Rect {
 
     /// Get position
     pub const fn position(&self) -> Point {
-        Point { x: self.x, y: self.y }
+        Point {
+            x: self.x,
+            y: self.y,
+        }
     }
 
     /// Get size
     pub const fn size(&self) -> Size {
-        Size { width: self.width, height: self.height }
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     /// Right edge
@@ -249,8 +262,7 @@ impl Rect {
 
     /// Check if point is inside
     pub fn contains(&self, point: Point) -> bool {
-        point.x >= self.x && point.x < self.right() &&
-        point.y >= self.y && point.y < self.bottom()
+        point.x >= self.x && point.x < self.right() && point.y >= self.y && point.y < self.bottom()
     }
 
     /// Intersect with another rectangle
@@ -312,9 +324,11 @@ impl PixelFormat {
     pub fn color_to_pixel(&self, color: Color) -> u32 {
         match self {
             PixelFormat::Bgra32 => {
-                ((color.a as u32) << 24) | ((color.r as u32) << 16) |
-                ((color.g as u32) << 8) | (color.b as u32)
-            }
+                ((color.a as u32) << 24)
+                    | ((color.r as u32) << 16)
+                    | ((color.g as u32) << 8)
+                    | (color.b as u32)
+            },
             PixelFormat::Rgba32 => color.to_argb32(),
             PixelFormat::Bgr24 | PixelFormat::Rgb24 => color.to_rgb32(),
             PixelFormat::Rgb565 => {
@@ -322,7 +336,7 @@ impl PixelFormat {
                 let g = ((color.g as u32) >> 2) & 0x3F;
                 let b = ((color.b as u32) >> 3) & 0x1F;
                 (r << 11) | (g << 5) | b
-            }
+            },
             PixelFormat::Indexed8 => color.r as u32, // Grayscale
         }
     }
@@ -662,17 +676,27 @@ impl SplashScreen {
             LogoPosition::TopCenter => {
                 let x = (self.screen_size.width - self.logo_size.width) / 2;
                 let y = self.screen_size.height / 8;
-                Rect::new(x as i32, y as i32, self.logo_size.width, self.logo_size.height)
-            }
+                Rect::new(
+                    x as i32,
+                    y as i32,
+                    self.logo_size.width,
+                    self.logo_size.height,
+                )
+            },
             LogoPosition::Center => logo.center_in(&screen),
             LogoPosition::BottomCenter => {
                 let x = (self.screen_size.width - self.logo_size.width) / 2;
                 let y = (self.screen_size.height * 3) / 4;
-                Rect::new(x as i32, y as i32, self.logo_size.width, self.logo_size.height)
-            }
+                Rect::new(
+                    x as i32,
+                    y as i32,
+                    self.logo_size.width,
+                    self.logo_size.height,
+                )
+            },
             LogoPosition::Custom(x, y) => {
                 Rect::new(x, y, self.logo_size.width, self.logo_size.height)
-            }
+            },
         }
     }
 
@@ -689,10 +713,7 @@ impl SplashScreen {
     /// Get status text position
     pub fn status_position(&self) -> Point {
         let progress_rect = self.progress_rect();
-        Point::new(
-            progress_rect.x,
-            progress_rect.bottom() + 16,
-        )
+        Point::new(progress_rect.x, progress_rect.bottom() + 16)
     }
 
     /// Complete splash (100% progress)
@@ -764,7 +785,7 @@ impl Easing {
                 let inv_t = 1000 - t;
                 let inv_sq = (inv_t as u32 * inv_t as u32) / 1000;
                 1000 - inv_sq as u16
-            }
+            },
             Easing::EaseInOut => {
                 if t < 500 {
                     ((t_squared * 2) / 1000) as u16
@@ -773,7 +794,7 @@ impl Easing {
                     let inv_sq = (inv_t as u32 * inv_t as u32) / 1000;
                     (1000 - (inv_sq * 2 / 1000)) as u16
                 }
-            }
+            },
             Easing::Bounce => {
                 // Simplified bounce
                 let base = Easing::EaseOut.apply(t);
@@ -783,7 +804,7 @@ impl Easing {
                 } else {
                     base
                 }
-            }
+            },
         }
     }
 }
@@ -997,19 +1018,19 @@ impl Transition {
             AnimationType::SlideLeft => {
                 let offset = ((screen_size.width as u64 * (1000 - eased as u64)) / 1000) as i32;
                 Point::new(-offset, 0)
-            }
+            },
             AnimationType::SlideRight => {
                 let offset = ((screen_size.width as u64 * (1000 - eased as u64)) / 1000) as i32;
                 Point::new(offset, 0)
-            }
+            },
             AnimationType::SlideUp => {
                 let offset = ((screen_size.height as u64 * (1000 - eased as u64)) / 1000) as i32;
                 Point::new(0, -offset)
-            }
+            },
             AnimationType::SlideDown => {
                 let offset = ((screen_size.height as u64 * (1000 - eased as u64)) / 1000) as i32;
                 Point::new(0, offset)
-            }
+            },
             _ => Point::origin(),
         }
     }

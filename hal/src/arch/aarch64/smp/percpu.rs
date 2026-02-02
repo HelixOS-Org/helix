@@ -55,11 +55,12 @@
 //! let cpu_id = percpu.cpu_id;
 //! ```
 
-use super::Mpidr;
 use core::arch::asm;
 use core::cell::UnsafeCell;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
+
+use super::Mpidr;
 
 // ============================================================================
 // TPIDR Register Access
@@ -132,7 +133,6 @@ pub struct PerCpuData {
     // ========================================================================
     // Critical fields (accessed frequently, keep at top)
     // ========================================================================
-
     /// Self pointer for validation
     pub self_ptr: *mut PerCpuData,
 
@@ -154,7 +154,6 @@ pub struct PerCpuData {
     // ========================================================================
     // Stack information
     // ========================================================================
-
     /// Kernel stack top (initial SP)
     pub stack_top: usize,
 
@@ -167,7 +166,6 @@ pub struct PerCpuData {
     // ========================================================================
     // Scheduler state
     // ========================================================================
-
     /// CPU is idle
     pub is_idle: bool,
 
@@ -180,7 +178,6 @@ pub struct PerCpuData {
     // ========================================================================
     // Interrupt handling
     // ========================================================================
-
     /// Last acknowledged interrupt ID
     pub last_irq: u32,
 
@@ -190,7 +187,6 @@ pub struct PerCpuData {
     // ========================================================================
     // Timer state
     // ========================================================================
-
     /// Timer deadline (timer compare value)
     pub timer_deadline: u64,
 
@@ -200,7 +196,6 @@ pub struct PerCpuData {
     // ========================================================================
     // FPU/SIMD state
     // ========================================================================
-
     /// Current FPU owner (task pointer)
     pub fpu_owner: AtomicUsize,
 
@@ -210,7 +205,6 @@ pub struct PerCpuData {
     // ========================================================================
     // TLB shootdown
     // ========================================================================
-
     /// TLB shootdown pending
     pub tlb_shootdown_pending: bool,
 
@@ -220,7 +214,6 @@ pub struct PerCpuData {
     // ========================================================================
     // Platform-specific extension
     // ========================================================================
-
     /// Platform-specific data pointer
     pub platform_data: *mut u8,
 
@@ -637,7 +630,7 @@ unsafe impl<T: Send> Sync for PerCpuVar<T> {}
 /// Macro to define a per-CPU variable
 #[macro_export]
 macro_rules! per_cpu {
-    ($name:ident: $ty:ty = $init:expr) => {
+    ($name:ident : $ty:ty = $init:expr) => {
         #[allow(non_upper_case_globals)]
         static $name: $crate::arch::aarch64::smp::percpu::PerCpuVar<$ty> =
             $crate::arch::aarch64::smp::percpu::PerCpuVar::new();

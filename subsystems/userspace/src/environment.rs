@@ -4,6 +4,7 @@
 
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
+
 use spin::RwLock;
 
 /// Environment variable
@@ -26,7 +27,7 @@ impl EnvVar {
             exported: true,
         }
     }
-    
+
     /// Create unexported variable
     pub fn local(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
@@ -35,7 +36,7 @@ impl EnvVar {
             exported: false,
         }
     }
-    
+
     /// Format as NAME=VALUE
     pub fn format(&self) -> String {
         alloc::format!("{}={}", self.name, self.value)
@@ -56,11 +57,11 @@ impl Environment {
             vars: RwLock::new(BTreeMap::new()),
         }
     }
-    
+
     /// Create with default variables
     pub fn with_defaults() -> Self {
         let env = Self::new();
-        
+
         // Set defaults
         env.set("PATH", "/bin:/usr/bin:/sbin:/usr/sbin");
         env.set("HOME", "/root");
@@ -69,67 +70,69 @@ impl Environment {
         env.set("TERM", "helix-term");
         env.set("LANG", "en_US.UTF-8");
         env.set("PWD", "/");
-        
+
         env
     }
-    
+
     /// Get variable value
     pub fn get(&self, name: &str) -> Option<String> {
         self.vars.read().get(name).map(|v| v.value.clone())
     }
-    
+
     /// Set variable
     pub fn set(&self, name: impl Into<String>, value: impl Into<String>) {
         let name = name.into();
         let var = EnvVar::new(name.clone(), value);
         self.vars.write().insert(name, var);
     }
-    
+
     /// Set local (unexported) variable
     pub fn set_local(&self, name: impl Into<String>, value: impl Into<String>) {
         let name = name.into();
         let var = EnvVar::local(name.clone(), value);
         self.vars.write().insert(name, var);
     }
-    
+
     /// Remove variable
     pub fn unset(&self, name: &str) {
         self.vars.write().remove(name);
     }
-    
+
     /// Check if variable exists
     pub fn contains(&self, name: &str) -> bool {
         self.vars.read().contains_key(name)
     }
-    
+
     /// Get all variables
     pub fn all(&self) -> alloc::vec::Vec<(String, String)> {
-        self.vars.read()
+        self.vars
+            .read()
             .iter()
             .map(|(k, v)| (k.clone(), v.value.clone()))
             .collect()
     }
-    
+
     /// Get exported variables only
     pub fn exported(&self) -> alloc::vec::Vec<(String, String)> {
-        self.vars.read()
+        self.vars
+            .read()
             .iter()
             .filter(|(_, v)| v.exported)
             .map(|(k, v)| (k.clone(), v.value.clone()))
             .collect()
     }
-    
+
     /// Iterate over all variables
     pub fn iter(&self) -> alloc::vec::Vec<(String, String)> {
         self.all()
     }
-    
+
     /// Expand variables in a string
     /// Replaces $VAR and ${VAR} with their values
     pub fn expand(&self, input: &str) -> String {
         let mut result = String::new();
         let mut chars = input.chars().peekable();
-        
+
         while let Some(c) = chars.next() {
             if c == '$' {
                 if chars.peek() == Some(&'{') {
@@ -168,10 +171,10 @@ impl Environment {
                 result.push(c);
             }
         }
-        
+
         result
     }
-    
+
     /// Clone environment for child process
     pub fn clone_for_child(&self) -> Self {
         let child = Self::new();
@@ -214,7 +217,7 @@ mod tests {
         let env = Environment::new();
         env.set("NAME", "Helix");
         env.set("VERSION", "0.1.0");
-        
+
         let result = env.expand("Welcome to $NAME v${VERSION}!");
         assert_eq!(result, "Welcome to Helix v0.1.0!");
     }

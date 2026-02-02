@@ -2,12 +2,14 @@
 //!
 //! A buddy system allocator for efficient physical memory management.
 
-use crate::{Frame, MemResult, MemError, MemoryZone};
-use super::{PhysicalAllocator, PhysicalRegion, AllocatorStats};
-use helix_hal::{PhysAddr, PageSize};
 use alloc::collections::BTreeSet;
-use spin::Mutex;
 use core::sync::atomic::{AtomicU64, Ordering};
+
+use helix_hal::{PageSize, PhysAddr};
+use spin::Mutex;
+
+use super::{AllocatorStats, PhysicalAllocator, PhysicalRegion};
+use crate::{Frame, MemError, MemResult, MemoryZone};
 
 /// Maximum order (2^MAX_ORDER pages)
 const MAX_ORDER: usize = 11; // Up to 8MB blocks (2^11 * 4KB)
@@ -65,7 +67,7 @@ impl BuddyAllocator {
         if order == 0 {
             return;
         }
-        
+
         let buddy = self.buddy_addr(addr, order - 1);
         lists[order - 1].insert(addr);
         lists[order - 1].insert(buddy);
@@ -78,12 +80,12 @@ impl BuddyAllocator {
         }
 
         let buddy = self.buddy_addr(addr, order);
-        
+
         if lists[order].remove(&buddy) {
             // Merge successful, add to higher order
             let merged = addr.min(buddy);
             lists[order].remove(&addr);
-            
+
             // Try to merge further
             if !self.try_merge(lists, merged, order + 1) {
                 lists[order + 1].insert(merged);
@@ -108,7 +110,7 @@ impl PhysicalAllocator for BuddyAllocator {
 
     fn init(&mut self, regions: &[PhysicalRegion]) -> MemResult<()> {
         let mut lists = self.free_lists.lock();
-        
+
         for region in regions {
             if !region.is_usable() {
                 continue;
@@ -152,7 +154,7 @@ impl PhysicalAllocator for BuddyAllocator {
         let order = match size {
             PageSize::Size4KiB => 0,
             PageSize::Size2MiB => 9,  // 2MB = 512 * 4KB
-            PageSize::Size1GiB => 18,  // 1GB (not typically supported)
+            PageSize::Size1GiB => 18, // 1GB (not typically supported)
         };
 
         if order >= MAX_ORDER {
@@ -239,7 +241,8 @@ impl PhysicalAllocator for BuddyAllocator {
 
     fn free_frames(&self) -> usize {
         let lists = self.free_lists.lock();
-        lists.iter()
+        lists
+            .iter()
             .enumerate()
             .map(|(order, set)| set.len() * (1 << order))
             .sum()

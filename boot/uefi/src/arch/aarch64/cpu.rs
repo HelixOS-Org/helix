@@ -282,135 +282,253 @@ impl MidrFields {
 /// ID_AA64ISAR0_EL1 field extraction
 pub mod isar0 {
     /// AES support
-    pub fn aes(reg: u64) -> u8 { ((reg >> 4) & 0xF) as u8 }
+    pub fn aes(reg: u64) -> u8 {
+        ((reg >> 4) & 0xF) as u8
+    }
     /// SHA1 support
-    pub fn sha1(reg: u64) -> u8 { ((reg >> 8) & 0xF) as u8 }
+    pub fn sha1(reg: u64) -> u8 {
+        ((reg >> 8) & 0xF) as u8
+    }
     /// SHA2 support
-    pub fn sha2(reg: u64) -> u8 { ((reg >> 12) & 0xF) as u8 }
+    pub fn sha2(reg: u64) -> u8 {
+        ((reg >> 12) & 0xF) as u8
+    }
     /// CRC32 support
-    pub fn crc32(reg: u64) -> u8 { ((reg >> 16) & 0xF) as u8 }
+    pub fn crc32(reg: u64) -> u8 {
+        ((reg >> 16) & 0xF) as u8
+    }
     /// Atomic instructions support
-    pub fn atomic(reg: u64) -> u8 { ((reg >> 20) & 0xF) as u8 }
+    pub fn atomic(reg: u64) -> u8 {
+        ((reg >> 20) & 0xF) as u8
+    }
     /// TME support
-    pub fn tme(reg: u64) -> u8 { ((reg >> 24) & 0xF) as u8 }
+    pub fn tme(reg: u64) -> u8 {
+        ((reg >> 24) & 0xF) as u8
+    }
     /// RDM support
-    pub fn rdm(reg: u64) -> u8 { ((reg >> 28) & 0xF) as u8 }
+    pub fn rdm(reg: u64) -> u8 {
+        ((reg >> 28) & 0xF) as u8
+    }
     /// SHA3 support
-    pub fn sha3(reg: u64) -> u8 { ((reg >> 32) & 0xF) as u8 }
+    pub fn sha3(reg: u64) -> u8 {
+        ((reg >> 32) & 0xF) as u8
+    }
     /// SM3 support
-    pub fn sm3(reg: u64) -> u8 { ((reg >> 36) & 0xF) as u8 }
+    pub fn sm3(reg: u64) -> u8 {
+        ((reg >> 36) & 0xF) as u8
+    }
     /// SM4 support
-    pub fn sm4(reg: u64) -> u8 { ((reg >> 40) & 0xF) as u8 }
+    pub fn sm4(reg: u64) -> u8 {
+        ((reg >> 40) & 0xF) as u8
+    }
     /// Dot Product support
-    pub fn dp(reg: u64) -> u8 { ((reg >> 44) & 0xF) as u8 }
+    pub fn dp(reg: u64) -> u8 {
+        ((reg >> 44) & 0xF) as u8
+    }
     /// FHM support
-    pub fn fhm(reg: u64) -> u8 { ((reg >> 48) & 0xF) as u8 }
+    pub fn fhm(reg: u64) -> u8 {
+        ((reg >> 48) & 0xF) as u8
+    }
     /// TS support
-    pub fn ts(reg: u64) -> u8 { ((reg >> 52) & 0xF) as u8 }
+    pub fn ts(reg: u64) -> u8 {
+        ((reg >> 52) & 0xF) as u8
+    }
     /// TLB support
-    pub fn tlb(reg: u64) -> u8 { ((reg >> 56) & 0xF) as u8 }
+    pub fn tlb(reg: u64) -> u8 {
+        ((reg >> 56) & 0xF) as u8
+    }
     /// RNDR support
-    pub fn rndr(reg: u64) -> u8 { ((reg >> 60) & 0xF) as u8 }
+    pub fn rndr(reg: u64) -> u8 {
+        ((reg >> 60) & 0xF) as u8
+    }
 }
 
 /// ID_AA64ISAR1_EL1 field extraction
 pub mod isar1 {
     /// Data Persistence support
-    pub fn dpb(reg: u64) -> u8 { (reg & 0xF) as u8 }
+    pub fn dpb(reg: u64) -> u8 {
+        (reg & 0xF) as u8
+    }
     /// Pointer Authentication (address) support
-    pub fn apa(reg: u64) -> u8 { ((reg >> 4) & 0xF) as u8 }
+    pub fn apa(reg: u64) -> u8 {
+        ((reg >> 4) & 0xF) as u8
+    }
     /// Pointer Authentication (generic) support
-    pub fn gpi(reg: u64) -> u8 { ((reg >> 8) & 0xF) as u8 }
+    pub fn gpi(reg: u64) -> u8 {
+        ((reg >> 8) & 0xF) as u8
+    }
     /// JavaScript conversion support
-    pub fn jscvt(reg: u64) -> u8 { ((reg >> 12) & 0xF) as u8 }
+    pub fn jscvt(reg: u64) -> u8 {
+        ((reg >> 12) & 0xF) as u8
+    }
     /// Flag manipulation support
-    pub fn fcma(reg: u64) -> u8 { ((reg >> 16) & 0xF) as u8 }
+    pub fn fcma(reg: u64) -> u8 {
+        ((reg >> 16) & 0xF) as u8
+    }
     /// Load/store acquire/release support
-    pub fn lrcpc(reg: u64) -> u8 { ((reg >> 20) & 0xF) as u8 }
+    pub fn lrcpc(reg: u64) -> u8 {
+        ((reg >> 20) & 0xF) as u8
+    }
     /// Pointer Authentication (combined) support
-    pub fn gpa(reg: u64) -> u8 { ((reg >> 24) & 0xF) as u8 }
+    pub fn gpa(reg: u64) -> u8 {
+        ((reg >> 24) & 0xF) as u8
+    }
     /// Pointer Authentication (combined) support
-    pub fn api(reg: u64) -> u8 { ((reg >> 8) & 0xF) as u8 }
+    pub fn api(reg: u64) -> u8 {
+        ((reg >> 8) & 0xF) as u8
+    }
     /// FP16 support
-    pub fn frintts(reg: u64) -> u8 { ((reg >> 32) & 0xF) as u8 }
+    pub fn frintts(reg: u64) -> u8 {
+        ((reg >> 32) & 0xF) as u8
+    }
     /// SB support
-    pub fn sb(reg: u64) -> u8 { ((reg >> 36) & 0xF) as u8 }
+    pub fn sb(reg: u64) -> u8 {
+        ((reg >> 36) & 0xF) as u8
+    }
     /// Speculative Store Bypass Safe
-    pub fn specres(reg: u64) -> u8 { ((reg >> 40) & 0xF) as u8 }
+    pub fn specres(reg: u64) -> u8 {
+        ((reg >> 40) & 0xF) as u8
+    }
     /// BF16 support
-    pub fn bf16(reg: u64) -> u8 { ((reg >> 44) & 0xF) as u8 }
+    pub fn bf16(reg: u64) -> u8 {
+        ((reg >> 44) & 0xF) as u8
+    }
     /// DGH support
-    pub fn dgh(reg: u64) -> u8 { ((reg >> 48) & 0xF) as u8 }
+    pub fn dgh(reg: u64) -> u8 {
+        ((reg >> 48) & 0xF) as u8
+    }
     /// I8MM support
-    pub fn i8mm(reg: u64) -> u8 { ((reg >> 52) & 0xF) as u8 }
+    pub fn i8mm(reg: u64) -> u8 {
+        ((reg >> 52) & 0xF) as u8
+    }
 }
 
 /// ID_AA64PFR0_EL1 field extraction
 pub mod pfr0 {
     /// EL0 handling
-    pub fn el0(reg: u64) -> u8 { (reg & 0xF) as u8 }
+    pub fn el0(reg: u64) -> u8 {
+        (reg & 0xF) as u8
+    }
     /// EL1 handling
-    pub fn el1(reg: u64) -> u8 { ((reg >> 4) & 0xF) as u8 }
+    pub fn el1(reg: u64) -> u8 {
+        ((reg >> 4) & 0xF) as u8
+    }
     /// EL2 handling
-    pub fn el2(reg: u64) -> u8 { ((reg >> 8) & 0xF) as u8 }
+    pub fn el2(reg: u64) -> u8 {
+        ((reg >> 8) & 0xF) as u8
+    }
     /// EL3 handling
-    pub fn el3(reg: u64) -> u8 { ((reg >> 12) & 0xF) as u8 }
+    pub fn el3(reg: u64) -> u8 {
+        ((reg >> 12) & 0xF) as u8
+    }
     /// FP support
-    pub fn fp(reg: u64) -> u8 { ((reg >> 16) & 0xF) as u8 }
+    pub fn fp(reg: u64) -> u8 {
+        ((reg >> 16) & 0xF) as u8
+    }
     /// Advanced SIMD support
-    pub fn advsimd(reg: u64) -> u8 { ((reg >> 20) & 0xF) as u8 }
+    pub fn advsimd(reg: u64) -> u8 {
+        ((reg >> 20) & 0xF) as u8
+    }
     /// GIC system registers support
-    pub fn gic(reg: u64) -> u8 { ((reg >> 24) & 0xF) as u8 }
+    pub fn gic(reg: u64) -> u8 {
+        ((reg >> 24) & 0xF) as u8
+    }
     /// RAS support
-    pub fn ras(reg: u64) -> u8 { ((reg >> 28) & 0xF) as u8 }
+    pub fn ras(reg: u64) -> u8 {
+        ((reg >> 28) & 0xF) as u8
+    }
     /// SVE support
-    pub fn sve(reg: u64) -> u8 { ((reg >> 32) & 0xF) as u8 }
+    pub fn sve(reg: u64) -> u8 {
+        ((reg >> 32) & 0xF) as u8
+    }
     /// SEL2 support
-    pub fn sel2(reg: u64) -> u8 { ((reg >> 36) & 0xF) as u8 }
+    pub fn sel2(reg: u64) -> u8 {
+        ((reg >> 36) & 0xF) as u8
+    }
     /// MPAM support
-    pub fn mpam(reg: u64) -> u8 { ((reg >> 40) & 0xF) as u8 }
+    pub fn mpam(reg: u64) -> u8 {
+        ((reg >> 40) & 0xF) as u8
+    }
     /// AMU support
-    pub fn amu(reg: u64) -> u8 { ((reg >> 44) & 0xF) as u8 }
+    pub fn amu(reg: u64) -> u8 {
+        ((reg >> 44) & 0xF) as u8
+    }
     /// DIT support
-    pub fn dit(reg: u64) -> u8 { ((reg >> 48) & 0xF) as u8 }
+    pub fn dit(reg: u64) -> u8 {
+        ((reg >> 48) & 0xF) as u8
+    }
     /// RME support
-    pub fn rme(reg: u64) -> u8 { ((reg >> 52) & 0xF) as u8 }
+    pub fn rme(reg: u64) -> u8 {
+        ((reg >> 52) & 0xF) as u8
+    }
     /// CSV2 support
-    pub fn csv2(reg: u64) -> u8 { ((reg >> 56) & 0xF) as u8 }
+    pub fn csv2(reg: u64) -> u8 {
+        ((reg >> 56) & 0xF) as u8
+    }
     /// CSV3 support
-    pub fn csv3(reg: u64) -> u8 { ((reg >> 60) & 0xF) as u8 }
+    pub fn csv3(reg: u64) -> u8 {
+        ((reg >> 60) & 0xF) as u8
+    }
 }
 
 /// ID_AA64MMFR0_EL1 field extraction
 pub mod mmfr0 {
     /// PARange (physical address range)
-    pub fn parange(reg: u64) -> u8 { (reg & 0xF) as u8 }
+    pub fn parange(reg: u64) -> u8 {
+        (reg & 0xF) as u8
+    }
     /// ASID bits
-    pub fn asidbits(reg: u64) -> u8 { ((reg >> 4) & 0xF) as u8 }
+    pub fn asidbits(reg: u64) -> u8 {
+        ((reg >> 4) & 0xF) as u8
+    }
     /// Big endian support
-    pub fn bigend(reg: u64) -> u8 { ((reg >> 8) & 0xF) as u8 }
+    pub fn bigend(reg: u64) -> u8 {
+        ((reg >> 8) & 0xF) as u8
+    }
     /// Secure NS support
-    pub fn snsmem(reg: u64) -> u8 { ((reg >> 12) & 0xF) as u8 }
+    pub fn snsmem(reg: u64) -> u8 {
+        ((reg >> 12) & 0xF) as u8
+    }
     /// Big endian EL0 support
-    pub fn bigendel0(reg: u64) -> u8 { ((reg >> 16) & 0xF) as u8 }
+    pub fn bigendel0(reg: u64) -> u8 {
+        ((reg >> 16) & 0xF) as u8
+    }
     /// TGran16 support
-    pub fn tgran16(reg: u64) -> u8 { ((reg >> 20) & 0xF) as u8 }
+    pub fn tgran16(reg: u64) -> u8 {
+        ((reg >> 20) & 0xF) as u8
+    }
     /// TGran64 support
-    pub fn tgran64(reg: u64) -> u8 { ((reg >> 24) & 0xF) as u8 }
+    pub fn tgran64(reg: u64) -> u8 {
+        ((reg >> 24) & 0xF) as u8
+    }
     /// TGran4 support
-    pub fn tgran4(reg: u64) -> u8 { ((reg >> 28) & 0xF) as u8 }
+    pub fn tgran4(reg: u64) -> u8 {
+        ((reg >> 28) & 0xF) as u8
+    }
     /// TGran16_2 support
-    pub fn tgran16_2(reg: u64) -> u8 { ((reg >> 32) & 0xF) as u8 }
+    pub fn tgran16_2(reg: u64) -> u8 {
+        ((reg >> 32) & 0xF) as u8
+    }
     /// TGran64_2 support
-    pub fn tgran64_2(reg: u64) -> u8 { ((reg >> 36) & 0xF) as u8 }
+    pub fn tgran64_2(reg: u64) -> u8 {
+        ((reg >> 36) & 0xF) as u8
+    }
     /// TGran4_2 support
-    pub fn tgran4_2(reg: u64) -> u8 { ((reg >> 40) & 0xF) as u8 }
+    pub fn tgran4_2(reg: u64) -> u8 {
+        ((reg >> 40) & 0xF) as u8
+    }
     /// ExS support
-    pub fn exs(reg: u64) -> u8 { ((reg >> 44) & 0xF) as u8 }
+    pub fn exs(reg: u64) -> u8 {
+        ((reg >> 44) & 0xF) as u8
+    }
     /// FGT support
-    pub fn fgt(reg: u64) -> u8 { ((reg >> 56) & 0xF) as u8 }
+    pub fn fgt(reg: u64) -> u8 {
+        ((reg >> 56) & 0xF) as u8
+    }
     /// ECV support
-    pub fn ecv(reg: u64) -> u8 { ((reg >> 60) & 0xF) as u8 }
+    pub fn ecv(reg: u64) -> u8 {
+        ((reg >> 60) & 0xF) as u8
+    }
 }
 
 /// Physical address range from PARange field

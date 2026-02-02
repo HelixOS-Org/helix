@@ -103,13 +103,16 @@ impl EfiTime {
 
     /// Is valid
     pub fn is_valid(&self) -> bool {
-        self.year >= 1900 && self.year <= 9999 &&
-        self.month >= 1 && self.month <= 12 &&
-        self.day >= 1 && self.day <= 31 &&
-        self.hour <= 23 &&
-        self.minute <= 59 &&
-        self.second <= 59 &&
-        self.nanosecond <= 999_999_999
+        self.year >= 1900
+            && self.year <= 9999
+            && self.month >= 1
+            && self.month <= 12
+            && self.day >= 1
+            && self.day <= 31
+            && self.hour <= 23
+            && self.minute <= 59
+            && self.second <= 59
+            && self.nanosecond <= 999_999_999
     }
 
     /// Days in month
@@ -118,8 +121,12 @@ impl EfiTime {
             1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
             4 | 6 | 9 | 11 => 30,
             2 => {
-                if self.is_leap_year() { 29 } else { 28 }
-            }
+                if self.is_leap_year() {
+                    29
+                } else {
+                    28
+                }
+            },
             _ => 0,
         }
     }
@@ -137,7 +144,13 @@ impl EfiTime {
             day += match m {
                 1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
                 4 | 6 | 9 | 11 => 30,
-                2 => if self.is_leap_year() { 29 } else { 28 },
+                2 => {
+                    if self.is_leap_year() {
+                        29
+                    } else {
+                        28
+                    }
+                },
                 _ => 0,
             };
         }
@@ -172,7 +185,11 @@ impl EfiTime {
 
         // Years since 1970
         for y in 1970..self.year {
-            days += if (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0) { 366 } else { 365 };
+            days += if (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0) {
+                366
+            } else {
+                365
+            };
         }
 
         // Days in this year
@@ -224,7 +241,18 @@ impl EfiTime {
         // Calculate month and day
         let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
         let days_in_months = [
-            31, if is_leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+            31,
+            if is_leap { 29 } else { 28 },
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31,
         ];
 
         let mut month = 1u8;
@@ -259,8 +287,7 @@ impl fmt::Display for EfiTime {
         write!(
             f,
             "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
-            self.year, self.month, self.day,
-            self.hour, self.minute, self.second
+            self.year, self.month, self.day, self.hour, self.minute, self.second
         )
     }
 }
@@ -305,66 +332,62 @@ pub mod var_attrs {
 pub mod var_names {
     /// Language codes
     pub const LANG_CODES: &[u16] = &[
-        'L' as u16, 'a' as u16, 'n' as u16, 'g' as u16, 'C' as u16,
-        'o' as u16, 'd' as u16, 'e' as u16, 's' as u16, 0
+        'L' as u16, 'a' as u16, 'n' as u16, 'g' as u16, 'C' as u16, 'o' as u16, 'd' as u16,
+        'e' as u16, 's' as u16, 0,
     ];
 
     /// Platform language codes
     pub const PLATFORM_LANG_CODES: &[u16] = &[
-        'P' as u16, 'l' as u16, 'a' as u16, 't' as u16, 'f' as u16,
-        'o' as u16, 'r' as u16, 'm' as u16, 'L' as u16, 'a' as u16,
-        'n' as u16, 'g' as u16, 'C' as u16, 'o' as u16, 'd' as u16,
-        'e' as u16, 's' as u16, 0
+        'P' as u16, 'l' as u16, 'a' as u16, 't' as u16, 'f' as u16, 'o' as u16, 'r' as u16,
+        'm' as u16, 'L' as u16, 'a' as u16, 'n' as u16, 'g' as u16, 'C' as u16, 'o' as u16,
+        'd' as u16, 'e' as u16, 's' as u16, 0,
     ];
 
     /// Timeout
     pub const TIMEOUT: &[u16] = &[
-        'T' as u16, 'i' as u16, 'm' as u16, 'e' as u16, 'o' as u16,
-        'u' as u16, 't' as u16, 0
+        'T' as u16, 'i' as u16, 'm' as u16, 'e' as u16, 'o' as u16, 'u' as u16, 't' as u16, 0,
     ];
 
     /// Boot order
     pub const BOOT_ORDER: &[u16] = &[
-        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'O' as u16,
-        'r' as u16, 'd' as u16, 'e' as u16, 'r' as u16, 0
+        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'O' as u16, 'r' as u16, 'd' as u16,
+        'e' as u16, 'r' as u16, 0,
     ];
 
     /// Boot current
     pub const BOOT_CURRENT: &[u16] = &[
-        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'C' as u16,
-        'u' as u16, 'r' as u16, 'r' as u16, 'e' as u16, 'n' as u16,
-        't' as u16, 0
+        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'C' as u16, 'u' as u16, 'r' as u16,
+        'r' as u16, 'e' as u16, 'n' as u16, 't' as u16, 0,
     ];
 
     /// Boot next
     pub const BOOT_NEXT: &[u16] = &[
-        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'N' as u16,
-        'e' as u16, 'x' as u16, 't' as u16, 0
+        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'N' as u16, 'e' as u16, 'x' as u16,
+        't' as u16, 0,
     ];
 
     /// Console out device
     pub const CON_OUT_DEV: &[u16] = &[
-        'C' as u16, 'o' as u16, 'n' as u16, 'O' as u16, 'u' as u16,
-        't' as u16, 'D' as u16, 'e' as u16, 'v' as u16, 0
+        'C' as u16, 'o' as u16, 'n' as u16, 'O' as u16, 'u' as u16, 't' as u16, 'D' as u16,
+        'e' as u16, 'v' as u16, 0,
     ];
 
     /// Secure boot
     pub const SECURE_BOOT: &[u16] = &[
-        'S' as u16, 'e' as u16, 'c' as u16, 'u' as u16, 'r' as u16,
-        'e' as u16, 'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 0
+        'S' as u16, 'e' as u16, 'c' as u16, 'u' as u16, 'r' as u16, 'e' as u16, 'B' as u16,
+        'o' as u16, 'o' as u16, 't' as u16, 0,
     ];
 
     /// Setup mode
     pub const SETUP_MODE: &[u16] = &[
-        'S' as u16, 'e' as u16, 't' as u16, 'u' as u16, 'p' as u16,
-        'M' as u16, 'o' as u16, 'd' as u16, 'e' as u16, 0
+        'S' as u16, 'e' as u16, 't' as u16, 'u' as u16, 'p' as u16, 'M' as u16, 'o' as u16,
+        'd' as u16, 'e' as u16, 0,
     ];
 }
 
 /// Global variable GUID
 pub const EFI_GLOBAL_VARIABLE_GUID: [u8; 16] = [
-    0x61, 0xDF, 0xE4, 0x8B, 0xCA, 0x93, 0xD2, 0x11,
-    0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
+    0x61, 0xDF, 0xE4, 0x8B, 0xCA, 0x93, 0xD2, 0x11, 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
 ];
 
 /// Variable info
@@ -424,11 +447,11 @@ impl Default for VariableInfo {
 #[repr(u32)]
 pub enum ResetType {
     /// Cold reset
-    Cold = 0,
+    Cold             = 0,
     /// Warm reset
-    Warm = 1,
+    Warm             = 1,
     /// Shutdown
-    Shutdown = 2,
+    Shutdown         = 2,
     /// Platform specific reset
     PlatformSpecific = 3,
 }
@@ -505,7 +528,11 @@ impl RuntimeServices {
     }
 
     /// Set wakeup time
-    pub fn set_wakeup_time(&self, enable: bool, time: Option<&EfiTime>) -> Result<(), RuntimeError> {
+    pub fn set_wakeup_time(
+        &self,
+        enable: bool,
+        time: Option<&EfiTime>,
+    ) -> Result<(), RuntimeError> {
         // Would call runtime_services.set_wakeup_time
         Ok(())
     }
@@ -577,7 +604,9 @@ impl RuntimeServices {
 
                     // Get variable attributes
                     let mut buffer = [0u8; 1];
-                    if let Ok((size, attrs)) = self.get_variable(&name[..name_size], &vendor_guid, &mut buffer) {
+                    if let Ok((size, attrs)) =
+                        self.get_variable(&name[..name_size], &vendor_guid, &mut buffer)
+                    {
                         info.data_size = size;
                         info.attributes = attrs;
                     }
@@ -585,7 +614,7 @@ impl RuntimeServices {
                     if !callback(&info) {
                         break;
                     }
-                }
+                },
                 Ok(false) => break,
                 Err(e) => return Err(e),
             }
@@ -595,7 +624,10 @@ impl RuntimeServices {
     }
 
     /// Query variable info
-    pub fn query_variable_info(&self, attributes: u32) -> Result<VariableStorageInfo, RuntimeError> {
+    pub fn query_variable_info(
+        &self,
+        attributes: u32,
+    ) -> Result<VariableStorageInfo, RuntimeError> {
         // Would call runtime_services.query_variable_info
         Ok(VariableStorageInfo {
             maximum_variable_storage_size: 0,
@@ -654,7 +686,11 @@ impl RuntimeServices {
     }
 
     /// Convert pointer
-    pub fn convert_pointer(&self, debug_disposition: u32, address: &mut usize) -> Result<(), RuntimeError> {
+    pub fn convert_pointer(
+        &self,
+        debug_disposition: u32,
+        address: &mut usize,
+    ) -> Result<(), RuntimeError> {
         // Would call runtime_services.convert_pointer
         Ok(())
     }
@@ -708,7 +744,11 @@ pub struct MemoryDescriptor {
 /// Get boot order variable
 pub fn get_boot_order(rt: &RuntimeServices) -> Result<[u16; 64], RuntimeError> {
     let mut buffer = [0u8; 128];
-    let (size, _) = rt.get_variable(var_names::BOOT_ORDER, &EFI_GLOBAL_VARIABLE_GUID, &mut buffer)?;
+    let (size, _) = rt.get_variable(
+        var_names::BOOT_ORDER,
+        &EFI_GLOBAL_VARIABLE_GUID,
+        &mut buffer,
+    )?;
 
     let mut order = [0u16; 64];
     let count = (size / 2).min(64);
@@ -740,14 +780,22 @@ pub fn set_boot_timeout(rt: &RuntimeServices, timeout: u16) -> Result<(), Runtim
 /// Check if secure boot is enabled
 pub fn is_secure_boot_enabled(rt: &RuntimeServices) -> Result<bool, RuntimeError> {
     let mut buffer = [0u8; 1];
-    rt.get_variable(var_names::SECURE_BOOT, &EFI_GLOBAL_VARIABLE_GUID, &mut buffer)?;
+    rt.get_variable(
+        var_names::SECURE_BOOT,
+        &EFI_GLOBAL_VARIABLE_GUID,
+        &mut buffer,
+    )?;
     Ok(buffer[0] != 0)
 }
 
 /// Check if in setup mode
 pub fn is_setup_mode(rt: &RuntimeServices) -> Result<bool, RuntimeError> {
     let mut buffer = [0u8; 1];
-    rt.get_variable(var_names::SETUP_MODE, &EFI_GLOBAL_VARIABLE_GUID, &mut buffer)?;
+    rt.get_variable(
+        var_names::SETUP_MODE,
+        &EFI_GLOBAL_VARIABLE_GUID,
+        &mut buffer,
+    )?;
     Ok(buffer[0] != 0)
 }
 

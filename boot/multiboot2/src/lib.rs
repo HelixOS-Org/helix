@@ -14,7 +14,7 @@
 //! ## Quick Start
 //!
 //! ```rust,no_run
-//! use helix_multiboot2::{Multiboot2Info, BootInfoError};
+//! use helix_multiboot2::{BootInfoError, Multiboot2Info};
 //!
 //! // Entry point receives raw pointer from bootloader
 //! fn kernel_entry(multiboot_magic: u32, info_ptr: *const u8) {
@@ -86,7 +86,7 @@ pub mod memory;
 // =============================================================================
 
 pub use boot_info::{BootInfo, BootProtocol};
-pub use header::{Multiboot2Header, HeaderBuilder, HeaderTag};
+pub use header::{HeaderBuilder, HeaderTag, Multiboot2Header};
 pub use info::{Multiboot2Info, Tag, TagIterator};
 pub use memory::{MemoryMap, MemoryRegion, MemoryRegionKind};
 pub use validate::{BootInfoError, ValidationResult};
@@ -253,9 +253,11 @@ pub const fn verify_checksum(
     header_length: u32,
     checksum: u32,
 ) -> bool {
-    magic.wrapping_add(architecture)
+    magic
+        .wrapping_add(architecture)
         .wrapping_add(header_length)
-        .wrapping_add(checksum) == 0
+        .wrapping_add(checksum)
+        == 0
 }
 
 /// Align a value up to the specified alignment
@@ -285,5 +287,10 @@ const _: () = {
 
     // Verify checksum calculation
     let checksum = calculate_checksum(HEADER_MAGIC, ARCHITECTURE_I386, 24);
-    assert!(verify_checksum(HEADER_MAGIC, ARCHITECTURE_I386, 24, checksum));
+    assert!(verify_checksum(
+        HEADER_MAGIC,
+        ARCHITECTURE_I386,
+        24,
+        checksum
+    ));
 };

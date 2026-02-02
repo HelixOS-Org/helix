@@ -422,7 +422,7 @@ mod tests {
 
     #[test]
     fn test_error_chain() {
-        let chain = ErrorChain::new(NexusError::NotInitialized)
+        let chain = ErrorChain::new(NexusError::not_initialized())
             .context("While processing event")
             .chain(NexusError::Internal("Root cause".into()));
 

@@ -15,83 +15,83 @@ use super::vectors::VectorOffset;
 #[repr(u8)]
 pub enum ExceptionClass {
     /// Unknown reason
-    Unknown = 0x00,
+    Unknown             = 0x00,
     /// Trapped WFI or WFE
-    TrappedWfx = 0x01,
+    TrappedWfx          = 0x01,
     /// Trapped MCR/MRC (AArch32)
-    TrappedMcrMrc = 0x03,
+    TrappedMcrMrc       = 0x03,
     /// Trapped MCRR/MRRC (AArch32)
-    TrappedMcrrMrrc = 0x04,
+    TrappedMcrrMrrc     = 0x04,
     /// Trapped MCR/MRC (AArch32) - coproc 14
-    TrappedMcrMrcCp14 = 0x05,
+    TrappedMcrMrcCp14   = 0x05,
     /// Trapped LDC/STC
-    TrappedLdcStc = 0x06,
+    TrappedLdcStc       = 0x06,
     /// SVE/SIMD/FP access
-    SveSimdFp = 0x07,
+    SveSimdFp           = 0x07,
     /// Trapped LD64B/ST64B*
-    TrappedLd64bSt64b = 0x0a,
+    TrappedLd64bSt64b   = 0x0a,
     /// Trapped MRRC (AArch32) - coproc 14
-    TrappedMrrcCp14 = 0x0c,
+    TrappedMrrcCp14     = 0x0c,
     /// Branch Target Exception
-    Bti = 0x0d,
+    Bti                 = 0x0d,
     /// Illegal Execution State
-    IllegalState = 0x0e,
+    IllegalState        = 0x0e,
     /// SVC (AArch32)
-    SvcAarch32 = 0x11,
+    SvcAarch32          = 0x11,
     /// HVC (AArch32)
-    HvcAarch32 = 0x12,
+    HvcAarch32          = 0x12,
     /// SMC (AArch32)
-    SmcAarch32 = 0x13,
+    SmcAarch32          = 0x13,
     /// SVC (AArch64)
-    SvcAarch64 = 0x15,
+    SvcAarch64          = 0x15,
     /// HVC (AArch64)
-    HvcAarch64 = 0x16,
+    HvcAarch64          = 0x16,
     /// SMC (AArch64)
-    SmcAarch64 = 0x17,
+    SmcAarch64          = 0x17,
     /// Trapped MSR/MRS/System instruction
-    TrappedMsrMrsSys = 0x18,
+    TrappedMsrMrsSys    = 0x18,
     /// SVE access
-    Sve = 0x19,
+    Sve                 = 0x19,
     /// Trapped ERET/ERETAA/ERETAB
-    TrappedEret = 0x1a,
+    TrappedEret         = 0x1a,
     /// Pointer Authentication failure
-    Pac = 0x1c,
+    Pac                 = 0x1c,
     /// Instruction Abort from lower EL
-    InstrAbortLowerEl = 0x20,
+    InstrAbortLowerEl   = 0x20,
     /// Instruction Abort from same EL
-    InstrAbortSameEl = 0x21,
+    InstrAbortSameEl    = 0x21,
     /// PC alignment fault
-    PcAlignment = 0x22,
+    PcAlignment         = 0x22,
     /// Data Abort from lower EL
-    DataAbortLowerEl = 0x24,
+    DataAbortLowerEl    = 0x24,
     /// Data Abort from same EL
-    DataAbortSameEl = 0x25,
+    DataAbortSameEl     = 0x25,
     /// SP alignment fault
-    SpAlignment = 0x26,
+    SpAlignment         = 0x26,
     /// Trapped FP (AArch32)
-    TrappedFpAarch32 = 0x28,
+    TrappedFpAarch32    = 0x28,
     /// Trapped FP (AArch64)
-    TrappedFpAarch64 = 0x2c,
+    TrappedFpAarch64    = 0x2c,
     /// SError interrupt
-    SError = 0x2f,
+    SError              = 0x2f,
     /// Breakpoint from lower EL
-    BreakpointLowerEl = 0x30,
+    BreakpointLowerEl   = 0x30,
     /// Breakpoint from same EL
-    BreakpointSameEl = 0x31,
+    BreakpointSameEl    = 0x31,
     /// Software Step from lower EL
     SoftwareStepLowerEl = 0x32,
     /// Software Step from same EL
-    SoftwareStepSameEl = 0x33,
+    SoftwareStepSameEl  = 0x33,
     /// Watchpoint from lower EL
-    WatchpointLowerEl = 0x34,
+    WatchpointLowerEl   = 0x34,
     /// Watchpoint from same EL
-    WatchpointSameEl = 0x35,
+    WatchpointSameEl    = 0x35,
     /// BKPT (AArch32)
-    BkptAarch32 = 0x38,
+    BkptAarch32         = 0x38,
     /// Vector Catch (AArch32)
-    VectorCatch = 0x3a,
+    VectorCatch         = 0x3a,
     /// BRK (AArch64)
-    BrkAarch64 = 0x3c,
+    BrkAarch64          = 0x3c,
 }
 
 impl ExceptionClass {
@@ -169,18 +169,21 @@ impl ExceptionClass {
 
     /// Check if this is a breakpoint
     pub fn is_breakpoint(&self) -> bool {
-        matches!(self,
-            Self::BreakpointLowerEl | Self::BreakpointSameEl |
-            Self::BkptAarch32 | Self::BrkAarch64
+        matches!(
+            self,
+            Self::BreakpointLowerEl | Self::BreakpointSameEl | Self::BkptAarch32 | Self::BrkAarch64
         )
     }
 
     /// Check if exception came from lower EL
     pub fn is_from_lower_el(&self) -> bool {
-        matches!(self,
-            Self::InstrAbortLowerEl | Self::DataAbortLowerEl |
-            Self::BreakpointLowerEl | Self::SoftwareStepLowerEl |
-            Self::WatchpointLowerEl
+        matches!(
+            self,
+            Self::InstrAbortLowerEl
+                | Self::DataAbortLowerEl
+                | Self::BreakpointLowerEl
+                | Self::SoftwareStepLowerEl
+                | Self::WatchpointLowerEl
         )
     }
 }
@@ -194,37 +197,37 @@ impl ExceptionClass {
 #[repr(u8)]
 pub enum FaultStatusCode {
     /// Address size fault, level 0
-    AddressSizeL0 = 0b000000,
+    AddressSizeL0  = 0b000000,
     /// Address size fault, level 1
-    AddressSizeL1 = 0b000001,
+    AddressSizeL1  = 0b000001,
     /// Address size fault, level 2
-    AddressSizeL2 = 0b000010,
+    AddressSizeL2  = 0b000010,
     /// Address size fault, level 3
-    AddressSizeL3 = 0b000011,
+    AddressSizeL3  = 0b000011,
     /// Translation fault, level 0
-    TranslationL0 = 0b000100,
+    TranslationL0  = 0b000100,
     /// Translation fault, level 1
-    TranslationL1 = 0b000101,
+    TranslationL1  = 0b000101,
     /// Translation fault, level 2
-    TranslationL2 = 0b000110,
+    TranslationL2  = 0b000110,
     /// Translation fault, level 3
-    TranslationL3 = 0b000111,
+    TranslationL3  = 0b000111,
     /// Access flag fault, level 1
-    AccessFlagL1 = 0b001001,
+    AccessFlagL1   = 0b001001,
     /// Access flag fault, level 2
-    AccessFlagL2 = 0b001010,
+    AccessFlagL2   = 0b001010,
     /// Access flag fault, level 3
-    AccessFlagL3 = 0b001011,
+    AccessFlagL3   = 0b001011,
     /// Permission fault, level 1
-    PermissionL1 = 0b001101,
+    PermissionL1   = 0b001101,
     /// Permission fault, level 2
-    PermissionL2 = 0b001110,
+    PermissionL2   = 0b001110,
     /// Permission fault, level 3
-    PermissionL3 = 0b001111,
+    PermissionL3   = 0b001111,
     /// Synchronous External abort
-    SyncExternal = 0b010000,
+    SyncExternal   = 0b010000,
     /// Synchronous Tag Check Fault
-    SyncTagCheck = 0b010001,
+    SyncTagCheck   = 0b010001,
     /// Synchronous External abort on table walk, level 0
     SyncExternalL0 = 0b010100,
     /// Synchronous External abort on table walk, level 1
@@ -234,27 +237,27 @@ pub enum FaultStatusCode {
     /// Synchronous External abort on table walk, level 3
     SyncExternalL3 = 0b010111,
     /// Synchronous parity/ECC error
-    SyncParity = 0b011000,
+    SyncParity     = 0b011000,
     /// Synchronous parity/ECC error on table walk, level 0
-    SyncParityL0 = 0b011100,
+    SyncParityL0   = 0b011100,
     /// Synchronous parity/ECC error on table walk, level 1
-    SyncParityL1 = 0b011101,
+    SyncParityL1   = 0b011101,
     /// Synchronous parity/ECC error on table walk, level 2
-    SyncParityL2 = 0b011110,
+    SyncParityL2   = 0b011110,
     /// Synchronous parity/ECC error on table walk, level 3
-    SyncParityL3 = 0b011111,
+    SyncParityL3   = 0b011111,
     /// Alignment fault
-    Alignment = 0b100001,
+    Alignment      = 0b100001,
     /// TLB conflict abort
-    TlbConflict = 0b110000,
+    TlbConflict    = 0b110000,
     /// Unsupported atomic hardware update
     AtomicHwUpdate = 0b110001,
     /// Implementation defined lockdown
-    Lockdown = 0b110100,
+    Lockdown       = 0b110100,
     /// Implementation defined exclusive
-    Exclusive = 0b110101,
+    Exclusive      = 0b110101,
     /// Unknown/Other
-    Unknown = 0b111111,
+    Unknown        = 0b111111,
 }
 
 impl FaultStatusCode {
@@ -298,22 +301,24 @@ impl FaultStatusCode {
 
     /// Check if this is a translation fault (page not mapped)
     pub fn is_translation_fault(&self) -> bool {
-        matches!(self,
-            Self::TranslationL0 | Self::TranslationL1 |
-            Self::TranslationL2 | Self::TranslationL3
+        matches!(
+            self,
+            Self::TranslationL0 | Self::TranslationL1 | Self::TranslationL2 | Self::TranslationL3
         )
     }
 
     /// Check if this is a permission fault
     pub fn is_permission_fault(&self) -> bool {
-        matches!(self,
+        matches!(
+            self,
             Self::PermissionL1 | Self::PermissionL2 | Self::PermissionL3
         )
     }
 
     /// Check if this is an access flag fault
     pub fn is_access_fault(&self) -> bool {
-        matches!(self,
+        matches!(
+            self,
             Self::AccessFlagL1 | Self::AccessFlagL2 | Self::AccessFlagL3
         )
     }
@@ -323,7 +328,8 @@ impl FaultStatusCode {
         let raw = *self as u8;
         if (raw & 0b111100) == 0b000100 || // Translation
            (raw & 0b111100) == 0b001000 || // Access flag
-           (raw & 0b111100) == 0b001100    // Permission
+           (raw & 0b111100) == 0b001100
+        // Permission
         {
             Some(raw & 0x3)
         } else {
@@ -547,8 +553,7 @@ impl Default for ExceptionHandlers {
 /// trap frame pointer.
 #[no_mangle]
 pub extern "C" fn dispatch_exception(frame: &mut TrapFrame, vector_offset: u16) {
-    let vector = VectorOffset::from_offset(vector_offset)
-        .unwrap_or(VectorOffset::CurrentElSpxSync);
+    let vector = VectorOffset::from_offset(vector_offset).unwrap_or(VectorOffset::CurrentElSpxSync);
 
     let info = ExceptionInfo::from_trap_frame(frame, vector);
 
@@ -567,29 +572,32 @@ fn handle_sync_exception(frame: &mut TrapFrame, info: ExceptionInfo) {
         ExceptionClass::SvcAarch64 => {
             // System call - handled separately
             handle_syscall(frame);
-        }
-        ExceptionClass::DataAbortLowerEl | ExceptionClass::DataAbortSameEl |
-        ExceptionClass::InstrAbortLowerEl | ExceptionClass::InstrAbortSameEl => {
+        },
+        ExceptionClass::DataAbortLowerEl
+        | ExceptionClass::DataAbortSameEl
+        | ExceptionClass::InstrAbortLowerEl
+        | ExceptionClass::InstrAbortSameEl => {
             // Page fault
             handle_page_fault(frame, &info);
-        }
-        ExceptionClass::BrkAarch64 | ExceptionClass::BreakpointLowerEl |
-        ExceptionClass::BreakpointSameEl => {
+        },
+        ExceptionClass::BrkAarch64
+        | ExceptionClass::BreakpointLowerEl
+        | ExceptionClass::BreakpointSameEl => {
             // Breakpoint
             handle_breakpoint(frame, &info);
-        }
+        },
         ExceptionClass::PcAlignment | ExceptionClass::SpAlignment => {
             // Alignment fault
             handle_alignment_fault(frame, &info);
-        }
+        },
         ExceptionClass::IllegalState => {
             // Illegal state
             handle_illegal_state(frame, &info);
-        }
+        },
         _ => {
             // Unhandled synchronous exception
             handle_unhandled(frame, &info);
-        }
+        },
     }
 }
 
@@ -617,7 +625,10 @@ fn handle_syscall(_frame: &mut TrapFrame) {
 /// Handle page fault
 fn handle_page_fault(frame: &mut TrapFrame, info: &ExceptionInfo) {
     let _fault_addr = info.far;
-    let _is_write = info.data_abort_info().map(|d| d.is_write()).unwrap_or(false);
+    let _is_write = info
+        .data_abort_info()
+        .map(|d| d.is_write())
+        .unwrap_or(false);
     let _is_user = info.from_lower_el;
 
     // Placeholder - actual implementation will call VM subsystem

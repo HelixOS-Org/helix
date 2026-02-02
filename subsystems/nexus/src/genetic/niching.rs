@@ -6,13 +6,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use super::{Individual, GenomeId, Fitness};
 use super::genome::CodeGenome;
 use super::population::Population;
+use super::{Fitness, GenomeId, Individual};
+use crate::math::F64Ext;
 
 // ============================================================================
 // NICHING TYPES
@@ -172,18 +172,18 @@ impl NichingManager {
 
     /// Apply fitness sharing
     fn apply_fitness_sharing(&mut self, population: &mut Population) {
-        let individuals: Vec<(GenomeId, CodeGenome, Fitness)> = population.iter()
+        let individuals: Vec<(GenomeId, CodeGenome, Fitness)> = population
+            .iter()
             .filter_map(|ind| {
-                ind.fitness.as_ref().map(|f| (ind.id, ind.genome.clone(), f.clone()))
+                ind.fitness
+                    .as_ref()
+                    .map(|f| (ind.id, ind.genome.clone(), f.clone()))
             })
             .collect();
 
         for individual in population.iter_mut() {
             if let Some(fitness) = &mut individual.fitness {
-                let niche_count = self.calculate_niche_count(
-                    &individual.genome,
-                    &individuals,
-                );
+                let niche_count = self.calculate_niche_count(&individual.genome, &individuals);
 
                 // Shared fitness = raw fitness / niche count
                 if niche_count > 0.0 {
@@ -218,18 +218,12 @@ impl NichingManager {
         }
 
         match self.config.sharing_function {
-            SharingFunction::Triangular => {
-                1.0 - (distance / self.config.sigma)
-            }
-            SharingFunction::Power { alpha } => {
-                1.0 - (distance / self.config.sigma).powf(alpha)
-            }
+            SharingFunction::Triangular => 1.0 - (distance / self.config.sigma),
+            SharingFunction::Power { alpha } => 1.0 - (distance / self.config.sigma).powf(alpha),
             SharingFunction::Gaussian => {
                 (-distance.powi(2) / (2.0 * self.config.sigma.powi(2))).exp()
-            }
-            SharingFunction::Binary => {
-                1.0
-            }
+            },
+            SharingFunction::Binary => 1.0,
         }
     }
 
@@ -241,15 +235,16 @@ impl NichingManager {
         }
 
         // Sort by fitness
-        let mut sorted: Vec<(GenomeId, &CodeGenome, f64)> = population.iter()
+        let mut sorted: Vec<(GenomeId, &CodeGenome, f64)> = population
+            .iter()
             .filter_map(|ind| {
-                ind.fitness.as_ref().map(|f| (ind.id, &ind.genome, f.scalar))
+                ind.fitness
+                    .as_ref()
+                    .map(|f| (ind.id, &ind.genome, f.scalar))
             })
             .collect();
 
-        sorted.sort_by(|a, b| {
-            b.2.partial_cmp(&a.2).unwrap_or(core::cmp::Ordering::Equal)
-        });
+        sorted.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(core::cmp::Ordering::Equal));
 
         // Assign to niches and clear losers
         let mut cleared = Vec::new();
@@ -306,7 +301,8 @@ impl NichingManager {
         offspring: &Individual,
     ) -> Option<GenomeId> {
         // Select random individuals
-        let candidates: Vec<&Individual> = population.iter()
+        let candidates: Vec<&Individual> = population
+            .iter()
             .take(self.config.crowding_factor)
             .collect();
 
@@ -315,12 +311,11 @@ impl NichingManager {
         }
 
         // Find most similar
-        let most_similar = candidates.iter()
-            .min_by(|a, b| {
-                let da = a.genome.distance(&offspring.genome);
-                let db = b.genome.distance(&offspring.genome);
-                da.partial_cmp(&db).unwrap_or(core::cmp::Ordering::Equal)
-            })?;
+        let most_similar = candidates.iter().min_by(|a, b| {
+            let da = a.genome.distance(&offspring.genome);
+            let db = b.genome.distance(&offspring.genome);
+            da.partial_cmp(&db).unwrap_or(core::cmp::Ordering::Equal)
+        })?;
 
         // Replace if offspring is fitter
         let offspring_fitness = offspring.fitness.as_ref()?.scalar;
@@ -398,10 +393,7 @@ impl Default for NichingManager {
 // ============================================================================
 
 /// Deterministic crowding
-pub fn deterministic_crowding(
-    parents: &[Individual],
-    offspring: &[Individual],
-) -> Vec<Individual> {
+pub fn deterministic_crowding(parents: &[Individual], offspring: &[Individual]) -> Vec<Individual> {
     let mut survivors = Vec::new();
 
     // Pair parents with offspring based on similarity
@@ -445,17 +437,13 @@ pub fn restricted_tournament_selection(
     let window_size = window_size.min(all.len());
 
     // Find most similar in window
-    let window: Vec<&Individual> = all.iter()
-        .take(window_size)
-        .copied()
-        .collect();
+    let window: Vec<&Individual> = all.iter().take(window_size).copied().collect();
 
-    let most_similar = window.iter()
-        .min_by(|a, b| {
-            let da = a.genome.distance(&offspring.genome);
-            let db = b.genome.distance(&offspring.genome);
-            da.partial_cmp(&db).unwrap_or(core::cmp::Ordering::Equal)
-        })?;
+    let most_similar = window.iter().min_by(|a, b| {
+        let da = a.genome.distance(&offspring.genome);
+        let db = b.genome.distance(&offspring.genome);
+        da.partial_cmp(&db).unwrap_or(core::cmp::Ordering::Equal)
+    })?;
 
     Some(most_similar.id)
 }
@@ -466,8 +454,9 @@ pub fn restricted_tournament_selection(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::sync::atomic::AtomicU64;
+
+    use super::*;
 
     #[test]
     fn test_niche_creation() {

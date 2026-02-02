@@ -7,9 +7,8 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::crossover::CrossoverEngine;
@@ -17,8 +16,7 @@ use super::genome::CodeGenome;
 use super::mutation::MutationEngine;
 use super::population::Population;
 use super::{
-    EvolutionConfig, EvolutionStats, Fitness, Generation, GenerationStats, GeneticEngine, GenomeId,
-    Individual, SelectionStrategy,
+    EvolutionConfig, EvolutionStats, Fitness, Generation, GenerationStats, GenomeId, Individual,
 };
 
 // ============================================================================

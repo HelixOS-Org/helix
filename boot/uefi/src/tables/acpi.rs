@@ -2,8 +2,8 @@
 //!
 //! Comprehensive ACPI table parsing for system configuration discovery.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -286,7 +286,7 @@ impl AcpiParser {
                             flags: entry.flags,
                         });
                     }
-                }
+                },
                 1 => {
                     // I/O APIC
                     if entry_len >= 12 {
@@ -297,7 +297,7 @@ impl AcpiParser {
                             gsi_base: entry.gsi_base,
                         });
                     }
-                }
+                },
                 2 => {
                     // Interrupt Source Override
                     if entry_len >= 10 {
@@ -309,7 +309,7 @@ impl AcpiParser {
                             flags: entry.flags,
                         });
                     }
-                }
+                },
                 3 => {
                     // NMI Source
                     if entry_len >= 8 {
@@ -319,7 +319,7 @@ impl AcpiParser {
                             gsi: entry.gsi,
                         });
                     }
-                }
+                },
                 4 => {
                     // Local APIC NMI
                     if entry_len >= 6 {
@@ -330,14 +330,14 @@ impl AcpiParser {
                             lint: entry.lint,
                         });
                     }
-                }
+                },
                 5 => {
                     // Local APIC Address Override
                     if entry_len >= 12 {
                         let entry = &*(ptr.0 as *const MadtAddressOverrideEntry);
                         info.local_apic_address = entry.local_apic_address;
                     }
-                }
+                },
                 9 => {
                     // Local x2APIC
                     if entry_len >= 16 {
@@ -348,8 +348,8 @@ impl AcpiParser {
                             flags: entry.flags,
                         });
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
 
             ptr += entry_len as u64;
@@ -459,10 +459,10 @@ impl AcpiParser {
     /// Get CPU count from MADT
     pub fn cpu_count(&self) -> usize {
         self.madt.as_ref().map_or(0, |m| {
-            let lapic_count = m.local_apics.iter()
-                .filter(|a| (a.flags & 1) != 0)
-                .count();
-            let x2apic_count = m.local_x2apics.iter()
+            let lapic_count = m.local_apics.iter().filter(|a| (a.flags & 1) != 0).count();
+            let x2apic_count = m
+                .local_x2apics
+                .iter()
                 .filter(|a| (a.flags & 1) != 0)
                 .count();
             lapic_count.max(x2apic_count)
@@ -763,7 +763,9 @@ impl ParsedTable {
 
     /// Get OEM ID as string
     pub fn oem_id_str(&self) -> &str {
-        core::str::from_utf8(&self.oem_id).unwrap_or("??????").trim()
+        core::str::from_utf8(&self.oem_id)
+            .unwrap_or("??????")
+            .trim()
     }
 }
 
@@ -930,22 +932,20 @@ impl MadtInfo {
 
     /// Get enabled CPU count
     pub fn enabled_cpu_count(&self) -> usize {
-        let lapic = self.local_apics.iter()
-            .filter(|a| a.is_enabled())
-            .count();
-        let x2apic = self.local_x2apics.iter()
-            .filter(|a| a.is_enabled())
-            .count();
+        let lapic = self.local_apics.iter().filter(|a| a.is_enabled()).count();
+        let x2apic = self.local_x2apics.iter().filter(|a| a.is_enabled()).count();
         lapic.max(x2apic)
     }
 
     /// Get BSP (Bootstrap Processor) APIC ID
     pub fn bsp_apic_id(&self) -> Option<u32> {
-        self.local_apics.first()
+        self.local_apics
+            .first()
             .filter(|a| a.is_enabled())
             .map(|a| a.apic_id)
             .or_else(|| {
-                self.local_x2apics.first()
+                self.local_x2apics
+                    .first()
                     .filter(|a| a.is_enabled())
                     .map(|a| a.x2apic_id)
             })

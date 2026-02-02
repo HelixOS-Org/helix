@@ -7,9 +7,9 @@
 //! - B1: Ghost entries evicted from T1
 //! - B2: Ghost entries evicted from T2
 
-use crate::core::error::{HfsError, HfsResult};
-use crate::core::atomic::{AtomicU32, AtomicU64, Ordering};
 use crate::cache::CacheKey;
+use crate::core::atomic::{AtomicU32, AtomicU64, Ordering};
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants
@@ -35,13 +35,13 @@ pub enum ArcList {
     /// Not in any list
     None = 0,
     /// Recent entries (seen once)
-    T1 = 1,
+    T1   = 1,
     /// Frequent entries (seen multiple times)
-    T2 = 2,
+    T2   = 2,
     /// Ghost of T1
-    B1 = 3,
+    B1   = 3,
     /// Ghost of T2
-    B2 = 4,
+    B2   = 4,
 }
 
 impl ArcList {
@@ -55,13 +55,13 @@ impl ArcList {
             _ => Self::None,
         }
     }
-    
+
     /// Is this a cache list (not ghost)
     #[inline]
     pub fn is_cache(&self) -> bool {
         matches!(self, Self::T1 | Self::T2)
     }
-    
+
     /// Is this a ghost list
     #[inline]
     pub fn is_ghost(&self) -> bool {
@@ -98,7 +98,10 @@ impl ArcEntry {
     /// Create new entry
     pub const fn new() -> Self {
         Self {
-            key: CacheKey { device: 0, block: 0 },
+            key: CacheKey {
+                device: 0,
+                block: 0,
+            },
             list: ArcList::None,
             buffer_idx: u32::MAX,
             prev: u32::MAX,
@@ -107,13 +110,13 @@ impl ArcEntry {
             _pad: [0; 4],
         }
     }
-    
+
     /// Is entry in use
     #[inline]
     pub fn is_used(&self) -> bool {
         self.list != ArcList::None
     }
-    
+
     /// Is entry a ghost
     #[inline]
     pub fn is_ghost(&self) -> bool {
@@ -151,19 +154,19 @@ impl ArcLinkedList {
             count: AtomicU32::new(0),
         }
     }
-    
+
     /// Is list empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.count.load(Ordering::Relaxed) == 0
     }
-    
+
     /// Get count
     #[inline]
     pub fn len(&self) -> u32 {
         self.count.load(Ordering::Relaxed)
     }
-    
+
     /// Get head
     #[inline]
     pub fn get_head(&self) -> Option<u32> {
@@ -174,7 +177,7 @@ impl ArcLinkedList {
             Some(head)
         }
     }
-    
+
     /// Get tail
     #[inline]
     pub fn get_tail(&self) -> Option<u32> {
@@ -217,19 +220,21 @@ impl ArcHashBucket {
             _pad: [0; 56],
         }
     }
-    
+
     /// Try lock
     pub fn try_lock(&self) -> bool {
-        self.lock.compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed).is_ok()
+        self.lock
+            .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
-    
+
     /// Lock
     pub fn lock(&self) {
         while !self.try_lock() {
             core::hint::spin_loop();
         }
     }
-    
+
     /// Unlock
     pub fn unlock(&self) {
         self.lock.store(0, Ordering::Release);
@@ -275,38 +280,50 @@ impl ArcState {
             accesses: AtomicU64::new(0),
         }
     }
-    
+
     /// Get current p value
     #[inline]
     pub fn get_p(&self) -> u32 {
         self.p.load(Ordering::Relaxed)
     }
-    
+
     /// Increase p (favor T1)
     pub fn increase_p(&self, delta: u32) {
         let max = self.c;
-        let _ = self.p.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |p| {
-            Some(core::cmp::min(p + delta, max))
-        });
+        let _ = self
+            .p
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |p| {
+                Some(core::cmp::min(p + delta, max))
+            });
     }
-    
+
     /// Decrease p (favor T2)
     pub fn decrease_p(&self, delta: u32) {
-        let _ = self.p.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |p| {
-            Some(p.saturating_sub(delta))
-        });
+        let _ = self
+            .p
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |p| {
+                Some(p.saturating_sub(delta))
+            });
     }
-    
+
     /// Record hit
     pub fn record_hit(&self, list: ArcList) {
         self.accesses.fetch_add(1, Ordering::Relaxed);
-        
+
         match list {
-            ArcList::T1 => { self.t1_hits.fetch_add(1, Ordering::Relaxed); }
-            ArcList::T2 => { self.t2_hits.fetch_add(1, Ordering::Relaxed); }
-            ArcList::B1 => { self.b1_hits.fetch_add(1, Ordering::Relaxed); }
-            ArcList::B2 => { self.b2_hits.fetch_add(1, Ordering::Relaxed); }
-            ArcList::None => {}
+            ArcList::T1 => {
+                self.t1_hits.fetch_add(1, Ordering::Relaxed);
+            },
+            ArcList::T2 => {
+                self.t2_hits.fetch_add(1, Ordering::Relaxed);
+            },
+            ArcList::B1 => {
+                self.b1_hits.fetch_add(1, Ordering::Relaxed);
+            },
+            ArcList::B2 => {
+                self.b2_hits.fetch_add(1, Ordering::Relaxed);
+            },
+            ArcList::None => {},
         }
     }
 }
@@ -345,48 +362,50 @@ impl ArcCache {
     fn hash_key(key: &CacheKey) -> usize {
         (key.hash() as usize) & ARC_HASH_MASK
     }
-    
+
     /// Acquire list lock
     fn lock_lists(&self) {
-        while self.list_lock.compare_exchange(
-            0, 1, Ordering::Acquire, Ordering::Relaxed
-        ).is_err() {
+        while self
+            .list_lock
+            .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
             core::hint::spin_loop();
         }
     }
-    
+
     /// Release list lock
     fn unlock_lists(&self) {
         self.list_lock.store(0, Ordering::Release);
     }
-    
+
     /// Look up entry by key
     pub fn lookup(&self, key: &CacheKey) -> Option<(u32, ArcList)> {
         let bucket_idx = Self::hash_key(key);
         let bucket = &self.hash_table[bucket_idx];
-        
+
         bucket.lock();
-        
+
         let mut idx = bucket.head.load(Ordering::Relaxed);
         while idx != u32::MAX {
             if (idx as usize) >= MAX_ARC_ENTRIES {
                 break;
             }
-            
+
             let entry = &self.entries[idx as usize];
             if entry.key == *key && entry.is_used() {
                 let list = entry.list;
                 bucket.unlock();
                 return Some((idx, list));
             }
-            
+
             idx = entry.hash_next;
         }
-        
+
         bucket.unlock();
         None
     }
-    
+
     /// Allocate new entry
     fn alloc_entry(&self) -> Option<u32> {
         loop {
@@ -394,97 +413,97 @@ impl ArcCache {
             if head == u32::MAX {
                 return None;
             }
-            
+
             if (head as usize) >= MAX_ARC_ENTRIES {
                 return None;
             }
-            
+
             let entry = &self.entries[head as usize];
             let next = entry.next;
-            
-            if self.free_head.compare_exchange(
-                head, next,
-                Ordering::Release,
-                Ordering::Relaxed
-            ).is_ok() {
+
+            if self
+                .free_head
+                .compare_exchange(head, next, Ordering::Release, Ordering::Relaxed)
+                .is_ok()
+            {
                 self.free_count.fetch_sub(1, Ordering::Relaxed);
                 return Some(head);
             }
         }
     }
-    
+
     /// Free entry back to pool
     fn free_entry(&self, idx: u32) {
         if (idx as usize) >= MAX_ARC_ENTRIES {
             return;
         }
-        
+
         let entry = &self.entries[idx as usize];
-        
+
         loop {
             let head = self.free_head.load(Ordering::Acquire);
-            
+
             // Safety: entry.next is not atomic, but we're the only
             // writer at this point since we removed it from all lists
             // This would need unsafe in real implementation
-            
-            if self.free_head.compare_exchange(
-                head, idx,
-                Ordering::Release,
-                Ordering::Relaxed
-            ).is_ok() {
+
+            if self
+                .free_head
+                .compare_exchange(head, idx, Ordering::Release, Ordering::Relaxed)
+                .is_ok()
+            {
                 self.free_count.fetch_add(1, Ordering::Relaxed);
                 return;
             }
         }
     }
-    
+
     /// Add entry to hash table
     fn hash_insert(&self, idx: u32, key: &CacheKey) {
         let bucket_idx = Self::hash_key(key);
         let bucket = &self.hash_table[bucket_idx];
-        
+
         bucket.lock();
-        
+
         let old_head = bucket.head.load(Ordering::Relaxed);
-        
+
         // Note: in real implementation, would need unsafe to modify entry
         // self.entries[idx].hash_next = old_head;
-        
+
         bucket.head.store(idx, Ordering::Relaxed);
         bucket.unlock();
     }
-    
+
     /// Remove entry from hash table
     fn hash_remove(&self, idx: u32, key: &CacheKey) {
         let bucket_idx = Self::hash_key(key);
         let bucket = &self.hash_table[bucket_idx];
-        
+
         bucket.lock();
-        
+
         let mut prev_idx = u32::MAX;
         let mut cur_idx = bucket.head.load(Ordering::Relaxed);
-        
+
         while cur_idx != u32::MAX {
             if cur_idx == idx {
                 let entry = &self.entries[cur_idx as usize];
                 let next = entry.hash_next;
-                
+
                 if prev_idx == u32::MAX {
                     bucket.head.store(next, Ordering::Relaxed);
                 }
                 // else: need unsafe to modify prev entry
-                
+
                 break;
             }
-            
+
             prev_idx = cur_idx;
             cur_idx = self.entries[cur_idx as usize].hash_next;
         }
-        
+
         bucket.unlock();
     }
-    
+
     /// Get list reference
     fn get_list(&self, list: ArcList) -> &ArcLinkedList {
         match list {
@@ -495,13 +514,13 @@ impl ArcCache {
             ArcList::None => &self.t1, // Fallback
         }
     }
-    
+
     /// Record access and potentially promote entry
     pub fn access(&self, key: &CacheKey) -> ArcAccessResult {
         // First check if in cache
         if let Some((idx, list)) = self.lookup(key) {
             self.state.record_hit(list);
-            
+
             match list {
                 ArcList::T1 => {
                     // Hit in T1: move to T2 (MRU)
@@ -509,14 +528,14 @@ impl ArcCache {
                     // Move logic here
                     self.unlock_lists();
                     return ArcAccessResult::HitT1(idx);
-                }
+                },
                 ArcList::T2 => {
                     // Hit in T2: move to MRU of T2
                     self.lock_lists();
                     // Move to MRU logic
                     self.unlock_lists();
                     return ArcAccessResult::HitT2(idx);
-                }
+                },
                 ArcList::B1 => {
                     // Ghost hit in B1: adapt p upward
                     let delta = if self.b2.len() >= self.b1.len() {
@@ -526,7 +545,7 @@ impl ArcCache {
                     };
                     self.state.increase_p(delta);
                     return ArcAccessResult::GhostB1(idx);
-                }
+                },
                 ArcList::B2 => {
                     // Ghost hit in B2: adapt p downward
                     let delta = if self.b1.len() >= self.b2.len() {
@@ -536,27 +555,27 @@ impl ArcCache {
                     };
                     self.state.decrease_p(delta);
                     return ArcAccessResult::GhostB2(idx);
-                }
-                ArcList::None => {}
+                },
+                ArcList::None => {},
             }
         }
-        
+
         // Complete miss
         ArcAccessResult::Miss
     }
-    
+
     /// Select victim for eviction
     pub fn select_victim(&self) -> Option<ArcVictim> {
         self.lock_lists();
-        
+
         let t1_len = self.t1.len();
         let t2_len = self.t2.len();
         let p = self.state.get_p();
-        
+
         // Case 1: T1 is not empty and (T1 len > p or T2 is empty and T1 has entries)
-        let evict_from_t1 = !self.t1.is_empty() && 
-            (t1_len > p || (self.t2.is_empty() && t1_len > 0));
-        
+        let evict_from_t1 =
+            !self.t1.is_empty() && (t1_len > p || (self.t2.is_empty() && t1_len > 0));
+
         let victim = if evict_from_t1 {
             // Evict from T1, move to B1
             if let Some(tail) = self.t1.get_tail() {
@@ -582,33 +601,33 @@ impl ArcCache {
                 None
             }
         };
-        
+
         self.unlock_lists();
         victim
     }
-    
+
     /// Insert new entry
     pub fn insert(&self, key: &CacheKey, buffer_idx: u32) -> HfsResult<u32> {
         // Allocate entry
         let idx = self.alloc_entry().ok_or(HfsError::NoSpace)?;
-        
+
         // Note: In real implementation, would need unsafe to modify entry
         // self.entries[idx].key = *key;
         // self.entries[idx].buffer_idx = buffer_idx;
         // self.entries[idx].list = ArcList::T1;
-        
+
         // Add to hash table
         self.hash_insert(idx, key);
-        
+
         // Add to T1 (MRU)
         self.lock_lists();
         // Add to T1 head logic
         // t1.count.fetch_add(1);
         self.unlock_lists();
-        
+
         Ok(idx)
     }
-    
+
     /// Get statistics
     pub fn get_stats(&self) -> ArcStats {
         ArcStats {
@@ -652,18 +671,19 @@ impl ArcAccessResult {
     pub fn is_hit(&self) -> bool {
         matches!(self, Self::HitT1(_) | Self::HitT2(_))
     }
-    
+
     /// Is this a ghost hit
     #[inline]
     pub fn is_ghost(&self) -> bool {
         matches!(self, Self::GhostB1(_) | Self::GhostB2(_))
     }
-    
+
     /// Get entry index
     pub fn entry_idx(&self) -> Option<u32> {
         match self {
-            Self::HitT1(idx) | Self::HitT2(idx) |
-            Self::GhostB1(idx) | Self::GhostB2(idx) => Some(*idx),
+            Self::HitT1(idx) | Self::HitT2(idx) | Self::GhostB1(idx) | Self::GhostB2(idx) => {
+                Some(*idx)
+            },
             Self::Miss => None,
         }
     }
@@ -720,7 +740,7 @@ impl ArcStats {
         let hits = self.t1_hits + self.t2_hits;
         (hits as f32 / self.accesses as f32) * 100.0
     }
-    
+
     /// Ghost hit rate
     pub fn ghost_hit_rate(&self) -> f32 {
         if self.accesses == 0 {
@@ -729,7 +749,7 @@ impl ArcStats {
         let ghosts = self.b1_hits + self.b2_hits;
         (ghosts as f32 / self.accesses as f32) * 100.0
     }
-    
+
     /// Recency ratio (T1 / total cache)
     pub fn recency_ratio(&self) -> f32 {
         let total = self.t1_size + self.t2_size;
@@ -747,7 +767,7 @@ impl ArcStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_arc_list() {
         assert!(ArcList::T1.is_cache());
@@ -756,14 +776,14 @@ mod tests {
         assert!(ArcList::B2.is_ghost());
         assert!(!ArcList::None.is_cache());
     }
-    
+
     #[test]
     fn test_arc_entry() {
         let entry = ArcEntry::new();
         assert!(!entry.is_used());
         assert!(!entry.is_ghost());
     }
-    
+
     #[test]
     fn test_arc_linked_list() {
         let list = ArcLinkedList::new();
@@ -771,19 +791,19 @@ mod tests {
         assert_eq!(list.len(), 0);
         assert!(list.get_head().is_none());
     }
-    
+
     #[test]
     fn test_arc_state() {
         let state = ArcState::new(1000);
         assert_eq!(state.get_p(), 500); // Initial p = c/2
-        
+
         state.increase_p(100);
         assert_eq!(state.get_p(), 600);
-        
+
         state.decrease_p(200);
         assert_eq!(state.get_p(), 400);
     }
-    
+
     #[test]
     fn test_arc_access_result() {
         assert!(ArcAccessResult::HitT1(0).is_hit());
@@ -791,14 +811,14 @@ mod tests {
         assert!(ArcAccessResult::GhostB1(0).is_ghost());
         assert!(!ArcAccessResult::Miss.is_hit());
     }
-    
+
     #[test]
     fn test_arc_stats() {
         let mut stats = ArcStats::default();
         stats.accesses = 100;
         stats.t1_hits = 30;
         stats.t2_hits = 40;
-        
+
         assert_eq!(stats.hit_rate(), 70.0);
     }
 }

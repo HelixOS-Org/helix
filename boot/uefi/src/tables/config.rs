@@ -2,12 +2,12 @@
 //!
 //! Unified interface for accessing and managing UEFI configuration tables.
 
-use crate::raw::types::*;
 use crate::error::Result;
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // CONFIGURATION TABLE MANAGER
@@ -47,7 +47,10 @@ impl ConfigTableManager {
     ) -> Result<()> {
         for i in 0..count {
             let entry = &*config_table.add(i);
-            self.add_table(entry.vendor_guid, PhysicalAddress(entry.vendor_table as u64))?;
+            self.add_table(
+                entry.vendor_guid,
+                PhysicalAddress(entry.vendor_table as u64),
+            )?;
         }
 
         // Parse known tables
@@ -75,7 +78,8 @@ impl ConfigTableManager {
     /// Parse ACPI configuration
     unsafe fn parse_acpi(&mut self) -> Result<()> {
         // Try ACPI 2.0+ first
-        let rsdp_addr = self.find_table_by_type(ConfigTableType::Acpi20)
+        let rsdp_addr = self
+            .find_table_by_type(ConfigTableType::Acpi20)
             .or_else(|| self.find_table_by_type(ConfigTableType::Acpi10));
 
         if let Some(addr) = rsdp_addr {
@@ -118,7 +122,8 @@ impl ConfigTableManager {
     /// Parse SMBIOS configuration
     unsafe fn parse_smbios(&mut self) -> Result<()> {
         // Try SMBIOS 3.x first
-        let entry_addr = self.find_table_by_type(ConfigTableType::Smbios3)
+        let entry_addr = self
+            .find_table_by_type(ConfigTableType::Smbios3)
             .or_else(|| self.find_table_by_type(ConfigTableType::Smbios));
 
         if let Some(addr) = entry_addr {
@@ -195,14 +200,16 @@ impl ConfigTableManager {
 
     /// Find table by type
     pub fn find_table_by_type(&self, table_type: ConfigTableType) -> Option<PhysicalAddress> {
-        self.tables.iter()
+        self.tables
+            .iter()
             .find(|t| t.table_type == table_type)
             .map(|t| t.address)
     }
 
     /// Find table by GUID
     pub fn find_table_by_guid(&self, guid: &Guid) -> Option<PhysicalAddress> {
-        self.tables.iter()
+        self.tables
+            .iter()
             .find(|t| &t.guid == guid)
             .map(|t| t.address)
     }
@@ -366,10 +373,14 @@ impl ConfigTable {
             self.guid.data1,
             self.guid.data2,
             self.guid.data3,
-            self.guid.data4[0], self.guid.data4[1],
-            self.guid.data4[2], self.guid.data4[3],
-            self.guid.data4[4], self.guid.data4[5],
-            self.guid.data4[6], self.guid.data4[7],
+            self.guid.data4[0],
+            self.guid.data4[1],
+            self.guid.data4[2],
+            self.guid.data4[3],
+            self.guid.data4[4],
+            self.guid.data4[5],
+            self.guid.data4[6],
+            self.guid.data4[7],
         )
     }
 }
@@ -427,75 +438,75 @@ impl ConfigTableType {
             // ACPI 1.0
             (0xeb9d2d30, 0x2d88, 0x11d3, &[0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d]) => {
                 Self::Acpi10
-            }
+            },
             // ACPI 2.0
             (0x8868e871, 0xe4f1, 0x11d3, &[0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81]) => {
                 Self::Acpi20
-            }
+            },
             // SMBIOS
             (0xeb9d2d31, 0x2d88, 0x11d3, &[0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d]) => {
                 Self::Smbios
-            }
+            },
             // SMBIOS 3.x
             (0xf2fd1544, 0x9794, 0x4a2c, &[0x99, 0x2e, 0xe5, 0xbb, 0xcf, 0x20, 0xe3, 0x94]) => {
                 Self::Smbios3
-            }
+            },
             // SAL
             (0xeb9d2d32, 0x2d88, 0x11d3, &[0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d]) => {
                 Self::Sal
-            }
+            },
             // MPS
             (0xeb9d2d2f, 0x2d88, 0x11d3, &[0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d]) => {
                 Self::Mps
-            }
+            },
             // DTB
             (0xb1b621d5, 0xf19c, 0x41a5, &[0x83, 0x0b, 0xd9, 0x15, 0x2c, 0x69, 0xaa, 0xe0]) => {
                 Self::Dtb
-            }
+            },
             // Debug Image Info
             (0x49152e77, 0x1ada, 0x4764, &[0xb7, 0xa2, 0x7a, 0xfe, 0xfe, 0xd9, 0x5e, 0x8b]) => {
                 Self::DebugImageInfo
-            }
+            },
             // LZMA Compress
             (0xee4e5898, 0x3914, 0x4259, &[0x9d, 0x6e, 0xdc, 0x7b, 0xd7, 0x94, 0x03, 0xcf]) => {
                 Self::LzmaCompress
-            }
+            },
             // DXE Services
             (0x05ad34ba, 0x6f02, 0x4214, &[0x95, 0x2e, 0x4d, 0xa0, 0x39, 0x8e, 0x2b, 0xb9]) => {
                 Self::DxeServices
-            }
+            },
             // HOB List
             (0x7739f24c, 0x93d7, 0x11d4, &[0x9a, 0x3a, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d]) => {
                 Self::HobList
-            }
+            },
             // Memory Type Info
             (0x4c19049f, 0x4137, 0x4dd3, &[0x9c, 0x10, 0x8b, 0x97, 0xa8, 0x3f, 0xfd, 0xfa]) => {
                 Self::MemoryTypeInfo
-            }
+            },
             // Memory Attributes Table
             (0xdcfa911d, 0x26eb, 0x469f, &[0xa2, 0x20, 0x38, 0xb7, 0xdc, 0x46, 0x12, 0x20]) => {
                 Self::MemoryAttributesTable
-            }
+            },
             // Conformance Profiles
             (0x36122546, 0xf7ef, 0x4c8f, &[0xbd, 0x9b, 0xeb, 0x85, 0x25, 0xb5, 0x0c, 0x0b]) => {
                 Self::ConformanceProfiles
-            }
+            },
             // RT Properties
             (0xeb66918a, 0x7eef, 0x402a, &[0x84, 0x2e, 0x93, 0x1d, 0x21, 0xc3, 0x8a, 0xe9]) => {
                 Self::RtProperties
-            }
+            },
             // JSON Config Data
             (0x87367f87, 0x1119, 0x41ce, &[0xaa, 0xec, 0x8b, 0xe0, 0x11, 0x1f, 0x55, 0x8a]) => {
                 Self::JsonConfigData
-            }
+            },
             // JSON Config Result
             (0xdbc461c3, 0xb3de, 0x422a, &[0xb9, 0xb4, 0x98, 0x86, 0xfd, 0x49, 0xa1, 0xe5]) => {
                 Self::JsonConfigResult
-            }
+            },
             // Memory Range Capsule
             (0xde9f0ec, 0x88b6, 0x428f, &[0x97, 0x7a, 0x25, 0x8f, 0x1d, 0x0e, 0x5e, 0x72]) => {
                 Self::MemoryRangeCapsule
-            }
+            },
             _ => Self::Unknown,
         }
     }
@@ -545,9 +556,7 @@ pub struct AcpiConfig {
 impl AcpiConfig {
     /// Get OEM ID as string
     pub fn oem_id_string(&self) -> &str {
-        core::str::from_utf8(&self.oem_id)
-            .unwrap_or("")
-            .trim()
+        core::str::from_utf8(&self.oem_id).unwrap_or("").trim()
     }
 
     /// Check if ACPI 2.0+
@@ -825,7 +834,10 @@ mod tests {
             data3: 0x11d3,
             data4: [0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81],
         };
-        assert_eq!(ConfigTableType::from_guid(&acpi2_guid), ConfigTableType::Acpi20);
+        assert_eq!(
+            ConfigTableType::from_guid(&acpi2_guid),
+            ConfigTableType::Acpi20
+        );
 
         // SMBIOS 3
         let smbios3_guid = Guid {
@@ -834,7 +846,10 @@ mod tests {
             data3: 0x4a2c,
             data4: [0x99, 0x2e, 0xe5, 0xbb, 0xcf, 0x20, 0xe3, 0x94],
         };
-        assert_eq!(ConfigTableType::from_guid(&smbios3_guid), ConfigTableType::Smbios3);
+        assert_eq!(
+            ConfigTableType::from_guid(&smbios3_guid),
+            ConfigTableType::Smbios3
+        );
     }
 
     #[test]

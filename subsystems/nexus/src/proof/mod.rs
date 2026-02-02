@@ -25,32 +25,26 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
+pub mod model;
+pub mod predicate;
 pub mod property;
 pub mod state;
-pub mod predicate;
 pub mod transition;
-pub mod model;
+pub mod types;
 pub mod verifier;
 
 // Re-export core types
-pub use types::{PropertyType, VerificationOutcome};
-
-// Re-export property types
-pub use property::{invariant, progress_property, safety_property, Property};
-
-// Re-export state types
-pub use state::{Counterexample, State, Value};
-
-// Re-export predicate types
-pub use predicate::Predicate;
-
-// Re-export transition types
-pub use transition::Transition;
-
 // Re-export model types
 pub use model::Model;
-
+// Re-export predicate types
+pub use predicate::Predicate;
+// Re-export property types
+pub use property::{Property, invariant, progress_property, safety_property};
+// Re-export state types
+pub use state::{Counterexample, State, Value};
+// Re-export transition types
+pub use transition::Transition;
+pub use types::{PropertyType, VerificationOutcome};
 // Re-export verifier types
 pub use verifier::{VerificationResult, Verifier, VerifierConfig, VerifierStats};
 

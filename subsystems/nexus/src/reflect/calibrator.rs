@@ -10,20 +10,6 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use crate::types::*;
 
 // ============================================================================
-// PREDICTION ID
-// ============================================================================
-
-/// Prediction ID type
-define_id!(PredictionId, "Prediction identifier");
-
-// ============================================================================
-// DECISION ID
-// ============================================================================
-
-/// Decision ID type
-define_id!(DecisionId, "Decision identifier");
-
-// ============================================================================
 // PREDICTION RECORD
 // ============================================================================
 
@@ -46,11 +32,7 @@ pub struct PredictionRecord {
 
 impl PredictionRecord {
     /// Create new prediction
-    pub fn new(
-        prediction: impl Into<String>,
-        confidence: Confidence,
-        deadline: Timestamp,
-    ) -> Self {
+    pub fn new(prediction: impl Into<String>, confidence: Confidence, deadline: Timestamp) -> Self {
         Self {
             id: PredictionId::generate(),
             prediction: prediction.into(),
@@ -312,12 +294,7 @@ impl Calibrator {
     }
 
     /// Record decision outcome
-    pub fn record_decision_outcome(
-        &mut self,
-        id: DecisionId,
-        successful: bool,
-        impact: String,
-    ) {
+    pub fn record_decision_outcome(&mut self, id: DecisionId, successful: bool, impact: String) {
         if let Some(dec) = self.decisions.iter_mut().find(|d| d.id == id) {
             dec.outcome = Some(DecisionOutcome {
                 successful,
@@ -347,7 +324,10 @@ impl Calibrator {
         let prediction_accuracy = correct_count as f32 / with_outcome.len() as f32;
 
         // Calculate calibration error
-        let avg_confidence: f32 = with_outcome.iter().map(|p| p.confidence.value()).sum::<f32>()
+        let avg_confidence: f32 = with_outcome
+            .iter()
+            .map(|p| p.confidence.value())
+            .sum::<f32>()
             / with_outcome.len() as f32;
 
         let calibration_error = (avg_confidence - prediction_accuracy).abs();
@@ -474,11 +454,7 @@ mod tests {
 
     #[test]
     fn test_prediction_record() {
-        let pred = PredictionRecord::new(
-            "CPU will spike",
-            Confidence::new(0.9),
-            Timestamp::now(),
-        );
+        let pred = PredictionRecord::new("CPU will spike", Confidence::new(0.9), Timestamp::now());
         assert!(!pred.has_outcome());
     }
 

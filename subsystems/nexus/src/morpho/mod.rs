@@ -45,33 +45,30 @@
 //! └─────────────────────────────────────────────────────────────────────────┘
 //! ```
 
-#![no_std]
 #![allow(dead_code)]
 
 extern crate alloc;
 
-pub mod automata;
-pub mod cell;
-pub mod development;
-pub mod gradient;
-pub mod homeostasis;
-pub mod morphogen;
-pub mod organ;
-pub mod pattern;
-pub mod regeneration;
-pub mod signaling;
-pub mod tissue;
+// TODO: Ces sous-modules doivent être créés
+// pub mod automata;
+// pub mod cell;
+// pub mod development;
+// pub mod gradient;
+// pub mod homeostasis;
+// pub mod morphogen;
+// pub mod organ;
+// pub mod pattern;
+// pub mod regeneration;
+// pub mod signaling;
+// pub mod tissue;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
-use core::f64::consts::PI;
 
-use crate::types::{NexusError, NexusResult};
+use crate::math::F64Ext;
 
 /// Morphogen types (signaling molecules)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MorphogenType {
     /// Activator - promotes growth/activity
     Activator,
@@ -356,7 +353,7 @@ impl TuringPattern {
 
     /// Simulate one time step
     pub fn step(&mut self, dt: f64) {
-        let size = self.activator.size;
+        let _size = self.activator.size;
         let p = &self.params;
 
         // Store old concentrations
@@ -996,8 +993,14 @@ impl MorphogeneticKernel {
         self.turing.step(dt);
 
         // Get current morphogen concentrations at organ locations
-        for organ in &mut self.organs {
-            let morphogens = self.sample_morphogens(&organ.tissues[0].center);
+        // Pre-compute morphogen samples to avoid borrowing self in the loop
+        let morphogen_samples: Vec<_> = self
+            .organs
+            .iter()
+            .map(|organ| self.sample_morphogens(&organ.tissues[0].center))
+            .collect();
+
+        for (organ, morphogens) in self.organs.iter_mut().zip(morphogen_samples.into_iter()) {
             organ.update(&morphogens, dt);
 
             // Check if regeneration needed

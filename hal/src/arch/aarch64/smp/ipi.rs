@@ -42,13 +42,14 @@
 //! └───────────────────────────────────────────────────────────────────────┘
 //! ```
 
-use super::{
-    mpidr::Mpidr,
-    percpu::PerCpuData,
-    SmpError, MAX_CPUS,
-    IPI_RESCHEDULE, IPI_TLB_SHOOTDOWN, IPI_CALL_FUNCTION, IPI_CPU_STOP, IPI_CPU_WAKE,
-};
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+
+use super::mpidr::Mpidr;
+use super::percpu::PerCpuData;
+use super::{
+    SmpError, IPI_CALL_FUNCTION, IPI_CPU_STOP, IPI_CPU_WAKE, IPI_RESCHEDULE, IPI_TLB_SHOOTDOWN,
+    MAX_CPUS,
+};
 
 // ============================================================================
 // IPI Vector Definitions
@@ -59,15 +60,15 @@ use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 #[repr(u8)]
 pub enum IpiVector {
     /// Reschedule request
-    Reschedule = IPI_RESCHEDULE,
+    Reschedule   = IPI_RESCHEDULE,
     /// TLB shootdown
     TlbShootdown = IPI_TLB_SHOOTDOWN,
     /// Remote function call
     CallFunction = IPI_CALL_FUNCTION,
     /// Stop CPU
-    CpuStop = IPI_CPU_STOP,
+    CpuStop      = IPI_CPU_STOP,
     /// Wake CPU
-    CpuWake = IPI_CPU_WAKE,
+    CpuWake      = IPI_CPU_WAKE,
     /// Custom vector
     Custom(u8),
 }
@@ -141,14 +142,28 @@ pub fn send_sgi_all_except_self_gicv3(sgi_id: u8) {
 pub fn send_sgi_self_gicv3(sgi_id: u8) {
     let mpidr = Mpidr::current();
     let target = 1u16 << (mpidr.aff0() & 0xF);
-    send_sgi_gicv3(sgi_id, target, mpidr.aff1(), mpidr.aff2(), mpidr.aff3(), false);
+    send_sgi_gicv3(
+        sgi_id,
+        target,
+        mpidr.aff1(),
+        mpidr.aff2(),
+        mpidr.aff3(),
+        false,
+    );
 }
 
 /// Send an SGI to a specific CPU by MPIDR (GICv3)
 #[inline]
 pub fn send_sgi_to_mpidr_gicv3(sgi_id: u8, mpidr: Mpidr) {
     let target = 1u16 << (mpidr.aff0() & 0xF);
-    send_sgi_gicv3(sgi_id, target, mpidr.aff1(), mpidr.aff2(), mpidr.aff3(), false);
+    send_sgi_gicv3(
+        sgi_id,
+        target,
+        mpidr.aff1(),
+        mpidr.aff2(),
+        mpidr.aff3(),
+        false,
+    );
 }
 
 // ============================================================================
@@ -274,10 +289,22 @@ static mut IPI_HANDLERS: [Option<IpiHandler>; 16] = [None; 16];
 
 /// IPI handler data
 static IPI_HANDLER_DATA: [AtomicUsize; 16] = [
-    AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0),
-    AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0),
-    AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0),
-    AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0), AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
+    AtomicUsize::new(0),
 ];
 
 /// Register an IPI handler
@@ -316,7 +343,7 @@ pub fn handle_ipi(sgi_id: u8, cpu_id: u32) {
             IpiVector::TlbShootdown => handle_tlb_shootdown_ipi(cpu_id),
             IpiVector::CpuStop => handle_cpu_stop_ipi(cpu_id),
             IpiVector::CpuWake => handle_cpu_wake_ipi(cpu_id),
-            _ => {}
+            _ => {},
         }
     }
 }
@@ -340,12 +367,7 @@ fn handle_tlb_shootdown_ipi(_cpu_id: u32) {
         if addr == 0 {
             // Full TLB flush
             unsafe {
-                core::arch::asm!(
-                    "tlbi vmalle1is",
-                    "dsb ish",
-                    "isb",
-                    options(nomem, nostack),
-                );
+                core::arch::asm!("tlbi vmalle1is", "dsb ish", "isb", options(nomem, nostack),);
             }
         } else {
             // Single page flush
@@ -428,12 +450,7 @@ pub fn request_tlb_shootdown_all() -> Result<(), SmpError> {
 
     // Flush local TLB too
     unsafe {
-        core::arch::asm!(
-            "tlbi vmalle1is",
-            "dsb ish",
-            "isb",
-            options(nomem, nostack),
-        );
+        core::arch::asm!("tlbi vmalle1is", "dsb ish", "isb", options(nomem, nostack),);
     }
 
     Ok(())

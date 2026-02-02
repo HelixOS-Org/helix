@@ -55,7 +55,9 @@ impl CompressionType {
         }
 
         // zlib
-        if data[0] == 0x78 && (data[1] == 0x01 || data[1] == 0x5E || data[1] == 0x9C || data[1] == 0xDA) {
+        if data[0] == 0x78
+            && (data[1] == 0x01 || data[1] == 0x5E || data[1] == 0x9C || data[1] == 0xDA)
+        {
             return Self::Deflate;
         }
 
@@ -89,9 +91,7 @@ pub fn rle_compress(input: &[u8], output: &mut [u8]) -> Option<RleResult> {
         let mut run_len = 1usize;
 
         // Count consecutive bytes
-        while in_pos + run_len < input.len() &&
-              input[in_pos + run_len] == byte &&
-              run_len < 255 {
+        while in_pos + run_len < input.len() && input[in_pos + run_len] == byte && run_len < 255 {
             run_len += 1;
         }
 
@@ -125,7 +125,10 @@ pub fn rle_compress(input: &[u8], output: &mut [u8]) -> Option<RleResult> {
         0
     };
 
-    Some(RleResult { size: out_pos, ratio })
+    Some(RleResult {
+        size: out_pos,
+        ratio,
+    })
 }
 
 /// RLE decompress
@@ -227,7 +230,9 @@ impl<'a> LzEncoder<'a> {
             let match_start = self.pos - offset;
             let mut length = 0;
 
-            while length < max_len && self.data[match_start + length] == self.data[self.pos + length] {
+            while length < max_len
+                && self.data[match_start + length] == self.data[self.pos + length]
+            {
                 length += 1;
             }
 
@@ -713,25 +718,28 @@ impl GzipHeader {
             None
         };
 
-        Some((Self {
-            method,
-            flags,
-            mtime,
-            xfl,
-            os,
-            filename,
-            filename_len,
-            comment,
-            comment_len,
-            header_crc,
-        }, pos))
+        Some((
+            Self {
+                method,
+                flags,
+                mtime,
+                xfl,
+                os,
+                filename,
+                filename_len,
+                comment,
+                comment_len,
+                header_crc,
+            },
+            pos,
+        ))
     }
 
     /// Get filename as string
     pub fn filename_str(&self) -> Option<&str> {
-        self.filename.as_ref().and_then(|f| {
-            core::str::from_utf8(&f[..self.filename_len]).ok()
-        })
+        self.filename
+            .as_ref()
+            .and_then(|f| core::str::from_utf8(&f[..self.filename_len]).ok())
     }
 }
 
@@ -776,11 +784,26 @@ mod tests {
 
     #[test]
     fn test_compression_type_detection() {
-        assert_eq!(CompressionType::detect(&[0x1F, 0x8B, 0x08, 0x00]), CompressionType::Deflate);
-        assert_eq!(CompressionType::detect(&[0x78, 0x9C, 0x00, 0x00]), CompressionType::Deflate);
-        assert_eq!(CompressionType::detect(&[0x28, 0xB5, 0x2F, 0xFD]), CompressionType::Zstd);
-        assert_eq!(CompressionType::detect(&[0x04, 0x22, 0x4D, 0x18]), CompressionType::Lz4);
-        assert_eq!(CompressionType::detect(&[0x00, 0x00, 0x00, 0x00]), CompressionType::None);
+        assert_eq!(
+            CompressionType::detect(&[0x1F, 0x8B, 0x08, 0x00]),
+            CompressionType::Deflate
+        );
+        assert_eq!(
+            CompressionType::detect(&[0x78, 0x9C, 0x00, 0x00]),
+            CompressionType::Deflate
+        );
+        assert_eq!(
+            CompressionType::detect(&[0x28, 0xB5, 0x2F, 0xFD]),
+            CompressionType::Zstd
+        );
+        assert_eq!(
+            CompressionType::detect(&[0x04, 0x22, 0x4D, 0x18]),
+            CompressionType::Lz4
+        );
+        assert_eq!(
+            CompressionType::detect(&[0x00, 0x00, 0x00, 0x00]),
+            CompressionType::None
+        );
     }
 
     #[test]

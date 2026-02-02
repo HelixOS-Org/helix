@@ -7,10 +7,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{EpisodeId, BootId, Timestamp, TimeRange};
+use super::{BootId, EpisodeId, TimeRange, Timestamp};
 
 /// Episode type
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum EpisodeType {
     /// Normal boot
     NormalBoot,

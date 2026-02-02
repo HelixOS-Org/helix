@@ -215,8 +215,7 @@ impl BlockIntelligence {
                         severity: 7,
                         description: format!(
                             "Device {} has high latency: {}ms",
-                            device.name,
-                            avg_latency_ms
+                            device.name, avg_latency_ms
                         ),
                         device: Some(device.id),
                     });

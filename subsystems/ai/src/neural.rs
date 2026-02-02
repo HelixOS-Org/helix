@@ -40,17 +40,15 @@
 //!                     └─────────────────────────────────────┘
 //! ```
 
-use crate::core::{AiAction, AiEvent, Confidence, DecisionContext};
-
-use alloc::{
-    boxed::Box,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::RwLock;
+
+use crate::core::{AiAction, AiEvent, Confidence, DecisionContext};
 
 // =============================================================================
 // Tensor Types
@@ -80,7 +78,9 @@ impl TensorShape {
 
     /// 2D matrix
     pub fn matrix(rows: usize, cols: usize) -> Self {
-        Self { dims: vec![rows, cols] }
+        Self {
+            dims: vec![rows, cols],
+        }
     }
 
     /// Total number of elements
@@ -178,7 +178,8 @@ impl Tensor {
             return None;
         }
 
-        let data: Vec<f32> = self.data
+        let data: Vec<f32> = self
+            .data
             .iter()
             .zip(other.data.iter())
             .map(|(a, b)| a + b)
@@ -197,7 +198,8 @@ impl Tensor {
             return None;
         }
 
-        let data: Vec<f32> = self.data
+        let data: Vec<f32> = self
+            .data
             .iter()
             .zip(other.data.iter())
             .map(|(a, b)| a * b)
@@ -222,7 +224,8 @@ impl Tensor {
 
     /// Apply ReLU activation
     pub fn relu(&self) -> Self {
-        let data: Vec<f32> = self.data
+        let data: Vec<f32> = self
+            .data
             .iter()
             .map(|x| if *x > 0.0 { *x } else { 0.0 })
             .collect();
@@ -235,7 +238,8 @@ impl Tensor {
 
     /// Apply sigmoid activation
     pub fn sigmoid(&self) -> Self {
-        let data: Vec<f32> = self.data
+        let data: Vec<f32> = self
+            .data
             .iter()
             .map(|x| 1.0 / (1.0 + crate::math::exp_f32(-x)))
             .collect();
@@ -249,9 +253,14 @@ impl Tensor {
     /// Apply softmax (1D only)
     pub fn softmax(&self) -> Self {
         let max = self.data.iter().fold(f32::NEG_INFINITY, |a, b| a.max(*b));
-        let exp_sum: f32 = self.data.iter().map(|x| crate::math::exp_f32(x - max)).sum();
+        let exp_sum: f32 = self
+            .data
+            .iter()
+            .map(|x| crate::math::exp_f32(x - max))
+            .sum();
 
-        let data: Vec<f32> = self.data
+        let data: Vec<f32> = self
+            .data
             .iter()
             .map(|x| crate::math::exp_f32(x - max) / exp_sum)
             .collect();
@@ -337,7 +346,11 @@ pub struct DenseLayer {
 
 impl DenseLayer {
     pub fn new(weights: Tensor, bias: Tensor, activation: Activation) -> Self {
-        Self { weights, bias, activation }
+        Self {
+            weights,
+            bias,
+            activation,
+        }
     }
 
     /// Create with random initialization (for testing)
@@ -346,11 +359,16 @@ impl DenseLayer {
         let weights = Tensor::ones(
             TensorShape::matrix(input_size, output_size),
             TensorDtype::F32,
-        ).scale(0.01);
+        )
+        .scale(0.01);
 
         let bias = Tensor::zeros(TensorShape::vector(output_size), TensorDtype::F32);
 
-        Self { weights, bias, activation }
+        Self {
+            weights,
+            bias,
+            activation,
+        }
     }
 }
 
@@ -479,10 +497,7 @@ pub enum DecisionNode {
         right: Box<DecisionNode>,
     },
     /// Leaf node (prediction)
-    Leaf {
-        class_index: usize,
-        confidence: f32,
-    },
+    Leaf { class_index: usize, confidence: f32 },
 }
 
 impl DecisionTree {
@@ -508,14 +523,22 @@ impl DecisionTree {
 
     fn traverse(&self, node: &DecisionNode, features: &[f32]) -> (usize, f32) {
         match node {
-            DecisionNode::Split { feature_index, threshold, left, right } => {
+            DecisionNode::Split {
+                feature_index,
+                threshold,
+                left,
+                right,
+            } => {
                 if *feature_index < features.len() && features[*feature_index] <= *threshold {
                     self.traverse(left, features)
                 } else {
                     self.traverse(right, features)
                 }
-            }
-            DecisionNode::Leaf { class_index, confidence } => (*class_index, *confidence),
+            },
+            DecisionNode::Leaf {
+                class_index,
+                confidence,
+            } => (*class_index, *confidence),
         }
     }
 
@@ -736,11 +759,13 @@ impl NeuralEngine {
 
         let elapsed = self.get_timestamp() - start;
         self.stats.inferences_run.fetch_add(1, Ordering::Relaxed);
-        self.stats.total_inference_time_us.fetch_add(elapsed, Ordering::Relaxed);
+        self.stats
+            .total_inference_time_us
+            .fetch_add(elapsed, Ordering::Relaxed);
 
         // Determine class (for classification tasks)
-        let (class_index, confidence) = if output.shape.ndim() == 1 ||
-            (output.shape.ndim() == 2 && output.shape.dims[0] == 1)
+        let (class_index, confidence) = if output.shape.ndim() == 1
+            || (output.shape.ndim() == 2 && output.shape.dims[0] == 1)
         {
             let argmax = output.argmax();
             let max_val = output.data()[argmax];
@@ -782,7 +807,9 @@ impl NeuralEngine {
         let matchers = self.pattern_matchers.read();
         if let Some(matcher) = matchers.iter().find(|m| m.id == matcher_id) {
             let matches = matcher.find_matches(query);
-            self.stats.patterns_matched.fetch_add(matches.len() as u64, Ordering::Relaxed);
+            self.stats
+                .patterns_matched
+                .fetch_add(matches.len() as u64, Ordering::Relaxed);
             matches
         } else {
             Vec::new()
@@ -960,7 +987,11 @@ pub fn create_health_tree() -> DecisionTree {
             }),
         },
         vec!["cpu_usage".to_string(), "memory_usage".to_string()],
-        vec!["healthy".to_string(), "memory_pressure".to_string(), "cpu_overload".to_string()],
+        vec![
+            "healthy".to_string(),
+            "memory_pressure".to_string(),
+            "cpu_overload".to_string(),
+        ],
     )
 }
 

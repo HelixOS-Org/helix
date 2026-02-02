@@ -2,8 +2,9 @@
 //!
 //! Provides access to FAT-based file systems.
 
-use crate::raw::types::*;
 use core::fmt;
+
+use crate::raw::types::*;
 
 // =============================================================================
 // COMPATIBILITY GUIDS
@@ -29,10 +30,8 @@ pub struct EfiSimpleFileSystemProtocol {
     pub revision: u64,
 
     /// Open the root directory
-    pub open_volume: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        root: *mut *mut EfiFileProtocol,
-    ) -> Status,
+    pub open_volume:
+        unsafe extern "efiapi" fn(this: *mut Self, root: *mut *mut EfiFileProtocol) -> Status,
 }
 
 impl EfiSimpleFileSystemProtocol {
@@ -101,16 +100,10 @@ pub struct EfiFileProtocol {
     ) -> Status,
 
     /// Get file position
-    pub get_position: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        position: *mut u64,
-    ) -> Status,
+    pub get_position: unsafe extern "efiapi" fn(this: *mut Self, position: *mut u64) -> Status,
 
     /// Set file position
-    pub set_position: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        position: u64,
-    ) -> Status,
+    pub set_position: unsafe extern "efiapi" fn(this: *mut Self, position: u64) -> Status,
 
     /// Get file info
     pub get_info: unsafe extern "efiapi" fn(
@@ -132,34 +125,29 @@ pub struct EfiFileProtocol {
     pub flush: unsafe extern "efiapi" fn(this: *mut Self) -> Status,
 
     // EFI_FILE_PROTOCOL Revision 2 (UEFI 2.0+)
-
     /// Open a file (extended)
-    pub open_ex: Option<unsafe extern "efiapi" fn(
-        this: *mut Self,
-        new_handle: *mut *mut Self,
-        file_name: *const Char16,
-        open_mode: u64,
-        attributes: u64,
-        token: *mut EfiFileIoToken,
-    ) -> Status>,
+    pub open_ex: Option<
+        unsafe extern "efiapi" fn(
+            this: *mut Self,
+            new_handle: *mut *mut Self,
+            file_name: *const Char16,
+            open_mode: u64,
+            attributes: u64,
+            token: *mut EfiFileIoToken,
+        ) -> Status,
+    >,
 
     /// Read from a file (extended)
-    pub read_ex: Option<unsafe extern "efiapi" fn(
-        this: *mut Self,
-        token: *mut EfiFileIoToken,
-    ) -> Status>,
+    pub read_ex:
+        Option<unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiFileIoToken) -> Status>,
 
     /// Write to a file (extended)
-    pub write_ex: Option<unsafe extern "efiapi" fn(
-        this: *mut Self,
-        token: *mut EfiFileIoToken,
-    ) -> Status>,
+    pub write_ex:
+        Option<unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiFileIoToken) -> Status>,
 
     /// Flush file (extended)
-    pub flush_ex: Option<unsafe extern "efiapi" fn(
-        this: *mut Self,
-        token: *mut EfiFileIoToken,
-    ) -> Status>,
+    pub flush_ex:
+        Option<unsafe extern "efiapi" fn(this: *mut Self, token: *mut EfiFileIoToken) -> Status>,
 }
 
 impl EfiFileProtocol {
@@ -179,13 +167,7 @@ impl EfiFileProtocol {
         attributes: FileAttribute,
     ) -> Result<*mut Self, Status> {
         let mut handle = core::ptr::null_mut();
-        let status = (self.open)(
-            self,
-            &mut handle,
-            file_name,
-            open_mode.0,
-            attributes.0,
-        );
+        let status = (self.open)(self, &mut handle, file_name, open_mode.0, attributes.0);
         status.to_status_result_with(handle)
     }
 
@@ -477,9 +459,7 @@ impl EfiFileInfo {
         let slice = core::slice::from_raw_parts(ptr, name_len);
 
         // Find null terminator
-        let actual_len = slice.iter()
-            .position(|&c| c == 0)
-            .unwrap_or(slice.len());
+        let actual_len = slice.iter().position(|&c| c == 0).unwrap_or(slice.len());
 
         &slice[..actual_len]
     }
@@ -540,9 +520,7 @@ impl EfiFileSystemInfo {
         let slice = core::slice::from_raw_parts(ptr, label_len);
 
         // Find null terminator
-        let actual_len = slice.iter()
-            .position(|&c| c == 0)
-            .unwrap_or(slice.len());
+        let actual_len = slice.iter().position(|&c| c == 0).unwrap_or(slice.len());
 
         &slice[..actual_len]
     }

@@ -6,10 +6,11 @@
 
 extern crate alloc;
 
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::gates::{apply_cnot, apply_h, apply_rx, apply_rz};
-use super::types::{Complex, Hamiltonian, PauliString, StateVector};
+use super::types::{Hamiltonian, Pauli, PauliString, StateVector};
 
 // ============================================================================
 // QAOA PARAMETERS
@@ -28,8 +29,8 @@ impl QaoaParameters {
     /// Create new parameters for p layers
     pub fn new(p: usize) -> Self {
         Self {
-            betas: alloc::vec![0.5; p],
-            gammas: alloc::vec![0.5; p],
+            betas: vec![0.5; p],
+            gammas: vec![0.5; p],
         }
     }
 
@@ -93,30 +94,21 @@ impl QaoaProblem {
     }
 
     /// Create MaxCut problem
+    /// H_C = Σ_{(u,v)∈E} 0.5 * (1 - Z_u * Z_v)
     pub fn maxcut(edges: &[(usize, usize)]) -> Self {
         let mut n_qubits = 0;
         for &(u, v) in edges {
             n_qubits = n_qubits.max(u + 1).max(v + 1);
         }
 
-        let mut terms = Vec::new();
+        let mut hamiltonian = Hamiltonian::new(n_qubits);
 
         for &(u, v) in edges {
-            // Edge contribution: 0.5 * (1 - Z_u * Z_v)
-            // = 0.5 - 0.5 * Z_u * Z_v
-
-            // Create ZZ term
-            let mut ops = alloc::vec![(0u8, 0u8); n_qubits];
-            ops[u] = (3, 0); // Z
-            ops[v] = (3, 0); // Z
-
-            terms.push((PauliString { operators: ops }, -0.5));
+            // Edge contribution: -0.5 * Z_u * Z_v (constant absorbed)
+            hamiltonian.add_term(PauliString::zz(n_qubits, u, v, -0.5));
         }
 
-        // Constant offset (0.5 per edge) absorbed
-        let cost_hamiltonian = Hamiltonian { terms };
-
-        Self::new(n_qubits, cost_hamiltonian)
+        Self::new(n_qubits, hamiltonian)
     }
 
     /// Create weighted MaxCut problem
@@ -126,37 +118,28 @@ impl QaoaProblem {
             n_qubits = n_qubits.max(u + 1).max(v + 1);
         }
 
-        let mut terms = Vec::new();
+        let mut hamiltonian = Hamiltonian::new(n_qubits);
 
         for &(u, v, w) in edges {
-            let mut ops = alloc::vec![(0u8, 0u8); n_qubits];
-            ops[u] = (3, 0);
-            ops[v] = (3, 0);
-
-            terms.push((PauliString { operators: ops }, -0.5 * w));
+            hamiltonian.add_term(PauliString::zz(n_qubits, u, v, -0.5 * w));
         }
 
-        let cost_hamiltonian = Hamiltonian { terms };
-        Self::new(n_qubits, cost_hamiltonian)
+        Self::new(n_qubits, hamiltonian)
+    }
+
+    /// Create Ising problem from couplings and fields
+    pub fn ising(couplings: &[(usize, usize, f64)], fields: &[(usize, f64)]) -> Self {
+        let hamiltonian = Hamiltonian::ising(couplings, fields);
+        let n_qubits = hamiltonian.n_qubits;
+        Self::new(n_qubits, hamiltonian)
     }
 
     /// Evaluate cost function for bitstring
     pub fn evaluate(&self, bitstring: usize) -> f64 {
         let mut cost = 0.0;
 
-        for (pauli_string, coeff) in &self.cost_hamiltonian.terms {
-            let mut sign = 1.0f64;
-
-            for (i, &(p, _)) in pauli_string.operators.iter().enumerate() {
-                if p == 3 {
-                    // Z operator
-                    if (bitstring >> i) & 1 == 1 {
-                        sign *= -1.0;
-                    }
-                }
-            }
-
-            cost += coeff * sign;
+        for term in &self.cost_hamiltonian.terms {
+            cost += term.expectation_basis(bitstring);
         }
 
         cost
@@ -199,17 +182,17 @@ impl QaoaEngine {
     /// Apply cost layer exp(-iγH_C)
     fn apply_cost_layer(&mut self, gamma: f64) {
         // For diagonal cost Hamiltonian (ZZ terms only)
-        for (pauli_string, coeff) in &self.problem.cost_hamiltonian.terms {
+        for term in &self.problem.cost_hamiltonian.terms {
             // Find qubits with Z operators
-            let z_qubits: Vec<usize> = pauli_string
-                .operators
+            let z_qubits: Vec<usize> = term
+                .paulis
                 .iter()
                 .enumerate()
-                .filter(|(_, &(p, _))| p == 3)
+                .filter(|&(_, p)| *p == Pauli::Z)
                 .map(|(i, _)| i)
                 .collect();
 
-            let angle = 2.0 * gamma * coeff;
+            let angle = 2.0 * gamma * term.coeff;
 
             match z_qubits.len() {
                 0 => {},
@@ -226,7 +209,7 @@ impl QaoaEngine {
                     apply_cnot(&mut self.state, q0, q1);
                 },
                 _ => {
-                    // Multi-Z: generalized pattern
+                    // Multi-Z: generalized ladder pattern
                     for i in 0..z_qubits.len() - 1 {
                         apply_cnot(&mut self.state, z_qubits[i], z_qubits[i + 1]);
                     }
@@ -282,11 +265,11 @@ impl QaoaEngine {
     /// Sample from output distribution
     pub fn sample(&self, n_samples: usize, seed: u64) -> Vec<(usize, usize)> {
         let dim = self.state.dimension();
-        let mut counts = alloc::vec![0usize; dim];
+        let mut counts = vec![0usize; dim];
         let mut rng = seed;
 
         for _ in 0..n_samples {
-            // Simple PRNG
+            // Simple PRNG (xorshift64)
             rng ^= rng << 13;
             rng ^= rng >> 7;
             rng ^= rng << 17;
@@ -326,6 +309,11 @@ impl QaoaEngine {
         }
 
         (best_bitstring, best_cost)
+    }
+
+    /// Get current state
+    pub fn state(&self) -> &StateVector {
+        &self.state
     }
 }
 
@@ -369,7 +357,7 @@ impl QaoaOptimizer {
     fn compute_gradient(&mut self) -> Vec<f64> {
         let eps = 0.01;
         let params = self.engine.parameters.to_vec();
-        let mut gradient = alloc::vec![0.0; params.len()];
+        let mut gradient = vec![0.0; params.len()];
 
         for i in 0..params.len() {
             // Forward
@@ -447,6 +435,43 @@ pub struct QaoaResult {
 }
 
 // ============================================================================
+// WARM START
+// ============================================================================
+
+/// Warm-start strategy for QAOA
+pub enum WarmStartStrategy {
+    /// Start from uniform superposition
+    Uniform,
+    /// Start from classical solution
+    Classical(usize),
+    /// Start from previous QAOA solution
+    Transfer(QaoaParameters),
+}
+
+/// Apply warm start to QAOA engine
+pub fn apply_warm_start(engine: &mut QaoaEngine, strategy: WarmStartStrategy) {
+    match strategy {
+        WarmStartStrategy::Uniform => {
+            // Default initialization
+        },
+        WarmStartStrategy::Classical(bitstring) => {
+            // Could initialize state closer to classical solution
+            // For now, just use as hint for parameter initialization
+            let _ = bitstring;
+        },
+        WarmStartStrategy::Transfer(params) => {
+            // Transfer parameters from previous run
+            if params.depth() <= engine.parameters.depth() {
+                for i in 0..params.depth() {
+                    engine.parameters.gammas[i] = params.gammas[i];
+                    engine.parameters.betas[i] = params.betas[i];
+                }
+            }
+        },
+    }
+}
+
+// ============================================================================
 // TESTS
 // ============================================================================
 
@@ -509,5 +534,27 @@ mod tests {
         // Total count should be 100
         let total: usize = samples.iter().map(|(_, c)| c).sum();
         assert_eq!(total, 100);
+    }
+
+    #[test]
+    fn test_ising_problem() {
+        // Simple 2-qubit Ising: J_01 = 1.0, h_0 = 0.5
+        let couplings = [(0, 1, 1.0)];
+        let fields = [(0, 0.5)];
+
+        let problem = QaoaProblem::ising(&couplings, &fields);
+        assert_eq!(problem.n_qubits, 2);
+    }
+
+    #[test]
+    fn test_weighted_maxcut() {
+        let edges = [(0, 1, 2.0), (1, 2, 1.0)];
+        let problem = QaoaProblem::weighted_maxcut(&edges);
+
+        assert_eq!(problem.n_qubits, 3);
+
+        // The weighted edge should contribute more
+        let cost = problem.evaluate(0b001);
+        assert!(cost.is_finite());
     }
 }

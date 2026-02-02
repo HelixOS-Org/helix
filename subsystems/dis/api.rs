@@ -57,17 +57,18 @@
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, Ordering};
+
 use spin::RwLock;
 
-use super::{TaskId, CpuId, Nanoseconds, DISResult, Task, TaskState};
-use super::intent::{Intent, IntentClass, IntentBuilder};
-use super::policy::{Policy, PolicyId, PolicyBuilder};
-use super::scheduler::{DISScheduler, SchedulerConfig, SchedulingDecision};
-use super::stats::{TaskStats, SystemStats, StatsSummary};
-use super::optimizer::OptimizationHint;
-use super::isolation::{SecurityManager, DomainId, DomainType, Capability, CapabilitySet};
-use super::queues::QueueManager;
 use super::executor::Executor;
+use super::intent::{Intent, IntentBuilder, IntentClass};
+use super::isolation::{Capability, CapabilitySet, DomainId, DomainType, SecurityManager};
+use super::optimizer::OptimizationHint;
+use super::policy::{Policy, PolicyBuilder, PolicyId};
+use super::queues::QueueManager;
+use super::scheduler::{DISScheduler, SchedulerConfig, SchedulingDecision};
+use super::stats::{StatsSummary, SystemStats, TaskStats};
+use super::{CpuId, DISResult, Nanoseconds, Task, TaskId, TaskState};
 
 // =============================================================================
 // DIS Handle
@@ -93,17 +94,17 @@ impl TaskHandle {
             intent_class,
         }
     }
-    
+
     /// Get task ID
     pub fn id(&self) -> TaskId {
         self.id
     }
-    
+
     /// Get task name
     pub fn name(&self) -> &str {
         &self.name
     }
-    
+
     /// Get intent class
     pub fn class(&self) -> IntentClass {
         self.intent_class
@@ -140,77 +141,85 @@ impl<'a> TaskBuilder<'a> {
             capabilities: None,
         }
     }
-    
+
     /// Set task intent
     pub fn with_intent(mut self, intent: Intent) -> Self {
         self.intent = Some(intent);
         self
     }
-    
+
     /// Set security domain
     pub fn in_domain(mut self, domain: DomainId) -> Self {
         self.domain = Some(domain);
         self
     }
-    
+
     /// Set CPU affinity
     pub fn on_cpus(mut self, cpus: Vec<CpuId>) -> Self {
         self.cpu_affinity = Some(cpus);
         self
     }
-    
+
     /// Set initial priority
     pub fn priority(mut self, priority: i8) -> Self {
         self.priority = Some(priority);
         self
     }
-    
+
     /// Set time slice
     pub fn time_slice(mut self, slice: Nanoseconds) -> Self {
         self.time_slice = Some(slice);
         self
     }
-    
+
     /// Set capabilities
     pub fn capabilities(mut self, caps: CapabilitySet) -> Self {
         self.capabilities = Some(caps);
         self
     }
-    
+
     /// Create as real-time task
     pub fn realtime(mut self) -> Self {
-        self.intent = Some(IntentBuilder::new()
+        self.intent = Some(
+            IntentBuilder::new()
             .class(IntentClass::RealTime)
             .latency_ms(1)  // Ultra-low latency: 1ms
-            .build_unchecked());
+            .build_unchecked(),
+        );
         self
     }
-    
+
     /// Create as interactive task
     pub fn interactive(mut self) -> Self {
-        self.intent = Some(IntentBuilder::new()
+        self.intent = Some(
+            IntentBuilder::new()
             .class(IntentClass::Interactive)
             .latency_ms(16)  // Low latency: 16ms (60fps)
-            .build_unchecked());
+            .build_unchecked(),
+        );
         self
     }
-    
+
     /// Create as batch task
     pub fn batch(mut self) -> Self {
-        self.intent = Some(IntentBuilder::new()
-            .class(IntentClass::Batch)
-            .build_unchecked());
+        self.intent = Some(
+            IntentBuilder::new()
+                .class(IntentClass::Batch)
+                .build_unchecked(),
+        );
         self
     }
-    
+
     /// Create as background task
     pub fn background(mut self) -> Self {
-        self.intent = Some(IntentBuilder::new()
-            .class(IntentClass::Background)
-            .build_unchecked());
+        self.intent = Some(
+            IntentBuilder::new()
+                .class(IntentClass::Background)
+                .build_unchecked(),
+        );
         self
     }
-    
+
     /// Spawn the task
     pub fn spawn(self) -> DISResult<TaskHandle> {
         let intent = self.intent.unwrap_or_else(|| {
@@ -218,27 +227,27 @@ impl<'a> TaskBuilder<'a> {
                 .class(IntentClass::Interactive)
                 .build_unchecked()
         });
-        
+
         let intent_class = intent.class;
         let task_id = self.dis.create_task_internal(&self.name, intent)?;
-        
+
         // Apply optional settings
         if let Some(priority) = self.priority {
             self.dis.set_priority(task_id, priority)?;
         }
-        
+
         if let Some(slice) = self.time_slice {
             self.dis.set_time_slice(task_id, slice)?;
         }
-        
+
         if let Some(cpus) = self.cpu_affinity {
             self.dis.set_cpu_affinity(task_id, cpus)?;
         }
-        
+
         if let Some(domain) = self.domain {
             self.dis.set_domain(task_id, domain)?;
         }
-        
+
         Ok(TaskHandle::new(task_id, &self.name, intent_class))
     }
 }
@@ -272,7 +281,7 @@ impl DIS {
             initialized: AtomicBool::new(false),
         }
     }
-    
+
     /// Create with custom configuration
     pub fn with_config(config: SchedulerConfig) -> Self {
         Self {
@@ -283,85 +292,85 @@ impl DIS {
             initialized: AtomicBool::new(false),
         }
     }
-    
+
     /// Initialize DIS
     pub fn init(&self) -> DISResult<()> {
         if self.initialized.swap(true, Ordering::SeqCst) {
             return Ok(()); // Already initialized
         }
-        
+
         // Additional initialization if needed
         Ok(())
     }
-    
+
     // =========================================================================
     // Task Management
     // =========================================================================
-    
+
     /// Create task builder
     pub fn create_task(&self, name: &str) -> TaskBuilder<'_> {
         TaskBuilder::new(self, name)
     }
-    
+
     /// Create task with intent (internal)
     fn create_task_internal(&self, name: &str, intent: Intent) -> DISResult<TaskId> {
         self.scheduler.read().create_task(name, intent)
     }
-    
+
     /// Destroy task
     pub fn destroy_task(&self, task_id: TaskId) -> DISResult<()> {
         self.scheduler.read().destroy_task(task_id)
     }
-    
+
     /// Get task
     pub fn get_task(&self, task_id: TaskId) -> Option<Task> {
         self.scheduler.read().get_task(task_id)
     }
-    
+
     /// Set task state
     pub fn set_state(&self, task_id: TaskId, state: TaskState) -> DISResult<()> {
         self.scheduler.read().set_task_state(task_id, state)
     }
-    
+
     /// Set task priority
     pub fn set_priority(&self, task_id: TaskId, priority: i8) -> DISResult<()> {
         // Would update task priority
         let _ = (task_id, priority);
         Ok(())
     }
-    
+
     /// Set time slice
     pub fn set_time_slice(&self, task_id: TaskId, slice: Nanoseconds) -> DISResult<()> {
         self.executor.read().reset_time_slice(task_id, slice)
     }
-    
+
     /// Set CPU affinity
     pub fn set_cpu_affinity(&self, task_id: TaskId, cpus: Vec<CpuId>) -> DISResult<()> {
         let _ = (task_id, cpus);
         Ok(())
     }
-    
+
     /// Set security domain
     pub fn set_domain(&self, task_id: TaskId, domain: DomainId) -> DISResult<()> {
         let _ = (task_id, domain);
         Ok(())
     }
-    
+
     /// Yield current task
     pub fn yield_now(&self) {
         // Would trigger rescheduling
     }
-    
+
     /// Sleep for duration
     pub fn sleep(&self, duration: Nanoseconds) {
         let _ = duration;
         // Would block current task for duration
     }
-    
+
     // =========================================================================
     // Intent Management
     // =========================================================================
-    
+
     /// Update task intent
     pub fn update_intent(&self, task_id: TaskId, intent: Intent) -> DISResult<()> {
         let scheduler = self.scheduler.read();
@@ -369,130 +378,154 @@ impl DIS {
         engine.register(intent)?;
         Ok(())
     }
-    
+
     /// Get intent engine
     pub fn intent_engine(&self) -> IntentEngineHandle<'_> {
         IntentEngineHandle { dis: self }
     }
-    
+
     // =========================================================================
     // Policy Management
     // =========================================================================
-    
+
     /// Add scheduling policy
     pub fn add_policy(&self, policy: Policy) -> PolicyId {
-        self.scheduler.read().policy_engine().read().register(policy)
+        self.scheduler
+            .read()
+            .policy_engine()
+            .read()
+            .register(policy)
     }
-    
+
     /// Remove policy
     pub fn remove_policy(&self, policy_id: PolicyId) -> bool {
-        self.scheduler.read().policy_engine().read().unregister(policy_id).is_some()
+        self.scheduler
+            .read()
+            .policy_engine()
+            .read()
+            .unregister(policy_id)
+            .is_some()
     }
-    
+
     /// Get policy engine handle
     pub fn policy_engine(&self) -> PolicyEngineHandle<'_> {
         PolicyEngineHandle { dis: self }
     }
-    
+
     // =========================================================================
     // Security Management
     // =========================================================================
-    
+
     /// Create security domain
-    pub fn create_domain(&self, name: &str, domain_type: DomainType, parent: DomainId) -> DISResult<DomainId> {
-        self.security.read().create_domain(name, domain_type, parent)
+    pub fn create_domain(
+        &self,
+        name: &str,
+        domain_type: DomainType,
+        parent: DomainId,
+    ) -> DISResult<DomainId> {
+        self.security
+            .read()
+            .create_domain(name, domain_type, parent)
     }
-    
+
     /// Check capability
     pub fn check_capability(&self, task_id: TaskId, cap: Capability) -> bool {
         self.security.read().check_cap(task_id, cap)
     }
-    
+
     /// Grant capability
     pub fn grant_capability(&self, task_id: TaskId, cap: Capability) -> DISResult<()> {
         self.security.read().grant_cap(task_id, cap)
     }
-    
+
     /// Revoke capability
     pub fn revoke_capability(&self, task_id: TaskId, cap: Capability) -> DISResult<()> {
         self.security.read().revoke_cap(task_id, cap)
     }
-    
+
     /// Get security manager handle
     pub fn security(&self) -> SecurityHandle<'_> {
         SecurityHandle { dis: self }
     }
-    
+
     // =========================================================================
     // Scheduling
     // =========================================================================
-    
+
     /// Schedule on CPU
     pub fn schedule(&self, cpu: CpuId) -> SchedulingDecision {
         self.scheduler.read().schedule(cpu)
     }
-    
+
     /// Timer tick
     pub fn tick(&self, cpu: CpuId) {
         self.scheduler.read().tick(cpu)
     }
-    
+
     /// Request reschedule
     pub fn resched(&self, cpu: CpuId) {
         let _ = cpu;
         // Would set need_resched flag
     }
-    
+
     // =========================================================================
     // Statistics and Monitoring
     // =========================================================================
-    
+
     /// Get task statistics
     pub fn task_stats(&self, task_id: TaskId) -> Option<TaskStats> {
-        self.scheduler.read().stats_collector().read().get_task_stats(task_id)
+        self.scheduler
+            .read()
+            .stats_collector()
+            .read()
+            .get_task_stats(task_id)
     }
-    
+
     /// Get system statistics
     pub fn system_stats(&self) -> SystemStats {
-        self.scheduler.read().stats_collector().read().get_system_stats()
+        self.scheduler
+            .read()
+            .stats_collector()
+            .read()
+            .get_system_stats()
     }
-    
+
     /// Get scheduler statistics
     pub fn scheduler_stats(&self) -> super::scheduler::DISStatistics {
         self.scheduler.read().statistics()
     }
-    
+
     /// Get stats summary
     pub fn stats_summary(&self) -> StatsSummary {
         self.scheduler.read().stats_collector().read().summary()
     }
-    
+
     /// Get optimizer statistics
     pub fn optimizer_stats(&self) -> super::optimizer::OptimizerStatistics {
         self.scheduler.read().optimizer().read().statistics()
     }
-    
+
     // =========================================================================
     // Configuration
     // =========================================================================
-    
+
     /// Get configuration
     pub fn config(&self) -> SchedulerConfig {
         self.scheduler.read().config()
     }
-    
+
     /// Update configuration
     pub fn set_config(&self, config: SchedulerConfig) {
         self.scheduler.read().set_config(config)
     }
-    
+
     /// Enable/disable adaptive optimization
     pub fn set_adaptive_optimization(&self, enabled: bool) {
         let mut config = self.config();
         config.adaptive_optimization = enabled;
         self.set_config(config);
     }
-    
+
     /// Enable/disable load balancing
     pub fn set_load_balancing(&self, enabled: bool) {
         let mut config = self.config();
@@ -521,13 +554,18 @@ impl<'a> IntentEngineHandle<'a> {
     pub fn build(&self) -> IntentBuilder {
         IntentBuilder::new()
     }
-    
+
     /// Register intent
     pub fn register(&self, intent: Intent) -> DISResult<()> {
-        self.dis.scheduler.read().intent_engine().write().register(intent)?;
+        self.dis
+            .scheduler
+            .read()
+            .intent_engine()
+            .write()
+            .register(intent)?;
         Ok(())
     }
-    
+
     /// Get intent templates
     pub fn templates(&self) -> IntentTemplates {
         IntentTemplates
@@ -542,32 +580,32 @@ impl IntentTemplates {
     pub fn audio(&self) -> Intent {
         super::intent::templates::audio()
     }
-    
+
     /// Video playback at 60 FPS
     pub fn video_60fps(&self) -> Intent {
         super::intent::templates::video_60fps()
     }
-    
+
     /// UI rendering
     pub fn ui(&self) -> Intent {
         super::intent::templates::ui()
     }
-    
+
     /// Web server
     pub fn webserver(&self) -> Intent {
         super::intent::templates::webserver()
     }
-    
+
     /// Database
     pub fn database(&self) -> Intent {
         super::intent::templates::database()
     }
-    
+
     /// Batch processing
     pub fn batch(&self) -> Intent {
         super::intent::templates::batch()
     }
-    
+
     /// Background task
     pub fn background(&self) -> Intent {
         super::intent::templates::background()
@@ -584,17 +622,17 @@ impl<'a> PolicyEngineHandle<'a> {
     pub fn build(&self, name: &str) -> PolicyBuilder {
         PolicyBuilder::new(name)
     }
-    
+
     /// Add policy
     pub fn add(&self, policy: Policy) -> PolicyId {
         self.dis.add_policy(policy)
     }
-    
+
     /// Remove policy
     pub fn remove(&self, id: PolicyId) -> bool {
         self.dis.remove_policy(id)
     }
-    
+
     /// Get policy templates
     pub fn templates(&self) -> PolicyTemplates {
         PolicyTemplates
@@ -609,17 +647,17 @@ impl PolicyTemplates {
     pub fn realtime(&self) -> Policy {
         super::policy::templates::realtime()
     }
-    
+
     /// Interactive policy
     pub fn interactive(&self) -> Policy {
         super::policy::templates::interactive()
     }
-    
+
     /// Server policy
     pub fn server(&self) -> Policy {
         super::policy::templates::server()
     }
-    
+
     /// Batch policy
     pub fn batch(&self) -> Policy {
         super::policy::templates::batch()
@@ -633,20 +671,25 @@ pub struct SecurityHandle<'a> {
 
 impl<'a> SecurityHandle<'a> {
     /// Create domain
-    pub fn create_domain(&self, name: &str, domain_type: DomainType, parent: DomainId) -> DISResult<DomainId> {
+    pub fn create_domain(
+        &self,
+        name: &str,
+        domain_type: DomainType,
+        parent: DomainId,
+    ) -> DISResult<DomainId> {
         self.dis.create_domain(name, domain_type, parent)
     }
-    
+
     /// Check capability
     pub fn check(&self, task_id: TaskId, cap: Capability) -> bool {
         self.dis.check_capability(task_id, cap)
     }
-    
+
     /// Grant capability
     pub fn grant(&self, task_id: TaskId, cap: Capability) -> DISResult<()> {
         self.dis.grant_capability(task_id, cap)
     }
-    
+
     /// Revoke capability
     pub fn revoke(&self, task_id: TaskId, cap: Capability) -> DISResult<()> {
         self.dis.revoke_capability(task_id, cap)
@@ -771,36 +814,37 @@ pub trait DISEventListener: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_dis_creation() {
         let dis = DIS::new();
         dis.init().unwrap();
     }
-    
+
     #[test]
     fn test_task_builder() {
         let dis = DIS::new();
         dis.init().unwrap();
-        
-        let handle = dis.create_task("test_task")
+
+        let handle = dis
+            .create_task("test_task")
             .interactive()
             .priority(50)
             .spawn()
             .unwrap();
-        
+
         assert_eq!(handle.name(), "test_task");
         assert_eq!(handle.class(), IntentClass::Interactive);
     }
-    
+
     #[test]
     fn test_policy_management() {
         let dis = DIS::new();
         dis.init().unwrap();
-        
+
         let policy = dis.policy_engine().templates().interactive();
         let id = dis.add_policy(policy);
-        
+
         assert!(dis.remove_policy(id));
     }
 }

@@ -2,7 +2,7 @@
 //!
 //! Relocation type definitions and processing.
 
-use crate::{RelocResult, RelocError};
+use crate::{RelocError, RelocResult};
 
 // ============================================================================
 // X86_64 RELOCATION TYPES
@@ -258,7 +258,7 @@ pub unsafe fn apply_x86_64_relocation(
     match r_type {
         R_X86_64_NONE => {
             // No operation
-        }
+        },
 
         R_X86_64_RELATIVE => {
             // *target = base + addend (where base is adjusted by slide)
@@ -267,14 +267,14 @@ pub unsafe fn apply_x86_64_relocation(
             let current = unsafe { core::ptr::read_unaligned(ptr) };
             let new_value = (current as i64).wrapping_add(slide) as u64;
             unsafe { core::ptr::write_unaligned(ptr, new_value) };
-        }
+        },
 
         R_X86_64_64 => {
             // *target = symbol + addend
             let ptr = target as *mut u64;
             let new_value = symbol_value.wrapping_add(addend as u64);
             unsafe { core::ptr::write_unaligned(ptr, new_value) };
-        }
+        },
 
         R_X86_64_32 => {
             // *target = (uint32)(symbol + addend)
@@ -284,7 +284,7 @@ pub unsafe fn apply_x86_64_relocation(
                 return Err(RelocError::Overflow(target as u64));
             }
             unsafe { core::ptr::write_unaligned(ptr, value as u32) };
-        }
+        },
 
         R_X86_64_32S => {
             // *target = (int32)(symbol + addend)
@@ -294,7 +294,7 @@ pub unsafe fn apply_x86_64_relocation(
                 return Err(RelocError::Overflow(target as u64));
             }
             unsafe { core::ptr::write_unaligned(ptr, value as i32) };
-        }
+        },
 
         R_X86_64_PC32 | R_X86_64_PLT32 => {
             // *target = (int32)(symbol + addend - target)
@@ -307,7 +307,7 @@ pub unsafe fn apply_x86_64_relocation(
                 return Err(RelocError::Overflow(target as u64));
             }
             unsafe { core::ptr::write_unaligned(ptr, value as i32) };
-        }
+        },
 
         R_X86_64_PC64 => {
             // *target = (int64)(symbol + addend - target)
@@ -317,17 +317,17 @@ pub unsafe fn apply_x86_64_relocation(
                 .wrapping_add(addend)
                 .wrapping_sub(pc as i64);
             unsafe { core::ptr::write_unaligned(ptr, value) };
-        }
+        },
 
         R_X86_64_GLOB_DAT | R_X86_64_JUMP_SLOT => {
             // *target = symbol
             let ptr = target as *mut u64;
             unsafe { core::ptr::write_unaligned(ptr, symbol_value) };
-        }
+        },
 
         _ => {
             return Err(RelocError::UnsupportedRelocType(r_type));
-        }
+        },
     }
 
     Ok(())
@@ -345,20 +345,20 @@ pub unsafe fn apply_aarch64_relocation(
     use aarch64::*;
 
     match r_type {
-        R_AARCH64_NONE => {}
+        R_AARCH64_NONE => {},
 
         R_AARCH64_RELATIVE => {
             let ptr = target as *mut u64;
             let current = unsafe { core::ptr::read_unaligned(ptr) };
             let new_value = (current as i64).wrapping_add(slide) as u64;
             unsafe { core::ptr::write_unaligned(ptr, new_value) };
-        }
+        },
 
         R_AARCH64_ABS64 => {
             let ptr = target as *mut u64;
             let new_value = symbol_value.wrapping_add(addend as u64);
             unsafe { core::ptr::write_unaligned(ptr, new_value) };
-        }
+        },
 
         R_AARCH64_ABS32 => {
             let ptr = target as *mut u32;
@@ -367,16 +367,16 @@ pub unsafe fn apply_aarch64_relocation(
                 return Err(RelocError::Overflow(value));
             }
             unsafe { core::ptr::write_unaligned(ptr, value as u32) };
-        }
+        },
 
         R_AARCH64_GLOB_DAT | R_AARCH64_JUMP_SLOT => {
             let ptr = target as *mut u64;
             unsafe { core::ptr::write_unaligned(ptr, symbol_value) };
-        }
+        },
 
         _ => {
             return Err(RelocError::UnsupportedRelocType(r_type));
-        }
+        },
     }
 
     Ok(())

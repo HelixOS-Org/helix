@@ -2,8 +2,8 @@
 //!
 //! Boot-time memory map structures for passing to the kernel.
 
-use crate::raw::types::*;
 use crate::error::Result;
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -17,83 +17,81 @@ use alloc::vec::Vec;
 #[repr(u32)]
 pub enum MemoryType {
     /// Reserved, unusable memory
-    Reserved = 0,
+    Reserved         = 0,
     /// Usable RAM
-    Usable = 1,
+    Usable           = 1,
     /// ACPI reclaimable
-    AcpiReclaimable = 2,
+    AcpiReclaimable  = 2,
     /// ACPI NVS (non-volatile storage)
-    AcpiNvs = 3,
+    AcpiNvs          = 3,
     /// Bad/defective memory
-    BadMemory = 4,
+    BadMemory        = 4,
     /// Bootloader reclaimable
     BootloaderReclaimable = 5,
     /// Kernel and modules
     KernelAndModules = 6,
     /// Framebuffer
-    Framebuffer = 7,
+    Framebuffer      = 7,
     /// EFI runtime services code
-    EfiRuntimeCode = 8,
+    EfiRuntimeCode   = 8,
     /// EFI runtime services data
-    EfiRuntimeData = 9,
+    EfiRuntimeData   = 9,
     /// Memory-mapped I/O
-    Mmio = 10,
+    Mmio             = 10,
     /// Memory-mapped I/O port space
-    MmioPortSpace = 11,
+    MmioPortSpace    = 11,
     /// PAL code (IA64)
-    PalCode = 12,
+    PalCode          = 12,
     /// Persistent memory
     PersistentMemory = 13,
     /// Unknown type
-    Unknown = 0xFFFF,
+    Unknown          = 0xFFFF,
 }
 
 impl MemoryType {
     /// Check if usable by kernel after boot
     pub fn is_usable(&self) -> bool {
-        matches!(self,
-            MemoryType::Usable |
-            MemoryType::BootloaderReclaimable
-        )
+        matches!(self, MemoryType::Usable | MemoryType::BootloaderReclaimable)
     }
 
     /// Check if reclaimable
     pub fn is_reclaimable(&self) -> bool {
-        matches!(self,
-            MemoryType::BootloaderReclaimable |
-            MemoryType::AcpiReclaimable
+        matches!(
+            self,
+            MemoryType::BootloaderReclaimable | MemoryType::AcpiReclaimable
         )
     }
 
     /// Check if reserved
     pub fn is_reserved(&self) -> bool {
-        matches!(self,
-            MemoryType::Reserved |
-            MemoryType::AcpiNvs |
-            MemoryType::BadMemory |
-            MemoryType::Mmio |
-            MemoryType::MmioPortSpace
+        matches!(
+            self,
+            MemoryType::Reserved
+                | MemoryType::AcpiNvs
+                | MemoryType::BadMemory
+                | MemoryType::Mmio
+                | MemoryType::MmioPortSpace
         )
     }
 
     /// Convert from UEFI memory type
     pub fn from_uefi(uefi_type: u32) -> Self {
         match uefi_type {
-            0 => MemoryType::Reserved,                  // EfiReservedMemoryType
-            1 => MemoryType::BootloaderReclaimable,     // EfiLoaderCode
-            2 => MemoryType::BootloaderReclaimable,     // EfiLoaderData
-            3 => MemoryType::BootloaderReclaimable,     // EfiBootServicesCode
-            4 => MemoryType::BootloaderReclaimable,     // EfiBootServicesData
-            5 => MemoryType::EfiRuntimeCode,            // EfiRuntimeServicesCode
-            6 => MemoryType::EfiRuntimeData,            // EfiRuntimeServicesData
-            7 => MemoryType::Usable,                    // EfiConventionalMemory
-            8 => MemoryType::BadMemory,                 // EfiUnusableMemory
-            9 => MemoryType::AcpiReclaimable,           // EfiACPIReclaimMemory
-            10 => MemoryType::AcpiNvs,                  // EfiACPIMemoryNVS
-            11 => MemoryType::Mmio,                     // EfiMemoryMappedIO
-            12 => MemoryType::MmioPortSpace,            // EfiMemoryMappedIOPortSpace
-            13 => MemoryType::PalCode,                  // EfiPalCode
-            14 => MemoryType::PersistentMemory,         // EfiPersistentMemory
+            0 => MemoryType::Reserved,              // EfiReservedMemoryType
+            1 => MemoryType::BootloaderReclaimable, // EfiLoaderCode
+            2 => MemoryType::BootloaderReclaimable, // EfiLoaderData
+            3 => MemoryType::BootloaderReclaimable, // EfiBootServicesCode
+            4 => MemoryType::BootloaderReclaimable, // EfiBootServicesData
+            5 => MemoryType::EfiRuntimeCode,        // EfiRuntimeServicesCode
+            6 => MemoryType::EfiRuntimeData,        // EfiRuntimeServicesData
+            7 => MemoryType::Usable,                // EfiConventionalMemory
+            8 => MemoryType::BadMemory,             // EfiUnusableMemory
+            9 => MemoryType::AcpiReclaimable,       // EfiACPIReclaimMemory
+            10 => MemoryType::AcpiNvs,              // EfiACPIMemoryNVS
+            11 => MemoryType::Mmio,                 // EfiMemoryMappedIO
+            12 => MemoryType::MmioPortSpace,        // EfiMemoryMappedIOPortSpace
+            13 => MemoryType::PalCode,              // EfiPalCode
+            14 => MemoryType::PersistentMemory,     // EfiPersistentMemory
             _ => MemoryType::Unknown,
         }
     }
@@ -256,11 +254,7 @@ pub struct MemoryMapEntry {
 
 impl MemoryMapEntry {
     /// Create new entry
-    pub fn new(
-        physical_start: PhysicalAddress,
-        page_count: u64,
-        memory_type: MemoryType,
-    ) -> Self {
+    pub fn new(physical_start: PhysicalAddress, page_count: u64, memory_type: MemoryType) -> Self {
         Self {
             physical_start,
             virtual_start: VirtualAddress(0),
@@ -298,9 +292,9 @@ impl MemoryMapEntry {
 
     /// Check if can merge with another entry
     pub fn can_merge(&self, other: &Self) -> bool {
-        self.is_adjacent(other) &&
-        self.memory_type == other.memory_type &&
-        self.attributes == other.attributes
+        self.is_adjacent(other)
+            && self.memory_type == other.memory_type
+            && self.attributes == other.attributes
     }
 
     /// Merge with another entry
@@ -425,12 +419,16 @@ pub struct MemoryMap {
 impl MemoryMap {
     /// Create new empty memory map
     pub fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 
     /// Create with capacity
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { entries: Vec::with_capacity(capacity) }
+        Self {
+            entries: Vec::with_capacity(capacity),
+        }
     }
 
     /// Add entry
@@ -493,7 +491,8 @@ impl MemoryMap {
 
     /// Get total usable memory
     pub fn total_usable(&self) -> u64 {
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter(|e| e.memory_type.is_usable())
             .map(|e| e.size())
             .sum()
@@ -501,22 +500,18 @@ impl MemoryMap {
 
     /// Get total memory (all types)
     pub fn total_memory(&self) -> u64 {
-        self.entries.iter()
-            .map(|e| e.size())
-            .sum()
+        self.entries.iter().map(|e| e.size()).sum()
     }
 
     /// Get highest physical address
     pub fn highest_address(&self) -> u64 {
-        self.entries.iter()
-            .map(|e| e.end().0)
-            .max()
-            .unwrap_or(0)
+        self.entries.iter().map(|e| e.end().0).max().unwrap_or(0)
     }
 
     /// Get lowest usable address
     pub fn lowest_usable(&self) -> Option<u64> {
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter(|e| e.memory_type.is_usable())
             .map(|e| e.physical_start.0)
             .min()
@@ -534,11 +529,19 @@ impl MemoryMap {
 
     /// Count entries by type
     pub fn count_by_type(&self, memory_type: MemoryType) -> usize {
-        self.entries.iter().filter(|e| e.memory_type == memory_type).count()
+        self.entries
+            .iter()
+            .filter(|e| e.memory_type == memory_type)
+            .count()
     }
 
     /// Reserve region
-    pub fn reserve(&mut self, start: PhysicalAddress, size: u64, memory_type: MemoryType) -> Result<()> {
+    pub fn reserve(
+        &mut self,
+        start: PhysicalAddress,
+        size: u64,
+        memory_type: MemoryType,
+    ) -> Result<()> {
         let end = start + size;
         let mut new_entries = Vec::new();
         let mut modified = false;
@@ -609,7 +612,12 @@ impl MemoryMap {
     }
 
     /// Find free region below limit
-    pub fn find_free_below(&self, size: u64, alignment: u64, limit: u64) -> Option<PhysicalAddress> {
+    pub fn find_free_below(
+        &self,
+        size: u64,
+        alignment: u64,
+        limit: u64,
+    ) -> Option<PhysicalAddress> {
         for entry in &self.entries {
             if !entry.memory_type.is_usable() {
                 continue;
@@ -637,23 +645,23 @@ impl MemoryMap {
                 MemoryType::Usable => {
                     stats.usable_entries += 1;
                     stats.usable_memory += entry.size();
-                }
+                },
                 MemoryType::Reserved => {
                     stats.reserved_entries += 1;
                     stats.reserved_memory += entry.size();
-                }
+                },
                 MemoryType::AcpiReclaimable => {
                     stats.acpi_entries += 1;
                     stats.acpi_memory += entry.size();
-                }
+                },
                 MemoryType::BootloaderReclaimable => {
                     stats.bootloader_entries += 1;
                     stats.bootloader_memory += entry.size();
-                }
+                },
                 _ => {
                     stats.other_entries += 1;
                     stats.other_memory += entry.size();
-                }
+                },
             }
         }
 
@@ -698,9 +706,11 @@ pub struct MemoryMapStats {
 impl MemoryMapStats {
     /// Get total memory
     pub fn total_memory(&self) -> u64 {
-        self.usable_memory + self.reserved_memory +
-        self.acpi_memory + self.bootloader_memory +
-        self.other_memory
+        self.usable_memory
+            + self.reserved_memory
+            + self.acpi_memory
+            + self.bootloader_memory
+            + self.other_memory
     }
 
     /// Get usable after boot (usable + bootloader reclaimable)
@@ -721,16 +731,15 @@ pub struct MemoryMapBuilder {
 impl MemoryMapBuilder {
     /// Create new builder
     pub fn new() -> Self {
-        Self { map: MemoryMap::new() }
+        Self {
+            map: MemoryMap::new(),
+        }
     }
 
     /// Add usable region
     pub fn usable(mut self, start: PhysicalAddress, size: u64) -> Self {
-        self.map.add(MemoryMapEntry::new(
-            start,
-            size / 4096,
-            MemoryType::Usable,
-        ));
+        self.map
+            .add(MemoryMapEntry::new(start, size / 4096, MemoryType::Usable));
         self
     }
 
@@ -756,11 +765,8 @@ impl MemoryMapBuilder {
 
     /// Add ACPI NVS region
     pub fn acpi_nvs(mut self, start: PhysicalAddress, size: u64) -> Self {
-        self.map.add(MemoryMapEntry::new(
-            start,
-            size / 4096,
-            MemoryType::AcpiNvs,
-        ));
+        self.map
+            .add(MemoryMapEntry::new(start, size / 4096, MemoryType::AcpiNvs));
         self
     }
 
@@ -796,11 +802,8 @@ impl MemoryMapBuilder {
 
     /// Add MMIO region
     pub fn mmio(mut self, start: PhysicalAddress, size: u64) -> Self {
-        self.map.add(MemoryMapEntry::new(
-            start,
-            size / 4096,
-            MemoryType::Mmio,
-        ));
+        self.map
+            .add(MemoryMapEntry::new(start, size / 4096, MemoryType::Mmio));
         self
     }
 
@@ -918,9 +921,7 @@ mod tests {
 
     #[test]
     fn test_find_free() {
-        let map = MemoryMapBuilder::new()
-            .usable(0x100000, 0x1000000)
-            .build();
+        let map = MemoryMapBuilder::new().usable(0x100000, 0x1000000).build();
 
         let addr = map.find_free(0x1000, 0x1000);
         assert!(addr.is_some());

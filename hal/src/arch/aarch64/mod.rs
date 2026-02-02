@@ -168,52 +168,40 @@ pub const PHYS_ADDR_MASK: u64 = 0x0000_FFFF_FFFF_F000;
 // =============================================================================
 
 // Core framework re-exports
-pub use core::{
-    registers::GeneralRegisters,
-    system_regs::{read_sctlr_el1, write_sctlr_el1, read_tcr_el1, write_tcr_el1},
-    features::CpuFeatures,
-    cache::{dcache_clean_range, dcache_invalidate_range, dcache_clean_invalidate_range},
-    barriers::{dmb, dsb, isb},
-    fpu::FpuState,
-};
+pub use core::barriers::{dmb, dsb, isb};
+pub use core::cache::{dcache_clean_invalidate_range, dcache_clean_range, dcache_invalidate_range};
+pub use core::features::CpuFeatures;
+pub use core::fpu::FpuState;
+pub use core::registers::GeneralRegisters;
+pub use core::system_regs::{read_sctlr_el1, read_tcr_el1, write_sctlr_el1, write_tcr_el1};
 
 // Exception framework re-exports
 pub use exception::{
-    el::{current_el, CurrentEl},
     context::ExceptionContext,
+    el::{current_el, CurrentEl},
     handlers::ExceptionHandler,
 };
-
-// MMU re-exports
-pub use mmu::{
-    entries::{PageTableEntry, PageFlags, MemoryAttributes},
-    tables::PageTable,
-    tlb::{tlb_invalidate_all, tlb_invalidate_asid, tlb_invalidate_va},
-    asid::AsidManager,
-};
-
 // GIC re-exports
 pub use gic::{
-    GicVersion, InterruptType, Gic,
-    distributor::Distributor,
-    cpu_interface::CpuInterface,
+    cpu_interface::CpuInterface, distributor::Distributor, Gic, GicVersion, InterruptType,
 };
-
+// MMU re-exports
+pub use mmu::{
+    asid::AsidManager,
+    entries::{MemoryAttributes, PageFlags, PageTableEntry},
+    tables::PageTable,
+    tlb::{tlb_invalidate_all, tlb_invalidate_asid, tlb_invalidate_va},
+};
 // SMP re-exports
 pub use smp::{
-    CpuState, CpuInfo, CpuTopology,
+    ipi::{send_reschedule_ipi, IpiVector},
     mpidr::Mpidr,
-    psci::Psci,
     percpu::PerCpuData,
-    ipi::{IpiVector, send_reschedule_ipi},
+    psci::Psci,
+    CpuInfo, CpuState, CpuTopology,
 };
-
 // Timer re-exports
-pub use timers::{
-    Timer, TimerOperations,
-    physical::PhysicalTimer,
-    virtual_timer::VirtualTimer,
-};
+pub use timers::{physical::PhysicalTimer, virtual_timer::VirtualTimer, Timer, TimerOperations};
 
 // =============================================================================
 // HAL IMPLEMENTATION
@@ -264,7 +252,11 @@ impl AArch64Hal {
     ///
     /// # Safety
     /// Must be called after basic system initialization.
-    pub unsafe fn init_gic(&self, gicd_base: usize, gicr_or_gicc_base: usize) -> Result<gic::Gic, &'static str> {
+    pub unsafe fn init_gic(
+        &self,
+        gicd_base: usize,
+        gicr_or_gicc_base: usize,
+    ) -> Result<gic::Gic, &'static str> {
         let version = gic::GicVersion::detect(gicd_base as *const u8);
         let gic = gic::Gic::new(version, gicd_base as *mut u8, gicr_or_gicc_base as *mut u8);
         gic.init();
@@ -322,7 +314,9 @@ pub unsafe fn init_qemu_virt() -> AArch64Hal {
     // QEMU virt GIC addresses (GICv3)
     // GICD: 0x0800_0000
     // GICR: 0x080A_0000
-    let _gic = hal.init_gic(0x0800_0000, 0x080A_0000).expect("GIC init failed");
+    let _gic = hal
+        .init_gic(0x0800_0000, 0x080A_0000)
+        .expect("GIC init failed");
 
     hal.init_smp_bsp().expect("SMP init failed");
 
@@ -340,7 +334,9 @@ pub unsafe fn init_rpi4() -> AArch64Hal {
     // RPi 4 GIC addresses (GICv2)
     // GICD: 0xFF84_1000
     // GICC: 0xFF84_2000
-    let _gic = hal.init_gic(0xFF84_1000, 0xFF84_2000).expect("GIC init failed");
+    let _gic = hal
+        .init_gic(0xFF84_1000, 0xFF84_2000)
+        .expect("GIC init failed");
 
     hal.init_smp_bsp().expect("SMP init failed");
 

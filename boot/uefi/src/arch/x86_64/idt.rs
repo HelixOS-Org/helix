@@ -3,6 +3,7 @@
 //! Complete IDT implementation for 64-bit mode.
 
 use core::mem::size_of;
+
 use super::gdt::selectors;
 
 // =============================================================================
@@ -92,9 +93,7 @@ pub const EXCEPTION_NAMES: [&str; 32] = [
 
 /// Exceptions with error codes
 pub const fn has_error_code(vector: u8) -> bool {
-    matches!(vector,
-        8 | 10 | 11 | 12 | 13 | 14 | 17 | 21 | 29 | 30
-    )
+    matches!(vector, 8 | 10 | 11 | 12 | 13 | 14 | 17 | 21 | 29 | 30)
 }
 
 // =============================================================================
@@ -201,12 +200,7 @@ impl IdtEntry {
 
     /// Create kernel trap gate
     pub const fn trap(handler: u64) -> Self {
-        Self::new(
-            handler,
-            selectors::KERNEL_CODE,
-            0,
-            gate_attr::KERNEL_TRAP,
-        )
+        Self::new(handler, selectors::KERNEL_CODE, 0, gate_attr::KERNEL_TRAP)
     }
 
     /// Create user-callable interrupt gate
@@ -221,9 +215,9 @@ impl IdtEntry {
 
     /// Get handler offset
     pub fn offset(&self) -> u64 {
-        (self.offset_low as u64) |
-        ((self.offset_middle as u64) << 16) |
-        ((self.offset_high as u64) << 32)
+        (self.offset_low as u64)
+            | ((self.offset_middle as u64) << 16)
+            | ((self.offset_high as u64) << 32)
     }
 
     /// Set handler offset
@@ -369,11 +363,21 @@ pub mod page_fault {
 pub struct PageFaultError(pub u64);
 
 impl PageFaultError {
-    pub fn present(&self) -> bool { (self.0 & page_fault::PROTECTION) != 0 }
-    pub fn write(&self) -> bool { (self.0 & page_fault::WRITE) != 0 }
-    pub fn user(&self) -> bool { (self.0 & page_fault::USER) != 0 }
-    pub fn reserved(&self) -> bool { (self.0 & page_fault::RESERVED) != 0 }
-    pub fn instruction(&self) -> bool { (self.0 & page_fault::INSTRUCTION) != 0 }
+    pub fn present(&self) -> bool {
+        (self.0 & page_fault::PROTECTION) != 0
+    }
+    pub fn write(&self) -> bool {
+        (self.0 & page_fault::WRITE) != 0
+    }
+    pub fn user(&self) -> bool {
+        (self.0 & page_fault::USER) != 0
+    }
+    pub fn reserved(&self) -> bool {
+        (self.0 & page_fault::RESERVED) != 0
+    }
+    pub fn instruction(&self) -> bool {
+        (self.0 & page_fault::INSTRUCTION) != 0
+    }
 
     pub fn describe(&self) -> &'static str {
         match (self.present(), self.write(), self.user()) {
@@ -549,14 +553,14 @@ macro_rules! interrupt_stub {
         pub unsafe extern "C" fn $name() {
             core::arch::asm!(
                 // Push dummy error code if needed
-                concat!("push 0"),  // or "nop" for vectors with error code
+                concat!("push 0"), // or "nop" for vectors with error code
                 concat!("push ", stringify!($vector)),
                 "jmp interrupt_common",
                 options(noreturn)
             );
         }
     };
-    ($name:ident, $vector:expr, error_code) => {
+    ($name:ident, $vector:expr,error_code) => {
         #[naked]
         pub unsafe extern "C" fn $name() {
             core::arch::asm!(
@@ -572,7 +576,8 @@ macro_rules! interrupt_stub {
 /// Common interrupt handler stub (assembly)
 /// This saves all registers and calls the Rust handler
 #[cfg(target_arch = "x86_64")]
-core::arch::global_asm!(r#"
+core::arch::global_asm!(
+    r#"
 .global interrupt_common
 interrupt_common:
     // Save all general purpose registers
@@ -618,7 +623,8 @@ interrupt_common:
 
     // Return from interrupt
     iretq
-"#);
+"#
+);
 
 // =============================================================================
 // TESTS

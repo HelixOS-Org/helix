@@ -27,8 +27,9 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use super::local::{read_lapic, write_lapic};
-use super::registers;
-use super::{is_x2apic_enabled, RESCHEDULE_VECTOR, TLB_VECTOR, STOP_VECTOR, CALL_VECTOR};
+use super::{
+    is_x2apic_enabled, registers, CALL_VECTOR, RESCHEDULE_VECTOR, STOP_VECTOR, TLB_VECTOR,
+};
 
 // =============================================================================
 // IPI Destination
@@ -78,17 +79,17 @@ impl IpiDestination {
 #[repr(u8)]
 pub enum IpiDeliveryMode {
     /// Fixed interrupt with vector
-    Fixed = 0b000,
+    Fixed          = 0b000,
     /// Lowest priority delivery
     LowestPriority = 0b001,
     /// System Management Interrupt
-    Smi = 0b010,
+    Smi            = 0b010,
     /// Non-Maskable Interrupt
-    Nmi = 0b100,
+    Nmi            = 0b100,
     /// INIT signal
-    Init = 0b101,
+    Init           = 0b101,
     /// Startup IPI
-    Sipi = 0b110,
+    Sipi           = 0b110,
 }
 
 /// IPI trigger mode
@@ -209,12 +210,7 @@ fn build_icr_x2apic(
 }
 
 /// Send an IPI in xAPIC mode
-unsafe fn send_ipi_xapic(
-    dest: u32,
-    vector: u8,
-    delivery_mode: IpiDeliveryMode,
-    shorthand: u8,
-) {
+unsafe fn send_ipi_xapic(dest: u32, vector: u8, delivery_mode: IpiDeliveryMode, shorthand: u8) {
     // Wait for previous IPI to complete
     wait_ipi_idle_xapic();
 
@@ -238,12 +234,7 @@ unsafe fn send_ipi_xapic(
 }
 
 /// Send an IPI in x2APIC mode
-unsafe fn send_ipi_x2apic(
-    dest: u32,
-    vector: u8,
-    delivery_mode: IpiDeliveryMode,
-    shorthand: u8,
-) {
+unsafe fn send_ipi_x2apic(dest: u32, vector: u8, delivery_mode: IpiDeliveryMode, shorthand: u8) {
     let icr = build_icr_x2apic(
         dest,
         vector,
@@ -312,12 +303,7 @@ pub fn send_nmi(dest: IpiDestination) {
                 dest.shorthand(),
             );
         } else {
-            send_ipi_xapic(
-                dest.apic_id(),
-                0,
-                IpiDeliveryMode::Nmi,
-                dest.shorthand(),
-            );
+            send_ipi_xapic(dest.apic_id(), 0, IpiDeliveryMode::Nmi, dest.shorthand());
         }
     }
 }
@@ -326,19 +312,9 @@ pub fn send_nmi(dest: IpiDestination) {
 pub fn send_init(dest: IpiDestination) {
     unsafe {
         if is_x2apic_enabled() {
-            send_ipi_x2apic(
-                dest.apic_id(),
-                0,
-                IpiDeliveryMode::Init,
-                dest.shorthand(),
-            );
+            send_ipi_x2apic(dest.apic_id(), 0, IpiDeliveryMode::Init, dest.shorthand());
         } else {
-            send_ipi_xapic(
-                dest.apic_id(),
-                0,
-                IpiDeliveryMode::Init,
-                dest.shorthand(),
-            );
+            send_ipi_xapic(dest.apic_id(), 0, IpiDeliveryMode::Init, dest.shorthand());
         }
     }
 }
@@ -428,7 +404,7 @@ pub mod startup_delays {
     /// Delay after INIT IPI
     pub const AFTER_INIT: u64 = 10_000; // 10ms
     /// Delay between SIPIs
-    pub const BETWEEN_SIPI: u64 = 200;  // 200us
+    pub const BETWEEN_SIPI: u64 = 200; // 200us
 }
 
 /// Start an Application Processor using the INIT-SIPI-SIPI sequence

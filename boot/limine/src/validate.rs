@@ -11,8 +11,8 @@
 //! - Pointer safety checks
 //! - Invariant verification
 
-use crate::requests::*;
 use crate::boot_info::BootInfo;
+use crate::requests::*;
 
 /// Validation result type
 pub type ValidationResult<T> = Result<T, ValidationError>;
@@ -25,11 +25,21 @@ pub enum ValidationError {
     /// A pointer is null when it shouldn't be
     NullPointer(&'static str),
     /// An address is not properly aligned
-    MisalignedAddress { address: u64, required_alignment: u64 },
+    MisalignedAddress {
+        address: u64,
+        required_alignment: u64,
+    },
     /// A memory region is invalid
-    InvalidMemoryRegion { base: u64, length: u64, reason: &'static str },
+    InvalidMemoryRegion {
+        base: u64,
+        length: u64,
+        reason: &'static str,
+    },
     /// Memory regions overlap
-    OverlappingRegions { region1: (u64, u64), region2: (u64, u64) },
+    OverlappingRegions {
+        region1: (u64, u64),
+        region2: (u64, u64),
+    },
     /// An invalid value was encountered
     InvalidValue { field: &'static str, value: u64 },
     /// Structure size mismatch
@@ -49,31 +59,59 @@ impl core::fmt::Display for ValidationError {
         match self {
             Self::MissingResponse(name) => write!(f, "Missing response: {}", name),
             Self::NullPointer(field) => write!(f, "Null pointer: {}", field),
-            Self::MisalignedAddress { address, required_alignment } => {
-                write!(f, "Address {:#x} not aligned to {}", address, required_alignment)
-            }
-            Self::InvalidMemoryRegion { base, length, reason } => {
-                write!(f, "Invalid memory region {:#x}-{:#x}: {}", base, base + length, reason)
-            }
+            Self::MisalignedAddress {
+                address,
+                required_alignment,
+            } => {
+                write!(
+                    f,
+                    "Address {:#x} not aligned to {}",
+                    address, required_alignment
+                )
+            },
+            Self::InvalidMemoryRegion {
+                base,
+                length,
+                reason,
+            } => {
+                write!(
+                    f,
+                    "Invalid memory region {:#x}-{:#x}: {}",
+                    base,
+                    base + length,
+                    reason
+                )
+            },
             Self::OverlappingRegions { region1, region2 } => {
-                write!(f, "Overlapping regions: {:#x}-{:#x} and {:#x}-{:#x}",
-                    region1.0, region1.1, region2.0, region2.1)
-            }
+                write!(
+                    f,
+                    "Overlapping regions: {:#x}-{:#x} and {:#x}-{:#x}",
+                    region1.0, region1.1, region2.0, region2.1
+                )
+            },
             Self::InvalidValue { field, value } => {
                 write!(f, "Invalid value for {}: {:#x}", field, value)
-            }
+            },
             Self::SizeMismatch { expected, actual } => {
                 write!(f, "Size mismatch: expected {}, got {}", expected, actual)
-            }
+            },
             Self::ChecksumFailed(structure) => {
                 write!(f, "Checksum validation failed for {}", structure)
-            }
+            },
             Self::InvalidMagic { expected, actual } => {
-                write!(f, "Invalid magic: expected {:#x}, got {:#x}", expected, actual)
-            }
+                write!(
+                    f,
+                    "Invalid magic: expected {:#x}, got {:#x}",
+                    expected, actual
+                )
+            },
             Self::RevisionTooOld { minimum, actual } => {
-                write!(f, "Revision {} too old, minimum required: {}", actual, minimum)
-            }
+                write!(
+                    f,
+                    "Revision {} too old, minimum required: {}",
+                    actual, minimum
+                )
+            },
             Self::Custom(msg) => write!(f, "{}", msg),
         }
     }
@@ -91,10 +129,8 @@ impl ValidationErrors {
     pub const fn new() -> Self {
         Self {
             errors: [
-                None, None, None, None,
-                None, None, None, None,
-                None, None, None, None,
-                None, None, None, None,
+                None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+                None, None,
             ],
             count: 0,
         }
@@ -184,7 +220,8 @@ impl<'a> BootValidator<'a> {
     /// Validate memory map
     fn validate_memory_map(&mut self) {
         let Some(memmap) = self.boot_info.memory_map() else {
-            self.errors.push(ValidationError::MissingResponse("memory_map"));
+            self.errors
+                .push(ValidationError::MissingResponse("memory_map"));
             return;
         };
 
@@ -192,7 +229,8 @@ impl<'a> BootValidator<'a> {
 
         // Check for empty memory map
         if entries.is_empty() {
-            self.errors.push(ValidationError::Custom("Memory map is empty"));
+            self.errors
+                .push(ValidationError::Custom("Memory map is empty"));
             return;
         }
 
@@ -243,7 +281,8 @@ impl<'a> BootValidator<'a> {
         // Check for minimum usable memory
         let usable = memmap.total_usable_memory();
         if usable < 1024 * 1024 {
-            self.errors.push(ValidationError::Custom("Less than 1 MB usable memory"));
+            self.errors
+                .push(ValidationError::Custom("Less than 1 MB usable memory"));
         }
     }
 
@@ -277,7 +316,8 @@ impl<'a> BootValidator<'a> {
     fn validate_kernel_address(&mut self) {
         let Some(kernel_addr) = self.boot_info.kernel_address() else {
             if self.strict {
-                self.errors.push(ValidationError::MissingResponse("kernel_address"));
+                self.errors
+                    .push(ValidationError::MissingResponse("kernel_address"));
             }
             return;
         };
@@ -326,7 +366,8 @@ impl<'a> BootValidator<'a> {
         for (i, fb) in fb_response.iter().enumerate() {
             // Check for valid dimensions
             if fb.width() == 0 || fb.height() == 0 {
-                self.errors.push(ValidationError::Custom("Framebuffer has zero dimensions"));
+                self.errors
+                    .push(ValidationError::Custom("Framebuffer has zero dimensions"));
             }
 
             // Check for valid BPP
@@ -348,7 +389,8 @@ impl<'a> BootValidator<'a> {
 
             // Check address is not null
             if fb.address().is_null() {
-                self.errors.push(ValidationError::NullPointer("framebuffer_address"));
+                self.errors
+                    .push(ValidationError::NullPointer("framebuffer_address"));
             }
         }
     }
@@ -361,12 +403,14 @@ impl<'a> BootValidator<'a> {
 
         // Should have at least one CPU
         if smp.cpu_count() == 0 {
-            self.errors.push(ValidationError::Custom("SMP reports zero CPUs"));
+            self.errors
+                .push(ValidationError::Custom("SMP reports zero CPUs"));
         }
 
         // BSP should exist
         if smp.bsp().is_none() {
-            self.errors.push(ValidationError::Custom("Cannot find BSP in CPU list"));
+            self.errors
+                .push(ValidationError::Custom("Cannot find BSP in CPU list"));
         }
     }
 
@@ -376,7 +420,8 @@ impl<'a> BootValidator<'a> {
         if let Some(rsdp) = self.boot_info.rsdp() {
             if let Some(sig) = rsdp.signature() {
                 if sig != b"RSD PTR " {
-                    self.errors.push(ValidationError::Custom("Invalid RSDP signature"));
+                    self.errors
+                        .push(ValidationError::Custom("Invalid RSDP signature"));
                 }
             }
         }
@@ -384,7 +429,8 @@ impl<'a> BootValidator<'a> {
         // Validate DTB if present
         if let Some(dtb) = self.boot_info.dtb() {
             if !dtb.is_valid() {
-                self.errors.push(ValidationError::Custom("Invalid DTB magic"));
+                self.errors
+                    .push(ValidationError::Custom("Invalid DTB magic"));
             }
         }
     }

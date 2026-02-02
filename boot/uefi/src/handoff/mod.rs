@@ -34,12 +34,12 @@ pub use memory_map::*;
 pub use modules::*;
 pub use rsdp::*;
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // HANDOFF BUILDER
@@ -268,10 +268,18 @@ impl HandoffSerializer {
 
         // Write flags
         let mut flags = 0u64;
-        if info.framebuffer.is_some() { flags |= 1 << 0; }
-        if info.rsdp_address.is_some() { flags |= 1 << 1; }
-        if info.smbios_address.is_some() { flags |= 1 << 2; }
-        if info.efi_system_table.is_some() { flags |= 1 << 3; }
+        if info.framebuffer.is_some() {
+            flags |= 1 << 0;
+        }
+        if info.rsdp_address.is_some() {
+            flags |= 1 << 1;
+        }
+        if info.smbios_address.is_some() {
+            flags |= 1 << 2;
+        }
+        if info.efi_system_table.is_some() {
+            flags |= 1 << 3;
+        }
         self.write_u64(flags)?;
 
         // Write command line
@@ -478,17 +486,21 @@ mod tests {
 
     #[test]
     fn test_serializer() {
-        let info = HandoffBuilder::new()
-            .command_line("test")
-            .build();
+        let info = HandoffBuilder::new().command_line("test").build();
 
         let mut serializer = HandoffSerializer::new();
         let data = serializer.serialize(&info).unwrap();
 
         // Check magic
-        assert_eq!(u32::from_le_bytes([data[0], data[1], data[2], data[3]]), BOOT_INFO_MAGIC);
+        assert_eq!(
+            u32::from_le_bytes([data[0], data[1], data[2], data[3]]),
+            BOOT_INFO_MAGIC
+        );
 
         // Check version
-        assert_eq!(u32::from_le_bytes([data[4], data[5], data[6], data[7]]), BOOT_INFO_VERSION);
+        assert_eq!(
+            u32::from_le_bytes([data[4], data[5], data[6], data[7]]),
+            BOOT_INFO_VERSION
+        );
     }
 }

@@ -2,11 +2,13 @@
 //!
 //! TLS management for threads.
 
-use crate::ThreadId;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::RwLock;
+
+use crate::ThreadId;
 
 /// TLS key
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -56,7 +58,9 @@ impl ThreadLocalStorage {
 
     /// Set a TLS value
     pub fn set(&self, key: TlsKey, value: u64, destructor: Option<TlsDestructor>) {
-        self.entries.write().insert(key, TlsEntry { value, destructor });
+        self.entries
+            .write()
+            .insert(key, TlsEntry { value, destructor });
     }
 
     /// Get a TLS value

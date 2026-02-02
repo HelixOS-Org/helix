@@ -12,11 +12,12 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
 
-use super::{UserResult, UserError, STATS};
 use super::elf::ParsedElf;
+use super::{UserError, UserResult, STATS};
 
 /// Process ID type
 pub type Pid = u64;
@@ -58,13 +59,13 @@ pub enum ProcessState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
     /// Idle priority
-    Idle = 0,
+    Idle     = 0,
     /// Low priority
-    Low = 1,
+    Low      = 1,
     /// Normal priority
-    Normal = 2,
+    Normal   = 2,
     /// High priority
-    High = 3,
+    High     = 3,
     /// Real-time priority
     RealTime = 4,
 }
@@ -121,7 +122,7 @@ impl FdTable {
             entries: BTreeMap::new(),
             next_fd: 3,
         };
-        
+
         // Add standard streams
         table.entries.insert(STDIN_FD, FdEntry {
             fd: STDIN_FD,
@@ -141,50 +142,50 @@ impl FdTable {
             offset: 0,
             flags: 0,
         });
-        
+
         table
     }
-    
+
     /// Allocate a new file descriptor
     pub fn alloc(&mut self, fd_type: FdType) -> Option<Fd> {
         if self.entries.len() >= MAX_FDS {
             return None;
         }
-        
+
         let fd = self.next_fd;
         self.next_fd += 1;
-        
+
         self.entries.insert(fd, FdEntry {
             fd,
             fd_type,
             offset: 0,
             flags: 0,
         });
-        
+
         Some(fd)
     }
-    
+
     /// Get file descriptor entry
     pub fn get(&self, fd: Fd) -> Option<&FdEntry> {
         self.entries.get(&fd)
     }
-    
+
     /// Close a file descriptor
     pub fn close(&mut self, fd: Fd) -> bool {
         self.entries.remove(&fd).is_some()
     }
-    
+
     /// Duplicate a file descriptor
     pub fn dup(&mut self, old_fd: Fd) -> Option<Fd> {
         let entry = self.entries.get(&old_fd)?.clone();
         let new_fd = self.next_fd;
         self.next_fd += 1;
-        
+
         self.entries.insert(new_fd, FdEntry {
             fd: new_fd,
             ..entry
         });
-        
+
         Some(new_fd)
     }
 }
@@ -226,7 +227,7 @@ impl ProcessHandle {
     /// Create new process handle
     pub fn new(pid: Pid, ppid: Pid, name: impl Into<String>) -> Self {
         STATS.process_spawned();
-        
+
         Self {
             pid,
             ppid,
@@ -241,33 +242,33 @@ impl ProcessHandle {
             heap_size: 0,
         }
     }
-    
+
     /// Get current state
     pub fn state(&self) -> ProcessState {
         *self.state.lock()
     }
-    
+
     /// Set state
     pub fn set_state(&self, state: ProcessState) {
         *self.state.lock() = state;
     }
-    
+
     /// Mark as ready
     pub fn ready(&self) {
         self.set_state(ProcessState::Ready);
     }
-    
+
     /// Mark as running
     pub fn running(&self) {
         self.set_state(ProcessState::Running);
     }
-    
+
     /// Exit with code
     pub fn exit(&self, code: i32) {
         *self.exit_code.lock() = Some(code);
         self.set_state(ProcessState::Zombie);
     }
-    
+
     /// Reap the process
     pub fn reap(&self) -> Option<i32> {
         let code = *self.exit_code.lock();
@@ -276,17 +277,17 @@ impl ProcessHandle {
         }
         code
     }
-    
+
     /// Allocate a file descriptor
     pub fn alloc_fd(&self, fd_type: FdType) -> Option<Fd> {
         self.fd_table.lock().alloc(fd_type)
     }
-    
+
     /// Get file descriptor
     pub fn get_fd(&self, fd: Fd) -> Option<FdEntry> {
         self.fd_table.lock().get(fd).cloned()
     }
-    
+
     /// Close file descriptor
     pub fn close_fd(&self, fd: Fd) -> bool {
         self.fd_table.lock().close(fd)
@@ -309,8 +310,8 @@ pub struct RuntimeConfig {
 impl Default for RuntimeConfig {
     fn default() -> Self {
         Self {
-            default_stack_size: 8 * 1024 * 1024,   // 8 MB
-            default_heap_size: 16 * 1024 * 1024,   // 16 MB
+            default_stack_size: 8 * 1024 * 1024, // 8 MB
+            default_heap_size: 16 * 1024 * 1024, // 16 MB
             max_processes: MAX_PROCESSES,
             aslr_enabled: true,
         }
@@ -344,60 +345,60 @@ impl Runtime {
             initialized: AtomicBool::new(false),
         }
     }
-    
+
     /// Initialize with config
     pub fn init_with_config(&self, config: RuntimeConfig) {
         // Note: can't actually change config in const fn created struct
         // In real impl, would use UnsafeCell or similar
         self.initialized.store(true, Ordering::SeqCst);
     }
-    
+
     /// Create a new process from ELF
     pub fn spawn(&self, elf: &ParsedElf, name: &str) -> UserResult<Arc<ProcessHandle>> {
         let pid = self.next_pid.fetch_add(1, Ordering::SeqCst);
-        
+
         let mut process = ProcessHandle::new(pid, 0, name);
         process.entry_point = elf.entry_point;
-        
+
         // In real OS, would:
         // 1. Allocate address space
         // 2. Map ELF segments
         // 3. Set up stack
         // 4. Set up heap
-        
+
         let handle = Arc::new(process);
         self.processes.write().insert(pid, handle.clone());
-        
+
         handle.ready();
-        
+
         Ok(handle)
     }
-    
+
     /// Spawn a simple process (without ELF)
     pub fn spawn_simple(&self, name: &str, entry: u64) -> UserResult<Arc<ProcessHandle>> {
         let pid = self.next_pid.fetch_add(1, Ordering::SeqCst);
-        
+
         let mut process = ProcessHandle::new(pid, 0, name);
         process.entry_point = entry;
-        
+
         let handle = Arc::new(process);
         self.processes.write().insert(pid, handle.clone());
-        
+
         handle.ready();
-        
+
         Ok(handle)
     }
-    
+
     /// Get process by PID
     pub fn get_process(&self, pid: Pid) -> Option<Arc<ProcessHandle>> {
         self.processes.read().get(&pid).cloned()
     }
-    
+
     /// List all processes
     pub fn list_processes(&self) -> Vec<Arc<ProcessHandle>> {
         self.processes.read().values().cloned().collect()
     }
-    
+
     /// Kill a process
     pub fn kill(&self, pid: Pid, signal: i32) -> UserResult<()> {
         if let Some(process) = self.get_process(pid) {
@@ -409,13 +410,13 @@ impl Runtime {
             Err(UserError::InvalidArgument)
         }
     }
-    
+
     /// Reap zombie processes
     pub fn reap_zombies(&self) {
         let mut processes = self.processes.write();
         processes.retain(|_, p| p.state() != ProcessState::Dead);
     }
-    
+
     /// Get number of active processes
     pub fn process_count(&self) -> usize {
         self.processes.read().len()
@@ -444,16 +445,16 @@ mod tests {
     #[test]
     fn test_fd_table() {
         let mut table = FdTable::new();
-        
+
         // Standard streams should exist
         assert!(table.get(STDIN_FD).is_some());
         assert!(table.get(STDOUT_FD).is_some());
         assert!(table.get(STDERR_FD).is_some());
-        
+
         // Allocate new FD
         let fd = table.alloc(FdType::File).unwrap();
         assert_eq!(fd, 3);
-        
+
         // Close it
         assert!(table.close(fd));
         assert!(table.get(fd).is_none());
@@ -463,10 +464,10 @@ mod tests {
     fn test_process_handle() {
         let process = ProcessHandle::new(1, 0, "test");
         assert_eq!(process.state(), ProcessState::Creating);
-        
+
         process.ready();
         assert_eq!(process.state(), ProcessState::Ready);
-        
+
         process.exit(0);
         assert_eq!(process.state(), ProcessState::Zombie);
     }

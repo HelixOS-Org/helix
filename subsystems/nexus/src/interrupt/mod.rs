@@ -23,38 +23,31 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
-pub mod record;
-pub mod stats;
-pub mod pattern;
-pub mod storm;
 pub mod affinity;
 pub mod coalescing;
 pub mod intelligence;
+pub mod pattern;
+pub mod record;
+pub mod stats;
+pub mod storm;
+pub mod types;
 
 // Re-export core types
-pub use types::{CpuId, DeliveryMode, InterruptPriority, InterruptType, Irq};
-
-// Re-export record types
-pub use record::InterruptRecord;
-
-// Re-export stats types
-pub use stats::IrqStats;
-
-// Re-export pattern types
-pub use pattern::{InterruptPattern, InterruptPatternDetector};
-
-// Re-export storm types
-pub use storm::{StormDetector, StormEvent, StormEventType, StormInfo};
-
 // Re-export affinity types
 pub use affinity::{AffinityChange, AffinityOptimizer};
-
 // Re-export coalescing types
 pub use coalescing::{CoalescingMetrics, CoalescingOptimizer, CoalescingSettings};
-
 // Re-export intelligence types
 pub use intelligence::InterruptIntelligence;
+// Re-export pattern types
+pub use pattern::{InterruptPattern, InterruptPatternDetector};
+// Re-export record types
+pub use record::InterruptRecord;
+// Re-export stats types
+pub use stats::IrqStats;
+// Re-export storm types
+pub use storm::{StormDetector, StormEvent, StormEventType, StormInfo};
+pub use types::{CpuId, DeliveryMode, InterruptPriority, InterruptType, Irq};
 
 // ============================================================================
 // TESTS

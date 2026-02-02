@@ -136,17 +136,23 @@ impl Duration {
 
     /// Create from microseconds
     pub const fn from_micros(micros: u64) -> Self {
-        Self { nanos: micros * 1000 }
+        Self {
+            nanos: micros * 1000,
+        }
     }
 
     /// Create from milliseconds
     pub const fn from_millis(millis: u64) -> Self {
-        Self { nanos: millis * 1_000_000 }
+        Self {
+            nanos: millis * 1_000_000,
+        }
     }
 
     /// Create from seconds
     pub const fn from_secs(secs: u64) -> Self {
-        Self { nanos: secs * 1_000_000_000 }
+        Self {
+            nanos: secs * 1_000_000_000,
+        }
     }
 
     /// Get as nanoseconds
@@ -197,9 +203,19 @@ impl fmt::Display for Duration {
         } else if nanos < 1_000_000 {
             write!(f, "{}.{:02}µs", nanos / 1000, (nanos % 1000) / 10)
         } else if nanos < 1_000_000_000 {
-            write!(f, "{}.{:02}ms", nanos / 1_000_000, (nanos % 1_000_000) / 10_000)
+            write!(
+                f,
+                "{}.{:02}ms",
+                nanos / 1_000_000,
+                (nanos % 1_000_000) / 10_000
+            )
         } else {
-            write!(f, "{}.{:03}s", nanos / 1_000_000_000, (nanos % 1_000_000_000) / 1_000_000)
+            write!(
+                f,
+                "{}.{:03}s",
+                nanos / 1_000_000_000,
+                (nanos % 1_000_000_000) / 1_000_000
+            )
         }
     }
 }
@@ -261,9 +277,7 @@ impl Stopwatch {
     /// Get elapsed duration
     pub fn elapsed(&self, now: Timestamp) -> Duration {
         if self.running {
-            Duration::from_nanos(
-                self.accumulated_ns + self.start.elapsed_ns(now, self.frequency)
-            )
+            Duration::from_nanos(self.accumulated_ns + self.start.elapsed_ns(now, self.frequency))
         } else {
             Duration::from_nanos(self.accumulated_ns)
         }
@@ -392,24 +406,24 @@ impl Statistics {
 #[repr(u8)]
 pub enum PhaseId {
     #[default]
-    Unknown = 0,
-    FirmwareEntry = 1,
-    EarlyInit = 2,
-    ConsoleInit = 3,
-    MemoryInit = 4,
-    ConfigLoad = 5,
-    DeviceDiscovery = 6,
-    EntryDetection = 7,
+    Unknown            = 0,
+    FirmwareEntry      = 1,
+    EarlyInit          = 2,
+    ConsoleInit        = 3,
+    MemoryInit         = 4,
+    ConfigLoad         = 5,
+    DeviceDiscovery    = 6,
+    EntryDetection     = 7,
     SecurityValidation = 8,
-    MenuDisplay = 9,
-    UserSelection = 10,
-    EntryPreparation = 11,
-    KernelLoad = 12,
-    InitrdLoad = 13,
-    PreBootHooks = 14,
-    ExitBootServices = 15,
-    HandoffPrep = 16,
-    KernelHandoff = 17,
+    MenuDisplay        = 9,
+    UserSelection      = 10,
+    EntryPreparation   = 11,
+    KernelLoad         = 12,
+    InitrdLoad         = 13,
+    PreBootHooks       = 14,
+    ExitBootServices   = 15,
+    HandoffPrep        = 16,
+    KernelHandoff      = 17,
 }
 
 /// Phase timing entry
@@ -828,7 +842,14 @@ impl IoPerf {
     }
 
     /// Add entry
-    fn add_entry(&mut self, op_type: IoOpType, device: u8, offset: u64, size: u64, duration_ns: u64) {
+    fn add_entry(
+        &mut self,
+        op_type: IoOpType,
+        device: u8,
+        offset: u64,
+        size: u64,
+        duration_ns: u64,
+    ) {
         if self.count >= MAX_IO_ENTRIES {
             return;
         }
@@ -921,8 +942,16 @@ impl PerfReport {
         PerfSummary {
             total_boot_time_ns: self.phases.total_ns,
             phase_count: self.phases.len() as u8,
-            slowest_phase: self.phases.slowest_phase().map(|p| p.phase).unwrap_or(PhaseId::Unknown),
-            slowest_phase_time_ns: self.phases.slowest_phase().map(|p| p.duration_ns).unwrap_or(0),
+            slowest_phase: self
+                .phases
+                .slowest_phase()
+                .map(|p| p.phase)
+                .unwrap_or(PhaseId::Unknown),
+            slowest_phase_time_ns: self
+                .phases
+                .slowest_phase()
+                .map(|p| p.duration_ns)
+                .unwrap_or(0),
             total_mem_allocated: self.memory.total_allocated,
             peak_mem_usage: self.memory.peak_usage,
             total_io_read: self.io.total_read,

@@ -100,7 +100,7 @@ impl AffinityOptimizer {
             candidates
                 .iter()
                 .take(current.len())
-                .map(|(&cpu, _)| cpu)
+                .map(|&(&cpu, _)| cpu)
                 .collect()
         } else {
             // NUMA-aware: try to keep on same node
@@ -123,7 +123,7 @@ impl AffinityOptimizer {
             }
 
             // Fill remaining from other nodes
-            for (&cpu, _) in &candidates {
+            for &(&cpu, _) in &candidates {
                 if selected.len() >= current.len() {
                     break;
                 }

@@ -25,26 +25,22 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
-pub mod result;
 pub mod checkpoint;
-pub mod quarantine;
 pub mod engine;
+pub mod quarantine;
+pub mod result;
+pub mod types;
 
 // Re-export core types
-pub use types::HealingStrategy;
-
-// Re-export result types
-pub use result::HealingResult;
-
 // Re-export checkpoint types
 pub use checkpoint::{Checkpoint, CheckpointStats, CheckpointStore};
-
-// Re-export quarantine types
-pub use quarantine::{QuarantinedComponent, QuarantineManager};
-
 // Re-export engine types
 pub use engine::HealingEngine;
+// Re-export quarantine types
+pub use quarantine::{QuarantineManager, QuarantinedComponent};
+// Re-export result types
+pub use result::HealingResult;
+pub use types::HealingStrategy;
 
 // ============================================================================
 // TESTS
@@ -124,8 +120,10 @@ mod tests {
         // Next attempt should fail with quarantine
         let result = engine.heal(ComponentId::SCHEDULER, HealingStrategy::SoftReset);
         assert!(result.is_err());
-        assert!(engine
-            .quarantine_manager()
-            .is_quarantined(ComponentId::SCHEDULER));
+        assert!(
+            engine
+                .quarantine_manager()
+                .is_quarantined(ComponentId::SCHEDULER)
+        );
     }
 }

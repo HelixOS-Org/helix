@@ -6,7 +6,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{CausalNodeId, CausalEdgeId, ChainId, CausalGraph};
+use super::{CausalEdgeId, CausalGraph, CausalNodeId, ChainId};
 
 /// Causal chain (path from cause to effect)
 #[derive(Debug, Clone)]

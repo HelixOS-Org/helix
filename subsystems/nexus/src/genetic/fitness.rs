@@ -7,13 +7,13 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
+use super::Fitness;
 use super::genome::CodeGenome;
-use super::{Fitness, GenomeId};
 
 // ============================================================================
 // FITNESS OBJECTIVES
@@ -257,7 +257,7 @@ impl FitnessEvaluator {
         }
     }
 
-    fn run_test(&self, genome: &CodeGenome, test: &TestCase) -> bool {
+    fn run_test(&self, genome: &CodeGenome, _test: &TestCase) -> bool {
         // Simplified: check if genome has enough genes to potentially compute result
         // In real implementation, would interpret/execute genome
 

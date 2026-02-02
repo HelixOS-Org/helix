@@ -42,14 +42,12 @@
 //!                      └──────────────────────────────────────────┘
 //! ```
 
-
-use alloc::{
-    collections::{BTreeMap, VecDeque},
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::RwLock;
 
 // =============================================================================
@@ -458,7 +456,10 @@ impl Histogram {
             .iter()
             .copied()
             .zip(self.counts.iter().copied())
-            .chain(core::iter::once((f64::INFINITY, self.counts[self.boundaries.len()])))
+            .chain(core::iter::once((
+                f64::INFINITY,
+                self.counts[self.boundaries.len()],
+            )))
     }
 
     /// Get count
@@ -591,9 +592,14 @@ impl MetricsCollector {
     fn register_defaults(&self) {
         // CPU metrics
         self.register(
-            MetricDefinition::gauge("system.cpu.usage", "CPU Usage", "Overall CPU utilization", "%")
-                .with_bounds(0.0, 100.0)
-                .with_thresholds(80.0, 95.0),
+            MetricDefinition::gauge(
+                "system.cpu.usage",
+                "CPU Usage",
+                "Overall CPU utilization",
+                "%",
+            )
+            .with_bounds(0.0, 100.0)
+            .with_thresholds(80.0, 95.0),
         );
 
         // Memory metrics
@@ -692,7 +698,9 @@ impl MetricsCollector {
         if let Some(ts) = series.get_mut(&metric_id) {
             // Check for anomaly before recording
             if ts.is_anomalous(value) {
-                self.stats.anomalies_detected.fetch_add(1, Ordering::Relaxed);
+                self.stats
+                    .anomalies_detected
+                    .fetch_add(1, Ordering::Relaxed);
             }
             ts.add(metric_value);
             self.stats.metrics_recorded.fetch_add(1, Ordering::Relaxed);

@@ -116,8 +116,12 @@ impl CausalEventType {
     pub fn is_state_change(&self) -> bool {
         matches!(
             self,
-            Self::StateChanged | Self::ConfigChanged | Self::ProcessCreated |
-            Self::ProcessTerminated | Self::LockAcquire | Self::LockRelease
+            Self::StateChanged
+                | Self::ConfigChanged
+                | Self::ProcessCreated
+                | Self::ProcessTerminated
+                | Self::LockAcquire
+                | Self::LockRelease
         )
     }
 
@@ -125,8 +129,12 @@ impl CausalEventType {
     pub fn is_warning_or_error(&self) -> bool {
         matches!(
             self,
-            Self::WarningIssued | Self::ErrorOccurred | Self::RecoveryFailed |
-            Self::ResourceExhausted | Self::AnomalyDetected | Self::ThresholdExceeded
+            Self::WarningIssued
+                | Self::ErrorOccurred
+                | Self::RecoveryFailed
+                | Self::ResourceExhausted
+                | Self::AnomalyDetected
+                | Self::ThresholdExceeded
         )
     }
 }
@@ -135,17 +143,17 @@ impl CausalEventType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EventSeverity {
     /// Debug level
-    Debug = 0,
+    Debug    = 0,
     /// Info level
-    Info = 1,
+    Info     = 1,
     /// Warning level
-    Warning = 2,
+    Warning  = 2,
     /// Error level
-    Error = 3,
+    Error    = 3,
     /// Critical level
     Critical = 4,
     /// Fatal level
-    Fatal = 5,
+    Fatal    = 5,
 }
 
 impl EventSeverity {
@@ -223,7 +231,8 @@ impl CausalEvent {
 
     /// With property
     pub fn with_property(mut self, key: &str, value: &str) -> Self {
-        self.properties.insert(String::from(key), String::from(value));
+        self.properties
+            .insert(String::from(key), String::from(value));
         self
     }
 

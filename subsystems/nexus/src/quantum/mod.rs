@@ -40,7 +40,6 @@
 //! let engine = QaoaEngine::new(problem, 2);
 //! ```
 
-#![no_std]
 #![allow(dead_code)]
 
 extern crate alloc;
@@ -54,12 +53,14 @@ pub mod types;
 pub mod vqe;
 
 // Re-export main types
-use alloc::boxed::Box;
 use alloc::vec::Vec;
-use core::f64::consts::PI;
 
 pub use circuits::{CircuitExecutor, Instruction, QuantumCircuit};
 pub use types::{Complex, Hamiltonian, Pauli, PauliString, QubitState, StateVector};
+
+// Import RunningStats from learn module
+use crate::learn::incremental::RunningStats;
+use crate::types::NexusResult;
 
 /// Quantum-inspired optimization problem types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -552,7 +553,7 @@ impl QuantumOptimizer {
         Self {
             config,
             problem_type,
-            stats: RunningStats::new(),
+            stats: RunningStats::default(),
             best_solution: None,
             best_energy: f64::MAX,
         }

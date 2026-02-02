@@ -397,9 +397,7 @@ impl TimerAccess {
 
     /// Configure userspace access (EL0 can read counters and virtual timer)
     pub fn configure_userspace_virtual() {
-        write_cntkctl_el1(
-            cntkctl::EL0PCTEN | cntkctl::EL0VCTEN | cntkctl::EL0VTEN
-        );
+        write_cntkctl_el1(cntkctl::EL0PCTEN | cntkctl::EL0VCTEN | cntkctl::EL0VTEN);
     }
 }
 

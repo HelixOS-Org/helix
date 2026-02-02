@@ -2,12 +2,14 @@
 //!
 //! A simple bitmap-based physical page allocator.
 
-use crate::{Frame, MemResult, MemError, MemoryZone};
-use super::{PhysicalAllocator, PhysicalRegion, AllocatorStats};
-use helix_hal::{PhysAddr, PageSize};
 use alloc::vec::Vec;
-use spin::Mutex;
 use core::sync::atomic::{AtomicU64, Ordering};
+
+use helix_hal::{PageSize, PhysAddr};
+use spin::Mutex;
+
+use super::{AllocatorStats, PhysicalAllocator, PhysicalRegion};
+use crate::{Frame, MemError, MemResult, MemoryZone};
 
 /// Bitmap allocator
 pub struct BitmapAllocator {
@@ -58,11 +60,11 @@ impl BitmapAllocator {
         let bitmap = self.bitmap.lock();
         let mut start = 0;
         let mut found = 0;
-        
+
         for frame_idx in 0..self.total_frames {
             let word_idx = frame_idx / 64;
             let bit_idx = frame_idx % 64;
-            
+
             if bitmap[word_idx] & (1 << bit_idx) == 0 {
                 if found == 0 {
                     start = frame_idx;
@@ -75,7 +77,7 @@ impl BitmapAllocator {
                 found = 0;
             }
         }
-        
+
         None
     }
 
@@ -121,37 +123,37 @@ impl PhysicalAllocator for BitmapAllocator {
         // Find usable memory
         let mut min_addr = u64::MAX;
         let mut max_addr = 0u64;
-        
+
         for region in regions {
             if region.is_usable() {
                 min_addr = min_addr.min(region.start.as_u64());
                 max_addr = max_addr.max(region.end().as_u64());
             }
         }
-        
+
         if min_addr >= max_addr {
             return Err(MemError::InvalidRegion);
         }
-        
+
         // Calculate bitmap size
         let page_size = PageSize::Size4KiB.size() as u64;
         let total_frames = ((max_addr - min_addr) / page_size) as usize;
         let bitmap_words = (total_frames + 63) / 64;
-        
+
         // Initialize bitmap (all used initially)
         let mut bitmap = self.bitmap.lock();
         bitmap.resize(bitmap_words, u64::MAX);
-        
+
         self.base = PhysAddr::new(min_addr);
         self.total_frames = total_frames;
-        
+
         // Mark usable regions as free
         let mut free = 0u64;
         for region in regions {
             if region.is_usable() {
                 let start_frame = ((region.start.as_u64() - min_addr) / page_size) as usize;
                 let end_frame = ((region.end().as_u64() - min_addr) / page_size) as usize;
-                
+
                 for frame_idx in start_frame..end_frame {
                     if frame_idx < total_frames {
                         let word_idx = frame_idx / 64;
@@ -162,16 +164,16 @@ impl PhysicalAllocator for BitmapAllocator {
                 }
             }
         }
-        
+
         drop(bitmap);
         self.free_count.store(free, Ordering::SeqCst);
-        
+
         log::info!(
             "Bitmap allocator initialized: {} frames, {} free",
             total_frames,
             free
         );
-        
+
         Ok(())
     }
 
@@ -181,14 +183,13 @@ impl PhysicalAllocator for BitmapAllocator {
             // Large/huge pages would need different handling
             return Err(MemError::InvalidSize);
         }
-        
-        let frame_idx = self.find_free()
-            .ok_or(MemError::OutOfMemory)?;
-        
+
+        let frame_idx = self.find_free().ok_or(MemError::OutOfMemory)?;
+
         self.set_used(frame_idx);
         self.free_count.fetch_sub(1, Ordering::SeqCst);
         self.allocations.fetch_add(1, Ordering::Relaxed);
-        
+
         Ok(Frame::new(self.frame_address(frame_idx), size))
     }
 
@@ -196,17 +197,16 @@ impl PhysicalAllocator for BitmapAllocator {
         if size != PageSize::Size4KiB {
             return Err(MemError::InvalidSize);
         }
-        
-        let start_idx = self.find_contiguous(count)
-            .ok_or(MemError::OutOfMemory)?;
-        
+
+        let start_idx = self.find_contiguous(count).ok_or(MemError::OutOfMemory)?;
+
         for i in 0..count {
             self.set_used(start_idx + i);
         }
-        
+
         self.free_count.fetch_sub(count as u64, Ordering::SeqCst);
         self.allocations.fetch_add(1, Ordering::Relaxed);
-        
+
         Ok(Frame::new(self.frame_address(start_idx), size))
     }
 
@@ -218,15 +218,15 @@ impl PhysicalAllocator for BitmapAllocator {
 
     fn deallocate(&self, frame: Frame) -> MemResult<()> {
         let frame_idx = self.frame_index(frame.address());
-        
+
         if frame_idx >= self.total_frames {
             return Err(MemError::InvalidAddress);
         }
-        
+
         self.set_free(frame_idx);
         self.free_count.fetch_add(1, Ordering::SeqCst);
         self.deallocations.fetch_add(1, Ordering::Relaxed);
-        
+
         Ok(())
     }
 
@@ -241,7 +241,7 @@ impl PhysicalAllocator for BitmapAllocator {
     fn stats(&self) -> AllocatorStats {
         let allocations = self.allocations.load(Ordering::Relaxed);
         let deallocations = self.deallocations.load(Ordering::Relaxed);
-        
+
         AllocatorStats {
             allocations,
             deallocations,

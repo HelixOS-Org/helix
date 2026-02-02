@@ -46,8 +46,9 @@
 //! - Support for very large interrupt counts
 //! - Used with ITS (Interrupt Translation Service) for PCIe MSI
 
-use super::{bit_reg_offset, byte_reg_offset, config_reg_offset, Priority, TriggerMode, PPI_BASE};
 use core::ptr::{read_volatile, write_volatile};
+
+use super::{bit_reg_offset, byte_reg_offset, config_reg_offset, Priority, TriggerMode, PPI_BASE};
 
 // ============================================================================
 // GICR Frame Sizes and Offsets
@@ -564,7 +565,7 @@ impl Redistributor {
         let value = (base & !0xFFFF)
             | (7 << 7)    // InnerCache: WB, WA
             | (1 << 10)   // Inner Shareable
-            | (1 << 62);  // PTZ: Zero pending bits on enable
+            | (1 << 62); // PTZ: Zero pending bits on enable
 
         self.write_rd_reg64(GICR_PENDBASER, value);
     }

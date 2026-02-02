@@ -7,13 +7,9 @@ use alloc::string::String;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::{
-    MemoryId, EpisodeId, PatternId, ProcedureId, BootId,
-    Timestamp, TimeRange,
-    EpisodicMemory, EpisodeType,
-    SemanticMemory, PatternCategory,
-    ProceduralMemory, ProcedureType,
-    WorkingMemory, WorkingMemoryContent,
-    ConsolidationStrategy, ConsolidationResult, MemoryConsolidator,
+    BootId, ConsolidationResult, ConsolidationStrategy, EpisodeId, EpisodeType, EpisodicMemory,
+    MemoryConsolidator, MemoryId, PatternCategory, PatternId, ProceduralMemory, ProcedureId,
+    ProcedureType, SemanticMemory, TimeRange, Timestamp, WorkingMemory, WorkingMemoryContent,
 };
 
 /// LTM analysis
@@ -152,7 +148,8 @@ impl LongTermMemoryIntelligence {
 
     /// Create procedure
     pub fn create_procedure(&mut self, name: &str, procedure_type: ProcedureType) -> ProcedureId {
-        self.procedural.create_procedure(String::from(name), procedure_type)
+        self.procedural
+            .create_procedure(String::from(name), procedure_type)
     }
 
     /// Tick - update time and maybe consolidate

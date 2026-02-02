@@ -2,11 +2,12 @@
 //!
 //! Architecture-agnostic page table manipulation.
 
-use super::{PageFlags, VirtualMapper};
-use crate::{Page, Frame, MemResult, MemError};
-use crate::physical::frame_allocator::FrameAllocator;
-use helix_hal::{VirtAddr, PhysAddr};
+use helix_hal::{PhysAddr, VirtAddr};
 use spin::Mutex;
+
+use super::{PageFlags, VirtualMapper};
+use crate::physical::frame_allocator::FrameAllocator;
+use crate::{Frame, MemError, MemResult, Page};
 
 /// Generic page table mapper
 pub struct PageTableMapper<A: FrameAllocator> {
@@ -36,28 +37,28 @@ impl<A: FrameAllocator + Send + Sync> VirtualMapper for PageTableMapper<A> {
         // This would be architecture-specific
         // Walk the page table, allocating intermediate tables as needed
         // Set the final entry to point to the frame with the given flags
-        
+
         log::trace!(
             "Mapping {:?} -> {:?} with flags {:?}",
             page.address(),
             frame.address(),
             flags
         );
-        
+
         // Placeholder - real implementation would manipulate page tables
         Ok(())
     }
 
     fn unmap(&self, page: Page) -> MemResult<Frame> {
         log::trace!("Unmapping {:?}", page.address());
-        
+
         // Placeholder - would return the previously mapped frame
         Err(MemError::NotMapped)
     }
 
     fn update_flags(&self, page: Page, flags: PageFlags) -> MemResult<()> {
         log::trace!("Updating flags for {:?} to {:?}", page.address(), flags);
-        
+
         // Placeholder
         Ok(())
     }

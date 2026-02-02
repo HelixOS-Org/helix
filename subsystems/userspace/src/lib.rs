@@ -23,23 +23,23 @@
 extern crate alloc;
 
 pub mod elf;
-pub mod shell;
-pub mod runtime;
-pub mod syscalls;
-pub mod program;
 pub mod environment;
+pub mod program;
+pub mod runtime;
+pub mod shell;
+pub mod syscalls;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 // Re-exports
-pub use elf::{ElfLoader, ElfHeader, ProgramHeader, ElfError};
-pub use shell::{Shell, ShellCommand, CommandResult};
-pub use runtime::{Runtime, RuntimeConfig, ProcessHandle};
-pub use syscalls::{Syscall, SyscallTable, SyscallResult};
+pub use elf::{ElfError, ElfHeader, ElfLoader, ProgramHeader};
+pub use environment::{EnvVar, Environment};
 pub use program::{Program, ProgramInfo};
-pub use environment::{Environment, EnvVar};
+pub use runtime::{ProcessHandle, Runtime, RuntimeConfig};
+pub use shell::{CommandResult, Shell, ShellCommand};
+pub use syscalls::{Syscall, SyscallResult, SyscallTable};
 
 /// Userspace subsystem result type
 pub type UserResult<T> = Result<T, UserError>;
@@ -142,13 +142,13 @@ pub static STATS: UserspaceStats = UserspaceStats::new();
 pub fn init() -> UserResult<()> {
     // Initialize ELF loader
     elf::init()?;
-    
+
     // Initialize runtime
     runtime::init()?;
-    
+
     // Initialize syscall table
     syscalls::init()?;
-    
+
     Ok(())
 }
 
@@ -176,8 +176,8 @@ impl Default for UserspaceCapabilities {
             can_spawn: true,
             has_shell: true,
             can_syscall: true,
-            has_network: false,  // Not yet implemented
-            has_filesystem: false,  // Not yet implemented
+            has_network: false,    // Not yet implemented
+            has_filesystem: false, // Not yet implemented
         }
     }
 }

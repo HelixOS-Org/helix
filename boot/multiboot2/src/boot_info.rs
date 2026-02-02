@@ -42,8 +42,8 @@
 
 use core::fmt;
 
-use crate::memory::{MemoryRegion, MemoryStats};
 use crate::info::Multiboot2Info;
+use crate::memory::{MemoryRegion, MemoryStats};
 
 // =============================================================================
 // Boot Protocol Trait
@@ -57,7 +57,7 @@ use crate::info::Multiboot2Info;
 /// # Example
 ///
 /// ```rust,no_run
-/// use helix_multiboot2::{BootProtocol, BootInfo};
+/// use helix_multiboot2::{BootInfo, BootProtocol};
 ///
 /// fn kernel_init<P: BootProtocol>(boot_info: &P) {
 ///     // Access memory map
@@ -236,10 +236,7 @@ impl<'boot> BootInfo<'boot> {
     /// This is useful for unit tests or for platforms that don't use
     /// a standard boot protocol.
     #[must_use]
-    pub fn from_static(
-        cmdline: Option<&'boot str>,
-        memory_regions: &'boot [MemoryRegion],
-    ) -> Self {
+    pub fn from_static(cmdline: Option<&'boot str>, memory_regions: &'boot [MemoryRegion]) -> Self {
         Self {
             inner: BootInfoInner::Static(StaticBootInfo {
                 cmdline,
@@ -289,10 +286,8 @@ impl<'boot> BootInfo<'boot> {
                 } else {
                     MemoryRegionIter::empty()
                 }
-            }
-            BootInfoInner::Static(info) => {
-                MemoryRegionIter::from_slice(info.memory_regions)
-            }
+            },
+            BootInfoInner::Static(info) => MemoryRegionIter::from_slice(info.memory_regions),
         }
     }
 
@@ -321,11 +316,10 @@ impl<'boot> BootInfo<'boot> {
     pub fn rsdp(&self) -> Option<*const u8> {
         match &self.inner {
             #[cfg(feature = "acpi")]
-            BootInfoInner::Multiboot2(info) => {
-                info.acpi_new_rsdp()
-                    .or_else(|| info.acpi_old_rsdp())
-                    .map(|d| d.as_ptr())
-            }
+            BootInfoInner::Multiboot2(info) => info
+                .acpi_new_rsdp()
+                .or_else(|| info.acpi_old_rsdp())
+                .map(|d| d.as_ptr()),
             #[cfg(not(feature = "acpi"))]
             BootInfoInner::Multiboot2(_) => None,
             BootInfoInner::Static(info) => info.rsdp,
@@ -361,7 +355,7 @@ impl<'boot> BootInfo<'boot> {
                     if let Some(mmap) = info.memory_map() {
                         self.memory_stats = Some(MemoryStats::from_map(&mmap));
                     }
-                }
+                },
                 BootInfoInner::Static(info) => {
                     // Compute from slice
                     let mut stats = MemoryStats {
@@ -384,7 +378,7 @@ impl<'boot> BootInfo<'boot> {
                     }
 
                     self.memory_stats = Some(stats);
-                }
+                },
             }
         }
 
@@ -407,7 +401,10 @@ impl fmt::Debug for BootInfo<'_> {
             .field("protocol", &self.protocol_name())
             .field("cmdline", &self.cmdline())
             .field("bootloader", &self.bootloader_name())
-            .field("total_memory", &format_args!("{} MB", self.total_memory() / (1024 * 1024)))
+            .field(
+                "total_memory",
+                &format_args!("{} MB", self.total_memory() / (1024 * 1024)),
+            )
             .finish()
     }
 }
@@ -433,10 +430,8 @@ impl BootProtocol for BootInfo<'_> {
                 } else {
                     MemoryRegionIter::empty()
                 }
-            }
-            BootInfoInner::Static(info) => {
-                MemoryRegionIter::from_slice(info.memory_regions)
-            }
+            },
+            BootInfoInner::Static(info) => MemoryRegionIter::from_slice(info.memory_regions),
         }
     }
 

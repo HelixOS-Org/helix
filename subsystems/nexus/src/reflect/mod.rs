@@ -81,83 +81,39 @@
 #![allow(dead_code)]
 
 // Submodules
-pub mod metrics;
-pub mod introspector;
 pub mod calibrator;
 pub mod diagnostician;
+pub mod domain;
 pub mod evolver;
 pub mod insight;
-pub mod domain;
+pub mod introspector;
+pub mod metrics;
 
 // Re-exports - Metrics
-pub use metrics::{
-    DomainMetrics,
-    CognitiveMetrics,
-};
-
-// Re-exports - Introspector
-pub use introspector::{
-    Introspector,
-    IssueId,
-    CognitiveStatus,
-    IssueType,
-    CognitiveIssue,
-    DomainHealth,
-    CognitiveHealth,
-    IntrospectorStats,
-};
-
 // Re-exports - Calibrator
 pub use calibrator::{
-    Calibrator,
-    PredictionId,
-    PredictionRecord,
-    PredictionOutcome,
-    DecisionId,
-    DecisionRecord,
-    DecisionOutcome,
-    CalibrationReport,
-    CalibrationRecommendation,
-    CalibratorStats,
+    CalibrationRecommendation, CalibrationReport, Calibrator, CalibratorStats, DecisionOutcome,
+    DecisionRecord, PredictionOutcome, PredictionRecord,
 };
-
 // Re-exports - Diagnostician
 pub use diagnostician::{
-    Diagnostician,
-    FailureId,
-    FailureType,
-    RootCause,
-    CognitiveFailure,
-    Diagnosis,
-    FailurePattern,
-    PatternType,
-    DiagnosticianStats,
+    CognitiveFailure, Diagnosis, Diagnostician, DiagnosticianStats, FailurePattern, FailureType,
+    PatternType, RootCause,
 };
-
+// Re-exports - Domain
+pub use domain::{ReflectConfig, ReflectDomain, ReflectError, ReflectStats};
 // Re-exports - Evolver
 pub use evolver::{
-    Evolver,
-    SuggestionId,
-    ImprovementCategory,
-    EffortLevel,
-    SuggestionStatus,
-    ImprovementSuggestion,
-    AppliedImprovement,
-    EvolverStats,
+    AppliedImprovement, EffortLevel, Evolver, EvolverStats, ImprovementCategory,
+    ImprovementSuggestion, SuggestionStatus,
 };
-
 // Re-exports - Insight
-pub use insight::{
-    Insight,
-    InsightId,
-    InsightType,
-    InsightBatch,
+pub use insight::{Insight, InsightBatch, InsightType};
+// Re-exports - Introspector
+pub use introspector::{
+    CognitiveHealth, CognitiveIssue, CognitiveStatus, DomainHealth, Introspector,
+    IntrospectorStats, IssueType,
 };
+pub use metrics::{CognitiveMetrics, DomainMetrics};
 
-// Re-exports - Domain
-pub use domain::{
-    ReflectDomain,
-    ReflectConfig,
-    ReflectStats,
-    ReflectError,
-};
+pub use crate::types::{DecisionId, FailureId, InsightId, IssueId, PredictionId, SuggestionId};

@@ -4,41 +4,38 @@
 
 pub mod slab;
 
-use core::alloc::{GlobalAlloc, Layout};
 use alloc::sync::Arc;
+use core::alloc::{GlobalAlloc, Layout};
+
 use spin::RwLock;
 
 /// Heap allocator trait
 pub trait HeapAllocator: Send + Sync {
     /// Allocate memory
     fn allocate(&self, layout: Layout) -> *mut u8;
-    
+
     /// Deallocate memory
     fn deallocate(&self, ptr: *mut u8, layout: Layout);
-    
+
     /// Reallocate memory
     fn reallocate(&self, ptr: *mut u8, old_layout: Layout, new_size: usize) -> *mut u8 {
         // Default implementation: allocate new, copy, deallocate old
-        let new_layout = Layout::from_size_align(new_size, old_layout.align())
-            .unwrap_or(old_layout);
-        
+        let new_layout =
+            Layout::from_size_align(new_size, old_layout.align()).unwrap_or(old_layout);
+
         let new_ptr = self.allocate(new_layout);
         if !new_ptr.is_null() && !ptr.is_null() {
             unsafe {
-                core::ptr::copy_nonoverlapping(
-                    ptr,
-                    new_ptr,
-                    old_layout.size().min(new_size),
-                );
+                core::ptr::copy_nonoverlapping(ptr, new_ptr, old_layout.size().min(new_size));
             }
             self.deallocate(ptr, old_layout);
         }
         new_ptr
     }
-    
+
     /// Get allocator name
     fn name(&self) -> &'static str;
-    
+
     /// Get statistics
     fn stats(&self) -> HeapStats;
 }
@@ -80,7 +77,8 @@ impl GlobalHeap {
 
 unsafe impl GlobalAlloc for GlobalHeap {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.allocator.read()
+        self.allocator
+            .read()
             .as_ref()
             .map(|a| a.allocate(layout))
             .unwrap_or(core::ptr::null_mut())
@@ -93,7 +91,8 @@ unsafe impl GlobalAlloc for GlobalHeap {
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        self.allocator.read()
+        self.allocator
+            .read()
             .as_ref()
             .map(|a| a.reallocate(ptr, layout, new_size))
             .unwrap_or(core::ptr::null_mut())
@@ -131,15 +130,15 @@ impl BumpHeap {
 impl HeapAllocator for BumpHeap {
     fn allocate(&self, layout: Layout) -> *mut u8 {
         let mut next = self.next.lock();
-        
+
         // Align up
         let aligned = (*next + layout.align() - 1) & !(layout.align() - 1);
         let end = aligned + layout.size();
-        
+
         if end > self.end {
             return core::ptr::null_mut();
         }
-        
+
         *next = end;
         aligned as *mut u8
     }

@@ -2,17 +2,19 @@
 //!
 //! Core thread data structure.
 
-use crate::{ThreadId, ProcessId, ExecResult};
-use super::ThreadState;
-use crate::scheduler::Priority;
-use helix_hal::VirtAddr;
 use alloc::string::String;
 use core::sync::atomic::{AtomicU32, Ordering};
+
+use helix_hal::VirtAddr;
+
+use super::ThreadState;
+use crate::scheduler::Priority;
+use crate::{ExecResult, ProcessId, ThreadId};
 
 /// Thread flags
 pub mod flags {
     use bitflags::bitflags;
-    
+
     bitflags! {
         /// Thread flags
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,7 +79,7 @@ impl Thread {
         stack: VirtAddr,
     ) -> ExecResult<Self> {
         let kernel_stack = KernelStack::allocate()?;
-        
+
         Ok(Self {
             id,
             process,

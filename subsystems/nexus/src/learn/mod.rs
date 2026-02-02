@@ -12,6 +12,7 @@ mod curriculum;
 mod feedback;
 mod generalizer;
 mod hypothesis;
+pub mod incremental;
 mod intelligence;
 mod regression;
 mod safety;
@@ -19,40 +20,32 @@ mod transfer;
 mod types;
 
 // Re-export types
-pub use types::{ExperienceId, HypothesisId, RuleId, SessionId, Timestamp};
-
-// Re-export feedback types
-pub use feedback::{ActionStats, FeedbackEntry, FeedbackLoop, FeedbackType};
-
-// Re-export generalizer types
-pub use generalizer::{
-    ConditionOp, GeneralizationStrategy, Generalizer, LearnedRule, RuleCondition,
-};
-
 // Re-export curriculum types
 pub use curriculum::{
     CurriculumLearner, CurriculumStage, DifficultyLevel, LearningTask, TaskCriteria,
 };
-
-// Re-export safety types
-pub use safety::{
-    ConstraintType, ExplorationPolicy, SafetyConstraint, SafetyViolation, SafeLearner,
+// Re-export feedback types
+pub use feedback::{ActionStats, FeedbackEntry, FeedbackLoop, FeedbackType};
+// Re-export generalizer types
+pub use generalizer::{
+    ConditionOp, GeneralizationStrategy, Generalizer, LearnedRule, RuleCondition,
 };
-
+// Re-export hypothesis types
+pub use hypothesis::{Hypothesis, HypothesisManager, HypothesisStatus};
+// Re-export intelligence
+pub use intelligence::{ContinuousLearningIntelligence, LearningAnalysis};
 // Re-export regression types
 pub use regression::{
     MetricHistory, MetricSample, MetricType, RegressionDetector, RegressionEvent,
     RegressionSeverity,
 };
-
-// Re-export hypothesis types
-pub use hypothesis::{Hypothesis, HypothesisManager, HypothesisStatus};
-
+// Re-export safety types
+pub use safety::{
+    ConstraintType, ExplorationPolicy, SafeLearner, SafetyConstraint, SafetyViolation,
+};
 // Re-export transfer types
 pub use transfer::{KnowledgeItem, KnowledgeTransfer, KnowledgeType, TransferRecord};
-
-// Re-export intelligence
-pub use intelligence::{ContinuousLearningIntelligence, LearningAnalysis};
+pub use types::{ExperienceId, HypothesisId, RuleId, SessionId, Timestamp};
 
 // ============================================================================
 // TESTS

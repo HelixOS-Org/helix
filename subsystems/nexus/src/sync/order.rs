@@ -5,9 +5,8 @@
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::core::NexusTimestamp;
-
 use super::{LockId, ThreadId};
+use crate::core::NexusTimestamp;
 
 /// Order violation
 #[derive(Debug, Clone)]
@@ -78,7 +77,7 @@ impl LockOrderOptimizer {
         // Kahn's algorithm
         let mut queue: Vec<_> = in_degree
             .iter()
-            .filter(|(_, &d)| d == 0)
+            .filter(|&(_, d)| *d == 0)
             .map(|(&id, _)| id)
             .collect();
         let mut result = Vec::new();

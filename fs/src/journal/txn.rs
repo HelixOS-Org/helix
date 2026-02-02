@@ -3,10 +3,11 @@
 //! Provides atomic transaction semantics with commit/abort
 //! and nested transaction support.
 
-use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
-use crate::journal::wal::WalPosition;
 use core::sync::atomic::{AtomicU64, AtomicU8, Ordering};
+
+use crate::core::error::{HfsError, HfsResult};
+use crate::core::types::*;
+use crate::journal::wal::WalPosition;
 
 // ============================================================================
 // Transaction ID
@@ -27,21 +28,21 @@ pub const INVALID_TXN_ID: TxnId = 0;
 #[repr(u8)]
 pub enum TxnState {
     /// Not started
-    None = 0,
+    None       = 0,
     /// Active (in progress)
-    Active = 1,
+    Active     = 1,
     /// Preparing (writing commit record)
-    Preparing = 2,
+    Preparing  = 2,
     /// Committing (flushing)
     Committing = 3,
     /// Committed successfully
-    Committed = 4,
+    Committed  = 4,
     /// Aborting
-    Aborting = 5,
+    Aborting   = 5,
     /// Aborted
-    Aborted = 6,
+    Aborted    = 6,
     /// Error state
-    Error = 7,
+    Error      = 7,
 }
 
 impl TxnState {
@@ -58,25 +59,25 @@ impl TxnState {
             _ => Self::None,
         }
     }
-    
+
     /// Check if transaction is active
     #[inline]
     pub fn is_active(&self) -> bool {
         matches!(self, Self::Active | Self::Preparing | Self::Committing)
     }
-    
+
     /// Check if transaction is complete
     #[inline]
     pub fn is_complete(&self) -> bool {
         matches!(self, Self::Committed | Self::Aborted | Self::Error)
     }
-    
+
     /// Check if transaction can be committed
     #[inline]
     pub fn can_commit(&self) -> bool {
         *self == Self::Active
     }
-    
+
     /// Check if transaction can be aborted
     #[inline]
     pub fn can_abort(&self) -> bool {
@@ -115,36 +116,36 @@ impl TxnFlags {
     pub const SYSTEM: u32 = 1 << 5;
     /// Checkpoint transaction
     pub const CHECKPOINT: u32 = 1 << 6;
-    
+
     /// Create from raw
     pub const fn new(flags: u32) -> Self {
         Self(flags)
     }
-    
+
     /// Check if flag is set
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         (self.0 & flag) != 0
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set(&mut self, flag: u32) {
         self.0 |= flag;
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear(&mut self, flag: u32) {
         self.0 &= !flag;
     }
-    
+
     /// Is read-only
     #[inline]
     pub fn is_read_only(&self) -> bool {
         self.has(Self::READ_ONLY)
     }
-    
+
     /// Is synchronous
     #[inline]
     pub fn is_sync(&self) -> bool {
@@ -187,7 +188,7 @@ pub struct TxnHandle {
 impl TxnHandle {
     /// Size in bytes
     pub const SIZE: usize = 64;
-    
+
     /// Create new handle
     pub fn new(id: TxnId) -> Self {
         Self {
@@ -204,25 +205,25 @@ impl TxnHandle {
             block_count: 0,
         }
     }
-    
+
     /// Get state
     #[inline]
     pub fn state(&self) -> TxnState {
         TxnState::from_raw(self.state)
     }
-    
+
     /// Set state
     #[inline]
     pub fn set_state(&mut self, state: TxnState) {
         self.state = state as u8;
     }
-    
+
     /// Get flags
     #[inline]
     pub fn flags(&self) -> TxnFlags {
         TxnFlags::new(self.flags as u32)
     }
-    
+
     /// Is nested transaction
     #[inline]
     pub fn is_nested(&self) -> bool {
@@ -298,58 +299,55 @@ impl Transaction {
             last_error: None,
         }
     }
-    
+
     /// Get transaction ID
     #[inline]
     pub fn id(&self) -> TxnId {
         self.handle.id
     }
-    
+
     /// Get state
     #[inline]
     pub fn state(&self) -> TxnState {
         TxnState::from_raw(self.state.load(Ordering::Acquire))
     }
-    
+
     /// Set state atomically
     pub fn set_state(&self, state: TxnState) {
         self.state.store(state as u8, Ordering::Release);
     }
-    
+
     /// Try to transition state
     pub fn try_transition(&self, from: TxnState, to: TxnState) -> bool {
-        self.state.compare_exchange(
-            from as u8,
-            to as u8,
-            Ordering::AcqRel,
-            Ordering::Acquire,
-        ).is_ok()
+        self.state
+            .compare_exchange(from as u8, to as u8, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
     }
-    
+
     /// Check if active
     #[inline]
     pub fn is_active(&self) -> bool {
         self.state().is_active()
     }
-    
+
     /// Check if complete
     #[inline]
     pub fn is_complete(&self) -> bool {
         self.state().is_complete()
     }
-    
+
     /// Add record to transaction
     pub fn add_record(&mut self, ptr: RecordPtr) -> HfsResult<()> {
         if self.record_count >= MAX_TXN_RECORDS {
             return Err(HfsError::TransactionTooLarge);
         }
-        
+
         self.records[self.record_count] = ptr;
         self.record_count += 1;
-        
+
         Ok(())
     }
-    
+
     /// Add block to transaction
     pub fn add_block(&mut self, block: BlockNum) -> HfsResult<()> {
         // Check if already tracked
@@ -358,23 +356,23 @@ impl Transaction {
                 return Ok(());
             }
         }
-        
+
         if self.block_count >= MAX_TXN_BLOCKS {
             return Err(HfsError::TransactionTooLarge);
         }
-        
+
         self.blocks[self.block_count] = block;
         self.block_count += 1;
-        
+
         Ok(())
     }
-    
+
     /// Set error
     pub fn set_error(&mut self, error: HfsError) {
         self.last_error = Some(error);
         self.set_state(TxnState::Error);
     }
-    
+
     /// Get transaction size estimate
     pub fn size_estimate(&self) -> u64 {
         self.bytes_written + (self.record_count as u64 * 64)
@@ -411,61 +409,57 @@ impl TxnManager {
             stats: TxnManagerStats::new(),
         }
     }
-    
+
     /// Allocate new transaction ID
     pub fn alloc_id(&self) -> TxnId {
         self.next_id.fetch_add(1, Ordering::Relaxed)
     }
-    
+
     /// Register active transaction
     pub fn register(&self, id: TxnId) -> HfsResult<usize> {
         for i in 0..MAX_CONCURRENT_TXN {
-            if self.active_ids[i].compare_exchange(
-                0,
-                id,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ).is_ok() {
+            if self.active_ids[i]
+                .compare_exchange(0, id, Ordering::AcqRel, Ordering::Acquire)
+                .is_ok()
+            {
                 self.active_count.fetch_add(1, Ordering::Relaxed);
                 return Ok(i);
             }
         }
-        
+
         Err(HfsError::TooManyTransactions)
     }
-    
+
     /// Unregister transaction
     pub fn unregister(&self, id: TxnId) {
         for i in 0..MAX_CONCURRENT_TXN {
-            if self.active_ids[i].compare_exchange(
-                id,
-                0,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ).is_ok() {
+            if self.active_ids[i]
+                .compare_exchange(id, 0, Ordering::AcqRel, Ordering::Acquire)
+                .is_ok()
+            {
                 self.active_count.fetch_sub(1, Ordering::Relaxed);
                 return;
             }
         }
     }
-    
+
     /// Get active transaction count
     #[inline]
     pub fn active_count(&self) -> u64 {
         self.active_count.load(Ordering::Relaxed)
     }
-    
+
     /// Get oldest active transaction
     pub fn oldest_active(&self) -> Option<TxnId> {
         let mut oldest = TxnId::MAX;
-        
+
         for i in 0..MAX_CONCURRENT_TXN {
             let id = self.active_ids[i].load(Ordering::Relaxed);
             if id != 0 && id < oldest {
                 oldest = id;
             }
         }
-        
+
         if oldest == TxnId::MAX {
             None
         } else {
@@ -506,7 +500,7 @@ impl TxnManagerStats {
             wait_time_ns: 0,
         }
     }
-    
+
     /// Commit rate
     pub fn commit_rate(&self) -> f32 {
         let total = self.committed + self.aborted;
@@ -569,7 +563,7 @@ impl CommitResult {
             duration_ns,
         }
     }
-    
+
     /// Create failure result
     pub fn failure(txn_id: TxnId, phase: CommitPhase, error: HfsError) -> Self {
         Self {
@@ -590,52 +584,52 @@ impl CommitResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_txn_state() {
         assert!(TxnState::Active.is_active());
         assert!(TxnState::Committing.is_active());
         assert!(!TxnState::Committed.is_active());
-        
+
         assert!(TxnState::Committed.is_complete());
         assert!(TxnState::Aborted.is_complete());
-        
+
         assert!(TxnState::Active.can_commit());
         assert!(!TxnState::Committing.can_commit());
     }
-    
+
     #[test]
     fn test_txn_flags() {
         let mut flags = TxnFlags::new(0);
-        
+
         assert!(!flags.is_read_only());
         flags.set(TxnFlags::READ_ONLY);
         assert!(flags.is_read_only());
-        
+
         flags.set(TxnFlags::SYNC);
         assert!(flags.is_sync());
-        
+
         flags.clear(TxnFlags::SYNC);
         assert!(!flags.is_sync());
     }
-    
+
     #[test]
     fn test_txn_handle() {
         let handle = TxnHandle::new(100);
-        
+
         assert_eq!(handle.id, 100);
         assert_eq!(handle.state(), TxnState::Active);
         assert!(!handle.is_nested());
     }
-    
+
     #[test]
     fn test_transaction() {
         let mut txn = Transaction::new(1);
-        
+
         assert_eq!(txn.id(), 1);
         assert!(txn.is_active());
         assert!(!txn.is_complete());
-        
+
         // Add record
         let ptr = RecordPtr {
             record_type: 1,
@@ -646,41 +640,41 @@ mod tests {
         };
         txn.add_record(ptr).unwrap();
         assert_eq!(txn.record_count, 1);
-        
+
         // Add block
         txn.add_block(100).unwrap();
         txn.add_block(100).unwrap(); // Duplicate, should not add
         assert_eq!(txn.block_count, 1);
-        
+
         // State transition
         txn.set_state(TxnState::Committed);
         assert!(txn.is_complete());
     }
-    
+
     #[test]
     fn test_txn_manager() {
         let manager = TxnManager::new();
-        
+
         let id1 = manager.alloc_id();
         let id2 = manager.alloc_id();
         assert_eq!(id2, id1 + 1);
-        
+
         let slot = manager.register(id1).unwrap();
         assert_eq!(manager.active_count(), 1);
-        
+
         let oldest = manager.oldest_active();
         assert_eq!(oldest, Some(id1));
-        
+
         manager.unregister(id1);
         assert_eq!(manager.active_count(), 0);
     }
-    
+
     #[test]
     fn test_commit_result() {
         let success = CommitResult::success(1, 100, 1000);
         assert!(success.success);
         assert_eq!(success.phase, CommitPhase::Complete);
-        
+
         let failure = CommitResult::failure(2, CommitPhase::Flush, HfsError::IoError);
         assert!(!failure.success);
         assert!(failure.error.is_some());

@@ -4,11 +4,10 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::core::{ComponentId, NexusTimestamp};
-use crate::error::{HealingError, NexusResult};
-
 use super::event::StateEvent;
 use super::reconstructor::StateReconstructor;
+use crate::core::{ComponentId, NexusTimestamp};
+use crate::error::{HealingError, NexusResult};
 
 /// Engine for replaying state events
 pub struct ReplayEngine {
@@ -46,10 +45,9 @@ impl ReplayEngine {
         from: NexusTimestamp,
         to: NexusTimestamp,
     ) -> NexusResult<ReplayResult> {
-        let log = self
-            .reconstructor
-            .get_log(component)
-            .ok_or(HealingError::ReconstructionFailed)?;
+        let log = self.reconstructor.get_log(component).ok_or_else(|| {
+            HealingError::ReconstructionFailed("No log found for component".into())
+        })?;
 
         let mut events_replayed = 0;
         let handlers = self.handlers.get(&component.raw());

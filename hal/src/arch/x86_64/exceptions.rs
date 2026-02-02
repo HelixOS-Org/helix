@@ -111,25 +111,29 @@ extern "C" fn double_fault_inner(frame: &InterruptStackFrame, error_code: u64) {
         for &c in msg {
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
         }
-        
+
         let msg = b"RIP: 0x";
-        for &c in msg { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+        for &c in msg {
+            core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+        }
         let hex = b"0123456789abcdef";
         for i in (0..16).rev() {
             let nibble = ((frame.instruction_pointer >> (i * 4)) & 0xF) as usize;
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]);
         }
         core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n');
-        
+
         let msg = b"Error Code: 0x";
-        for &c in msg { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+        for &c in msg {
+            core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+        }
         for i in (0..4).rev() {
             let nibble = ((error_code >> (i * 4)) & 0xF) as usize;
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]);
         }
         core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n');
     }
-    
+
     frame.log("Double Fault (#DF)");
     log::error!("  Error Code: {:#x}", error_code);
     panic!("Double fault (unrecoverable)");
@@ -160,33 +164,39 @@ extern "C" fn general_protection_inner(frame: &InterruptStackFrame, error_code: 
         for &c in msg {
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
         }
-        
+
         let msg = b"RIP: 0x";
-        for &c in msg { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+        for &c in msg {
+            core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+        }
         let hex = b"0123456789abcdef";
         for i in (0..16).rev() {
             let nibble = ((frame.instruction_pointer >> (i * 4)) & 0xF) as usize;
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]);
         }
         core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n');
-        
+
         let msg = b"CS: 0x";
-        for &c in msg { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+        for &c in msg {
+            core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+        }
         for i in (0..4).rev() {
             let nibble = ((frame.code_segment >> (i * 4)) & 0xF) as usize;
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]);
         }
         core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n');
-        
+
         let msg = b"Error Code: 0x";
-        for &c in msg { core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c); }
+        for &c in msg {
+            core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c);
+        }
         for i in (0..4).rev() {
             let nibble = ((error_code >> (i * 4)) & 0xF) as usize;
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") hex[nibble]);
         }
         core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n');
     }
-    
+
     frame.log("General Protection Fault (#GP)");
     log::error!("  Error Code: {:#x}", error_code);
     if error_code != 0 {
@@ -198,7 +208,10 @@ extern "C" fn general_protection_inner(frame: &InterruptStackFrame, error_code: 
             _ => "Unknown",
         });
     }
-    panic!("General protection fault at {:#x}", frame.instruction_pointer);
+    panic!(
+        "General protection fault at {:#x}",
+        frame.instruction_pointer
+    );
 }
 
 extern "C" fn page_fault_inner(frame: &InterruptStackFrame, error_code: u64) {
@@ -209,13 +222,13 @@ extern "C" fn page_fault_inner(frame: &InterruptStackFrame, error_code: u64) {
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c, options(nomem, nostack));
         }
     }
-    
+
     // Get the faulting address from CR2
     let cr2: u64;
     unsafe {
         asm!("mov {}, cr2", out(reg) cr2, options(nomem, nostack, preserves_flags));
     }
-    
+
     // Print CR2 in hex
     let msg2 = b"CR2=";
     for &c in msg2 {
@@ -223,64 +236,75 @@ extern "C" fn page_fault_inner(frame: &InterruptStackFrame, error_code: u64) {
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c, options(nomem, nostack));
         }
     }
-    
+
     // Print address as hex
     for i in (0..16).rev() {
         let nibble = ((cr2 >> (i * 4)) & 0xF) as u8;
-        let ch = if nibble < 10 { b'0' + nibble } else { b'a' + nibble - 10 };
+        let ch = if nibble < 10 {
+            b'0' + nibble
+        } else {
+            b'a' + nibble - 10
+        };
         unsafe {
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") ch, options(nomem, nostack));
         }
     }
-    
+
     let msg3 = b" ERR=";
     for &c in msg3 {
         unsafe {
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") c, options(nomem, nostack));
         }
     }
-    
+
     // Print error code
     for i in (0..4).rev() {
         let nibble = ((error_code >> (i * 4)) & 0xF) as u8;
-        let ch = if nibble < 10 { b'0' + nibble } else { b'a' + nibble - 10 };
+        let ch = if nibble < 10 {
+            b'0' + nibble
+        } else {
+            b'a' + nibble - 10
+        };
         unsafe {
             core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") ch, options(nomem, nostack));
         }
     }
-    
+
     unsafe {
         core::arch::asm!("out dx, al", in("dx") 0x3F8u16, in("al") b'\n', options(nomem, nostack));
     }
-    
+
     frame.log("Page Fault (#PF)");
     log::error!("  Faulting Address: {:#018x}", cr2);
     log::error!("  Error Code: {:#x}", error_code);
     log::error!("  Caused by:");
-    
+
     if error_code & page_fault_error::PRESENT != 0 {
         log::error!("    - Protection violation");
     } else {
         log::error!("    - Page not present");
     }
-    
+
     if error_code & page_fault_error::WRITE != 0 {
         log::error!("    - Write access");
     } else {
         log::error!("    - Read access");
     }
-    
+
     if error_code & page_fault_error::USER != 0 {
         log::error!("    - User mode");
     } else {
         log::error!("    - Kernel mode");
     }
-    
+
     if error_code & page_fault_error::INSTRUCTION_FETCH != 0 {
         log::error!("    - Instruction fetch");
     }
-    
-    panic!("Page fault at {:#x} accessing {:#x}", frame.instruction_pointer, cr2);
+
+    panic!(
+        "Page fault at {:#x} accessing {:#x}",
+        frame.instruction_pointer, cr2
+    );
 }
 
 extern "C" fn x87_floating_point_inner(frame: &InterruptStackFrame) {
@@ -330,15 +354,15 @@ macro_rules! exception_handler {
                     "push r13",
                     "push r14",
                     "push r15",
-                    
+
                     // First argument: pointer to InterruptStackFrame
                     // (after our pushes, it's at rsp + 15*8 = rsp + 120)
                     "mov rdi, rsp",
                     "add rdi, 120",
-                    
+
                     // Call the handler
                     "call {handler}",
-                    
+
                     // Restore registers
                     "pop r15",
                     "pop r14",
@@ -355,7 +379,7 @@ macro_rules! exception_handler {
                     "pop rcx",
                     "pop rbx",
                     "pop rax",
-                    
+
                     // Return from interrupt
                     "iretq",
                     handler = sym $handler,
@@ -389,18 +413,18 @@ macro_rules! exception_handler_with_error {
                     "push r13",
                     "push r14",
                     "push r15",
-                    
+
                     // First argument: pointer to InterruptStackFrame
                     // (after our pushes + error code: rsp + 15*8 + 8 = rsp + 128)
                     "mov rdi, rsp",
                     "add rdi, 128",
-                    
+
                     // Second argument: error code (at rsp + 120)
                     "mov rsi, [rsp + 120]",
-                    
+
                     // Call the handler
                     "call {handler}",
-                    
+
                     // Restore registers
                     "pop r15",
                     "pop r14",
@@ -417,10 +441,10 @@ macro_rules! exception_handler_with_error {
                     "pop rcx",
                     "pop rbx",
                     "pop rax",
-                    
+
                     // Remove error code from stack
                     "add rsp, 8",
-                    
+
                     // Return from interrupt
                     "iretq",
                     handler = sym $handler,

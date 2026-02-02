@@ -4,15 +4,153 @@
 
 #![allow(dead_code)]
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::identifiers::*;
-use super::temporal::{Duration, Timestamp};
 use super::confidence::Confidence;
-use super::severity::Priority;
+use super::identifiers::*;
 use super::metrics::MetricUnit;
+use super::severity::Priority;
 use super::tags::Tags;
+use super::temporal::{Duration, Timestamp};
+
+// Additional IDs needed by act domain
+crate::define_id!(EffectId, "Effect identifier");
+crate::define_id!(ChangeId, "Change identifier");
+
+// ============================================================================
+// ACTION TARGET
+// ============================================================================
+
+/// Target of an action
+#[derive(Debug, Clone)]
+pub enum ActionTarget {
+    /// System-wide
+    System,
+    /// Specific CPU
+    Cpu(u32),
+    /// Specific memory region
+    Memory { start: u64, size: u64 },
+    /// Process
+    Process(u32),
+    /// Thread
+    Thread { pid: u32, tid: u32 },
+    /// Device
+    Device(String),
+    /// Network interface
+    Network(String),
+    /// Filesystem
+    Filesystem(String),
+    /// Module
+    Module(String),
+    /// Custom target
+    Custom(String),
+}
+
+impl ActionTarget {
+    /// Get target type name
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::Cpu(_) => "cpu",
+            Self::Memory { .. } => "memory",
+            Self::Process(_) => "process",
+            Self::Thread { .. } => "thread",
+            Self::Device(_) => "device",
+            Self::Network(_) => "network",
+            Self::Filesystem(_) => "filesystem",
+            Self::Module(_) => "module",
+            Self::Custom(_) => "custom",
+        }
+    }
+
+    /// Is system-wide target?
+    pub fn is_system_wide(&self) -> bool {
+        matches!(self, Self::System)
+    }
+}
+
+// ============================================================================
+// ACTION PARAMETERS
+// ============================================================================
+
+/// Action parameters
+#[derive(Debug, Clone, Default)]
+pub struct ActionParameters {
+    /// Integer parameters
+    pub integers: BTreeMap<String, i64>,
+    /// String parameters
+    pub strings: BTreeMap<String, String>,
+    /// Boolean parameters
+    pub booleans: BTreeMap<String, bool>,
+    /// Float parameters
+    pub floats: BTreeMap<String, f64>,
+}
+
+impl ActionParameters {
+    /// Create empty parameters
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set integer parameter
+    pub fn set_int(&mut self, key: impl Into<String>, value: i64) -> &mut Self {
+        self.integers.insert(key.into(), value);
+        self
+    }
+
+    /// Set string parameter
+    pub fn set_str(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
+        self.strings.insert(key.into(), value.into());
+        self
+    }
+
+    /// Set boolean parameter
+    pub fn set_bool(&mut self, key: impl Into<String>, value: bool) -> &mut Self {
+        self.booleans.insert(key.into(), value);
+        self
+    }
+
+    /// Set float parameter
+    pub fn set_float(&mut self, key: impl Into<String>, value: f64) -> &mut Self {
+        self.floats.insert(key.into(), value);
+        self
+    }
+
+    /// Get integer parameter
+    pub fn get_int(&self, key: &str) -> Option<i64> {
+        self.integers.get(key).copied()
+    }
+
+    /// Get string parameter
+    pub fn get_str(&self, key: &str) -> Option<&str> {
+        self.strings.get(key).map(|s| s.as_str())
+    }
+
+    /// Get boolean parameter
+    pub fn get_bool(&self, key: &str) -> Option<bool> {
+        self.booleans.get(key).copied()
+    }
+
+    /// Get float parameter
+    pub fn get_float(&self, key: &str) -> Option<f64> {
+        self.floats.get(key).copied()
+    }
+
+    /// Is empty?
+    pub fn is_empty(&self) -> bool {
+        self.integers.is_empty()
+            && self.strings.is_empty()
+            && self.booleans.is_empty()
+            && self.floats.is_empty()
+    }
+
+    /// Total parameter count
+    pub fn len(&self) -> usize {
+        self.integers.len() + self.strings.len() + self.booleans.len() + self.floats.len()
+    }
+}
 
 // ============================================================================
 // SIGNAL (from SENSE)
@@ -207,7 +345,9 @@ pub struct Intent {
     /// Action type
     pub action_type: ActionType,
     /// Target
-    pub target: String,
+    pub target: ActionTarget,
+    /// Parameters
+    pub parameters: ActionParameters,
     /// Priority
     pub priority: Priority,
     /// Deadline
@@ -216,10 +356,12 @@ pub struct Intent {
     pub confidence: Confidence,
     /// Source policy
     pub policy: PolicyId,
+    /// Selected option index (for multi-choice decisions)
+    pub selected_option: Option<usize>,
 }
 
 /// Types of actions
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ActionType {
     /// Do nothing (always safe)
     NoOp,
@@ -247,6 +389,18 @@ pub enum ActionType {
     Throttle,
     /// Boost
     Boost,
+    /// Kill process
+    Kill,
+    /// Allocate resource
+    Allocate,
+    /// Deallocate resource
+    Deallocate,
+    /// Repair something
+    Repair,
+    /// Log event
+    Log,
+    /// Quarantine resource
+    Quarantine,
 }
 
 impl ActionType {
@@ -274,16 +428,27 @@ impl ActionType {
 
 impl Intent {
     /// Create new intent
-    pub fn new(action_type: ActionType, target: impl Into<String>, policy: PolicyId) -> Self {
+    pub fn new(action_type: ActionType, target: ActionTarget, policy: PolicyId) -> Self {
         Self {
             id: IntentId::generate(),
             action_type,
-            target: target.into(),
+            target,
+            parameters: ActionParameters::default(),
             priority: Priority::NORMAL,
             deadline: None,
             confidence: Confidence::MEDIUM,
             policy,
+            selected_option: None,
         }
+    }
+
+    /// Create new intent from string target
+    pub fn from_string_target(
+        action_type: ActionType,
+        target: impl Into<String>,
+        policy: PolicyId,
+    ) -> Self {
+        Self::new(action_type, ActionTarget::Custom(target.into()), policy)
     }
 
     /// With priority
@@ -301,6 +466,18 @@ impl Intent {
     /// With confidence
     pub fn with_confidence(mut self, confidence: Confidence) -> Self {
         self.confidence = confidence;
+        self
+    }
+
+    /// With selected option
+    pub fn with_selected_option(mut self, option: usize) -> Self {
+        self.selected_option = Some(option);
+        self
+    }
+
+    /// With parameters
+    pub fn with_parameters(mut self, parameters: ActionParameters) -> Self {
+        self.parameters = parameters;
         self
     }
 }
@@ -417,7 +594,11 @@ impl Change {
     }
 
     /// Create update change
-    pub fn update(target: impl Into<String>, before: impl Into<String>, after: impl Into<String>) -> Self {
+    pub fn update(
+        target: impl Into<String>,
+        before: impl Into<String>,
+        after: impl Into<String>,
+    ) -> Self {
         Self::new(target, before, after, ChangeType::Update)
     }
 }

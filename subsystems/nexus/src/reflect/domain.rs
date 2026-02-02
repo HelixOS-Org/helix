@@ -4,17 +4,17 @@
 //! other domains, diagnoses issues, and drives continuous improvement.
 
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use super::calibrator::{Calibrator, CalibratorStats};
-use super::diagnostician::{CognitiveFailure, Diagnostician, DiagnosticianStats, FailureId};
+use super::diagnostician::{CognitiveFailure, Diagnostician, DiagnosticianStats};
 use super::evolver::{Evolver, EvolverStats};
-use super::insight::{Insight, InsightId, InsightType};
+use super::insight::{Insight, InsightType};
 use super::introspector::{Introspector, IntrospectorStats};
 use super::metrics::DomainMetrics;
-use crate::bus::Domain;
-use crate::types::*;
+use crate::types::{FailureId, InsightId, *};
 
 // ============================================================================
 // CONFIGURATION

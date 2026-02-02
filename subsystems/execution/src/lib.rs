@@ -19,11 +19,11 @@
 
 extern crate alloc;
 
-pub mod scheduler;
-pub mod domains;
 pub mod context;
-pub mod thread;
+pub mod domains;
 pub mod process;
+pub mod scheduler;
+pub mod thread;
 
 use core::sync::atomic::{AtomicU64, Ordering};
 

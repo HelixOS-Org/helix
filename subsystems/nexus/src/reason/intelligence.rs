@@ -6,9 +6,8 @@ use alloc::string::String;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::{
-    CausalEventId, CausalEventType,
-    CausalEvent, CausalGraph, CausalRelationType,
-    CqlQuery, CqlResult, CqlEngine,
+    CausalEvent, CausalEventId, CausalEventType, CausalGraph, CausalRelationType, CqlEngine,
+    CqlQuery, CqlResult,
 };
 
 /// Causal reasoning analysis
@@ -66,8 +65,7 @@ impl CausalReasoningIntelligence {
         description: String,
     ) -> CausalEventId {
         let id = CausalEventId(self.event_counter.fetch_add(1, Ordering::Relaxed));
-        let event = CausalEvent::new(id, event_type, timestamp)
-            .with_description(description);
+        let event = CausalEvent::new(id, event_type, timestamp).with_description(description);
         self.graph.add_event(event);
         id
     }
@@ -86,7 +84,8 @@ impl CausalReasoningIntelligence {
         ) {
             let cause_id = cause_node.id;
             let effect_id = effect_node.id;
-            self.graph.add_relationship(cause_id, effect_id, relation, confidence);
+            self.graph
+                .add_relationship(cause_id, effect_id, relation, confidence);
             return true;
         }
         false
@@ -99,20 +98,23 @@ impl CausalReasoningIntelligence {
 
     /// Query root causes
     pub fn query_root_causes(&self, event: CausalEventId) -> CqlResult {
-        self.cql.execute(&self.graph, CqlQuery::RootCausesQuery { event })
+        self.cql
+            .execute(&self.graph, CqlQuery::RootCausesQuery { event })
     }
 
     /// Query effects
     pub fn query_effects(&self, event: CausalEventId) -> CqlResult {
-        self.cql.execute(&self.graph, CqlQuery::EffectsQuery { event })
+        self.cql
+            .execute(&self.graph, CqlQuery::EffectsQuery { event })
     }
 
     /// Query counterfactual
     pub fn query_counterfactual(&self, event: CausalEventId) -> CqlResult {
-        self.cql.execute(&self.graph, CqlQuery::CounterfactualQuery {
-            event,
-            modification: super::CounterfactualModification::Remove,
-        })
+        self.cql
+            .execute(&self.graph, CqlQuery::CounterfactualQuery {
+                event,
+                modification: super::CounterfactualModification::Remove,
+            })
     }
 
     /// Execute CQL query

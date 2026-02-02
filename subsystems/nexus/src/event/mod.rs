@@ -17,30 +17,25 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
-pub mod kind;
+pub mod bus;
 pub mod event;
 pub mod handler;
+pub mod kind;
 pub mod queue;
-pub mod bus;
+pub mod types;
 
 // Re-export types
-pub use types::{AnomalyEventKind, EventId, EventPriority};
-
-// Re-export kind
-pub use kind::NexusEventKind;
-
-// Re-export event
-pub use event::NexusEvent;
-
-// Re-export handler
-pub use handler::{EventHandler, EventHandlerResult, EventSubscription};
-
-// Re-export queue
-pub use queue::EventQueue;
-
 // Re-export bus
 pub use bus::{EventBus, EventBusStats};
+// Re-export event
+pub use event::NexusEvent;
+// Re-export handler
+pub use handler::{EventHandler, EventHandlerResult, EventSubscription};
+// Re-export kind
+pub use kind::NexusEventKind;
+// Re-export queue
+pub use queue::EventQueue;
+pub use types::{AnomalyEventKind, EventId, EventPriority};
 
 // ============================================================================
 // TESTS

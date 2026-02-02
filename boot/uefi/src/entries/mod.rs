@@ -105,9 +105,7 @@ impl BootEntryType {
     pub const fn is_bootable(&self) -> bool {
         !matches!(
             self,
-            BootEntryType::Shutdown
-                | BootEntryType::Reboot
-                | BootEntryType::FirmwareSetup
+            BootEntryType::Shutdown | BootEntryType::Reboot | BootEntryType::FirmwareSetup
         )
     }
 
@@ -196,7 +194,9 @@ impl BootEntryFlags {
 
     /// Default enabled entry
     pub const fn default_enabled() -> Self {
-        Self { bits: Self::ENABLED | Self::EDITABLE }
+        Self {
+            bits: Self::ENABLED | Self::EDITABLE,
+        }
     }
 
     /// Check if flag is set
@@ -741,10 +741,8 @@ impl MenuItem {
 
     /// Check if item is selectable
     pub const fn is_selectable(&self) -> bool {
-        !matches!(
-            self.item_type,
-            MenuItemType::Separator | MenuItemType::Info
-        ) && !matches!(self.state, MenuItemState::Disabled | MenuItemState::Hidden)
+        !matches!(self.item_type, MenuItemType::Separator | MenuItemType::Info)
+            && !matches!(self.state, MenuItemState::Disabled | MenuItemState::Hidden)
     }
 
     /// Get label as string
@@ -923,12 +921,12 @@ impl Default for MenuConfig {
             wrap_selection: true,
             mouse_enabled: false,
             timeout: 5,
-            selected_fg: 0x0F,  // White
-            selected_bg: 0x01,  // Blue
-            normal_fg: 0x07,    // Light gray
-            normal_bg: 0x00,    // Black
-            disabled_fg: 0x08,  // Dark gray
-            border_fg: 0x0B,    // Cyan
+            selected_fg: 0x0F, // White
+            selected_bg: 0x01, // Blue
+            normal_fg: 0x07,   // Light gray
+            normal_bg: 0x00,   // Black
+            disabled_fg: 0x08, // Dark gray
+            border_fg: 0x0B,   // Cyan
         }
     }
 }
@@ -1003,15 +1001,13 @@ impl MenuState {
         if self.selected + 1 < self.item_count {
             self.selected += 1;
             // Skip non-selectable items
-            while self.selected + 1 < self.item_count
-                && !self.items[self.selected].is_selectable()
+            while self.selected + 1 < self.item_count && !self.items[self.selected].is_selectable()
             {
                 self.selected += 1;
             }
         } else if wrap && self.item_count > 0 {
             self.selected = 0;
-            while self.selected + 1 < self.item_count
-                && !self.items[self.selected].is_selectable()
+            while self.selected + 1 < self.item_count && !self.items[self.selected].is_selectable()
             {
                 self.selected += 1;
             }
@@ -1082,12 +1078,30 @@ pub struct HelpEntry {
 
 /// Standard help entries
 pub const HELP_ENTRIES: &[HelpEntry] = &[
-    HelpEntry { key: "↑↓", action: "Select" },
-    HelpEntry { key: "Enter", action: "Boot" },
-    HelpEntry { key: "E", action: "Edit" },
-    HelpEntry { key: "C", action: "Console" },
-    HelpEntry { key: "F1", action: "Help" },
-    HelpEntry { key: "Esc", action: "Cancel" },
+    HelpEntry {
+        key: "↑↓",
+        action: "Select",
+    },
+    HelpEntry {
+        key: "Enter",
+        action: "Boot",
+    },
+    HelpEntry {
+        key: "E",
+        action: "Edit",
+    },
+    HelpEntry {
+        key: "C",
+        action: "Console",
+    },
+    HelpEntry {
+        key: "F1",
+        action: "Help",
+    },
+    HelpEntry {
+        key: "Esc",
+        action: "Cancel",
+    },
 ];
 
 // =============================================================================
@@ -1151,7 +1165,9 @@ impl BootOrder {
 
     /// Find entry position
     pub fn find(&self, entry_id: u16) -> Option<usize> {
-        self.order[..self.count].iter().position(|&id| id == entry_id)
+        self.order[..self.count]
+            .iter()
+            .position(|&id| id == entry_id)
     }
 
     /// Move entry to position

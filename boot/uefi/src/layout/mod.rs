@@ -93,12 +93,22 @@ pub struct Rect {
 impl Rect {
     /// Create new rectangle
     pub const fn new(x: i32, y: i32, width: i32, height: i32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Create rectangle at origin
     pub const fn sized(width: i32, height: i32) -> Self {
-        Self { x: 0, y: 0, width, height }
+        Self {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        }
     }
 
     /// Check if point is inside
@@ -509,7 +519,9 @@ impl WidgetFlags {
 
     /// Default flags (visible and enabled)
     pub const fn default_enabled() -> Self {
-        Self { bits: Self::VISIBLE | Self::ENABLED }
+        Self {
+            bits: Self::VISIBLE | Self::ENABLED,
+        }
     }
 
     /// Create new
@@ -934,8 +946,18 @@ impl Widget {
                 max_width: Unit::Auto,
                 min_height: Unit::Px(0),
                 max_height: Unit::Auto,
-                margin: Spacing { top: 0, right: 0, bottom: 0, left: 0 },
-                padding: Spacing { top: 0, right: 0, bottom: 0, left: 0 },
+                margin: Spacing {
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    left: 0,
+                },
+                padding: Spacing {
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    left: 0,
+                },
                 gap: 0,
                 flex_grow: 0,
                 flex_shrink: 1,
@@ -943,8 +965,18 @@ impl Widget {
                 overflow: Overflow::Hidden,
                 z_index: 0,
             },
-            bounds: Rect { x: 0, y: 0, width: 0, height: 0 },
-            content_bounds: Rect { x: 0, y: 0, width: 0, height: 0 },
+            bounds: Rect {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+            },
+            content_bounds: Rect {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+            },
             text: [0u8; MAX_WIDGET_TEXT],
             text_len: 0,
             parent: 0,
@@ -1066,10 +1098,26 @@ impl Default for ScreenLayout {
 impl ScreenLayout {
     /// Get area bounds
     pub fn area_bounds(&self, area: ScreenArea) -> Rect {
-        let header_h = if self.has_header { self.header_height as i32 } else { 0 };
-        let footer_h = if self.has_footer { self.footer_height as i32 } else { 0 };
-        let left_w = if self.has_left_sidebar { self.left_sidebar_width as i32 } else { 0 };
-        let right_w = if self.has_right_sidebar { self.right_sidebar_width as i32 } else { 0 };
+        let header_h = if self.has_header {
+            self.header_height as i32
+        } else {
+            0
+        };
+        let footer_h = if self.has_footer {
+            self.footer_height as i32
+        } else {
+            0
+        };
+        let left_w = if self.has_left_sidebar {
+            self.left_sidebar_width as i32
+        } else {
+            0
+        };
+        let right_w = if self.has_right_sidebar {
+            self.right_sidebar_width as i32
+        } else {
+            0
+        };
 
         match area {
             ScreenArea::Header => Rect::new(0, 0, self.width as i32, header_h),
@@ -1099,7 +1147,7 @@ impl ScreenLayout {
             ),
             ScreenArea::Overlay | ScreenArea::FullScreen => {
                 Rect::new(0, 0, self.width as i32, self.height as i32)
-            }
+            },
         }
     }
 }

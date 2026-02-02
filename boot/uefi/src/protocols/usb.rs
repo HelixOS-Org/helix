@@ -2,13 +2,13 @@
 //!
 //! High-level USB abstraction for USB device access.
 
-use crate::raw::types::*;
-use crate::error::Result;
 use super::Protocol;
+use crate::error::Result;
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // USB DEVICE
@@ -200,45 +200,25 @@ impl UsbDevice {
     }
 
     /// Bulk transfer (out)
-    pub fn bulk_out(
-        &self,
-        _endpoint: u8,
-        _data: &[u8],
-        _timeout: u32,
-    ) -> Result<usize> {
+    pub fn bulk_out(&self, _endpoint: u8, _data: &[u8], _timeout: u32) -> Result<usize> {
         // TODO: Implement actual bulk out
         Ok(0)
     }
 
     /// Bulk transfer (in)
-    pub fn bulk_in(
-        &self,
-        _endpoint: u8,
-        _data: &mut [u8],
-        _timeout: u32,
-    ) -> Result<usize> {
+    pub fn bulk_in(&self, _endpoint: u8, _data: &mut [u8], _timeout: u32) -> Result<usize> {
         // TODO: Implement actual bulk in
         Ok(0)
     }
 
     /// Interrupt transfer (out)
-    pub fn interrupt_out(
-        &self,
-        _endpoint: u8,
-        _data: &[u8],
-        _timeout: u32,
-    ) -> Result<usize> {
+    pub fn interrupt_out(&self, _endpoint: u8, _data: &[u8], _timeout: u32) -> Result<usize> {
         // TODO: Implement actual interrupt out
         Ok(0)
     }
 
     /// Interrupt transfer (in)
-    pub fn interrupt_in(
-        &self,
-        _endpoint: u8,
-        _data: &mut [u8],
-        _timeout: u32,
-    ) -> Result<usize> {
+    pub fn interrupt_in(&self, _endpoint: u8, _data: &mut [u8], _timeout: u32) -> Result<usize> {
         // TODO: Implement actual interrupt in
         Ok(0)
     }
@@ -251,10 +231,9 @@ impl UsbDevice {
 }
 
 impl Protocol for UsbDevice {
-    const GUID: Guid = Guid::new(
-        0x2B2F68D6, 0x0CD2, 0x44CF,
-        [0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75],
-    );
+    const GUID: Guid = Guid::new(0x2B2F68D6, 0x0CD2, 0x44CF, [
+        0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75,
+    ]);
 
     fn open(handle: Handle) -> Result<Self> {
         Ok(Self::new(handle))
@@ -786,12 +765,12 @@ pub struct RequestType(pub u8);
 
 impl RequestType {
     /// Create request type
-    pub const fn new(direction: Direction, request_type: RequestKind, recipient: Recipient) -> Self {
-        Self(
-            (direction as u8) << 7 |
-            (request_type as u8) << 5 |
-            (recipient as u8)
-        )
+    pub const fn new(
+        direction: Direction,
+        request_type: RequestKind,
+        recipient: Recipient,
+    ) -> Self {
+        Self((direction as u8) << 7 | (request_type as u8) << 5 | (recipient as u8))
     }
 
     /// Get direction
@@ -832,7 +811,7 @@ pub enum Direction {
     /// Host to device
     Out = 0,
     /// Device to host
-    In = 1,
+    In  = 1,
 }
 
 /// Request kind
@@ -842,9 +821,9 @@ pub enum RequestKind {
     /// Standard request
     Standard = 0,
     /// Class-specific request
-    Class = 1,
+    Class    = 1,
     /// Vendor-specific request
-    Vendor = 2,
+    Vendor   = 2,
     /// Reserved
     Reserved = 3,
 }
@@ -854,15 +833,15 @@ pub enum RequestKind {
 #[repr(u8)]
 pub enum Recipient {
     /// Device
-    Device = 0,
+    Device    = 0,
     /// Interface
     Interface = 1,
     /// Endpoint
-    Endpoint = 2,
+    Endpoint  = 2,
     /// Other
-    Other = 3,
+    Other     = 3,
     /// Reserved
-    Reserved = 4,
+    Reserved  = 4,
 }
 
 // =============================================================================
@@ -1042,17 +1021,17 @@ mod tests {
     #[test]
     fn test_device_descriptor_parse() {
         let data = [
-            18, 1,              // bLength, bDescriptorType
-            0x10, 0x02,         // bcdUSB (2.10)
-            0x00,               // bDeviceClass
-            0x00,               // bDeviceSubClass
-            0x00,               // bDeviceProtocol
-            64,                 // bMaxPacketSize0
-            0xD8, 0x04,         // idVendor
-            0x01, 0x00,         // idProduct
-            0x00, 0x01,         // bcdDevice
-            1, 2, 3,            // iManufacturer, iProduct, iSerialNumber
-            1,                  // bNumConfigurations
+            18, 1, // bLength, bDescriptorType
+            0x10, 0x02, // bcdUSB (2.10)
+            0x00, // bDeviceClass
+            0x00, // bDeviceSubClass
+            0x00, // bDeviceProtocol
+            64,   // bMaxPacketSize0
+            0xD8, 0x04, // idVendor
+            0x01, 0x00, // idProduct
+            0x00, 0x01, // bcdDevice
+            1, 2, 3, // iManufacturer, iProduct, iSerialNumber
+            1, // bNumConfigurations
         ];
 
         let desc = DeviceDescriptor::parse(&data).unwrap();

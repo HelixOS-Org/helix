@@ -5,8 +5,8 @@
 use core::fmt;
 use core::ops::{Index, IndexMut};
 
+use super::addresses::{PhysicalAddress, VirtualAddress};
 use super::entries::PageTableEntry;
-use super::addresses::{VirtualAddress, PhysicalAddress};
 use super::{ENTRIES_PER_TABLE, TABLE_SIZE};
 
 // =============================================================================
@@ -29,49 +29,49 @@ impl PageTableIndex {
         assert!(index < ENTRIES_PER_TABLE as u16);
         Self(index)
     }
-    
+
     /// Create a new page table index, truncating to valid range
     #[inline]
     pub const fn new_truncate(index: u16) -> Self {
         Self(index & 0x1FF)
     }
-    
+
     /// Get the index value
     #[inline]
     pub const fn as_u16(self) -> u16 {
         self.0
     }
-    
+
     /// Get the index as usize
     #[inline]
     pub const fn as_usize(self) -> usize {
         self.0 as usize
     }
-    
+
     /// Get the PT index from a virtual address
     #[inline]
     pub const fn pt_index(addr: VirtualAddress) -> Self {
         Self::new_truncate(addr.pt_index())
     }
-    
+
     /// Get the PD index from a virtual address
     #[inline]
     pub const fn pd_index(addr: VirtualAddress) -> Self {
         Self::new_truncate(addr.pd_index())
     }
-    
+
     /// Get the PDPT index from a virtual address
     #[inline]
     pub const fn pdpt_index(addr: VirtualAddress) -> Self {
         Self::new_truncate(addr.pdpt_index())
     }
-    
+
     /// Get the PML4 index from a virtual address
     #[inline]
     pub const fn pml4_index(addr: VirtualAddress) -> Self {
         Self::new_truncate(addr.pml4_index())
     }
-    
+
     /// Get the PML5 index from a virtual address
     #[inline]
     pub const fn pml5_index(addr: VirtualAddress) -> Self {
@@ -132,7 +132,7 @@ impl PageTable {
             entries: [PageTableEntry::empty(); ENTRIES_PER_TABLE],
         }
     }
-    
+
     /// Clear all entries
     #[inline]
     pub fn clear(&mut self) {
@@ -140,55 +140,55 @@ impl PageTable {
             entry.clear();
         }
     }
-    
+
     /// Get the number of present entries
     #[inline]
     pub fn count_present(&self) -> usize {
         self.entries.iter().filter(|e| e.is_present()).count()
     }
-    
+
     /// Check if the table is empty (all entries not present)
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.entries.iter().all(|e| !e.is_present())
     }
-    
+
     /// Get a reference to an entry by index
     #[inline]
     pub fn get(&self, index: PageTableIndex) -> &PageTableEntry {
         &self.entries[index.as_usize()]
     }
-    
+
     /// Get a mutable reference to an entry by index
     #[inline]
     pub fn get_mut(&mut self, index: PageTableIndex) -> &mut PageTableEntry {
         &mut self.entries[index.as_usize()]
     }
-    
+
     /// Get a reference to an entry by raw index
     #[inline]
     pub fn get_raw(&self, index: usize) -> Option<&PageTableEntry> {
         self.entries.get(index)
     }
-    
+
     /// Get a mutable reference to an entry by raw index
     #[inline]
     pub fn get_raw_mut(&mut self, index: usize) -> Option<&mut PageTableEntry> {
         self.entries.get_mut(index)
     }
-    
+
     /// Iterate over all entries
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &PageTableEntry> {
         self.entries.iter()
     }
-    
+
     /// Iterate over all entries mutably
     #[inline]
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut PageTableEntry> {
         self.entries.iter_mut()
     }
-    
+
     /// Iterate over all entries with their indices
     #[inline]
     pub fn iter_indexed(&self) -> impl Iterator<Item = (PageTableIndex, &PageTableEntry)> {
@@ -197,13 +197,13 @@ impl PageTable {
             .enumerate()
             .map(|(i, e)| (PageTableIndex::new_truncate(i as u16), e))
     }
-    
+
     /// Iterate over present entries with their indices
     #[inline]
     pub fn iter_present(&self) -> impl Iterator<Item = (PageTableIndex, &PageTableEntry)> {
         self.iter_indexed().filter(|(_, e)| e.is_present())
     }
-    
+
     /// Get the physical address of this table (assuming it's mapped at its virtual address)
     ///
     /// # Safety
@@ -213,19 +213,19 @@ impl PageTable {
     pub fn physical_address(&self) -> PhysicalAddress {
         PhysicalAddress::new(self as *const _ as u64)
     }
-    
+
     /// Get a raw pointer to the entries
     #[inline]
     pub fn as_ptr(&self) -> *const PageTableEntry {
         self.entries.as_ptr()
     }
-    
+
     /// Get a raw mutable pointer to the entries
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut PageTableEntry {
         self.entries.as_mut_ptr()
     }
-    
+
     /// Zero-initialize the table
     ///
     /// This is equivalent to clear() but may be faster for full initialization.
@@ -236,13 +236,13 @@ impl PageTable {
             core::ptr::write_bytes(self.entries.as_mut_ptr(), 0, ENTRIES_PER_TABLE);
         }
     }
-    
+
     /// Copy entries from another table
     #[inline]
     pub fn copy_from(&mut self, other: &PageTable) {
         self.entries.copy_from_slice(&other.entries);
     }
-    
+
     /// Copy a range of entries from another table
     #[inline]
     pub fn copy_range(&mut self, start: PageTableIndex, end: PageTableIndex, from: &PageTable) {
@@ -260,7 +260,7 @@ impl Default for PageTable {
 
 impl Index<PageTableIndex> for PageTable {
     type Output = PageTableEntry;
-    
+
     #[inline]
     fn index(&self, index: PageTableIndex) -> &Self::Output {
         &self.entries[index.as_usize()]
@@ -276,7 +276,7 @@ impl IndexMut<PageTableIndex> for PageTable {
 
 impl Index<usize> for PageTable {
     type Output = PageTableEntry;
-    
+
     #[inline]
     fn index(&self, index: usize) -> &Self::Output {
         &self.entries[index]
@@ -325,7 +325,7 @@ impl PageTableRef {
     pub const unsafe fn new(phys: PhysicalAddress, virt: *mut PageTable) -> Self {
         Self { phys, virt }
     }
-    
+
     /// Create from a physical address using direct mapping
     ///
     /// # Safety
@@ -336,13 +336,13 @@ impl PageTableRef {
         let virt = super::phys_to_virt(phys).as_mut_ptr();
         Self { phys, virt }
     }
-    
+
     /// Get the physical address
     #[inline]
     pub const fn physical_address(&self) -> PhysicalAddress {
         self.phys
     }
-    
+
     /// Get a reference to the page table
     ///
     /// # Safety
@@ -352,7 +352,7 @@ impl PageTableRef {
     pub unsafe fn as_ref(&self) -> &PageTable {
         unsafe { &*self.virt }
     }
-    
+
     /// Get a mutable reference to the page table
     ///
     /// # Safety
@@ -362,7 +362,7 @@ impl PageTableRef {
     pub unsafe fn as_mut(&mut self) -> &mut PageTable {
         unsafe { &mut *self.virt }
     }
-    
+
     /// Get an entry
     ///
     /// # Safety
@@ -372,7 +372,7 @@ impl PageTableRef {
     pub unsafe fn get(&self, index: PageTableIndex) -> PageTableEntry {
         unsafe { (*self.virt)[index] }
     }
-    
+
     /// Set an entry
     ///
     /// # Safety
@@ -380,7 +380,9 @@ impl PageTableRef {
     /// The virtual address must be valid and the caller must have exclusive access.
     #[inline]
     pub unsafe fn set(&mut self, index: PageTableIndex, entry: PageTableEntry) {
-        unsafe { (*self.virt)[index] = entry; }
+        unsafe {
+            (*self.virt)[index] = entry;
+        }
     }
 }
 
@@ -398,14 +400,14 @@ impl fmt::Debug for PageTableRef {
 // =============================================================================
 
 const _: () = {
-    use core::mem::{size_of, align_of};
-    
+    use core::mem::{align_of, size_of};
+
     // Page table must be exactly 4KB
     assert!(size_of::<PageTable>() == TABLE_SIZE);
-    
+
     // Page table must be page-aligned
     assert!(align_of::<PageTable>() == TABLE_SIZE);
-    
+
     // Must have exactly 512 entries
     assert!(ENTRIES_PER_TABLE == 512);
 };
@@ -416,37 +418,37 @@ const _: () = {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::entries::PageFlags;
-    
+    use super::*;
+
     #[test]
     fn test_page_table_index() {
         let idx = PageTableIndex::new(100);
         assert_eq!(idx.as_u16(), 100);
-        
+
         let idx_trunc = PageTableIndex::new_truncate(600);
         assert_eq!(idx_trunc.as_u16(), 600 & 0x1FF);
     }
-    
+
     #[test]
     fn test_page_table_empty() {
         let table = PageTable::new();
         assert!(table.is_empty());
         assert_eq!(table.count_present(), 0);
     }
-    
+
     #[test]
     fn test_page_table_operations() {
         let mut table = PageTable::new();
         let idx = PageTableIndex::new(42);
-        
+
         let entry = PageTableEntry::new(
             PhysicalAddress::new(0x1000),
             PageFlags::PRESENT | PageFlags::WRITABLE,
         );
-        
+
         table[idx] = entry;
-        
+
         assert!(!table.is_empty());
         assert_eq!(table.count_present(), 1);
         assert!(table[idx].is_present());

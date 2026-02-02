@@ -9,11 +9,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use crate::core::NexusTimestamp;
-
 use super::arch::{Architecture, CpuFeatures};
 use super::level::{OptimizationLevel, OptimizationTarget};
 use super::parameter::OptimizationParameter;
+use crate::core::NexusTimestamp;
 
 // ============================================================================
 // OPTIMIZATION METRIC
@@ -143,13 +142,8 @@ impl Optimizer {
         );
 
         self.add_parameter(
-            OptimizationParameter::new(
-                "scheduler.load_balance_interval_ms",
-                100.0,
-                10.0,
-                1000.0,
-            )
-            .with_description("Load balancing interval in milliseconds"),
+            OptimizationParameter::new("scheduler.load_balance_interval_ms", 100.0, 10.0, 1000.0)
+                .with_description("Load balancing interval in milliseconds"),
         );
 
         // I/O parameters
@@ -231,29 +225,29 @@ impl Optimizer {
                 for param in self.parameters.values_mut() {
                     param.reset();
                 }
-            }
+            },
             OptimizationLevel::Light => {
                 // Conservative settings
                 self.set_parameter("memory.prefetch_distance", 4.0);
                 self.set_parameter("io.batch_size", 16.0);
-            }
+            },
             OptimizationLevel::Moderate => {
                 // Balanced settings
                 self.set_parameter("memory.prefetch_distance", 8.0);
                 self.set_parameter("io.batch_size", 32.0);
-            }
+            },
             OptimizationLevel::Aggressive => {
                 // Performance-focused
                 self.set_parameter("memory.prefetch_distance", 16.0);
                 self.set_parameter("io.batch_size", 64.0);
                 self.set_parameter("io.queue_depth", 128.0);
-            }
+            },
             OptimizationLevel::Maximum => {
                 // Maximum performance
                 self.set_parameter("memory.prefetch_distance", 32.0);
                 self.set_parameter("io.batch_size", 128.0);
                 self.set_parameter("io.queue_depth", 256.0);
-            }
+            },
         }
         self.total_optimizations.fetch_add(1, Ordering::Relaxed);
     }
@@ -264,22 +258,22 @@ impl Optimizer {
             OptimizationTarget::Latency => {
                 self.set_parameter("scheduler.quantum_us", 1000.0);
                 self.set_parameter("io.batch_size", 8.0);
-            }
+            },
             OptimizationTarget::Throughput => {
                 self.set_parameter("scheduler.quantum_us", 20000.0);
                 self.set_parameter("io.batch_size", 64.0);
-            }
+            },
             OptimizationTarget::Memory => {
                 self.set_parameter("network.buffer_size", 16384.0);
                 self.set_parameter("io.queue_depth", 32.0);
-            }
+            },
             OptimizationTarget::Power => {
                 self.set_parameter("scheduler.quantum_us", 50000.0);
                 self.set_parameter("scheduler.load_balance_interval_ms", 500.0);
-            }
+            },
             OptimizationTarget::Balanced => {
                 // Use level defaults
-            }
+            },
         }
         self.total_optimizations.fetch_add(1, Ordering::Relaxed);
     }

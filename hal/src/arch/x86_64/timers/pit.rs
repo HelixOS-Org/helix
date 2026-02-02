@@ -88,13 +88,13 @@ pub enum PitMode {
     /// Mode 1: Hardware retriggerable one-shot
     HardwareOneShot = 0b001,
     /// Mode 2: Rate generator (for periodic interrupts)
-    RateGenerator = 0b010,
+    RateGenerator   = 0b010,
     /// Mode 3: Square wave generator
-    SquareWave = 0b011,
+    SquareWave      = 0b011,
     /// Mode 4: Software triggered strobe
-    SoftwareStrobe = 0b100,
+    SoftwareStrobe  = 0b100,
     /// Mode 5: Hardware triggered strobe
-    HardwareStrobe = 0b101,
+    HardwareStrobe  = 0b101,
 }
 
 /// Access mode for counter
@@ -102,13 +102,13 @@ pub enum PitMode {
 #[repr(u8)]
 pub enum PitAccess {
     /// Latch count value command
-    Latch = 0b00,
+    Latch    = 0b00,
     /// Low byte only
-    LowByte = 0b01,
+    LowByte  = 0b01,
     /// High byte only
     HighByte = 0b10,
     /// Low byte then high byte
-    LowHigh = 0b11,
+    LowHigh  = 0b11,
 }
 
 // =============================================================================
@@ -214,7 +214,11 @@ pub unsafe fn set_frequency(frequency_hz: u32) -> u32 {
     set_divisor(PitChannel::Channel0, divisor);
 
     // Calculate actual frequency
-    let actual_divisor = if divisor == 0 { 65536u64 } else { divisor as u64 };
+    let actual_divisor = if divisor == 0 {
+        65536u64
+    } else {
+        divisor as u64
+    };
     (PIT_FREQUENCY / actual_divisor) as u32
 }
 
@@ -242,13 +246,21 @@ pub fn get_channel0_divisor() -> u16 {
 
 /// Calculate the frequency for a given divisor
 pub fn divisor_to_frequency(divisor: u16) -> u64 {
-    let d = if divisor == 0 { 65536u64 } else { divisor as u64 };
+    let d = if divisor == 0 {
+        65536u64
+    } else {
+        divisor as u64
+    };
     PIT_FREQUENCY / d
 }
 
 /// Calculate the period in nanoseconds for a given divisor
 pub fn divisor_to_period_ns(divisor: u16) -> u64 {
-    let d = if divisor == 0 { 65536u64 } else { divisor as u64 };
+    let d = if divisor == 0 {
+        65536u64
+    } else {
+        divisor as u64
+    };
     (d * 1_000_000_000) / PIT_FREQUENCY
 }
 
@@ -330,7 +342,11 @@ pub unsafe fn wait_us(us: u64) {
     // May need multiple waits for long durations
     let mut remaining = ticks;
     while remaining > 0 {
-        let this_wait = if remaining > 65535 { 65535 } else { remaining as u16 };
+        let this_wait = if remaining > 65535 {
+            65535
+        } else {
+            remaining as u16
+        };
         wait_ticks(this_wait);
         remaining -= this_wait as u64;
     }
@@ -426,7 +442,13 @@ pub unsafe fn speaker_on(frequency_hz: u32) {
     }
 
     let divisor = PIT_FREQUENCY / frequency_hz as u64;
-    let divisor = if divisor > 65535 { 65535 } else if divisor == 0 { 1 } else { divisor as u16 };
+    let divisor = if divisor > 65535 {
+        65535
+    } else if divisor == 0 {
+        1
+    } else {
+        divisor as u16
+    };
 
     // Configure channel 2 for square wave
     let command = ((PitChannel::Channel2 as u8) << 6)

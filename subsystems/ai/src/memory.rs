@@ -47,15 +47,14 @@
 //!                     └─────────────────────────────────────────────┘
 //! ```
 
-use crate::core::{Confidence, DecisionId};
-
-use alloc::{
-    collections::{BTreeMap, VecDeque},
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
+
+use crate::core::{Confidence, DecisionId};
 
 // =============================================================================
 // Memory Entry Types
@@ -291,13 +290,10 @@ impl<T: Clone> ShortTermMemory<T> {
 
     /// Get entry by ID
     pub fn get(&mut self, id: MemoryId) -> Option<&T> {
-        self.entries
-            .iter_mut()
-            .find(|e| e.id == id)
-            .map(|e| {
-                e.touch(self.current_time);
-                &e.data
-            })
+        self.entries.iter_mut().find(|e| e.id == id).map(|e| {
+            e.touch(self.current_time);
+            &e.data
+        })
     }
 
     /// Get most recent
@@ -386,7 +382,11 @@ impl<T: Clone> LongTermMemory<T> {
     }
 
     /// Store an entry
-    pub fn store(&mut self, mut entry: MemoryEntry<T>, estimated_size: u64) -> Result<MemoryId, MemoryError> {
+    pub fn store(
+        &mut self,
+        mut entry: MemoryEntry<T>,
+        estimated_size: u64,
+    ) -> Result<MemoryId, MemoryError> {
         // Check capacity
         if self.entries.len() >= self.capacity {
             self.evict_lowest_score()?;
@@ -405,10 +405,7 @@ impl<T: Clone> LongTermMemory<T> {
 
         // Update tag index
         for tag in &entry.tags {
-            self.tag_index
-                .entry(tag.clone())
-                .or_default()
-                .push(id);
+            self.tag_index.entry(tag.clone()).or_default().push(id);
         }
 
         self.entries.insert(id, entry);
@@ -697,12 +694,16 @@ impl AiMemory {
     /// Set a working memory value
     pub fn set_context(&self, key: &str, value: ContextValue) {
         self.working.lock().set(key, value);
-        self.stats.working_operations.fetch_add(1, Ordering::Relaxed);
+        self.stats
+            .working_operations
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Get a working memory value
     pub fn get_context(&self, key: &str) -> Option<ContextValue> {
-        self.stats.working_operations.fetch_add(1, Ordering::Relaxed);
+        self.stats
+            .working_operations
+            .fetch_add(1, Ordering::Relaxed);
         self.working.lock().get(key).cloned()
     }
 
@@ -805,7 +806,11 @@ impl AiMemory {
     // =========================================================================
 
     /// Store a pattern
-    pub fn store_pattern(&self, record: PatternRecord, importance: f32) -> Result<MemoryId, MemoryError> {
+    pub fn store_pattern(
+        &self,
+        record: PatternRecord,
+        importance: f32,
+    ) -> Result<MemoryId, MemoryError> {
         let entry = MemoryEntry::new(record.clone(), importance).tag("pattern");
         let size = core::mem::size_of::<PatternRecord>() as u64 + record.sequence.len() as u64 * 4;
 
@@ -847,7 +852,11 @@ impl AiMemory {
     // =========================================================================
 
     /// Store an anomaly
-    pub fn store_anomaly(&self, record: AnomalyRecord, importance: f32) -> Result<MemoryId, MemoryError> {
+    pub fn store_anomaly(
+        &self,
+        record: AnomalyRecord,
+        importance: f32,
+    ) -> Result<MemoryId, MemoryError> {
         let entry = MemoryEntry::new(record.clone(), importance).tag("anomaly");
         let size = core::mem::size_of::<AnomalyRecord>() as u64 + record.metric.len() as u64;
 
@@ -873,7 +882,11 @@ impl AiMemory {
     // =========================================================================
 
     /// Store a model
-    pub fn store_model(&self, record: ModelRecord, importance: f32) -> Result<MemoryId, MemoryError> {
+    pub fn store_model(
+        &self,
+        record: ModelRecord,
+        importance: f32,
+    ) -> Result<MemoryId, MemoryError> {
         let size = core::mem::size_of::<ModelRecord>() as u64
             + record.model_name.len() as u64
             + record.model_type.len() as u64
@@ -943,7 +956,8 @@ impl AiMemory {
     /// Get statistics
     pub fn statistics(&self) -> AiMemoryStatistics {
         let usage = self.memory_usage();
-        let total_bytes = usage.patterns_ltm_bytes + usage.anomalies_ltm_bytes + usage.models_ltm_bytes;
+        let total_bytes =
+            usage.patterns_ltm_bytes + usage.anomalies_ltm_bytes + usage.models_ltm_bytes;
 
         AiMemoryStatistics {
             budget: self.budget,
@@ -951,7 +965,9 @@ impl AiMemory {
             utilization_percent: (total_bytes as f64 / self.budget as f64 * 100.0) as u8,
             working_entries: usage.working_entries,
             stm_entries: usage.decisions_stm_entries + usage.events_stm_entries,
-            ltm_entries: usage.patterns_ltm_entries + usage.anomalies_ltm_entries + usage.models_ltm_entries,
+            ltm_entries: usage.patterns_ltm_entries
+                + usage.anomalies_ltm_entries
+                + usage.models_ltm_entries,
             working_operations: self.stats.working_operations.load(Ordering::Relaxed),
             stm_writes: self.stats.stm_writes.load(Ordering::Relaxed),
             stm_reads: self.stats.stm_reads.load(Ordering::Relaxed),
@@ -1014,14 +1030,13 @@ pub struct AiMemoryStatistics {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::format;
+
+    use super::*;
 
     #[test]
     fn test_memory_entry() {
-        let entry = MemoryEntry::new("test data", 0.8)
-            .tag("test")
-            .tag("data");
+        let entry = MemoryEntry::new("test data", 0.8).tag("test").tag("data");
 
         assert_eq!(entry.importance, 0.8);
         assert_eq!(entry.tags.len(), 2);

@@ -4,10 +4,7 @@
 //! and filesystem rollback functionality.
 
 use crate::core::error::HfsError;
-use crate::snapshot::{
-    SnapshotId,
-    INVALID_SNAPSHOT_ID,
-};
+use crate::snapshot::{SnapshotId, INVALID_SNAPSHOT_ID};
 
 // ============================================================================
 // Clone Types
@@ -18,7 +15,7 @@ use crate::snapshot::{
 #[repr(u8)]
 pub enum CloneType {
     /// Full clone (complete copy)
-    Full = 1,
+    Full   = 1,
     /// Linked clone (CoW sharing)
     Linked = 2,
     /// Sparse clone (on-demand copy)
@@ -34,7 +31,7 @@ impl CloneType {
             _ => Self::Sparse,
         }
     }
-    
+
     /// Does this type share data
     #[inline]
     pub fn shares_data(&self) -> bool {
@@ -78,7 +75,7 @@ impl CloneOptions {
             subtree_root: None,
         }
     }
-    
+
     /// Create linked clone options
     pub const fn linked() -> Self {
         Self {
@@ -86,7 +83,7 @@ impl CloneOptions {
             ..Self::default()
         }
     }
-    
+
     /// Create sparse clone options
     pub const fn sparse() -> Self {
         Self {
@@ -94,7 +91,7 @@ impl CloneOptions {
             ..Self::default()
         }
     }
-    
+
     /// Clone subtree only
     pub fn subtree(mut self, root_ino: u64) -> Self {
         self.subtree_root = Some(root_ino);
@@ -117,19 +114,19 @@ impl Default for CloneOptions {
 #[repr(u8)]
 pub enum CloneState {
     /// Not started
-    NotStarted = 0,
+    NotStarted      = 0,
     /// Preparing (allocating resources)
-    Preparing = 1,
+    Preparing       = 1,
     /// Copying metadata
     CopyingMetadata = 2,
     /// Updating references
-    UpdatingRefs = 3,
+    UpdatingRefs    = 3,
     /// Finalizing
-    Finalizing = 4,
+    Finalizing      = 4,
     /// Complete
-    Complete = 5,
+    Complete        = 5,
     /// Failed
-    Failed = 6,
+    Failed          = 6,
 }
 
 impl CloneState {
@@ -145,12 +142,14 @@ impl CloneState {
             _ => Self::NotStarted,
         }
     }
-    
+
     /// Check if active
     #[inline]
     pub fn is_active(&self) -> bool {
-        matches!(self, Self::Preparing | Self::CopyingMetadata |
-                       Self::UpdatingRefs | Self::Finalizing)
+        matches!(
+            self,
+            Self::Preparing | Self::CopyingMetadata | Self::UpdatingRefs | Self::Finalizing
+        )
     }
 }
 
@@ -192,24 +191,24 @@ impl CloneContext {
             error: None,
         }
     }
-    
+
     /// Check if complete
     #[inline]
     pub fn is_complete(&self) -> bool {
         self.state == CloneState::Complete
     }
-    
+
     /// Check if failed
     #[inline]
     pub fn is_failed(&self) -> bool {
         self.state == CloneState::Failed
     }
-    
+
     /// Set state
     pub fn set_state(&mut self, state: CloneState) {
         self.state = state;
     }
-    
+
     /// Fail with error
     pub fn fail(&mut self, error: HfsError) {
         self.error = Some(error);
@@ -246,7 +245,7 @@ impl CloneProgress {
             total_bytes: 0,
         }
     }
-    
+
     /// Get percentage complete
     pub fn percentage(&self) -> f32 {
         if self.total_inodes == 0 {
@@ -286,7 +285,7 @@ impl CloneResult {
             stats,
         }
     }
-    
+
     /// Create failure result
     pub fn failure(error: HfsError) -> Self {
         Self {
@@ -325,7 +324,7 @@ impl CloneStats {
             duration_ns: 0,
         }
     }
-    
+
     /// Sharing ratio
     pub fn sharing_ratio(&self) -> f32 {
         let total = self.blocks_shared + self.blocks_copied;
@@ -345,11 +344,11 @@ impl CloneStats {
 #[repr(u8)]
 pub enum RollbackMode {
     /// Full rollback (discard all changes)
-    Full = 1,
+    Full      = 1,
     /// Selective rollback (keep some changes)
     Selective = 2,
     /// Preview (show what would change)
-    Preview = 3,
+    Preview   = 3,
 }
 
 impl RollbackMode {
@@ -399,7 +398,7 @@ impl RollbackOptions {
             max_files: 0,
         }
     }
-    
+
     /// Preview mode
     pub const fn preview() -> Self {
         Self {
@@ -407,7 +406,7 @@ impl RollbackOptions {
             ..Self::default()
         }
     }
-    
+
     /// Selective mode
     pub const fn selective() -> Self {
         Self {
@@ -432,23 +431,23 @@ impl Default for RollbackOptions {
 #[repr(u8)]
 pub enum RollbackState {
     /// Not started
-    NotStarted = 0,
+    NotStarted     = 0,
     /// Validating
-    Validating = 1,
+    Validating     = 1,
     /// Creating backup
     CreatingBackup = 2,
     /// Reverting files
     RevertingFiles = 3,
     /// Reverting directories
-    RevertingDirs = 4,
+    RevertingDirs  = 4,
     /// Updating metadata
-    UpdatingMeta = 5,
+    UpdatingMeta   = 5,
     /// Finalizing
-    Finalizing = 6,
+    Finalizing     = 6,
     /// Complete
-    Complete = 7,
+    Complete       = 7,
     /// Failed
-    Failed = 8,
+    Failed         = 8,
 }
 
 impl RollbackState {
@@ -466,13 +465,19 @@ impl RollbackState {
             _ => Self::NotStarted,
         }
     }
-    
+
     /// Check if active
     #[inline]
     pub fn is_active(&self) -> bool {
-        matches!(self, Self::Validating | Self::CreatingBackup |
-                       Self::RevertingFiles | Self::RevertingDirs |
-                       Self::UpdatingMeta | Self::Finalizing)
+        matches!(
+            self,
+            Self::Validating
+                | Self::CreatingBackup
+                | Self::RevertingFiles
+                | Self::RevertingDirs
+                | Self::UpdatingMeta
+                | Self::Finalizing
+        )
     }
 }
 
@@ -517,13 +522,13 @@ impl RollbackContext {
             error: None,
         }
     }
-    
+
     /// Check if complete
     #[inline]
     pub fn is_complete(&self) -> bool {
         self.state == RollbackState::Complete
     }
-    
+
     /// Check if failed
     #[inline]
     pub fn is_failed(&self) -> bool {
@@ -554,7 +559,7 @@ impl RollbackProgress {
             bytes_changed: 0,
         }
     }
-    
+
     /// Total items processed
     #[inline]
     pub fn total_processed(&self) -> u64 {
@@ -589,7 +594,7 @@ impl RollbackResult {
             stats,
         }
     }
-    
+
     /// Create failure result
     pub fn failure(error: HfsError) -> Self {
         Self {
@@ -636,64 +641,64 @@ impl RollbackStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_clone_type() {
         assert!(CloneType::Linked.shares_data());
         assert!(CloneType::Sparse.shares_data());
         assert!(!CloneType::Full.shares_data());
     }
-    
+
     #[test]
     fn test_clone_options() {
         let opts = CloneOptions::linked();
         assert_eq!(opts.clone_type, CloneType::Linked);
-        
+
         let subtree = CloneOptions::default().subtree(100);
         assert_eq!(subtree.subtree_root, Some(100));
     }
-    
+
     #[test]
     fn test_clone_context() {
         let ctx = CloneContext::new(1, 2, CloneOptions::default());
-        
+
         assert_eq!(ctx.source, 1);
         assert_eq!(ctx.clone_id, 2);
         assert!(!ctx.is_complete());
         assert!(!ctx.is_failed());
     }
-    
+
     #[test]
     fn test_clone_progress() {
         let mut progress = CloneProgress::new();
         progress.total_inodes = 100;
         progress.inodes_processed = 50;
-        
+
         assert_eq!(progress.percentage(), 50.0);
     }
-    
+
     #[test]
     fn test_clone_stats() {
         let mut stats = CloneStats::new();
         stats.blocks_shared = 80;
         stats.blocks_copied = 20;
-        
+
         assert_eq!(stats.sharing_ratio(), 0.8);
     }
-    
+
     #[test]
     fn test_rollback_options() {
         let preview = RollbackOptions::preview();
         assert_eq!(preview.mode, RollbackMode::Preview);
-        
+
         let default = RollbackOptions::default();
         assert!(default.create_backup);
     }
-    
+
     #[test]
     fn test_rollback_context() {
         let ctx = RollbackContext::new(1, 2, RollbackOptions::default());
-        
+
         assert_eq!(ctx.target, 1);
         assert_eq!(ctx.current, 2);
         assert!(!ctx.is_complete());

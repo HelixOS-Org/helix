@@ -43,45 +43,45 @@ use core::fmt;
 #[repr(u8)]
 pub enum BootPhase {
     /// Not started
-    NotStarted = 0,
+    NotStarted         = 0,
     /// Firmware entry
-    FirmwareEntry = 1,
+    FirmwareEntry      = 1,
     /// Early initialization
-    EarlyInit = 2,
+    EarlyInit          = 2,
     /// Console initialization
-    ConsoleInit = 3,
+    ConsoleInit        = 3,
     /// Memory initialization
-    MemoryInit = 4,
+    MemoryInit         = 4,
     /// Configuration loading
-    ConfigLoad = 5,
+    ConfigLoad         = 5,
     /// Device discovery
-    DeviceDiscovery = 6,
+    DeviceDiscovery    = 6,
     /// Boot entry detection
-    EntryDetection = 7,
+    EntryDetection     = 7,
     /// Security validation
     SecurityValidation = 8,
     /// Menu display
-    MenuDisplay = 9,
+    MenuDisplay        = 9,
     /// User selection
-    UserSelection = 10,
+    UserSelection      = 10,
     /// Entry preparation
-    EntryPreparation = 11,
+    EntryPreparation   = 11,
     /// Kernel loading
-    KernelLoad = 12,
+    KernelLoad         = 12,
     /// Initrd loading
-    InitrdLoad = 13,
+    InitrdLoad         = 13,
     /// Pre-boot hooks
-    PreBootHooks = 14,
+    PreBootHooks       = 14,
     /// Exit boot services
-    ExitBootServices = 15,
+    ExitBootServices   = 15,
     /// Handoff preparation
-    HandoffPrep = 16,
+    HandoffPrep        = 16,
     /// Kernel handoff
-    KernelHandoff = 17,
+    KernelHandoff      = 17,
     /// Boot complete
-    BootComplete = 18,
+    BootComplete       = 18,
     /// Boot failed
-    BootFailed = 255,
+    BootFailed         = 255,
 }
 
 impl Default for BootPhase {
@@ -1017,8 +1017,13 @@ impl HookManager {
     }
 
     /// Get hooks for phase
-    pub fn get_hooks(&self, phase: BootPhase, hook_type: HookType) -> impl Iterator<Item = &HookRegistration> {
-        self.hooks[..self.count].iter()
+    pub fn get_hooks(
+        &self,
+        phase: BootPhase,
+        hook_type: HookType,
+    ) -> impl Iterator<Item = &HookRegistration> {
+        self.hooks[..self.count]
+            .iter()
             .filter(move |h| h.phase == phase && h.hook_type == hook_type && h.enabled)
     }
 
@@ -1110,7 +1115,7 @@ impl BootOrchestrator {
                 } else {
                     BootPhase::EntryPreparation
                 }
-            }
+            },
             BootPhase::MenuDisplay => BootPhase::UserSelection,
             BootPhase::UserSelection => BootPhase::EntryPreparation,
             BootPhase::EntryPreparation => BootPhase::KernelLoad,

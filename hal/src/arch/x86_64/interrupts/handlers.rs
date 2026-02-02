@@ -13,9 +13,12 @@
 //!
 //! Custom handlers can be registered per-vector using the handler table.
 
-use super::frame::{InterruptStackFrame, ExceptionStackFrame, InterruptContext, PageFaultErrorCode};
-use super::vectors::ExceptionVector;
 use core::sync::atomic::{AtomicPtr, Ordering};
+
+use super::frame::{
+    ExceptionStackFrame, InterruptContext, InterruptStackFrame, PageFaultErrorCode,
+};
+use super::vectors::ExceptionVector;
 
 // =============================================================================
 // Handler Function Types
@@ -161,7 +164,9 @@ pub extern "x86-interrupt" fn double_fault_handler(frame: ExceptionStackFrame) -
 
     // Double fault is unrecoverable
     loop {
-        unsafe { core::arch::asm!("cli; hlt"); }
+        unsafe {
+            core::arch::asm!("cli; hlt");
+        }
     }
 }
 
@@ -207,7 +212,12 @@ pub extern "x86-interrupt" fn general_protection_handler(frame: ExceptionStackFr
             _ => "???",
         };
 
-        log::error!("  Selector: {} index {}, external={}", table_name, index, external);
+        log::error!(
+            "  Selector: {} index {}, external={}",
+            table_name,
+            index,
+            external
+        );
     }
 
     panic!("General protection fault at {:#x}", frame.rip);
@@ -231,7 +241,10 @@ pub extern "x86-interrupt" fn page_fault_handler(frame: ExceptionStackFrame) {
     // In a real kernel, we would handle the page fault here
     // (lazy allocation, copy-on-write, swap in, etc.)
 
-    panic!("Page fault at {:#x} accessing {:#x}", frame.rip, faulting_address);
+    panic!(
+        "Page fault at {:#x} accessing {:#x}",
+        frame.rip, faulting_address
+    );
 }
 
 /// x87 FPU Error Handler (#MF)
@@ -262,7 +275,9 @@ pub extern "x86-interrupt" fn machine_check_handler(frame: InterruptStackFrame) 
 
     // Machine check is typically unrecoverable
     loop {
-        unsafe { core::arch::asm!("cli; hlt"); }
+        unsafe {
+            core::arch::asm!("cli; hlt");
+        }
     }
 }
 
@@ -336,7 +351,9 @@ pub extern "x86-interrupt" fn ipi_tlb_shootdown_handler(_frame: InterruptStackFr
 pub extern "x86-interrupt" fn ipi_halt_handler(_frame: InterruptStackFrame) -> ! {
     log::info!("IPI: Halt received, stopping CPU");
     loop {
-        unsafe { core::arch::asm!("cli; hlt"); }
+        unsafe {
+            core::arch::asm!("cli; hlt");
+        }
     }
 }
 

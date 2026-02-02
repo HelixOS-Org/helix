@@ -2,8 +2,8 @@
 //!
 //! Safe wrappers for UEFI capsule update functionality.
 
-use crate::raw::types::*;
 use super::runtime::runtime_services;
+use crate::raw::types::*;
 
 // =============================================================================
 // CAPSULE
@@ -131,28 +131,24 @@ pub use super::runtime::CapsuleCapabilities;
 // =============================================================================
 
 /// Firmware management capsule GUID
-pub const CAPSULE_GUID_FIRMWARE_UPDATE: Guid = Guid::new(
-    0x6DCBD5ED, 0xE82D, 0x4C44,
-    [0xBD, 0xA1, 0x71, 0x94, 0x19, 0x9A, 0xD9, 0x2A],
-);
+pub const CAPSULE_GUID_FIRMWARE_UPDATE: Guid = Guid::new(0x6DCBD5ED, 0xE82D, 0x4C44, [
+    0xBD, 0xA1, 0x71, 0x94, 0x19, 0x9A, 0xD9, 0x2A,
+]);
 
 /// Windows UX capsule GUID
-pub const CAPSULE_GUID_WINDOWS_UX: Guid = Guid::new(
-    0x3B8C8162, 0x188C, 0x46A4,
-    [0xAE, 0xC9, 0xBE, 0x43, 0xF1, 0xD6, 0x56, 0x97],
-);
+pub const CAPSULE_GUID_WINDOWS_UX: Guid = Guid::new(0x3B8C8162, 0x188C, 0x46A4, [
+    0xAE, 0xC9, 0xBE, 0x43, 0xF1, 0xD6, 0x56, 0x97,
+]);
 
 /// ESRT capsule GUID
-pub const CAPSULE_GUID_ESRT: Guid = Guid::new(
-    0xB122A263, 0x3661, 0x4F68,
-    [0x99, 0x29, 0x78, 0xF8, 0xB0, 0xD6, 0x21, 0x80],
-);
+pub const CAPSULE_GUID_ESRT: Guid = Guid::new(0xB122A263, 0x3661, 0x4F68, [
+    0x99, 0x29, 0x78, 0xF8, 0xB0, 0xD6, 0x21, 0x80,
+]);
 
 /// JSON capsule GUID
-pub const CAPSULE_GUID_JSON: Guid = Guid::new(
-    0x67D6F4CD, 0xD6B1, 0x4D16,
-    [0x92, 0x01, 0x50, 0x3F, 0x5C, 0xF8, 0x42, 0x70],
-);
+pub const CAPSULE_GUID_JSON: Guid = Guid::new(0x67D6F4CD, 0xD6B1, 0x4D16, [
+    0x92, 0x01, 0x50, 0x3F, 0x5C, 0xF8, 0x42, 0x70,
+]);
 
 // =============================================================================
 // CAPSULE UPDATE
@@ -177,11 +173,7 @@ pub unsafe fn submit_capsule(capsule: &Capsule) -> Result<(), Status> {
         &header as *const CapsuleHeader as *const u8,
         core::mem::size_of::<CapsuleHeader>(),
     );
-    core::ptr::copy_nonoverlapping(
-        header_bytes.as_ptr(),
-        buffer,
-        header_bytes.len(),
-    );
+    core::ptr::copy_nonoverlapping(header_bytes.as_ptr(), buffer, header_bytes.len());
 
     // Copy data
     core::ptr::copy_nonoverlapping(
@@ -223,11 +215,7 @@ pub unsafe fn submit_capsules(capsules: &[Capsule]) -> Result<(), Status> {
             &header as *const CapsuleHeader as *const u8,
             core::mem::size_of::<CapsuleHeader>(),
         );
-        core::ptr::copy_nonoverlapping(
-            header_bytes.as_ptr(),
-            buffer,
-            header_bytes.len(),
-        );
+        core::ptr::copy_nonoverlapping(header_bytes.as_ptr(), buffer, header_bytes.len());
 
         // Copy data
         core::ptr::copy_nonoverlapping(
@@ -340,10 +328,9 @@ pub struct EsrtTable {
 
 impl EsrtTable {
     /// ESRT GUID
-    pub const GUID: Guid = Guid::new(
-        0xB122A263, 0x3661, 0x4F68,
-        [0x99, 0x29, 0x78, 0xF8, 0xB0, 0xD6, 0x21, 0x80],
-    );
+    pub const GUID: Guid = Guid::new(0xB122A263, 0x3661, 0x4F68, [
+        0x99, 0x29, 0x78, 0xF8, 0xB0, 0xD6, 0x21, 0x80,
+    ]);
 
     /// Get entries
     ///
@@ -358,8 +345,7 @@ impl EsrtTable {
 /// Get ESRT table
 pub fn get_esrt_table() -> Option<&'static EsrtTable> {
     unsafe {
-        super::find_configuration_table(&EsrtTable::GUID)
-            .map(|ptr| &*(ptr as *const EsrtTable))
+        super::find_configuration_table(&EsrtTable::GUID).map(|ptr| &*(ptr as *const EsrtTable))
     }
 }
 

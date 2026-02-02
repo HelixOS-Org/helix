@@ -3,21 +3,14 @@
 //! The evolver generates improvement suggestions based on health
 //! and calibration data, tracking their application and outcomes.
 
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
 
-use crate::types::*;
-use crate::bus::Domain;
-use super::introspector::{CognitiveHealth, CognitiveIssue, IssueType};
 use super::calibrator::CalibrationReport;
-
-// ============================================================================
-// SUGGESTION ID
-// ============================================================================
-
-/// Suggestion ID type
-define_id!(SuggestionId, "Suggestion identifier");
+use super::introspector::{CognitiveHealth, CognitiveIssue, IssueType};
+use crate::bus::Domain;
+use crate::types::*;
 
 // ============================================================================
 // IMPROVEMENT CATEGORY
@@ -275,7 +268,11 @@ impl Evolver {
         self.suggestions.push(suggestion);
         if self.suggestions.len() > self.max_suggestions {
             // Remove oldest non-applied suggestion
-            if let Some(idx) = self.suggestions.iter().position(|s| s.status != SuggestionStatus::Applied) {
+            if let Some(idx) = self
+                .suggestions
+                .iter()
+                .position(|s| s.status != SuggestionStatus::Applied)
+            {
                 self.suggestions.remove(idx);
             }
         }

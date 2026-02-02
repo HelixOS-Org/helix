@@ -3,12 +3,13 @@
 //! Comprehensive symbol table management for debugging and dynamic linking.
 
 use crate::error::Result;
-use crate::loader::{LoadedImage, elf::ElfSymbol};
+use crate::loader::elf::ElfSymbol;
+use crate::loader::LoadedImage;
 
 extern crate alloc;
-use alloc::vec::Vec;
-use alloc::string::String;
 use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // SYMBOL MANAGER
@@ -62,7 +63,7 @@ impl SymbolManager {
         match symbol.symbol_type {
             SymbolType::Function => self.stats.function_count += 1,
             SymbolType::Object => self.stats.object_count += 1,
-            _ => {}
+            _ => {},
         }
 
         self.stats.total_count += 1;
@@ -107,7 +108,8 @@ impl SymbolManager {
 
     /// Find symbol by address
     pub fn find_by_address(&self, address: u64) -> Option<&Symbol> {
-        self.by_address.get(&address)
+        self.by_address
+            .get(&address)
             .and_then(|indices| indices.first())
             .map(|&i| &self.symbols[i])
     }
@@ -147,12 +149,16 @@ impl SymbolManager {
 
     /// Get functions
     pub fn functions(&self) -> impl Iterator<Item = &Symbol> {
-        self.symbols.iter().filter(|s| s.symbol_type == SymbolType::Function)
+        self.symbols
+            .iter()
+            .filter(|s| s.symbol_type == SymbolType::Function)
     }
 
     /// Get global symbols
     pub fn globals(&self) -> impl Iterator<Item = &Symbol> {
-        self.symbols.iter().filter(|s| s.binding == SymbolBinding::Global)
+        self.symbols
+            .iter()
+            .filter(|s| s.binding == SymbolBinding::Global)
     }
 
     /// Get symbol count
@@ -181,15 +187,13 @@ impl SymbolManager {
     /// Symbolize address for debugging
     pub fn symbolize(&self, address: u64) -> String {
         match self.find_nearest(address) {
-            Some((symbol, offset)) if offset == 0 => {
-                symbol.name.clone()
-            }
+            Some((symbol, offset)) if offset == 0 => symbol.name.clone(),
             Some((symbol, offset)) => {
                 alloc::format!("{}+0x{:x}", symbol.name, offset)
-            }
+            },
             None => {
                 alloc::format!("0x{:x}", address)
-            }
+            },
         }
     }
 }
@@ -459,14 +463,19 @@ impl StackTrace {
             match &frame.symbol {
                 Some(name) if frame.offset == 0 => {
                     output.push_str(&alloc::format!("  #{}: {} at 0x{:x}\n", i, name, frame.ip));
-                }
+                },
                 Some(name) => {
-                    output.push_str(&alloc::format!("  #{}: {}+0x{:x} at 0x{:x}\n",
-                        i, name, frame.offset, frame.ip));
-                }
+                    output.push_str(&alloc::format!(
+                        "  #{}: {}+0x{:x} at 0x{:x}\n",
+                        i,
+                        name,
+                        frame.offset,
+                        frame.ip
+                    ));
+                },
                 None => {
                     output.push_str(&alloc::format!("  #{}: 0x{:x}\n", i, frame.ip));
-                }
+                },
             }
         }
 

@@ -91,7 +91,9 @@ pub struct Ipv4Addr {
 impl Ipv4Addr {
     /// Create from octets
     pub const fn new(a: u8, b: u8, c: u8, d: u8) -> Self {
-        Self { octets: [a, b, c, d] }
+        Self {
+            octets: [a, b, c, d],
+        }
     }
 
     /// Create from u32 (network byte order)
@@ -108,10 +110,10 @@ impl Ipv4Addr {
 
     /// Convert to u32 (network byte order)
     pub const fn to_u32(&self) -> u32 {
-        ((self.octets[0] as u32) << 24) |
-        ((self.octets[1] as u32) << 16) |
-        ((self.octets[2] as u32) << 8) |
-        (self.octets[3] as u32)
+        ((self.octets[0] as u32) << 24)
+            | ((self.octets[1] as u32) << 16)
+            | ((self.octets[2] as u32) << 8)
+            | (self.octets[3] as u32)
     }
 
     /// Any address (0.0.0.0)
@@ -125,8 +127,7 @@ impl Ipv4Addr {
 
     /// Check if unspecified
     pub const fn is_unspecified(&self) -> bool {
-        self.octets[0] == 0 && self.octets[1] == 0 &&
-        self.octets[2] == 0 && self.octets[3] == 0
+        self.octets[0] == 0 && self.octets[1] == 0 && self.octets[2] == 0 && self.octets[3] == 0
     }
 
     /// Check if loopback
@@ -137,9 +138,9 @@ impl Ipv4Addr {
     /// Check if private
     pub const fn is_private(&self) -> bool {
         // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
-        self.octets[0] == 10 ||
-        (self.octets[0] == 172 && (self.octets[1] & 0xF0) == 16) ||
-        (self.octets[0] == 192 && self.octets[1] == 168)
+        self.octets[0] == 10
+            || (self.octets[0] == 172 && (self.octets[1] & 0xF0) == 16)
+            || (self.octets[0] == 192 && self.octets[1] == 168)
     }
 
     /// Check if link-local
@@ -154,16 +155,20 @@ impl Ipv4Addr {
 
     /// Check if broadcast
     pub const fn is_broadcast(&self) -> bool {
-        self.octets[0] == 255 && self.octets[1] == 255 &&
-        self.octets[2] == 255 && self.octets[3] == 255
+        self.octets[0] == 255
+            && self.octets[1] == 255
+            && self.octets[2] == 255
+            && self.octets[3] == 255
     }
 }
 
 impl fmt::Display for Ipv4Addr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}.{}",
-            self.octets[0], self.octets[1],
-            self.octets[2], self.octets[3])
+        write!(
+            f,
+            "{}.{}.{}.{}",
+            self.octets[0], self.octets[1], self.octets[2], self.octets[3]
+        )
     }
 }
 
@@ -175,9 +180,10 @@ pub struct Ipv6Addr {
 
 impl Ipv6Addr {
     /// Create from segments
-    pub const fn new(a: u16, b: u16, c: u16, d: u16,
-                     e: u16, f: u16, g: u16, h: u16) -> Self {
-        Self { segments: [a, b, c, d, e, f, g, h] }
+    pub const fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> Self {
+        Self {
+            segments: [a, b, c, d, e, f, g, h],
+        }
     }
 
     /// Create from bytes
@@ -204,18 +210,26 @@ impl Ipv6Addr {
 
     /// Check if unspecified
     pub const fn is_unspecified(&self) -> bool {
-        self.segments[0] == 0 && self.segments[1] == 0 &&
-        self.segments[2] == 0 && self.segments[3] == 0 &&
-        self.segments[4] == 0 && self.segments[5] == 0 &&
-        self.segments[6] == 0 && self.segments[7] == 0
+        self.segments[0] == 0
+            && self.segments[1] == 0
+            && self.segments[2] == 0
+            && self.segments[3] == 0
+            && self.segments[4] == 0
+            && self.segments[5] == 0
+            && self.segments[6] == 0
+            && self.segments[7] == 0
     }
 
     /// Check if loopback
     pub const fn is_loopback(&self) -> bool {
-        self.segments[0] == 0 && self.segments[1] == 0 &&
-        self.segments[2] == 0 && self.segments[3] == 0 &&
-        self.segments[4] == 0 && self.segments[5] == 0 &&
-        self.segments[6] == 0 && self.segments[7] == 1
+        self.segments[0] == 0
+            && self.segments[1] == 0
+            && self.segments[2] == 0
+            && self.segments[3] == 0
+            && self.segments[4] == 0
+            && self.segments[5] == 0
+            && self.segments[6] == 0
+            && self.segments[7] == 1
     }
 
     /// Check if link-local
@@ -257,7 +271,9 @@ pub struct MacAddr {
 impl MacAddr {
     /// Create from octets
     pub const fn new(a: u8, b: u8, c: u8, d: u8, e: u8, f: u8) -> Self {
-        Self { octets: [a, b, c, d, e, f] }
+        Self {
+            octets: [a, b, c, d, e, f],
+        }
     }
 
     /// Broadcast address
@@ -265,9 +281,12 @@ impl MacAddr {
 
     /// Check if broadcast
     pub const fn is_broadcast(&self) -> bool {
-        self.octets[0] == 0xFF && self.octets[1] == 0xFF &&
-        self.octets[2] == 0xFF && self.octets[3] == 0xFF &&
-        self.octets[4] == 0xFF && self.octets[5] == 0xFF
+        self.octets[0] == 0xFF
+            && self.octets[1] == 0xFF
+            && self.octets[2] == 0xFF
+            && self.octets[3] == 0xFF
+            && self.octets[4] == 0xFF
+            && self.octets[5] == 0xFF
     }
 
     /// Check if multicast
@@ -283,9 +302,16 @@ impl MacAddr {
 
 impl fmt::Display for MacAddr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            self.octets[0], self.octets[1], self.octets[2],
-            self.octets[3], self.octets[4], self.octets[5])
+        write!(
+            f,
+            "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+            self.octets[0],
+            self.octets[1],
+            self.octets[2],
+            self.octets[3],
+            self.octets[4],
+            self.octets[5]
+        )
     }
 }
 
@@ -299,13 +325,13 @@ impl fmt::Display for MacAddr {
 pub enum DhcpMessageType {
     #[default]
     Discover = 1,
-    Offer = 2,
-    Request = 3,
-    Decline = 4,
-    Ack = 5,
-    Nak = 6,
-    Release = 7,
-    Inform = 8,
+    Offer    = 2,
+    Request  = 3,
+    Decline  = 4,
+    Ack      = 5,
+    Nak      = 6,
+    Release  = 7,
+    Inform   = 8,
 }
 
 /// DHCP option
@@ -399,17 +425,17 @@ impl DhcpConfig {
 #[repr(u16)]
 pub enum TftpOpcode {
     /// Read request
-    Rrq = 1,
+    Rrq   = 1,
     /// Write request
-    Wrq = 2,
+    Wrq   = 2,
     /// Data
-    Data = 3,
+    Data  = 3,
     /// Acknowledgment
-    Ack = 4,
+    Ack   = 4,
     /// Error
     Error = 5,
     /// Option acknowledgment
-    Oack = 6,
+    Oack  = 6,
 }
 
 /// TFTP error code
@@ -417,21 +443,21 @@ pub enum TftpOpcode {
 #[repr(u16)]
 pub enum TftpError {
     /// Not defined
-    NotDefined = 0,
+    NotDefined        = 0,
     /// File not found
-    FileNotFound = 1,
+    FileNotFound      = 1,
     /// Access violation
-    AccessViolation = 2,
+    AccessViolation   = 2,
     /// Disk full
-    DiskFull = 3,
+    DiskFull          = 3,
     /// Illegal operation
-    IllegalOperation = 4,
+    IllegalOperation  = 4,
     /// Unknown transfer ID
-    UnknownTid = 5,
+    UnknownTid        = 5,
     /// File already exists
-    FileExists = 6,
+    FileExists        = 6,
     /// No such user
-    NoSuchUser = 7,
+    NoSuchUser        = 7,
     /// Option negotiation
     OptionNegotiation = 8,
 }
@@ -688,8 +714,11 @@ impl HttpUrl {
         let rest = &url[scheme_end..];
         let (host_end, port_start) = if let Some(pos) = rest.find(':') {
             // Port specified
-            let port_end = rest[pos+1..].find('/').map(|p| pos + 1 + p).unwrap_or(rest.len());
-            let port_str = &rest[pos+1..port_end];
+            let port_end = rest[pos + 1..]
+                .find('/')
+                .map(|p| pos + 1 + p)
+                .unwrap_or(rest.len());
+            let port_str = &rest[pos + 1..port_end];
             if let Ok(port) = port_str.parse() {
                 result.port = port;
             }
@@ -881,8 +910,7 @@ impl NetBootManager {
         self.config = config;
         self.state = NetBootState::Idle;
 
-        if config.protocol == NetBootProtocol::Pxe ||
-           config.protocol == NetBootProtocol::Tftp {
+        if config.protocol == NetBootProtocol::Pxe || config.protocol == NetBootProtocol::Tftp {
             self.tftp = TftpTransfer::new(config.dhcp.tftp_server);
         }
     }
@@ -909,13 +937,13 @@ impl NetBootManager {
                 self.tftp.block_num = 0;
                 self.tftp.bytes_transferred = 0;
                 self.tftp.complete = false;
-            }
+            },
             NetBootProtocol::Http | NetBootProtocol::Https => {
                 self.http = HttpTransfer::new();
                 self.http.url = self.config.http_url;
                 self.http.method = HttpMethod::Get;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -945,13 +973,13 @@ impl NetBootManager {
                 40 + match self.config.protocol {
                     NetBootProtocol::Pxe | NetBootProtocol::Tftp => {
                         (self.tftp.progress() * 55) / 100
-                    }
+                    },
                     NetBootProtocol::Http | NetBootProtocol::Https => {
                         (self.http.progress() * 55) / 100
-                    }
+                    },
                     _ => 0,
                 }
-            }
+            },
             NetBootState::Complete => 100,
             NetBootState::Error => 0,
         }

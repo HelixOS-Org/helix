@@ -7,9 +7,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use super::hash::{HashAlgorithm, Sha256, Sha512, SHA256_OUTPUT_SIZE};
-use super::keys::{
-    EcdsaSignature, PublicKey, X509Certificate,
-};
+use super::keys::{EcdsaSignature, PublicKey, X509Certificate};
 
 // =============================================================================
 // SIGNATURE TYPES
@@ -132,7 +130,9 @@ impl AuthenticodeVerifier {
         expected_hash: &[u8],
     ) -> Result<SignatureVerificationResult, SignatureError> {
         // Get signer info
-        let signer_info = pkcs7.signer_info.as_ref()
+        let signer_info = pkcs7
+            .signer_info
+            .as_ref()
             .ok_or(SignatureError::NoSignerInfo)?;
 
         // Find signer certificate
@@ -175,7 +175,10 @@ impl AuthenticodeVerifier {
             }
         }
 
-        Ok(SignatureVerificationResult::success(signer_cert.clone(), chain))
+        Ok(SignatureVerificationResult::success(
+            signer_cert.clone(),
+            chain,
+        ))
     }
 
     /// Compute PE hash for Authenticode
@@ -217,8 +220,8 @@ impl AuthenticodeVerifier {
         signer_info: &SignerInfo,
     ) -> Result<&'a X509Certificate, SignatureError> {
         for cert in &pkcs7.certificates {
-            if cert.serial_number == signer_info.serial_number
-                && cert.issuer == signer_info.issuer {
+            if cert.serial_number == signer_info.serial_number && cert.issuer == signer_info.issuer
+            {
                 return Ok(cert);
             }
         }
@@ -253,16 +256,19 @@ impl AuthenticodeVerifier {
 
         // Verify signature
         match &cert.public_key {
-            PublicKey::Rsa(rsa) => {
-                rsa.verify_pkcs1_v15(signer_info.digest_algorithm, &attrs_hash, &signer_info.signature)
-                    .map_err(|_| SignatureError::VerificationFailed)
-            }
+            PublicKey::Rsa(rsa) => rsa
+                .verify_pkcs1_v15(
+                    signer_info.digest_algorithm,
+                    &attrs_hash,
+                    &signer_info.signature,
+                )
+                .map_err(|_| SignatureError::VerificationFailed),
             PublicKey::Ec(ec) => {
                 let sig = EcdsaSignature::from_der(&signer_info.signature)
                     .map_err(|_| SignatureError::InvalidSignature)?;
                 ec.verify(signer_info.digest_algorithm, &attrs_hash, &sig)
                     .map_err(|_| SignatureError::VerificationFailed)
-            }
+            },
         }
     }
 
@@ -350,7 +356,7 @@ impl AuthenticodeVerifier {
 
             // Verify signature
             match cert.verify_signature(&issuer.public_key) {
-                Ok(true) => {}
+                Ok(true) => {},
                 _ => return Ok(false),
             }
 
@@ -407,7 +413,8 @@ impl PeFile {
             return Err(SignatureError::InvalidPe);
         }
 
-        let size_of_optional = u16::from_le_bytes([data[coff_offset + 16], data[coff_offset + 17]]) as usize;
+        let size_of_optional =
+            u16::from_le_bytes([data[coff_offset + 16], data[coff_offset + 17]]) as usize;
 
         // Parse optional header
         let opt_offset = coff_offset + 20;
@@ -560,8 +567,8 @@ impl Pkcs7 {
         //   content [0] EXPLICIT ANY OPTIONAL
         // }
 
-        let (tag, content, _) = parse_der_element(data)
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, content, _) =
+            parse_der_element(data).map_err(|_| SignatureError::InvalidSignature)?;
 
         if tag != 0x30 {
             return Err(SignatureError::InvalidSignature);
@@ -570,16 +577,16 @@ impl Pkcs7 {
         let mut offset = 0;
 
         // Content type OID
-        let (tag, _, consumed) = parse_der_element(&content[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, _, consumed) =
+            parse_der_element(&content[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
         if tag != 0x06 {
             return Err(SignatureError::InvalidSignature);
         }
         offset += consumed;
 
         // Content [0]
-        let (tag, signed_data, _) = parse_der_element(&content[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, signed_data, _) =
+            parse_der_element(&content[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
         if tag != 0xa0 {
             return Err(SignatureError::InvalidSignature);
         }
@@ -598,8 +605,8 @@ impl Pkcs7 {
         //   signerInfos SignerInfos
         // }
 
-        let (tag, content, _) = parse_der_element(data)
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, content, _) =
+            parse_der_element(data).map_err(|_| SignatureError::InvalidSignature)?;
 
         if tag != 0x30 {
             return Err(SignatureError::InvalidSignature);
@@ -608,17 +615,21 @@ impl Pkcs7 {
         let mut offset = 0;
 
         // Version
-        let (tag, ver_data, consumed) = parse_der_element(&content[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, ver_data, consumed) =
+            parse_der_element(&content[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
         if tag != 0x02 {
             return Err(SignatureError::InvalidSignature);
         }
-        let version = if !ver_data.is_empty() { ver_data[0] as u32 } else { 0 };
+        let version = if !ver_data.is_empty() {
+            ver_data[0] as u32
+        } else {
+            0
+        };
         offset += consumed;
 
         // Digest algorithms
-        let (tag, alg_set, consumed) = parse_der_element(&content[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, alg_set, consumed) =
+            parse_der_element(&content[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
         if tag != 0x31 {
             return Err(SignatureError::InvalidSignature);
         }
@@ -626,8 +637,8 @@ impl Pkcs7 {
         offset += consumed;
 
         // Encapsulated content info
-        let (tag, _, consumed) = parse_der_element(&content[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, _, consumed) =
+            parse_der_element(&content[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
         if tag != 0x30 {
             return Err(SignatureError::InvalidSignature);
         }
@@ -650,8 +661,8 @@ impl Pkcs7 {
         }
 
         // Signer infos
-        let (tag, signer_set, _) = parse_der_element(&content[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, signer_set, _) =
+            parse_der_element(&content[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
         if tag != 0x31 {
             return Err(SignatureError::InvalidSignature);
         }
@@ -733,7 +744,11 @@ fn parse_der_element(data: &[u8]) -> Result<(u8, &[u8], usize), SignatureError> 
         return Err(SignatureError::InvalidSignature);
     }
 
-    Ok((tag, &data[header_size..header_size + length], header_size + length))
+    Ok((
+        tag,
+        &data[header_size..header_size + length],
+        header_size + length,
+    ))
 }
 
 /// Parse algorithm set
@@ -742,8 +757,8 @@ fn parse_algorithm_set(data: &[u8]) -> Result<Vec<Vec<u8>>, SignatureError> {
     let mut offset = 0;
 
     while offset < data.len() {
-        let (tag, alg, consumed) = parse_der_element(&data[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, alg, consumed) =
+            parse_der_element(&data[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
 
         if tag == 0x30 {
             algorithms.push(alg.to_vec());
@@ -763,13 +778,13 @@ fn parse_certificate_set(data: &[u8]) -> Result<Vec<X509Certificate>, SignatureE
     while offset < data.len() {
         // Get full certificate including header
         let start = offset;
-        let (tag, _, consumed) = parse_der_element(&data[offset..])
-            .map_err(|_| SignatureError::InvalidSignature)?;
+        let (tag, _, consumed) =
+            parse_der_element(&data[offset..]).map_err(|_| SignatureError::InvalidSignature)?;
 
         if tag == 0x30 {
             match X509Certificate::from_der(&data[start..start + consumed]) {
                 Ok(cert) => certs.push(cert),
-                Err(_) => {} // Skip invalid certificates
+                Err(_) => {}, // Skip invalid certificates
             }
         }
 
@@ -802,7 +817,11 @@ fn parse_signer_info(data: &[u8]) -> Result<SignerInfo, SignatureError> {
     if tag != 0x02 {
         return Err(SignatureError::InvalidSignature);
     }
-    let version = if !ver_data.is_empty() { ver_data[0] as u32 } else { 0 };
+    let version = if !ver_data.is_empty() {
+        ver_data[0] as u32
+    } else {
+        0
+    };
     offset += consumed;
 
     // IssuerAndSerialNumber or SubjectKeyIdentifier

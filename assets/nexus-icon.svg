@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="NEXUS icon">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#00e5ff"/>
+      <stop offset="100%" stop-color="#4b00ff"/>
+    </radialGradient>
+    <filter id="f" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="none"/>
+  <!-- subtle aura -->
+  <circle cx="32" cy="32" r="28" fill="rgba(11,17,40,0.12)"/>
+  <!-- core rings -->
+  <g fill="none" stroke-width="2">
+    <circle cx="32" cy="32" r="12" stroke="url(#g)" opacity="0.95"/>
+    <circle cx="32" cy="32" r="7" stroke="#00f0ff" opacity="0.9"/>
+  </g>
+  <!-- neural spokes -->
+  <g stroke="url(#g)" stroke-linecap="round" stroke-width="1.5">
+    <line x1="32" y1="4" x2="32" y2="18"/>
+    <line x1="32" y1="46" x2="32" y2="60"/>
+    <line x1="4" y1="32" x2="18" y2="32"/>
+    <line x1="46" y1="32" x2="60" y2="32"/>
+    <line x1="12" y1="12" x2="20" y2="20"/>
+    <line x1="52" y1="52" x2="44" y2="44"/>
+    <line x1="12" y1="52" x2="20" y2="44"/>
+    <line x1="52" y1="12" x2="44" y2="20"/>
+  </g>
+  <!-- center dot -->
+  <circle cx="32" cy="32" r="2.5" fill="#ffffff"/>
+</svg>

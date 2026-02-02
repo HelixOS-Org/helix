@@ -2,8 +2,9 @@
 //!
 //! This module defines traits for interrupt handling across architectures.
 
-use crate::HalResult;
 use core::fmt::Debug;
+
+use crate::HalResult;
 
 /// Interrupt vector number
 pub type InterruptVector = u8;
@@ -18,55 +19,55 @@ pub type InterruptHandler = fn(vector: InterruptVector, context: &mut dyn Interr
 pub trait InterruptController: Send + Sync {
     /// Initialize the interrupt controller
     fn init(&mut self) -> HalResult<()>;
-    
+
     /// Enable the interrupt controller
     fn enable(&mut self);
-    
+
     /// Disable the interrupt controller
     fn disable(&mut self);
-    
+
     /// Get the number of interrupt lines
     fn interrupt_count(&self) -> usize;
-    
+
     /// Enable a specific interrupt
     fn enable_interrupt(&mut self, vector: InterruptVector) -> HalResult<()>;
-    
+
     /// Disable a specific interrupt
     fn disable_interrupt(&mut self, vector: InterruptVector) -> HalResult<()>;
-    
+
     /// Check if an interrupt is enabled
     fn is_interrupt_enabled(&self, vector: InterruptVector) -> bool;
-    
+
     /// Set the priority for an interrupt
-    fn set_priority(&mut self, vector: InterruptVector, priority: InterruptPriority) -> HalResult<()>;
-    
-    /// Get the priority for an interrupt
-    fn get_priority(&self, vector: InterruptVector) -> HalResult<InterruptPriority>;
-    
-    /// Set the priority threshold (interrupts below this are masked)
-    fn set_priority_threshold(&mut self, threshold: InterruptPriority);
-    
-    /// Acknowledge an interrupt (signal end of handling)
-    fn acknowledge(&mut self, vector: InterruptVector);
-    
-    /// Send an Inter-Processor Interrupt
-    fn send_ipi(&mut self, target: IpiTarget, vector: InterruptVector) -> HalResult<()>;
-    
-    /// Get the currently pending interrupt (if any)
-    fn pending_interrupt(&self) -> Option<InterruptVector>;
-    
-    /// Check if an interrupt is pending
-    fn is_interrupt_pending(&self, vector: InterruptVector) -> bool;
-    
-    /// Clear a pending interrupt
-    fn clear_pending(&mut self, vector: InterruptVector);
-    
-    /// Configure interrupt trigger mode
-    fn set_trigger_mode(
+    fn set_priority(
         &mut self,
         vector: InterruptVector,
-        mode: TriggerMode,
+        priority: InterruptPriority,
     ) -> HalResult<()>;
+
+    /// Get the priority for an interrupt
+    fn get_priority(&self, vector: InterruptVector) -> HalResult<InterruptPriority>;
+
+    /// Set the priority threshold (interrupts below this are masked)
+    fn set_priority_threshold(&mut self, threshold: InterruptPriority);
+
+    /// Acknowledge an interrupt (signal end of handling)
+    fn acknowledge(&mut self, vector: InterruptVector);
+
+    /// Send an Inter-Processor Interrupt
+    fn send_ipi(&mut self, target: IpiTarget, vector: InterruptVector) -> HalResult<()>;
+
+    /// Get the currently pending interrupt (if any)
+    fn pending_interrupt(&self) -> Option<InterruptVector>;
+
+    /// Check if an interrupt is pending
+    fn is_interrupt_pending(&self, vector: InterruptVector) -> bool;
+
+    /// Clear a pending interrupt
+    fn clear_pending(&mut self, vector: InterruptVector);
+
+    /// Configure interrupt trigger mode
+    fn set_trigger_mode(&mut self, vector: InterruptVector, mode: TriggerMode) -> HalResult<()>;
 }
 
 /// Target for Inter-Processor Interrupts
@@ -99,25 +100,25 @@ pub enum TriggerMode {
 pub trait InterruptContext: Send {
     /// Get the instruction pointer at the time of the interrupt
     fn instruction_pointer(&self) -> u64;
-    
+
     /// Get the stack pointer at the time of the interrupt
     fn stack_pointer(&self) -> u64;
-    
+
     /// Get the interrupt vector number
     fn vector(&self) -> InterruptVector;
-    
+
     /// Get the error code (for exceptions)
     fn error_code(&self) -> Option<u64>;
-    
+
     /// Check if the interrupt occurred in user mode
     fn from_user_mode(&self) -> bool;
-    
+
     /// Set the return instruction pointer
     fn set_instruction_pointer(&mut self, ip: u64);
-    
+
     /// Get a general-purpose register by index
     fn register(&self, index: usize) -> u64;
-    
+
     /// Set a general-purpose register by index
     fn set_register(&mut self, index: usize, value: u64);
 }

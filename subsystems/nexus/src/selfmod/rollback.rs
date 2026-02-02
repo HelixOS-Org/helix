@@ -7,7 +7,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -422,36 +422,53 @@ impl RollbackManager {
 
     /// Execute rollback
     pub fn execute(&mut self, id: RollbackId) -> Result<(), RollbackError> {
-        let operation = self
-            .active
-            .get_mut(&id)
-            .ok_or(RollbackError::NotFound(id))?;
+        // First, update status and get needed data
+        let target_version = {
+            let operation = self
+                .active
+                .get_mut(&id)
+                .ok_or(RollbackError::NotFound(id))?;
 
-        operation.status = RollbackStatus::InProgress;
-        operation.started_at = 0;
+            operation.status = RollbackStatus::InProgress;
+            operation.started_at = 0;
+            operation.target_version
+        };
 
-        // Get snapshot
-        let snapshot = self
+        // Get snapshot (this borrows snapshot_manager immutably)
+        let snapshot_opt = self
             .snapshot_manager
-            .get_for_version(operation.target_version);
+            .get_for_version(target_version)
+            .cloned();
 
-        if let Some(snapshot) = snapshot {
-            // Apply snapshot
-            self.apply_snapshot(snapshot)?;
-
-            operation.status = RollbackStatus::Completed;
-            operation.completed_at = Some(0);
-            self.stats.successful += 1;
+        // Apply snapshot if available
+        let apply_result = if let Some(ref snapshot) = snapshot_opt {
+            self.apply_snapshot(snapshot)
         } else {
             // No snapshot, try to revert modifications
-            for _mod_id in &operation.modifications {
+            // Get modifications to revert
+            let mods: Vec<_> = self
+                .active
+                .get(&id)
+                .map(|op| op.modifications.clone())
+                .unwrap_or_default();
+
+            for _mod_id in mods {
                 // Revert each modification
             }
+            Ok(())
+        };
 
-            operation.status = RollbackStatus::Completed;
-            operation.completed_at = Some(0);
-            self.stats.successful += 1;
+        // Update operation status based on result
+        if let Some(operation) = self.active.get_mut(&id) {
+            if apply_result.is_ok() {
+                operation.status = RollbackStatus::Completed;
+                operation.completed_at = Some(0);
+                self.stats.successful += 1;
+            }
         }
+
+        // Propagate error if apply failed
+        apply_result?;
 
         // Move to history
         if let Some(op) = self.active.remove(&id) {

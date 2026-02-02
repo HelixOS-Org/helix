@@ -6,14 +6,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use crate::math::F64Ext;
-use alloc::format;
-
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::ir::{IRFunction, IRModule, IROp};
+use crate::math::F64Ext;
 
 // ============================================================================
 // METRIC TYPES

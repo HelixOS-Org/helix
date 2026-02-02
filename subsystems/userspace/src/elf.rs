@@ -11,11 +11,11 @@
 //! - Symbol resolution
 
 use alloc::string::String;
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 use core::mem;
 
-use super::{UserResult, UserError, STATS};
+use super::{UserError, UserResult, STATS};
 
 /// ELF magic number
 pub const ELF_MAGIC: [u8; 4] = [0x7f, b'E', b'L', b'F'];
@@ -187,16 +187,13 @@ impl ElfHeader {
         let e_machine = u16::from_le_bytes([data[18], data[19]]);
         let e_version = u32::from_le_bytes([data[20], data[21], data[22], data[23]]);
         let e_entry = u64::from_le_bytes([
-            data[24], data[25], data[26], data[27],
-            data[28], data[29], data[30], data[31],
+            data[24], data[25], data[26], data[27], data[28], data[29], data[30], data[31],
         ]);
         let e_phoff = u64::from_le_bytes([
-            data[32], data[33], data[34], data[35],
-            data[36], data[37], data[38], data[39],
+            data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39],
         ]);
         let e_shoff = u64::from_le_bytes([
-            data[40], data[41], data[42], data[43],
-            data[44], data[45], data[46], data[47],
+            data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47],
         ]);
         let e_flags = u32::from_le_bytes([data[48], data[49], data[50], data[51]]);
         let e_ehsize = u16::from_le_bytes([data[52], data[53]]);
@@ -376,8 +373,12 @@ impl SectionHeader {
             sh_size: u64::from_le_bytes([d[32], d[33], d[34], d[35], d[36], d[37], d[38], d[39]]),
             sh_link: u32::from_le_bytes([d[40], d[41], d[42], d[43]]),
             sh_info: u32::from_le_bytes([d[44], d[45], d[46], d[47]]),
-            sh_addralign: u64::from_le_bytes([d[48], d[49], d[50], d[51], d[52], d[53], d[54], d[55]]),
-            sh_entsize: u64::from_le_bytes([d[56], d[57], d[58], d[59], d[60], d[61], d[62], d[63]]),
+            sh_addralign: u64::from_le_bytes([
+                d[48], d[49], d[50], d[51], d[52], d[53], d[54], d[55],
+            ]),
+            sh_entsize: u64::from_le_bytes([
+                d[56], d[57], d[58], d[59], d[60], d[61], d[62], d[63],
+            ]),
         })
     }
 }
@@ -413,12 +414,10 @@ impl Symbol {
             st_other: data[5],
             st_shndx: u16::from_le_bytes([data[6], data[7]]),
             st_value: u64::from_le_bytes([
-                data[8], data[9], data[10], data[11],
-                data[12], data[13], data[14], data[15],
+                data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
             ]),
             st_size: u64::from_le_bytes([
-                data[16], data[17], data[18], data[19],
-                data[20], data[21], data[22], data[23],
+                data[16], data[17], data[18], data[19], data[20], data[21], data[22], data[23],
             ]),
         })
     }
@@ -537,7 +536,8 @@ impl ElfLoader {
                 let file_size = ph.p_filesz as usize;
 
                 if file_offset + file_size <= data.len() {
-                    segment_data[..file_size].copy_from_slice(&data[file_offset..file_offset + file_size]);
+                    segment_data[..file_size]
+                        .copy_from_slice(&data[file_offset..file_offset + file_size]);
                 }
 
                 segments.push(LoadedSegment {

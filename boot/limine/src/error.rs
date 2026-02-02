@@ -10,11 +10,17 @@ pub enum Error {
     /// A response was not provided by the bootloader
     NoResponse(&'static str),
     /// Invalid response data
-    InvalidResponse { request: &'static str, reason: &'static str },
+    InvalidResponse {
+        request: &'static str,
+        reason: &'static str,
+    },
     /// Feature not supported
     NotSupported(&'static str),
     /// Invalid parameter
-    InvalidParameter { param: &'static str, reason: &'static str },
+    InvalidParameter {
+        param: &'static str,
+        reason: &'static str,
+    },
     /// Memory error
     Memory(MemoryError),
     /// SMP error
@@ -35,11 +41,11 @@ impl fmt::Display for Error {
             Self::NoResponse(name) => write!(f, "No response for request: {}", name),
             Self::InvalidResponse { request, reason } => {
                 write!(f, "Invalid response for {}: {}", request, reason)
-            }
+            },
             Self::NotSupported(feature) => write!(f, "Feature not supported: {}", feature),
             Self::InvalidParameter { param, reason } => {
                 write!(f, "Invalid parameter '{}': {}", param, reason)
-            }
+            },
             Self::Memory(e) => write!(f, "Memory error: {}", e),
             Self::Smp(e) => write!(f, "SMP error: {}", e),
             Self::Framebuffer(e) => write!(f, "Framebuffer error: {}", e),
@@ -115,18 +121,25 @@ impl fmt::Display for MemoryError {
             Self::NoMemoryMap => write!(f, "Memory map not available"),
             Self::NoHhdm => write!(f, "HHDM not available"),
             Self::NoUsableMemory => write!(f, "No usable memory found"),
-            Self::InsufficientMemory { required, available } => {
-                write!(f, "Insufficient memory: need {} bytes, have {}", required, available)
-            }
+            Self::InsufficientMemory {
+                required,
+                available,
+            } => {
+                write!(
+                    f,
+                    "Insufficient memory: need {} bytes, have {}",
+                    required, available
+                )
+            },
             Self::AddressOutOfRange(addr) => write!(f, "Address out of range: {:#x}", addr),
             Self::InvalidRegion { base, length } => {
                 write!(f, "Invalid memory region: {:#x}-{:#x}", base, base + length)
-            }
+            },
             Self::OverlappingRegions => write!(f, "Overlapping memory regions"),
             Self::RegionNotFound => write!(f, "Memory region not found"),
             Self::AllocationFailed { size, align } => {
                 write!(f, "Allocation failed: size={}, align={}", size, align)
-            }
+            },
         }
     }
 }
@@ -158,7 +171,7 @@ impl fmt::Display for SmpError {
             Self::InvalidCpuId(id) => write!(f, "Invalid CPU ID: {}", id),
             Self::TooManyCpus { count, max } => {
                 write!(f, "Too many CPUs: {} (max {})", count, max)
-            }
+            },
         }
     }
 }
@@ -188,8 +201,12 @@ impl fmt::Display for FramebufferError {
             Self::UnsupportedFormat { bpp } => write!(f, "Unsupported pixel format: {} bpp", bpp),
             Self::InvalidCoordinates { x, y } => write!(f, "Invalid coordinates: ({}, {})", x, y),
             Self::BufferTooSmall { required, provided } => {
-                write!(f, "Buffer too small: need {} bytes, got {}", required, provided)
-            }
+                write!(
+                    f,
+                    "Buffer too small: need {} bytes, got {}",
+                    required, provided
+                )
+            },
             Self::NoVideoModes => write!(f, "No video modes available"),
         }
     }

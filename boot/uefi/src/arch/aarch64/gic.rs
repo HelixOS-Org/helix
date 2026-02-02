@@ -831,10 +831,10 @@ pub mod gicv3 {
     /// Send SGI to CPU list
     pub fn send_sgi(intid: u32, target_list: u16, aff3: u8, aff2: u8, aff1: u8) {
         let sgi = (intid as u64 & 0xF) << 24
-                | (aff3 as u64) << 48
-                | (aff2 as u64) << 32
-                | (aff1 as u64) << 16
-                | (target_list as u64);
+            | (aff3 as u64) << 48
+            | (aff2 as u64) << 32
+            | (aff1 as u64) << 16
+            | (target_list as u64);
         write_sgi1(sgi);
     }
 

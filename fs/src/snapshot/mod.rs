@@ -6,16 +6,16 @@
 //! - Incremental diff between snapshots
 //! - Snapshot rollback and cloning
 
-pub mod core;
-pub mod tree;
-pub mod diff;
 pub mod clone;
+pub mod core;
+pub mod diff;
+pub mod tree;
+
+pub use clone::*;
+pub use diff::*;
+pub use tree::*;
 
 pub use self::core::*;
-pub use tree::*;
-pub use diff::*;
-pub use clone::*;
-
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
 
@@ -60,15 +60,15 @@ pub const ROOT_SNAPSHOT_ID: SnapshotId = 1;
 #[repr(u8)]
 pub enum SnapshotState {
     /// Invalid/deleted
-    Invalid = 0,
+    Invalid  = 0,
     /// Active (usable)
-    Active = 1,
+    Active   = 1,
     /// Creating (in progress)
     Creating = 2,
     /// Deleting (in progress)
     Deleting = 3,
     /// Locked (cannot be deleted)
-    Locked = 4,
+    Locked   = 4,
     /// Archived (read-only, optimized storage)
     Archived = 5,
 }
@@ -85,19 +85,19 @@ impl SnapshotState {
             _ => Self::Invalid,
         }
     }
-    
+
     /// Check if usable
     #[inline]
     pub fn is_usable(&self) -> bool {
         matches!(self, Self::Active | Self::Locked | Self::Archived)
     }
-    
+
     /// Check if modifiable
     #[inline]
     pub fn is_modifiable(&self) -> bool {
         *self == Self::Active
     }
-    
+
     /// Check if deletable
     #[inline]
     pub fn is_deletable(&self) -> bool {
@@ -136,36 +136,36 @@ impl SnapshotFlags {
     pub const KEEP_MINIMUM: u32 = 1 << 5;
     /// Archived to secondary storage
     pub const ARCHIVED: u32 = 1 << 6;
-    
+
     /// Create from raw
     pub const fn new(flags: u32) -> Self {
         Self(flags)
     }
-    
+
     /// Check if flag is set
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         (self.0 & flag) != 0
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set(&mut self, flag: u32) {
         self.0 |= flag;
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear(&mut self, flag: u32) {
         self.0 &= !flag;
     }
-    
+
     /// Is read-only
     #[inline]
     pub fn is_read_only(&self) -> bool {
         self.has(Self::READ_ONLY)
     }
-    
+
     /// Is writable
     #[inline]
     pub fn is_writable(&self) -> bool {
@@ -226,7 +226,7 @@ pub struct SnapshotDescriptor {
 impl SnapshotDescriptor {
     /// Size in bytes
     pub const SIZE: usize = 512;
-    
+
     /// Create new descriptor
     pub fn new(id: SnapshotId, parent_id: SnapshotId) -> Self {
         Self {
@@ -252,80 +252,76 @@ impl SnapshotDescriptor {
             checksum: 0,
         }
     }
-    
+
     /// Validate descriptor
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != SNAPSHOT_MAGIC {
             return Err(HfsError::SnapshotCorrupted);
         }
-        
+
         if self.version != SNAPSHOT_VERSION {
             return Err(HfsError::InvalidVersion);
         }
-        
+
         if self.id == INVALID_SNAPSHOT_ID {
             return Err(HfsError::InvalidSnapshotId);
         }
-        
+
         Ok(())
     }
-    
+
     /// Get state
     #[inline]
     pub fn state(&self) -> SnapshotState {
         SnapshotState::from_raw(self.state)
     }
-    
+
     /// Set state
     #[inline]
     pub fn set_state(&mut self, state: SnapshotState) {
         self.state = state as u8;
     }
-    
+
     /// Get flags
     #[inline]
     pub fn flags(&self) -> SnapshotFlags {
         SnapshotFlags::new(self.flags)
     }
-    
+
     /// Set name
     pub fn set_name(&mut self, name: &[u8]) {
         let len = name.len().min(MAX_SNAPSHOT_NAME);
         self.name[..len].copy_from_slice(&name[..len]);
         self.name_len = len as u8;
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         let len = (self.name_len as usize).min(MAX_SNAPSHOT_NAME);
         &self.name[..len]
     }
-    
+
     /// Set description
     pub fn set_description(&mut self, desc: &[u8]) {
         let len = desc.len().min(128);
         self.description[..len].copy_from_slice(&desc[..len]);
     }
-    
+
     /// Total blocks
     #[inline]
     pub fn total_blocks(&self) -> u64 {
         self.exclusive_blocks + self.shared_blocks
     }
-    
+
     /// Compute checksum
     pub fn compute_checksum(&self) -> u32 {
         let mut hasher = Crc32c::new();
-        let bytes = unsafe {
-            ::core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                Self::SIZE - 4,
-            )
-        };
+        let bytes =
+            unsafe { ::core::slice::from_raw_parts(self as *const _ as *const u8, Self::SIZE - 4) };
         hasher.write(bytes);
         hasher.finish()
     }
-    
+
     /// Update checksum
     pub fn update_checksum(&mut self) {
         self.checksum = self.compute_checksum();
@@ -380,7 +376,7 @@ impl SnapshotStats {
             clones_created: 0,
         }
     }
-    
+
     /// Calculate space savings ratio
     pub fn savings_ratio(&self) -> f32 {
         let total = self.exclusive_blocks + self.shared_blocks;
@@ -442,7 +438,7 @@ impl SnapshotOpResult {
             duration_ns,
         }
     }
-    
+
     /// Create failure result
     pub fn failure(op: SnapshotOp, error: HfsError) -> Self {
         Self {
@@ -462,53 +458,53 @@ impl SnapshotOpResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_snapshot_state() {
         assert!(SnapshotState::Active.is_usable());
         assert!(SnapshotState::Locked.is_usable());
         assert!(!SnapshotState::Creating.is_usable());
-        
+
         assert!(SnapshotState::Active.is_modifiable());
         assert!(!SnapshotState::Locked.is_modifiable());
-        
+
         assert!(SnapshotState::Active.is_deletable());
         assert!(!SnapshotState::Locked.is_deletable());
     }
-    
+
     #[test]
     fn test_snapshot_flags() {
         let mut flags = SnapshotFlags::new(0);
-        
+
         assert!(!flags.is_read_only());
         flags.set(SnapshotFlags::READ_ONLY);
         assert!(flags.is_read_only());
-        
+
         flags.clear(SnapshotFlags::READ_ONLY);
         assert!(!flags.is_read_only());
     }
-    
+
     #[test]
     fn test_snapshot_descriptor() {
         let mut desc = SnapshotDescriptor::new(1, ROOT_SNAPSHOT_ID);
-        
+
         assert_eq!(desc.id, 1);
         assert_eq!(desc.parent_id, ROOT_SNAPSHOT_ID);
         assert!(desc.validate().is_ok());
-        
+
         desc.set_name(b"test-snapshot");
         assert_eq!(desc.name(), b"test-snapshot");
-        
+
         desc.set_state(SnapshotState::Active);
         assert_eq!(desc.state(), SnapshotState::Active);
     }
-    
+
     #[test]
     fn test_snapshot_stats() {
         let mut stats = SnapshotStats::new();
         stats.exclusive_blocks = 100;
         stats.shared_blocks = 300;
-        
+
         assert_eq!(stats.savings_ratio(), 0.75);
     }
 }

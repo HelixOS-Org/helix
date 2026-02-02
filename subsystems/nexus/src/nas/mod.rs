@@ -51,29 +51,28 @@
 //! └─────────────────────────────────────────────────────────────────────────┘
 //! ```
 
-#![no_std]
 #![allow(dead_code)]
 
 extern crate alloc;
-
-pub mod darts;
-pub mod enas;
-pub mod evolution;
-pub mod ofa;
-pub mod search_space;
-pub mod hardware;
-pub mod supernet;
-pub mod cell;
-pub mod proxy;
-
-use alloc::vec::Vec;
-use alloc::boxed::Box;
-use alloc::string::String;
 use alloc::collections::BTreeMap;
+use alloc::string::String;
+// TODO: Ces sous-modules doivent être créés
+// pub mod darts;
+// pub mod enas;
+// pub mod evolution;
+// pub mod ofa;
+// pub mod search_space;
+// pub mod hardware;
+// pub mod supernet;
+// pub mod cell;
+// pub mod proxy;
+use alloc::vec::Vec;
 use core::cmp::Ordering;
 
-use crate::types::{NexusResult, NexusError};
-use crate::ml::{Tensor, NeuralNetwork, Layer, Activation};
+use crate::math::F64Ext;
+use crate::types::{NexusError, NexusResult};
+// TODO: These types don't exist in ml module yet
+// use crate::ml::{Tensor, NeuralNetwork, Layer, Activation};
 
 /// Operation types in the search space
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -120,7 +119,7 @@ impl OperationType {
             Self::Skip => 0,
             Self::Linear | Self::LinearReLU | Self::LinearGELU => {
                 (input_size * output_size * 2) as u64
-            }
+            },
             Self::Attention => (input_size * input_size * 3) as u64, // Q, K, V
             Self::LayerNorm | Self::BatchNorm => (input_size * 4) as u64,
             Self::SepConv3x3 | Self::DilConv3x3 => (input_size * 9 * 2) as u64,
@@ -137,7 +136,7 @@ impl OperationType {
             Self::Zero | Self::Skip => 0,
             Self::Linear | Self::LinearReLU | Self::LinearGELU => {
                 input_size * output_size * 4 + output_size * 4 // weights + bias
-            }
+            },
             Self::Attention => input_size * 4 * 4, // 4 projection matrices
             Self::LayerNorm | Self::BatchNorm => output_size * 8, // gamma + beta
             _ => output_size * 4,
@@ -182,14 +181,16 @@ impl Cell {
 
     /// Count parameters in this cell
     pub fn param_count(&self) -> usize {
-        self.edges.iter()
+        self.edges
+            .iter()
             .map(|(_, _, op)| op.memory_bytes(self.input_dim, self.output_dim) / 4)
             .sum()
     }
 
     /// Estimate FLOPs for this cell
     pub fn estimated_flops(&self) -> u64 {
-        self.edges.iter()
+        self.edges
+            .iter()
             .map(|(_, _, op)| op.estimated_flops(self.input_dim, self.output_dim))
             .sum()
     }
@@ -268,7 +269,9 @@ impl Architecture {
     pub fn satisfies_constraints(&self, constraints: &ArchitectureConstraints) -> bool {
         let params = self.total_params();
         let flops = self.total_flops();
-        let memory = self.cells.iter()
+        let memory = self
+            .cells
+            .iter()
             .map(|c| c.input_dim * 4 + c.output_dim * 4)
             .sum::<usize>();
 
@@ -385,8 +388,9 @@ impl ArchitectureEncoding {
             })
             .collect();
 
-        let num_cells = ((*rng >> 16) as usize %
-            (search_space.max_cells - search_space.min_cells + 1)) + search_space.min_cells;
+        let num_cells = ((*rng >> 16) as usize
+            % (search_space.max_cells - search_space.min_cells + 1))
+            + search_space.min_cells;
 
         let cell_config: Vec<u8> = (0..num_cells)
             .map(|_| {
@@ -418,11 +422,11 @@ impl ArchitectureEncoding {
         let mut arch = Architecture::new(id, alloc::format!("arch_{}", id));
 
         for (cell_idx, &config) in self.cell_config.iter().enumerate() {
-            let num_nodes = search_space.min_nodes +
-                (config as usize % (search_space.max_nodes - search_space.min_nodes + 1));
+            let num_nodes = search_space.min_nodes
+                + (config as usize % (search_space.max_nodes - search_space.min_nodes + 1));
 
-            let width = search_space.min_width +
-                (self.widths.get(cell_idx).copied().unwrap_or(0) as usize * 16);
+            let width = search_space.min_width
+                + (self.widths.get(cell_idx).copied().unwrap_or(0) as usize * 16);
 
             let mut cell = Cell::new(cell_idx, num_nodes, width, width);
             cell.is_reduction = config > 2;
@@ -687,8 +691,8 @@ impl NasEngine {
     pub fn search(&mut self) -> NexusResult<Architecture> {
         let mut generations_without_improvement = 0;
 
-        for gen in 0..self.config.num_generations {
-            self.generation = gen;
+        for generation_idx in 0..self.config.num_generations {
+            self.generation = generation_idx;
 
             // Evaluate population
             self.evaluate_population()?;
@@ -698,12 +702,15 @@ impl NasEngine {
             self.history.push(entry);
 
             // Update best
-            if let Some(best) = self.population.iter().max_by(|a, b| {
-                a.fitness.partial_cmp(&b.fitness).unwrap_or(Ordering::Equal)
-            }) {
+            if let Some(best) = self
+                .population
+                .iter()
+                .max_by(|a, b| a.fitness.partial_cmp(&b.fitness).unwrap_or(Ordering::Equal))
+            {
                 if best.fitness > self.best_fitness {
                     self.best_fitness = best.fitness;
-                    self.best_architecture = Some(best.decode(&self.search_space, gen as u64));
+                    self.best_architecture =
+                        Some(best.decode(&self.search_space, generation_idx as u64));
                     generations_without_improvement = 0;
                 } else {
                     generations_without_improvement += 1;
@@ -719,28 +726,32 @@ impl NasEngine {
             self.evolve_population()?;
         }
 
-        self.best_architecture.clone().ok_or(NexusError::OperationFailed)
+        self.best_architecture
+            .clone()
+            .ok_or(NexusError::operation_failed())
     }
 
     /// Evaluate all architectures in population
     fn evaluate_population(&mut self) -> NexusResult<()> {
-        for encoding in &mut self.population {
-            let arch = encoding.decode(&self.search_space, self.generation as u64);
+        for i in 0..self.population.len() {
+            let arch = self.population[i].decode(&self.search_space, self.generation as u64);
 
             // Check constraints
             if !arch.satisfies_constraints(&self.constraints) {
-                encoding.fitness = -1.0;
+                self.population[i].fitness = -1.0;
                 continue;
             }
 
             // Evaluate fitness
-            encoding.fitness = if self.config.use_proxy {
+            let fitness = if self.config.use_proxy {
                 self.proxy_evaluate(&arch)?
             } else if self.config.weight_sharing {
-                self.supernet_evaluate(encoding)?
+                let encoding = self.population[i].clone();
+                self.supernet_evaluate(&encoding)?
             } else {
                 self.full_evaluate(&arch)?
             };
+            self.population[i].fitness = fitness;
         }
 
         Ok(())
@@ -760,7 +771,9 @@ impl NasEngine {
         let depth_bonus = (arch.cells.len() as f64).sqrt() / 5.0;
 
         // Skip connection bonus
-        let skip_count = arch.cells.iter()
+        let skip_count = arch
+            .cells
+            .iter()
             .flat_map(|c| c.edges.iter())
             .filter(|(_, _, op)| *op == OperationType::Skip)
             .count();
@@ -770,8 +783,11 @@ impl NasEngine {
     }
 
     /// Evaluate using supernet with weight sharing
-    fn supernet_evaluate(&mut self, encoding: &ArchitectureEncoding) -> NexusResult<f64> {
-        let supernet = self.supernet.as_ref().ok_or(NexusError::NotInitialized)?;
+    fn supernet_evaluate(&self, encoding: &ArchitectureEncoding) -> NexusResult<f64> {
+        let supernet = self
+            .supernet
+            .as_ref()
+            .ok_or(NexusError::not_initialized())?;
 
         let weights = supernet.get_weights(encoding);
 
@@ -793,9 +809,8 @@ impl NasEngine {
     /// Evolve population to next generation
     fn evolve_population(&mut self) -> NexusResult<()> {
         // Sort by fitness
-        self.population.sort_by(|a, b| {
-            b.fitness.partial_cmp(&a.fitness).unwrap_or(Ordering::Equal)
-        });
+        self.population
+            .sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap_or(Ordering::Equal));
 
         let mut new_population = Vec::with_capacity(self.config.population_size);
 
@@ -808,14 +823,14 @@ impl NasEngine {
 
         // Generate rest of population through selection & crossover
         while new_population.len() < self.config.population_size {
-            let parent1 = self.tournament_select();
-            let parent2 = self.tournament_select();
+            let parent1 = self.tournament_select_cloned();
+            let parent2 = self.tournament_select_cloned();
 
             // Crossover
             self.rng ^= self.rng << 13;
             self.rng ^= self.rng >> 7;
             let mut child = if (self.rng as f64 / u64::MAX as f64) < self.config.crossover_rate {
-                parent1.crossover(parent2, &mut self.rng)
+                parent1.crossover(&parent2, &mut self.rng)
             } else {
                 parent1.clone()
             };
@@ -831,8 +846,8 @@ impl NasEngine {
         Ok(())
     }
 
-    /// Tournament selection
-    fn tournament_select(&mut self) -> &ArchitectureEncoding {
+    /// Tournament selection - returns cloned encoding to avoid borrow issues
+    fn tournament_select_cloned(&mut self) -> ArchitectureEncoding {
         let mut best_idx = 0;
         let mut best_fitness = f64::MIN;
 
@@ -847,12 +862,14 @@ impl NasEngine {
             }
         }
 
-        &self.population[best_idx]
+        self.population[best_idx].clone()
     }
 
     /// Record search history
     fn record_history(&self) -> SearchHistoryEntry {
-        let fitnesses: Vec<f64> = self.population.iter()
+        let fitnesses: Vec<f64> = self
+            .population
+            .iter()
             .filter(|e| e.fitness >= 0.0)
             .map(|e| e.fitness)
             .collect();
@@ -864,9 +881,8 @@ impl NasEngine {
         };
 
         // Calculate diversity (unique edge patterns)
-        let unique_patterns: alloc::collections::BTreeSet<_> = self.population.iter()
-            .map(|e| e.edges.clone())
-            .collect();
+        let unique_patterns: alloc::collections::BTreeSet<_> =
+            self.population.iter().map(|e| e.edges.clone()).collect();
 
         SearchHistoryEntry {
             generation: self.generation,

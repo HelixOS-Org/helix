@@ -48,14 +48,11 @@
 //! Optimized Scheduling Decision
 //! ```
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::boxed::Box;
 
-use super::{
-    Nanoseconds, CpuBudget, MemoryBudget, IoBudget, 
-    TaskFlags, DISError, DISResult
-};
+use super::{CpuBudget, DISError, DISResult, IoBudget, MemoryBudget, Nanoseconds, TaskFlags};
 
 // =============================================================================
 // Intent Identification
@@ -70,11 +67,11 @@ impl IntentId {
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
-    
+
     pub const fn raw(&self) -> u64 {
         self.0
     }
-    
+
     pub const NULL: Self = Self(0);
 }
 
@@ -88,35 +85,35 @@ impl IntentId {
 pub enum IntentClass {
     /// Hard real-time with deadlines
     /// Examples: Audio processing, motor control
-    RealTime = 0,
-    
+    RealTime     = 0,
+
     /// Soft real-time, low latency preferred
     /// Examples: UI rendering, games
     SoftRealTime = 1,
-    
+
     /// Interactive, user-facing
     /// Examples: Shell, text editor
-    Interactive = 2,
-    
+    Interactive  = 2,
+
     /// Server workload, request-response
     /// Examples: Web server, database
-    Server = 3,
-    
+    Server       = 3,
+
     /// Throughput-oriented batch processing
     /// Examples: Compilation, data processing
-    Batch = 4,
-    
+    Batch        = 4,
+
     /// Background tasks
     /// Examples: Indexing, backups
-    Background = 5,
-    
+    Background   = 5,
+
     /// Idle tasks, lowest priority
     /// Examples: Screen saver, garbage collection
-    Idle = 6,
-    
+    Idle         = 6,
+
     /// System-critical, cannot be delayed
     /// Examples: OOM killer, watchdog
-    Critical = 7,
+    Critical     = 7,
 }
 
 impl Default for IntentClass {
@@ -139,7 +136,7 @@ impl IntentClass {
             Self::Idle => 127,
         }
     }
-    
+
     /// Get the default time slice for this class
     pub fn default_time_slice(&self) -> Nanoseconds {
         match self {
@@ -153,22 +150,22 @@ impl IntentClass {
             Self::Idle => Nanoseconds::from_millis(1000),
         }
     }
-    
+
     /// Can this class preempt another?
     pub fn can_preempt(&self, other: &Self) -> bool {
         (*self as u8) < (*other as u8)
     }
-    
+
     /// Is this a real-time class?
     pub fn is_realtime(&self) -> bool {
         matches!(self, Self::RealTime | Self::SoftRealTime | Self::Critical)
     }
-    
+
     /// Is this an interactive class?
     pub fn is_interactive(&self) -> bool {
         matches!(self, Self::Interactive | Self::SoftRealTime)
     }
-    
+
     /// Is this a batch class?
     pub fn is_batch(&self) -> bool {
         matches!(self, Self::Batch | Self::Background | Self::Idle)
@@ -194,7 +191,7 @@ bitflags::bitflags! {
         const CPU_BOUND = 1 << 3;
         /// Task is memory intensive
         const MEMORY_INTENSIVE = 1 << 4;
-        
+
         // CPU affinity
         /// Pin to specific CPU
         const CPU_PINNED = 1 << 8;
@@ -202,7 +199,7 @@ bitflags::bitflags! {
         const NUMA_AWARE = 1 << 9;
         /// Can migrate between CPUs
         const MIGRATABLE = 1 << 10;
-        
+
         // Preemption behavior
         /// Cannot be preempted
         const NO_PREEMPT = 1 << 16;
@@ -210,7 +207,7 @@ bitflags::bitflags! {
         const PREEMPTIVE = 1 << 17;
         /// Yields voluntarily
         const COOPERATIVE = 1 << 18;
-        
+
         // Energy management
         /// Prefer performance
         const PERF_PREFER = 1 << 24;
@@ -218,7 +215,7 @@ bitflags::bitflags! {
         const POWER_PREFER = 1 << 25;
         /// Thermal-aware
         const THERMAL_AWARE = 1 << 26;
-        
+
         // Security
         /// Runs in secure enclave
         const SECURE = 1 << 32;
@@ -226,7 +223,7 @@ bitflags::bitflags! {
         const ISOLATED = 1 << 33;
         /// Has elevated privileges
         const PRIVILEGED = 1 << 34;
-        
+
         // Deadline handling
         /// Has hard deadline
         const HARD_DEADLINE = 1 << 40;
@@ -234,7 +231,7 @@ bitflags::bitflags! {
         const SOFT_DEADLINE = 1 << 41;
         /// Deadline can be extended
         const EXTENSIBLE_DEADLINE = 1 << 42;
-        
+
         // Resource accounting
         /// Track resource usage precisely
         const PRECISE_ACCOUNTING = 1 << 48;
@@ -267,7 +264,10 @@ pub enum LatencyTarget {
     /// Maximum allowed latency (hard)
     Maximum(Nanoseconds),
     /// Both target and maximum
-    Bounded { target: Nanoseconds, max: Nanoseconds },
+    Bounded {
+        target: Nanoseconds,
+        max: Nanoseconds,
+    },
 }
 
 impl Default for LatencyTarget {
@@ -285,7 +285,7 @@ impl LatencyTarget {
             Self::Maximum(m) => Some(*m),
         }
     }
-    
+
     /// Get the maximum latency if specified
     pub fn maximum(&self) -> Option<Nanoseconds> {
         match self {
@@ -293,7 +293,7 @@ impl LatencyTarget {
             Self::Maximum(m) | Self::Bounded { max: m, .. } => Some(*m),
         }
     }
-    
+
     /// Common latency targets
     pub const REALTIME_AUDIO: Self = Self::Maximum(Nanoseconds::from_millis(5));
     pub const GAMING_60FPS: Self = Self::Target(Nanoseconds::from_millis(16));
@@ -311,15 +311,15 @@ impl LatencyTarget {
 #[repr(u8)]
 pub enum EnergyPreference {
     /// Maximum performance, ignore power
-    Performance = 0,
+    Performance         = 0,
     /// Slight bias towards performance
     BalancedPerformance = 1,
     /// Balance performance and power
-    Balanced = 2,
+    Balanced            = 2,
     /// Slight bias towards power saving
-    BalancedPower = 3,
+    BalancedPower       = 3,
     /// Maximum power saving
-    PowerSave = 4,
+    PowerSave           = 4,
 }
 
 impl Default for EnergyPreference {
@@ -400,155 +400,159 @@ impl Intent {
             ..Default::default()
         }
     }
-    
+
     /// Create a builder for constructing intents
     pub fn builder() -> IntentBuilder {
         IntentBuilder::new()
     }
-    
+
     /// Compute the base priority from this intent
     pub fn compute_base_priority(&self) -> i32 {
         let mut priority = self.class.base_priority();
-        
+
         // Apply nice value
         priority = priority.saturating_add(self.nice as i32 * 2);
-        
+
         // Low latency tasks get priority boost
         if self.flags.contains(IntentFlags::LOW_LATENCY) {
             priority = priority.saturating_sub(10);
         }
-        
+
         // High throughput tasks get priority penalty
         if self.flags.contains(IntentFlags::HIGH_THROUGHPUT) {
             priority = priority.saturating_add(10);
         }
-        
+
         // I/O bound tasks get slight boost
         if self.flags.contains(IntentFlags::IO_BOUND) {
             priority = priority.saturating_sub(5);
         }
-        
+
         priority.clamp(-100, 127)
     }
-    
+
     /// Compute flags for the task from this intent
     pub fn compute_flags(&self) -> TaskFlags {
         let mut flags = TaskFlags::empty();
-        
+
         if self.class.is_realtime() {
             flags |= TaskFlags::REALTIME;
         }
-        
+
         if self.class.is_interactive() {
             flags |= TaskFlags::INTERACTIVE;
         }
-        
+
         if self.class.is_batch() {
             flags |= TaskFlags::BATCH;
         }
-        
+
         if self.flags.contains(IntentFlags::NO_PREEMPT) {
             flags |= TaskFlags::NO_PREEMPT;
         }
-        
+
         if self.flags.contains(IntentFlags::CPU_PINNED) {
             flags |= TaskFlags::PINNED;
         }
-        
+
         if self.flags.contains(IntentFlags::IO_BOUND) {
             flags |= TaskFlags::IO_BOUND;
         }
-        
+
         if self.flags.contains(IntentFlags::CPU_BOUND) {
             flags |= TaskFlags::CPU_BOUND;
         }
-        
+
         if self.flags.contains(IntentFlags::LOW_LATENCY) {
             flags |= TaskFlags::LOW_LATENCY;
         }
-        
+
         flags
     }
-    
+
     /// Compute the time slice for this intent
     pub fn compute_time_slice(&self) -> Nanoseconds {
         let mut slice = self.class.default_time_slice();
-        
+
         // Adjust based on latency target
         if let Some(target) = self.latency.target() {
             // Time slice should be smaller than latency target
             slice = slice.min(Nanoseconds::new(target.raw() / 2));
         }
-        
+
         // Adjust based on nice value
         let nice_factor = if self.nice < 0 {
             100 + (-self.nice as u64 * 5) // Higher nice = more time
         } else {
             (100 - self.nice as u64 * 3).max(20) // Lower nice = less time
         };
-        
+
         Nanoseconds::new(slice.raw() * nice_factor / 100)
     }
-    
+
     /// Get the deadline if any
     pub fn deadline(&self) -> Option<Nanoseconds> {
         self.deadline.or_else(|| self.latency.maximum())
     }
-    
+
     /// Validate this intent
     pub fn validate(&self) -> DISResult<()> {
         // Check for conflicting flags
-        if self.flags.contains(IntentFlags::LOW_LATENCY) && 
-           self.flags.contains(IntentFlags::HIGH_THROUGHPUT) {
+        if self.flags.contains(IntentFlags::LOW_LATENCY)
+            && self.flags.contains(IntentFlags::HIGH_THROUGHPUT)
+        {
             return Err(DISError::InvalidIntent);
         }
-        
-        if self.flags.contains(IntentFlags::PERF_PREFER) && 
-           self.flags.contains(IntentFlags::POWER_PREFER) {
+
+        if self.flags.contains(IntentFlags::PERF_PREFER)
+            && self.flags.contains(IntentFlags::POWER_PREFER)
+        {
             return Err(DISError::InvalidIntent);
         }
-        
+
         // Validate CPU budget
         if let CpuBudget::Percent(p) = self.cpu_budget {
             if p > 100 {
                 return Err(DISError::InvalidIntent);
             }
         }
-        
+
         // Validate nice value
         if self.nice < -20 || self.nice > 19 {
             return Err(DISError::InvalidIntent);
         }
-        
+
         // Real-time tasks should have deadline
-        if self.class == IntentClass::RealTime && 
-           self.deadline.is_none() && 
-           self.latency.maximum().is_none() {
+        if self.class == IntentClass::RealTime
+            && self.deadline.is_none()
+            && self.latency.maximum().is_none()
+        {
             return Err(DISError::InvalidIntent);
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if this intent is compatible with another
     pub fn compatible_with(&self, other: &Intent) -> bool {
         // Same group can coexist
         if self.group_id.is_some() && self.group_id == other.group_id {
             return true;
         }
-        
+
         // Check for CPU conflicts
-        if let (Some(my_affinity), Some(other_affinity)) = (self.affinity_mask, other.affinity_mask) {
+        if let (Some(my_affinity), Some(other_affinity)) = (self.affinity_mask, other.affinity_mask)
+        {
             if my_affinity & other_affinity == 0 {
                 return true; // Different CPUs
             }
         }
-        
+
         // Critical tasks might conflict with real-time
         if self.class == IntentClass::Critical && other.class.is_realtime() {
             return false;
         }
-        
+
         true
     }
 }
@@ -570,115 +574,115 @@ impl IntentBuilder {
             intent: Intent::new(),
         }
     }
-    
+
     /// Set the intent class
     pub fn class(mut self, class: IntentClass) -> Self {
         self.intent.class = class;
         self
     }
-    
+
     /// Set intent flags
     pub fn flags(mut self, flags: IntentFlags) -> Self {
         self.intent.flags = flags;
         self
     }
-    
+
     /// Add intent flags
     pub fn add_flags(mut self, flags: IntentFlags) -> Self {
         self.intent.flags |= flags;
         self
     }
-    
+
     /// Set latency target
     pub fn latency(mut self, latency: LatencyTarget) -> Self {
         self.intent.latency = latency;
         self
     }
-    
+
     /// Set latency target in milliseconds
     pub fn latency_ms(mut self, ms: u64) -> Self {
         self.intent.latency = LatencyTarget::Target(Nanoseconds::from_millis(ms));
         self
     }
-    
+
     /// Set maximum latency in milliseconds
     pub fn max_latency_ms(mut self, ms: u64) -> Self {
         self.intent.latency = LatencyTarget::Maximum(Nanoseconds::from_millis(ms));
         self
     }
-    
+
     /// Set CPU budget
     pub fn cpu_budget(mut self, budget: CpuBudget) -> Self {
         self.intent.cpu_budget = budget;
         self
     }
-    
+
     /// Set CPU budget as percentage
     pub fn cpu_percent(mut self, percent: u8) -> Self {
         self.intent.cpu_budget = CpuBudget::Percent(percent.min(100));
         self
     }
-    
+
     /// Set memory budget
     pub fn memory_budget(mut self, budget: MemoryBudget) -> Self {
         self.intent.memory_budget = budget;
         self
     }
-    
+
     /// Set memory limit in bytes
     pub fn memory_limit(mut self, bytes: u64) -> Self {
         self.intent.memory_budget = MemoryBudget::Limit(bytes);
         self
     }
-    
+
     /// Set I/O budget
     pub fn io_budget(mut self, budget: IoBudget) -> Self {
         self.intent.io_budget = budget;
         self
     }
-    
+
     /// Set energy preference
     pub fn energy(mut self, energy: EnergyPreference) -> Self {
         self.intent.energy = energy;
         self
     }
-    
+
     /// Set deadline
     pub fn deadline(mut self, deadline: Nanoseconds) -> Self {
         self.intent.deadline = Some(deadline);
         self
     }
-    
+
     /// Set deadline in milliseconds
     pub fn deadline_ms(mut self, ms: u64) -> Self {
         self.intent.deadline = Some(Nanoseconds::from_millis(ms));
         self
     }
-    
+
     /// Set period for periodic tasks
     pub fn period(mut self, period: Nanoseconds) -> Self {
         self.intent.period = Some(period);
         self
     }
-    
+
     /// Set period in milliseconds
     pub fn period_ms(mut self, ms: u64) -> Self {
         self.intent.period = Some(Nanoseconds::from_millis(ms));
         self
     }
-    
+
     /// Set execution time estimate
     pub fn exec_time(mut self, time: Nanoseconds) -> Self {
         self.intent.exec_time_estimate = Some(time);
         self
     }
-    
+
     /// Set nice value
     pub fn nice(mut self, nice: i8) -> Self {
         self.intent.nice = nice.clamp(-20, 19);
         self
     }
-    
+
     /// Set CPU affinity mask
     pub fn affinity(mut self, mask: u64) -> Self {
         self.intent.affinity_mask = Some(mask);
@@ -687,95 +691,95 @@ impl IntentBuilder {
         }
         self
     }
-    
+
     /// Set NUMA node
     pub fn numa_node(mut self, node: u8) -> Self {
         self.intent.numa_node = Some(node);
         self.intent.flags |= IntentFlags::NUMA_AWARE;
         self
     }
-    
+
     /// Set scheduling group
     pub fn group(mut self, group_id: u64) -> Self {
         self.intent.group_id = Some(group_id);
         self
     }
-    
+
     /// Set description
     pub fn description(mut self, desc: &str) -> Self {
         self.intent.description = Some(String::from(desc));
         self
     }
-    
+
     /// Mark as real-time
     pub fn realtime(mut self) -> Self {
         self.intent.class = IntentClass::RealTime;
         self.intent.flags |= IntentFlags::HARD_DEADLINE | IntentFlags::NO_PREEMPT;
         self
     }
-    
+
     /// Mark as soft real-time
     pub fn soft_realtime(mut self) -> Self {
         self.intent.class = IntentClass::SoftRealTime;
         self.intent.flags |= IntentFlags::SOFT_DEADLINE | IntentFlags::LOW_LATENCY;
         self
     }
-    
+
     /// Mark as interactive
     pub fn interactive(mut self) -> Self {
         self.intent.class = IntentClass::Interactive;
         self.intent.flags |= IntentFlags::LOW_LATENCY;
         self
     }
-    
+
     /// Mark as server workload
     pub fn server(mut self) -> Self {
         self.intent.class = IntentClass::Server;
         self.intent.flags |= IntentFlags::HIGH_THROUGHPUT;
         self
     }
-    
+
     /// Mark as batch processing
     pub fn batch(mut self) -> Self {
         self.intent.class = IntentClass::Batch;
         self.intent.flags |= IntentFlags::HIGH_THROUGHPUT | IntentFlags::CPU_BOUND;
         self
     }
-    
+
     /// Mark as background
     pub fn background(mut self) -> Self {
         self.intent.class = IntentClass::Background;
         self.intent.flags |= IntentFlags::COOPERATIVE;
         self
     }
-    
+
     /// Mark as idle
     pub fn idle(mut self) -> Self {
         self.intent.class = IntentClass::Idle;
         self.intent.flags |= IntentFlags::COOPERATIVE | IntentFlags::POWER_PREFER;
         self
     }
-    
+
     /// Mark as I/O bound
     pub fn io_bound(mut self) -> Self {
         self.intent.flags |= IntentFlags::IO_BOUND;
         self.intent.flags.remove(IntentFlags::CPU_BOUND);
         self
     }
-    
+
     /// Mark as CPU bound
     pub fn cpu_bound(mut self) -> Self {
         self.intent.flags |= IntentFlags::CPU_BOUND;
         self.intent.flags.remove(IntentFlags::IO_BOUND);
         self
     }
-    
+
     /// Build and validate the intent
     pub fn build(self) -> DISResult<Intent> {
         self.intent.validate()?;
         Ok(self.intent)
     }
-    
+
     /// Build without validation
     pub fn build_unchecked(self) -> Intent {
         self.intent
@@ -826,51 +830,51 @@ impl IntentEngine {
             validation_rules: Vec::new(),
         }
     }
-    
+
     /// Register an intent
     pub fn register(&self, intent: Intent) -> DISResult<IntentId> {
         // Validate
         intent.validate()?;
-        
+
         // Run custom validation rules
         for rule in &self.validation_rules {
             rule(&intent)?;
         }
-        
+
         let id = intent.id;
         let class = intent.class as usize;
-        
+
         self.intents.write().insert(id, intent);
-        
+
         let mut stats = self.intent_stats.write();
         stats.total_registered += 1;
         stats.active += 1;
         if class < 8 {
             stats.by_class[class] += 1;
         }
-        
+
         Ok(id)
     }
-    
+
     /// Get an intent by ID
     pub fn get(&self, id: IntentId) -> Option<Intent> {
         self.intents.read().get(&id).cloned()
     }
-    
+
     /// Unregister an intent
     pub fn unregister(&self, id: IntentId) -> Option<Intent> {
         let intent = self.intents.write().remove(&id)?;
-        
+
         let class = intent.class as usize;
         let mut stats = self.intent_stats.write();
         stats.active = stats.active.saturating_sub(1);
         if class < 8 {
             stats.by_class[class] = stats.by_class[class].saturating_sub(1);
         }
-        
+
         Some(intent)
     }
-    
+
     /// Add a custom validation rule
     pub fn add_validation_rule<F>(&mut self, rule: F)
     where
@@ -878,7 +882,7 @@ impl IntentEngine {
     {
         self.validation_rules.push(Box::new(rule));
     }
-    
+
     /// Get intent statistics
     pub fn stats(&self) -> IntentStats {
         IntentStats {
@@ -889,21 +893,21 @@ impl IntentEngine {
             conflicts: self.intent_stats.read().conflicts,
         }
     }
-    
+
     /// Classify an intent automatically based on its properties
     pub fn auto_classify(intent: &mut Intent) {
         // If no class set, try to infer from flags and properties
-        
+
         if intent.flags.contains(IntentFlags::HARD_DEADLINE) {
             intent.class = IntentClass::RealTime;
             return;
         }
-        
+
         if intent.flags.contains(IntentFlags::SOFT_DEADLINE) {
             intent.class = IntentClass::SoftRealTime;
             return;
         }
-        
+
         if let Some(latency) = intent.latency.target() {
             if latency.as_millis() < 10 {
                 intent.class = IntentClass::RealTime;
@@ -914,7 +918,7 @@ impl IntentEngine {
             }
             return;
         }
-        
+
         if intent.flags.contains(IntentFlags::HIGH_THROUGHPUT) {
             if intent.flags.contains(IntentFlags::CPU_BOUND) {
                 intent.class = IntentClass::Batch;
@@ -923,30 +927,30 @@ impl IntentEngine {
             }
             return;
         }
-        
+
         if intent.flags.contains(IntentFlags::COOPERATIVE) {
             intent.class = IntentClass::Background;
             return;
         }
-        
+
         // Default to interactive
         intent.class = IntentClass::Interactive;
     }
-    
+
     /// Check for conflicts between intents
     pub fn check_conflicts(&self, new_intent: &Intent) -> Vec<IntentId> {
         let mut conflicts = Vec::new();
-        
+
         for (id, existing) in self.intents.read().iter() {
             if !new_intent.compatible_with(existing) {
                 conflicts.push(*id);
             }
         }
-        
+
         if !conflicts.is_empty() {
             self.intent_stats.write().conflicts += 1;
         }
-        
+
         conflicts
     }
 }
@@ -964,7 +968,7 @@ impl Default for IntentEngine {
 /// Common intent templates for quick use
 pub mod templates {
     use super::*;
-    
+
     /// Intent for audio processing (low latency)
     pub fn audio() -> Intent {
         Intent::builder()
@@ -975,7 +979,7 @@ pub mod templates {
             .description("Audio processing task")
             .build_unchecked()
     }
-    
+
     /// Intent for video rendering (60 FPS)
     pub fn video_60fps() -> Intent {
         Intent::builder()
@@ -986,7 +990,7 @@ pub mod templates {
             .description("60 FPS video rendering")
             .build_unchecked()
     }
-    
+
     /// Intent for video rendering (144 FPS)
     pub fn video_144fps() -> Intent {
         Intent::builder()
@@ -997,7 +1001,7 @@ pub mod templates {
             .description("144 FPS video rendering")
             .build_unchecked()
     }
-    
+
     /// Intent for UI/shell interaction
     pub fn ui() -> Intent {
         Intent::builder()
@@ -1007,7 +1011,7 @@ pub mod templates {
             .description("UI interaction task")
             .build_unchecked()
     }
-    
+
     /// Intent for web server
     pub fn webserver() -> Intent {
         Intent::builder()
@@ -1017,7 +1021,7 @@ pub mod templates {
             .description("Web server request handler")
             .build_unchecked()
     }
-    
+
     /// Intent for database
     pub fn database() -> Intent {
         Intent::builder()
@@ -1028,7 +1032,7 @@ pub mod templates {
             .description("Database query handler")
             .build_unchecked()
     }
-    
+
     /// Intent for compilation
     pub fn compilation() -> Intent {
         Intent::builder()
@@ -1038,7 +1042,7 @@ pub mod templates {
             .description("Compilation task")
             .build_unchecked()
     }
-    
+
     /// Intent for backup/sync
     pub fn backup() -> Intent {
         Intent::builder()
@@ -1048,7 +1052,7 @@ pub mod templates {
             .description("Backup/sync task")
             .build_unchecked()
     }
-    
+
     /// Intent for garbage collection
     pub fn gc() -> Intent {
         Intent::builder()
@@ -1058,7 +1062,7 @@ pub mod templates {
             .description("Garbage collection")
             .build_unchecked()
     }
-    
+
     /// Intent for system monitoring
     pub fn monitoring() -> Intent {
         Intent::builder()
@@ -1068,7 +1072,7 @@ pub mod templates {
             .description("System monitoring")
             .build_unchecked()
     }
-    
+
     /// Intent for batch processing
     pub fn batch() -> Intent {
         Intent::builder()
@@ -1078,7 +1082,7 @@ pub mod templates {
             .description("Batch processing task")
             .build_unchecked()
     }
-    
+
     /// Intent for background tasks
     pub fn background() -> Intent {
         Intent::builder()
@@ -1096,7 +1100,7 @@ pub mod templates {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_intent_builder() {
         let intent = Intent::builder()
@@ -1105,21 +1109,25 @@ mod tests {
             .cpu_percent(30)
             .build()
             .expect("Valid intent");
-        
+
         assert_eq!(intent.class, IntentClass::Interactive);
         assert!(matches!(intent.cpu_budget, CpuBudget::Percent(30)));
     }
-    
+
     #[test]
     fn test_intent_priority() {
-        let rt = Intent::builder().realtime().deadline_ms(10).build().unwrap();
+        let rt = Intent::builder()
+            .realtime()
+            .deadline_ms(10)
+            .build()
+            .unwrap();
         let interactive = Intent::builder().interactive().build().unwrap();
         let batch = Intent::builder().batch().build().unwrap();
-        
+
         assert!(rt.compute_base_priority() < interactive.compute_base_priority());
         assert!(interactive.compute_base_priority() < batch.compute_base_priority());
     }
-    
+
     #[test]
     fn test_intent_validation() {
         // Valid intent
@@ -1128,22 +1136,22 @@ mod tests {
             .latency_ms(50)
             .build()
             .is_ok());
-        
+
         // Invalid: conflicting flags
         let invalid = Intent::builder()
             .flags(IntentFlags::LOW_LATENCY | IntentFlags::HIGH_THROUGHPUT)
             .build();
         assert!(invalid.is_err());
     }
-    
+
     #[test]
     fn test_intent_templates() {
         let audio = templates::audio();
         assert_eq!(audio.class, IntentClass::RealTime);
-        
+
         let video = templates::video_60fps();
         assert_eq!(video.class, IntentClass::SoftRealTime);
-        
+
         let batch = templates::compilation();
         assert_eq!(batch.class, IntentClass::Batch);
     }

@@ -70,7 +70,7 @@ impl PageCacheAnalyzer {
             info.last_access = NexusTimestamp::now();
 
             // Update priority
-            info.priority = self.calculate_priority(info);
+            info.priority = Self::calculate_priority_static(info);
         }
     }
 
@@ -103,8 +103,8 @@ impl PageCacheAnalyzer {
         }
     }
 
-    /// Calculate cache priority
-    fn calculate_priority(&self, info: &CachedFileInfo) -> f64 {
+    /// Calculate cache priority (static version)
+    fn calculate_priority_static(info: &CachedFileInfo) -> f64 {
         let age = NexusTimestamp::now().duration_since(info.last_access) as f64;
         let recency = 1.0 / (age / 1_000_000_000.0 + 1.0);
         let frequency = math::ln(info.hits as f64 + 1.0) / 10.0;
@@ -113,12 +113,18 @@ impl PageCacheAnalyzer {
         (recency * 0.4 + frequency * 0.4 + coverage * 0.2).min(1.0)
     }
 
+    /// Calculate cache priority
+    #[allow(dead_code)]
+    fn calculate_priority(&self, info: &CachedFileInfo) -> f64 {
+        Self::calculate_priority_static(info)
+    }
+
     /// Get eviction candidates
     pub fn eviction_candidates(&self, count: usize) -> Vec<Inode> {
         let mut files: Vec<_> = self.cached_files.iter().collect();
         files.sort_by(|a, b| a.1.priority.partial_cmp(&b.1.priority).unwrap());
 
-        files.iter().take(count).map(|(&inode, _)| inode).collect()
+        files.iter().take(count).map(|&(&inode, _)| inode).collect()
     }
 
     /// Get cache hit rate

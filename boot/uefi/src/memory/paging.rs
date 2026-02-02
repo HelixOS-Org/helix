@@ -2,12 +2,12 @@
 //!
 //! x86_64 and aarch64 page table setup for kernel transition.
 
-use crate::raw::types::*;
 use crate::error::Result;
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::ptr;
 
 // =============================================================================
@@ -246,15 +246,17 @@ impl PageTableManager {
 
             // Try to use largest page size possible
             if self.use_huge_pages
-               && remaining >= HUGE_PAGE_SIZE
-               && (virt & (HUGE_PAGE_SIZE - 1)) == 0
-               && (phys & (HUGE_PAGE_SIZE - 1)) == 0 {
+                && remaining >= HUGE_PAGE_SIZE
+                && (virt & (HUGE_PAGE_SIZE - 1)) == 0
+                && (phys & (HUGE_PAGE_SIZE - 1)) == 0
+            {
                 self.map_page_with_size(virt, phys, HUGE_PAGE_SIZE, flags)?;
                 offset += HUGE_PAGE_SIZE;
             } else if self.use_large_pages
-                      && remaining >= LARGE_PAGE_SIZE
-                      && (virt & (LARGE_PAGE_SIZE - 1)) == 0
-                      && (phys & (LARGE_PAGE_SIZE - 1)) == 0 {
+                && remaining >= LARGE_PAGE_SIZE
+                && (virt & (LARGE_PAGE_SIZE - 1)) == 0
+                && (phys & (LARGE_PAGE_SIZE - 1)) == 0
+            {
                 self.map_page_with_size(virt, phys, LARGE_PAGE_SIZE, flags)?;
                 offset += LARGE_PAGE_SIZE;
             } else {
@@ -340,9 +342,9 @@ impl PageTableManager {
     }
     /// Get mapping at virtual address
     pub fn get_mapping(&self, virt: VirtualAddress) -> Option<&PageMapping> {
-        self.mappings.iter().find(|m| {
-            virt >= m.virtual_address && virt < m.virtual_address + m.size
-        })
+        self.mappings
+            .iter()
+            .find(|m| virt >= m.virtual_address && virt < m.virtual_address + m.size)
     }
 
     /// Get all mappings
@@ -604,13 +606,27 @@ impl PageFlags {
     /// Convert to PTE flags
     pub fn to_pte_flags(&self) -> u64 {
         let mut flags = 0u64;
-        if self.present { flags |= PTE_PRESENT; }
-        if self.writable { flags |= PTE_WRITABLE; }
-        if self.user { flags |= PTE_USER; }
-        if self.write_through { flags |= PTE_WRITE_THROUGH; }
-        if self.cache_disable { flags |= PTE_CACHE_DISABLE; }
-        if self.global { flags |= PTE_GLOBAL; }
-        if self.no_execute { flags |= PTE_NO_EXECUTE; }
+        if self.present {
+            flags |= PTE_PRESENT;
+        }
+        if self.writable {
+            flags |= PTE_WRITABLE;
+        }
+        if self.user {
+            flags |= PTE_USER;
+        }
+        if self.write_through {
+            flags |= PTE_WRITE_THROUGH;
+        }
+        if self.cache_disable {
+            flags |= PTE_CACHE_DISABLE;
+        }
+        if self.global {
+            flags |= PTE_GLOBAL;
+        }
+        if self.no_execute {
+            flags |= PTE_NO_EXECUTE;
+        }
         flags
     }
 }
@@ -793,7 +809,8 @@ impl PageTableBuilder {
         if self.identity_lower {
             // Map first 4 GB identity
             let lower_size = memory_size.min(4 * 1024 * 1024 * 1024);
-            self.manager.map_identity(PhysicalAddress(0), lower_size, PageFlags::kernel_data())?;
+            self.manager
+                .map_identity(PhysicalAddress(0), lower_size, PageFlags::kernel_data())?;
         }
 
         // Create direct physical memory map if requested

@@ -100,8 +100,8 @@ impl ConnectionPredictor {
 
         // Combine top destinations with top ports
         let mut predictions = Vec::new();
-        for (&dst, _) in destinations.iter().take(n) {
-            for (&port, _) in ports.iter().take(2) {
+        for &(&dst, _) in destinations.iter().take(n) {
+            for &(&port, _) in ports.iter().take(2) {
                 predictions.push((dst, port));
                 if predictions.len() >= n {
                     break;

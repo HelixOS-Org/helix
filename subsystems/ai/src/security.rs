@@ -49,20 +49,18 @@
 //!                      └─────────────────────────────────────┘
 //! ```
 
+use alloc::collections::VecDeque;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
+use core::sync::atomic::{AtomicU64, Ordering};
+
+use spin::{Mutex, RwLock};
+
 use crate::core::{
     AiAction, AiDecision, AiEvent, AiPriority, Confidence, DecisionContext, DecisionId,
     SecurityScanScope,
 };
-
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
-use core::sync::atomic::{AtomicU64, Ordering};
-use spin::{Mutex, RwLock};
 
 // =============================================================================
 // Threat Types
@@ -73,15 +71,15 @@ use spin::{Mutex, RwLock};
 #[repr(u8)]
 pub enum ThreatLevel {
     /// No threat detected
-    None = 0,
+    None     = 0,
     /// Informational (logging only)
-    Info = 1,
+    Info     = 1,
     /// Low risk, monitor
-    Low = 2,
+    Low      = 2,
     /// Medium risk, investigate
-    Medium = 3,
+    Medium   = 3,
     /// High risk, take action
-    High = 4,
+    High     = 4,
     /// Critical, immediate action required
     Critical = 5,
 }
@@ -204,16 +202,10 @@ pub enum IoCType {
 #[derive(Debug, Clone)]
 pub enum SecurityAction {
     /// Monitor for more information
-    Monitor {
-        target: String,
-        duration_s: u32,
-    },
+    Monitor { target: String, duration_s: u32 },
 
     /// Block a process
-    BlockProcess {
-        pid: u64,
-        kill: bool,
-    },
+    BlockProcess { pid: u64, kill: bool },
 
     /// Block network connection
     BlockNetwork {
@@ -223,22 +215,13 @@ pub enum SecurityAction {
     },
 
     /// Quarantine a file
-    QuarantineFile {
-        path: String,
-        backup: bool,
-    },
+    QuarantineFile { path: String, backup: bool },
 
     /// Lock user account
-    LockAccount {
-        user_id: u64,
-        duration_s: u32,
-    },
+    LockAccount { user_id: u64, duration_s: u32 },
 
     /// Increase monitoring level
-    EscalateMonitoring {
-        scope: MonitoringScope,
-        level: u8,
-    },
+    EscalateMonitoring { scope: MonitoringScope, level: u8 },
 
     /// Alert administrator
     Alert {
@@ -247,26 +230,16 @@ pub enum SecurityAction {
     },
 
     /// Isolate system component
-    Isolate {
-        component: String,
-        level: u8,
-    },
+    Isolate { component: String, level: u8 },
 
     /// Capture forensics
-    CaptureForensics {
-        scope: ForensicsScope,
-    },
+    CaptureForensics { scope: ForensicsScope },
 
     /// Trigger scan
-    TriggerScan {
-        scope: SecurityScanScope,
-    },
+    TriggerScan { scope: SecurityScanScope },
 
     /// Revert recent changes
-    RevertChanges {
-        since: u64,
-        scope: String,
-    },
+    RevertChanges { since: u64, scope: String },
 }
 
 /// Network protocols
@@ -327,10 +300,7 @@ pub struct ThreatSignature {
 #[derive(Debug, Clone)]
 pub enum DetectionPattern {
     /// Syscall sequence
-    SyscallSequence {
-        syscalls: Vec<u32>,
-        within_ms: u64,
-    },
+    SyscallSequence { syscalls: Vec<u32>, within_ms: u64 },
     /// File access pattern
     FileAccess {
         pattern: String,
@@ -480,17 +450,17 @@ pub enum AttackStage {
     /// Gathering information
     Reconnaissance = 0,
     /// Preparing attack tools
-    Weaponization = 1,
+    Weaponization  = 1,
     /// Attempting initial access
-    Delivery = 2,
+    Delivery       = 2,
     /// Exploiting vulnerability
-    Exploitation = 3,
+    Exploitation   = 3,
     /// Installing malware/backdoor
-    Installation = 4,
+    Installation   = 4,
     /// Establishing control
-    Command = 5,
+    Command        = 5,
     /// Achieving objectives
-    Actions = 6,
+    Actions        = 6,
 }
 
 // =============================================================================
@@ -638,15 +608,18 @@ impl SecurityOracle {
                 name: "Privilege Escalation Attempt".to_string(),
                 threat_type: ThreatType::PrivilegeEscalation,
                 severity: ThreatLevel::High,
-                patterns: vec![
-                    DetectionPattern::ProcessBehavior {
-                        behavior: ProcessBehaviorType::PrivilegeEscalation,
-                        threshold: 1,
-                    },
-                ],
+                patterns: vec![DetectionPattern::ProcessBehavior {
+                    behavior: ProcessBehaviorType::PrivilegeEscalation,
+                    threshold: 1,
+                }],
                 response: vec![
-                    SecurityAction::BlockProcess { pid: 0, kill: false },
-                    SecurityAction::CaptureForensics { scope: ForensicsScope::Memory },
+                    SecurityAction::BlockProcess {
+                        pid: 0,
+                        kill: false,
+                    },
+                    SecurityAction::CaptureForensics {
+                        scope: ForensicsScope::Memory,
+                    },
                 ],
                 added_timestamp: 0,
                 updated_timestamp: 0,
@@ -656,15 +629,15 @@ impl SecurityOracle {
                 name: "Process Injection".to_string(),
                 threat_type: ThreatType::CodeInjection,
                 severity: ThreatLevel::High,
-                patterns: vec![
-                    DetectionPattern::ProcessBehavior {
-                        behavior: ProcessBehaviorType::ProcessInjection,
-                        threshold: 1,
-                    },
-                ],
+                patterns: vec![DetectionPattern::ProcessBehavior {
+                    behavior: ProcessBehaviorType::ProcessInjection,
+                    threshold: 1,
+                }],
                 response: vec![
                     SecurityAction::BlockProcess { pid: 0, kill: true },
-                    SecurityAction::TriggerScan { scope: SecurityScanScope::Processes },
+                    SecurityAction::TriggerScan {
+                        scope: SecurityScanScope::Processes,
+                    },
                 ],
                 added_timestamp: 0,
                 updated_timestamp: 0,
@@ -674,19 +647,20 @@ impl SecurityOracle {
                 name: "Brute Force Attack".to_string(),
                 threat_type: ThreatType::BruteForce,
                 severity: ThreatLevel::Medium,
-                patterns: vec![
-                    DetectionPattern::ProcessBehavior {
-                        behavior: ProcessBehaviorType::NetworkAbuse,
-                        threshold: 10,
-                    },
-                ],
+                patterns: vec![DetectionPattern::ProcessBehavior {
+                    behavior: ProcessBehaviorType::NetworkAbuse,
+                    threshold: 10,
+                }],
                 response: vec![
                     SecurityAction::BlockNetwork {
                         address: "*".to_string(),
                         port: None,
                         protocol: NetworkProtocol::Any,
                     },
-                    SecurityAction::LockAccount { user_id: 0, duration_s: 3600 },
+                    SecurityAction::LockAccount {
+                        user_id: 0,
+                        duration_s: 3600,
+                    },
                 ],
                 added_timestamp: 0,
                 updated_timestamp: 0,
@@ -696,13 +670,11 @@ impl SecurityOracle {
                 name: "Cryptominer Activity".to_string(),
                 threat_type: ThreatType::Cryptominer,
                 severity: ThreatLevel::Medium,
-                patterns: vec![
-                    DetectionPattern::NetworkPattern {
-                        ports: vec![3333, 4444, 5555, 8333],
-                        protocols: vec![NetworkProtocol::Tcp],
-                        byte_threshold: 0,
-                    },
-                ],
+                patterns: vec![DetectionPattern::NetworkPattern {
+                    ports: vec![3333, 4444, 5555, 8333],
+                    protocols: vec![NetworkProtocol::Tcp],
+                    byte_threshold: 0,
+                }],
                 response: vec![
                     SecurityAction::BlockProcess { pid: 0, kill: true },
                     SecurityAction::BlockNetwork {
@@ -740,22 +712,21 @@ impl SecurityOracle {
         self.stats.events_analyzed.fetch_add(1, Ordering::Relaxed);
 
         match event {
-            AiEvent::ThreatSignature { signature_id, confidence } => {
-                self.handle_threat_signature(*signature_id, *confidence, context)
-            }
+            AiEvent::ThreatSignature {
+                signature_id,
+                confidence,
+            } => self.handle_threat_signature(*signature_id, *confidence, context),
             AiEvent::AnomalyDetected { source, severity } => {
                 self.handle_anomaly(source, *severity, context)
-            }
+            },
             AiEvent::PermissionViolation { pid, resource } => {
                 self.handle_permission_violation(*pid, resource, context)
-            }
-            AiEvent::ProcessSpawn { pid, name } => {
-                self.handle_process_spawn(*pid, name, context)
-            }
+            },
+            AiEvent::ProcessSpawn { pid, name } => self.handle_process_spawn(*pid, name, context),
             _ => {
                 // Check if event indicates potential threat
                 self.check_for_threats(event, context)
-            }
+            },
         }
     }
 
@@ -781,7 +752,10 @@ impl SecurityOracle {
                 return Ok(Some((
                     ai_action,
                     confidence,
-                    format!("Threat detected: {} (severity: {:?})", sig.name, sig.severity),
+                    format!(
+                        "Threat detected: {} (severity: {:?})",
+                        sig.name, sig.severity
+                    ),
                 )));
             }
         }
@@ -814,7 +788,9 @@ impl SecurityOracle {
 
         if threat_level >= ThreatLevel::High {
             return Ok(Some((
-                AiAction::TriggerSecurityScan { scope: SecurityScanScope::QuickScan },
+                AiAction::TriggerSecurityScan {
+                    scope: SecurityScanScope::QuickScan,
+                },
                 Confidence::new(0.6 + (severity as f32 / 20.0)),
                 format!("High severity anomaly from {}", source),
             )));
@@ -854,9 +830,15 @@ impl SecurityOracle {
         });
 
         Ok(Some((
-            AiAction::IsolateProcess { pid, isolation_level: 1 },
+            AiAction::IsolateProcess {
+                pid,
+                isolation_level: 1,
+            },
             Confidence::new(0.75),
-            format!("Permission violation: process {} accessing {}", pid, resource),
+            format!(
+                "Permission violation: process {} accessing {}",
+                pid, resource
+            ),
         )))
     }
 
@@ -932,14 +914,18 @@ impl SecurityOracle {
     fn event_matches_signature(&self, event: &AiEvent, signature: &ThreatSignature) -> bool {
         // Simplified pattern matching
         for pattern in &signature.patterns {
-            if let DetectionPattern::ProcessBehavior { behavior, threshold } = pattern {
+            if let DetectionPattern::ProcessBehavior {
+                behavior,
+                threshold,
+            } = pattern
+            {
                 match event {
                     AiEvent::ProcessResourceSpike { .. } => {
                         if *behavior == ProcessBehaviorType::ProcessSpray {
                             return true;
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -1010,12 +996,10 @@ impl SecurityOracle {
                 expected_time_s: 300,
                 attack_vector: "Network reconnaissance".to_string(),
                 attack_stage: AttackStage::Reconnaissance,
-                preemptive_actions: vec![
-                    SecurityAction::EscalateMonitoring {
-                        scope: MonitoringScope::Network,
-                        level: 2,
-                    },
-                ],
+                preemptive_actions: vec![SecurityAction::EscalateMonitoring {
+                    scope: MonitoringScope::Network,
+                    level: 2,
+                }],
             });
         }
 
@@ -1027,9 +1011,9 @@ impl SecurityOracle {
                 expected_time_s: 60,
                 attack_vector: "Privilege probing".to_string(),
                 attack_stage: AttackStage::Exploitation,
-                preemptive_actions: vec![
-                    SecurityAction::TriggerScan { scope: SecurityScanScope::Processes },
-                ],
+                preemptive_actions: vec![SecurityAction::TriggerScan {
+                    scope: SecurityScanScope::Processes,
+                }],
             });
         }
 
@@ -1055,8 +1039,8 @@ impl SecurityOracle {
                 path: path.clone(),
                 threat_id: 0,
             },
-            SecurityAction::TriggerScan { scope } => AiAction::TriggerSecurityScan {
-                scope: *scope,
+            SecurityAction::TriggerScan { scope } => {
+                AiAction::TriggerSecurityScan { scope: *scope }
             },
             SecurityAction::EscalateMonitoring { level, .. } => AiAction::EscalateSecurityLevel {
                 from: 0,
@@ -1183,7 +1167,11 @@ mod tests {
         oracle.block_file("/tmp/malware".to_string());
 
         assert!(oracle.blocklist.read().processes.contains(&1234));
-        assert!(oracle.blocklist.read().addresses.contains(&"10.0.0.1".to_string()));
+        assert!(oracle
+            .blocklist
+            .read()
+            .addresses
+            .contains(&"10.0.0.1".to_string()));
         assert!(oracle.is_blocked_file("/tmp/malware.exe"));
     }
 

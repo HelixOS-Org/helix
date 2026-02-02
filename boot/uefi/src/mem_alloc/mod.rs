@@ -40,7 +40,11 @@ pub struct MemoryRegion {
 impl MemoryRegion {
     /// Create new region
     pub const fn new(base: u64, size: u64, memory_type: MemoryType) -> Self {
-        Self { base, size, memory_type }
+        Self {
+            base,
+            size,
+            memory_type,
+        }
     }
 
     /// End address
@@ -106,33 +110,34 @@ pub enum MemoryType {
 impl MemoryType {
     /// Is usable for allocation
     pub fn is_usable(&self) -> bool {
-        matches!(self,
-            Self::Available |
-            Self::Conventional |
-            Self::BootServicesCode |
-            Self::BootServicesData |
-            Self::LoaderCode |
-            Self::LoaderData
+        matches!(
+            self,
+            Self::Available
+                | Self::Conventional
+                | Self::BootServicesCode
+                | Self::BootServicesData
+                | Self::LoaderCode
+                | Self::LoaderData
         )
     }
 
     /// Is reclaimable after boot
     pub fn is_reclaimable(&self) -> bool {
-        matches!(self,
-            Self::BootServicesCode |
-            Self::BootServicesData |
-            Self::LoaderCode |
-            Self::LoaderData |
-            Self::AcpiReclaimable
+        matches!(
+            self,
+            Self::BootServicesCode
+                | Self::BootServicesData
+                | Self::LoaderCode
+                | Self::LoaderData
+                | Self::AcpiReclaimable
         )
     }
 
     /// Should be preserved for runtime
     pub fn is_runtime(&self) -> bool {
-        matches!(self,
-            Self::RuntimeServicesCode |
-            Self::RuntimeServicesData |
-            Self::AcpiNvs
+        matches!(
+            self,
+            Self::RuntimeServicesCode | Self::RuntimeServicesData | Self::AcpiNvs
         )
     }
 }
@@ -494,7 +499,8 @@ impl PoolAllocator {
 
                 // Split if possible
                 if block.size >= required_size + Self::MIN_BLOCK_SIZE {
-                    let new_block_addr = (block_ptr.as_ptr() as usize + required_size) as *mut BlockHeader;
+                    let new_block_addr =
+                        (block_ptr.as_ptr() as usize + required_size) as *mut BlockHeader;
 
                     unsafe {
                         let new_block = BlockHeader::new(block.size - required_size);
@@ -737,7 +743,8 @@ impl BootAllocator {
 unsafe impl GlobalAlloc for BootAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let pool = &mut *self.pool.get();
-        pool.allocate(layout.size(), layout.align()).unwrap_or(core::ptr::null_mut())
+        pool.allocate(layout.size(), layout.align())
+            .unwrap_or(core::ptr::null_mut())
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
@@ -747,7 +754,8 @@ unsafe impl GlobalAlloc for BootAllocator {
 
     unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
         let pool = &mut *self.pool.get();
-        pool.reallocate(ptr, new_size).unwrap_or(core::ptr::null_mut())
+        pool.reallocate(ptr, new_size)
+            .unwrap_or(core::ptr::null_mut())
     }
 }
 

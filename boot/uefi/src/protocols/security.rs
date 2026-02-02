@@ -3,14 +3,13 @@
 //! High-level Secure Boot and security abstraction.
 
 extern crate alloc;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
-use alloc::string::String;
 
-use crate::raw::types::*;
-use crate::error::{Error, Result};
 use super::Protocol;
-
+use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 // =============================================================================
 // SECURE BOOT
@@ -171,10 +170,9 @@ impl SecureBoot {
 }
 
 impl Protocol for SecureBoot {
-    const GUID: Guid = Guid::new(
-        0xD719B2CB, 0x3D3A, 0x4596,
-        [0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F],
-    );
+    const GUID: Guid = Guid::new(0xD719B2CB, 0x3D3A, 0x4596, [
+        0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F,
+    ]);
 
     fn open(handle: Handle) -> Result<Self> {
         Ok(Self::new(handle))
@@ -347,7 +345,9 @@ impl SignatureList {
         }
 
         let signature_type = Guid::from_bytes(
-            data[0..16].try_into().map_err(|_| Error::InvalidParameter)?
+            data[0..16]
+                .try_into()
+                .map_err(|_| Error::InvalidParameter)?,
         );
         let list_size = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
         let header_size = u32::from_le_bytes([data[20], data[21], data[22], data[23]]) as usize;
@@ -362,7 +362,9 @@ impl SignatureList {
 
         while offset + signature_size <= list_size {
             let owner = Guid::from_bytes(
-                data[offset..offset + 16].try_into().map_err(|_| Error::InvalidParameter)?
+                data[offset..offset + 16]
+                    .try_into()
+                    .map_err(|_| Error::InvalidParameter)?,
             );
             let sig_data = data[offset + 16..offset + signature_size].to_vec();
 
@@ -422,76 +424,64 @@ pub mod signature_types {
     use super::*;
 
     /// SHA-256 hash
-    pub const EFI_CERT_SHA256_GUID: Guid = Guid::new(
-        0xC1C41626, 0x504C, 0x4092,
-        [0xAC, 0xA9, 0x41, 0xF9, 0x36, 0x93, 0x43, 0x28],
-    );
+    pub const EFI_CERT_SHA256_GUID: Guid = Guid::new(0xC1C41626, 0x504C, 0x4092, [
+        0xAC, 0xA9, 0x41, 0xF9, 0x36, 0x93, 0x43, 0x28,
+    ]);
 
     /// SHA-384 hash
-    pub const EFI_CERT_SHA384_GUID: Guid = Guid::new(
-        0xFF3E5307, 0x9FD0, 0x48C9,
-        [0x85, 0xF1, 0x8A, 0xD5, 0x6C, 0x70, 0x1E, 0x01],
-    );
+    pub const EFI_CERT_SHA384_GUID: Guid = Guid::new(0xFF3E5307, 0x9FD0, 0x48C9, [
+        0x85, 0xF1, 0x8A, 0xD5, 0x6C, 0x70, 0x1E, 0x01,
+    ]);
 
     /// SHA-512 hash
-    pub const EFI_CERT_SHA512_GUID: Guid = Guid::new(
-        0x093E0FAE, 0xA6C4, 0x4F50,
-        [0x9F, 0x1B, 0xD4, 0x1E, 0x2B, 0x89, 0xC1, 0x9A],
-    );
+    pub const EFI_CERT_SHA512_GUID: Guid = Guid::new(0x093E0FAE, 0xA6C4, 0x4F50, [
+        0x9F, 0x1B, 0xD4, 0x1E, 0x2B, 0x89, 0xC1, 0x9A,
+    ]);
 
     /// RSA-2048 key
-    pub const EFI_CERT_RSA2048_GUID: Guid = Guid::new(
-        0x3C5766E8, 0x269C, 0x4E34,
-        [0xAA, 0x14, 0xED, 0x77, 0x6E, 0x85, 0xB3, 0xB6],
-    );
+    pub const EFI_CERT_RSA2048_GUID: Guid = Guid::new(0x3C5766E8, 0x269C, 0x4E34, [
+        0xAA, 0x14, 0xED, 0x77, 0x6E, 0x85, 0xB3, 0xB6,
+    ]);
 
     /// RSA-2048 + SHA-256 signature
-    pub const EFI_CERT_RSA2048_SHA256_GUID: Guid = Guid::new(
-        0xE2B36190, 0x879B, 0x4A3D,
-        [0xAD, 0x8D, 0xF2, 0xE7, 0xBB, 0xA3, 0x27, 0x84],
-    );
+    pub const EFI_CERT_RSA2048_SHA256_GUID: Guid = Guid::new(0xE2B36190, 0x879B, 0x4A3D, [
+        0xAD, 0x8D, 0xF2, 0xE7, 0xBB, 0xA3, 0x27, 0x84,
+    ]);
 
     /// SHA-1 hash
-    pub const EFI_CERT_SHA1_GUID: Guid = Guid::new(
-        0x826CA512, 0xCF10, 0x4AC9,
-        [0xB1, 0x87, 0xBE, 0x01, 0x49, 0x66, 0x31, 0xBD],
-    );
+    pub const EFI_CERT_SHA1_GUID: Guid = Guid::new(0x826CA512, 0xCF10, 0x4AC9, [
+        0xB1, 0x87, 0xBE, 0x01, 0x49, 0x66, 0x31, 0xBD,
+    ]);
 
     /// RSA-2048 + SHA-1 signature
-    pub const EFI_CERT_RSA2048_SHA1_GUID: Guid = Guid::new(
-        0x67F8444F, 0x8743, 0x48F1,
-        [0xA3, 0x28, 0x1E, 0xAA, 0xB8, 0x73, 0x60, 0x80],
-    );
+    pub const EFI_CERT_RSA2048_SHA1_GUID: Guid = Guid::new(0x67F8444F, 0x8743, 0x48F1, [
+        0xA3, 0x28, 0x1E, 0xAA, 0xB8, 0x73, 0x60, 0x80,
+    ]);
 
     /// X.509 certificate
-    pub const EFI_CERT_X509_GUID: Guid = Guid::new(
-        0xA5C059A1, 0x94E4, 0x4AA7,
-        [0x87, 0xB5, 0xAB, 0x15, 0x5C, 0x2B, 0xF0, 0x72],
-    );
+    pub const EFI_CERT_X509_GUID: Guid = Guid::new(0xA5C059A1, 0x94E4, 0x4AA7, [
+        0x87, 0xB5, 0xAB, 0x15, 0x5C, 0x2B, 0xF0, 0x72,
+    ]);
 
     /// X.509 + SHA-256 signature
-    pub const EFI_CERT_X509_SHA256_GUID: Guid = Guid::new(
-        0x3BD2A492, 0x96C0, 0x4079,
-        [0xB4, 0x20, 0xFC, 0xF9, 0x8E, 0xF1, 0x03, 0xED],
-    );
+    pub const EFI_CERT_X509_SHA256_GUID: Guid = Guid::new(0x3BD2A492, 0x96C0, 0x4079, [
+        0xB4, 0x20, 0xFC, 0xF9, 0x8E, 0xF1, 0x03, 0xED,
+    ]);
 
     /// X.509 + SHA-384 signature
-    pub const EFI_CERT_X509_SHA384_GUID: Guid = Guid::new(
-        0x7076876E, 0x80C2, 0x4EE6,
-        [0xAA, 0xD2, 0x28, 0xB3, 0x49, 0xA6, 0x86, 0x5B],
-    );
+    pub const EFI_CERT_X509_SHA384_GUID: Guid = Guid::new(0x7076876E, 0x80C2, 0x4EE6, [
+        0xAA, 0xD2, 0x28, 0xB3, 0x49, 0xA6, 0x86, 0x5B,
+    ]);
 
     /// X.509 + SHA-512 signature
-    pub const EFI_CERT_X509_SHA512_GUID: Guid = Guid::new(
-        0x446DBF63, 0x2502, 0x4CDA,
-        [0xBC, 0xFA, 0x24, 0x65, 0xD2, 0xB0, 0xFE, 0x9D],
-    );
+    pub const EFI_CERT_X509_SHA512_GUID: Guid = Guid::new(0x446DBF63, 0x2502, 0x4CDA, [
+        0xBC, 0xFA, 0x24, 0x65, 0xD2, 0xB0, 0xFE, 0x9D,
+    ]);
 
     /// PKCS#7 signature
-    pub const EFI_CERT_PKCS7_GUID: Guid = Guid::new(
-        0x4AAFD29D, 0x68DF, 0x49EE,
-        [0x8A, 0xA9, 0x34, 0x7D, 0x37, 0x56, 0x65, 0xA7],
-    );
+    pub const EFI_CERT_PKCS7_GUID: Guid = Guid::new(0x4AAFD29D, 0x68DF, 0x49EE, [
+        0x8A, 0xA9, 0x34, 0x7D, 0x37, 0x56, 0x65, 0xA7,
+    ]);
 }
 
 // =============================================================================
@@ -538,13 +528,20 @@ impl MeasuredBoot {
 
     /// Get measurements for specific PCR
     pub fn pcr_measurements(&self, pcr: u8) -> Vec<&Measurement> {
-        self.measurements.iter()
+        self.measurements
+            .iter()
             .filter(|m| m.pcr_index == pcr)
             .collect()
     }
 
     /// Extend PCR with measurement
-    pub fn extend_pcr(&mut self, pcr: u8, hash: &[u8], event_type: EventType, event_data: Vec<u8>) -> Result<()> {
+    pub fn extend_pcr(
+        &mut self,
+        pcr: u8,
+        hash: &[u8],
+        event_type: EventType,
+        event_data: Vec<u8>,
+    ) -> Result<()> {
         if !self.tpm_present {
             return Err(Error::NotReady);
         }
@@ -589,10 +586,9 @@ impl MeasuredBoot {
 }
 
 impl Protocol for MeasuredBoot {
-    const GUID: Guid = Guid::new(
-        0x1B31ED20, 0x6DD1, 0x4B5A,
-        [0x8A, 0x2A, 0xD9, 0x94, 0x03, 0x64, 0x2F, 0xC9],
-    );
+    const GUID: Guid = Guid::new(0x1B31ED20, 0x6DD1, 0x4B5A, [
+        0x8A, 0x2A, 0xD9, 0x94, 0x03, 0x64, 0x2F, 0xC9,
+    ]);
 
     fn open(handle: Handle) -> Result<Self> {
         Ok(Self::new(handle))
@@ -685,7 +681,8 @@ impl Measurement {
 
     /// Get digest as hex string
     pub fn digest_hex(&self) -> String {
-        self.digest.iter()
+        self.digest
+            .iter()
             .map(|b| alloc::format!("{:02x}", b))
             .collect()
     }
@@ -863,9 +860,7 @@ impl EventLog {
 
     /// Get events by PCR
     pub fn by_pcr(&self, pcr: u8) -> Vec<&Measurement> {
-        self.events.iter()
-            .filter(|e| e.pcr_index == pcr)
-            .collect()
+        self.events.iter().filter(|e| e.pcr_index == pcr).collect()
     }
 
     /// Calculate final PCR value (by extending all measurements)
@@ -896,22 +891,19 @@ pub mod security_guids {
     use super::*;
 
     /// Secure Boot variable vendor GUID
-    pub const EFI_GLOBAL_VARIABLE: Guid = Guid::new(
-        0x8BE4DF61, 0x93CA, 0x11D2,
-        [0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C],
-    );
+    pub const EFI_GLOBAL_VARIABLE: Guid = Guid::new(0x8BE4DF61, 0x93CA, 0x11D2, [
+        0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
+    ]);
 
     /// Image security database vendor GUID
-    pub const EFI_IMAGE_SECURITY_DATABASE: Guid = Guid::new(
-        0xD719B2CB, 0x3D3A, 0x4596,
-        [0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F],
-    );
+    pub const EFI_IMAGE_SECURITY_DATABASE: Guid = Guid::new(0xD719B2CB, 0x3D3A, 0x4596, [
+        0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F,
+    ]);
 
     /// TCG EFI spec vendor GUID
-    pub const EFI_TCG_VENDOR: Guid = Guid::new(
-        0x6E7AD8F0, 0x95C8, 0x4B49,
-        [0x9D, 0xB4, 0x62, 0x53, 0x23, 0x3E, 0x18, 0x90],
-    );
+    pub const EFI_TCG_VENDOR: Guid = Guid::new(0x6E7AD8F0, 0x95C8, 0x4B49, [
+        0x9D, 0xB4, 0x62, 0x53, 0x23, 0x3E, 0x18, 0x90,
+    ]);
 }
 
 /// Security variable names
@@ -968,17 +960,17 @@ mod tests {
         assert!(list.is_sha256());
         assert_eq!(list.count(), 0);
 
-        list.add(SignatureData::from_sha256(
-            Guid::ZERO,
-            [0u8; 32],
-        ));
+        list.add(SignatureData::from_sha256(Guid::ZERO, [0u8; 32]));
         assert_eq!(list.count(), 1);
     }
 
     #[test]
     fn test_event_type() {
         assert_eq!(EventType::from_u32(0x00000004), EventType::Separator);
-        assert_eq!(EventType::from_u32(0x80000003), EventType::EfiBootServicesApplication);
+        assert_eq!(
+            EventType::from_u32(0x80000003),
+            EventType::EfiBootServicesApplication
+        );
         assert_eq!(EventType::Separator.name(), "SEPARATOR");
     }
 

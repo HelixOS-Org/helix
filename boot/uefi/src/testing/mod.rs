@@ -70,7 +70,10 @@ impl TestStatus {
 
     /// Check if test failed
     pub const fn is_fail(&self) -> bool {
-        matches!(self, TestStatus::Fail | TestStatus::Timeout | TestStatus::Abort)
+        matches!(
+            self,
+            TestStatus::Fail | TestStatus::Timeout | TestStatus::Abort
+        )
     }
 }
 
@@ -312,9 +315,9 @@ pub struct MemoryTestConfig {
 impl Default for MemoryTestConfig {
     fn default() -> Self {
         Self {
-            tests: 0xFFFF,  // All tests
+            tests: 0xFFFF, // All tests
             start_addr: 0,
-            end_addr: 0,  // Will be detected
+            end_addr: 0, // Will be detected
             seed: 0x12345678,
             passes: 1,
             timeout_secs: 300,

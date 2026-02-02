@@ -706,7 +706,7 @@ impl ReplicationManager {
             .filter(|r| r.status == ReplicaStatus::InSync && r.version == segment.version)
             .count();
 
-        let total = replicas.len() + 1; // +1 for local
+        let _total = replicas.len() + 1; // +1 for local
 
         if in_sync + 1 >= self.config.replication_factor {
             ReplicaHealth::Healthy

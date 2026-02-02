@@ -3,8 +3,8 @@
 //! Computes differences between two snapshots efficiently
 //! using CoW metadata.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
+use crate::core::types::*;
 use crate::snapshot::{SnapshotId, ROOT_SNAPSHOT_ID};
 
 // ============================================================================
@@ -16,15 +16,15 @@ use crate::snapshot::{SnapshotId, ROOT_SNAPSHOT_ID};
 #[repr(u8)]
 pub enum DiffType {
     /// No change
-    None = 0,
+    None        = 0,
     /// Item added
-    Added = 1,
+    Added       = 1,
     /// Item removed
-    Removed = 2,
+    Removed     = 2,
     /// Item modified
-    Modified = 3,
+    Modified    = 3,
     /// Item renamed
-    Renamed = 4,
+    Renamed     = 4,
     /// Type changed (e.g., file to directory)
     TypeChanged = 5,
 }
@@ -41,7 +41,7 @@ impl DiffType {
             _ => Self::None,
         }
     }
-    
+
     /// Check if is change
     #[inline]
     pub fn is_change(&self) -> bool {
@@ -100,7 +100,7 @@ impl DiffEntry {
             flags: 0,
         }
     }
-    
+
     /// Create added entry
     pub fn added(ino: u64, file_type: FileType) -> Self {
         Self {
@@ -116,7 +116,7 @@ impl DiffEntry {
             flags: 0,
         }
     }
-    
+
     /// Create removed entry
     pub fn removed(ino: u64, file_type: FileType) -> Self {
         Self {
@@ -132,7 +132,7 @@ impl DiffEntry {
             flags: 0,
         }
     }
-    
+
     /// Create modified entry
     pub fn modified(ino: u64, old_size: u64, new_size: u64) -> Self {
         Self {
@@ -148,7 +148,7 @@ impl DiffEntry {
             flags: 0,
         }
     }
-    
+
     /// Size delta
     pub fn size_delta(&self) -> i64 {
         self.new_size as i64 - self.old_size as i64
@@ -194,25 +194,25 @@ impl DiffOptions {
             recursive: true,
         }
     }
-    
+
     /// Include content diffs
     pub fn with_content(mut self) -> Self {
         self.include_content = true;
         self
     }
-    
+
     /// Limit entries
     pub fn with_limit(mut self, limit: usize) -> Self {
         self.max_entries = limit;
         self
     }
-    
+
     /// Filter by file type
     pub fn files_only(mut self) -> Self {
         self.file_type_filter = Some(FileType::Regular);
         self
     }
-    
+
     /// Filter by directory
     pub fn in_directory(mut self, parent: u64) -> Self {
         self.parent_filter = Some(parent);
@@ -259,19 +259,19 @@ impl BlockDiff {
             flags: 0,
         }
     }
-    
+
     /// Check if is addition
     #[inline]
     pub fn is_added(&self) -> bool {
         self.old_physical.is_null() && !self.new_physical.is_null()
     }
-    
+
     /// Check if is removal
     #[inline]
     pub fn is_removed(&self) -> bool {
         !self.old_physical.is_null() && self.new_physical.is_null()
     }
-    
+
     /// Check if is change
     #[inline]
     pub fn is_changed(&self) -> bool {
@@ -314,17 +314,17 @@ impl DiffResult {
             stats: DiffStats::new(),
         }
     }
-    
+
     /// Add entry
     pub fn add(&mut self, entry: DiffEntry) -> HfsResult<()> {
         if self.count >= MAX_DIFF_ENTRIES {
             self.has_more = true;
             return Err(HfsError::OutOfMemory);
         }
-        
+
         self.entries[self.count] = entry;
         self.count += 1;
-        
+
         // Update stats
         match entry.diff_type {
             DiffType::Added => self.stats.added += 1,
@@ -332,23 +332,23 @@ impl DiffResult {
             DiffType::Modified => self.stats.modified += 1,
             DiffType::Renamed => self.stats.renamed += 1,
             DiffType::TypeChanged => self.stats.type_changed += 1,
-            _ => {}
+            _ => {},
         }
-        
+
         Ok(())
     }
-    
+
     /// Get entries as slice
     pub fn entries(&self) -> &[DiffEntry] {
         &self.entries[..self.count]
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
-    
+
     /// Total changes
     #[inline]
     pub fn total_changes(&self) -> usize {
@@ -391,13 +391,13 @@ impl DiffStats {
             compute_time_ns: 0,
         }
     }
-    
+
     /// Total changes
     #[inline]
     pub fn total_changes(&self) -> u64 {
         self.added + self.removed + self.modified + self.renamed + self.type_changed
     }
-    
+
     /// Is empty (no changes)
     #[inline]
     pub fn is_empty(&self) -> bool {
@@ -469,7 +469,7 @@ impl DiffContext {
             continuation: DiffContinuation::default(),
         }
     }
-    
+
     /// Check if complete
     #[inline]
     pub fn is_complete(&self) -> bool {
@@ -503,13 +503,13 @@ impl IncrementalDiff {
             total_returned: 0,
         }
     }
-    
+
     /// Check if has more
     #[inline]
     pub fn has_more(&self) -> bool {
         !self.context.is_complete()
     }
-    
+
     /// Get current batch
     pub fn current_batch(&self) -> &[DiffEntry] {
         &self.buffer[..self.buffer_count]
@@ -523,67 +523,69 @@ impl IncrementalDiff {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_diff_type() {
         assert!(DiffType::Added.is_change());
         assert!(DiffType::Modified.is_change());
         assert!(!DiffType::None.is_change());
     }
-    
+
     #[test]
     fn test_diff_entry() {
         let added = DiffEntry::added(100, FileType::Regular);
         assert_eq!(added.diff_type, DiffType::Added);
-        
+
         let removed = DiffEntry::removed(100, FileType::Directory);
         assert_eq!(removed.diff_type, DiffType::Removed);
-        
+
         let modified = DiffEntry::modified(100, 1000, 2000);
         assert_eq!(modified.size_delta(), 1000);
     }
-    
+
     #[test]
     fn test_block_diff() {
         let added = BlockDiff::new(1, 0, 0, 100, 1);
         assert!(added.is_added());
         assert!(!added.is_removed());
-        
+
         let removed = BlockDiff::new(1, 0, 100, 0, 1);
         assert!(!removed.is_added());
         assert!(removed.is_removed());
     }
-    
+
     #[test]
     fn test_diff_result() {
         let mut result = DiffResult::new(1, 2);
-        
+
         assert!(result.is_empty());
-        
-        result.add(DiffEntry::added(100, FileType::Regular)).unwrap();
+
+        result
+            .add(DiffEntry::added(100, FileType::Regular))
+            .unwrap();
         result.add(DiffEntry::modified(101, 100, 200)).unwrap();
-        
+
         assert_eq!(result.count, 2);
         assert_eq!(result.stats.added, 1);
         assert_eq!(result.stats.modified, 1);
     }
-    
+
     #[test]
     fn test_diff_options() {
         let opts = DiffOptions::default()
             .with_content()
             .with_limit(100)
             .files_only();
-        
+
         assert!(opts.include_content);
         assert_eq!(opts.max_entries, 100);
         assert_eq!(opts.file_type_filter, Some(FileType::Regular));
     }
-    
+
     #[test]
     fn test_diff_context() {
         let ctx = DiffContext::new(1, 2, DiffOptions::default());
-        
+
         assert_eq!(ctx.source, 1);
         assert_eq!(ctx.target, 2);
         assert!(!ctx.is_complete());

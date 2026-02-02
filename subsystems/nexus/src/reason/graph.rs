@@ -7,7 +7,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{CausalEventId, CausalNodeId, CausalEdgeId, CausalEvent};
+use super::{CausalEdgeId, CausalEvent, CausalEventId, CausalNodeId};
 
 /// Causal relationship type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -330,7 +330,9 @@ impl CausalGraph {
     /// Calculate causal depth for all nodes
     pub fn calculate_depths(&mut self) {
         // Find root nodes (no causes)
-        let roots: Vec<CausalNodeId> = self.nodes.values()
+        let roots: Vec<CausalNodeId> = self
+            .nodes
+            .values()
             .filter(|n| n.causes.is_empty())
             .map(|n| n.id)
             .collect();
@@ -347,7 +349,9 @@ impl CausalGraph {
         let mut queue = roots;
         while let Some(node_id) = queue.pop() {
             let depth = self.nodes.get(&node_id).map(|n| n.depth).unwrap_or(0);
-            let effects: Vec<CausalEdgeId> = self.nodes.get(&node_id)
+            let effects: Vec<CausalEdgeId> = self
+                .nodes
+                .get(&node_id)
                 .map(|n| n.effects.clone())
                 .unwrap_or_default();
 
@@ -365,7 +369,9 @@ impl CausalGraph {
         }
 
         // Find terminal nodes (no effects)
-        let terminals: Vec<CausalNodeId> = self.nodes.values()
+        let terminals: Vec<CausalNodeId> = self
+            .nodes
+            .values()
             .filter(|n| n.effects.is_empty())
             .map(|n| n.id)
             .collect();

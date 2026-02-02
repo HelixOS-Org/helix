@@ -11,7 +11,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use super::Fitness;
-use super::genome::{CodeGenome, Connection, Gene, GeneId, NodeId};
+use super::genome::{CodeGenome, Connection, Gene};
 
 // ============================================================================
 // CROSSOVER TYPES

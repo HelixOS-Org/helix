@@ -43,20 +43,16 @@
 //!                     └─────────────────────────────────────────┘
 //! ```
 
-use crate::core::{
-    AiAction, AiDecision, AiEvent, Confidence, DecisionContext, DecisionId,
-};
-use crate::neural::{Tensor, TensorShape};
-
-use alloc::{
-    collections::{BTreeMap, VecDeque},
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
+
+use crate::core::{AiAction, AiDecision, AiEvent, Confidence, DecisionContext, DecisionId};
+use crate::neural::{Tensor, TensorShape};
 
 // =============================================================================
 // Experience Tracking
@@ -139,7 +135,10 @@ impl StateVector {
             "io_wait_pct".to_string(),
             "context_switch_rate".to_string(),
         ];
-        Self { features, feature_names: names }
+        Self {
+            features,
+            feature_names: names,
+        }
     }
 
     /// Get dimensionality
@@ -166,7 +165,7 @@ impl StateVector {
                 .iter()
                 .zip(&other.features)
                 .map(|(a, b)| crate::math::powi_f32(a - b, 2))
-                .sum::<f32>()
+                .sum::<f32>(),
         )
     }
 }
@@ -278,28 +277,18 @@ pub struct Pattern {
 #[derive(Debug, Clone, PartialEq)]
 pub enum PatternType {
     /// Temporal pattern (happens at specific times)
-    Temporal {
-        period_us: u64,
-        phase_us: u64,
-    },
+    Temporal { period_us: u64, phase_us: u64 },
     /// Sequential pattern (A then B then C)
-    Sequential {
-        sequence: Vec<u32>,
-    },
+    Sequential { sequence: Vec<u32> },
     /// Correlation pattern (A and B occur together)
     Correlation {
         events: Vec<u32>,
         correlation: u8, // 0-100
     },
     /// Anomaly pattern (deviation from baseline)
-    Anomaly {
-        metric: String,
-        threshold: f32,
-    },
+    Anomaly { metric: String, threshold: f32 },
     /// Usage pattern (user behavior)
-    Usage {
-        category: String,
-    },
+    Usage { category: String },
 }
 
 // =============================================================================
@@ -326,9 +315,9 @@ impl QPolicy {
     pub fn new() -> Self {
         Self {
             q_table: BTreeMap::new(),
-            alpha: 0.1,     // Learning rate
-            gamma: 0.99,    // Future reward importance
-            epsilon: 0.1,   // Exploration rate
+            alpha: 0.1,   // Learning rate
+            gamma: 0.99,  // Future reward importance
+            epsilon: 0.1, // Exploration rate
             state_bins: 100,
         }
     }
@@ -618,7 +607,9 @@ impl LearningEngine {
 
         // Add to buffer
         self.experience_buffer.lock().add(experience);
-        self.stats.experiences_recorded.fetch_add(1, Ordering::Relaxed);
+        self.stats
+            .experiences_recorded
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record a decision outcome
@@ -656,9 +647,13 @@ impl LearningEngine {
 
         // Track prediction accuracy
         if success {
-            self.stats.successful_predictions.fetch_add(1, Ordering::Relaxed);
+            self.stats
+                .successful_predictions
+                .fetch_add(1, Ordering::Relaxed);
         } else {
-            self.stats.failed_predictions.fetch_add(1, Ordering::Relaxed);
+            self.stats
+                .failed_predictions
+                .fetch_add(1, Ordering::Relaxed);
         }
     }
 
@@ -690,7 +685,7 @@ impl LearningEngine {
         if let Some(fb) = feedback {
             match fb {
                 UserFeedback::Positive => reward += 2.0,
-                UserFeedback::Neutral => {}
+                UserFeedback::Neutral => {},
                 UserFeedback::Negative => reward -= 2.0,
                 UserFeedback::Rollback => reward -= 3.0,
             }
@@ -757,12 +752,15 @@ impl LearningEngine {
     /// Convert event to feature vector
     fn event_to_features(&self, event: &AiEvent) -> Vec<f32> {
         match event {
-            AiEvent::CpuThreshold { usage_percent, cpu_id } => {
+            AiEvent::CpuThreshold {
+                usage_percent,
+                cpu_id,
+            } => {
                 vec![*usage_percent as f32 / 100.0, *cpu_id as f32]
-            }
+            },
             AiEvent::MemoryPressure { available_percent } => {
                 vec![*available_percent as f32 / 100.0]
-            }
+            },
             _ => Vec::new(),
         }
     }
@@ -800,7 +798,9 @@ impl LearningEngine {
             );
         }
 
-        self.stats.training_iterations.fetch_add(1, Ordering::Relaxed);
+        self.stats
+            .training_iterations
+            .fetch_add(1, Ordering::Relaxed);
         self.stats.policy_updates.fetch_add(1, Ordering::Relaxed);
 
         Ok(())
@@ -828,7 +828,9 @@ impl LearningEngine {
             for pattern in &discovered {
                 if !patterns.iter().any(|p| p.id == pattern.id) {
                     patterns.push(pattern.clone());
-                    self.stats.patterns_discovered.fetch_add(1, Ordering::Relaxed);
+                    self.stats
+                        .patterns_discovered
+                        .fetch_add(1, Ordering::Relaxed);
                 }
             }
         }
@@ -909,7 +911,8 @@ impl LearningEngine {
             let variance: f64 = intervals
                 .iter()
                 .map(|&i| crate::math::powi_f64((i as f64) - (mean_interval as f64), 2))
-                .sum::<f64>() / intervals.len() as f64;
+                .sum::<f64>()
+                / intervals.len() as f64;
             let std_dev = crate::math::sqrt_f64(variance);
 
             // If standard deviation is low relative to mean, it's periodic
@@ -922,11 +925,11 @@ impl LearningEngine {
                     },
                     description: format!(
                         "Event {} occurs every {} us ({} occurrences)",
-                        event_type, mean_interval, times.len()
+                        event_type,
+                        mean_interval,
+                        times.len()
                     ),
-                    confidence: Confidence::new(
-                        (1.0 - std_dev / mean_interval as f64) as f32
-                    ),
+                    confidence: Confidence::new((1.0 - std_dev / mean_interval as f64) as f32),
                     occurrences: times.len() as u64,
                     recommended_actions: Vec::new(),
                 });
@@ -981,7 +984,9 @@ impl LearningEngine {
                 strategy: "slab".to_string(),
             }),
             2 => Some(AiAction::ForceGarbageCollection),
-            3 => Some(AiAction::SuspendIdleProcesses { threshold_seconds: 60 }),
+            3 => Some(AiAction::SuspendIdleProcesses {
+                threshold_seconds: 60,
+            }),
             _ => None,
         }
     }

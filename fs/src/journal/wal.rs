@@ -3,10 +3,11 @@
 //! Provides circular buffer log with ordered writes
 //! and crash-consistent commit protocol.
 
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
 use crate::core::error::{HfsError, HfsResult};
 use crate::core::hash::Crc32c;
 use crate::journal::JOURNAL_BLOCK_SIZE;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 
 // ============================================================================
 // WAL Block Header
@@ -47,10 +48,10 @@ pub struct WalBlockHeader {
 impl WalBlockHeader {
     /// Header size
     pub const SIZE: usize = 56;
-    
+
     /// Magic number
     pub const MAGIC: u32 = 0x57414C42; // "WALB"
-    
+
     /// Create new header
     pub fn new(sequence: u64, txn_id: u64, data_len: u16) -> Self {
         Self {
@@ -69,7 +70,7 @@ impl WalBlockHeader {
             _pad: [0; 8],
         }
     }
-    
+
     /// Validate header
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != Self::MAGIC {
@@ -77,16 +78,16 @@ impl WalBlockHeader {
         }
         Ok(())
     }
-    
+
     /// Maximum data per block
     pub const fn max_data_per_block() -> usize {
         JOURNAL_BLOCK_SIZE - Self::SIZE
     }
-    
+
     /// Compute header checksum
     pub fn compute_header_crc(&self) -> u32 {
         let mut hasher = Crc32c::new();
-        
+
         // Hash fields before header_crc
         let bytes = unsafe {
             core::slice::from_raw_parts(
@@ -95,10 +96,10 @@ impl WalBlockHeader {
             )
         };
         hasher.write(bytes);
-        
+
         hasher.finish()
     }
-    
+
     /// Update header checksum
     pub fn update_header_crc(&mut self) {
         self.header_crc = self.compute_header_crc();
@@ -110,17 +111,17 @@ impl WalBlockHeader {
 #[repr(u8)]
 pub enum WalBlockType {
     /// Empty block
-    Empty = 0,
+    Empty      = 0,
     /// Data block
-    Data = 1,
+    Data       = 1,
     /// Commit record
-    Commit = 2,
+    Commit     = 2,
     /// Checkpoint
     Checkpoint = 3,
     /// Descriptor block
     Descriptor = 4,
     /// Revoke block
-    Revoke = 5,
+    Revoke     = 5,
 }
 
 impl WalBlockType {
@@ -155,25 +156,37 @@ pub struct WalPosition {
 impl WalPosition {
     /// Create position
     pub const fn new(block: u64, offset: u16, sequence: u64) -> Self {
-        Self { block, offset, sequence }
+        Self {
+            block,
+            offset,
+            sequence,
+        }
     }
-    
+
     /// Start of journal
     pub const fn start() -> Self {
-        Self { block: 1, offset: 0, sequence: 1 }
+        Self {
+            block: 1,
+            offset: 0,
+            sequence: 1,
+        }
     }
-    
+
     /// Invalid position
     pub const fn invalid() -> Self {
-        Self { block: 0, offset: 0, sequence: 0 }
+        Self {
+            block: 0,
+            offset: 0,
+            sequence: 0,
+        }
     }
-    
+
     /// Check if valid
     #[inline]
     pub fn is_valid(&self) -> bool {
         self.sequence > 0
     }
-    
+
     /// Advance by blocks
     pub fn advance(&mut self, blocks: u64, journal_size: u64) {
         self.block += blocks;
@@ -218,15 +231,15 @@ pub struct WalBufferEntry {
 #[repr(u8)]
 pub enum WalEntryState {
     /// Free
-    Free = 0,
+    Free     = 0,
     /// Being filled
-    Filling = 1,
+    Filling  = 1,
     /// Ready to flush
-    Ready = 2,
+    Ready    = 2,
     /// Being flushed
     Flushing = 3,
     /// Flushed
-    Flushed = 4,
+    Flushed  = 4,
 }
 
 impl Default for WalBufferEntry {
@@ -294,50 +307,50 @@ impl WalWriter {
             stats: WalBufferStats::default(),
         }
     }
-    
+
     /// Start writer
     pub fn start(&self) {
         self.running.store(true, Ordering::Release);
     }
-    
+
     /// Stop writer
     pub fn stop(&self) {
         self.running.store(false, Ordering::Release);
     }
-    
+
     /// Check if running
     #[inline]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::Acquire)
     }
-    
+
     /// Get next sequence number
     pub fn next_sequence(&self) -> u64 {
         self.sequence.fetch_add(1, Ordering::Relaxed)
     }
-    
+
     /// Allocate transaction ID
     pub fn alloc_txn_id(&self) -> u64 {
         self.next_txn_id.fetch_add(1, Ordering::Relaxed)
     }
-    
+
     /// Calculate blocks needed for data
     pub fn blocks_for_data(data_len: usize) -> u64 {
         let per_block = WalBlockHeader::max_data_per_block();
         ((data_len + per_block - 1) / per_block) as u64
     }
-    
+
     /// Check if there's space for write
     pub fn has_space(&self, blocks: u64) -> bool {
         let used = self.used_blocks();
         used + blocks < self.journal_size - 1 // Reserve at least 1 block
     }
-    
+
     /// Calculate used blocks
     pub fn used_blocks(&self) -> u64 {
         let write = self.write_pos.block;
         let commit = self.commit_pos.block;
-        
+
         if write >= commit {
             write - commit
         } else {
@@ -345,7 +358,7 @@ impl WalWriter {
             (self.journal_size - commit) + write
         }
     }
-    
+
     /// Calculate free blocks
     pub fn free_blocks(&self) -> u64 {
         self.journal_size.saturating_sub(self.used_blocks() + 1)
@@ -382,7 +395,7 @@ impl WalFlushRequest {
             is_commit: false,
         }
     }
-    
+
     /// Create sync flush request
     pub fn sync(start: WalPosition, end: WalPosition, txn_id: u64) -> Self {
         Self {
@@ -393,7 +406,7 @@ impl WalFlushRequest {
             is_commit: false,
         }
     }
-    
+
     /// Create commit flush request
     pub fn commit(start: WalPosition, end: WalPosition, txn_id: u64) -> Self {
         Self {
@@ -435,13 +448,13 @@ impl WalReader {
             errors: 0,
         }
     }
-    
+
     /// Check if at end
     #[inline]
     pub fn at_end(&self) -> bool {
         self.read_pos.sequence >= self.end_pos.sequence
     }
-    
+
     /// Advance to next block
     pub fn advance(&mut self) {
         self.read_pos.block += 1;
@@ -451,7 +464,7 @@ impl WalReader {
         self.read_pos.sequence += 1;
         self.blocks_read += 1;
     }
-    
+
     /// Remaining blocks to read
     pub fn remaining(&self) -> u64 {
         if self.end_pos.sequence > self.read_pos.sequence {
@@ -495,7 +508,7 @@ impl WalScanner {
             first_invalid: None,
         }
     }
-    
+
     /// Mark valid commit found
     pub fn found_valid_commit(&mut self, sequence: u64) {
         self.valid_txns += 1;
@@ -503,7 +516,7 @@ impl WalScanner {
             self.last_valid_commit = sequence;
         }
     }
-    
+
     /// Mark invalid block found
     pub fn found_invalid(&mut self, pos: WalPosition) {
         self.invalid_txns += 1;
@@ -511,7 +524,7 @@ impl WalScanner {
             self.first_invalid = Some(pos);
         }
     }
-    
+
     /// Get scan result
     pub fn result(&self) -> WalScanResult {
         WalScanResult {
@@ -545,7 +558,7 @@ impl WalScanResult {
     pub fn is_clean(&self) -> bool {
         self.invalid_txns == 0
     }
-    
+
     /// Check if recovery needed
     #[inline]
     pub fn needs_recovery(&self) -> bool {
@@ -560,75 +573,75 @@ impl WalScanResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_wal_block_header() {
         let header = WalBlockHeader::new(1, 100, 500);
-        
+
         assert_eq!(header.magic, WalBlockHeader::MAGIC);
         assert_eq!(header.sequence, 1);
         assert_eq!(header.txn_id, 100);
         assert!(header.validate().is_ok());
     }
-    
+
     #[test]
     fn test_wal_position() {
         let mut pos = WalPosition::start();
-        
+
         assert!(pos.is_valid());
         assert_eq!(pos.block, 1);
-        
+
         pos.advance(10, 100);
         assert_eq!(pos.block, 11);
         assert_eq!(pos.sequence, 11);
-        
+
         // Test wrap
         pos.advance(95, 100);
         assert_eq!(pos.block, 6); // Wrapped
     }
-    
+
     #[test]
     fn test_wal_writer() {
         let writer = WalWriter::new(1000);
-        
+
         assert!(!writer.is_running());
         writer.start();
         assert!(writer.is_running());
-        
+
         let seq1 = writer.next_sequence();
         let seq2 = writer.next_sequence();
         assert_eq!(seq2, seq1 + 1);
-        
+
         let txn1 = writer.alloc_txn_id();
         let txn2 = writer.alloc_txn_id();
         assert_eq!(txn2, txn1 + 1);
     }
-    
+
     #[test]
     fn test_wal_reader() {
         let start = WalPosition::new(10, 0, 100);
         let end = WalPosition::new(20, 0, 110);
         let mut reader = WalReader::new(start, end, 1000);
-        
+
         assert!(!reader.at_end());
         assert_eq!(reader.remaining(), 10);
-        
+
         for _ in 0..10 {
             reader.advance();
         }
-        
+
         assert!(reader.at_end());
         assert_eq!(reader.blocks_read, 10);
     }
-    
+
     #[test]
     fn test_wal_scanner() {
         let start = WalPosition::start();
         let mut scanner = WalScanner::new(start, 1000);
-        
+
         scanner.found_valid_commit(5);
         scanner.found_valid_commit(10);
-        
+
         let result = scanner.result();
         assert_eq!(result.valid_txns, 2);
         assert_eq!(result.last_valid_commit, 10);

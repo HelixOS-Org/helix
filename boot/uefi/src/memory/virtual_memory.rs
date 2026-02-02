@@ -3,15 +3,15 @@
 //! Advanced virtual memory management for UEFI boot environment.
 //! Provides virtual address space management, mapping, and protection.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
-use crate::memory::paging::{PageTableManager, PageFlags};
+use crate::memory::paging::{PageFlags, PageTableManager};
 use crate::memory::regions::{MemoryRegion, RegionType};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
-use alloc::string::String;
 use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // VIRTUAL MEMORY CONSTANTS
@@ -100,11 +100,7 @@ impl VirtualAddressSpace {
     }
 
     /// Allocate virtual region
-    pub fn allocate(
-        &mut self,
-        size: u64,
-        flags: VirtualRegionFlags,
-    ) -> Result<VirtualAddress> {
+    pub fn allocate(&mut self, size: u64, flags: VirtualRegionFlags) -> Result<VirtualAddress> {
         self.allocate_aligned(size, PAGE_SIZE, flags)
     }
 
@@ -238,8 +234,7 @@ impl VirtualAddressSpace {
 
     /// Free virtual region
     pub fn free(&mut self, address: VirtualAddress) -> Result<()> {
-        let region = self.regions.remove(&address)
-            .ok_or(Error::NotFound)?;
+        let region = self.regions.remove(&address).ok_or(Error::NotFound)?;
 
         self.stats.allocated_bytes -= region.size;
         self.stats.region_count -= 1;
@@ -321,7 +316,9 @@ impl VirtualAddressSpace {
         // Map in page tables
         if let Some(ref mut pt) = self.page_tables {
             let page_flags = flags.to_page_flags();
-            unsafe { pt.map_range(virtual_addr, physical_addr, size, page_flags)?; }
+            unsafe {
+                pt.map_range(virtual_addr, physical_addr, size, page_flags)?;
+            }
         }
 
         self.stats.mapped_bytes += size;
@@ -331,13 +328,14 @@ impl VirtualAddressSpace {
 
     /// Unmap region
     pub fn unmap(&mut self, virtual_addr: VirtualAddress) -> Result<()> {
-        let region = self.find_region(virtual_addr)
-            .ok_or(Error::NotFound)?;
+        let region = self.find_region(virtual_addr).ok_or(Error::NotFound)?;
         let size = region.size;
 
         // Unmap from page tables
         if let Some(ref mut pt) = self.page_tables {
-            unsafe { pt.unmap_range(virtual_addr, size)?; }
+            unsafe {
+                pt.unmap_range(virtual_addr, size)?;
+            }
         }
 
         self.stats.mapped_bytes -= size;
@@ -351,13 +349,8 @@ impl VirtualAddressSpace {
     }
 
     /// Change protection
-    pub fn protect(
-        &mut self,
-        address: VirtualAddress,
-        flags: VirtualRegionFlags,
-    ) -> Result<()> {
-        let region = self.find_region_mut(address)
-            .ok_or(Error::NotFound)?;
+    pub fn protect(&mut self, address: VirtualAddress, flags: VirtualRegionFlags) -> Result<()> {
+        let region = self.find_region_mut(address).ok_or(Error::NotFound)?;
 
         region.flags = flags;
 
@@ -638,7 +631,14 @@ impl IdentityMapper {
         flags: PageFlags,
     ) -> Result<()> {
         // Map physical == virtual
-        unsafe { self.page_tables.map_range(VirtualAddress(physical_addr.0), physical_addr, size, flags)?; }
+        unsafe {
+            self.page_tables.map_range(
+                VirtualAddress(physical_addr.0),
+                physical_addr,
+                size,
+                flags,
+            )?;
+        }
 
         self.mappings.push(IdentityMapping {
             address: physical_addr,
@@ -740,7 +740,8 @@ impl HigherHalfMapper {
         let virtual_addr = self.base + self.offset;
 
         unsafe {
-            self.page_tables.map_range(virtual_addr, physical_addr, aligned_size, flags)?;
+            self.page_tables
+                .map_range(virtual_addr, physical_addr, aligned_size, flags)?;
         }
 
         self.mappings.push(HigherHalfMapping {
@@ -763,22 +764,18 @@ impl HigherHalfMapper {
         data_size: u64,
         rodata_size: u64,
     ) -> Result<KernelMapping> {
-        let code_virt = self.map_range(
-            physical_base,
-            code_size,
-            PageFlags::kernel_code()
-        )?;
+        let code_virt = self.map_range(physical_base, code_size, PageFlags::kernel_code())?;
 
         let data_virt = self.map_range(
             physical_base + code_size,
             data_size,
-            PageFlags::kernel_data()
+            PageFlags::kernel_data(),
         )?;
 
         let rodata_virt = self.map_range(
             physical_base + code_size + data_size,
             rodata_size,
-            PageFlags::kernel_rodata()
+            PageFlags::kernel_rodata(),
         )?;
 
         Ok(KernelMapping {
@@ -905,7 +902,8 @@ impl PhysicalMapper {
         while phys < aligned_end {
             let virt = VirtualAddress(self.base.0 + phys);
             unsafe {
-                self.page_tables.map_range(virt, PhysicalAddress(phys), LARGE_PAGE_SIZE, flags)?;
+                self.page_tables
+                    .map_range(virt, PhysicalAddress(phys), LARGE_PAGE_SIZE, flags)?;
             }
             phys += LARGE_PAGE_SIZE;
         }
@@ -1112,13 +1110,12 @@ mod tests {
 
     #[test]
     fn test_virtual_address_space() {
-        let mut space = VirtualAddressSpace::with_limits(
-            1,
-            AddressSpaceLimits::x86_64_default()
-        );
+        let mut space = VirtualAddressSpace::with_limits(1, AddressSpaceLimits::x86_64_default());
 
         // Allocate region
-        let addr = space.allocate(0x10000, VirtualRegionFlags::read_write()).unwrap();
+        let addr = space
+            .allocate(0x10000, VirtualRegionFlags::read_write())
+            .unwrap();
         assert!(addr > 0);
 
         // Find region

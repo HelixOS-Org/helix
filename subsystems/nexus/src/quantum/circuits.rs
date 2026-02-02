@@ -12,7 +12,7 @@ use super::gates::{
     GateType, apply_cnot, apply_cz, apply_h, apply_rx, apply_ry, apply_rz, apply_swap,
     apply_toffoli, apply_x, apply_y, apply_z,
 };
-use super::types::{Complex, StateVector};
+use super::types::StateVector;
 
 // ============================================================================
 // CIRCUIT INSTRUCTION

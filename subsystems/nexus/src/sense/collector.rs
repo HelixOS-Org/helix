@@ -7,8 +7,8 @@
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::Timestamp;
 use super::events::RawEvent;
+use crate::types::Timestamp;
 
 // ============================================================================
 // CONFIGURATION
@@ -272,9 +272,9 @@ impl CollectorStats {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::events::EventData;
     use super::super::probe::ProbeType;
+    use super::*;
     use crate::types::ProbeId;
 
     fn make_event() -> RawEvent {

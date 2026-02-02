@@ -3,17 +3,17 @@
 //! ARM64 architecture-specific code for UEFI boot.
 
 pub mod cpu;
-pub mod mmu;
 pub mod gic;
+pub mod mmu;
+
+// Re-exports
+pub use cpu::*;
+pub use gic::*;
+pub use mmu::*;
 
 use crate::arch::{ArchOperations, CpuFeatures, InitState};
 use crate::error::Result;
 use crate::raw::types::VirtualAddress;
-
-// Re-exports
-pub use cpu::*;
-pub use mmu::*;
-pub use gic::*;
 
 // =============================================================================
 // SYSTEM REGISTERS
@@ -102,10 +102,7 @@ impl ExceptionLevel {
 #[inline(always)]
 pub fn disable_irq() {
     unsafe {
-        core::arch::asm!(
-            "msr DAIFSet, #2",
-            options(nomem, nostack, preserves_flags)
-        );
+        core::arch::asm!("msr DAIFSet, #2", options(nomem, nostack, preserves_flags));
     }
 }
 
@@ -113,10 +110,7 @@ pub fn disable_irq() {
 #[inline(always)]
 pub fn enable_irq() {
     unsafe {
-        core::arch::asm!(
-            "msr DAIFClr, #2",
-            options(nomem, nostack, preserves_flags)
-        );
+        core::arch::asm!("msr DAIFClr, #2", options(nomem, nostack, preserves_flags));
     }
 }
 
@@ -124,10 +118,7 @@ pub fn enable_irq() {
 #[inline(always)]
 pub fn disable_fiq() {
     unsafe {
-        core::arch::asm!(
-            "msr DAIFSet, #1",
-            options(nomem, nostack, preserves_flags)
-        );
+        core::arch::asm!("msr DAIFSet, #1", options(nomem, nostack, preserves_flags));
     }
 }
 
@@ -135,10 +126,7 @@ pub fn disable_fiq() {
 #[inline(always)]
 pub fn enable_fiq() {
     unsafe {
-        core::arch::asm!(
-            "msr DAIFClr, #1",
-            options(nomem, nostack, preserves_flags)
-        );
+        core::arch::asm!("msr DAIFClr, #1", options(nomem, nostack, preserves_flags));
     }
 }
 
@@ -146,10 +134,7 @@ pub fn enable_fiq() {
 #[inline(always)]
 fn disable_interrupts_impl() {
     unsafe {
-        core::arch::asm!(
-            "msr DAIFSet, #3",
-            options(nomem, nostack, preserves_flags)
-        );
+        core::arch::asm!("msr DAIFSet, #3", options(nomem, nostack, preserves_flags));
     }
 }
 
@@ -157,10 +142,7 @@ fn disable_interrupts_impl() {
 #[inline(always)]
 fn enable_interrupts_impl() {
     unsafe {
-        core::arch::asm!(
-            "msr DAIFClr, #3",
-            options(nomem, nostack, preserves_flags)
-        );
+        core::arch::asm!("msr DAIFClr, #3", options(nomem, nostack, preserves_flags));
     }
 }
 

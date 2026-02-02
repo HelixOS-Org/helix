@@ -89,7 +89,8 @@ impl AbiChecker {
     /// Check if a symbol is deprecated
     pub fn is_deprecated(&self, name: &str) -> Option<&'static str> {
         let deprecated = self.deprecated.read();
-        deprecated.iter()
+        deprecated
+            .iter()
             .find(|s| s.name == name)
             .map(|s| s.replacement)
     }
@@ -177,7 +178,8 @@ impl SymbolTable {
 
     /// Get all exported symbols
     pub fn exported_symbols(&self) -> alloc::vec::Vec<Symbol> {
-        self.symbols.read()
+        self.symbols
+            .read()
             .values()
             .filter(|s| s.exported)
             .cloned()

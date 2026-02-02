@@ -2,12 +2,14 @@
 //!
 //! Central registry for all threads in the system.
 
-use crate::{ThreadId, ProcessId, ExecResult, ExecError};
-use super::{Thread, ThreadState};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+
 use spin::RwLock;
+
+use super::{Thread, ThreadState};
+use crate::{ExecError, ExecResult, ProcessId, ThreadId};
 
 /// Thread registry
 pub struct ThreadRegistry {
@@ -39,10 +41,7 @@ impl ThreadRegistry {
         threads.insert(id, thread);
         drop(threads);
 
-        self.by_process.write()
-            .entry(process)
-            .or_default()
-            .push(id);
+        self.by_process.write().entry(process).or_default().push(id);
 
         Ok(())
     }
@@ -50,8 +49,7 @@ impl ThreadRegistry {
     /// Unregister a thread
     pub fn unregister(&self, id: ThreadId) -> ExecResult<Arc<Thread>> {
         let mut threads = self.threads.write();
-        let thread = threads.remove(&id)
-            .ok_or(ExecError::ThreadNotFound)?;
+        let thread = threads.remove(&id).ok_or(ExecError::ThreadNotFound)?;
 
         let process = thread.process();
         drop(threads);
@@ -73,7 +71,8 @@ impl ThreadRegistry {
         let by_process = self.by_process.read();
         let threads = self.threads.read();
 
-        by_process.get(&process)
+        by_process
+            .get(&process)
             .map(|ids| {
                 ids.iter()
                     .filter_map(|id| threads.get(id).cloned())
@@ -84,7 +83,8 @@ impl ThreadRegistry {
 
     /// Get all threads in a state
     pub fn get_by_state(&self, state: ThreadState) -> Vec<Arc<Thread>> {
-        self.threads.read()
+        self.threads
+            .read()
             .values()
             .filter(|t| t.state() == state)
             .cloned()
@@ -98,7 +98,8 @@ impl ThreadRegistry {
 
     /// Get thread count for a process
     pub fn count_by_process(&self, process: ProcessId) -> usize {
-        self.by_process.read()
+        self.by_process
+            .read()
             .get(&process)
             .map(|v| v.len())
             .unwrap_or(0)

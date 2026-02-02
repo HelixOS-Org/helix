@@ -188,18 +188,26 @@ impl Easing {
             Easing::EaseIn => t * t,
             Easing::EaseOut => t * (2.0 - t),
             Easing::EaseInOut => {
-                if t < 0.5 { 2.0 * t * t } else { -1.0 + (4.0 - 2.0 * t) * t }
-            }
+                if t < 0.5 {
+                    2.0 * t * t
+                } else {
+                    -1.0 + (4.0 - 2.0 * t) * t
+                }
+            },
             Easing::QuadIn => t * t,
             Easing::QuadOut => t * (2.0 - t),
             Easing::QuadInOut => {
-                if t < 0.5 { 2.0 * t * t } else { -1.0 + (4.0 - 2.0 * t) * t }
-            }
+                if t < 0.5 {
+                    2.0 * t * t
+                } else {
+                    -1.0 + (4.0 - 2.0 * t) * t
+                }
+            },
             Easing::CubicIn => t * t * t,
             Easing::CubicOut => {
                 let t1 = t - 1.0;
                 t1 * t1 * t1 + 1.0
-            }
+            },
             Easing::CubicInOut => {
                 if t < 0.5 {
                     4.0 * t * t * t
@@ -207,12 +215,12 @@ impl Easing {
                     let t1 = 2.0 * t - 2.0;
                     (t1 * t1 * t1 + 2.0) / 2.0
                 }
-            }
+            },
             Easing::QuartIn => t * t * t * t,
             Easing::QuartOut => {
                 let t1 = t - 1.0;
                 1.0 - t1 * t1 * t1 * t1
-            }
+            },
             Easing::QuartInOut => {
                 if t < 0.5 {
                     8.0 * t * t * t * t
@@ -220,12 +228,12 @@ impl Easing {
                     let t1 = t - 1.0;
                     1.0 - 8.0 * t1 * t1 * t1 * t1
                 }
-            }
+            },
             Easing::QuintIn => t * t * t * t * t,
             Easing::QuintOut => {
                 let t1 = t - 1.0;
                 1.0 + t1 * t1 * t1 * t1 * t1
-            }
+            },
             Easing::QuintInOut => {
                 if t < 0.5 {
                     16.0 * t * t * t * t * t
@@ -233,26 +241,38 @@ impl Easing {
                     let t1 = 2.0 * t - 2.0;
                     (t1 * t1 * t1 * t1 * t1 + 2.0) / 2.0
                 }
-            }
+            },
             // Approximations for trig-based easing (no libm)
             Easing::SineIn => 1.0 - Self::cos_approx(t * core::f32::consts::FRAC_PI_2),
             Easing::SineOut => Self::sin_approx(t * core::f32::consts::FRAC_PI_2),
             Easing::SineInOut => -(Self::cos_approx(core::f32::consts::PI * t) - 1.0) / 2.0,
             Easing::ExpoIn => {
-                if t == 0.0 { 0.0 } else { Self::pow2_approx(10.0 * (t - 1.0)) }
-            }
+                if t == 0.0 {
+                    0.0
+                } else {
+                    Self::pow2_approx(10.0 * (t - 1.0))
+                }
+            },
             Easing::ExpoOut => {
-                if t == 1.0 { 1.0 } else { 1.0 - Self::pow2_approx(-10.0 * t) }
-            }
+                if t == 1.0 {
+                    1.0
+                } else {
+                    1.0 - Self::pow2_approx(-10.0 * t)
+                }
+            },
             Easing::ExpoInOut => {
-                if t == 0.0 { return 0.0; }
-                if t == 1.0 { return 1.0; }
+                if t == 0.0 {
+                    return 0.0;
+                }
+                if t == 1.0 {
+                    return 1.0;
+                }
                 if t < 0.5 {
                     Self::pow2_approx(20.0 * t - 10.0) / 2.0
                 } else {
                     (2.0 - Self::pow2_approx(-20.0 * t + 10.0)) / 2.0
                 }
-            }
+            },
             Easing::CircIn => 1.0 - Self::sqrt_approx(1.0 - t * t),
             Easing::CircOut => Self::sqrt_approx(1.0 - (t - 1.0) * (t - 1.0)),
             Easing::CircInOut => {
@@ -262,40 +282,56 @@ impl Easing {
                     let t1 = 2.0 * t - 2.0;
                     (Self::sqrt_approx(1.0 - t1 * t1) + 1.0) / 2.0
                 }
-            }
+            },
             Easing::ElasticIn => {
-                if t == 0.0 { return 0.0; }
-                if t == 1.0 { return 1.0; }
+                if t == 0.0 {
+                    return 0.0;
+                }
+                if t == 1.0 {
+                    return 1.0;
+                }
                 let c4 = 2.0 * core::f32::consts::PI / 3.0;
                 -Self::pow2_approx(10.0 * t - 10.0) * Self::sin_approx((t * 10.0 - 10.75) * c4)
-            }
+            },
             Easing::ElasticOut => {
-                if t == 0.0 { return 0.0; }
-                if t == 1.0 { return 1.0; }
+                if t == 0.0 {
+                    return 0.0;
+                }
+                if t == 1.0 {
+                    return 1.0;
+                }
                 let c4 = 2.0 * core::f32::consts::PI / 3.0;
                 Self::pow2_approx(-10.0 * t) * Self::sin_approx((t * 10.0 - 0.75) * c4) + 1.0
-            }
+            },
             Easing::ElasticInOut => {
-                if t == 0.0 { return 0.0; }
-                if t == 1.0 { return 1.0; }
+                if t == 0.0 {
+                    return 0.0;
+                }
+                if t == 1.0 {
+                    return 1.0;
+                }
                 let c5 = 2.0 * core::f32::consts::PI / 4.5;
                 if t < 0.5 {
-                    -(Self::pow2_approx(20.0 * t - 10.0) * Self::sin_approx((20.0 * t - 11.125) * c5)) / 2.0
+                    -(Self::pow2_approx(20.0 * t - 10.0)
+                        * Self::sin_approx((20.0 * t - 11.125) * c5))
+                        / 2.0
                 } else {
-                    Self::pow2_approx(-20.0 * t + 10.0) * Self::sin_approx((20.0 * t - 11.125) * c5) / 2.0 + 1.0
+                    Self::pow2_approx(-20.0 * t + 10.0) * Self::sin_approx((20.0 * t - 11.125) * c5)
+                        / 2.0
+                        + 1.0
                 }
-            }
+            },
             Easing::BackIn => {
                 let c1 = 1.70158;
                 let c3 = c1 + 1.0;
                 c3 * t * t * t - c1 * t * t
-            }
+            },
             Easing::BackOut => {
                 let c1 = 1.70158;
                 let c3 = c1 + 1.0;
                 let t1 = t - 1.0;
                 1.0 + c3 * t1 * t1 * t1 + c1 * t1 * t1
-            }
+            },
             Easing::BackInOut => {
                 let c1 = 1.70158;
                 let c2 = c1 * 1.525;
@@ -305,7 +341,7 @@ impl Easing {
                     let t1 = 2.0 * t - 2.0;
                     (t1 * t1 * ((c2 + 1.0) * t1 + c2) + 2.0) / 2.0
                 }
-            }
+            },
             Easing::BounceIn => 1.0 - Self::bounce_out(1.0 - t),
             Easing::BounceOut => Self::bounce_out(t),
             Easing::BounceInOut => {
@@ -314,7 +350,7 @@ impl Easing {
                 } else {
                     (1.0 + Self::bounce_out(2.0 * t - 1.0)) / 2.0
                 }
-            }
+            },
         }
     }
 
@@ -366,7 +402,9 @@ impl Easing {
 
     /// Approximate square root for no_std
     fn sqrt_approx(x: f32) -> f32 {
-        if x <= 0.0 { return 0.0; }
+        if x <= 0.0 {
+            return 0.0;
+        }
         // Newton-Raphson iteration
         let mut guess = x / 2.0;
         for _ in 0..5 {
@@ -580,9 +618,24 @@ pub struct AnimColor {
 }
 
 impl AnimColor {
-    pub const TRANSPARENT: Self = Self { r: 0, g: 0, b: 0, a: 0 };
-    pub const BLACK: Self = Self { r: 0, g: 0, b: 0, a: 255 };
-    pub const WHITE: Self = Self { r: 255, g: 255, b: 255, a: 255 };
+    pub const TRANSPARENT: Self = Self {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 0,
+    };
+    pub const BLACK: Self = Self {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+    pub const WHITE: Self = Self {
+        r: 255,
+        g: 255,
+        b: 255,
+        a: 255,
+    };
 
     /// Create new color
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
@@ -673,7 +726,10 @@ pub struct SpriteFrame {
 impl SpriteFrame {
     /// Create new frame
     pub const fn new(sprite: Sprite, duration_ms: u32) -> Self {
-        Self { sprite, duration_ms }
+        Self {
+            sprite,
+            duration_ms,
+        }
     }
 }
 

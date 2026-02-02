@@ -21,32 +21,33 @@
 //! ```
 
 pub mod boot;
-pub mod runtime;
-pub mod memory;
-pub mod events;
-pub mod protocols;
-pub mod variables;
-pub mod time;
 pub mod capsule;
-pub mod watchdog;
+pub mod events;
+pub mod memory;
+pub mod protocols;
+pub mod runtime;
+pub mod time;
 pub mod tpl;
+pub mod variables;
+pub mod watchdog;
+
+use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 
 pub use boot::*;
-pub use runtime::*;
-pub use memory::*;
-pub use events::*;
-pub use protocols::*;
-pub use variables::*;
-pub use time::*;
 pub use capsule::*;
-pub use watchdog::*;
+pub use events::*;
+pub use memory::*;
+pub use protocols::*;
+pub use runtime::*;
+pub use time::*;
 pub use tpl::*;
+pub use variables::*;
+pub use watchdog::*;
 
 use crate::raw::boot_services::EfiBootServices;
 use crate::raw::runtime_services::EfiRuntimeServices;
 use crate::raw::system_table::EfiSystemTable;
 use crate::raw::types::*;
-use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 
 // =============================================================================
 // GLOBAL STATE
@@ -152,7 +153,10 @@ pub unsafe fn boot_services() -> &'static EfiBootServices {
 /// Must only be called after initialize().
 pub unsafe fn runtime_services() -> &'static EfiRuntimeServices {
     let st = system_table();
-    assert!(!st.runtime_services.is_null(), "Runtime services pointer is null");
+    assert!(
+        !st.runtime_services.is_null(),
+        "Runtime services pointer is null"
+    );
     &*st.runtime_services
 }
 
@@ -164,7 +168,8 @@ pub unsafe fn runtime_services() -> &'static EfiRuntimeServices {
 ///
 /// # Safety
 /// Must only be called after initialize().
-pub unsafe fn console_out() -> Option<&'static mut crate::raw::system_table::EfiSimpleTextOutputProtocol> {
+pub unsafe fn console_out(
+) -> Option<&'static mut crate::raw::system_table::EfiSimpleTextOutputProtocol> {
     let st = system_table_mut();
     if st.con_out.is_null() {
         None
@@ -177,7 +182,8 @@ pub unsafe fn console_out() -> Option<&'static mut crate::raw::system_table::Efi
 ///
 /// # Safety
 /// Must only be called after initialize().
-pub unsafe fn console_in() -> Option<&'static mut crate::raw::system_table::EfiSimpleTextInputProtocol> {
+pub unsafe fn console_in(
+) -> Option<&'static mut crate::raw::system_table::EfiSimpleTextInputProtocol> {
     let st = system_table_mut();
     if st.con_in.is_null() {
         None
@@ -190,7 +196,8 @@ pub unsafe fn console_in() -> Option<&'static mut crate::raw::system_table::EfiS
 ///
 /// # Safety
 /// Must only be called after initialize().
-pub unsafe fn std_err() -> Option<&'static mut crate::raw::system_table::EfiSimpleTextOutputProtocol> {
+pub unsafe fn std_err() -> Option<&'static mut crate::raw::system_table::EfiSimpleTextOutputProtocol>
+{
     let st = system_table_mut();
     if st.std_err.is_null() {
         None
@@ -227,27 +234,60 @@ impl UefiRevision {
     /// UEFI 2.0
     pub const V2_0: Self = Self { major: 2, minor: 0 };
     /// UEFI 2.1
-    pub const V2_1: Self = Self { major: 2, minor: 10 };
+    pub const V2_1: Self = Self {
+        major: 2,
+        minor: 10,
+    };
     /// UEFI 2.2
-    pub const V2_2: Self = Self { major: 2, minor: 20 };
+    pub const V2_2: Self = Self {
+        major: 2,
+        minor: 20,
+    };
     /// UEFI 2.3
-    pub const V2_3: Self = Self { major: 2, minor: 30 };
+    pub const V2_3: Self = Self {
+        major: 2,
+        minor: 30,
+    };
     /// UEFI 2.3.1
-    pub const V2_3_1: Self = Self { major: 2, minor: 31 };
+    pub const V2_3_1: Self = Self {
+        major: 2,
+        minor: 31,
+    };
     /// UEFI 2.4
-    pub const V2_4: Self = Self { major: 2, minor: 40 };
+    pub const V2_4: Self = Self {
+        major: 2,
+        minor: 40,
+    };
     /// UEFI 2.5
-    pub const V2_5: Self = Self { major: 2, minor: 50 };
+    pub const V2_5: Self = Self {
+        major: 2,
+        minor: 50,
+    };
     /// UEFI 2.6
-    pub const V2_6: Self = Self { major: 2, minor: 60 };
+    pub const V2_6: Self = Self {
+        major: 2,
+        minor: 60,
+    };
     /// UEFI 2.7
-    pub const V2_7: Self = Self { major: 2, minor: 70 };
+    pub const V2_7: Self = Self {
+        major: 2,
+        minor: 70,
+    };
     /// UEFI 2.8
-    pub const V2_8: Self = Self { major: 2, minor: 80 };
+    pub const V2_8: Self = Self {
+        major: 2,
+        minor: 80,
+    };
     /// UEFI 2.9
-    pub const V2_9: Self = Self { major: 2, minor: 90 };
+    pub const V2_9: Self = Self {
+        major: 2,
+        minor: 90,
+    };
     /// UEFI 2.10
-    pub const V2_10: Self = Self { major: 2, minor: 100 };
+    pub const V2_10: Self = Self {
+        major: 2,
+        minor: 100,
+    };
 
     /// Create from packed revision
     pub fn from_packed(revision: u32) -> Self {
@@ -302,10 +342,7 @@ pub unsafe fn configuration_tables() -> &'static [ConfigurationTable] {
     if st.configuration_table.is_null() || st.number_of_table_entries == 0 {
         &[]
     } else {
-        core::slice::from_raw_parts(
-            st.configuration_table,
-            st.number_of_table_entries,
-        )
+        core::slice::from_raw_parts(st.configuration_table, st.number_of_table_entries)
     }
 }
 
@@ -365,11 +402,7 @@ pub unsafe fn exit_boot_services(
 ///
 /// # Safety
 /// This will reset the machine!
-pub unsafe fn reset_system(
-    reset_type: ResetType,
-    status: Status,
-    data: Option<&[u8]>,
-) -> ! {
+pub unsafe fn reset_system(reset_type: ResetType, status: Status, data: Option<&[u8]>) -> ! {
     let rs = runtime_services();
 
     let (data_size, data_ptr) = match data {

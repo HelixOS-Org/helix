@@ -2,15 +2,15 @@
 //!
 //! Boot-time memory allocators for UEFI environment.
 
+use super::{size_to_pages, PAGE_SIZE};
 use crate::raw::types::*;
-use super::{PAGE_SIZE, size_to_pages};
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::alloc::{GlobalAlloc, Layout};
+use alloc::vec::Vec;
+use core::cell::UnsafeCell;
 use core::ptr::{self, NonNull};
 use core::sync::atomic::{AtomicUsize, Ordering};
-use core::cell::UnsafeCell;
 
 // =============================================================================
 // BOOT ALLOCATOR
@@ -118,7 +118,8 @@ impl BootAllocator {
 
     /// Get allocations by purpose
     pub fn allocations_by_purpose(&self, purpose: AllocationPurpose) -> Vec<&Allocation> {
-        self.allocations.iter()
+        self.allocations
+            .iter()
             .filter(|a| a.purpose == purpose)
             .collect()
     }
@@ -226,7 +227,10 @@ impl AllocationRegion {
 
     /// Free pages back to region
     fn free(&mut self, addr: PhysicalAddress, pages: u64) {
-        self.free_list.push(FreeBlock { address: addr, pages });
+        self.free_list.push(FreeBlock {
+            address: addr,
+            pages,
+        });
         self.free_pages += pages;
 
         // Coalesce adjacent blocks
@@ -465,12 +469,11 @@ impl BumpAllocator {
                 return None;
             }
 
-            if self.current.compare_exchange_weak(
-                current,
-                new_current,
-                Ordering::SeqCst,
-                Ordering::Relaxed,
-            ).is_ok() {
+            if self
+                .current
+                .compare_exchange_weak(current, new_current, Ordering::SeqCst, Ordering::Relaxed)
+                .is_ok()
+            {
                 return NonNull::new(aligned as *mut u8);
             }
         }
@@ -519,7 +522,8 @@ impl UefiAllocator {
 unsafe impl GlobalAlloc for UefiAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         if let Some(allocator) = *self.inner.get() {
-            (*allocator).allocate(layout.size(), layout.align())
+            (*allocator)
+                .allocate(layout.size(), layout.align())
                 .unwrap_or(ptr::null_mut())
         } else {
             ptr::null_mut()

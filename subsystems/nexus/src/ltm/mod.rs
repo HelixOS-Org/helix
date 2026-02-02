@@ -18,64 +18,40 @@
 //! - [`consolidation`] - Memory consolidation engine
 //! - [`intelligence`] - Main LTM intelligence interface
 
-#![no_std]
-
 extern crate alloc;
 
-pub mod types;
-pub mod episodic;
-pub mod semantic;
-pub mod procedural;
-pub mod working;
 pub mod consolidation;
+pub mod episodic;
 pub mod intelligence;
+pub mod procedural;
+pub mod semantic;
+pub mod types;
+pub mod working;
 
 // Re-export types
-pub use types::{
-    MemoryId, EpisodeId, PatternId, ProcedureId, BootId,
-    Timestamp, TimeRange,
-};
-
+// Re-export consolidation
+pub use consolidation::{ConsolidationResult, ConsolidationStrategy, MemoryConsolidator};
 // Re-export episodic
-pub use episodic::{
-    EpisodeType, EpisodeOutcome, EpisodeEvent, Episode,
-    EpisodicMemory,
-};
-
+pub use episodic::{Episode, EpisodeEvent, EpisodeOutcome, EpisodeType, EpisodicMemory};
+// Re-export intelligence
+pub use intelligence::{LongTermMemoryIntelligence, LtmAnalysis};
+// Re-export procedural
+pub use procedural::{ProceduralMemory, Procedure, ProcedureStep, ProcedureType};
 // Re-export semantic
 pub use semantic::{
-    PatternCategory, PatternConfidence, ConditionOperator, PatternCondition,
-    SemanticPattern, SemanticMemory,
+    ConditionOperator, PatternCategory, PatternCondition, PatternConfidence, SemanticMemory,
+    SemanticPattern,
 };
-
-// Re-export procedural
-pub use procedural::{
-    ProcedureType, ProcedureStep, Procedure,
-    ProceduralMemory,
-};
-
+pub use types::{BootId, EpisodeId, MemoryId, PatternId, ProcedureId, TimeRange, Timestamp};
 // Re-export working
-pub use working::{
-    WorkingMemoryItem, WorkingMemoryContent,
-    WorkingMemory,
-};
-
-// Re-export consolidation
-pub use consolidation::{
-    ConsolidationStrategy, ConsolidationResult,
-    MemoryConsolidator,
-};
-
-// Re-export intelligence
-pub use intelligence::{
-    LtmAnalysis, LongTermMemoryIntelligence,
-};
+pub use working::{WorkingMemory, WorkingMemoryContent, WorkingMemoryItem};
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::collections::BTreeMap;
     use alloc::string::String;
+
+    use super::*;
 
     #[test]
     fn test_timestamp() {

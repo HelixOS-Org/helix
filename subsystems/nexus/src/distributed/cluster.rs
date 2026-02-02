@@ -6,13 +6,12 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use super::{ClusterId, Epoch, NodeCapabilities, NodeId, NodeInfo, NodeRole, NodeState, Term};
+use super::{ClusterId, Epoch, NodeCapabilities, NodeId};
+use crate::math::F64Ext;
 
 // ============================================================================
 // MEMBERSHIP TYPES
@@ -539,14 +538,15 @@ impl ClusterManager {
 
     /// Promote learner to voter
     pub fn promote(&mut self, node_id: NodeId) -> Result<(), ClusterError> {
-        let member = self
+        // First check if member exists and has the right role (immutable borrow)
+        let member_idx = self
             .config
             .members
-            .iter_mut()
-            .find(|m| m.node_id == node_id)
+            .iter()
+            .position(|m| m.node_id == node_id)
             .ok_or(ClusterError::NotMember)?;
 
-        if member.role != MemberRole::Learner {
+        if self.config.members[member_idx].role != MemberRole::Learner {
             return Err(ClusterError::InvalidRole);
         }
 
@@ -561,7 +561,8 @@ impl ClusterManager {
             return Err(ClusterError::TooManyVoters);
         }
 
-        member.role = MemberRole::Voter;
+        // Now mutate after all checks are done
+        self.config.members[member_idx].role = MemberRole::Voter;
         self.config.version += 1;
 
         self.pending_changes.push(MembershipChange {

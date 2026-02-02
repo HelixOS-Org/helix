@@ -5,9 +5,8 @@
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::core::NexusTimestamp;
-
 use super::{LockId, ThreadId};
+use crate::core::NexusTimestamp;
 
 /// Contention statistics
 #[derive(Debug, Clone, Default)]

@@ -20,19 +20,15 @@ mod reconstructor;
 mod snapshot;
 
 // Re-export event types
-pub use event::{StateEvent, StateEventType};
-
-// Re-export log
-pub use log::StateLog;
-
-// Re-export snapshot
-pub use snapshot::StateSnapshot;
-
-// Re-export reconstructor
-pub use reconstructor::StateReconstructor;
-
 // Re-export engine
 pub use engine::{ReplayEngine, ReplayResult};
+pub use event::{StateEvent, StateEventType};
+// Re-export log
+pub use log::StateLog;
+// Re-export reconstructor
+pub use reconstructor::StateReconstructor;
+// Re-export snapshot
+pub use snapshot::StateSnapshot;
 
 // ============================================================================
 // TESTS

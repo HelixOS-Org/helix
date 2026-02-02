@@ -32,13 +32,13 @@
 extern crate alloc;
 
 pub mod cpu;
-pub mod mmu;
-pub mod interrupts;
 pub mod firmware;
+pub mod interrupts;
+pub mod mmu;
 
 // Kernel relocation support
-pub mod relocation;
 pub mod kaslr;
+pub mod relocation;
 
 // Architecture-specific implementations
 pub mod arch;

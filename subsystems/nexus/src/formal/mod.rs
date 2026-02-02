@@ -49,27 +49,25 @@
 //! └─────────────────────────────────────────────────────────────────────────┘
 //! ```
 
-#![no_std]
 #![allow(dead_code)]
 
 extern crate alloc;
 
-pub mod abstract_interp;
-pub mod bmc;
-pub mod invariant;
-pub mod proof;
-pub mod property;
-pub mod sat;
-pub mod smt;
-pub mod symbolic;
+// TODO: Ces sous-modules doivent être créés
+// pub mod abstract_interp;
+// pub mod bmc;
+// pub mod invariant;
+// pub mod proof;
+// pub mod property;
+// pub mod sat;
+// pub mod smt;
+// pub mod symbolic;
 
 use alloc::boxed::Box;
-use alloc::collections::{BTreeMap, BTreeSet, VecDeque};
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
-use core::cmp::Ordering;
-
-use crate::types::{NexusError, NexusResult};
 
 /// Variable identifier
 pub type VarId = u32;
@@ -816,7 +814,7 @@ impl LtlFormula {
 }
 
 /// Transition system state
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct State {
     /// State variables
     pub variables: BTreeMap<String, i64>,
@@ -842,7 +840,6 @@ impl State {
 }
 
 /// Transition system for model checking
-#[derive(Debug)]
 pub struct TransitionSystem {
     /// Initial states
     pub initial: Vec<State>,
@@ -852,6 +849,20 @@ pub struct TransitionSystem {
     pub variables: Vec<String>,
     /// Propositions
     pub propositions: BTreeMap<String, Box<dyn Fn(&State) -> bool + Send + Sync>>,
+}
+
+impl core::fmt::Debug for TransitionSystem {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("TransitionSystem")
+            .field("initial", &self.initial)
+            .field("transitions", &self.transitions)
+            .field("variables", &self.variables)
+            .field(
+                "propositions",
+                &format_args!("<{} propositions>", self.propositions.len()),
+            )
+            .finish()
+    }
 }
 
 /// Bounded model checker
@@ -1243,7 +1254,7 @@ impl KernelVerifier {
     }
 
     /// Verify bounds: lo <= x <= hi
-    pub fn verify_bounds(&mut self, var: &str, lo: i64, hi: i64) -> bool {
+    pub fn verify_bounds(&mut self, _var: &str, lo: i64, hi: i64) -> bool {
         let domain = IntervalDomain { lo, hi };
 
         // This would use abstract interpretation in full implementation

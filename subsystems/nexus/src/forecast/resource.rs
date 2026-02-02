@@ -135,13 +135,13 @@ pub struct ResourceForecast {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ForecastSeverity {
     /// Stable, no issues expected
-    Stable = 0,
+    Stable   = 0,
     /// Warning, issues may occur in the future
-    Warning = 1,
+    Warning  = 1,
     /// Concern, issues expected soon
-    Concern = 2,
+    Concern  = 2,
     /// Urgent, issues imminent
-    Urgent = 3,
+    Urgent   = 3,
     /// Critical, immediate action required
     Critical = 4,
 }

@@ -43,15 +43,15 @@ struct Multiboot2Header {
     header_length: u32,
     checksum: u32,
     // Framebuffer tag: 6 x u32 = 24 bytes
-    fb_type: u16,         // Tag type 5 = framebuffer
-    fb_flags: u16,        // Flags (0 = required, 1 = optional)
-    fb_size: u32,         // Tag size = 20 bytes
-    fb_width: u32,        // Preferred width
-    fb_height: u32,       // Preferred height
-    fb_depth: u32,        // Preferred bpp
+    fb_type: u16,   // Tag type 5 = framebuffer
+    fb_flags: u16,  // Flags (0 = required, 1 = optional)
+    fb_size: u32,   // Tag size = 20 bytes
+    fb_width: u32,  // Preferred width
+    fb_height: u32, // Preferred height
+    fb_depth: u32,  // Preferred bpp
     // End tag: 2 x u32 = 8 bytes
-    end_type: u32,        // Type 0 = end
-    end_size: u32,        // Size 8
+    end_type: u32, // Type 0 = end
+    end_size: u32, // Size 8
 }
 
 /// Multiboot2 header structure - placed in a special section
@@ -65,12 +65,12 @@ static MULTIBOOT2_HEADER: Multiboot2Header = Multiboot2Header {
     header_length: HEADER_LENGTH,
     checksum: multiboot2_checksum(MULTIBOOT2_MAGIC, MULTIBOOT2_ARCH_I386, HEADER_LENGTH),
     // Framebuffer request tag
-    fb_type: 5,           // MULTIBOOT_HEADER_TAG_FRAMEBUFFER
-    fb_flags: 1,          // Optional (don't fail if unavailable)
-    fb_size: 20,          // Tag size: type(2) + flags(2) + size(4) + width(4) + height(4) + depth(4)
-    fb_width: 1024,       // Preferred width
-    fb_height: 768,       // Preferred height
-    fb_depth: 32,         // Preferred depth (32-bit color)
+    fb_type: 5,     // MULTIBOOT_HEADER_TAG_FRAMEBUFFER
+    fb_flags: 1,    // Optional (don't fail if unavailable)
+    fb_size: 20,    // Tag size: type(2) + flags(2) + size(4) + width(4) + height(4) + depth(4)
+    fb_width: 1024, // Preferred width
+    fb_height: 768, // Preferred height
+    fb_depth: 32,   // Preferred depth (32-bit color)
     // End tag
     end_type: 0,
     end_size: 8,

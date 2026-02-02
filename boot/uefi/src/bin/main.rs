@@ -17,28 +17,30 @@ extern crate alloc;
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use helix_uefi::raw::types::*;
-use helix_uefi::raw::protocol::*;
-use helix_uefi::raw::system::*;
+use helix_uefi::arch::{Architecture, CpuFeatures, MemoryModel, PlatformInit};
 use helix_uefi::error::{Error, Result};
-use helix_uefi::services::boot::BootServices;
-use helix_uefi::services::runtime::RuntimeServices;
-use helix_uefi::services::console::Console;
-use helix_uefi::protocols::file::{FileSystem, File, FileMode, FileAttribute};
-use helix_uefi::protocols::graphics::GraphicsOutput;
-use helix_uefi::memory::allocator::UefiAllocator;
-use helix_uefi::memory::map::{MemoryMap, MemoryDescriptor};
-use helix_uefi::loader::elf::ElfLoader;
-use helix_uefi::loader::image::KernelImage;
 use helix_uefi::handoff::bootinfo::{BootInfo, BootInfoHeader, TlsTemplate};
 use helix_uefi::handoff::framebuffer::{FramebufferInfo, PixelFormat};
-use helix_uefi::handoff::memory_map::{MemoryMap as HandoffMemoryMap, MemoryType as HandoffMemoryType};
-use helix_uefi::handoff::modules::{ModuleList, ModuleInfo, ModuleType};
-use helix_uefi::handoff::rsdp::{RsdpInfo, AcpiTableFinder};
+use helix_uefi::handoff::memory_map::{
+    MemoryMap as HandoffMemoryMap, MemoryType as HandoffMemoryType,
+};
+use helix_uefi::handoff::modules::{ModuleInfo, ModuleList, ModuleType};
+use helix_uefi::handoff::rsdp::{AcpiTableFinder, RsdpInfo};
+use helix_uefi::loader::elf::ElfLoader;
+use helix_uefi::loader::image::KernelImage;
+use helix_uefi::memory::allocator::UefiAllocator;
+use helix_uefi::memory::map::{MemoryDescriptor, MemoryMap};
+use helix_uefi::protocols::file::{File, FileAttribute, FileMode, FileSystem};
+use helix_uefi::protocols::graphics::GraphicsOutput;
+use helix_uefi::raw::protocol::*;
+use helix_uefi::raw::system::*;
+use helix_uefi::raw::types::*;
+use helix_uefi::services::boot::BootServices;
+use helix_uefi::services::console::Console;
+use helix_uefi::services::runtime::RuntimeServices;
 use helix_uefi::tables::acpi::AcpiTables;
-use helix_uefi::tables::smbios::SmbiosTables;
 use helix_uefi::tables::config::ConfigurationTable;
-use helix_uefi::arch::{Architecture, CpuFeatures, MemoryModel, PlatformInit};
+use helix_uefi::tables::smbios::SmbiosTables;
 
 // =============================================================================
 // CONSTANTS
@@ -100,7 +102,9 @@ pub extern "efiapi" fn efi_main(
     system_table: *mut EfiSystemTable,
 ) -> EfiStatus {
     // Store system table
-    unsafe { SYSTEM_TABLE = Some(system_table); }
+    unsafe {
+        SYSTEM_TABLE = Some(system_table);
+    }
 
     // Record boot timestamp
     #[cfg(target_arch = "x86_64")]
@@ -124,7 +128,7 @@ pub extern "efiapi" fn efi_main(
                 }
             }
             e.to_status()
-        }
+        },
     }
 }
 
@@ -334,8 +338,8 @@ fn init_graphics(st: &EfiSystemTable) -> Result<FramebufferInfo> {
     let mode_info = unsafe { &*(*gop.mode).info };
 
     let format = match mode_info.pixel_format {
-        0 => PixelFormat::Rgb32,  // PixelRedGreenBlueReserved8BitPerColor
-        1 => PixelFormat::Bgr32,  // PixelBlueGreenRedReserved8BitPerColor
+        0 => PixelFormat::Rgb32, // PixelRedGreenBlueReserved8BitPerColor
+        1 => PixelFormat::Bgr32, // PixelBlueGreenRedReserved8BitPerColor
         2 => PixelFormat::Bitmask,
         _ => PixelFormat::Rgb32,
     };
@@ -623,22 +627,15 @@ fn load_kernel(
 
     // Read kernel file
     let mut bytes_read = file_size as usize;
-    let status = unsafe {
-        (kernel_file_ref.read)(
-            kernel_file,
-            &mut bytes_read,
-            kernel_buffer,
-        )
-    };
+    let status = unsafe { (kernel_file_ref.read)(kernel_file, &mut bytes_read, kernel_buffer) };
 
     if status != EFI_SUCCESS {
         return Err(Error::from_status(status));
     }
 
     // Parse ELF
-    let kernel_data = unsafe {
-        core::slice::from_raw_parts(kernel_buffer as *const u8, bytes_read)
-    };
+    let kernel_data =
+        unsafe { core::slice::from_raw_parts(kernel_buffer as *const u8, bytes_read) };
 
     // Verify ELF magic
     if bytes_read < 4 || &kernel_data[0..4] != b"\x7fELF" {
@@ -649,8 +646,14 @@ fn load_kernel(
     let entry_point = if kernel_data[4] == 2 {
         // 64-bit ELF
         u64::from_le_bytes([
-            kernel_data[24], kernel_data[25], kernel_data[26], kernel_data[27],
-            kernel_data[28], kernel_data[29], kernel_data[30], kernel_data[31],
+            kernel_data[24],
+            kernel_data[25],
+            kernel_data[26],
+            kernel_data[27],
+            kernel_data[28],
+            kernel_data[29],
+            kernel_data[30],
+            kernel_data[31],
         ])
     } else {
         return Err(Error::Unsupported);
@@ -790,9 +793,8 @@ fn exit_boot_services(
     let mut descriptors = Vec::with_capacity(entry_count);
 
     for i in 0..entry_count {
-        let desc_ptr = unsafe {
-            (buffer as *const u8).add(i * desc_size) as *const EfiMemoryDescriptor
-        };
+        let desc_ptr =
+            unsafe { (buffer as *const u8).add(i * desc_size) as *const EfiMemoryDescriptor };
         let desc = unsafe { &*desc_ptr };
 
         descriptors.push(MemoryDescriptor {
@@ -959,11 +961,30 @@ fn print_banner(st: &EfiSystemTable) -> Result<()> {
 
     // Print banner
     let banner: &[u16] = &[
-        'H' as u16, 'e' as u16, 'l' as u16, 'i' as u16, 'x' as u16, ' ' as u16,
-        'U' as u16, 'E' as u16, 'F' as u16, 'I' as u16, ' ' as u16,
-        'B' as u16, 'o' as u16, 'o' as u16, 't' as u16, 'l' as u16,
-        'o' as u16, 'a' as u16, 'd' as u16, 'e' as u16, 'r' as u16,
-        '\r' as u16, '\n' as u16, 0,
+        'H' as u16,
+        'e' as u16,
+        'l' as u16,
+        'i' as u16,
+        'x' as u16,
+        ' ' as u16,
+        'U' as u16,
+        'E' as u16,
+        'F' as u16,
+        'I' as u16,
+        ' ' as u16,
+        'B' as u16,
+        'o' as u16,
+        'o' as u16,
+        't' as u16,
+        'l' as u16,
+        'o' as u16,
+        'a' as u16,
+        'd' as u16,
+        'e' as u16,
+        'r' as u16,
+        '\r' as u16,
+        '\n' as u16,
+        0,
     ];
 
     let _ = unsafe { (con_out.output_string)(st.con_out, banner.as_ptr()) };
@@ -994,11 +1015,18 @@ unsafe fn print_error(st: &EfiSystemTable, error: Error) -> Result<()> {
     let con_out = &*st.con_out;
 
     let msg: &[u16] = &[
-        'E' as u16, 'r' as u16, 'r' as u16, 'o' as u16, 'r' as u16,
-        ':' as u16, ' ' as u16,
+        'E' as u16,
+        'r' as u16,
+        'r' as u16,
+        'o' as u16,
+        'r' as u16,
+        ':' as u16,
+        ' ' as u16,
         '0' as u16 + (error as u16 / 10),
         '0' as u16 + (error as u16 % 10),
-        '\r' as u16, '\n' as u16, 0,
+        '\r' as u16,
+        '\n' as u16,
+        0,
     ];
 
     let _ = (con_out.output_string)(st.con_out, msg.as_ptr());
@@ -1021,8 +1049,15 @@ fn panic(info: &PanicInfo) -> ! {
                     let con_out = &*st.con_out;
 
                     let msg: &[u16] = &[
-                        'P' as u16, 'A' as u16, 'N' as u16, 'I' as u16, 'C' as u16,
-                        '!' as u16, '\r' as u16, '\n' as u16, 0,
+                        'P' as u16,
+                        'A' as u16,
+                        'N' as u16,
+                        'I' as u16,
+                        'C' as u16,
+                        '!' as u16,
+                        '\r' as u16,
+                        '\n' as u16,
+                        0,
                     ];
 
                     let _ = (con_out.output_string)(st.con_out, msg.as_ptr());

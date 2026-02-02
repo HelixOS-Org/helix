@@ -280,7 +280,11 @@ impl<'a> BiosInformation<'a> {
             return None;
         }
 
-        Some(Self { header, data, strings })
+        Some(Self {
+            header,
+            data,
+            strings,
+        })
     }
 
     /// Get vendor
@@ -399,7 +403,11 @@ impl<'a> SystemInformation<'a> {
             return None;
         }
 
-        Some(Self { header, data, strings })
+        Some(Self {
+            header,
+            data,
+            strings,
+        })
     }
 
     /// Get manufacturer
@@ -526,7 +534,11 @@ impl<'a> ProcessorInformation<'a> {
             return None;
         }
 
-        Some(Self { header, data, strings })
+        Some(Self {
+            header,
+            data,
+            strings,
+        })
     }
 
     /// Get socket designation
@@ -753,7 +765,11 @@ impl<'a> MemoryDevice<'a> {
             return None;
         }
 
-        Some(Self { header, data, strings })
+        Some(Self {
+            header,
+            data,
+            strings,
+        })
     }
 
     /// Get physical memory array handle
@@ -1141,12 +1157,14 @@ impl<'a> SmbiosTable<'a> {
 
     /// Find structure by type
     pub fn find_by_type(&self, structure_type: u8) -> Option<Structure<'a>> {
-        self.structures().find(|s| s.header.structure_type == structure_type)
+        self.structures()
+            .find(|s| s.header.structure_type == structure_type)
     }
 
     /// Find all structures of type
     pub fn find_all_by_type(&self, structure_type: u8) -> impl Iterator<Item = Structure<'a>> {
-        self.structures().filter(move |s| s.header.structure_type == structure_type)
+        self.structures()
+            .filter(move |s| s.header.structure_type == structure_type)
     }
 
     /// Get BIOS information

@@ -20,17 +20,13 @@ mod policy;
 mod transaction;
 
 // Re-export point
-pub use point::RollbackPoint;
-
-// Re-export entry
-pub use entry::RollbackEntry;
-
-// Re-export policy
-pub use policy::RollbackPolicy;
-
 // Re-export engine
 pub use engine::{MicroRollbackEngine, MicroRollbackStats};
-
+// Re-export entry
+pub use entry::RollbackEntry;
+pub use point::RollbackPoint;
+// Re-export policy
+pub use policy::RollbackPolicy;
 // Re-export transaction
 pub use transaction::RollbackTransaction;
 

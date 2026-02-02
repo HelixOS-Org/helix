@@ -3,12 +3,11 @@
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use crate::core::{ComponentId, NexusTimestamp};
-use crate::error::{HealingError, NexusResult};
-
 use super::event::{StateEvent, StateEventType};
 use super::log::StateLog;
 use super::snapshot::StateSnapshot;
+use crate::core::{ComponentId, NexusTimestamp};
+use crate::error::{HealingError, NexusResult};
 
 /// State reconstruction engine
 pub struct StateReconstructor {
@@ -100,12 +99,14 @@ impl StateReconstructor {
         let log = self
             .logs
             .get(&component.raw())
-            .ok_or(HealingError::ReconstructionFailed)?;
+            .ok_or_else(|| HealingError::ReconstructionFailed("No log found".into()))?;
 
         // Start from latest snapshot before timestamp
         let mut state = if let Some(snapshot) = log.snapshot_before(timestamp) {
             if self.verify && !snapshot.verify_checksum() {
-                return Err(HealingError::ReconstructionFailed.into());
+                return Err(
+                    HealingError::ReconstructionFailed("Snapshot checksum failed".into()).into(),
+                );
             }
             snapshot.state.clone()
         } else {
@@ -124,7 +125,9 @@ impl StateReconstructor {
                 && event.timestamp.ticks() <= timestamp.ticks()
             {
                 if self.verify && !event.verify_checksum() {
-                    return Err(HealingError::ReconstructionFailed.into());
+                    return Err(
+                        HealingError::ReconstructionFailed("Event checksum failed".into()).into(),
+                    );
                 }
 
                 match event.event_type {
@@ -132,13 +135,13 @@ impl StateReconstructor {
                         if let Some(ref value) = event.new_value {
                             state.insert(event.key.clone(), value.clone());
                         }
-                    }
+                    },
                     StateEventType::Delete => {
                         state.remove(&event.key);
-                    }
+                    },
                     StateEventType::Snapshot | StateEventType::Checkpoint => {
                         // Handled via snapshots
-                    }
+                    },
                 }
             }
         }

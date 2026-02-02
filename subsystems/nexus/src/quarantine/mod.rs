@@ -26,11 +26,9 @@ pub mod level;
 pub mod system;
 
 // Re-export level types
-pub use level::{QuarantineLevel, QuarantineReason};
-
 // Re-export entry
 pub use entry::QuarantineEntry;
-
+pub use level::{QuarantineLevel, QuarantineReason};
 // Re-export system
 pub use system::{QuarantineHistoryEntry, QuarantineStats, QuarantineSystem};
 
@@ -65,10 +63,9 @@ mod tests {
 
     #[test]
     fn test_quarantine_entry() {
-        let entry = QuarantineEntry::new(
-            ComponentId::MEMORY,
-            QuarantineReason::RepeatedFailures { count: 3 },
-        );
+        let entry = QuarantineEntry::new(ComponentId::MEMORY, QuarantineReason::RepeatedFailures {
+            count: 3,
+        });
 
         assert_eq!(entry.component, ComponentId::MEMORY);
         assert_eq!(entry.level, QuarantineLevel::Isolated);
@@ -79,12 +76,9 @@ mod tests {
     fn test_quarantine_system() {
         let mut system = QuarantineSystem::new();
 
-        let entry = QuarantineEntry::new(
-            ComponentId::SCHEDULER,
-            QuarantineReason::Manual {
-                reason: "Test".into(),
-            },
-        );
+        let entry = QuarantineEntry::new(ComponentId::SCHEDULER, QuarantineReason::Manual {
+            reason: "Test".into(),
+        });
 
         system.quarantine(entry);
 
@@ -102,13 +96,10 @@ mod tests {
     fn test_escalation() {
         let mut system = QuarantineSystem::new();
 
-        let entry = QuarantineEntry::new(
-            ComponentId::MEMORY,
-            QuarantineReason::LowHealth {
-                health: 0.4,
-                threshold: 0.5,
-            },
-        )
+        let entry = QuarantineEntry::new(ComponentId::MEMORY, QuarantineReason::LowHealth {
+            health: 0.4,
+            threshold: 0.5,
+        })
         .with_level(QuarantineLevel::Monitored);
 
         system.quarantine(entry);
@@ -131,22 +122,16 @@ mod tests {
         let mut system = QuarantineSystem::new();
 
         system.quarantine(
-            QuarantineEntry::new(
-                ComponentId::MEMORY,
-                QuarantineReason::Manual {
-                    reason: "Test".into(),
-                },
-            )
+            QuarantineEntry::new(ComponentId::MEMORY, QuarantineReason::Manual {
+                reason: "Test".into(),
+            })
             .with_level(QuarantineLevel::Isolated),
         );
 
         system.quarantine(
-            QuarantineEntry::new(
-                ComponentId::SCHEDULER,
-                QuarantineReason::Manual {
-                    reason: "Test".into(),
-                },
-            )
+            QuarantineEntry::new(ComponentId::SCHEDULER, QuarantineReason::Manual {
+                reason: "Test".into(),
+            })
             .with_level(QuarantineLevel::Suspended),
         );
 

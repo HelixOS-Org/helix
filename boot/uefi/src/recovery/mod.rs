@@ -562,49 +562,111 @@ pub mod beep_patterns {
     use super::BeepElement;
 
     /// Success beep (short high)
-    pub const SUCCESS: &[BeepElement] = &[
-        BeepElement { frequency: 1000, duration_ms: 100 },
-    ];
+    pub const SUCCESS: &[BeepElement] = &[BeepElement {
+        frequency: 1000,
+        duration_ms: 100,
+    }];
 
     /// Warning beep (two medium)
     pub const WARNING: &[BeepElement] = &[
-        BeepElement { frequency: 800, duration_ms: 200 },
-        BeepElement { frequency: 0, duration_ms: 100 },
-        BeepElement { frequency: 800, duration_ms: 200 },
+        BeepElement {
+            frequency: 800,
+            duration_ms: 200,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 100,
+        },
+        BeepElement {
+            frequency: 800,
+            duration_ms: 200,
+        },
     ];
 
     /// Error beep (three low)
     pub const ERROR: &[BeepElement] = &[
-        BeepElement { frequency: 500, duration_ms: 300 },
-        BeepElement { frequency: 0, duration_ms: 100 },
-        BeepElement { frequency: 500, duration_ms: 300 },
-        BeepElement { frequency: 0, duration_ms: 100 },
-        BeepElement { frequency: 500, duration_ms: 300 },
+        BeepElement {
+            frequency: 500,
+            duration_ms: 300,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 100,
+        },
+        BeepElement {
+            frequency: 500,
+            duration_ms: 300,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 100,
+        },
+        BeepElement {
+            frequency: 500,
+            duration_ms: 300,
+        },
     ];
 
     /// Critical beep (long continuous)
-    pub const CRITICAL: &[BeepElement] = &[
-        BeepElement { frequency: 440, duration_ms: 1000 },
-    ];
+    pub const CRITICAL: &[BeepElement] = &[BeepElement {
+        frequency: 440,
+        duration_ms: 1000,
+    }];
 
     /// Memory error (1 long, 3 short)
     pub const MEMORY_ERROR: &[BeepElement] = &[
-        BeepElement { frequency: 1000, duration_ms: 500 },
-        BeepElement { frequency: 0, duration_ms: 200 },
-        BeepElement { frequency: 1000, duration_ms: 150 },
-        BeepElement { frequency: 0, duration_ms: 100 },
-        BeepElement { frequency: 1000, duration_ms: 150 },
-        BeepElement { frequency: 0, duration_ms: 100 },
-        BeepElement { frequency: 1000, duration_ms: 150 },
+        BeepElement {
+            frequency: 1000,
+            duration_ms: 500,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 200,
+        },
+        BeepElement {
+            frequency: 1000,
+            duration_ms: 150,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 100,
+        },
+        BeepElement {
+            frequency: 1000,
+            duration_ms: 150,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 100,
+        },
+        BeepElement {
+            frequency: 1000,
+            duration_ms: 150,
+        },
     ];
 
     /// Keyboard error (3 short)
     pub const KEYBOARD_ERROR: &[BeepElement] = &[
-        BeepElement { frequency: 1000, duration_ms: 150 },
-        BeepElement { frequency: 0, duration_ms: 100 },
-        BeepElement { frequency: 1000, duration_ms: 150 },
-        BeepElement { frequency: 0, duration_ms: 100 },
-        BeepElement { frequency: 1000, duration_ms: 150 },
+        BeepElement {
+            frequency: 1000,
+            duration_ms: 150,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 100,
+        },
+        BeepElement {
+            frequency: 1000,
+            duration_ms: 150,
+        },
+        BeepElement {
+            frequency: 0,
+            duration_ms: 100,
+        },
+        BeepElement {
+            frequency: 1000,
+            duration_ms: 150,
+        },
     ];
 }
 

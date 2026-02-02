@@ -2,9 +2,9 @@
 //!
 //! CPU feature detection using CPUID.
 
-use super::cpuid;
-use super::{read_cr0, write_cr0, read_cr4, write_cr4, read_efer, write_efer};
-use super::{cr0, cr4, efer};
+use super::{
+    cpuid, cr0, cr4, efer, read_cr0, read_cr4, read_efer, write_cr0, write_cr4, write_efer,
+};
 use crate::arch::CpuFeatures;
 use crate::error::Result;
 
@@ -33,9 +33,18 @@ impl CpuVendor {
         ];
 
         let vendor_bytes: [u8; 12] = [
-            vendor[0][0], vendor[0][1], vendor[0][2], vendor[0][3],
-            vendor[1][0], vendor[1][1], vendor[1][2], vendor[1][3],
-            vendor[2][0], vendor[2][1], vendor[2][2], vendor[2][3],
+            vendor[0][0],
+            vendor[0][1],
+            vendor[0][2],
+            vendor[0][3],
+            vendor[1][0],
+            vendor[1][1],
+            vendor[1][2],
+            vendor[1][3],
+            vendor[2][0],
+            vendor[2][1],
+            vendor[2][2],
+            vendor[2][3],
         ];
 
         match &vendor_bytes {
@@ -116,10 +125,14 @@ impl CpuModel {
                 let result = cpuid(0x80000002 + i, 0);
                 let offset = (i * 16) as usize;
 
-                cpu_model.brand_string[offset..offset+4].copy_from_slice(&result.eax.to_le_bytes());
-                cpu_model.brand_string[offset+4..offset+8].copy_from_slice(&result.ebx.to_le_bytes());
-                cpu_model.brand_string[offset+8..offset+12].copy_from_slice(&result.ecx.to_le_bytes());
-                cpu_model.brand_string[offset+12..offset+16].copy_from_slice(&result.edx.to_le_bytes());
+                cpu_model.brand_string[offset..offset + 4]
+                    .copy_from_slice(&result.eax.to_le_bytes());
+                cpu_model.brand_string[offset + 4..offset + 8]
+                    .copy_from_slice(&result.ebx.to_le_bytes());
+                cpu_model.brand_string[offset + 8..offset + 12]
+                    .copy_from_slice(&result.ecx.to_le_bytes());
+                cpu_model.brand_string[offset + 12..offset + 16]
+                    .copy_from_slice(&result.edx.to_le_bytes());
             }
         }
 
@@ -128,9 +141,7 @@ impl CpuModel {
 
     /// Get brand string as str
     pub fn brand_str(&self) -> &str {
-        let end = self.brand_string.iter()
-            .position(|&c| c == 0)
-            .unwrap_or(48);
+        let end = self.brand_string.iter().position(|&c| c == 0).unwrap_or(48);
 
         core::str::from_utf8(&self.brand_string[..end])
             .unwrap_or("")
@@ -392,9 +403,11 @@ pub fn enable_features(features: &CpuFeatures) -> Result<()> {
 
     // Enable SSE/SSE2 (required for x86_64)
     let mut cr0_value = read_cr0();
-    cr0_value &= !(cr0::EM | cr0::TS);  // Clear emulation, task switched
-    cr0_value |= cr0::MP;                // Monitor coprocessor
-    unsafe { write_cr0(cr0_value); }
+    cr0_value &= !(cr0::EM | cr0::TS); // Clear emulation, task switched
+    cr0_value |= cr0::MP; // Monitor coprocessor
+    unsafe {
+        write_cr0(cr0_value);
+    }
 
     // Enable OSFXSR and OSXMMEXCPT
     cr4_value |= cr4::OSFXSR | cr4::OSXMMEXCPT;
@@ -440,13 +453,17 @@ pub fn enable_features(features: &CpuFeatures) -> Result<()> {
     }
 
     // Write CR4
-    unsafe { write_cr4(cr4_value); }
+    unsafe {
+        write_cr4(cr4_value);
+    }
 
     // Enable NX in EFER if supported
     if features.nx {
         let mut efer_value = read_efer();
         efer_value |= efer::NXE;
-        unsafe { write_efer(efer_value); }
+        unsafe {
+            write_efer(efer_value);
+        }
     }
 
     Ok(())
@@ -557,9 +574,9 @@ mod tests {
     #[test]
     fn test_vendor_detection() {
         let vendor = CpuVendor::detect();
-        assert!(vendor == CpuVendor::Intel ||
-                vendor == CpuVendor::Amd ||
-                vendor == CpuVendor::Unknown);
+        assert!(
+            vendor == CpuVendor::Intel || vendor == CpuVendor::Amd || vendor == CpuVendor::Unknown
+        );
     }
 
     #[test]

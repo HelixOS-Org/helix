@@ -21,7 +21,8 @@
 //! use helix_limine::prelude::*;
 //!
 //! // Declare requests (placed in .limine_requests section)
-//! static BOOTLOADER_INFO: BootloaderInfoRequest = BootloaderInfoRequest::new();
+//! static BOOTLOADER_INFO: BootloaderInfoRequest =
+//!     BootloaderInfoRequest::new();
 //! static MEMORY_MAP: MemoryMapRequest = MemoryMapRequest::new();
 //! static HHDM: HhdmRequest = HhdmRequest::new();
 //! static FRAMEBUFFER: FramebufferRequest = FramebufferRequest::new();
@@ -124,80 +125,48 @@ pub mod error;
 /// Prelude module for convenient imports
 pub mod prelude {
     // Re-export common request types
-    pub use crate::requests::{
-        BootloaderInfoRequest,
-        HhdmRequest,
-        MemoryMapRequest,
-        KernelAddressRequest,
-        KernelFileRequest,
-    };
-
-    #[cfg(feature = "framebuffer")]
-    pub use crate::requests::FramebufferRequest;
-
-    #[cfg(feature = "smp")]
-    pub use crate::requests::SmpRequest;
-
-    #[cfg(feature = "acpi")]
-    pub use crate::requests::RsdpRequest;
-
-    #[cfg(feature = "modules")]
-    pub use crate::requests::ModuleRequest;
-
-    // Re-export response abstractions
-    pub use crate::responses::{
-        BootloaderInfo,
-        MemoryMap,
-        HhdmInfo,
-        KernelAddress,
-        BootTime,
-    };
-
-    #[cfg(feature = "smp")]
-    pub use crate::responses::{SmpInfo, CpuInfo};
-
-    #[cfg(feature = "framebuffer")]
-    pub use crate::responses::FramebufferInfo;
-
-    // Re-export memory types
-    pub use crate::memory::{
-        MemoryRegion,
-        MemoryRegionKind,
-        PhysAddr,
-        VirtAddr,
-        HHDM,
-    };
-
     // Re-export boot info
     pub use crate::boot_info::BootInfo;
-
-    // Re-export error types
-    pub use crate::error::Error;
-
-    // Re-export file types
-    pub use crate::file::{File, ModuleCollection, FileType};
-
     // Re-export CPU utilities
     #[cfg(feature = "smp")]
     pub use crate::cpu::{cpu_count, current_cpu_id, is_bsp};
-
-    // Re-export framebuffer utilities
-    #[cfg(feature = "framebuffer")]
-    pub use crate::framebuffer::{Console, Graphics, Point, Rect};
-
-    // Re-export Color from requests
-    #[cfg(feature = "framebuffer")]
-    pub use crate::requests::Color;
-
+    // Re-export entry utilities
+    pub use crate::entry::halt_loop;
+    // Re-export error types
+    pub use crate::error::Error;
+    // Re-export file types
+    pub use crate::file::{File, FileType, ModuleCollection};
     // Re-export firmware utilities
     #[cfg(feature = "acpi")]
     pub use crate::firmware::AcpiFinder;
-
+    // Re-export framebuffer utilities
+    #[cfg(feature = "framebuffer")]
+    pub use crate::framebuffer::{Console, Graphics, Point, Rect};
+    // Re-export memory types
+    pub use crate::memory::{MemoryRegion, MemoryRegionKind, PhysAddr, VirtAddr, HHDM};
+    // Re-export Color from requests
+    #[cfg(feature = "framebuffer")]
+    pub use crate::requests::Color;
+    #[cfg(feature = "framebuffer")]
+    pub use crate::requests::FramebufferRequest;
+    #[cfg(feature = "modules")]
+    pub use crate::requests::ModuleRequest;
+    #[cfg(feature = "acpi")]
+    pub use crate::requests::RsdpRequest;
+    #[cfg(feature = "smp")]
+    pub use crate::requests::SmpRequest;
+    pub use crate::requests::{
+        BootloaderInfoRequest, HhdmRequest, KernelAddressRequest, KernelFileRequest,
+        MemoryMapRequest,
+    };
+    #[cfg(feature = "framebuffer")]
+    pub use crate::responses::FramebufferInfo;
+    // Re-export response abstractions
+    pub use crate::responses::{BootTime, BootloaderInfo, HhdmInfo, KernelAddress, MemoryMap};
+    #[cfg(feature = "smp")]
+    pub use crate::responses::{CpuInfo, SmpInfo};
     // Re-export validation
     pub use crate::validate::BootValidator;
-
-    // Re-export entry utilities
-    pub use crate::entry::halt_loop;
 }
 
 // =============================================================================
@@ -343,10 +312,7 @@ impl RequestsEndMarker {
     /// Create the end marker
     pub const fn new() -> Self {
         Self {
-            marker: [
-                0xadc0e0531bb10d03,
-                0x9572709f31764c62,
-            ],
+            marker: [0xadc0e0531bb10d03, 0x9572709f31764c62],
         }
     }
 }

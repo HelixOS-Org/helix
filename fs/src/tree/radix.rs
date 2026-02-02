@@ -3,9 +3,10 @@
 //! A compressed radix tree optimized for sparse integer keys.
 //! Used for inode number to block mapping and other integer-keyed data.
 
-use crate::core::error::{HfsError, HfsResult};
-use core::sync::atomic::{AtomicU64, AtomicPtr, Ordering};
 use core::ptr::null_mut;
+use core::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
+
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants
@@ -59,51 +60,47 @@ impl RadixNode {
             _pad: [0; 4],
         }
     }
-    
+
     /// Get slot value
     #[inline]
     pub fn get(&self, index: usize) -> u64 {
         debug_assert!(index < RADIX_SIZE);
         self.slots[index].load(Ordering::Relaxed)
     }
-    
+
     /// Set slot value
     #[inline]
     pub fn set(&self, index: usize, value: u64) {
         debug_assert!(index < RADIX_SIZE);
         self.slots[index].store(value, Ordering::Relaxed);
     }
-    
+
     /// Compare and swap slot
     pub fn cas(&self, index: usize, expected: u64, new: u64) -> Result<u64, u64> {
         debug_assert!(index < RADIX_SIZE);
-        self.slots[index].compare_exchange(
-            expected,
-            new,
-            Ordering::Relaxed,
-            Ordering::Relaxed,
-        )
+        self.slots[index].compare_exchange(expected, new, Ordering::Relaxed, Ordering::Relaxed)
     }
-    
+
     /// Check if slot is empty
     #[inline]
     pub fn is_empty_slot(&self, index: usize) -> bool {
         self.get(index) == 0
     }
-    
+
     /// Count non-empty slots
     pub fn count_used(&self) -> usize {
-        self.slots.iter()
+        self.slots
+            .iter()
             .filter(|s| s.load(Ordering::Relaxed) != 0)
             .count()
     }
-    
+
     /// Check if node is empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
-    
+
     /// Get height
     #[inline]
     pub fn height(&self) -> u8 {
@@ -136,7 +133,7 @@ pub fn height_for_key(key: u64) -> u8 {
     if key == 0 {
         return 0;
     }
-    
+
     let bits = 64 - key.leading_zeros();
     ((bits as usize + RADIX_BITS - 1) / RADIX_BITS).saturating_sub(1) as u8
 }
@@ -175,7 +172,7 @@ pub fn encode_value(value: u64) -> u64 {
 pub fn decode(tagged: u64) -> TaggedPtr {
     let tag = tagged & TAG_MASK;
     let ptr = tagged & !TAG_MASK;
-    
+
     match tag {
         TAG_NODE if ptr != 0 => TaggedPtr::Node(ptr as *mut RadixNode),
         TAG_VALUE => TaggedPtr::Value(tagged >> 2),
@@ -203,13 +200,13 @@ impl TaggedPtr {
     pub fn is_empty(&self) -> bool {
         matches!(self, Self::Empty)
     }
-    
+
     /// Check if value
     #[inline]
     pub fn is_value(&self) -> bool {
         matches!(self, Self::Value(_))
     }
-    
+
     /// Get value
     #[inline]
     pub fn value(&self) -> Option<u64> {
@@ -218,7 +215,7 @@ impl TaggedPtr {
             _ => None,
         }
     }
-    
+
     /// Get node pointer
     #[inline]
     pub fn node(&self) -> Option<*mut RadixNode> {
@@ -252,25 +249,25 @@ impl RadixTree {
             count: 0,
         }
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.root.load(Ordering::Relaxed).is_null()
     }
-    
+
     /// Get item count
     #[inline]
     pub fn len(&self) -> u64 {
         self.count
     }
-    
+
     /// Get tree height
     #[inline]
     pub fn height(&self) -> u8 {
         self.height
     }
-    
+
     /// Get root node
     #[inline]
     pub fn root(&self) -> *mut RadixNode {
@@ -307,7 +304,7 @@ pub struct RadixSlot {
 impl RadixSlot {
     /// Size in bytes
     pub const SIZE: usize = 24;
-    
+
     /// Create empty slot
     pub const fn empty() -> Self {
         Self {
@@ -318,7 +315,7 @@ impl RadixSlot {
             _reserved: [0; 6],
         }
     }
-    
+
     /// Create slot with value
     pub const fn with_value(prefix: u64, prefix_len: u8, value: u64) -> Self {
         Self {
@@ -329,19 +326,19 @@ impl RadixSlot {
             _reserved: [0; 6],
         }
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.flags == 0
     }
-    
+
     /// Check if has value
     #[inline]
     pub fn has_value(&self) -> bool {
         (self.flags & 1) != 0
     }
-    
+
     /// Check if is subtree
     #[inline]
     pub fn is_subtree(&self) -> bool {
@@ -386,10 +383,10 @@ pub struct RadixNodeDisk {
 impl RadixNodeDisk {
     /// Size in bytes
     pub const SIZE: usize = 4096;
-    
+
     /// Magic number
     pub const MAGIC: u32 = 0x52444958; // "RDIX"
-    
+
     /// Create new node
     pub fn new(level: u8, block_num: u64) -> Self {
         Self {
@@ -407,7 +404,7 @@ impl RadixNodeDisk {
             _reserved: [0; 28],
         }
     }
-    
+
     /// Validate node
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != Self::MAGIC {
@@ -415,7 +412,7 @@ impl RadixNodeDisk {
         }
         Ok(())
     }
-    
+
     /// Find slot for key
     pub fn find(&self, key: u64) -> Option<u64> {
         let idx = key_index(key, self.level);
@@ -425,35 +422,35 @@ impl RadixNodeDisk {
             None
         }
     }
-    
+
     /// Insert key-value
     pub fn insert(&mut self, key: u64, value: u64) -> HfsResult<()> {
         let idx = key_index(key, self.level);
-        
+
         if self.slots[idx].is_empty() {
             self.count += 1;
         }
-        
+
         self.slots[idx] = RadixSlot::with_value(
             key & !(RADIX_MASK << (self.level as usize * RADIX_BITS)),
             (self.level + 1) * RADIX_BITS as u8,
             value,
         );
-        
+
         Ok(())
     }
-    
+
     /// Remove key
     pub fn remove(&mut self, key: u64) -> HfsResult<bool> {
         let idx = key_index(key, self.level);
-        
+
         if self.slots[idx].is_empty() {
             return Ok(false);
         }
-        
+
         self.slots[idx] = RadixSlot::empty();
         self.count = self.count.saturating_sub(1);
-        
+
         Ok(true)
     }
 }
@@ -468,17 +465,17 @@ const _: () = assert!(core::mem::size_of::<RadixNodeDisk>() <= 4096);
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_key_index() {
         // Height 0: bits 0-5
         assert_eq!(key_index(0b000001, 0), 1);
         assert_eq!(key_index(0b111111, 0), 63);
-        
+
         // Height 1: bits 6-11
         assert_eq!(key_index(0b000001_000000, 1), 1);
     }
-    
+
     #[test]
     fn test_height_for_key() {
         assert_eq!(height_for_key(0), 0);
@@ -487,50 +484,50 @@ mod tests {
         assert_eq!(height_for_key(4095), 1);
         assert_eq!(height_for_key(4096), 2);
     }
-    
+
     #[test]
     fn test_tagged_ptr() {
         // Value encoding
         let encoded = encode_value(12345);
         let decoded = decode(encoded);
         assert_eq!(decoded.value(), Some(12345));
-        
+
         // Empty
         let empty = decode(0);
         assert!(empty.is_empty());
     }
-    
+
     #[test]
     fn test_radix_slot() {
         let slot = RadixSlot::with_value(100, 6, 5000);
-        
+
         assert!(!slot.is_empty());
         assert!(slot.has_value());
         assert_eq!(slot.value, 5000);
     }
-    
+
     #[test]
     fn test_radix_node_disk() {
         let mut node = RadixNodeDisk::new(0, 100);
-        
+
         assert!(node.validate().is_ok());
         assert_eq!(node.count, 0);
-        
+
         node.insert(42, 1000).unwrap();
         assert_eq!(node.count, 1);
-        
+
         let val = node.find(42);
         assert_eq!(val, Some(1000));
-        
+
         node.remove(42).unwrap();
         assert_eq!(node.count, 0);
         assert!(node.find(42).is_none());
     }
-    
+
     #[test]
     fn test_radix_tree() {
         let tree = RadixTree::new();
-        
+
         assert!(tree.is_empty());
         assert_eq!(tree.len(), 0);
         assert_eq!(tree.height(), 0);

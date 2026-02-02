@@ -7,11 +7,12 @@
 //! - EFI Memory Map
 //! - Device Tree Blob (DTB)
 
-
 use core::slice;
 
-use crate::protocol::request_ids::{RSDP_ID, SMBIOS_ID, EFI_SYSTEM_TABLE_ID, EFI_MEMMAP_ID, DTB_ID};
 use super::{LimineRequest, ResponsePtr, SafeResponse};
+use crate::protocol::request_ids::{
+    DTB_ID, EFI_MEMMAP_ID, EFI_SYSTEM_TABLE_ID, RSDP_ID, SMBIOS_ID,
+};
 
 // =============================================================================
 // RSDP Request (ACPI)
@@ -64,9 +65,15 @@ impl Default for RsdpRequest {
 impl LimineRequest for RsdpRequest {
     type Response = RsdpResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -99,9 +106,7 @@ impl RsdpResponse {
         if self.address.is_null() {
             return None;
         }
-        unsafe {
-            Some(&*(self.address as *const [u8; 8]))
-        }
+        unsafe { Some(&*(self.address as *const [u8; 8])) }
     }
 
     /// Check if this is ACPI 2.0+ (XSDP)
@@ -121,9 +126,7 @@ impl RsdpResponse {
         if self.address.is_null() {
             return None;
         }
-        unsafe {
-            Some(*self.address.add(15))
-        }
+        unsafe { Some(*self.address.add(15)) }
     }
 
     /// Get the RSDT address (ACPI 1.0)
@@ -131,9 +134,7 @@ impl RsdpResponse {
         if self.address.is_null() {
             return None;
         }
-        unsafe {
-            Some(*(self.address.add(16) as *const u32))
-        }
+        unsafe { Some(*(self.address.add(16) as *const u32)) }
     }
 
     /// Get the XSDT address (ACPI 2.0+)
@@ -141,9 +142,7 @@ impl RsdpResponse {
         if !self.is_xsdp() {
             return None;
         }
-        unsafe {
-            Some(*(self.address.add(24) as *const u64))
-        }
+        unsafe { Some(*(self.address.add(24) as *const u64)) }
     }
 }
 
@@ -209,9 +208,15 @@ impl Default for SmbiosRequest {
 impl LimineRequest for SmbiosRequest {
     type Response = SmbiosResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -343,9 +348,15 @@ impl Default for EfiSystemTableRequest {
 impl LimineRequest for EfiSystemTableRequest {
     type Response = EfiSystemTableResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -444,9 +455,15 @@ impl Default for EfiMemmapRequest {
 impl LimineRequest for EfiMemmapRequest {
     type Response = EfiMemmapResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -509,9 +526,7 @@ impl EfiMemmapResponse {
         if self.memmap.is_null() || self.memmap_size == 0 {
             return &[];
         }
-        unsafe {
-            slice::from_raw_parts(self.memmap, self.memmap_size as usize)
-        }
+        unsafe { slice::from_raw_parts(self.memmap, self.memmap_size as usize) }
     }
 
     /// Get a specific descriptor by index
@@ -577,20 +592,20 @@ impl<'a> Iterator for EfiDescriptorIterator<'a> {
         Some(EfiMemoryDescriptor {
             memory_type: u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
             physical_start: u64::from_le_bytes([
-                bytes[8], bytes[9], bytes[10], bytes[11],
-                bytes[12], bytes[13], bytes[14], bytes[15]
+                bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14],
+                bytes[15],
             ]),
             virtual_start: u64::from_le_bytes([
-                bytes[16], bytes[17], bytes[18], bytes[19],
-                bytes[20], bytes[21], bytes[22], bytes[23]
+                bytes[16], bytes[17], bytes[18], bytes[19], bytes[20], bytes[21], bytes[22],
+                bytes[23],
             ]),
             number_of_pages: u64::from_le_bytes([
-                bytes[24], bytes[25], bytes[26], bytes[27],
-                bytes[28], bytes[29], bytes[30], bytes[31]
+                bytes[24], bytes[25], bytes[26], bytes[27], bytes[28], bytes[29], bytes[30],
+                bytes[31],
             ]),
             attribute: u64::from_le_bytes([
-                bytes[32], bytes[33], bytes[34], bytes[35],
-                bytes[36], bytes[37], bytes[38], bytes[39]
+                bytes[32], bytes[33], bytes[34], bytes[35], bytes[36], bytes[37], bytes[38],
+                bytes[39],
             ]),
         })
     }
@@ -690,12 +705,13 @@ impl EfiMemoryType {
 
     /// Check if this memory can be used by the OS
     pub fn is_usable(&self) -> bool {
-        matches!(self,
-            Self::BootServicesCode |
-            Self::BootServicesData |
-            Self::ConventionalMemory |
-            Self::LoaderCode |
-            Self::LoaderData
+        matches!(
+            self,
+            Self::BootServicesCode
+                | Self::BootServicesData
+                | Self::ConventionalMemory
+                | Self::LoaderCode
+                | Self::LoaderData
         )
     }
 }
@@ -737,9 +753,15 @@ impl Default for DtbRequest {
 impl LimineRequest for DtbRequest {
     type Response = DtbResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -813,9 +835,7 @@ impl DtbResponse {
         if self.dtb.is_null() || size == 0 {
             return None;
         }
-        unsafe {
-            Some(slice::from_raw_parts(self.dtb, size))
-        }
+        unsafe { Some(slice::from_raw_parts(self.dtb, size)) }
     }
 }
 
@@ -842,7 +862,10 @@ mod tests {
 
     #[test]
     fn test_efi_memory_type() {
-        assert_eq!(EfiMemoryType::from_raw(7), EfiMemoryType::ConventionalMemory);
+        assert_eq!(
+            EfiMemoryType::from_raw(7),
+            EfiMemoryType::ConventionalMemory
+        );
         assert!(EfiMemoryType::ConventionalMemory.is_usable());
         assert!(!EfiMemoryType::RuntimeServicesCode.is_usable());
     }

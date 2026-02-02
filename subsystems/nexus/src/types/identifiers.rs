@@ -5,8 +5,6 @@
 
 #![allow(dead_code)]
 
-use super::generate_id;
-
 /// Macro to create type-safe IDs
 #[macro_export]
 macro_rules! define_id {
@@ -113,6 +111,7 @@ define_id!(EffectorId, "Effector identifier");
 define_id!(ActionId, "Action identifier");
 define_id!(TransactionId, "Transaction identifier");
 define_id!(CheckpointId, "Checkpoint identifier");
+define_id!(AuditId, "Audit entry identifier");
 
 // ============================================================================
 // MEMORY IDS

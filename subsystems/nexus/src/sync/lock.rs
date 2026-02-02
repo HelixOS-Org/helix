@@ -5,9 +5,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::core::NexusTimestamp;
-
 use super::{AcquireMode, LockId, LockState, LockType, ThreadId};
+use crate::core::NexusTimestamp;
 
 /// Lock information
 #[derive(Debug, Clone)]
@@ -88,18 +87,18 @@ impl LockInfo {
                 self.holder = Some(thread);
                 self.acquisitions += 1;
                 true
-            }
+            },
             (LockState::Free, AcquireMode::Shared) => {
                 self.state = LockState::HeldShared(1);
                 self.holder = Some(thread);
                 self.acquisitions += 1;
                 true
-            }
+            },
             (LockState::HeldShared(n), AcquireMode::Shared) => {
                 self.state = LockState::HeldShared(n + 1);
                 self.acquisitions += 1;
                 true
-            }
+            },
             _ => false,
         }
     }
@@ -111,16 +110,16 @@ impl LockInfo {
                 self.state = LockState::Free;
                 self.holder = None;
                 true
-            }
+            },
             LockState::HeldShared(n) if n > 1 => {
                 self.state = LockState::HeldShared(n - 1);
                 true
-            }
+            },
             LockState::HeldShared(1) => {
                 self.state = LockState::Free;
                 self.holder = None;
                 true
-            }
+            },
             _ => false,
         }
     }

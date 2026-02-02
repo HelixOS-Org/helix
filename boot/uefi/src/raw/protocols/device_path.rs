@@ -2,37 +2,36 @@
 //!
 //! Extended device path types and utilities.
 
-use crate::raw::types::*;
 use core::fmt;
 
 // =============================================================================
 // RE-EXPORT FROM LOADED_IMAGE
 // =============================================================================
-
 pub use super::loaded_image::{
-    EfiDevicePathProtocol,
-    EfiDevicePathUtilitiesProtocol,
-    DevicePathType,
-    DevicePathEndSubType,
-    DevicePathIter,
-    // Hardware paths
-    PciDevicePath,
-    MemoryMappedDevicePath,
+    acpi_subtype,
     hw_subtype,
+    media_subtype,
+    msg_subtype,
     // ACPI paths
     AcpiDevicePath,
-    acpi_subtype,
-    // Messaging paths
-    UsbDevicePath,
-    SataDevicePath,
-    NvmeDevicePath,
-    MacDevicePath,
-    msg_subtype,
+    DevicePathEndSubType,
+    DevicePathIter,
+    DevicePathType,
+    EfiDevicePathProtocol,
+    EfiDevicePathUtilitiesProtocol,
+    FilePathDevicePath,
     // Media paths
     HardDriveDevicePath,
-    FilePathDevicePath,
-    media_subtype,
+    MacDevicePath,
+    MemoryMappedDevicePath,
+    NvmeDevicePath,
+    // Hardware paths
+    PciDevicePath,
+    SataDevicePath,
+    // Messaging paths
+    UsbDevicePath,
 };
+use crate::raw::types::*;
 
 // =============================================================================
 // DEVICE PATH TO TEXT PROTOCOL
@@ -101,14 +100,12 @@ impl fmt::Debug for EfiDevicePathToTextProtocol {
 #[repr(C)]
 pub struct EfiDevicePathFromTextProtocol {
     /// Convert text to device node
-    pub convert_text_to_device_node: unsafe extern "efiapi" fn(
-        text_device_node: *const u16,
-    ) -> *mut EfiDevicePathProtocol,
+    pub convert_text_to_device_node:
+        unsafe extern "efiapi" fn(text_device_node: *const u16) -> *mut EfiDevicePathProtocol,
 
     /// Convert text to device path
-    pub convert_text_to_device_path: unsafe extern "efiapi" fn(
-        text_device_path: *const u16,
-    ) -> *mut EfiDevicePathProtocol,
+    pub convert_text_to_device_path:
+        unsafe extern "efiapi" fn(text_device_path: *const u16) -> *mut EfiDevicePathProtocol,
 }
 
 impl EfiDevicePathFromTextProtocol {
@@ -120,10 +117,7 @@ impl EfiDevicePathFromTextProtocol {
     /// # Safety
     /// The caller must ensure the text pointer is valid and the returned
     /// path is freed with FreePool.
-    pub unsafe fn text_to_device_path(
-        &self,
-        text: *const u16,
-    ) -> *mut EfiDevicePathProtocol {
+    pub unsafe fn text_to_device_path(&self, text: *const u16) -> *mut EfiDevicePathProtocol {
         (self.convert_text_to_device_path)(text)
     }
 
@@ -132,10 +126,7 @@ impl EfiDevicePathFromTextProtocol {
     /// # Safety
     /// The caller must ensure the text pointer is valid and the returned
     /// node is freed with FreePool.
-    pub unsafe fn text_to_device_node(
-        &self,
-        text: *const u16,
-    ) -> *mut EfiDevicePathProtocol {
+    pub unsafe fn text_to_device_node(&self, text: *const u16) -> *mut EfiDevicePathProtocol {
         (self.convert_text_to_device_node)(text)
     }
 }
@@ -443,12 +434,20 @@ impl fmt::Debug for Ipv4DevicePath {
         let local_port = self.local_port;
         let remote_port = self.remote_port;
         f.debug_struct("Ipv4DevicePath")
-            .field("local_ip", &format_args!("{}.{}.{}.{}",
-                local_ip[0], local_ip[1],
-                local_ip[2], local_ip[3]))
-            .field("remote_ip", &format_args!("{}.{}.{}.{}",
-                remote_ip[0], remote_ip[1],
-                remote_ip[2], remote_ip[3]))
+            .field(
+                "local_ip",
+                &format_args!(
+                    "{}.{}.{}.{}",
+                    local_ip[0], local_ip[1], local_ip[2], local_ip[3]
+                ),
+            )
+            .field(
+                "remote_ip",
+                &format_args!(
+                    "{}.{}.{}.{}",
+                    remote_ip[0], remote_ip[1], remote_ip[2], remote_ip[3]
+                ),
+            )
             .field("local_port", &local_port)
             .field("remote_port", &remote_port)
             .finish()
@@ -645,10 +644,18 @@ pub struct BluetoothDevicePath {
 impl fmt::Debug for BluetoothDevicePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("BluetoothDevicePath")
-            .field("device_address", &format_args!("{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-                self.device_address[0], self.device_address[1],
-                self.device_address[2], self.device_address[3],
-                self.device_address[4], self.device_address[5]))
+            .field(
+                "device_address",
+                &format_args!(
+                    "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+                    self.device_address[0],
+                    self.device_address[1],
+                    self.device_address[2],
+                    self.device_address[3],
+                    self.device_address[4],
+                    self.device_address[5]
+                ),
+            )
             .finish()
     }
 }
@@ -734,28 +741,24 @@ pub mod ram_disk_type {
     use super::*;
 
     /// Virtual disk
-    pub const VIRTUAL_DISK: Guid = Guid::new(
-        0x77AB535A, 0x45FC, 0x624B,
-        [0x55, 0x60, 0xF7, 0xB2, 0x81, 0xD1, 0xF9, 0x6E],
-    );
+    pub const VIRTUAL_DISK: Guid = Guid::new(0x77AB535A, 0x45FC, 0x624B, [
+        0x55, 0x60, 0xF7, 0xB2, 0x81, 0xD1, 0xF9, 0x6E,
+    ]);
 
     /// Virtual CD
-    pub const VIRTUAL_CD: Guid = Guid::new(
-        0x3D5ABD30, 0x4175, 0x87CE,
-        [0x6D, 0x64, 0xD2, 0xAD, 0xE5, 0x23, 0xC4, 0xBB],
-    );
+    pub const VIRTUAL_CD: Guid = Guid::new(0x3D5ABD30, 0x4175, 0x87CE, [
+        0x6D, 0x64, 0xD2, 0xAD, 0xE5, 0x23, 0xC4, 0xBB,
+    ]);
 
     /// Persistent virtual disk
-    pub const PERSISTENT_VIRTUAL_DISK: Guid = Guid::new(
-        0x5CEA02C9, 0x4D07, 0x69D3,
-        [0x26, 0x9F, 0x44, 0x96, 0xFB, 0xE0, 0x96, 0xF9],
-    );
+    pub const PERSISTENT_VIRTUAL_DISK: Guid = Guid::new(0x5CEA02C9, 0x4D07, 0x69D3, [
+        0x26, 0x9F, 0x44, 0x96, 0xFB, 0xE0, 0x96, 0xF9,
+    ]);
 
     /// Persistent virtual CD
-    pub const PERSISTENT_VIRTUAL_CD: Guid = Guid::new(
-        0x08018188, 0x42CD, 0xBB48,
-        [0x10, 0x0F, 0x53, 0x87, 0xD5, 0x3D, 0xED, 0x3D],
-    );
+    pub const PERSISTENT_VIRTUAL_CD: Guid = Guid::new(0x08018188, 0x42CD, 0xBB48, [
+        0x10, 0x0F, 0x53, 0x87, 0xD5, 0x3D, 0xED, 0x3D,
+    ]);
 }
 
 // =============================================================================

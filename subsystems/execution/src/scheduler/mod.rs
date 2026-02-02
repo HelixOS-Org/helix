@@ -3,17 +3,18 @@
 //! This module defines the scheduler FRAMEWORK, not a specific scheduler.
 //! Actual scheduler implementations are provided as modules.
 
-pub mod traits;
-pub mod queue;
-pub mod priority;
 pub mod metrics;
+pub mod priority;
+pub mod queue;
+pub mod traits;
 
-use crate::{ThreadId, ExecResult, ExecError};
 use alloc::sync::Arc;
-use spin::RwLock;
 
-pub use traits::*;
 pub use priority::*;
+use spin::RwLock;
+pub use traits::*;
+
+use crate::{ExecError, ExecResult, ThreadId};
 
 /// Scheduler framework
 ///
@@ -63,7 +64,8 @@ impl SchedulerFramework {
     /// Add a thread to the scheduler
     pub fn add_thread(&self, thread: SchedulableThread) -> ExecResult<()> {
         let scheduler = self.scheduler.read();
-        scheduler.as_ref()
+        scheduler
+            .as_ref()
             .ok_or(ExecError::Internal)?
             .add_thread(thread)
     }
@@ -71,7 +73,8 @@ impl SchedulerFramework {
     /// Remove a thread from the scheduler
     pub fn remove_thread(&self, id: ThreadId) -> ExecResult<()> {
         let scheduler = self.scheduler.read();
-        scheduler.as_ref()
+        scheduler
+            .as_ref()
             .ok_or(ExecError::Internal)?
             .remove_thread(id)
     }
@@ -79,7 +82,8 @@ impl SchedulerFramework {
     /// Notify that a thread is ready to run
     pub fn thread_ready(&self, id: ThreadId) -> ExecResult<()> {
         let scheduler = self.scheduler.read();
-        scheduler.as_ref()
+        scheduler
+            .as_ref()
             .ok_or(ExecError::Internal)?
             .thread_ready(id)
     }
@@ -87,7 +91,8 @@ impl SchedulerFramework {
     /// Notify that a thread is blocking
     pub fn thread_block(&self, id: ThreadId) -> ExecResult<()> {
         let scheduler = self.scheduler.read();
-        scheduler.as_ref()
+        scheduler
+            .as_ref()
             .ok_or(ExecError::Internal)?
             .thread_block(id)
     }
@@ -110,7 +115,8 @@ impl SchedulerFramework {
     /// Update thread priority
     pub fn set_priority(&self, id: ThreadId, priority: Priority) -> ExecResult<()> {
         let scheduler = self.scheduler.read();
-        scheduler.as_ref()
+        scheduler
+            .as_ref()
             .ok_or(ExecError::Internal)?
             .set_priority(id, priority)
     }

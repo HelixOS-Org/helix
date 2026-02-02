@@ -5,7 +5,7 @@
 //! - Metadata vs data separation
 //! - Wear leveling for flash storage
 
-use core::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 
 // ============================================================================
 // Constants
@@ -29,17 +29,17 @@ pub const MIN_ZONE_BLOCKS: u64 = 1024;
 #[repr(u8)]
 pub enum ZoneType {
     /// General purpose data zone
-    Data = 0,
+    Data     = 0,
     /// Metadata zone (inodes, directories)
     Metadata = 1,
     /// Journal zone
-    Journal = 2,
+    Journal  = 2,
     /// Snapshot zone
     Snapshot = 3,
     /// Hot data (frequently accessed)
-    Hot = 4,
+    Hot      = 4,
     /// Cold data (infrequently accessed)
-    Cold = 5,
+    Cold     = 5,
     /// Reserved for system use
     Reserved = 6,
 }
@@ -58,11 +58,11 @@ impl ZoneType {
             _ => None,
         }
     }
-    
+
     /// Get priority for allocation preference
     pub fn priority(&self) -> u8 {
         match self {
-            Self::Journal => 0,    // Highest (dedicated)
+            Self::Journal => 0, // Highest (dedicated)
             Self::Metadata => 1,
             Self::Hot => 2,
             Self::Data => 3,
@@ -82,15 +82,15 @@ impl ZoneType {
 #[repr(u8)]
 pub enum ZoneState {
     /// Zone is active and can accept allocations
-    Active = 0,
+    Active        = 0,
     /// Zone is full
-    Full = 1,
+    Full          = 1,
     /// Zone is being defragmented
     Defragmenting = 2,
     /// Zone is read-only (for snapshots)
-    ReadOnly = 3,
+    ReadOnly      = 3,
     /// Zone is offline/disabled
-    Offline = 4,
+    Offline       = 4,
 }
 
 impl ZoneState {
@@ -105,13 +105,13 @@ impl ZoneState {
             _ => None,
         }
     }
-    
+
     /// Can allocate in this state?
     #[inline]
     pub fn can_allocate(&self) -> bool {
         *self == Self::Active
     }
-    
+
     /// Can write in this state?
     #[inline]
     pub fn can_write(&self) -> bool {
@@ -156,14 +156,9 @@ pub struct ZoneDescriptor {
 impl ZoneDescriptor {
     /// Size in bytes
     pub const SIZE: usize = 64;
-    
+
     /// Create new zone descriptor
-    pub fn new(
-        zone_id: u32,
-        zone_type: ZoneType,
-        start_block: u64,
-        block_count: u64,
-    ) -> Self {
+    pub fn new(zone_id: u32, zone_type: ZoneType, start_block: u64, block_count: u64) -> Self {
         Self {
             zone_id,
             zone_type: zone_type as u8,
@@ -179,31 +174,31 @@ impl ZoneDescriptor {
             _reserved: [0; 26],
         }
     }
-    
+
     /// Get zone type
     #[inline]
     pub fn zone_type(&self) -> ZoneType {
         ZoneType::from_u8(self.zone_type).unwrap_or(ZoneType::Data)
     }
-    
+
     /// Get zone state
     #[inline]
     pub fn zone_state(&self) -> ZoneState {
         ZoneState::from_u8(self.state).unwrap_or(ZoneState::Offline)
     }
-    
+
     /// Get end block (exclusive)
     #[inline]
     pub fn end_block(&self) -> u64 {
         self.start_block + self.block_count
     }
-    
+
     /// Check if block is in this zone
     #[inline]
     pub fn contains(&self, block: u64) -> bool {
         block >= self.start_block && block < self.end_block()
     }
-    
+
     /// Get usage percentage
     #[inline]
     pub fn usage_percent(&self) -> u8 {
@@ -213,12 +208,12 @@ impl ZoneDescriptor {
         let used = self.block_count - self.free_blocks;
         ((used * 100) / self.block_count) as u8
     }
-    
+
     /// Check if zone can accept allocation
     pub fn can_allocate(&self, count: u32) -> bool {
-        self.zone_state().can_allocate() &&
-        self.free_blocks >= count as u64 &&
-        self.largest_free >= count
+        self.zone_state().can_allocate()
+            && self.free_blocks >= count as u64
+            && self.largest_free >= count
     }
 }
 
@@ -260,55 +255,55 @@ impl Zone {
             desc,
         }
     }
-    
+
     /// Get zone ID
     #[inline]
     pub fn id(&self) -> u32 {
         self.desc.zone_id
     }
-    
+
     /// Get zone type
     #[inline]
     pub fn zone_type(&self) -> ZoneType {
         self.desc.zone_type()
     }
-    
+
     /// Get start block
     #[inline]
     pub fn start_block(&self) -> u64 {
         self.desc.start_block
     }
-    
+
     /// Get block count
     #[inline]
     pub fn block_count(&self) -> u64 {
         self.desc.block_count
     }
-    
+
     /// Get free blocks
     #[inline]
     pub fn free_blocks(&self) -> u64 {
         self.free_blocks.load(Ordering::Relaxed)
     }
-    
+
     /// Check if zone contains block
     #[inline]
     pub fn contains(&self, block: u64) -> bool {
         self.desc.contains(block)
     }
-    
+
     /// Try to reserve blocks for allocation
     pub fn try_reserve(&self, count: u32) -> bool {
         if self.locked.load(Ordering::Relaxed) {
             return false;
         }
-        
+
         let mut current = self.free_blocks.load(Ordering::Relaxed);
         loop {
             if current < count as u64 {
                 return false;
             }
-            
+
             match self.free_blocks.compare_exchange_weak(
                 current,
                 current - count as u64,
@@ -319,61 +314,61 @@ impl Zone {
                     self.pending_allocs.fetch_add(1, Ordering::Relaxed);
                     self.total_allocs.fetch_add(1, Ordering::Relaxed);
                     return true;
-                }
+                },
                 Err(c) => current = c,
             }
         }
     }
-    
+
     /// Complete allocation (decrement pending)
     pub fn complete_alloc(&self) {
         self.pending_allocs.fetch_sub(1, Ordering::Relaxed);
     }
-    
+
     /// Cancel reservation
     pub fn cancel_reserve(&self, count: u32) {
         self.free_blocks.fetch_add(count as u64, Ordering::Relaxed);
         self.pending_allocs.fetch_sub(1, Ordering::Relaxed);
     }
-    
+
     /// Free blocks
     pub fn free(&self, count: u32) {
         self.free_blocks.fetch_add(count as u64, Ordering::Relaxed);
         self.total_frees.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Record write
     pub fn record_write(&self, blocks: u64) {
         self.write_count.fetch_add(blocks, Ordering::Relaxed);
     }
-    
+
     /// Lock zone for defrag
     pub fn lock_for_defrag(&self) -> bool {
         !self.locked.swap(true, Ordering::Relaxed)
     }
-    
+
     /// Unlock zone
     pub fn unlock(&self) {
         self.locked.store(false, Ordering::Relaxed);
     }
-    
+
     /// Check if locked
     #[inline]
     pub fn is_locked(&self) -> bool {
         self.locked.load(Ordering::Relaxed)
     }
-    
+
     /// Get write count
     #[inline]
     pub fn write_count(&self) -> u64 {
         self.write_count.load(Ordering::Relaxed)
     }
-    
+
     /// Update descriptor from runtime state
     pub fn sync_descriptor(&mut self) {
         self.desc.free_blocks = self.free_blocks.load(Ordering::Relaxed);
     }
-    
+
     /// Get descriptor
     pub fn descriptor(&self) -> &ZoneDescriptor {
         &self.desc
@@ -400,7 +395,7 @@ impl ZoneManager {
     /// Create new zone manager
     pub fn new(zone_count: u32, total_blocks: u64) -> Self {
         const ZERO: AtomicU32 = AtomicU32::new(0);
-        
+
         Self {
             zone_count,
             total_blocks,
@@ -408,49 +403,49 @@ impl ZoneManager {
             preferred: [ZERO; 8],
         }
     }
-    
+
     /// Get zone count
     #[inline]
     pub fn zone_count(&self) -> u32 {
         self.zone_count
     }
-    
+
     /// Get total blocks
     #[inline]
     pub fn total_blocks(&self) -> u64 {
         self.total_blocks
     }
-    
+
     /// Get free blocks
     #[inline]
     pub fn free_blocks(&self) -> u64 {
         self.free_blocks.load(Ordering::Relaxed)
     }
-    
+
     /// Get preferred zone for type
     #[inline]
     pub fn preferred_zone(&self, zone_type: ZoneType) -> u32 {
         let idx = (zone_type as usize).min(7);
         self.preferred[idx].load(Ordering::Relaxed)
     }
-    
+
     /// Set preferred zone for type
     pub fn set_preferred(&self, zone_type: ZoneType, zone_id: u32) {
         let idx = (zone_type as usize).min(7);
         self.preferred[idx].store(zone_id, Ordering::Relaxed);
     }
-    
+
     /// Find zone containing block
     pub fn find_zone(&self, block: u64, block_size: u64) -> Option<u32> {
         // Simple calculation assuming uniform zones
         if block >= self.total_blocks {
             return None;
         }
-        
+
         let zone_blocks = self.total_blocks / self.zone_count as u64;
         Some((block / zone_blocks) as u32)
     }
-    
+
     /// Consume blocks from total
     pub fn consume(&self, count: u64) -> bool {
         let mut current = self.free_blocks.load(Ordering::Relaxed);
@@ -469,7 +464,7 @@ impl ZoneManager {
             }
         }
     }
-    
+
     /// Release blocks back to total
     pub fn release(&self, count: u64) {
         self.free_blocks.fetch_add(count, Ordering::Relaxed);
@@ -503,25 +498,25 @@ impl ZoneSelector {
             ..Default::default()
         }
     }
-    
+
     /// With minimum free blocks
     pub fn with_min_free(mut self, min: u32) -> Self {
         self.min_free = min;
         self
     }
-    
+
     /// With NUMA preference
     pub fn with_numa(mut self, node: u8) -> Self {
         self.numa_node = Some(node);
         self
     }
-    
+
     /// Near specific block
     pub fn near(mut self, block: u64) -> Self {
         self.near_block = Some(block);
         self
     }
-    
+
     /// Avoid zone
     pub fn avoiding(mut self, zone_id: u32) -> Self {
         if zone_id < 32 {
@@ -551,61 +546,61 @@ pub struct ZoneSelection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_zone_descriptor() {
         let desc = ZoneDescriptor::new(0, ZoneType::Data, 1000, 10000);
-        
+
         assert_eq!(desc.zone_id, 0);
         assert_eq!(desc.zone_type(), ZoneType::Data);
         assert_eq!(desc.zone_state(), ZoneState::Active);
         assert_eq!(desc.start_block, 1000);
         assert_eq!(desc.block_count, 10000);
         assert_eq!(desc.end_block(), 11000);
-        
+
         assert!(desc.contains(1000));
         assert!(desc.contains(10999));
         assert!(!desc.contains(11000));
     }
-    
+
     #[test]
     fn test_zone_runtime() {
         let desc = ZoneDescriptor::new(1, ZoneType::Metadata, 0, 1000);
         let zone = Zone::from_descriptor(desc);
-        
+
         assert_eq!(zone.id(), 1);
         assert_eq!(zone.free_blocks(), 1000);
-        
+
         assert!(zone.try_reserve(100));
         assert_eq!(zone.free_blocks(), 900);
-        
+
         zone.complete_alloc();
-        
+
         zone.free(50);
         assert_eq!(zone.free_blocks(), 950);
     }
-    
+
     #[test]
     fn test_zone_manager() {
         let manager = ZoneManager::new(4, 10000);
-        
+
         assert_eq!(manager.zone_count(), 4);
         assert_eq!(manager.free_blocks(), 10000);
-        
+
         assert!(manager.consume(500));
         assert_eq!(manager.free_blocks(), 9500);
-        
+
         manager.release(200);
         assert_eq!(manager.free_blocks(), 9700);
     }
-    
+
     #[test]
     fn test_zone_selector() {
         let selector = ZoneSelector::for_type(ZoneType::Data)
             .with_min_free(100)
             .near(5000)
             .avoiding(0);
-        
+
         assert_eq!(selector.zone_type, Some(ZoneType::Data));
         assert_eq!(selector.min_free, 100);
         assert_eq!(selector.near_block, Some(5000));

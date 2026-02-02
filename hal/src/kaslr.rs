@@ -35,7 +35,7 @@
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use hal::kaslr::{KaslrConfig, generate_kaslr_offset};
+//! use hal::kaslr::{generate_kaslr_offset, KaslrConfig};
 //!
 //! let config = KaslrConfig::default();
 //! let kernel_size = 0x200000; // 2MB
@@ -75,9 +75,9 @@ impl Default for KaslrConfig {
             // Higher-half kernel region
             min_address: 0xFFFF_FFFF_8000_0000, // -2GB
             max_address: 0xFFFF_FFFF_C000_0000, // -1GB (1GB range)
-            alignment: 0x20_0000,                // 2MB alignment
-            entropy_bits: 18,                    // ~256K possible positions
-            phys_offset: 0xFFFF_8000_0000_0000,  // Physical memory direct map
+            alignment: 0x20_0000,               // 2MB alignment
+            entropy_bits: 18,                   // ~256K possible positions
+            phys_offset: 0xFFFF_8000_0000_0000, // Physical memory direct map
             enabled: true,
         }
     }
@@ -114,7 +114,9 @@ impl KaslrConfig {
 
     /// Calculate number of possible slots
     pub fn num_slots(&self, kernel_size: u64) -> u64 {
-        let usable_range = self.max_address.saturating_sub(self.min_address + kernel_size);
+        let usable_range = self
+            .max_address
+            .saturating_sub(self.min_address + kernel_size);
         usable_range / self.alignment
     }
 
@@ -155,13 +157,13 @@ pub enum EntropySource {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EntropyQuality {
     /// Unsuitable for security
-    None = 0,
+    None          = 0,
     /// Weak entropy (TSC, predictable)
-    Weak = 1,
+    Weak          = 1,
     /// Moderate entropy (firmware RNG)
-    Moderate = 2,
+    Moderate      = 2,
     /// Strong entropy (RDRAND)
-    Strong = 3,
+    Strong        = 3,
     /// Cryptographic entropy (RDSEED)
     Cryptographic = 4,
 }

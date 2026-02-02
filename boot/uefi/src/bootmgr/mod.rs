@@ -25,29 +25,29 @@ use core::fmt;
 pub enum BootState {
     /// Not initialized
     #[default]
-    Uninitialized = 0,
+    Uninitialized       = 0,
     /// Initializing
-    Initializing = 1,
+    Initializing        = 1,
     /// Loading configuration
-    LoadingConfig = 2,
+    LoadingConfig       = 2,
     /// Discovering entries
-    DiscoveringEntries = 3,
+    DiscoveringEntries  = 3,
     /// Displaying menu
-    ShowingMenu = 4,
+    ShowingMenu         = 4,
     /// Waiting for selection
     WaitingForSelection = 5,
     /// Entry selected
-    EntrySelected = 6,
+    EntrySelected       = 6,
     /// Loading kernel
-    LoadingKernel = 7,
+    LoadingKernel       = 7,
     /// Preparing handoff
-    PreparingHandoff = 8,
+    PreparingHandoff    = 8,
     /// Executing handoff
-    ExecutingHandoff = 9,
+    ExecutingHandoff    = 9,
     /// Boot complete
-    BootComplete = 10,
+    BootComplete        = 10,
     /// Error state
-    Error = 255,
+    Error               = 255,
 }
 
 impl fmt::Display for BootState {
@@ -411,11 +411,9 @@ impl BootEntry {
 
     /// Check if bootable (not action entry)
     pub const fn is_bootable(&self) -> bool {
-        !matches!(self.entry_type,
-            EntryType::PowerOff |
-            EntryType::Reboot |
-            EntryType::FirmwareSetup |
-            EntryType::Submenu
+        !matches!(
+            self.entry_type,
+            EntryType::PowerOff | EntryType::Reboot | EntryType::FirmwareSetup | EntryType::Submenu
         )
     }
 }
@@ -513,7 +511,9 @@ impl EntryList {
     pub fn set_default(&mut self, index: usize) {
         if index < self.count {
             // Clear previous default
-            self.entries[self.default_index].flags.clear(EntryFlags::DEFAULT);
+            self.entries[self.default_index]
+                .flags
+                .clear(EntryFlags::DEFAULT);
             // Set new default
             self.entries[index].flags.set(EntryFlags::DEFAULT);
             self.default_index = index;
@@ -553,8 +553,9 @@ impl EntryList {
         if self.selected_index + 1 < self.count {
             self.selected_index += 1;
             // Skip hidden entries
-            while self.selected_index + 1 < self.count &&
-                  self.entries[self.selected_index].is_hidden() {
+            while self.selected_index + 1 < self.count
+                && self.entries[self.selected_index].is_hidden()
+            {
                 self.selected_index += 1;
             }
         }
@@ -803,12 +804,12 @@ impl BootManager {
             BootState::LoadingConfig => {
                 self.config_loaded = true;
                 BootState::DiscoveringEntries
-            }
+            },
             BootState::DiscoveringEntries => BootState::ShowingMenu,
             BootState::ShowingMenu => {
                 self.menu_shown = true;
                 BootState::WaitingForSelection
-            }
+            },
             BootState::WaitingForSelection => {
                 // Check for timeout or selection
                 if self.timeout.is_expired() || self.flags.has(BootFlags::QUICK_BOOT) {
@@ -816,17 +817,17 @@ impl BootManager {
                 } else {
                     return TransitionResult::Blocked;
                 }
-            }
+            },
             BootState::EntrySelected => BootState::LoadingKernel,
             BootState::LoadingKernel => BootState::PreparingHandoff,
             BootState::PreparingHandoff => BootState::ExecutingHandoff,
             BootState::ExecutingHandoff => BootState::BootComplete,
             BootState::BootComplete | BootState::Error => {
                 return TransitionResult::Invalid;
-            }
+            },
             BootState::Uninitialized => {
                 return TransitionResult::Invalid;
-            }
+            },
         };
 
         self.state = next;
@@ -862,7 +863,12 @@ impl BootManager {
 
     /// Select and boot entry
     pub fn boot_selected(&mut self) -> TransitionResult {
-        if self.entries.selected().map(|e| e.is_bootable()).unwrap_or(false) {
+        if self
+            .entries
+            .selected()
+            .map(|e| e.is_bootable())
+            .unwrap_or(false)
+        {
             self.state = BootState::EntrySelected;
             TransitionResult::Ok
         } else {
@@ -883,12 +889,12 @@ impl BootManager {
             // Enter
             0x0D => {
                 let _ = self.boot_selected();
-            }
+            },
             // Escape
             0x1B => {
                 self.timeout.resume();
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -912,8 +918,12 @@ impl BootManager {
 
     /// Check if ready to boot
     pub fn ready_to_boot(&self) -> bool {
-        self.state == BootState::EntrySelected &&
-        self.entries.selected().map(|e| e.is_bootable()).unwrap_or(false)
+        self.state == BootState::EntrySelected
+            && self
+                .entries
+                .selected()
+                .map(|e| e.is_bootable())
+                .unwrap_or(false)
     }
 
     /// Get progress percentage (0-100)

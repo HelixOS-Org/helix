@@ -2,9 +2,10 @@
 //!
 //! Provides information about loaded UEFI images.
 
-use crate::raw::types::*;
-use crate::raw::memory::MemoryType;
 use core::fmt;
+
+use crate::raw::memory::MemoryType;
+use crate::raw::types::*;
 
 // =============================================================================
 // LOADED IMAGE PROTOCOL
@@ -201,14 +202,14 @@ impl EfiDevicePathProtocol {
 
     /// Check if this is the end of entire path
     pub fn is_end_entire(&self) -> bool {
-        self.device_type == DevicePathType::END as u8 &&
-        self.sub_type == DevicePathEndSubType::ENTIRE as u8
+        self.device_type == DevicePathType::END as u8
+            && self.sub_type == DevicePathEndSubType::ENTIRE as u8
     }
 
     /// Check if this is end of instance
     pub fn is_end_instance(&self) -> bool {
-        self.device_type == DevicePathType::END as u8 &&
-        self.sub_type == DevicePathEndSubType::INSTANCE as u8
+        self.device_type == DevicePathType::END as u8
+            && self.sub_type == DevicePathEndSubType::INSTANCE as u8
     }
 
     /// Get device type
@@ -300,19 +301,19 @@ impl<'a> Iterator for DevicePathIter<'a> {
 #[repr(u8)]
 pub enum DevicePathType {
     /// Hardware device path
-    HARDWARE = 0x01,
+    HARDWARE       = 0x01,
     /// ACPI device path
-    ACPI = 0x02,
+    ACPI           = 0x02,
     /// Messaging device path
-    MESSAGING = 0x03,
+    MESSAGING      = 0x03,
     /// Media device path
-    MEDIA = 0x04,
+    MEDIA          = 0x04,
     /// BIOS boot specification device path
     BIOS_BOOT_SPEC = 0x05,
     /// End of device path
-    END = 0x7F,
+    END            = 0x7F,
     /// Unknown type
-    Unknown = 0xFF,
+    Unknown        = 0xFF,
 }
 
 impl DevicePathType {
@@ -335,7 +336,7 @@ impl DevicePathType {
 #[repr(u8)]
 pub enum DevicePathEndSubType {
     /// End of entire path
-    ENTIRE = 0xFF,
+    ENTIRE   = 0xFF,
     /// End of instance
     INSTANCE = 0x01,
 }
@@ -537,9 +538,18 @@ pub struct MacDevicePath {
 impl fmt::Debug for MacDevicePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MacDevicePath")
-            .field("mac", &format_args!("{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-                self.mac_address[0], self.mac_address[1], self.mac_address[2],
-                self.mac_address[3], self.mac_address[4], self.mac_address[5]))
+            .field(
+                "mac",
+                &format_args!(
+                    "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+                    self.mac_address[0],
+                    self.mac_address[1],
+                    self.mac_address[2],
+                    self.mac_address[3],
+                    self.mac_address[4],
+                    self.mac_address[5]
+                ),
+            )
             .field("if_type", &self.if_type)
             .finish()
     }
@@ -686,9 +696,8 @@ impl EfiLoadedImageDevicePathProtocol {
 #[repr(C)]
 pub struct EfiDevicePathUtilitiesProtocol {
     /// Get device path size
-    pub get_device_path_size: unsafe extern "efiapi" fn(
-        device_path: *const EfiDevicePathProtocol,
-    ) -> usize,
+    pub get_device_path_size:
+        unsafe extern "efiapi" fn(device_path: *const EfiDevicePathProtocol) -> usize,
 
     /// Duplicate device path
     pub duplicate_device_path: unsafe extern "efiapi" fn(
@@ -720,9 +729,8 @@ pub struct EfiDevicePathUtilitiesProtocol {
     ) -> *mut EfiDevicePathProtocol,
 
     /// Check if device path is multi-instance
-    pub is_device_path_multi_instance: unsafe extern "efiapi" fn(
-        device_path: *const EfiDevicePathProtocol,
-    ) -> bool,
+    pub is_device_path_multi_instance:
+        unsafe extern "efiapi" fn(device_path: *const EfiDevicePathProtocol) -> bool,
 
     /// Create device node
     pub create_device_node: unsafe extern "efiapi" fn(

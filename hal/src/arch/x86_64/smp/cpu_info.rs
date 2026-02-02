@@ -5,7 +5,7 @@
 
 use core::sync::atomic::{AtomicU32, AtomicU8, Ordering};
 
-use super::{MAX_CPUS, SmpError};
+use super::{SmpError, MAX_CPUS};
 
 // =============================================================================
 // CPU State
@@ -16,19 +16,19 @@ use super::{MAX_CPUS, SmpError};
 #[repr(u8)]
 pub enum CpuState {
     /// CPU not present in system
-    NotPresent = 0,
+    NotPresent   = 0,
     /// CPU present but not started
-    Present = 1,
+    Present      = 1,
     /// CPU is starting up
-    Starting = 2,
+    Starting     = 2,
     /// CPU is online and running
-    Online = 3,
+    Online       = 3,
     /// CPU is going offline
     GoingOffline = 4,
     /// CPU is offline (halted)
-    Offline = 5,
+    Offline      = 5,
     /// CPU encountered an error
-    Error = 6,
+    Error        = 6,
 }
 
 impl From<u8> for CpuState {
@@ -90,7 +90,8 @@ impl CpuInfo {
         self.apic_id.store(apic_id, Ordering::SeqCst);
         self.cpu_id.store(cpu_id, Ordering::SeqCst);
         self.state.store(CpuState::Present as u8, Ordering::SeqCst);
-        self.is_bsp.store(if is_bsp { 1 } else { 0 }, Ordering::SeqCst);
+        self.is_bsp
+            .store(if is_bsp { 1 } else { 0 }, Ordering::SeqCst);
     }
 
     /// Get APIC ID
@@ -342,13 +343,13 @@ fn detect_topology_0b(topology: &mut CpuTopology) {
                 // SMT level
                 topology.threads_per_core = ebx & 0xFFFF;
                 topology.smt_mask_width = eax & 0x1F;
-            }
+            },
             2 => {
                 // Core level
                 total_cores = ebx & 0xFFFF;
                 topology.core_mask_width = eax & 0x1F;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         total_threads = (ebx & 0xFFFF).max(total_threads);
@@ -422,7 +423,8 @@ pub fn extract_topology_ids(apic_id: u32, topology: &CpuTopology) -> (u8, u8, u8
     let core_mask = (1u32 << topology.core_mask_width) - 1;
 
     let thread_id = (apic_id & smt_mask) as u8;
-    let core_id = ((apic_id >> topology.smt_mask_width) & (core_mask >> topology.smt_mask_width)) as u8;
+    let core_id =
+        ((apic_id >> topology.smt_mask_width) & (core_mask >> topology.smt_mask_width)) as u8;
     let package_id = (apic_id >> topology.core_mask_width) as u8;
 
     (package_id, core_id, thread_id)

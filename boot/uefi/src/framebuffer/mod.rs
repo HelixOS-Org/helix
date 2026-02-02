@@ -92,14 +92,19 @@ impl PixelFormat {
     pub const fn bytes_per_pixel(&self) -> usize {
         match self {
             PixelFormat::Rgb888 | PixelFormat::Bgr888 => 3,
-            PixelFormat::Rgbx8888 | PixelFormat::Bgrx8888 |
-            PixelFormat::Rgba8888 | PixelFormat::Bgra8888 => 4,
-            PixelFormat::Rgb565 | PixelFormat::Bgr565 |
-            PixelFormat::Rgb555 | PixelFormat::Bgr555 |
-            PixelFormat::Argb1555 | PixelFormat::Gray16 => 2,
+            PixelFormat::Rgbx8888
+            | PixelFormat::Bgrx8888
+            | PixelFormat::Rgba8888
+            | PixelFormat::Bgra8888 => 4,
+            PixelFormat::Rgb565
+            | PixelFormat::Bgr565
+            | PixelFormat::Rgb555
+            | PixelFormat::Bgr555
+            | PixelFormat::Argb1555
+            | PixelFormat::Gray16 => 2,
             PixelFormat::Gray8 | PixelFormat::Indexed8 => 1,
             PixelFormat::Indexed4 => 1, // Half byte, but use 1 for safety
-            PixelFormat::BitMask => 4, // Assume 32-bit
+            PixelFormat::BitMask => 4,  // Assume 32-bit
         }
     }
 
@@ -110,7 +115,10 @@ impl PixelFormat {
 
     /// Check if format has alpha channel
     pub const fn has_alpha(&self) -> bool {
-        matches!(self, PixelFormat::Rgba8888 | PixelFormat::Bgra8888 | PixelFormat::Argb1555)
+        matches!(
+            self,
+            PixelFormat::Rgba8888 | PixelFormat::Bgra8888 | PixelFormat::Argb1555
+        )
     }
 
     /// Check if format uses palette
@@ -141,7 +149,12 @@ pub struct PixelBitmask {
 impl PixelBitmask {
     /// Create new bitmask
     pub const fn new(red: u32, green: u32, blue: u32, reserved: u32) -> Self {
-        Self { red, green, blue, reserved }
+        Self {
+            red,
+            green,
+            blue,
+            reserved,
+        }
     }
 
     /// Standard RGBX 8888 mask
@@ -219,7 +232,12 @@ impl Color {
 
     /// Create grayscale color
     pub const fn gray(value: u8) -> Self {
-        Self { r: value, g: value, b: value, a: 255 }
+        Self {
+            r: value,
+            g: value,
+            b: value,
+            a: 255,
+        }
     }
 
     /// Convert to grayscale
@@ -298,12 +316,7 @@ pub struct DisplayMode {
 
 impl DisplayMode {
     /// Create new display mode
-    pub const fn new(
-        mode_number: u32,
-        width: u32,
-        height: u32,
-        pixel_format: PixelFormat,
-    ) -> Self {
+    pub const fn new(mode_number: u32, width: u32, height: u32, pixel_format: PixelFormat) -> Self {
         Self {
             mode_number,
             width,
@@ -345,8 +358,11 @@ impl DisplayMode {
 
 impl fmt::Display for DisplayMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}x{}@{}Hz ({:?})",
-            self.width, self.height, self.refresh_rate, self.pixel_format)
+        write!(
+            f,
+            "{}x{}@{}Hz ({:?})",
+            self.width, self.height, self.refresh_rate, self.pixel_format
+        )
     }
 }
 
@@ -418,7 +434,12 @@ pub struct Rect {
 impl Rect {
     /// Create new rectangle
     pub const fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Create from position and size
@@ -451,10 +472,7 @@ impl Rect {
 
     /// Check if rectangle contains point
     pub const fn contains(&self, point: Point) -> bool {
-        point.x >= self.x
-            && point.x < self.right()
-            && point.y >= self.y
-            && point.y < self.bottom()
+        point.x >= self.x && point.x < self.right() && point.y >= self.y && point.y < self.bottom()
     }
 
     /// Check if rectangles intersect
@@ -476,12 +494,7 @@ impl Rect {
         let right = self.right().min(other.right());
         let bottom = self.bottom().min(other.bottom());
 
-        Some(Rect::new(
-            x,
-            y,
-            (right - x) as u32,
-            (bottom - y) as u32,
-        ))
+        Some(Rect::new(x, y, (right - x) as u32, (bottom - y) as u32))
     }
 
     /// Get area
@@ -667,7 +680,11 @@ impl Psf1Header {
 
     /// Get number of glyphs
     pub const fn num_glyphs(&self) -> u32 {
-        if self.mode & 0x01 != 0 { 512 } else { 256 }
+        if self.mode & 0x01 != 0 {
+            512
+        } else {
+            256
+        }
     }
 }
 
@@ -916,13 +933,13 @@ impl Image {
                 self.data[offset + 1] = color.g;
                 self.data[offset + 2] = color.b;
                 self.data[offset + 3] = color.a;
-            }
+            },
             PixelFormat::Bgra8888 => {
                 self.data[offset] = color.b;
                 self.data[offset + 1] = color.g;
                 self.data[offset + 2] = color.r;
                 self.data[offset + 3] = color.a;
-            }
+            },
             _ => return false,
         }
 

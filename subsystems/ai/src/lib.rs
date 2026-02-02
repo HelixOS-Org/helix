@@ -230,38 +230,26 @@ mod tests;
 // =============================================================================
 
 pub use core::{
-    AiAction, AiConfig, AiDecision, AiError, AiEvent, AiPriority, AiState,
-    Confidence, DecisionContext, DecisionId, PowerProfile, ResourceType, SafetyLevel,
+    AiAction, AiConfig, AiDecision, AiError, AiEvent, AiPriority, AiState, Confidence,
+    DecisionContext, DecisionId, PowerProfile, ResourceType, SafetyLevel,
 };
 
 pub use cortex::Cortex;
-
-pub use intent::{Intent, IntentClass, IntentEngine, UserGoal};
-
-pub use neural::{NeuralEngine, NeuralModel, Tensor, TensorShape};
-
-pub use optimizer::{OptimizationHint, Optimizer, PerformanceProfile, WorkloadAnalysis};
-
 pub use healer::{BugSignature, Healer, HealingAction, HotPatch};
-
-pub use security::{SecurityOracle, Threat, ThreatLevel, ThreatPrediction, ThreatType};
-
+pub use intent::{Intent, IntentClass, IntentEngine, UserGoal};
+pub use learning::{Experience, LearningEngine, Pattern, PatternType};
+pub use memory::{AiMemory, MemoryEntry, MemoryId, MemoryUsage};
+pub use metrics::{MetricDefinition, MetricId, MetricsCollector, MetricsSummary, TimeSeries};
+pub use neural::{NeuralEngine, NeuralModel, Tensor, TensorShape};
+pub use optimizer::{OptimizationHint, Optimizer, PerformanceProfile, WorkloadAnalysis};
 pub use resources::{
     ComputeDevice, DeviceType, ResourceAllocation, ResourceOracle, WorkloadProfile,
 };
-
-pub use learning::{Experience, LearningEngine, Pattern, PatternType};
-
-pub use memory::{AiMemory, MemoryEntry, MemoryId, MemoryUsage};
-
-pub use metrics::{MetricDefinition, MetricId, MetricsCollector, MetricsSummary, TimeSeries};
-
-pub use safety::{Invariant, RiskAssessment, SafetyChecker, SafetyCheckResult, SafetyConstraint};
-
+pub use safety::{Invariant, RiskAssessment, SafetyCheckResult, SafetyChecker, SafetyConstraint};
+pub use security::{SecurityOracle, Threat, ThreatLevel, ThreatPrediction, ThreatType};
 // =============================================================================
 // Global AI Instance
 // =============================================================================
-
 use spin::Once;
 
 /// Type alias for AI results

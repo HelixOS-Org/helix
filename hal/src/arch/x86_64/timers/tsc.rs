@@ -218,7 +218,7 @@ pub fn read_best() -> u64 {
                 RDTSCP_AVAILABLE.store(0, Ordering::Relaxed);
                 read_serialized()
             }
-        }
+        },
     }
 }
 

@@ -114,7 +114,7 @@ impl Lexer {
                         break;
                     }
                 }
-            }
+            },
             b'*' => {
                 // Block comment
                 self.advance(); // /
@@ -128,17 +128,17 @@ impl Lexer {
                             self.advance();
                             text.extend_from_slice(b"*/");
                             depth -= 1;
-                        }
+                        },
                         Some(b'/') if self.peek() == Some(b'*') => {
                             self.advance();
                             text.extend_from_slice(b"/*");
                             depth += 1;
-                        }
+                        },
                         Some(ch) => text.push(ch),
                         None => break,
                     }
                 }
-            }
+            },
             _ => return None,
         }
 
@@ -250,7 +250,7 @@ impl Lexer {
                             break;
                         }
                     }
-                }
+                },
                 Some(b'o') | Some(b'O') => {
                     text.push(self.advance().unwrap());
                     while let Some(ch) = self.peek() {
@@ -260,7 +260,7 @@ impl Lexer {
                             break;
                         }
                     }
-                }
+                },
                 Some(b'b') | Some(b'B') => {
                     text.push(self.advance().unwrap());
                     while let Some(ch) = self.peek() {
@@ -270,8 +270,8 @@ impl Lexer {
                             break;
                         }
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -346,11 +346,11 @@ impl Lexer {
                     if let Some(escaped) = self.advance() {
                         text.push(escaped);
                     }
-                }
+                },
                 Some(b'"') => {
                     text.push(b'"');
                     break;
-                }
+                },
                 Some(ch) => text.push(ch),
                 None => break,
             }
@@ -414,11 +414,11 @@ impl Lexer {
                     if let Some(escaped) = self.advance() {
                         text.push(escaped);
                     }
-                }
+                },
                 Some(b'\'') => {
                     text.push(b'\'');
                     break;
-                }
+                },
                 Some(ch) => text.push(ch),
                 None => break,
             }

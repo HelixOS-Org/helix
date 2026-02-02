@@ -70,13 +70,13 @@ impl InvariantKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum InvariantConfidence {
     /// Proven (100%)
-    Proven = 100,
+    Proven      = 100,
     /// High confidence (>90%)
-    High = 90,
+    High        = 90,
     /// Medium confidence (>70%)
-    Medium = 70,
+    Medium      = 70,
     /// Low confidence (>50%)
-    Low = 50,
+    Low         = 50,
     /// Speculative (<50%)
     Speculative = 30,
 }

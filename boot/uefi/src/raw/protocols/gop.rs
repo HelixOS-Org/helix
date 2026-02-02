@@ -3,8 +3,9 @@
 //! The GOP protocol provides access to the graphics frame buffer
 //! and allows setting video modes.
 
-use crate::raw::types::*;
 use core::fmt;
+
+use crate::raw::types::*;
 
 // =============================================================================
 // GRAPHICS OUTPUT PROTOCOL
@@ -22,10 +23,7 @@ pub struct EfiGraphicsOutputProtocol {
     ) -> Status,
 
     /// Set mode
-    pub set_mode: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        mode_number: u32,
-    ) -> Status,
+    pub set_mode: unsafe extern "efiapi" fn(this: *mut Self, mode_number: u32) -> Status,
 
     /// Block transfer
     pub blt: unsafe extern "efiapi" fn(
@@ -99,13 +97,7 @@ impl EfiGraphicsOutputProtocol {
             .unwrap_or(core::ptr::null_mut());
 
         let status = (self.blt)(
-            self,
-            buffer_ptr,
-            operation,
-            src_x, src_y,
-            dst_x, dst_y,
-            width, height,
-            delta,
+            self, buffer_ptr, operation, src_x, src_y, dst_x, dst_y, width, height, delta,
         );
         status.to_status_result()
     }
@@ -126,9 +118,12 @@ impl EfiGraphicsOutputProtocol {
         self.blt(
             Some(core::slice::from_mut(&mut pixel)),
             EfiGraphicsOutputBltOperation::BltVideoFill,
-            0, 0,
-            x, y,
-            width, height,
+            0,
+            0,
+            x,
+            y,
+            width,
+            height,
             0,
         )
     }
@@ -210,7 +205,7 @@ impl EfiGraphicsOutputModeInformation {
                     | self.pixel_information.blue_mask
                     | self.pixel_information.reserved_mask;
                 ((64 - mask.leading_zeros()) / 8) as usize
-            }
+            },
             EfiGraphicsPixelFormat::PixelBltOnly => 0,
         }
     }
@@ -342,13 +337,13 @@ impl EfiPixelBitmask {
 #[repr(u32)]
 pub enum EfiGraphicsOutputBltOperation {
     /// Fill rectangle with single color from buffer
-    BltVideoFill = 0,
+    BltVideoFill        = 0,
     /// Copy from video to buffer
     BltVideoToBltBuffer = 1,
     /// Copy from buffer to video
-    BltBufferToVideo = 2,
+    BltBufferToVideo    = 2,
     /// Copy within video memory
-    BltVideoToVideo = 3,
+    BltVideoToVideo     = 3,
 }
 
 /// BLT pixel structure
@@ -468,7 +463,10 @@ impl EfiEdidDiscoveredProtocol {
         if self.edid.is_null() || self.size_of_edid == 0 {
             None
         } else {
-            Some(core::slice::from_raw_parts(self.edid, self.size_of_edid as usize))
+            Some(core::slice::from_raw_parts(
+                self.edid,
+                self.size_of_edid as usize,
+            ))
         }
     }
 }
@@ -494,7 +492,10 @@ impl EfiEdidActiveProtocol {
         if self.edid.is_null() || self.size_of_edid == 0 {
             None
         } else {
-            Some(core::slice::from_raw_parts(self.edid, self.size_of_edid as usize))
+            Some(core::slice::from_raw_parts(
+                self.edid,
+                self.size_of_edid as usize,
+            ))
         }
     }
 }

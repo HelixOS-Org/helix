@@ -25,10 +25,10 @@ use core::fmt;
 #[repr(u32)]
 pub enum MemoryRegionKind {
     /// Available RAM that can be freely used
-    Available = 1,
+    Available       = 1,
 
     /// Reserved memory (do not use)
-    Reserved = 2,
+    Reserved        = 2,
 
     /// ACPI reclaimable memory
     ///
@@ -39,12 +39,12 @@ pub enum MemoryRegionKind {
     /// ACPI NVS (Non-Volatile Storage) memory
     ///
     /// This memory is used by ACPI for runtime state and must be preserved.
-    AcpiNvs = 4,
+    AcpiNvs         = 4,
 
     /// Bad memory (defective)
     ///
     /// This memory has been detected as defective and should not be used.
-    BadMemory = 5,
+    BadMemory       = 5,
 
     /// Unknown memory type
     ///
@@ -212,7 +212,10 @@ impl fmt::Debug for MemoryRegion {
         f.debug_struct("MemoryRegion")
             .field("start", &format_args!("{:#x}", self.base))
             .field("end", &format_args!("{:#x}", self.end()))
-            .field("size", &format_args!("{:#x} ({} KB)", self.length, self.length / 1024))
+            .field(
+                "size",
+                &format_args!("{:#x} ({} KB)", self.length, self.length / 1024),
+            )
             .field("kind", &self.kind)
             .finish()
     }
@@ -349,7 +352,10 @@ impl fmt::Debug for MemoryMap<'_> {
             .field("entry_size", &self.entry_size)
             .field("entry_version", &self.entry_version)
             .field("entry_count", &self.entry_count())
-            .field("total_available", &format_args!("{} MB", self.total_available() / (1024 * 1024)))
+            .field(
+                "total_available",
+                &format_args!("{} MB", self.total_available() / (1024 * 1024)),
+            )
             .finish()
     }
 }
@@ -382,18 +388,14 @@ impl<'boot> Iterator for MemoryRegionIterator<'boot> {
         }
 
         let base = u64::from_le_bytes([
-            entry[0], entry[1], entry[2], entry[3],
-            entry[4], entry[5], entry[6], entry[7],
+            entry[0], entry[1], entry[2], entry[3], entry[4], entry[5], entry[6], entry[7],
         ]);
 
         let length = u64::from_le_bytes([
-            entry[8], entry[9], entry[10], entry[11],
-            entry[12], entry[13], entry[14], entry[15],
+            entry[8], entry[9], entry[10], entry[11], entry[12], entry[13], entry[14], entry[15],
         ]);
 
-        let entry_type = u32::from_le_bytes([
-            entry[16], entry[17], entry[18], entry[19],
-        ]);
+        let entry_type = u32::from_le_bytes([entry[16], entry[17], entry[18], entry[19]]);
 
         self.offset += self.entry_size;
 
@@ -459,22 +461,22 @@ impl MemoryStats {
                 MemoryRegionKind::Available => {
                     stats.available += region.length();
                     stats.usable_region_count += 1;
-                }
+                },
                 MemoryRegionKind::Reserved => {
                     stats.reserved += region.length();
-                }
+                },
                 MemoryRegionKind::AcpiReclaimable => {
                     stats.acpi_reclaimable += region.length();
-                }
+                },
                 MemoryRegionKind::AcpiNvs => {
                     stats.acpi_nvs += region.length();
-                }
+                },
                 MemoryRegionKind::BadMemory => {
                     stats.bad += region.length();
-                }
+                },
                 MemoryRegionKind::Unknown(_) => {
                     stats.reserved += region.length();
-                }
+                },
             }
         }
 
@@ -485,12 +487,30 @@ impl MemoryStats {
 impl fmt::Display for MemoryStats {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Memory Statistics:")?;
-        writeln!(f, "  Total:           {:>10} KB ({} MB)", self.total / 1024, self.total / (1024 * 1024))?;
-        writeln!(f, "  Available:       {:>10} KB ({} MB)", self.available / 1024, self.available / (1024 * 1024))?;
+        writeln!(
+            f,
+            "  Total:           {:>10} KB ({} MB)",
+            self.total / 1024,
+            self.total / (1024 * 1024)
+        )?;
+        writeln!(
+            f,
+            "  Available:       {:>10} KB ({} MB)",
+            self.available / 1024,
+            self.available / (1024 * 1024)
+        )?;
         writeln!(f, "  Reserved:        {:>10} KB", self.reserved / 1024)?;
-        writeln!(f, "  ACPI Reclaim:    {:>10} KB", self.acpi_reclaimable / 1024)?;
+        writeln!(
+            f,
+            "  ACPI Reclaim:    {:>10} KB",
+            self.acpi_reclaimable / 1024
+        )?;
         writeln!(f, "  ACPI NVS:        {:>10} KB", self.acpi_nvs / 1024)?;
         writeln!(f, "  Bad:             {:>10} KB", self.bad / 1024)?;
-        writeln!(f, "  Regions:         {:>10} ({} usable)", self.region_count, self.usable_region_count)
+        writeln!(
+            f,
+            "  Regions:         {:>10} ({} usable)",
+            self.region_count, self.usable_region_count
+        )
     }
 }

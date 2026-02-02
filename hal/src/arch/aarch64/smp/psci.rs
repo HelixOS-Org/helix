@@ -52,8 +52,9 @@
 //! psci.cpu_on(mpidr, entry_point, context)?;
 //! ```
 
-use super::Mpidr;
 use core::arch::asm;
+
+use super::Mpidr;
 
 // ============================================================================
 // PSCI Function IDs
@@ -236,9 +237,9 @@ impl core::fmt::Display for PsciVersion {
 #[repr(i32)]
 pub enum AffinityState {
     /// CPU is on
-    On = 0,
+    On        = 0,
     /// CPU is off
-    Off = 1,
+    Off       = 1,
     /// CPU is transitioning
     OnPending = 2,
 }

@@ -254,12 +254,16 @@ impl<T> TplLock<T> {
         let tpl_guard = TplGuard::high();
 
         // Acquire spinlock (should be instant at TPL_HIGH_LEVEL)
-        while self.locked.compare_exchange(
-            false,
-            true,
-            core::sync::atomic::Ordering::Acquire,
-            core::sync::atomic::Ordering::Relaxed,
-        ).is_err() {
+        while self
+            .locked
+            .compare_exchange(
+                false,
+                true,
+                core::sync::atomic::Ordering::Acquire,
+                core::sync::atomic::Ordering::Relaxed,
+            )
+            .is_err()
+        {
             core::hint::spin_loop();
         }
 
@@ -273,12 +277,16 @@ impl<T> TplLock<T> {
     pub fn try_lock(&self) -> Option<TplLockGuard<'_, T>> {
         let tpl_guard = TplGuard::high();
 
-        if self.locked.compare_exchange(
-            false,
-            true,
-            core::sync::atomic::Ordering::Acquire,
-            core::sync::atomic::Ordering::Relaxed,
-        ).is_ok() {
+        if self
+            .locked
+            .compare_exchange(
+                false,
+                true,
+                core::sync::atomic::Ordering::Acquire,
+                core::sync::atomic::Ordering::Relaxed,
+            )
+            .is_ok()
+        {
             Some(TplLockGuard {
                 lock: self,
                 _tpl_guard: tpl_guard,
@@ -322,7 +330,9 @@ impl<'a, T> core::ops::DerefMut for TplLockGuard<'a, T> {
 
 impl<'a, T> Drop for TplLockGuard<'a, T> {
     fn drop(&mut self) {
-        self.lock.locked.store(false, core::sync::atomic::Ordering::Release);
+        self.lock
+            .locked
+            .store(false, core::sync::atomic::Ordering::Release);
     }
 }
 

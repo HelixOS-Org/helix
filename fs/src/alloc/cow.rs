@@ -3,9 +3,10 @@
 //! Tracks block reference counts and handles CoW semantics
 //! for snapshots and clones.
 
-use crate::core::types::*;
-use crate::core::error::{HfsError, HfsResult};
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+
+use crate::core::error::{HfsError, HfsResult};
+use crate::core::types::*;
 
 // ============================================================================
 // Constants
@@ -38,31 +39,31 @@ impl RefCount {
     pub const fn new(count: u32) -> Self {
         Self(count)
     }
-    
+
     /// Get count
     #[inline]
     pub fn get(&self) -> u32 {
         self.0
     }
-    
+
     /// Check if untracked
     #[inline]
     pub fn is_untracked(&self) -> bool {
         self.0 == REFCOUNT_UNTRACKED
     }
-    
+
     /// Check if single reference
     #[inline]
     pub fn is_single(&self) -> bool {
         self.0 == REFCOUNT_SINGLE
     }
-    
+
     /// Check if shared (CoW needed for write)
     #[inline]
     pub fn is_shared(&self) -> bool {
         self.0 > REFCOUNT_SINGLE
     }
-    
+
     /// Increment refcount
     pub fn increment(&mut self) -> HfsResult<()> {
         if self.0 >= MAX_REFCOUNT {
@@ -71,7 +72,7 @@ impl RefCount {
         self.0 += 1;
         Ok(())
     }
-    
+
     /// Decrement refcount, returns true if reached zero
     pub fn decrement(&mut self) -> HfsResult<bool> {
         if self.0 == 0 {
@@ -101,31 +102,31 @@ impl RefCountBlock {
             entries: [ZERO; REFCOUNT_ENTRIES_PER_BLOCK],
         }
     }
-    
+
     /// Get refcount for entry
     #[inline]
     pub fn get(&self, index: usize) -> RefCount {
         debug_assert!(index < REFCOUNT_ENTRIES_PER_BLOCK);
         RefCount(self.entries[index].load(Ordering::Relaxed))
     }
-    
+
     /// Set refcount
     #[inline]
     pub fn set(&self, index: usize, count: u32) {
         debug_assert!(index < REFCOUNT_ENTRIES_PER_BLOCK);
         self.entries[index].store(count, Ordering::Relaxed);
     }
-    
+
     /// Atomic increment
     pub fn increment(&self, index: usize) -> HfsResult<u32> {
         debug_assert!(index < REFCOUNT_ENTRIES_PER_BLOCK);
-        
+
         let mut current = self.entries[index].load(Ordering::Relaxed);
         loop {
             if current >= MAX_REFCOUNT {
                 return Err(HfsError::RefcountOverflow);
             }
-            
+
             match self.entries[index].compare_exchange_weak(
                 current,
                 current + 1,
@@ -137,17 +138,17 @@ impl RefCountBlock {
             }
         }
     }
-    
+
     /// Atomic decrement, returns true if reached zero
     pub fn decrement(&self, index: usize) -> HfsResult<bool> {
         debug_assert!(index < REFCOUNT_ENTRIES_PER_BLOCK);
-        
+
         let mut current = self.entries[index].load(Ordering::Relaxed);
         loop {
             if current == 0 {
                 return Err(HfsError::RefcountUnderflow);
             }
-            
+
             match self.entries[index].compare_exchange_weak(
                 current,
                 current - 1,
@@ -159,19 +160,20 @@ impl RefCountBlock {
             }
         }
     }
-    
+
     /// Check if all entries are untracked (block can be freed)
     pub fn is_empty(&self) -> bool {
         self.entries.iter().all(|e| e.load(Ordering::Relaxed) == 0)
     }
-    
+
     /// Count non-zero entries
     pub fn count_tracked(&self) -> usize {
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter(|e| e.load(Ordering::Relaxed) > 0)
             .count()
     }
-    
+
     /// Load from bytes
     pub fn from_bytes(bytes: &[u8; 4096]) -> Self {
         let block = Self::new();
@@ -181,7 +183,7 @@ impl RefCountBlock {
         }
         block
     }
-    
+
     /// Store to bytes
     pub fn to_bytes(&self, bytes: &mut [u8; 4096]) {
         for (i, entry) in self.entries.iter().enumerate() {
@@ -236,7 +238,7 @@ impl CowCheckResult {
             needs_cow: refcount > 1,
         }
     }
-    
+
     /// Check if unique (no CoW needed)
     #[inline]
     pub fn is_unique(&self) -> bool {
@@ -264,7 +266,7 @@ impl CowResult {
             copied: false,
         }
     }
-    
+
     /// Create for copied block
     pub fn copied(original: BlockNum, new_block: BlockNum) -> Self {
         Self {
@@ -304,43 +306,43 @@ impl CowTransaction {
             state: CowState::Unique,
         }
     }
-    
+
     /// Add a block mapping
     pub fn add(&mut self, original: u64, new: u64) -> HfsResult<()> {
         if self.count >= 64 {
             return Err(HfsError::TransactionTooLarge);
         }
-        
+
         self.original_blocks[self.count] = original;
         self.new_blocks[self.count] = new;
         self.count += 1;
         self.state = CowState::Copying;
-        
+
         Ok(())
     }
-    
+
     /// Mark complete
     pub fn complete(&mut self) {
         self.state = CowState::CopyComplete;
     }
-    
+
     /// Mark error
     pub fn error(&mut self) {
         self.state = CowState::Error;
     }
-    
+
     /// Get transaction ID
     #[inline]
     pub fn txn_id(&self) -> u64 {
         self.txn_id
     }
-    
+
     /// Get state
     #[inline]
     pub fn state(&self) -> CowState {
         self.state
     }
-    
+
     /// Get mappings
     pub fn mappings(&self) -> impl Iterator<Item = (u64, u64)> + '_ {
         self.original_blocks[..self.count]
@@ -389,7 +391,7 @@ impl CowStats {
             freed_by_dec: AtomicU64::new(0),
         }
     }
-    
+
     /// Record check
     pub fn record_check(&self, needs_cow: bool) {
         self.checks.fetch_add(1, Ordering::Relaxed);
@@ -399,18 +401,18 @@ impl CowStats {
             self.unique.fetch_add(1, Ordering::Relaxed);
         }
     }
-    
+
     /// Record copy
     pub fn record_copy(&self, bytes: u64) {
         self.copies.fetch_add(1, Ordering::Relaxed);
         self.bytes_copied.fetch_add(bytes, Ordering::Relaxed);
     }
-    
+
     /// Record refcount increment
     pub fn record_inc(&self) {
         self.refcount_incs.fetch_add(1, Ordering::Relaxed);
     }
-    
+
     /// Record refcount decrement
     pub fn record_dec(&self, freed: bool) {
         self.refcount_decs.fetch_add(1, Ordering::Relaxed);
@@ -418,7 +420,7 @@ impl CowStats {
             self.freed_by_dec.fetch_add(1, Ordering::Relaxed);
         }
     }
-    
+
     /// Get snapshot
     pub fn snapshot(&self) -> CowStatsSnapshot {
         CowStatsSnapshot {
@@ -456,7 +458,7 @@ impl CowStatsSnapshot {
             self.copies as f64 / self.checks as f64
         }
     }
-    
+
     /// Average refcount changes per check
     pub fn avg_refcount_ops(&self) -> f64 {
         if self.checks == 0 {
@@ -494,19 +496,19 @@ impl SharedExtent {
             snapshot_id: 0,
         }
     }
-    
+
     /// Get end block (exclusive)
     #[inline]
     pub fn end(&self) -> u64 {
         self.start + self.length as u64
     }
-    
+
     /// Check if block is in extent
     #[inline]
     pub fn contains(&self, block: u64) -> bool {
         block >= self.start && block < self.end()
     }
-    
+
     /// Check if shared
     #[inline]
     pub fn is_shared(&self) -> bool {
@@ -521,90 +523,90 @@ impl SharedExtent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_refcount_basic() {
         let mut rc = RefCount::new(0);
         assert!(rc.is_untracked());
-        
+
         rc.increment().unwrap();
         assert!(rc.is_single());
-        
+
         rc.increment().unwrap();
         assert!(rc.is_shared());
         assert_eq!(rc.get(), 2);
-        
+
         let freed = rc.decrement().unwrap();
         assert!(!freed);
-        
+
         let freed = rc.decrement().unwrap();
         assert!(freed);
     }
-    
+
     #[test]
     fn test_refcount_block() {
         let block = RefCountBlock::new();
-        
+
         assert!(block.is_empty());
-        
+
         block.set(0, 1);
         block.set(100, 2);
-        
+
         assert!(!block.is_empty());
         assert_eq!(block.get(0).get(), 1);
         assert_eq!(block.get(100).get(), 2);
-        
+
         let new_val = block.increment(0).unwrap();
         assert_eq!(new_val, 2);
-        
+
         let freed = block.decrement(0).unwrap();
         assert!(!freed);
-        
+
         let freed = block.decrement(0).unwrap();
         assert!(freed);
     }
-    
+
     #[test]
     fn test_cow_check_result() {
         let unique = CowCheckResult::new(BlockNum::new(100), 1);
         assert!(unique.is_unique());
         assert!(!unique.needs_cow);
-        
+
         let shared = CowCheckResult::new(BlockNum::new(100), 3);
         assert!(!shared.is_unique());
         assert!(shared.needs_cow);
     }
-    
+
     #[test]
     fn test_cow_transaction() {
         let mut txn = CowTransaction::new(42);
-        
+
         assert_eq!(txn.txn_id(), 42);
         assert_eq!(txn.state(), CowState::Unique);
-        
+
         txn.add(100, 200).unwrap();
         txn.add(101, 201).unwrap();
-        
+
         assert_eq!(txn.state(), CowState::Copying);
-        
+
         let mappings: Vec<_> = txn.mappings().collect();
         assert_eq!(mappings.len(), 2);
         assert_eq!(mappings[0], (100, 200));
-        
+
         txn.complete();
         assert_eq!(txn.state(), CowState::CopyComplete);
     }
-    
+
     #[test]
     fn test_cow_stats() {
         let stats = CowStats::new();
-        
+
         stats.record_check(false);
         stats.record_check(true);
         stats.record_copy(4096);
         stats.record_inc();
         stats.record_dec(true);
-        
+
         let snap = stats.snapshot();
         assert_eq!(snap.checks, 2);
         assert_eq!(snap.unique, 1);

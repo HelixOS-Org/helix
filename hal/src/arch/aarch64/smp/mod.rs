@@ -108,17 +108,17 @@ pub const IPI_CPU_WAKE: u8 = 4;
 #[repr(u8)]
 pub enum CpuState {
     /// CPU is offline (not started)
-    Offline = 0,
+    Offline  = 0,
     /// CPU is in the process of coming online
     Starting = 1,
     /// CPU is online and running
-    Online = 2,
+    Online   = 2,
     /// CPU is going offline
     Stopping = 3,
     /// CPU is in an idle state (low power)
-    Idle = 4,
+    Idle     = 4,
     /// CPU has encountered a fatal error
-    Dead = 5,
+    Dead     = 5,
 }
 
 impl CpuState {

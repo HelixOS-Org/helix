@@ -2,8 +2,8 @@
 //!
 //! Manages mount namespaces and filesystem visibility.
 
-use crate::core::error::{HfsError, HfsResult};
 use super::ROOT_INO;
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Namespace Constants
@@ -30,11 +30,11 @@ pub const MAX_PATH: usize = 4096;
 #[repr(u8)]
 pub enum MountPropagation {
     /// Private mount
-    Private = 0,
+    Private    = 0,
     /// Shared mount
-    Shared = 1,
+    Shared     = 1,
     /// Slave mount
-    Slave = 2,
+    Slave      = 2,
     /// Unbindable mount
     Unbindable = 3,
 }
@@ -69,17 +69,17 @@ impl MountEntryFlags {
     pub const MNT_INTERNAL: u32 = 1 << 7;
     /// Locked mount (cannot be unmounted by unprivileged user)
     pub const MNT_LOCKED: u32 = 1 << 8;
-    
+
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
-    
+
     #[inline]
     pub fn set(&mut self, flag: u32) {
         self.0 |= flag;
     }
-    
+
     #[inline]
     pub fn clear(&mut self, flag: u32) {
         self.0 &= !flag;
@@ -133,50 +133,50 @@ impl MountEntry {
             active: false,
         }
     }
-    
+
     /// Set mount path
     pub fn set_path(&mut self, path: &[u8]) {
         let len = core::cmp::min(path.len(), MAX_PATH);
         self.mount_path[..len].copy_from_slice(&path[..len]);
         self.mount_path_len = len as u16;
     }
-    
+
     /// Get mount path
     pub fn path(&self) -> &[u8] {
         &self.mount_path[..self.mount_path_len as usize]
     }
-    
+
     /// Set filesystem type
     pub fn set_fs_type(&mut self, fs_type: &[u8]) {
         let len = core::cmp::min(fs_type.len(), 32);
         self.fs_type[..len].copy_from_slice(&fs_type[..len]);
         self.fs_type_len = len as u8;
     }
-    
+
     /// Get filesystem type
     pub fn fs_type(&self) -> &[u8] {
         &self.fs_type[..self.fs_type_len as usize]
     }
-    
+
     /// Check if path is under this mount
     pub fn contains_path(&self, path: &[u8]) -> bool {
         let mount_path = self.path();
         if path.len() < mount_path.len() {
             return false;
         }
-        
+
         if &path[..mount_path.len()] != mount_path {
             return false;
         }
-        
+
         // Must be exact match or followed by /
         if path.len() == mount_path.len() {
             return true;
         }
-        
+
         path[mount_path.len()] == b'/'
     }
-    
+
     /// Is read-only
     #[inline]
     pub fn is_readonly(&self) -> bool {
@@ -247,30 +247,30 @@ impl MountNamespace {
             active: true,
         }
     }
-    
+
     /// Set namespace name
     pub fn set_name(&mut self, name: &[u8]) {
         let len = core::cmp::min(name.len(), MAX_NS_NAME);
         self.name[..len].copy_from_slice(&name[..len]);
         self.name_len = len as u8;
     }
-    
+
     /// Get namespace name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
     }
-    
+
     /// Add mount entry
     pub fn add_mount(&mut self, mut entry: MountEntry) -> HfsResult<u32> {
         if self.mount_count >= MAX_MOUNTS_PER_NS {
             return Err(HfsError::NoSpace);
         }
-        
+
         // Allocate mount ID
         entry.mount_id = self.next_mount_id;
         self.next_mount_id += 1;
         entry.active = true;
-        
+
         // Find free slot
         for i in 0..MAX_MOUNTS_PER_NS {
             if !self.mounts[i].active {
@@ -279,10 +279,10 @@ impl MountNamespace {
                 return Ok(entry.mount_id);
             }
         }
-        
+
         Err(HfsError::NoSpace)
     }
-    
+
     /// Remove mount by ID
     pub fn remove_mount(&mut self, mount_id: u32) -> HfsResult<MountEntry> {
         for i in 0..MAX_MOUNTS_PER_NS {
@@ -293,20 +293,20 @@ impl MountNamespace {
                 return Ok(entry);
             }
         }
-        
+
         Err(HfsError::NotFound)
     }
-    
+
     /// Find mount by path
     pub fn find_mount_by_path(&self, path: &[u8]) -> Option<&MountEntry> {
         let mut best_match: Option<&MountEntry> = None;
         let mut best_len = 0;
-        
+
         for mount in &self.mounts {
             if !mount.active {
                 continue;
             }
-            
+
             if mount.contains_path(path) {
                 let len = mount.mount_path_len as usize;
                 if len > best_len {
@@ -315,42 +315,44 @@ impl MountNamespace {
                 }
             }
         }
-        
+
         best_match
     }
-    
+
     /// Find mount by ID
     pub fn find_mount(&self, mount_id: u32) -> Option<&MountEntry> {
-        self.mounts.iter()
+        self.mounts
+            .iter()
             .find(|m| m.active && m.mount_id == mount_id)
     }
-    
+
     /// Find mutable mount by ID
     pub fn find_mount_mut(&mut self, mount_id: u32) -> Option<&mut MountEntry> {
-        self.mounts.iter_mut()
+        self.mounts
+            .iter_mut()
             .find(|m| m.active && m.mount_id == mount_id)
     }
-    
+
     /// Iterate mounts
     pub fn iter_mounts(&self) -> impl Iterator<Item = &MountEntry> {
         self.mounts.iter().filter(|m| m.active)
     }
-    
+
     /// Set root mount
     pub fn set_root(&mut self, mount_id: u32) {
         self.root_mount_id = mount_id;
     }
-    
+
     /// Get root mount
     pub fn root(&self) -> Option<&MountEntry> {
         self.find_mount(self.root_mount_id)
     }
-    
+
     /// Mount count
     pub fn mount_count(&self) -> usize {
         self.mount_count
     }
-    
+
     /// Resolve path to mount and relative path
     pub fn resolve_path<'a, 'b>(&'a self, path: &'b [u8]) -> Option<(&'a MountEntry, &'b [u8])>
     where
@@ -358,15 +360,15 @@ impl MountNamespace {
     {
         let mount = self.find_mount_by_path(path)?;
         let mount_path_len = mount.mount_path_len as usize;
-        
+
         // Get relative path (skip mount point)
         let relative = if path.len() > mount_path_len {
             &path[mount_path_len..]
         } else {
             // Path equals mount point, return root
-            &path[path.len()..]  // Empty slice from path
+            &path[path.len()..] // Empty slice from path
         };
-        
+
         Some((mount, relative))
     }
 }
@@ -404,106 +406,107 @@ impl NamespaceManager {
             init_ns_id: 0,
         }
     }
-    
+
     /// Create namespace
     pub fn create(&mut self, owner_uid: u32) -> HfsResult<u32> {
         for i in 0..MAX_NAMESPACES {
             if self.namespaces[i].is_none() {
                 let ns_id = self.next_ns_id;
                 self.next_ns_id += 1;
-                
+
                 self.namespaces[i] = Some(MountNamespace::new(ns_id, owner_uid));
                 self.count += 1;
-                
+
                 // First namespace is init namespace
                 if self.count == 1 {
                     self.init_ns_id = ns_id;
                 }
-                
+
                 return Ok(ns_id);
             }
         }
-        
+
         Err(HfsError::NoSpace)
     }
-    
+
     /// Destroy namespace
     pub fn destroy(&mut self, ns_id: u32) -> HfsResult<()> {
         // Cannot destroy init namespace
         if ns_id == self.init_ns_id {
             return Err(HfsError::PermissionDenied);
         }
-        
+
         for i in 0..MAX_NAMESPACES {
             if let Some(ns) = &self.namespaces[i] {
                 if ns.ns_id == ns_id {
                     if ns.ref_count > 0 {
                         return Err(HfsError::Busy);
                     }
-                    
+
                     self.namespaces[i] = None;
                     self.count -= 1;
                     return Ok(());
                 }
             }
         }
-        
+
         Err(HfsError::NotFound)
     }
-    
+
     /// Get namespace
     pub fn get(&self, ns_id: u32) -> Option<&MountNamespace> {
-        self.namespaces.iter()
+        self.namespaces
+            .iter()
             .flatten()
             .find(|ns| ns.ns_id == ns_id)
     }
-    
+
     /// Get mutable namespace
     pub fn get_mut(&mut self, ns_id: u32) -> Option<&mut MountNamespace> {
-        self.namespaces.iter_mut()
+        self.namespaces
+            .iter_mut()
             .flatten()
             .find(|ns| ns.ns_id == ns_id)
     }
-    
+
     /// Get init namespace
     pub fn init_ns(&self) -> Option<&MountNamespace> {
         self.get(self.init_ns_id)
     }
-    
+
     /// Get mutable init namespace
     pub fn init_ns_mut(&mut self) -> Option<&mut MountNamespace> {
         self.get_mut(self.init_ns_id)
     }
-    
+
     /// Clone namespace
     pub fn clone_ns(&mut self, src_ns_id: u32, owner_uid: u32) -> HfsResult<u32> {
         // Find source namespace
-        let src_ns = self.get(src_ns_id)
-            .ok_or(HfsError::NotFound)?;
-        
+        let src_ns = self.get(src_ns_id).ok_or(HfsError::NotFound)?;
+
         // Copy mounts (shallow copy, just the entries)
         let mounts = src_ns.mounts;
         let mount_count = src_ns.mount_count;
         let root_mount_id = src_ns.root_mount_id;
-        
+
         // Create new namespace
         let new_ns_id = self.create(owner_uid)?;
-        
+
         // Copy to new namespace
         if let Some(new_ns) = self.get_mut(new_ns_id) {
             new_ns.mounts = mounts;
             new_ns.mount_count = mount_count;
             new_ns.root_mount_id = root_mount_id;
         }
-        
+
         Ok(new_ns_id)
     }
-    
+
     /// Iterate namespaces
     pub fn iter(&self) -> impl Iterator<Item = &MountNamespace> {
         self.namespaces.iter().flatten()
     }
-    
+
     /// Count
     pub fn count(&self) -> usize {
         self.count
@@ -559,12 +562,12 @@ impl LookupFlags {
     pub const LOOKUP_EMPTY: u32 = 1 << 6;
     /// Rename target
     pub const LOOKUP_RENAME_TARGET: u32 = 1 << 7;
-    
+
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Follow symlinks?
     #[inline]
     pub fn follow_symlinks(&self) -> bool {
@@ -579,79 +582,79 @@ impl LookupFlags {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_mount_entry() {
         let mut entry = MountEntry::new(1, 100, 0);
-        
+
         entry.set_path(b"/mnt/data");
         assert_eq!(entry.path(), b"/mnt/data");
-        
+
         entry.set_fs_type(b"helixfs");
         assert_eq!(entry.fs_type(), b"helixfs");
-        
+
         assert!(entry.contains_path(b"/mnt/data"));
         assert!(entry.contains_path(b"/mnt/data/file.txt"));
         assert!(!entry.contains_path(b"/mnt"));
         assert!(!entry.contains_path(b"/mnt/data2"));
     }
-    
+
     #[test]
     fn test_mount_namespace() {
         let mut ns = MountNamespace::new(1, 0);
-        
+
         let mut entry = MountEntry::new(0, 100, 0);
         entry.set_path(b"/");
-        
+
         let mount_id = ns.add_mount(entry).unwrap();
         assert_eq!(ns.mount_count(), 1);
-        
+
         let mount = ns.find_mount(mount_id).unwrap();
         assert_eq!(mount.dev, 100);
-        
+
         ns.remove_mount(mount_id).unwrap();
         assert_eq!(ns.mount_count(), 0);
     }
-    
+
     #[test]
     fn test_namespace_resolve_path() {
         let mut ns = MountNamespace::new(1, 0);
-        
+
         // Root mount
         let mut root = MountEntry::new(0, 100, 0);
         root.set_path(b"/");
         let root_id = ns.add_mount(root).unwrap();
         ns.set_root(root_id);
-        
+
         // Sub mount
         let mut sub = MountEntry::new(0, 200, 1);
         sub.set_path(b"/mnt");
         ns.add_mount(sub).unwrap();
-        
+
         // Resolve /file -> root mount
         let (mount, rel) = ns.resolve_path(b"/file").unwrap();
         assert_eq!(mount.dev, 100);
         assert_eq!(rel, b"/file");
-        
+
         // Resolve /mnt/data -> sub mount
         let (mount, rel) = ns.resolve_path(b"/mnt/data").unwrap();
         assert_eq!(mount.dev, 200);
         assert_eq!(rel, b"/data");
     }
-    
+
     #[test]
     fn test_namespace_manager() {
         let mut mgr = NamespaceManager::new();
-        
+
         let ns1 = mgr.create(1000).unwrap();
         assert_eq!(mgr.count(), 1);
-        
+
         let ns2 = mgr.clone_ns(ns1, 1001).unwrap();
         assert_eq!(mgr.count(), 2);
-        
+
         // Cannot destroy init namespace
         assert!(mgr.destroy(ns1).is_err());
-        
+
         // Can get namespaces
         assert!(mgr.get(ns1).is_some());
         assert!(mgr.get(ns2).is_some());

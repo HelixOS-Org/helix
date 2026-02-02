@@ -11,11 +11,10 @@
 
 #![allow(dead_code)]
 
-pub mod vfs;
-pub mod ops;
-pub mod mount;
 pub mod handle;
-
+pub mod mount;
+pub mod ops;
+pub mod vfs;
 
 // ============================================================================
 // Constants
@@ -45,21 +44,21 @@ pub const ROOT_INODE: u64 = 2;
 #[repr(u8)]
 pub enum FileType {
     /// Unknown type
-    Unknown = 0,
+    Unknown     = 0,
     /// Regular file
-    Regular = 1,
+    Regular     = 1,
     /// Directory
-    Directory = 2,
+    Directory   = 2,
     /// Symbolic link
-    Symlink = 3,
+    Symlink     = 3,
     /// Block device
     BlockDevice = 4,
     /// Character device
-    CharDevice = 5,
+    CharDevice  = 5,
     /// FIFO/named pipe
-    Fifo = 6,
+    Fifo        = 6,
     /// Socket
-    Socket = 7,
+    Socket      = 7,
 }
 
 impl FileType {
@@ -76,7 +75,7 @@ impl FileType {
             _ => Self::Unknown,
         }
     }
-    
+
     /// From mode bits (S_IFMT)
     pub fn from_mode(mode: u32) -> Self {
         match mode & 0o170000 {
@@ -90,7 +89,7 @@ impl FileType {
             _ => Self::Unknown,
         }
     }
-    
+
     /// To mode bits
     pub fn to_mode(&self) -> u32 {
         match self {
@@ -104,19 +103,19 @@ impl FileType {
             Self::Unknown => 0,
         }
     }
-    
+
     /// Is regular file
     #[inline]
     pub fn is_file(&self) -> bool {
         *self == Self::Regular
     }
-    
+
     /// Is directory
     #[inline]
     pub fn is_dir(&self) -> bool {
         *self == Self::Directory
     }
-    
+
     /// Is symbolic link
     #[inline]
     pub fn is_symlink(&self) -> bool {
@@ -147,7 +146,7 @@ impl OpenFlags {
     pub const O_WRONLY: u32 = 0o1;
     /// Read/write
     pub const O_RDWR: u32 = 0o2;
-    
+
     // Creation flags
     /// Create if not exists
     pub const O_CREAT: u32 = 0o100;
@@ -157,7 +156,7 @@ impl OpenFlags {
     pub const O_NOFOLLOW: u32 = 0o400000;
     /// Truncate to zero
     pub const O_TRUNC: u32 = 0o1000;
-    
+
     // Operation flags
     /// Append mode
     pub const O_APPEND: u32 = 0o2000;
@@ -167,60 +166,60 @@ impl OpenFlags {
     pub const O_SYNC: u32 = 0o4010000;
     /// Direct I/O (bypass cache)
     pub const O_DIRECT: u32 = 0o40000;
-    
+
     // Directory flags
     /// Directory only
     pub const O_DIRECTORY: u32 = 0o200000;
-    
+
     /// Create empty flags
     pub const fn empty() -> Self {
         Self(0)
     }
-    
+
     /// Check flag
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
     }
-    
+
     /// Get access mode
     #[inline]
     pub fn access_mode(&self) -> u32 {
         self.0 & 0o3
     }
-    
+
     /// Is read
     #[inline]
     pub fn is_read(&self) -> bool {
         let mode = self.access_mode();
         mode == Self::O_RDONLY || mode == Self::O_RDWR
     }
-    
+
     /// Is write
     #[inline]
     pub fn is_write(&self) -> bool {
         let mode = self.access_mode();
         mode == Self::O_WRONLY || mode == Self::O_RDWR
     }
-    
+
     /// Is create
     #[inline]
     pub fn is_create(&self) -> bool {
         self.has(Self::O_CREAT)
     }
-    
+
     /// Is truncate
     #[inline]
     pub fn is_truncate(&self) -> bool {
         self.has(Self::O_TRUNC)
     }
-    
+
     /// Is append
     #[inline]
     pub fn is_append(&self) -> bool {
         self.has(Self::O_APPEND)
     }
-    
+
     /// Is direct I/O
     #[inline]
     pub fn is_direct(&self) -> bool {
@@ -237,11 +236,11 @@ impl OpenFlags {
 #[repr(u8)]
 pub enum SeekWhence {
     /// From beginning
-    Set = 0,
+    Set  = 0,
     /// From current position
-    Cur = 1,
+    Cur  = 1,
     /// From end
-    End = 2,
+    End  = 2,
     /// To next data
     Data = 3,
     /// To next hole
@@ -326,24 +325,24 @@ impl FileStat {
             st_ctime_nsec: 0,
         }
     }
-    
+
     /// Get file type
     pub fn file_type(&self) -> FileType {
         FileType::from_mode(self.st_mode)
     }
-    
+
     /// Is directory
     #[inline]
     pub fn is_dir(&self) -> bool {
         self.file_type().is_dir()
     }
-    
+
     /// Is regular file
     #[inline]
     pub fn is_file(&self) -> bool {
         self.file_type().is_file()
     }
-    
+
     /// Is symlink
     #[inline]
     pub fn is_symlink(&self) -> bool {
@@ -384,16 +383,16 @@ impl DirEntry {
             d_namelen: 0,
             d_name: [0; MAX_NAME_LEN + 1],
         };
-        
+
         let len = core::cmp::min(name.len(), MAX_NAME_LEN);
         entry.d_name[..len].copy_from_slice(&name[..len]);
         entry.d_namelen = len as u8;
         entry.d_reclen = (24 + len + 1) as u16; // Align to 8 bytes
         entry.d_reclen = ((entry.d_reclen + 7) / 8) * 8;
-        
+
         entry
     }
-    
+
     /// Get name as slice
     pub fn name(&self) -> &[u8] {
         &self.d_name[..self.d_namelen as usize]
@@ -462,22 +461,22 @@ impl FsStats {
             f_namemax: MAX_NAME_LEN as u64,
         }
     }
-    
+
     /// Total size in bytes
     pub fn total_size(&self) -> u64 {
         self.f_blocks * self.f_bsize
     }
-    
+
     /// Free size in bytes
     pub fn free_size(&self) -> u64 {
         self.f_bfree * self.f_bsize
     }
-    
+
     /// Used size in bytes
     pub fn used_size(&self) -> u64 {
         (self.f_blocks - self.f_bfree) * self.f_bsize
     }
-    
+
     /// Usage percentage
     pub fn usage_percent(&self) -> f32 {
         if self.f_blocks == 0 {
@@ -517,7 +516,7 @@ impl Credentials {
             privileged: true,
         }
     }
-    
+
     /// User credentials
     pub fn user(uid: u32, gid: u32) -> Self {
         Self {
@@ -528,28 +527,28 @@ impl Credentials {
             privileged: uid == 0,
         }
     }
-    
+
     /// Check if in group
     pub fn is_in_group(&self, gid: u32) -> bool {
         if self.gid == gid {
             return true;
         }
-        
+
         for i in 0..self.ngroups as usize {
             if self.groups[i] == gid {
                 return true;
             }
         }
-        
+
         false
     }
-    
+
     /// Check permission
     pub fn check_permission(&self, mode: u32, owner_uid: u32, owner_gid: u32, want: u32) -> bool {
         if self.privileged {
             return true;
         }
-        
+
         let perm = if self.uid == owner_uid {
             (mode >> 6) & 0o7
         } else if self.is_in_group(owner_gid) {
@@ -557,7 +556,7 @@ impl Credentials {
         } else {
             mode & 0o7
         };
-        
+
         (perm & want) == want
     }
 }
@@ -569,58 +568,58 @@ impl Credentials {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_file_type() {
         assert_eq!(FileType::from_mode(0o100644), FileType::Regular);
         assert_eq!(FileType::from_mode(0o040755), FileType::Directory);
         assert_eq!(FileType::from_mode(0o120777), FileType::Symlink);
     }
-    
+
     #[test]
     fn test_open_flags() {
         let flags = OpenFlags(OpenFlags::O_RDWR | OpenFlags::O_CREAT);
-        
+
         assert!(flags.is_read());
         assert!(flags.is_write());
         assert!(flags.is_create());
         assert!(!flags.is_append());
     }
-    
+
     #[test]
     fn test_file_stat() {
         let mut stat = FileStat::new();
         stat.st_mode = 0o100644;
         stat.st_size = 1024;
-        
+
         assert!(stat.is_file());
         assert!(!stat.is_dir());
     }
-    
+
     #[test]
     fn test_dir_entry() {
         let entry = DirEntry::new(100, FileType::Regular, b"test.txt");
-        
+
         assert_eq!(entry.d_ino, 100);
         assert_eq!(entry.d_type, FileType::Regular);
         assert_eq!(entry.name(), b"test.txt");
     }
-    
+
     #[test]
     fn test_fs_stats() {
         let mut stats = FsStats::new();
         stats.f_blocks = 1000;
         stats.f_bfree = 500;
-        
+
         assert_eq!(stats.usage_percent(), 50.0);
     }
-    
+
     #[test]
     fn test_credentials() {
         let root = Credentials::root();
         assert!(root.privileged);
         assert!(root.check_permission(0o600, 1000, 1000, 0o4));
-        
+
         let user = Credentials::user(1000, 1000);
         assert!(user.check_permission(0o644, 1000, 1000, 0o6)); // Owner
         assert!(!user.check_permission(0o600, 1001, 1001, 0o4)); // Other

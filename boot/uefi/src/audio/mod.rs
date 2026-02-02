@@ -120,8 +120,10 @@ impl SampleFormat {
             SampleFormat::U8 | SampleFormat::ALaw | SampleFormat::MuLaw => 1,
             SampleFormat::S16Le | SampleFormat::S16Be => 2,
             SampleFormat::S24Le | SampleFormat::S24Be => 3,
-            SampleFormat::S32Le | SampleFormat::S32Be |
-            SampleFormat::F32Le | SampleFormat::F32Be => 4,
+            SampleFormat::S32Le
+            | SampleFormat::S32Be
+            | SampleFormat::F32Le
+            | SampleFormat::F32Be => 4,
         }
     }
 
@@ -131,21 +133,24 @@ impl SampleFormat {
             SampleFormat::U8 | SampleFormat::ALaw | SampleFormat::MuLaw => 8,
             SampleFormat::S16Le | SampleFormat::S16Be => 16,
             SampleFormat::S24Le | SampleFormat::S24Be => 24,
-            SampleFormat::S32Le | SampleFormat::S32Be |
-            SampleFormat::F32Le | SampleFormat::F32Be => 32,
+            SampleFormat::S32Le
+            | SampleFormat::S32Be
+            | SampleFormat::F32Le
+            | SampleFormat::F32Be => 32,
         }
     }
 
     /// Check if little-endian
     pub const fn is_little_endian(&self) -> bool {
-        matches!(self,
-            SampleFormat::U8 |
-            SampleFormat::S16Le |
-            SampleFormat::S24Le |
-            SampleFormat::S32Le |
-            SampleFormat::F32Le |
-            SampleFormat::ALaw |
-            SampleFormat::MuLaw
+        matches!(
+            self,
+            SampleFormat::U8
+                | SampleFormat::S16Le
+                | SampleFormat::S24Le
+                | SampleFormat::S32Le
+                | SampleFormat::F32Le
+                | SampleFormat::ALaw
+                | SampleFormat::MuLaw
         )
     }
 }
@@ -353,7 +358,7 @@ impl<'a> WavParser<'a> {
                     }
                     let fmt = unsafe { &*(self.data[self.pos..].as_ptr() as *const FmtChunk) };
                     format = fmt.to_audio_format();
-                }
+                },
                 b"data" => {
                     let data_start = self.pos + 8;
                     let data_end = data_start + chunk_size as usize;
@@ -361,8 +366,8 @@ impl<'a> WavParser<'a> {
                         return None;
                     }
                     audio_data = Some(&self.data[data_start..data_end]);
-                }
-                _ => {}
+                },
+                _ => {},
             }
 
             self.pos += 8 + chunk_size as usize;
@@ -592,7 +597,11 @@ impl ToneGenerator {
 
     /// Generate square wave sample
     fn square_sample(&self) -> f32 {
-        if self.phase < 0.5 { 1.0 } else { -1.0 }
+        if self.phase < 0.5 {
+            1.0
+        } else {
+            -1.0
+        }
     }
 
     /// Generate triangle wave sample
@@ -612,8 +621,11 @@ impl ToneGenerator {
     /// Generate noise sample (LFSR)
     fn noise_sample(&mut self) -> f32 {
         // Linear feedback shift register
-        let bit = ((self.noise_state >> 0) ^ (self.noise_state >> 2) ^
-                   (self.noise_state >> 3) ^ (self.noise_state >> 5)) & 1;
+        let bit = ((self.noise_state >> 0)
+            ^ (self.noise_state >> 2)
+            ^ (self.noise_state >> 3)
+            ^ (self.noise_state >> 5))
+            & 1;
         self.noise_state = (self.noise_state >> 1) | (bit << 15);
         ((self.noise_state & 0xFFFF) as f32 / 32768.0) - 1.0
     }
@@ -734,7 +746,7 @@ pub enum BootChime {
 
 /// Static boot chime sequences
 mod chime_sequences {
-    use super::{Tone, notes, Waveform};
+    use super::{notes, Tone, Waveform};
 
     pub static CLASSIC: &[Tone] = &[
         Tone::new(notes::C4, 100),
@@ -747,23 +759,61 @@ mod chime_sequences {
     ];
 
     pub static MODERN: &[Tone] = &[
-        Tone { frequency: notes::G4, duration_ms: 80, waveform: Waveform::Triangle, volume: 80 },
+        Tone {
+            frequency: notes::G4,
+            duration_ms: 80,
+            waveform: Waveform::Triangle,
+            volume: 80,
+        },
         Tone::rest(30),
-        Tone { frequency: notes::C5, duration_ms: 80, waveform: Waveform::Triangle, volume: 80 },
+        Tone {
+            frequency: notes::C5,
+            duration_ms: 80,
+            waveform: Waveform::Triangle,
+            volume: 80,
+        },
         Tone::rest(30),
-        Tone { frequency: notes::E5, duration_ms: 150, waveform: Waveform::Triangle, volume: 80 },
+        Tone {
+            frequency: notes::E5,
+            duration_ms: 150,
+            waveform: Waveform::Triangle,
+            volume: 80,
+        },
     ];
 
-    pub static MINIMAL: &[Tone] = &[
-        Tone::new(notes::C5, 150),
-    ];
+    pub static MINIMAL: &[Tone] = &[Tone::new(notes::C5, 150)];
 
     pub static MAC: &[Tone] = &[
-        Tone { frequency: notes::FS4, duration_ms: 80, waveform: Waveform::Sine, volume: 90 },
-        Tone { frequency: notes::A4, duration_ms: 80, waveform: Waveform::Sine, volume: 85 },
-        Tone { frequency: notes::CS4, duration_ms: 80, waveform: Waveform::Sine, volume: 80 },
-        Tone { frequency: notes::E4, duration_ms: 80, waveform: Waveform::Sine, volume: 75 },
-        Tone { frequency: notes::FS4, duration_ms: 300, waveform: Waveform::Sine, volume: 70 },
+        Tone {
+            frequency: notes::FS4,
+            duration_ms: 80,
+            waveform: Waveform::Sine,
+            volume: 90,
+        },
+        Tone {
+            frequency: notes::A4,
+            duration_ms: 80,
+            waveform: Waveform::Sine,
+            volume: 85,
+        },
+        Tone {
+            frequency: notes::CS4,
+            duration_ms: 80,
+            waveform: Waveform::Sine,
+            volume: 80,
+        },
+        Tone {
+            frequency: notes::E4,
+            duration_ms: 80,
+            waveform: Waveform::Sine,
+            volume: 75,
+        },
+        Tone {
+            frequency: notes::FS4,
+            duration_ms: 300,
+            waveform: Waveform::Sine,
+            volume: 70,
+        },
     ];
 }
 
@@ -1206,7 +1256,10 @@ pub struct PcSpeakerBeep {
 impl PcSpeakerBeep {
     /// Create new beep
     pub const fn new(frequency: u32, duration_ms: u32) -> Self {
-        Self { frequency, duration_ms }
+        Self {
+            frequency,
+            duration_ms,
+        }
     }
 
     /// Get timer divisor

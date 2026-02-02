@@ -2,13 +2,15 @@
 //!
 //! Process abstraction and management.
 
-use crate::{ThreadId, ProcessId, ExecResult, ExecError};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use spin::RwLock;
 use core::sync::atomic::{AtomicU32, Ordering};
+
+use spin::RwLock;
+
+use crate::{ExecError, ExecResult, ProcessId, ThreadId};
 
 /// Process state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,18 +167,19 @@ impl ProcessRegistry {
     pub fn register(&self, process: Arc<Process>) -> ExecResult<()> {
         let id = process.id();
         let mut processes = self.processes.write();
-        
+
         if processes.contains_key(&id) {
             return Err(ExecError::AlreadyExists);
         }
-        
+
         processes.insert(id, process);
         Ok(())
     }
 
     /// Unregister a process
     pub fn unregister(&self, id: ProcessId) -> ExecResult<Arc<Process>> {
-        self.processes.write()
+        self.processes
+            .write()
             .remove(&id)
             .ok_or(ExecError::ProcessNotFound)
     }

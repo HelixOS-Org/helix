@@ -758,7 +758,7 @@ pub struct SerialConfig {
 impl Default for SerialConfig {
     fn default() -> Self {
         Self {
-            port: 0x3F8,  // COM1
+            port: 0x3F8, // COM1
             baud: 115200,
             data_bits: 8,
             stop_bits: 1,
@@ -970,7 +970,7 @@ impl Default for LocaleSettings {
 pub const SETTINGS_VERSION: u32 = 1;
 
 /// Settings magic number
-pub const SETTINGS_MAGIC: u32 = 0x48454C58;  // "HELX"
+pub const SETTINGS_MAGIC: u32 = 0x48454C58; // "HELX"
 
 /// Master settings header
 #[derive(Debug, Clone, Copy)]

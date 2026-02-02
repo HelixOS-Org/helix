@@ -34,10 +34,11 @@
 //! └─────────────────────────────────────────────────────────────────┘
 //! ```
 
-use super::gdt::Gdt;
-use super::tss::{Tss, IstIndex, KERNEL_STACK_SIZE, IST_STACK_SIZE, IST_DOUBLE_FAULT_SIZE};
-use super::selectors::TSS_SELECTOR;
 use core::sync::atomic::{AtomicUsize, Ordering};
+
+use super::gdt::Gdt;
+use super::selectors::TSS_SELECTOR;
+use super::tss::{IstIndex, Tss, IST_DOUBLE_FAULT_SIZE, IST_STACK_SIZE, KERNEL_STACK_SIZE};
 
 // =============================================================================
 // CONSTANTS
@@ -49,7 +50,7 @@ pub const MAX_CPUS: usize = 256;
 /// Size of per-CPU stack area (kernel stack + IST stacks)
 const PER_CPU_STACK_SIZE: usize = KERNEL_STACK_SIZE
     + IST_DOUBLE_FAULT_SIZE  // IST1: Double Fault (larger)
-    + IST_STACK_SIZE * 6;    // IST2-IST7
+    + IST_STACK_SIZE * 6; // IST2-IST7
 
 // =============================================================================
 // STATIC DATA
@@ -245,7 +246,10 @@ pub fn cpu_count() -> usize {
 /// # Safety
 /// The CPU must have been initialized.
 pub unsafe fn get_cpu(cpu_id: usize) -> PerCpuSegmentation {
-    assert!(cpu_id < CPU_COUNT.load(Ordering::Acquire), "CPU not initialized");
+    assert!(
+        cpu_id < CPU_COUNT.load(Ordering::Acquire),
+        "CPU not initialized"
+    );
     PerCpuSegmentation { cpu_id }
 }
 
@@ -320,7 +324,9 @@ mod tests {
     #[test]
     fn test_per_cpu_stack_size() {
         // Ensure we have enough stack space
-        assert!(PER_CPU_STACK_SIZE >= KERNEL_STACK_SIZE + IST_DOUBLE_FAULT_SIZE + 6 * IST_STACK_SIZE);
+        assert!(
+            PER_CPU_STACK_SIZE >= KERNEL_STACK_SIZE + IST_DOUBLE_FAULT_SIZE + 6 * IST_STACK_SIZE
+        );
     }
 
     #[test]

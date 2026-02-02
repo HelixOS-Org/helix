@@ -11,8 +11,7 @@
 //! - Media type detection
 //! - Embedded file support
 
-use core::slice;
-use core::str;
+use core::{slice, str};
 
 // =============================================================================
 // File Representation
@@ -226,7 +225,7 @@ pub enum MediaType {
     /// Optical disc (CD/DVD)
     Optical = 1,
     /// TFTP network boot
-    Tftp = 2,
+    Tftp    = 2,
 }
 
 impl MediaType {
@@ -605,9 +604,9 @@ impl FileType {
     /// Check if data looks like text
     fn looks_like_text(data: &[u8]) -> bool {
         let sample = if data.len() > 512 { &data[..512] } else { data };
-        sample.iter().all(|&b| {
-            b == b'\n' || b == b'\r' || b == b'\t' || (b >= 0x20 && b < 0x7f)
-        })
+        sample
+            .iter()
+            .all(|&b| b == b'\n' || b == b'\r' || b == b'\t' || (b >= 0x20 && b < 0x7f))
     }
 
     /// Detect from file

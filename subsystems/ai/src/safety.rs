@@ -48,19 +48,15 @@
 //!                       └──────────────────────────────────────────┘
 //! ```
 
-use crate::core::{
-    AiAction, AiDecision, AiPriority, SafetyLevel,
-};
-
-use alloc::{
-    collections::{BTreeMap, VecDeque},
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
+
+use crate::core::{AiAction, AiDecision, AiPriority, SafetyLevel};
 
 // =============================================================================
 // Safety Invariants
@@ -179,10 +175,7 @@ pub enum ConstraintType {
     /// Minimum confidence required
     MinConfidence(f32),
     /// Maximum actions per time window
-    RateLimit {
-        max_count: u32,
-        window_ms: u64,
-    },
+    RateLimit { max_count: u32, window_ms: u64 },
     /// Require human approval
     RequireApproval,
     /// Require specific conditions
@@ -196,10 +189,7 @@ pub enum ConstraintType {
     /// Cannot affect critical processes
     ProtectCritical,
     /// Cannot exceed resource limit
-    ResourceLimit {
-        resource: String,
-        max_value: u64,
-    },
+    ResourceLimit { resource: String, max_value: u64 },
 }
 
 /// Scope of constraint application
@@ -602,19 +592,19 @@ impl SafetyChecker {
                         result.allowed = false;
                         self.stats.actions_blocked.fetch_add(1, Ordering::Relaxed);
                     }
-                }
+                },
                 ViolationAction::Modify => {
                     result.modified_action = self.modify_action(&decision.action);
                     self.stats.actions_modified.fetch_add(1, Ordering::Relaxed);
-                }
+                },
                 ViolationAction::Escalate => {
                     result.required_approval = true;
                     self.stats.escalations.fetch_add(1, Ordering::Relaxed);
-                }
+                },
                 ViolationAction::Warn => {
                     // Allow but log
-                }
-                ViolationAction::Allow => {}
+                },
+                ViolationAction::Allow => {},
             }
         }
 
@@ -624,11 +614,11 @@ impl SafetyChecker {
                 SafetyLevel::Paranoid => {
                     result.allowed = false;
                     self.stats.actions_blocked.fetch_add(1, Ordering::Relaxed);
-                }
+                },
                 SafetyLevel::Cautious => {
                     result.required_approval = true;
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -651,7 +641,9 @@ impl SafetyChecker {
         for invariant in invariants.iter() {
             if let Some(violation) = self.check_single_invariant(invariant, decision) {
                 violations.push(violation);
-                self.stats.invariant_violations.fetch_add(1, Ordering::Relaxed);
+                self.stats
+                    .invariant_violations
+                    .fetch_add(1, Ordering::Relaxed);
             }
         }
 
@@ -669,21 +661,25 @@ impl SafetyChecker {
             (InvariantCheckType::BlockList(blocked), AiAction::TerminateProcess { pid }) => {
                 // In real implementation, would map PID to process name
                 false // Placeholder
-            }
+            },
 
             // Check if action targets blocked process
-            (InvariantCheckType::BlockList(blocked), AiAction::RestartModule { module_name, .. }) => {
-                blocked.iter().any(|b| module_name.contains(b))
-            }
+            (
+                InvariantCheckType::BlockList(blocked),
+                AiAction::RestartModule { module_name, .. },
+            ) => blocked.iter().any(|b| module_name.contains(b)),
 
             // Check privilege escalation
-            (InvariantCheckType::Custom(check), AiAction::AdjustProcessPriority { new_priority, .. }) => {
+            (
+                InvariantCheckType::Custom(check),
+                AiAction::AdjustProcessPriority { new_priority, .. },
+            ) => {
                 if check == "privilege_check" {
                     *new_priority < -10 // Very high priority is suspicious
                 } else {
                     false
                 }
-            }
+            },
 
             _ => false,
         };
@@ -724,7 +720,9 @@ impl SafetyChecker {
 
             if let Some(violation) = self.check_single_constraint(constraint, decision) {
                 violations.push((violation, constraint.on_violation));
-                self.stats.constraint_violations.fetch_add(1, Ordering::Relaxed);
+                self.stats
+                    .constraint_violations
+                    .fetch_add(1, Ordering::Relaxed);
             }
         }
 
@@ -742,7 +740,7 @@ impl SafetyChecker {
             ConstraintScope::All => true,
             ConstraintScope::ActionTypes(types) => {
                 types.contains(&self.action_type_id(&decision.action))
-            }
+            },
             ConstraintScope::PriorityLevel(p) => decision.priority == *p,
             ConstraintScope::ConfidenceBelow(c) => decision.confidence.value() < *c,
             ConstraintScope::SafetyLevel(s) => safety_level == *s,
@@ -780,10 +778,13 @@ impl SafetyChecker {
         let violated = match &constraint.constraint_type {
             ConstraintType::MinConfidence(min) => decision.confidence.value() < *min,
 
-            ConstraintType::RateLimit { max_count, window_ms } => {
+            ConstraintType::RateLimit {
+                max_count,
+                window_ms,
+            } => {
                 let action_type = self.action_type_id(&decision.action);
                 self.check_rate_limit(action_type, *max_count, *window_ms)
-            }
+            },
 
             ConstraintType::MustBeReversible => decision.rollback.is_none(),
 
@@ -818,10 +819,7 @@ impl SafetyChecker {
         let current_time = 0u64; // Placeholder
         let window_start = current_time.saturating_sub(window_ms * 1000);
 
-        let count = timestamps
-            .iter()
-            .filter(|&&t| t >= window_start)
-            .count();
+        let count = timestamps.iter().filter(|&&t| t >= window_start).count();
 
         count as u32 >= max_count
     }
@@ -832,14 +830,14 @@ impl SafetyChecker {
             AiAction::TerminateProcess { pid } => {
                 // Would check if PID is critical
                 *pid < 10 // Placeholder: low PIDs are critical
-            }
+            },
             AiAction::RestartModule { module_name, .. } => {
                 // Critical modules
                 matches!(
                     module_name.as_str(),
                     "scheduler" | "allocator" | "interrupt_handler" | "paging"
                 )
-            }
+            },
             _ => false,
         }
     }
@@ -870,18 +868,27 @@ impl SafetyChecker {
         match action {
             AiAction::TerminateProcess { pid } => {
                 // Convert to graceful shutdown instead
-                Some(AiAction::SuspendIdleProcesses { threshold_seconds: 0 })
-            }
+                Some(AiAction::SuspendIdleProcesses {
+                    threshold_seconds: 0,
+                })
+            },
 
-            AiAction::TuneScheduler { granularity_ns, preemption } => {
+            AiAction::TuneScheduler {
+                granularity_ns,
+                preemption,
+            } => {
                 // Reduce the magnitude of changes
                 Some(AiAction::TuneScheduler {
                     granularity_ns: (*granularity_ns).max(1_000_000), // At least 1ms
                     preemption: *preemption,
                 })
-            }
+            },
 
-            AiAction::AdjustProcessPriority { pid, old_priority, new_priority } => {
+            AiAction::AdjustProcessPriority {
+                pid,
+                old_priority,
+                new_priority,
+            } => {
                 // Limit priority change magnitude
                 let max_change = 5;
                 let limited_new = if *new_priority < *old_priority {
@@ -894,7 +901,7 @@ impl SafetyChecker {
                     old_priority: *old_priority,
                     new_priority: limited_new,
                 })
-            }
+            },
 
             _ => None,
         }

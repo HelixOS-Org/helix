@@ -2,8 +2,8 @@
 //!
 //! High-level directory operations: mkdir, rmdir, readdir.
 
-use crate::core::error::{HfsError, HfsResult};
 use super::InodeType;
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Directory Entry
@@ -17,21 +17,21 @@ pub const MAX_READDIR_ENTRIES: usize = 256;
 #[repr(u8)]
 pub enum DirEntryType {
     /// Unknown
-    Unknown = 0,
+    Unknown  = 0,
     /// FIFO
-    Fifo = 1,
+    Fifo     = 1,
     /// Character device
-    Char = 2,
+    Char     = 2,
     /// Directory
-    Dir = 4,
+    Dir      = 4,
     /// Block device
-    Block = 6,
+    Block    = 6,
     /// Regular file
-    Regular = 8,
+    Regular  = 8,
     /// Symbolic link
-    Link = 10,
+    Link     = 10,
     /// Socket
-    Socket = 12,
+    Socket   = 12,
     /// Whiteout
     Whiteout = 14,
 }
@@ -49,7 +49,7 @@ impl DirEntryType {
             InodeType::Symlink => Self::Link,
         }
     }
-    
+
     /// From mode
     pub fn from_mode(mode: u16) -> Self {
         match InodeType::from_mode(mode) {
@@ -57,17 +57,17 @@ impl DirEntryType {
             None => Self::Unknown,
         }
     }
-    
+
     /// Is directory
     pub fn is_dir(self) -> bool {
         self == Self::Dir
     }
-    
+
     /// Is regular file
     pub fn is_file(self) -> bool {
         self == Self::Regular
     }
-    
+
     /// Is symlink
     pub fn is_symlink(self) -> bool {
         self == Self::Link
@@ -110,32 +110,32 @@ impl DirEntry {
         entry.name_len = len as u8;
         entry
     }
-    
+
     /// Create "." entry
     pub fn dot(ino: u64, offset: u64) -> Self {
         Self::new(ino, DirEntryType::Dir, b".", offset)
     }
-    
+
     /// Create ".." entry
     pub fn dotdot(parent_ino: u64, offset: u64) -> Self {
         Self::new(parent_ino, DirEntryType::Dir, b"..", offset)
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
     }
-    
+
     /// Is dot entry
     pub fn is_dot(&self) -> bool {
         self.name_len == 1 && self.name[0] == b'.'
     }
-    
+
     /// Is dotdot entry
     pub fn is_dotdot(&self) -> bool {
         self.name_len == 2 && self.name[0] == b'.' && self.name[1] == b'.'
     }
-    
+
     /// Is special entry (. or ..)
     pub fn is_special(&self) -> bool {
         self.is_dot() || self.is_dotdot()
@@ -180,7 +180,7 @@ impl ReaddirResult {
             next_offset: 0,
         }
     }
-    
+
     /// Add entry
     pub fn add(&mut self, entry: DirEntry) -> bool {
         if self.count >= MAX_READDIR_ENTRIES {
@@ -190,12 +190,12 @@ impl ReaddirResult {
         self.count += 1;
         true
     }
-    
+
     /// Is full
     pub fn is_full(&self) -> bool {
         self.count >= MAX_READDIR_ENTRIES
     }
-    
+
     /// Iterate entries
     pub fn iter(&self) -> impl Iterator<Item = &DirEntry> {
         self.entries[..self.count].iter()
@@ -245,7 +245,7 @@ impl MkdirParams {
         params.name_len = len as u8;
         params
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
@@ -276,7 +276,7 @@ impl RmdirParams {
         params.name_len = len as u8;
         params
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
@@ -306,13 +306,13 @@ impl ReaddirParams {
             plus: false,
         }
     }
-    
+
     /// With max entries
     pub fn with_max(mut self, max: usize) -> Self {
         self.max_entries = max;
         self
     }
-    
+
     /// With plus (include attributes)
     pub fn plus(mut self) -> Self {
         self.plus = true;
@@ -353,25 +353,25 @@ impl OpenDir {
             owner_pid: 0,
         }
     }
-    
+
     /// Reset position
     pub fn rewind(&mut self) {
         self.offset = 0;
         self.eof = false;
     }
-    
+
     /// Seek to position
     pub fn seek(&mut self, offset: u64) {
         self.offset = offset;
         self.eof = false;
     }
-    
+
     /// Acquire reference
     pub fn acquire(&mut self) -> u32 {
         self.refcount += 1;
         self.refcount
     }
-    
+
     /// Release reference
     pub fn release(&mut self) -> u32 {
         self.refcount = self.refcount.saturating_sub(1);
@@ -425,7 +425,7 @@ impl DirTable {
             count: 0,
         }
     }
-    
+
     /// Allocate directory handle
     pub fn alloc(&mut self, dev: u64, ino: u64) -> HfsResult<usize> {
         for i in 0..MAX_OPEN_DIRS {
@@ -438,19 +438,19 @@ impl DirTable {
         }
         Err(HfsError::TooManyOpenFiles)
     }
-    
+
     /// Free directory handle
     pub fn free(&mut self, idx: usize) -> HfsResult<()> {
         if idx >= MAX_OPEN_DIRS || !self.used[idx] {
             return Err(HfsError::BadFileDescriptor);
         }
-        
+
         self.used[idx] = false;
         self.dirs[idx] = OpenDir::default();
         self.count -= 1;
         Ok(())
     }
-    
+
     /// Get directory
     pub fn get(&self, idx: usize) -> Option<&OpenDir> {
         if idx < MAX_OPEN_DIRS && self.used[idx] {
@@ -459,7 +459,7 @@ impl DirTable {
             None
         }
     }
-    
+
     /// Get mutable directory
     pub fn get_mut(&mut self, idx: usize) -> Option<&mut OpenDir> {
         if idx < MAX_OPEN_DIRS && self.used[idx] {
@@ -468,7 +468,7 @@ impl DirTable {
             None
         }
     }
-    
+
     /// Count
     pub fn count(&self) -> usize {
         self.count
@@ -507,69 +507,66 @@ pub fn count_entries(entries: &[DirEntry]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_dir_entry_type() {
         let typ = DirEntryType::from_mode(0o040755);
         assert!(typ.is_dir());
-        
+
         let typ = DirEntryType::from_mode(0o100644);
         assert!(typ.is_file());
     }
-    
+
     #[test]
     fn test_dir_entry() {
         let entry = DirEntry::new(100, DirEntryType::Regular, b"file.txt", 0);
         assert_eq!(entry.name(), b"file.txt");
         assert!(!entry.is_special());
-        
+
         let dot = DirEntry::dot(100, 0);
         assert!(dot.is_dot());
         assert!(dot.is_special());
-        
+
         let dotdot = DirEntry::dotdot(99, 1);
         assert!(dotdot.is_dotdot());
         assert!(dotdot.is_special());
     }
-    
+
     #[test]
     fn test_readdir_result() {
         let mut result = ReaddirResult::new();
-        
+
         assert!(result.add(DirEntry::dot(100, 0)));
         assert!(result.add(DirEntry::dotdot(99, 1)));
         assert!(result.add(DirEntry::new(101, DirEntryType::Regular, b"file.txt", 2)));
-        
+
         assert_eq!(result.count, 3);
-        
+
         let entries: Vec<_> = result.iter().collect();
         assert_eq!(entries.len(), 3);
     }
-    
+
     #[test]
     fn test_dir_table() {
         let mut table = DirTable::new();
-        
+
         let idx = table.alloc(1, 100).unwrap();
         assert_eq!(table.count(), 1);
-        
+
         let dir = table.get_mut(idx).unwrap();
         dir.offset = 10;
-        
+
         assert_eq!(table.get(idx).unwrap().offset, 10);
-        
+
         table.free(idx).unwrap();
         assert_eq!(table.count(), 0);
     }
-    
+
     #[test]
     fn test_is_dir_empty() {
-        let entries = [
-            DirEntry::dot(100, 0),
-            DirEntry::dotdot(99, 1),
-        ];
+        let entries = [DirEntry::dot(100, 0), DirEntry::dotdot(99, 1)];
         assert!(is_dir_empty(&entries));
-        
+
         let entries = [
             DirEntry::dot(100, 0),
             DirEntry::dotdot(99, 1),

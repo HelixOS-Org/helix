@@ -2,12 +2,12 @@
 //!
 //! Core relocation engine that applies relocations to kernel images.
 
-use crate::{
-    RelocResult, RelocError, RelocationStats,
-    PhysAddr, VirtAddr,
-    context::{RelocationContext, RelocationContextBuilder, KernelState, RelocationStrategy, BootProtocol},
-    elf::{Elf64Rela, relocations::RelocationInfo},
+use crate::context::{
+    BootProtocol, KernelState, RelocationContext, RelocationContextBuilder, RelocationStrategy,
 };
+use crate::elf::Elf64Rela;
+use crate::elf::relocations::RelocationInfo;
+use crate::{PhysAddr, RelocError, RelocResult, RelocationStats, VirtAddr};
 
 // ============================================================================
 // TRAITS
@@ -177,7 +177,7 @@ impl FullRelocator {
                     let plt_ptr = self.vaddr_to_ptr(plt_addr)? as *const Elf64Rela;
                     unsafe { self.apply_rela_entries(plt_ptr, plt_count, &mut stats)? };
                 }
-            }
+            },
 
             RelocationStrategy::StaticMinimal => {
                 // Only apply RELATIVE relocations
@@ -192,7 +192,7 @@ impl FullRelocator {
                     }
                     stats.total += 1;
                 }
-            }
+            },
 
             RelocationStrategy::Hybrid => {
                 // Relocate everything except TLS
@@ -203,12 +203,12 @@ impl FullRelocator {
                     unsafe { self.apply_single_relocation(&info, &mut stats)? };
                     stats.total += 1;
                 }
-            }
+            },
 
             RelocationStrategy::EarlyBoot | RelocationStrategy::None => {
                 // Should not use FullRelocator for these
                 return Err(RelocError::NotInitialized);
-            }
+            },
         }
 
         // Update state

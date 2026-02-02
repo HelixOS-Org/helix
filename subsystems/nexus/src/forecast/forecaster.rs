@@ -4,11 +4,10 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::math;
-
 use super::point::TimePoint;
 use super::result::ForecastResult;
 use super::series::TimeSeries;
+use crate::math;
 
 /// Forecasting engine
 pub struct Forecaster {
@@ -78,7 +77,7 @@ impl Forecaster {
 
         // Calculate trend
         let trend = series.trend();
-        let mean = series.mean();
+        let _mean = series.mean();
         let std_dev = series.std_dev();
 
         // Calculate trend strength (R-squared approximation)

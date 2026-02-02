@@ -5,13 +5,14 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{Epoch, NodeId};
+use super::NodeId;
 
 // ============================================================================
 // GOSSIP TYPES
@@ -627,7 +628,10 @@ pub struct ORSet<T: Clone + Ord> {
 
 impl<T: Clone + Ord> ORSet<T> {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            elements: BTreeMap::new(),
+            tombstones: BTreeMap::new(),
+        }
     }
 
     pub fn add(&mut self, element: T, node: NodeId, timestamp: u64) {

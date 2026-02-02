@@ -5,8 +5,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::elf::{ParsedElf, LoadedSegment};
-use super::{UserResult, UserError};
+use super::elf::{LoadedSegment, ParsedElf};
+use super::{UserError, UserResult};
 
 /// Program information
 #[derive(Debug, Clone)]
@@ -46,11 +46,11 @@ impl Program {
     /// Create program from parsed ELF
     pub fn from_elf(elf: ParsedElf, name: impl Into<String>) -> UserResult<Self> {
         let name = name.into();
-        
+
         let memory_size: u64 = elf.segments.iter().map(|s| s.size).sum();
         let has_code = elf.segments.iter().any(|s| s.executable);
         let has_data = elf.segments.iter().any(|s| s.writable);
-        
+
         let info = ProgramInfo {
             name,
             entry_point: elf.entry_point,
@@ -61,7 +61,7 @@ impl Program {
             has_code,
             has_data,
         };
-        
+
         Ok(Self {
             info,
             segments: elf.segments,
@@ -69,31 +69,31 @@ impl Program {
             env: Vec::new(),
         })
     }
-    
+
     /// Set program arguments
     pub fn set_args(&mut self, args: Vec<String>) {
         self.args = args;
     }
-    
+
     /// Add environment variable
     pub fn set_env(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.env.push((key.into(), value.into()));
     }
-    
+
     /// Get segments
     pub fn segments(&self) -> &[LoadedSegment] {
         &self.segments
     }
-    
+
     /// Get entry point
     pub fn entry_point(&self) -> u64 {
         self.info.entry_point
     }
-    
+
     /// Get memory requirements
     pub fn memory_requirements(&self) -> MemoryRequirements {
         let mut req = MemoryRequirements::default();
-        
+
         for seg in &self.segments {
             if seg.executable {
                 req.code_size += seg.size;
@@ -103,11 +103,11 @@ impl Program {
                 req.rodata_size += seg.size;
             }
         }
-        
+
         // Add default stack and heap
-        req.stack_size = 8 * 1024 * 1024;  // 8 MB
-        req.heap_size = 16 * 1024 * 1024;  // 16 MB
-        
+        req.stack_size = 8 * 1024 * 1024; // 8 MB
+        req.heap_size = 16 * 1024 * 1024; // 16 MB
+
         req
     }
 }
@@ -147,7 +147,7 @@ mod tests {
             stack_size: 4096,
             heap_size: 8192,
         };
-        
+
         assert_eq!(req.total(), 1024 + 512 + 256 + 4096 + 8192);
     }
 }

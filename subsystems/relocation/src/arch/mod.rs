@@ -2,7 +2,7 @@
 //!
 //! Per-architecture relocation implementations.
 
-use crate::{RelocResult, RelocError};
+use crate::{RelocError, RelocResult};
 
 // ============================================================================
 // ARCHITECTURE TRAIT
@@ -68,7 +68,11 @@ pub mod x86_64_impl {
         ) -> RelocResult<()> {
             unsafe {
                 crate::elf::relocations::apply_x86_64_relocation(
-                    target, r_type, addend, slide, symbol_value,
+                    target,
+                    r_type,
+                    addend,
+                    slide,
+                    symbol_value,
                 )
             }
         }
@@ -108,7 +112,11 @@ pub mod aarch64_impl {
         ) -> RelocResult<()> {
             unsafe {
                 crate::elf::relocations::apply_aarch64_relocation(
-                    target, r_type, addend, slide, symbol_value,
+                    target,
+                    r_type,
+                    addend,
+                    slide,
+                    symbol_value,
                 )
             }
         }
@@ -122,27 +130,41 @@ pub mod aarch64_impl {
 /// Get current architecture name
 pub fn current_arch() -> &'static str {
     #[cfg(target_arch = "x86_64")]
-    { "x86_64" }
+    {
+        "x86_64"
+    }
     #[cfg(target_arch = "aarch64")]
-    { "aarch64" }
+    {
+        "aarch64"
+    }
     #[cfg(target_arch = "riscv64")]
-    { "riscv64" }
+    {
+        "riscv64"
+    }
     #[cfg(not(any(
         target_arch = "x86_64",
         target_arch = "aarch64",
         target_arch = "riscv64"
     )))]
-    { "unknown" }
+    {
+        "unknown"
+    }
 }
 
 /// Get RELATIVE relocation type for current arch
 pub fn relative_reloc_type() -> u32 {
     #[cfg(target_arch = "x86_64")]
-    { crate::elf::relocations::x86_64::R_X86_64_RELATIVE }
+    {
+        crate::elf::relocations::x86_64::R_X86_64_RELATIVE
+    }
     #[cfg(target_arch = "aarch64")]
-    { crate::elf::relocations::aarch64::R_AARCH64_RELATIVE }
+    {
+        crate::elf::relocations::aarch64::R_AARCH64_RELATIVE
+    }
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
-    { 0 }
+    {
+        0
+    }
 }
 
 /// Apply relocation for current architecture
@@ -161,7 +183,11 @@ pub unsafe fn apply_current_arch_relocation(
     {
         unsafe {
             crate::elf::relocations::apply_x86_64_relocation(
-                target, r_type, addend, slide, symbol_value,
+                target,
+                r_type,
+                addend,
+                slide,
+                symbol_value,
             )
         }
     }
@@ -169,7 +195,11 @@ pub unsafe fn apply_current_arch_relocation(
     {
         unsafe {
             crate::elf::relocations::apply_aarch64_relocation(
-                target, r_type, addend, slide, symbol_value,
+                target,
+                r_type,
+                addend,
+                slide,
+                symbol_value,
             )
         }
     }

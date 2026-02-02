@@ -2,9 +2,9 @@
 //!
 //! High-level file operations: open, close, create, truncate.
 
-use crate::core::error::{HfsError, HfsResult};
-use crate::api::OpenFlags;
 use super::InodeType;
+use crate::api::OpenFlags;
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // File State
@@ -15,13 +15,13 @@ use super::InodeType;
 #[repr(u8)]
 pub enum FileState {
     /// Closed
-    Closed = 0,
+    Closed  = 0,
     /// Opening
     Opening = 1,
     /// Open
-    Open = 2,
+    Open    = 2,
     /// Error state
-    Error = 3,
+    Error   = 3,
     /// Closing
     Closing = 4,
 }
@@ -37,7 +37,7 @@ impl Default for FileState {
 #[repr(u8)]
 pub enum FileOpenMode {
     /// Read only
-    ReadOnly = 0,
+    ReadOnly  = 0,
     /// Write only
     WriteOnly = 1,
     /// Read-write
@@ -55,12 +55,12 @@ impl FileOpenMode {
             Self::ReadOnly
         }
     }
-    
+
     /// Can read
     pub fn can_read(self) -> bool {
         matches!(self, Self::ReadOnly | Self::ReadWrite)
     }
-    
+
     /// Can write
     pub fn can_write(self) -> bool {
         matches!(self, Self::WriteOnly | Self::ReadWrite)
@@ -127,32 +127,32 @@ impl OpenFile {
             write_ops: 0,
         }
     }
-    
+
     /// Is open
     pub fn is_open(&self) -> bool {
         self.state == FileState::Open
     }
-    
+
     /// Can read
     pub fn can_read(&self) -> bool {
         self.is_open() && self.mode.can_read()
     }
-    
+
     /// Can write
     pub fn can_write(&self) -> bool {
         self.is_open() && self.mode.can_write()
     }
-    
+
     /// Is append mode
     pub fn is_append(&self) -> bool {
         self.flags.has(OpenFlags::O_APPEND)
     }
-    
+
     /// Is sync mode
     pub fn is_sync(&self) -> bool {
         self.flags.has(OpenFlags::O_SYNC)
     }
-    
+
     /// Seek to position
     pub fn seek(&mut self, pos: u64) -> HfsResult<u64> {
         if pos > self.size {
@@ -161,14 +161,14 @@ impl OpenFile {
         self.pos = pos;
         Ok(pos)
     }
-    
+
     /// Read bytes (update stats)
     pub fn record_read(&mut self, bytes: u64) {
         self.bytes_read += bytes;
         self.read_ops += 1;
         self.pos += bytes;
     }
-    
+
     /// Write bytes (update stats)
     pub fn record_write(&mut self, bytes: u64) {
         self.bytes_written += bytes;
@@ -181,13 +181,13 @@ impl OpenFile {
             self.size = self.pos;
         }
     }
-    
+
     /// Acquire reference
     pub fn acquire(&mut self) -> u32 {
         self.refcount += 1;
         self.refcount
     }
-    
+
     /// Release reference
     pub fn release(&mut self) -> u32 {
         self.refcount = self.refcount.saturating_sub(1);
@@ -270,7 +270,7 @@ impl FileTable {
             free_head: 0,
         }
     }
-    
+
     /// Allocate file entry
     pub fn alloc(&mut self, dev: u64, ino: u64, flags: OpenFlags) -> HfsResult<usize> {
         // Find free slot
@@ -283,7 +283,7 @@ impl FileTable {
                 return Ok(i);
             }
         }
-        
+
         // Wrap around
         for i in 0..self.free_head {
             if self.slots[i] == FileTableSlot::Free {
@@ -294,31 +294,31 @@ impl FileTable {
                 return Ok(i);
             }
         }
-        
+
         Err(HfsError::TooManyOpenFiles)
     }
-    
+
     /// Free file entry
     pub fn free(&mut self, idx: usize) -> HfsResult<()> {
         if idx >= MAX_OPEN_FILES {
             return Err(HfsError::InvalidArgument);
         }
-        
+
         if self.slots[idx] != FileTableSlot::Used {
             return Err(HfsError::BadFileDescriptor);
         }
-        
+
         self.slots[idx] = FileTableSlot::Free;
         self.files[idx] = OpenFile::default();
         self.count -= 1;
-        
+
         if idx < self.free_head {
             self.free_head = idx;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get file
     pub fn get(&self, idx: usize) -> Option<&OpenFile> {
         if idx < MAX_OPEN_FILES && self.slots[idx] == FileTableSlot::Used {
@@ -327,7 +327,7 @@ impl FileTable {
             None
         }
     }
-    
+
     /// Get mutable file
     pub fn get_mut(&mut self, idx: usize) -> Option<&mut OpenFile> {
         if idx < MAX_OPEN_FILES && self.slots[idx] == FileTableSlot::Used {
@@ -336,12 +336,12 @@ impl FileTable {
             None
         }
     }
-    
+
     /// Count open files
     pub fn count(&self) -> usize {
         self.count
     }
-    
+
     /// Find file by inode
     pub fn find_by_inode(&self, dev: u64, ino: u64) -> Option<usize> {
         for i in 0..MAX_OPEN_FILES {
@@ -353,11 +353,11 @@ impl FileTable {
         }
         None
     }
-    
+
     /// Get statistics
     pub fn stats(&self) -> FileTableStats {
         let mut stats = FileTableStats::default();
-        
+
         for i in 0..MAX_OPEN_FILES {
             if self.slots[i] == FileTableSlot::Used {
                 stats.open_files += 1;
@@ -365,7 +365,7 @@ impl FileTable {
                 stats.total_bytes_written += self.files[i].bytes_written;
             }
         }
-        
+
         stats
     }
 }
@@ -427,14 +427,14 @@ impl CreateParams {
         params.name_len = len as u8;
         params
     }
-    
+
     /// New directory create params
     pub fn dir(parent_ino: u64, name: &[u8], mode: u16, uid: u32, gid: u32) -> Self {
         let mut params = Self::file(parent_ino, name, mode, uid, gid);
         params.mode = InodeType::Directory.to_mode() | (mode & 0o777);
         params
     }
-    
+
     /// Get name
     pub fn name(&self) -> &[u8] {
         &self.name[..self.name_len as usize]
@@ -491,19 +491,19 @@ pub struct CreateResult {
 #[repr(u32)]
 pub enum FallocateMode {
     /// Allocate space (default)
-    Allocate = 0,
+    Allocate      = 0,
     /// Keep size unchanged
-    KeepSize = 1,
+    KeepSize      = 1,
     /// Punch hole
-    PunchHole = 2,
+    PunchHole     = 2,
     /// Zero range
-    ZeroRange = 4,
+    ZeroRange     = 4,
     /// Collapse range
     CollapseRange = 8,
     /// Insert range
-    InsertRange = 16,
+    InsertRange   = 16,
     /// Unshare range
-    UnshareRange = 32,
+    UnshareRange  = 32,
 }
 
 /// Fallocate parameters.
@@ -529,7 +529,7 @@ impl FallocateParams {
             len,
         }
     }
-    
+
     /// Punch hole
     pub fn punch_hole(ino: u64, offset: u64, len: u64) -> Self {
         Self {
@@ -539,7 +539,7 @@ impl FallocateParams {
             len,
         }
     }
-    
+
     /// Zero range
     pub fn zero_range(ino: u64, offset: u64, len: u64) -> Self {
         Self {
@@ -558,51 +558,51 @@ impl FallocateParams {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_file_open_mode() {
         let flags = OpenFlags::O_RDONLY;
         let mode = FileOpenMode::from_flags(flags);
         assert!(mode.can_read());
         assert!(!mode.can_write());
-        
+
         let flags = OpenFlags(OpenFlags::O_RDWR);
         let mode = FileOpenMode::from_flags(flags);
         assert!(mode.can_read());
         assert!(mode.can_write());
     }
-    
+
     #[test]
     fn test_open_file() {
         let mut file = OpenFile::new(1, 100, OpenFlags(OpenFlags::O_RDWR));
-        
+
         assert!(file.is_open());
         assert!(file.can_read());
         assert!(file.can_write());
-        
+
         file.record_read(1024);
         assert_eq!(file.bytes_read, 1024);
         assert_eq!(file.pos, 1024);
-        
+
         file.record_write(512);
         assert_eq!(file.bytes_written, 512);
         assert_eq!(file.pos, 1536);
     }
-    
+
     #[test]
     fn test_file_table() {
         let mut table = FileTable::new();
-        
+
         let idx = table.alloc(1, 100, OpenFlags(OpenFlags::O_RDONLY)).unwrap();
         assert_eq!(table.count(), 1);
-        
+
         let file = table.get(idx).unwrap();
         assert_eq!(file.ino, 100);
-        
+
         table.free(idx).unwrap();
         assert_eq!(table.count(), 0);
     }
-    
+
     #[test]
     fn test_create_params() {
         let params = CreateParams::file(2, b"test.txt", 0o644, 1000, 1000);

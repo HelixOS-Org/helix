@@ -24,30 +24,25 @@
 extern crate alloc;
 
 // Submodules
+pub mod corpus;
+pub mod fuzzer;
 pub mod input;
 pub mod mutation;
-pub mod corpus;
 pub mod result;
 pub mod stats;
-pub mod fuzzer;
 
 // Re-export input
-pub use input::FuzzInput;
-
-// Re-export mutation
-pub use mutation::{MutationStrategy, Mutator};
-
 // Re-export corpus
 pub use corpus::Corpus;
-
-// Re-export result
-pub use result::FuzzResult;
-
-// Re-export stats
-pub use stats::FuzzStats;
-
 // Re-export fuzzer
 pub use fuzzer::Fuzzer;
+pub use input::FuzzInput;
+// Re-export mutation
+pub use mutation::{MutationStrategy, Mutator};
+// Re-export result
+pub use result::FuzzResult;
+// Re-export stats
+pub use stats::FuzzStats;
 
 // ============================================================================
 // TESTS
@@ -98,7 +93,9 @@ mod tests {
         let mut fuzzer = Fuzzer::new(|data| {
             // Simulate finding a crash on specific input
             if data.len() > 5 && data[0] == 0xFF {
-                FuzzResult::Crash { message: "test crash".into() }
+                FuzzResult::Crash {
+                    message: "test crash".into(),
+                }
             } else {
                 FuzzResult::Ok
             }

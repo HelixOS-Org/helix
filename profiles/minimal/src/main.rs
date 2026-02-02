@@ -11,8 +11,8 @@
 
 extern crate alloc;
 
-use core::panic::PanicInfo;
 use core::alloc::{GlobalAlloc, Layout};
+use core::panic::PanicInfo;
 
 // Boot module with Multiboot2 header and startup code
 mod boot;
@@ -102,12 +102,11 @@ unsafe impl GlobalAlloc for BumpAllocator {
             }
 
             // Try to atomically update
-            if self.next.compare_exchange_weak(
-                current,
-                new_next,
-                Ordering::SeqCst,
-                Ordering::Relaxed
-            ).is_ok() {
+            if self
+                .next
+                .compare_exchange_weak(current, new_next, Ordering::SeqCst, Ordering::Relaxed)
+                .is_ok()
+            {
                 return aligned as *mut u8;
             }
             // Retry on failure (concurrent allocation)
@@ -144,7 +143,9 @@ fn init_heap() {
 pub extern "C" fn kernel_main(multiboot2_info: *const u8) -> ! {
     // Initialize serial first so we can output debug info
     #[cfg(target_arch = "x86_64")]
-    unsafe { init_serial(); }
+    unsafe {
+        init_serial();
+    }
 
     serial_write_str("\n");
     serial_write_str("========================================\n");
@@ -306,8 +307,8 @@ unsafe fn parse_multiboot2_framebuffer(mb2_info: *const u8) {
 
 /// Test heap allocation
 fn test_allocation() {
-    use alloc::vec::Vec;
     use alloc::string::String;
+    use alloc::vec::Vec;
 
     // Test Vec allocation
     let mut v: Vec<u32> = Vec::new();
@@ -374,17 +375,17 @@ pub struct MemoryRegion {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MemoryRegionType {
     /// Usable RAM
-    Usable = 1,
+    Usable          = 1,
     /// Reserved
-    Reserved = 2,
+    Reserved        = 2,
     /// ACPI reclaimable
     AcpiReclaimable = 3,
     /// ACPI NVS
-    AcpiNvs = 4,
+    AcpiNvs         = 4,
     /// Bad memory
-    BadMemory = 5,
+    BadMemory       = 5,
     /// Kernel
-    Kernel = 0x1000,
+    Kernel          = 0x1000,
 }
 
 /// Early initialization
@@ -453,10 +454,10 @@ fn init_filesystem() {
             serial_write_str(" KB, Free: ");
             print_num(free * bs as u64 / 1024);
             serial_write_str(" KB\n");
-        }
+        },
         Err(e) => {
             serial_write_str("  [HelixFS] ❌ Failed to initialize filesystem\n");
-        }
+        },
     }
 
     kernel_log!("HelixFS initialized");
@@ -475,14 +476,15 @@ fn init_filesystem() {
 /// - Kernel integrity validation
 #[cfg(target_arch = "x86_64")]
 fn kernel_relocation_demo() {
+    use helix_relocation::boot::BootContext;
+    use helix_relocation::context::BootProtocol;
+    use helix_relocation::kaslr::{
+        EntropyCollector, EntropyConfig, EntropyQuality, Kaslr, KaslrConfig,
+    };
+    use helix_relocation::validation::{ValidationConfig, ValidationLevel};
     use helix_relocation::{
-        PhysAddr, VirtAddr,
-        RelocationContext, RelocationContextBuilder, RelocationStrategy,
-        RelocationStats, RelocationEngine,
-        context::BootProtocol,
-        kaslr::{Kaslr, KaslrConfig, EntropyQuality, EntropyConfig, EntropyCollector},
-        validation::{ValidationConfig, ValidationLevel},
-        boot::BootContext,
+        PhysAddr, RelocationContext, RelocationContextBuilder, RelocationEngine, RelocationStats,
+        RelocationStrategy, VirtAddr,
     };
 
     serial_write_str("\n");
@@ -529,7 +531,7 @@ fn kernel_relocation_demo() {
     serial_write_str("═══════════════════════════════════════════════════════════════\n\n");
 
     // Build a relocation context as if we were performing KASLR
-    let phys_base = 0x100000u64;  // 1MB - typical kernel load address
+    let phys_base = 0x100000u64; // 1MB - typical kernel load address
     let virt_base = kernel_start; // Current virtual address
     let link_base = 0xFFFF_FFFF_8010_0000u64; // Original link address
 
@@ -564,10 +566,10 @@ fn kernel_relocation_demo() {
                 print_hex((-slide) as u64);
             }
             serial_write_str("\n\n");
-        }
+        },
         Err(_e) => {
             serial_write_str("[RELOC] ✗ Context creation failed\n");
-        }
+        },
     }
 
     // =========================================================================
@@ -587,10 +589,10 @@ fn kernel_relocation_demo() {
             serial_write_str("[KASLR] Seed value: 0x");
             print_hex(seed);
             serial_write_str("\n");
-        }
+        },
         Err(_) => {
             serial_write_str("[KASLR] ! Entropy collection limited\n");
-        }
+        },
     }
 
     serial_write_str("[KASLR] Entropy quality: ");
@@ -735,13 +737,11 @@ fn start_kernel() {
 fn hot_reload_demo() {
     use alloc::boxed::Box;
     use alloc::string::String;
-    use helix_core::hotreload::{
-        self, ModuleCategory, SlotId,
-        schedulers::{
-            RoundRobinScheduler, PriorityScheduler,
-            Scheduler, SchedulableTask, TaskState
-        }
+
+    use helix_core::hotreload::schedulers::{
+        PriorityScheduler, RoundRobinScheduler, SchedulableTask, Scheduler, TaskState,
     };
+    use helix_core::hotreload::{self, ModuleCategory, SlotId};
 
     serial_write_str("═══════════════════════════════════════════════════════════════\n");
     serial_write_str("  STEP 1: Create scheduler slot and load RoundRobin\n");
@@ -813,7 +813,7 @@ fn hot_reload_demo() {
     match hotreload::hot_swap(slot, priority_scheduler) {
         Ok(()) => {
             serial_write_str("\n[DEMO] ✓ HOT-SWAP SUCCESSFUL!\n\n");
-        }
+        },
         Err(e) => {
             serial_write_str("[DEMO] ✗ Hot-swap failed: ");
             serial_write_str(match e {
@@ -822,7 +822,7 @@ fn hot_reload_demo() {
                 _ => "Unknown error",
             });
             serial_write_str("\n");
-        }
+        },
     }
 
     serial_write_str("═══════════════════════════════════════════════════════════════\n");
@@ -874,10 +874,9 @@ fn self_healing_demo() {
     serial_write_str("\n[DEBUG] Entering self_healing_demo...\n");
 
     use alloc::boxed::Box;
-    use helix_core::hotreload::{
-        self, ModuleCategory,
-        crasher::CrasherModule
-    };
+
+    use helix_core::hotreload::crasher::CrasherModule;
+    use helix_core::hotreload::{self, ModuleCategory};
     use helix_core::selfheal;
 
     serial_write_str("╔══════════════════════════════════════════════════════════════╗\n");
@@ -901,11 +900,7 @@ fn self_healing_demo() {
     hotreload::load_module(slot, crasher).expect("Failed to load crasher");
 
     // Register with self-healing system with factory for recovery
-    selfheal::register(
-        slot,
-        "CrasherModule",
-        Some(CrasherModule::factory)
-    );
+    selfheal::register(slot, "CrasherModule", Some(CrasherModule::factory));
 
     serial_write_str("\n═══════════════════════════════════════════════════════════════\n");
     serial_write_str("  STEP 2: Run operations until crash\n");
@@ -926,7 +921,7 @@ fn self_healing_demo() {
                 serial_write_str("[DEMO] Operation ");
                 print_num(count as u64);
                 serial_write_str(" succeeded\n");
-            }
+            },
             Some(Err(_)) => {
                 serial_write_str("[DEMO] 💥 CRASH DETECTED!\n");
                 serial_write_str("[DEMO] Reporting crash to self-healing system...\n\n");
@@ -936,10 +931,10 @@ fn self_healing_demo() {
 
                 // After recovery, continue
                 serial_write_str("\n[DEMO] Continuing after recovery...\n\n");
-            }
+            },
             None => {
                 serial_write_str("[DEMO] Module not available\n");
-            }
+            },
         }
     }
 
@@ -966,9 +961,8 @@ fn self_healing_demo() {
     serial_write_str("\n");
 
     // Verify module is working again
-    let test = hotreload::with_module_mut::<CrasherModule, _, _>(slot, |crasher| {
-        crasher.do_operation()
-    });
+    let test =
+        hotreload::with_module_mut::<CrasherModule, _, _>(slot, |crasher| crasher.do_operation());
 
     if let Some(Ok(_)) = test {
         serial_write_str("\n[DEMO] ✓ Module is working again after recovery!\n");
@@ -1068,7 +1062,9 @@ fn spawn_kernel_tasks() {
 
     task::scheduler().start();
 
-    unsafe { core::arch::asm!("sti"); }
+    unsafe {
+        core::arch::asm!("sti");
+    }
 
     serial_write_str("[SCHED] Preemptive multitasking enabled!\n");
 }
@@ -1432,7 +1428,7 @@ fn run_ai_demo() {
 
 /// Run kernel benchmarks and output results
 fn run_benchmarks() {
-    use helix_benchmarks::{BenchmarkSuite, BenchmarkConfig, BenchmarkCategory};
+    use helix_benchmarks::{BenchmarkCategory, BenchmarkConfig, BenchmarkSuite};
 
     serial_write_str("\n");
     serial_write_str("╔══════════════════════════════════════════════════════════════════════╗\n");
@@ -1500,7 +1496,10 @@ fn run_benchmarks() {
 }
 
 /// Run benchmarks for a specific category
-fn run_category_benchmarks(suite: &helix_benchmarks::BenchmarkSuite, category: helix_benchmarks::BenchmarkCategory) {
+fn run_category_benchmarks(
+    suite: &helix_benchmarks::BenchmarkSuite,
+    category: helix_benchmarks::BenchmarkCategory,
+) {
     let results = suite.run_category(category);
 
     for result in results {
@@ -1585,10 +1584,10 @@ fn run_shell_demo() {
                 // Also to graphical console
                 framebuffer::console_write_str(&msg);
                 framebuffer::console_write_str("\n");
-            }
+            },
             helix_userspace::CommandResult::Success(None) => {
                 // Command succeeded with no output
-            }
+            },
             helix_userspace::CommandResult::Error(msg) => {
                 kprint!("Error: ");
                 for byte in msg.bytes() {
@@ -1597,14 +1596,14 @@ fn run_shell_demo() {
                 serial_write_str("\n");
                 framebuffer::console_write_str(&msg);
                 framebuffer::console_write_str("\n");
-            }
+            },
             helix_userspace::CommandResult::Exit(code) => {
                 serial_write_str("Shell exiting with code ");
                 print_num(code as u64);
                 serial_write_str("\n");
                 break;
-            }
-            helix_userspace::CommandResult::Continue => {}
+            },
+            helix_userspace::CommandResult::Continue => {},
         }
         serial_write_str("\n");
     }

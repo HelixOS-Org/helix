@@ -2,17 +2,17 @@
 //!
 //! Unified interface for different executable formats.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::loader::elf::ElfLoader;
+use crate::loader::pe::PeLoader;
 use crate::loader::{
-    LoadedImage, ImageSection, SectionFlags, ImageFlags, ImageFormat, MachineType,
-    elf::ElfLoader,
-    pe::PeLoader,
+    ImageFlags, ImageFormat, ImageSection, LoadedImage, MachineType, SectionFlags,
 };
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // IMAGE READER
@@ -53,13 +53,13 @@ impl ImageReader {
                 let image = loader.load(data)?;
                 self.image = Some(image);
                 self.elf_loader = Some(loader);
-            }
+            },
             ImageFormat::Pe32Plus | ImageFormat::Pe32 => {
                 let mut loader = PeLoader::new();
                 let image = loader.load(data)?;
                 self.image = Some(image);
                 self.pe_loader = Some(loader);
-            }
+            },
             _ => return Err(Error::UnsupportedFormat),
         }
 
@@ -98,7 +98,8 @@ impl ImageReader {
 
     /// Get sections
     pub fn sections(&self) -> &[ImageSection] {
-        self.image.as_ref()
+        self.image
+            .as_ref()
             .map(|i| i.sections.as_slice())
             .unwrap_or(&[])
     }
@@ -258,47 +259,95 @@ impl ImageLayout {
         };
 
         // Find code section bounds
-        let code_sections: Vec<_> = image.sections.iter()
+        let code_sections: Vec<_> = image
+            .sections
+            .iter()
             .filter(|s| s.flags.executable)
             .collect();
 
         if !code_sections.is_empty() {
-            let min = code_sections.iter().map(|s| s.virtual_address).min().unwrap();
-            let max = code_sections.iter().map(|s| s.virtual_address + s.size).max().unwrap();
-            layout.code = Some(LayoutRegion { base: min, size: max - min });
+            let min = code_sections
+                .iter()
+                .map(|s| s.virtual_address)
+                .min()
+                .unwrap();
+            let max = code_sections
+                .iter()
+                .map(|s| s.virtual_address + s.size)
+                .max()
+                .unwrap();
+            layout.code = Some(LayoutRegion {
+                base: min,
+                size: max - min,
+            });
         }
 
         // Find data section bounds
-        let data_sections: Vec<_> = image.sections.iter()
+        let data_sections: Vec<_> = image
+            .sections
+            .iter()
             .filter(|s| s.flags.writable && !s.flags.bss)
             .collect();
 
         if !data_sections.is_empty() {
-            let min = data_sections.iter().map(|s| s.virtual_address).min().unwrap();
-            let max = data_sections.iter().map(|s| s.virtual_address + s.size).max().unwrap();
-            layout.data = Some(LayoutRegion { base: min, size: max - min });
+            let min = data_sections
+                .iter()
+                .map(|s| s.virtual_address)
+                .min()
+                .unwrap();
+            let max = data_sections
+                .iter()
+                .map(|s| s.virtual_address + s.size)
+                .max()
+                .unwrap();
+            layout.data = Some(LayoutRegion {
+                base: min,
+                size: max - min,
+            });
         }
 
         // Find rodata section bounds
-        let rodata_sections: Vec<_> = image.sections.iter()
+        let rodata_sections: Vec<_> = image
+            .sections
+            .iter()
             .filter(|s| !s.flags.writable && !s.flags.executable && !s.flags.bss)
             .collect();
 
         if !rodata_sections.is_empty() {
-            let min = rodata_sections.iter().map(|s| s.virtual_address).min().unwrap();
-            let max = rodata_sections.iter().map(|s| s.virtual_address + s.size).max().unwrap();
-            layout.rodata = Some(LayoutRegion { base: min, size: max - min });
+            let min = rodata_sections
+                .iter()
+                .map(|s| s.virtual_address)
+                .min()
+                .unwrap();
+            let max = rodata_sections
+                .iter()
+                .map(|s| s.virtual_address + s.size)
+                .max()
+                .unwrap();
+            layout.rodata = Some(LayoutRegion {
+                base: min,
+                size: max - min,
+            });
         }
 
         // Find BSS section bounds
-        let bss_sections: Vec<_> = image.sections.iter()
-            .filter(|s| s.flags.bss)
-            .collect();
+        let bss_sections: Vec<_> = image.sections.iter().filter(|s| s.flags.bss).collect();
 
         if !bss_sections.is_empty() {
-            let min = bss_sections.iter().map(|s| s.virtual_address).min().unwrap();
-            let max = bss_sections.iter().map(|s| s.virtual_address + s.size).max().unwrap();
-            layout.bss = Some(LayoutRegion { base: min, size: max - min });
+            let min = bss_sections
+                .iter()
+                .map(|s| s.virtual_address)
+                .min()
+                .unwrap();
+            let max = bss_sections
+                .iter()
+                .map(|s| s.virtual_address + s.size)
+                .max()
+                .unwrap();
+            layout.bss = Some(LayoutRegion {
+                base: min,
+                size: max - min,
+            });
         }
 
         layout
@@ -501,7 +550,9 @@ impl ImageBuilder {
         let image_size = if self.sections.is_empty() {
             0
         } else {
-            let max_end = self.sections.iter()
+            let max_end = self
+                .sections
+                .iter()
                 .map(|s| s.virtual_address + s.size)
                 .max()
                 .unwrap_or(VirtualAddress(0));
@@ -570,7 +621,12 @@ mod tests {
                 file_offset: 0,
                 file_size: 0x1000,
                 alignment: 4096,
-                flags: SectionFlags { executable: true, readable: true, allocated: true, ..Default::default() },
+                flags: SectionFlags {
+                    executable: true,
+                    readable: true,
+                    allocated: true,
+                    ..Default::default()
+                },
             },
             ImageSection {
                 name: String::from(".data"),
@@ -579,7 +635,12 @@ mod tests {
                 file_offset: 0,
                 file_size: 0x1000,
                 alignment: 4096,
-                flags: SectionFlags { writable: true, readable: true, allocated: true, ..Default::default() },
+                flags: SectionFlags {
+                    writable: true,
+                    readable: true,
+                    allocated: true,
+                    ..Default::default()
+                },
             },
         ];
 

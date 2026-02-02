@@ -7,16 +7,16 @@
 //! - Metadata indexing
 
 pub mod btree;
-pub mod radix;
-pub mod node;
 pub mod cursor;
 pub mod dir;
+pub mod node;
+pub mod radix;
 
 pub use btree::*;
-pub use radix::*;
-pub use node::*;
 pub use cursor::*;
 pub use dir::*;
+pub use node::*;
+pub use radix::*;
 
 use crate::core::error::{HfsError, HfsResult};
 
@@ -29,21 +29,21 @@ use crate::core::error::{HfsError, HfsResult};
 #[repr(u8)]
 pub enum TreeType {
     /// Inode tree (key = inode number)
-    Inode = 1,
+    Inode     = 1,
     /// Directory tree (key = name hash)
     Directory = 2,
     /// Extent tree (key = logical block)
-    Extent = 3,
+    Extent    = 3,
     /// Extended attribute tree
-    Xattr = 4,
+    Xattr     = 4,
     /// Free space tree
     FreeSpace = 5,
     /// Snapshot tree
-    Snapshot = 6,
+    Snapshot  = 6,
     /// Quota tree
-    Quota = 7,
+    Quota     = 7,
     /// Generic key-value tree
-    KeyValue = 8,
+    KeyValue  = 8,
 }
 
 impl TreeType {
@@ -95,7 +95,7 @@ impl TreeConfig {
             leaf_values_only: true,
         }
     }
-    
+
     /// Default config for directory tree
     pub const fn directory() -> Self {
         Self {
@@ -108,12 +108,12 @@ impl TreeConfig {
             leaf_values_only: true,
         }
     }
-    
+
     /// Default config for extent tree
     pub const fn extent() -> Self {
         Self {
             tree_type: TreeType::Extent,
-            key_size: 8,   // u64 logical block
+            key_size: 8,    // u64 logical block
             value_size: 24, // Fixed extent entry
             max_depth: 8,
             min_fill: 50,
@@ -158,10 +158,10 @@ pub struct TreeHeader {
 impl TreeHeader {
     /// Size in bytes
     pub const SIZE: usize = 48;
-    
+
     /// Magic number
     pub const MAGIC: u32 = 0x48545245; // "HTRE"
-    
+
     /// Create new header
     pub fn new(config: &TreeConfig) -> Self {
         Self {
@@ -178,7 +178,7 @@ impl TreeHeader {
             checksum: 0,
         }
     }
-    
+
     /// Validate header
     pub fn validate(&self) -> HfsResult<()> {
         if self.magic != Self::MAGIC {
@@ -208,12 +208,12 @@ impl Key64 {
     pub const fn new(v: u64) -> Self {
         Self(v)
     }
-    
+
     #[inline]
     pub fn to_bytes(self) -> [u8; 8] {
         self.0.to_be_bytes()
     }
-    
+
     #[inline]
     pub fn from_bytes(bytes: &[u8; 8]) -> Self {
         Self(u64::from_be_bytes(*bytes))
@@ -236,31 +236,31 @@ impl VarKey {
             len: 0,
         }
     }
-    
+
     /// Create from bytes
     pub fn from_bytes(bytes: &[u8]) -> HfsResult<Self> {
         if bytes.len() > MAX_KEY_SIZE {
             return Err(HfsError::NameTooLong);
         }
-        
+
         let mut key = Self::new();
         key.data[..bytes.len()].copy_from_slice(bytes);
         key.len = bytes.len() as u16;
         Ok(key)
     }
-    
+
     /// Get bytes
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         &self.data[..self.len as usize]
     }
-    
+
     /// Get length
     #[inline]
     pub fn len(&self) -> usize {
         self.len as usize
     }
-    
+
     /// Check if empty
     #[inline]
     pub fn is_empty(&self) -> bool {
@@ -313,7 +313,7 @@ impl SearchResult {
     pub fn is_found(&self) -> bool {
         matches!(self, Self::Found(_))
     }
-    
+
     /// Get index
     #[inline]
     pub fn index(&self) -> usize {
@@ -332,21 +332,21 @@ impl SearchResult {
 #[repr(u8)]
 pub enum TreeOp {
     /// Insert new item
-    Insert = 1,
+    Insert    = 1,
     /// Update existing item
-    Update = 2,
+    Update    = 2,
     /// Delete item
-    Delete = 3,
+    Delete    = 3,
     /// Split node
-    Split = 4,
+    Split     = 4,
     /// Merge nodes
-    Merge = 5,
+    Merge     = 5,
     /// Rebalance nodes
     Rebalance = 6,
     /// Create new tree
-    Create = 7,
+    Create    = 7,
     /// Delete tree
-    Drop = 8,
+    Drop      = 8,
 }
 
 /// Tree operation log entry
@@ -412,7 +412,7 @@ impl TreeStats {
             items: 0,
         }
     }
-    
+
     /// Cache hit ratio
     pub fn cache_hit_ratio(&self) -> f64 {
         let total = self.cache_hits + self.cache_misses;
@@ -422,7 +422,7 @@ impl TreeStats {
             self.cache_hits as f64 / total as f64
         }
     }
-    
+
     /// Average items per node
     pub fn avg_items_per_node(&self) -> f64 {
         if self.nodes == 0 {
@@ -440,7 +440,7 @@ impl TreeStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_tree_config() {
         let config = TreeConfig::inode();
@@ -448,7 +448,7 @@ mod tests {
         assert_eq!(config.key_size, 8);
         assert!(!config.allow_duplicates);
     }
-    
+
     #[test]
     fn test_key64() {
         let key = Key64::new(12345);
@@ -456,20 +456,20 @@ mod tests {
         let restored = Key64::from_bytes(&bytes);
         assert_eq!(key.0, restored.0);
     }
-    
+
     #[test]
     fn test_var_key() {
         let key = VarKey::from_bytes(b"test_key").unwrap();
         assert_eq!(key.len(), 8);
         assert_eq!(key.as_bytes(), b"test_key");
     }
-    
+
     #[test]
     fn test_search_result() {
         let found = SearchResult::Found(5);
         assert!(found.is_found());
         assert_eq!(found.index(), 5);
-        
+
         let not_found = SearchResult::NotFound(3);
         assert!(!not_found.is_found());
         assert_eq!(not_found.index(), 3);

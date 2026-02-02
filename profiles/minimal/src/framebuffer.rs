@@ -23,7 +23,7 @@
 //! └─────────────────────────────────────────────────────────────────────┘
 //! ```
 
-use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU32, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 
 /// Global framebuffer state
 static FB_INITIALIZED: AtomicBool = AtomicBool::new(false);
@@ -60,7 +60,12 @@ pub struct Color {
 
 impl Color {
     pub const fn new(red: u8, green: u8, blue: u8) -> Self {
-        Self { red, green, blue, alpha: 255 }
+        Self {
+            red,
+            green,
+            blue,
+            alpha: 255,
+        }
     }
 
     pub const fn rgb(red: u8, green: u8, blue: u8) -> Self {
@@ -223,7 +228,7 @@ pub unsafe fn draw_gradient_bar(x: u32, y: u32, w: u32, h: u32) {
 
     for dx in 0..w {
         let ratio = (dx as f32) / (w as f32);
-        let r = (138.0 + (255.0 - 138.0) * ratio) as u8;  // Purple to orange
+        let r = (138.0 + (255.0 - 138.0) * ratio) as u8; // Purple to orange
         let g = (43.0 + (165.0 - 43.0) * ratio) as u8;
         let b = (226.0 - 226.0 * ratio) as u8;
 
@@ -287,24 +292,48 @@ unsafe fn draw_helix_logo(x: u32, y: u32) {
     let color = Color::HELIX_PURPLE;
 
     // 'H'
-    for i in 0..20 { put_pixel(x, y + i, color); }
-    for i in 0..20 { put_pixel(x + 10, y + i, color); }
-    for i in 0..11 { put_pixel(x + i, y + 10, color); }
+    for i in 0..20 {
+        put_pixel(x, y + i, color);
+    }
+    for i in 0..20 {
+        put_pixel(x + 10, y + i, color);
+    }
+    for i in 0..11 {
+        put_pixel(x + i, y + 10, color);
+    }
 
     // 'E'
-    for i in 0..20 { put_pixel(x + 20, y + i, color); }
-    for i in 0..10 { put_pixel(x + 20 + i, y, color); }
-    for i in 0..10 { put_pixel(x + 20 + i, y + 10, color); }
-    for i in 0..10 { put_pixel(x + 20 + i, y + 19, color); }
+    for i in 0..20 {
+        put_pixel(x + 20, y + i, color);
+    }
+    for i in 0..10 {
+        put_pixel(x + 20 + i, y, color);
+    }
+    for i in 0..10 {
+        put_pixel(x + 20 + i, y + 10, color);
+    }
+    for i in 0..10 {
+        put_pixel(x + 20 + i, y + 19, color);
+    }
 
     // 'L'
-    for i in 0..20 { put_pixel(x + 40, y + i, color); }
-    for i in 0..10 { put_pixel(x + 40 + i, y + 19, color); }
+    for i in 0..20 {
+        put_pixel(x + 40, y + i, color);
+    }
+    for i in 0..10 {
+        put_pixel(x + 40 + i, y + 19, color);
+    }
 
     // 'I'
-    for i in 0..10 { put_pixel(x + 60 + i, y, color); }
-    for i in 0..20 { put_pixel(x + 65, y + i, color); }
-    for i in 0..10 { put_pixel(x + 60 + i, y + 19, color); }
+    for i in 0..10 {
+        put_pixel(x + 60 + i, y, color);
+    }
+    for i in 0..20 {
+        put_pixel(x + 65, y + i, color);
+    }
+    for i in 0..10 {
+        put_pixel(x + 60 + i, y + 19, color);
+    }
 
     // 'X'
     for i in 0..20 {
@@ -338,7 +367,13 @@ pub unsafe fn draw_test_pattern() {
     fill_rect(width - size, height - size, size, size, Color::YELLOW);
 
     // Center: White
-    fill_rect(width / 2 - size / 2, height / 2 - size / 2, size, size, Color::WHITE);
+    fill_rect(
+        width / 2 - size / 2,
+        height / 2 - size / 2,
+        size,
+        size,
+        Color::WHITE,
+    );
 
     crate::serial_write_str("  [FB] Test pattern complete!\n");
 }
@@ -566,7 +601,9 @@ pub fn console_init() {
 
     // Clear screen with background color
     let bg: Color = CONSOLE_BG.load(Ordering::Relaxed).into();
-    unsafe { clear(bg); }
+    unsafe {
+        clear(bg);
+    }
 
     CONSOLE_CURSOR_X.store(0, Ordering::SeqCst);
     CONSOLE_CURSOR_Y.store(0, Ordering::SeqCst);
@@ -630,19 +667,21 @@ pub fn console_putchar(c: char) {
         '\n' => {
             cx = 0;
             cy += 1;
-        }
+        },
         '\r' => {
             cx = 0;
-        }
+        },
         '\t' => {
             cx = (cx + 8) & !7;
-        }
+        },
         _ => {
             let px = (cx as u32) * FONT_WIDTH;
             let py = (cy as u32) * FONT_HEIGHT;
-            unsafe { draw_char(px, py, c, fg, bg); }
+            unsafe {
+                draw_char(px, py, c, fg, bg);
+            }
             cx += 1;
-        }
+        },
     }
 
     // Handle line wrap
@@ -683,11 +722,7 @@ fn console_scroll() {
         for y in 0..lines_to_copy {
             let src_offset = (y + line_height) * bytes_per_line;
             let dst_offset = y * bytes_per_line;
-            core::ptr::copy(
-                fb.add(src_offset),
-                fb.add(dst_offset),
-                bytes_per_line
-            );
+            core::ptr::copy(fb.add(src_offset), fb.add(dst_offset), bytes_per_line);
         }
 
         // Clear bottom line
@@ -722,7 +757,9 @@ pub fn console_clear() {
     }
 
     let bg: Color = CONSOLE_BG.load(Ordering::Relaxed).into();
-    unsafe { clear(bg); }
+    unsafe {
+        clear(bg);
+    }
 
     CONSOLE_CURSOR_X.store(0, Ordering::SeqCst);
     CONSOLE_CURSOR_Y.store(0, Ordering::SeqCst);

@@ -7,7 +7,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{PatternId, EpisodeId, Timestamp};
+use super::{EpisodeId, PatternId, Timestamp};
 
 /// Pattern category
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -58,13 +58,13 @@ pub enum PatternConfidence {
     /// Speculative (< 50%)
     Speculative = 0,
     /// Low (50-70%)
-    Low = 1,
+    Low         = 1,
     /// Medium (70-85%)
-    Medium = 2,
+    Medium      = 2,
     /// High (85-95%)
-    High = 3,
+    High        = 3,
     /// Very High (> 95%)
-    VeryHigh = 4,
+    VeryHigh    = 4,
 }
 
 impl PatternConfidence {
@@ -159,7 +159,11 @@ pub struct PatternCondition {
 impl PatternCondition {
     /// Create new condition
     pub fn new(variable: String, operator: ConditionOperator, value: String) -> Self {
-        Self { variable, operator, value }
+        Self {
+            variable,
+            operator,
+            value,
+        }
     }
 }
 

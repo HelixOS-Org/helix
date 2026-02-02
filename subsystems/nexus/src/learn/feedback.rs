@@ -148,7 +148,7 @@ impl ActionStats {
         match feedback.feedback_type {
             FeedbackType::Positive => self.positive_count += 1,
             FeedbackType::Negative => self.negative_count += 1,
-            _ => {}
+            _ => {},
         }
     }
 
@@ -246,7 +246,7 @@ impl FeedbackLoop {
     }
 
     /// Get best action for context
-    pub fn best_action(&self, candidates: &[String]) -> Option<&String> {
+    pub fn best_action<'a>(&self, candidates: &'a [String]) -> Option<&'a String> {
         candidates.iter().max_by(|a, b| {
             let stats_a = self.action_stats.get(*a);
             let stats_b = self.action_stats.get(*b);

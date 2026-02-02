@@ -971,7 +971,10 @@ mod tests {
         assert_eq!(IconSize::Normal.width(), 32);
         assert_eq!(IconSize::Normal.height(), 32);
 
-        let custom = IconSize::Custom { width: 100, height: 50 };
+        let custom = IconSize::Custom {
+            width: 100,
+            height: 50,
+        };
         assert_eq!(custom.width(), 100);
         assert_eq!(custom.height(), 50);
     }

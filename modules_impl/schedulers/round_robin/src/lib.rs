@@ -18,16 +18,18 @@
 
 extern crate alloc;
 
-mod scheduler;
 mod config;
+mod scheduler;
 
-pub use scheduler::RoundRobinScheduler;
-pub use config::RoundRobinConfig;
-
-use helix_modules::v2::{ModuleTrait, ModuleInfo, Context, Event, EventResponse, Request, Response};
-use helix_modules::{ModuleError, ModuleFlags};
-use helix_execution::scheduler::Scheduler;  // Import the Scheduler trait
 use alloc::sync::Arc;
+
+pub use config::RoundRobinConfig;
+use helix_execution::scheduler::Scheduler; // Import the Scheduler trait
+use helix_modules::v2::{
+    Context, Event, EventResponse, ModuleInfo, ModuleTrait, Request, Response,
+};
+use helix_modules::{ModuleError, ModuleFlags};
+pub use scheduler::RoundRobinScheduler;
 
 // =============================================================================
 // Module Definition using v2 API
@@ -86,47 +88,49 @@ impl ModuleTrait for RoundRobinModule {
 
     fn init(&mut self, ctx: &Context) -> Result<(), ModuleError> {
         log::info!("[round-robin] Initializing scheduler module");
-        
+
         // Get CPU count from configuration
         self.cpu_count = ctx.config_usize("cpu_count").unwrap_or(1);
-        
+
         // Get time slice from configuration (default 10ms)
         if let Some(slice_ms) = ctx.config_usize("time_slice_ms") {
             self.config.default_time_slice_ns = slice_ms as u64 * 1_000_000; // Convert to ns
         }
-        
+
         // Create and initialize the scheduler
         let mut scheduler = RoundRobinScheduler::new(self.config.clone());
-        
-        scheduler.init(self.cpu_count)
-            .map_err(|e| ModuleError::InitError(alloc::format!("Scheduler init failed: {:?}", e)))?;
-        
+
+        scheduler.init(self.cpu_count).map_err(|e| {
+            ModuleError::InitError(alloc::format!("Scheduler init failed: {:?}", e))
+        })?;
+
         self.scheduler = Some(Arc::new(scheduler));
-        
-        log::info!("[round-robin] Initialized for {} CPUs, time slice: {}ms", 
+
+        log::info!(
+            "[round-robin] Initialized for {} CPUs, time slice: {}ms",
             self.cpu_count,
             self.config.default_time_slice_ns / 1_000_000
         );
-        
+
         Ok(())
     }
 
     fn start(&mut self) -> Result<(), ModuleError> {
         log::info!("[round-robin] Starting scheduler");
-        
+
         // In a full implementation, this would register with the execution subsystem:
         // helix_execution::scheduler::set_scheduler(self.scheduler.clone().unwrap());
-        
+
         log::info!("[round-robin] Scheduler started and active");
         Ok(())
     }
 
     fn stop(&mut self) -> Result<(), ModuleError> {
         log::info!("[round-robin] Stopping scheduler");
-        
+
         // Deregister from execution subsystem
         // helix_execution::scheduler::clear_scheduler();
-        
+
         Ok(())
     }
 
@@ -141,7 +145,7 @@ impl ModuleTrait for RoundRobinModule {
                     }
                 }
                 EventResponse::Handled
-            }
+            },
             Event::CpuHotplug { cpu_id, online } => {
                 if let Some(ref scheduler) = self.scheduler {
                     if *online {
@@ -153,11 +157,11 @@ impl ModuleTrait for RoundRobinModule {
                     }
                 }
                 EventResponse::Handled
-            }
+            },
             Event::Shutdown => {
                 log::info!("[round-robin] Received shutdown event");
                 EventResponse::Handled
-            }
+            },
             _ => EventResponse::Ignored,
         }
     }
@@ -178,12 +182,12 @@ impl ModuleTrait for RoundRobinModule {
                 } else {
                     Ok(Response::err("Scheduler not initialized"))
                 }
-            }
+            },
             "set_time_slice" => {
                 // Parse time slice from payload
                 // For now, just acknowledge
                 Ok(Response::ok_empty())
-            }
+            },
             _ => Ok(Response::err("Unknown request type")),
         }
     }

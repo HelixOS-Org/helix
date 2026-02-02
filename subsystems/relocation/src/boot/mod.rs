@@ -2,7 +2,8 @@
 //!
 //! Unified interface for different boot protocols.
 
-use crate::{RelocResult, RelocError, PhysAddr, context::BootProtocol};
+use crate::context::BootProtocol;
+use crate::{PhysAddr, RelocError, RelocResult};
 
 // ============================================================================
 // BOOT CONTEXT
@@ -77,21 +78,21 @@ pub struct MemoryRegion {
 #[repr(u8)]
 pub enum MemoryType {
     /// Usable RAM
-    Usable = 0,
+    Usable           = 0,
     /// Reserved (do not use)
-    Reserved = 1,
+    Reserved         = 1,
     /// ACPI reclaimable
-    AcpiReclaimable = 2,
+    AcpiReclaimable  = 2,
     /// ACPI NVS
-    AcpiNvs = 3,
+    AcpiNvs          = 3,
     /// Bad memory
-    BadMemory = 4,
+    BadMemory        = 4,
     /// Bootloader reclaimable
     BootloaderReclaimable = 5,
     /// Kernel and modules
     KernelAndModules = 6,
     /// Framebuffer
-    Framebuffer = 7,
+    Framebuffer      = 7,
 }
 
 /// Memory map entry
@@ -136,9 +137,7 @@ impl MemoryMap {
 
     /// Get entries
     pub fn entries(&self) -> impl Iterator<Item = &MemoryMapEntry> {
-        self.entries[..self.count]
-            .iter()
-            .filter_map(|e| e.as_ref())
+        self.entries[..self.count].iter().filter_map(|e| e.as_ref())
     }
 
     /// Total usable memory

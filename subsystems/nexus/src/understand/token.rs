@@ -5,7 +5,6 @@
 extern crate alloc;
 
 use alloc::string::String;
-use core::sync::atomic::{AtomicU64, Ordering};
 
 /// Token identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

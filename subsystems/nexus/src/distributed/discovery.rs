@@ -6,9 +6,9 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -517,7 +517,7 @@ impl DiscoveryEngine {
                 .values()
                 .filter(|n| n.cluster == Some(cluster_id))
                 .collect(),
-            QueryType::ByRole(role) => {
+            QueryType::ByRole(_role) => {
                 // Would need role info
                 self.discovered.values().collect()
             },

@@ -14,7 +14,6 @@ use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::{
     CodeRegion, Modification, ModificationId, ModificationStatus, ModificationType, RiskLevel,
-    VersionId,
 };
 
 // ============================================================================

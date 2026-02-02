@@ -49,27 +49,24 @@
 //! └─────────────────────────────────────────────────────────────────────────┘
 //! ```
 
-#![no_std]
 #![allow(dead_code)]
 
 extern crate alloc;
 
-pub mod awareness;
-pub mod confidence;
-pub mod goals;
-pub mod introspection;
-pub mod reasoning;
-pub mod reflection;
-pub mod regulation;
-pub mod strategy;
+// TODO: Ces sous-modules doivent être créés
+// pub mod awareness;
+// pub mod confidence;
+// pub mod goals;
+// pub mod introspection;
+// pub mod reasoning;
+// pub mod reflection;
+// pub mod regulation;
+// pub mod strategy;
 
-use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
-use core::f64::consts::PI;
-
-use crate::types::{NexusError, NexusResult};
 
 /// Maximum history length
 const MAX_HISTORY: usize = 1000;
@@ -255,7 +252,7 @@ impl IntrospectionEngine {
                     }
 
                     // ECE (Expected Calibration Error) update
-                    let confidence_bucket = (record.confidence * 10.0) as usize;
+                    let _confidence_bucket = (record.confidence * 10.0) as usize;
                     let expected_accuracy = record.confidence;
                     let actual_accuracy = if was_correct { 1.0 } else { 0.0 };
                     metrics.calibration_error = (1.0 - 0.1) * metrics.calibration_error
@@ -1060,8 +1057,8 @@ impl MetacognitiveController {
 
     /// Record a decision
     pub fn record_decision(&mut self, record: DecisionRecord) {
-        let subsystem = record.subsystem;
-        let confidence = record.confidence;
+        let _subsystem = record.subsystem;
+        let _confidence = record.confidence;
 
         self.introspection.record_decision(record);
 

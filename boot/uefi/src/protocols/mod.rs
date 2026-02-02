@@ -42,35 +42,35 @@
 //! - **Security**: Secure Boot and authentication
 //! - **RNG**: Cryptographic random numbers
 
-pub mod console;
-pub mod graphics;
-pub mod filesystem;
-pub mod block;
-pub mod serial;
-pub mod pci;
-pub mod network;
-pub mod usb;
 pub mod acpi;
-pub mod smbios;
-pub mod security;
+pub mod block;
+pub mod console;
+pub mod filesystem;
+pub mod graphics;
+pub mod network;
+pub mod pci;
 pub mod rng;
+pub mod security;
+pub mod serial;
+pub mod smbios;
+pub mod usb;
 
 // Re-exports
-pub use console::{Console, InputKey, KeyModifiers, ScanCode};
-pub use graphics::{GraphicsOutput, Framebuffer, Pixel, PixelFormat, Resolution};
-pub use filesystem::{FileSystem, File, Directory, FileInfo, FileMode, FileAttributes};
-pub use block::{BlockDevice, Partition, DiskInfo};
-pub use serial::{SerialPort, SerialConfig, Parity, StopBits};
-pub use pci::{PciDevice, PciConfig, PciClass, PciLocation};
-pub use network::{NetworkInterface, IpAddress, MacAddress};
-pub use usb::UsbDevice;
 pub use acpi::AcpiTables;
-pub use smbios::SmbiosTables;
-pub use security::SecureBoot;
+pub use block::{BlockDevice, DiskInfo, Partition};
+pub use console::{Console, InputKey, KeyModifiers, ScanCode};
+pub use filesystem::{Directory, File, FileAttributes, FileInfo, FileMode, FileSystem};
+pub use graphics::{Framebuffer, GraphicsOutput, Pixel, PixelFormat, Resolution};
+pub use network::{IpAddress, MacAddress, NetworkInterface};
+pub use pci::{PciClass, PciConfig, PciDevice, PciLocation};
 pub use rng::EntropySource;
+pub use security::SecureBoot;
+pub use serial::{Parity, SerialConfig, SerialPort, StopBits};
+pub use smbios::SmbiosTables;
+pub use usb::UsbDevice;
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 // =============================================================================
 // PROTOCOL TRAIT
@@ -97,10 +97,7 @@ pub trait EnumerableProtocol: Protocol {
 
     /// Get first instance
     fn first() -> Result<Self> {
-        Self::enumerate()?
-            .into_iter()
-            .next()
-            .ok_or(Error::NotFound)
+        Self::enumerate()?.into_iter().next().ok_or(Error::NotFound)
     }
 }
 
@@ -215,11 +212,7 @@ impl ProtocolLocator {
         // LocateProtocol
         let mut interface: *mut core::ffi::c_void = core::ptr::null_mut();
         let result = unsafe {
-            ((*bs).locate_protocol)(
-                guid as *const Guid,
-                core::ptr::null_mut(),
-                &mut interface,
-            )
+            ((*bs).locate_protocol)(guid as *const Guid, core::ptr::null_mut(), &mut interface)
         };
 
         if result != Status::SUCCESS {
@@ -233,8 +226,8 @@ impl ProtocolLocator {
 
     /// Locate all handles for protocol GUID
     fn locate_handles(guid: &Guid) -> Result<alloc::vec::Vec<Handle>> {
-        use crate::services::boot_services;
         use crate::raw::types::LocateSearchType;
+        use crate::services::boot_services;
 
         let bs = unsafe { boot_services() };
 
@@ -302,9 +295,13 @@ impl DevicePath {
     ///
     /// # Safety
     /// Pointer must be valid device path
-    pub unsafe fn from_raw(ptr: *const crate::raw::protocols::loaded_image::EfiDevicePathProtocol) -> Self {
+    pub unsafe fn from_raw(
+        ptr: *const crate::raw::protocols::loaded_image::EfiDevicePathProtocol,
+    ) -> Self {
         if ptr.is_null() {
-            return Self { data: alloc::vec::Vec::new() };
+            return Self {
+                data: alloc::vec::Vec::new(),
+            };
         }
 
         // Calculate total length
@@ -423,10 +420,8 @@ impl<'a> Iterator for DevicePathNodeIter<'a> {
         // Read header
         let node_type = self.data[self.offset];
         let sub_type = self.data[self.offset + 1];
-        let length = u16::from_le_bytes([
-            self.data[self.offset + 2],
-            self.data[self.offset + 3],
-        ]) as usize;
+        let length =
+            u16::from_le_bytes([self.data[self.offset + 2], self.data[self.offset + 3]]) as usize;
 
         if length < 4 || self.offset + length > self.data.len() {
             return None;
@@ -460,8 +455,8 @@ pub struct ProtocolNotification {
 impl ProtocolNotification {
     /// Register for protocol notification
     pub fn register<P: Protocol>() -> Result<Self> {
-        use crate::services::boot_services;
         use crate::event::EventType;
+        use crate::services::boot_services;
 
         let bs = unsafe { boot_services() };
 
@@ -487,11 +482,7 @@ impl ProtocolNotification {
 
         // Register for notification
         let result = unsafe {
-            ((*bs).register_protocol_notify)(
-                &P::GUID as *const Guid,
-                event,
-                &mut registration,
-            )
+            ((*bs).register_protocol_notify)(&P::GUID as *const Guid, event, &mut registration)
         };
 
         if result != Status::SUCCESS {
@@ -500,7 +491,10 @@ impl ProtocolNotification {
             return Err(Error::from_status(result));
         }
 
-        Ok(Self { event, registration })
+        Ok(Self {
+            event,
+            registration,
+        })
     }
 
     /// Check if protocol appeared
@@ -533,9 +527,7 @@ impl ProtocolNotification {
             // Wait on event
             let events = [self.event];
             let mut index = 0usize;
-            let result = unsafe {
-                ((*bs).wait_for_event)(1, events.as_ptr(), &mut index)
-            };
+            let result = unsafe { ((*bs).wait_for_event)(1, events.as_ptr(), &mut index) };
 
             if result != Status::SUCCESS {
                 return Err(Error::from_status(result));

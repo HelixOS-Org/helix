@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use alloc::string::String;
+
 use super::temporal::Timestamp;
 
 // ============================================================================
@@ -82,7 +83,11 @@ impl MetricValue {
                 }
             },
             Self::Flag(v) => {
-                if *v { 1.0 } else { 0.0 }
+                if *v {
+                    1.0
+                } else {
+                    0.0
+                }
             },
         }
     }

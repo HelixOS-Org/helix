@@ -2,7 +2,6 @@
 //!
 //! Device path parsing, building, and manipulation for UEFI.
 
-
 // =============================================================================
 // DEVICE PATH TYPES
 // =============================================================================
@@ -12,17 +11,17 @@
 #[repr(u8)]
 pub enum DevicePathType {
     /// Hardware device path
-    Hardware = 0x01,
+    Hardware     = 0x01,
     /// ACPI device path
-    Acpi = 0x02,
+    Acpi         = 0x02,
     /// Messaging device path
-    Messaging = 0x03,
+    Messaging    = 0x03,
     /// Media device path
-    Media = 0x04,
+    Media        = 0x04,
     /// BIOS boot specification device path
     BiosBootSpec = 0x05,
     /// End of hardware device path
-    End = 0x7F,
+    End          = 0x7F,
 }
 
 impl DevicePathType {
@@ -45,17 +44,17 @@ impl DevicePathType {
 #[repr(u8)]
 pub enum HardwareSubtype {
     /// PCI device
-    Pci = 0x01,
+    Pci          = 0x01,
     /// PCI card
-    PciCard = 0x02,
+    PciCard      = 0x02,
     /// Memory mapped
     MemoryMapped = 0x03,
     /// Vendor defined
-    Vendor = 0x04,
+    Vendor       = 0x04,
     /// Controller
-    Controller = 0x05,
+    Controller   = 0x05,
     /// BMC
-    Bmc = 0x06,
+    Bmc          = 0x06,
 }
 
 /// ACPI device path subtypes
@@ -63,13 +62,13 @@ pub enum HardwareSubtype {
 #[repr(u8)]
 pub enum AcpiSubtype {
     /// Standard ACPI
-    Acpi = 0x01,
+    Acpi         = 0x01,
     /// Expanded ACPI
     ExpandedAcpi = 0x02,
     /// ADR ACPI
-    Adr = 0x03,
+    Adr          = 0x03,
     /// NVDIMM
-    Nvdimm = 0x04,
+    Nvdimm       = 0x04,
 }
 
 /// Messaging device path subtypes
@@ -77,67 +76,67 @@ pub enum AcpiSubtype {
 #[repr(u8)]
 pub enum MessagingSubtype {
     /// ATAPI
-    Atapi = 0x01,
+    Atapi             = 0x01,
     /// SCSI
-    Scsi = 0x02,
+    Scsi              = 0x02,
     /// Fibre Channel
-    FibreChannel = 0x03,
+    FibreChannel      = 0x03,
     /// 1394 (FireWire)
-    FireWire = 0x04,
+    FireWire          = 0x04,
     /// USB
-    Usb = 0x05,
+    Usb               = 0x05,
     /// I2O
-    I2o = 0x06,
+    I2o               = 0x06,
     /// InfiniBand
-    InfiniBand = 0x09,
+    InfiniBand        = 0x09,
     /// Vendor defined
-    Vendor = 0x0A,
+    Vendor            = 0x0A,
     /// MAC address
-    MacAddress = 0x0B,
+    MacAddress        = 0x0B,
     /// IPv4
-    Ipv4 = 0x0C,
+    Ipv4              = 0x0C,
     /// IPv6
-    Ipv6 = 0x0D,
+    Ipv6              = 0x0D,
     /// UART
-    Uart = 0x0E,
+    Uart              = 0x0E,
     /// USB class
-    UsbClass = 0x0F,
+    UsbClass          = 0x0F,
     /// USB WWID
-    UsbWwid = 0x10,
+    UsbWwid           = 0x10,
     /// Device logical unit
     DeviceLogicalUnit = 0x11,
     /// SATA
-    Sata = 0x12,
+    Sata              = 0x12,
     /// iSCSI
-    Iscsi = 0x13,
+    Iscsi             = 0x13,
     /// VLAN
-    Vlan = 0x14,
+    Vlan              = 0x14,
     /// Fibre Channel Ex
-    FibreChannelEx = 0x15,
+    FibreChannelEx    = 0x15,
     /// SAS Ex
-    SasEx = 0x16,
+    SasEx             = 0x16,
     /// NVMe namespace
-    NvmeNamespace = 0x17,
+    NvmeNamespace     = 0x17,
     /// URI
-    Uri = 0x18,
+    Uri               = 0x18,
     /// UFS
-    Ufs = 0x19,
+    Ufs               = 0x19,
     /// SD
-    Sd = 0x1A,
+    Sd                = 0x1A,
     /// Bluetooth
-    Bluetooth = 0x1B,
+    Bluetooth         = 0x1B,
     /// WiFi
-    Wifi = 0x1C,
+    Wifi              = 0x1C,
     /// eMMC
-    Emmc = 0x1D,
+    Emmc              = 0x1D,
     /// Bluetooth LE
-    BluetoothLe = 0x1E,
+    BluetoothLe       = 0x1E,
     /// DNS
-    Dns = 0x1F,
+    Dns               = 0x1F,
     /// NVMe over Fabric
-    NvmeOfNs = 0x20,
+    NvmeOfNs          = 0x20,
     /// REST Service
-    RestService = 0x21,
+    RestService       = 0x21,
 }
 
 /// Media device path subtypes
@@ -145,23 +144,23 @@ pub enum MessagingSubtype {
 #[repr(u8)]
 pub enum MediaSubtype {
     /// Hard drive
-    HardDrive = 0x01,
+    HardDrive           = 0x01,
     /// CD-ROM
-    CdRom = 0x02,
+    CdRom               = 0x02,
     /// Vendor defined
-    Vendor = 0x03,
+    Vendor              = 0x03,
     /// File path
-    FilePath = 0x04,
+    FilePath            = 0x04,
     /// Media protocol
-    MediaProtocol = 0x05,
+    MediaProtocol       = 0x05,
     /// PIWG firmware file
-    PiwgFirmwareFile = 0x06,
+    PiwgFirmwareFile    = 0x06,
     /// PIWG firmware volume
-    PiwgFirmwareVolume = 0x07,
+    PiwgFirmwareVolume  = 0x07,
     /// Relative offset range
     RelativeOffsetRange = 0x08,
     /// RAM disk
-    RamDisk = 0x09,
+    RamDisk             = 0x09,
 }
 
 /// End device path subtypes
@@ -171,7 +170,7 @@ pub enum EndSubtype {
     /// End this instance
     EndThisInstance = 0x01,
     /// End entire path
-    EndEntirePath = 0xFF,
+    EndEntirePath   = 0xFF,
 }
 
 // =============================================================================
@@ -212,8 +211,8 @@ impl DevicePathNodeHeader {
 
     /// Check if this is end of entire path
     pub fn is_end_entire(&self) -> bool {
-        self.device_type == DevicePathType::End as u8 &&
-        self.sub_type == EndSubtype::EndEntirePath as u8
+        self.device_type == DevicePathType::End as u8
+            && self.sub_type == EndSubtype::EndEntirePath as u8
     }
 }
 
@@ -281,7 +280,11 @@ impl DevicePathNode {
         let mut data = [0u8; 252];
         data[..data_len].copy_from_slice(&bytes[4..4 + data_len]);
 
-        Some(Self { header, data, data_len })
+        Some(Self {
+            header,
+            data,
+            data_len,
+        })
     }
 
     /// Get type
@@ -346,9 +349,10 @@ impl PciDevicePath {
 
     /// Parse from node
     pub fn from_node(node: &DevicePathNode) -> Option<Self> {
-        if node.header.device_type != DevicePathType::Hardware as u8 ||
-           node.header.sub_type != HardwareSubtype::Pci as u8 ||
-           node.data_len < 2 {
+        if node.header.device_type != DevicePathType::Hardware as u8
+            || node.header.sub_type != HardwareSubtype::Pci as u8
+            || node.data_len < 2
+        {
             return None;
         }
 
@@ -384,9 +388,10 @@ impl AcpiDevicePath {
 
     /// Parse from node
     pub fn from_node(node: &DevicePathNode) -> Option<Self> {
-        if node.header.device_type != DevicePathType::Acpi as u8 ||
-           node.header.sub_type != AcpiSubtype::Acpi as u8 ||
-           node.data_len < 8 {
+        if node.header.device_type != DevicePathType::Acpi as u8
+            || node.header.sub_type != AcpiSubtype::Acpi as u8
+            || node.data_len < 8
+        {
             return None;
         }
 
@@ -624,7 +629,7 @@ pub enum SignatureType {
     /// No signature
     None = 0x00,
     /// 32-bit MBR signature
-    Mbr = 0x01,
+    Mbr  = 0x01,
     /// GUID signature
     Guid = 0x02,
 }
@@ -740,26 +745,26 @@ pub struct RamDiskDevicePath {
 pub mod ram_disk_type {
     /// Virtual disk
     pub const VIRTUAL_DISK: [u8; 16] = [
-        0x5C, 0xED, 0x45, 0x77, 0xD4, 0x29, 0xC7, 0x4D,
-        0xB7, 0x48, 0x39, 0x4A, 0xBC, 0x0A, 0x24, 0x38,
+        0x5C, 0xED, 0x45, 0x77, 0xD4, 0x29, 0xC7, 0x4D, 0xB7, 0x48, 0x39, 0x4A, 0xBC, 0x0A, 0x24,
+        0x38,
     ];
 
     /// Virtual CD
     pub const VIRTUAL_CD: [u8; 16] = [
-        0x4E, 0x2C, 0x91, 0x38, 0x29, 0x41, 0x4B, 0x4A,
-        0xAE, 0x38, 0x29, 0x45, 0x98, 0xBF, 0xB9, 0x87,
+        0x4E, 0x2C, 0x91, 0x38, 0x29, 0x41, 0x4B, 0x4A, 0xAE, 0x38, 0x29, 0x45, 0x98, 0xBF, 0xB9,
+        0x87,
     ];
 
     /// Persistent virtual disk
     pub const PERSISTENT_VIRTUAL_DISK: [u8; 16] = [
-        0x12, 0x1E, 0x82, 0x5D, 0x3F, 0x97, 0x4D, 0x46,
-        0xB0, 0x33, 0xF4, 0xB4, 0x77, 0xD3, 0x43, 0x13,
+        0x12, 0x1E, 0x82, 0x5D, 0x3F, 0x97, 0x4D, 0x46, 0xB0, 0x33, 0xF4, 0xB4, 0x77, 0xD3, 0x43,
+        0x13,
     ];
 
     /// Persistent virtual CD
     pub const PERSISTENT_VIRTUAL_CD: [u8; 16] = [
-        0x97, 0x79, 0x76, 0x5B, 0xF9, 0x18, 0xB0, 0x44,
-        0xA4, 0x10, 0x57, 0xB5, 0x16, 0xD0, 0xE5, 0xC3,
+        0x97, 0x79, 0x76, 0x5B, 0xF9, 0x18, 0xB0, 0x44, 0xA4, 0x10, 0x57, 0xB5, 0x16, 0xD0, 0xE5,
+        0xC3,
     ];
 }
 
@@ -1174,37 +1179,49 @@ impl DevicePathToText {
                 if node.data_len >= 2 {
                     pos += write_str(buffer, "Pci(");
                     pos += write_hex_u8(&mut buffer[pos..], node.data[1]);
-                    if pos < buffer.len() { buffer[pos] = b','; pos += 1; }
+                    if pos < buffer.len() {
+                        buffer[pos] = b',';
+                        pos += 1;
+                    }
                     pos += write_hex_u8(&mut buffer[pos..], node.data[0]);
-                    if pos < buffer.len() { buffer[pos] = b')'; pos += 1; }
+                    if pos < buffer.len() {
+                        buffer[pos] = b')';
+                        pos += 1;
+                    }
                 }
-            }
+            },
             (0x02, 0x01) => {
                 // ACPI
                 pos += write_str(buffer, "Acpi(...)");
-            }
+            },
             (0x03, 0x05) => {
                 // USB
                 if node.data_len >= 2 {
                     pos += write_str(buffer, "Usb(");
                     pos += write_hex_u8(&mut buffer[pos..], node.data[0]);
-                    if pos < buffer.len() { buffer[pos] = b','; pos += 1; }
+                    if pos < buffer.len() {
+                        buffer[pos] = b',';
+                        pos += 1;
+                    }
                     pos += write_hex_u8(&mut buffer[pos..], node.data[1]);
-                    if pos < buffer.len() { buffer[pos] = b')'; pos += 1; }
+                    if pos < buffer.len() {
+                        buffer[pos] = b')';
+                        pos += 1;
+                    }
                 }
-            }
+            },
             (0x03, 0x12) => {
                 // SATA
                 pos += write_str(buffer, "Sata(...)");
-            }
+            },
             (0x03, 0x17) => {
                 // NVMe
                 pos += write_str(buffer, "NVMe(...)");
-            }
+            },
             (0x04, 0x01) => {
                 // Hard Drive
                 pos += write_str(buffer, "HD(...)");
-            }
+            },
             (0x04, 0x04) => {
                 // File Path
                 pos += write_str(buffer, "File(");
@@ -1212,26 +1229,34 @@ impl DevicePathToText {
                 let mut i = 0;
                 while i + 1 < node.data_len && pos < buffer.len() - 1 {
                     let c = u16::from_le_bytes([node.data[i], node.data[i + 1]]);
-                    if c == 0 { break; }
+                    if c == 0 {
+                        break;
+                    }
                     if c < 128 {
                         buffer[pos] = c as u8;
                         pos += 1;
                     }
                     i += 2;
                 }
-                if pos < buffer.len() { buffer[pos] = b')'; pos += 1; }
-            }
+                if pos < buffer.len() {
+                    buffer[pos] = b')';
+                    pos += 1;
+                }
+            },
             (0x03, 0x18) => {
                 // URI
                 pos += write_str(buffer, "Uri(");
                 let uri_len = node.data_len.min(buffer.len() - pos - 1);
                 buffer[pos..pos + uri_len].copy_from_slice(&node.data[..uri_len]);
                 pos += uri_len;
-                if pos < buffer.len() { buffer[pos] = b')'; pos += 1; }
-            }
+                if pos < buffer.len() {
+                    buffer[pos] = b')';
+                    pos += 1;
+                }
+            },
             _ => {
                 pos += write_str(buffer, "Unknown");
-            }
+            },
         }
 
         pos
@@ -1298,7 +1323,7 @@ impl TextToDevicePath {
             "Pci" => {
                 // TODO: Parse PCI(device,function)
                 Some(DevicePathNode::end_instance()) // Placeholder
-            }
+            },
             "File" => {
                 let path_text = &text[paren + 1..end];
                 let fp = FilePathDevicePath::new(path_text);
@@ -1320,7 +1345,7 @@ impl TextToDevicePath {
                 }
 
                 Some(node)
-            }
+            },
             _ => None,
         }
     }

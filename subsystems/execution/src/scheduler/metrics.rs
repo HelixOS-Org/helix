@@ -124,7 +124,7 @@ impl SchedulerMetrics {
         let run = self.run_time.load(Ordering::Relaxed);
         let idle = self.idle_time.load(Ordering::Relaxed);
         let total = run + idle;
-        
+
         if total == 0 {
             0
         } else {

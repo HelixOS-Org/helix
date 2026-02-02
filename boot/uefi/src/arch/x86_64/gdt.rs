@@ -165,15 +165,12 @@ impl SegmentDescriptor {
 
     /// Get base address
     pub fn base(&self) -> u32 {
-        (self.base_low as u32) |
-        ((self.base_middle as u32) << 16) |
-        ((self.base_high as u32) << 24)
+        (self.base_low as u32) | ((self.base_middle as u32) << 16) | ((self.base_high as u32) << 24)
     }
 
     /// Get limit
     pub fn limit(&self) -> u32 {
-        (self.limit_low as u32) |
-        (((self.limit_flags & 0x0F) as u32) << 16)
+        (self.limit_low as u32) | (((self.limit_flags & 0x0F) as u32) << 16)
     }
 
     /// Check if present
@@ -342,14 +339,14 @@ impl Gdt {
     pub const fn new() -> Self {
         Self {
             entries: [
-                SegmentDescriptor::null(),        // 0x00: Null
+                SegmentDescriptor::null(),          // 0x00: Null
                 SegmentDescriptor::kernel_code64(), // 0x08: Kernel Code (64-bit)
                 SegmentDescriptor::kernel_data(),   // 0x10: Kernel Data
                 SegmentDescriptor::user_code32(),   // 0x18: User Code (32-bit)
                 SegmentDescriptor::user_data(),     // 0x20: User Data
                 SegmentDescriptor::user_code64(),   // 0x28: User Code (64-bit)
-                SegmentDescriptor::null(),        // 0x30: TSS low (placeholder)
-                SegmentDescriptor::null(),        // 0x38: TSS high (placeholder)
+                SegmentDescriptor::null(),          // 0x30: TSS low (placeholder)
+                SegmentDescriptor::null(),          // 0x38: TSS high (placeholder)
             ],
         }
     }

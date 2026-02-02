@@ -2,9 +2,9 @@
 //!
 //! High-level console I/O abstraction for text input/output.
 
-use crate::raw::types::*;
-use crate::error::{Error, Result};
 use super::Protocol;
+use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::string::String;
@@ -32,7 +32,9 @@ impl Console {
     /// Get from global state
     pub fn get() -> Result<Self> {
         let st = unsafe { crate::services::system_table() };
-        Ok(Self { system_table: st as *const _ as *mut _ })
+        Ok(Self {
+            system_table: st as *const _ as *mut _,
+        })
     }
 
     // =========================================================================
@@ -56,9 +58,7 @@ impl Console {
         }
         buffer.push(0);
 
-        let result = unsafe {
-            ((*con_out).output_string)(con_out, buffer.as_ptr())
-        };
+        let result = unsafe { ((*con_out).output_string)(con_out, buffer.as_ptr()) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -103,9 +103,7 @@ impl Console {
             return Err(Error::NotReady);
         }
 
-        let result = unsafe {
-            ((*con_out).set_cursor_position)(con_out, col, row)
-        };
+        let result = unsafe { ((*con_out).set_cursor_position)(con_out, col, row) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -121,9 +119,7 @@ impl Console {
             return Err(Error::NotReady);
         }
 
-        let result = unsafe {
-            ((*con_out).enable_cursor)(con_out, visible as u8)
-        };
+        let result = unsafe { ((*con_out).enable_cursor)(con_out, visible as u8) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -140,9 +136,7 @@ impl Console {
         }
 
         let attribute = foreground.0 | (background.0 << 4);
-        let result = unsafe {
-            ((*con_out).set_attribute)(con_out, attribute)
-        };
+        let result = unsafe { ((*con_out).set_attribute)(con_out, attribute) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -196,9 +190,7 @@ impl Console {
         let mut columns = 0usize;
         let mut rows = 0usize;
 
-        let result = unsafe {
-            ((*con_out).query_mode)(con_out, mode, &mut columns, &mut rows)
-        };
+        let result = unsafe { ((*con_out).query_mode)(con_out, mode, &mut columns, &mut rows) };
 
         if result == Status::SUCCESS {
             Ok((columns, rows))
@@ -241,7 +233,8 @@ impl Console {
     pub fn set_best_mode(&self) -> Result<(usize, usize)> {
         let modes = self.available_modes()?;
 
-        let best = modes.iter()
+        let best = modes
+            .iter()
             .enumerate()
             .max_by_key(|(_, (cols, rows))| cols * rows)
             .map(|(i, &(cols, rows))| (i, cols, rows));
@@ -292,9 +285,7 @@ impl Console {
         let mut index = 0usize;
 
         let bs = unsafe { crate::services::boot_services() };
-        let result = unsafe {
-            ((*bs).wait_for_event)(1, events.as_ptr(), &mut index)
-        };
+        let result = unsafe { ((*bs).wait_for_event)(1, events.as_ptr(), &mut index) };
 
         if result != Status::SUCCESS {
             return Err(Error::from_status(result));
@@ -315,23 +306,23 @@ impl Console {
                 Some('\r') | Some('\n') => {
                     self.writeln("")?;
                     break;
-                }
+                },
                 Some('\x08') => {
                     // Backspace
                     if !buffer.is_empty() {
                         buffer.pop();
                         self.write("\x08 \x08")?;
                     }
-                }
+                },
                 Some(c) if !c.is_control() => {
                     if buffer.len() < max_len {
                         buffer.push(c);
                         self.write(&alloc::format!("{}", c))?;
                     }
-                }
+                },
                 _ => {
                     // Handle scan codes (arrows, etc.)
-                }
+                },
             }
         }
 
@@ -355,20 +346,20 @@ impl Console {
                 Some('\r') | Some('\n') => {
                     self.writeln("")?;
                     break;
-                }
+                },
                 Some('\x08') => {
                     if !buffer.is_empty() {
                         buffer.pop();
                         self.write("\x08 \x08")?;
                     }
-                }
+                },
                 Some(c) if !c.is_control() => {
                     if buffer.len() < max_len {
                         buffer.push(c);
                         self.write("*")?;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -403,7 +394,11 @@ impl Console {
 
     /// Print progress bar
     pub fn progress_bar(&self, current: usize, total: usize, width: usize) -> Result<()> {
-        let filled = if total > 0 { current * width / total } else { 0 };
+        let filled = if total > 0 {
+            current * width / total
+        } else {
+            0
+        };
         let empty = width.saturating_sub(filled);
         let percent = if total > 0 { current * 100 / total } else { 0 };
 
@@ -437,12 +432,12 @@ impl Console {
                 Some('y') | Some('Y') => {
                     self.writeln("y")?;
                     return Ok(true);
-                }
+                },
                 Some('n') | Some('N') => {
                     self.writeln("n")?;
                     return Ok(false);
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
     }
@@ -474,10 +469,9 @@ impl Console {
 }
 
 impl Protocol for Console {
-    const GUID: Guid = Guid::new(
-        0x387477C1, 0x69C7, 0x11D2,
-        [0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B],
-    );
+    const GUID: Guid = Guid::new(0x387477C1, 0x69C7, 0x11D2, [
+        0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    ]);
 
     fn open(_handle: Handle) -> Result<Self> {
         Console::get()
@@ -555,7 +549,10 @@ impl InputKey {
 
     /// Check if this is an arrow key
     pub fn is_arrow(&self) -> bool {
-        matches!(self.scan_code, ScanCode::UP | ScanCode::DOWN | ScanCode::LEFT | ScanCode::RIGHT)
+        matches!(
+            self.scan_code,
+            ScanCode::UP | ScanCode::DOWN | ScanCode::LEFT | ScanCode::RIGHT
+        )
     }
 
     /// Check if this is a function key

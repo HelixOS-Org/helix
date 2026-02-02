@@ -3,13 +3,15 @@
 //! Complete PE32+ executable loader for UEFI-style images.
 //! Supports Windows portable executable format used by UEFI applications.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
-use crate::loader::{LoadedImage, ImageSection, SectionFlags, ImageFlags, ImageFormat, MachineType};
+use crate::loader::{
+    ImageFlags, ImageFormat, ImageSection, LoadedImage, MachineType, SectionFlags,
+};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // PE CONSTANTS
@@ -251,7 +253,7 @@ impl CoffHeader {
             return Err(Error::InvalidData);
         }
 
-        if data[offset..offset+4] != PE_SIGNATURE {
+        if data[offset..offset + 4] != PE_SIGNATURE {
             return Err(Error::InvalidMagic);
         }
 
@@ -385,11 +387,12 @@ impl OptionalHeader64 {
 
     /// Check if UEFI application
     pub fn is_uefi(&self) -> bool {
-        matches!(self.subsystem,
-            subsystem::IMAGE_SUBSYSTEM_EFI_APPLICATION |
-            subsystem::IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER |
-            subsystem::IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER |
-            subsystem::IMAGE_SUBSYSTEM_EFI_ROM
+        matches!(
+            self.subsystem,
+            subsystem::IMAGE_SUBSYSTEM_EFI_APPLICATION
+                | subsystem::IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER
+                | subsystem::IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER
+                | subsystem::IMAGE_SUBSYSTEM_EFI_ROM
         )
     }
 
@@ -640,12 +643,7 @@ impl PeLoader {
     }
 
     /// Parse section headers
-    fn parse_sections(
-        &mut self,
-        data: &[u8],
-        coff: &CoffHeader,
-        opt_offset: usize,
-    ) -> Result<()> {
+    fn parse_sections(&mut self, data: &[u8], coff: &CoffHeader, opt_offset: usize) -> Result<()> {
         self.section_headers.clear();
 
         let sections_offset = opt_offset + coff.size_of_optional_header as usize;
@@ -658,9 +656,8 @@ impl PeLoader {
                 return Err(Error::InvalidData);
             }
 
-            let section: PeSectionHeader = unsafe {
-                *(data[offset..].as_ptr() as *const PeSectionHeader)
-            };
+            let section: PeSectionHeader =
+                unsafe { *(data[offset..].as_ptr() as *const PeSectionHeader) };
 
             self.section_headers.push(section);
         }
@@ -689,9 +686,8 @@ impl PeLoader {
             return Ok(());
         }
 
-        let export_table: ExportDirectory = unsafe {
-            *(data[export_offset..].as_ptr() as *const ExportDirectory)
-        };
+        let export_table: ExportDirectory =
+            unsafe { *(data[export_offset..].as_ptr() as *const ExportDirectory) };
 
         // Parse export names
         let names_offset = self.rva_to_offset(export_table.address_of_names as u64)?;
@@ -720,10 +716,7 @@ impl PeLoader {
             if data.len() < ordinal_offset + 2 {
                 break;
             }
-            let ordinal = u16::from_le_bytes([
-                data[ordinal_offset],
-                data[ordinal_offset + 1],
-            ]);
+            let ordinal = u16::from_le_bytes([data[ordinal_offset], data[ordinal_offset + 1]]);
 
             // Get function address
             let func_offset = functions_offset + (ordinal as usize) * 4;
@@ -769,9 +762,8 @@ impl PeLoader {
                 break;
             }
 
-            let import: ImportDirectory = unsafe {
-                *(data[import_offset..].as_ptr() as *const ImportDirectory)
-            };
+            let import: ImportDirectory =
+                unsafe { *(data[import_offset..].as_ptr() as *const ImportDirectory) };
 
             // Check for terminator
             if import.import_lookup_table_rva == 0 && import.name_rva == 0 {
@@ -811,9 +803,8 @@ impl PeLoader {
         let end = offset + reloc_dir.size as usize;
 
         while offset < end && offset + 8 <= data.len() {
-            let block: BaseRelocationBlock = unsafe {
-                *(data[offset..].as_ptr() as *const BaseRelocationBlock)
-            };
+            let block: BaseRelocationBlock =
+                unsafe { *(data[offset..].as_ptr() as *const BaseRelocationBlock) };
 
             if block.size_of_block == 0 {
                 break;
@@ -859,7 +850,13 @@ impl PeLoader {
         }
 
         // If not in any section, assume it's in headers
-        if rva < self.optional_header.as_ref().map(|h| h.size_of_headers as u64).unwrap_or(0x1000) {
+        if rva
+            < self
+                .optional_header
+                .as_ref()
+                .map(|h| h.size_of_headers as u64)
+                .unwrap_or(0x1000)
+        {
             return Ok(rva as usize);
         }
 
@@ -902,11 +899,20 @@ impl PeLoader {
         }
 
         // Find BSS
-        let bss_section = self.section_headers.iter()
+        let bss_section = self
+            .section_headers
+            .iter()
             .find(|s| s.is_uninitialized_data());
 
         let (bss_start, bss_size) = bss_section
-            .map(|s| (Some(VirtualAddress(optional.image_base + s.virtual_address as u64)), s.virtual_size as u64))
+            .map(|s| {
+                (
+                    Some(VirtualAddress(
+                        optional.image_base + s.virtual_address as u64,
+                    )),
+                    s.virtual_size as u64,
+                )
+            })
             .unwrap_or((None, 0));
 
         // Build flags
@@ -920,7 +926,9 @@ impl PeLoader {
 
         Ok(LoadedImage {
             format: ImageFormat::Pe32Plus,
-            entry_point: VirtualAddress(optional.image_base + optional.address_of_entry_point as u64),
+            entry_point: VirtualAddress(
+                optional.image_base + optional.address_of_entry_point as u64,
+            ),
             load_address: VirtualAddress(optional.image_base),
             image_size: optional.size_of_image as u64,
             sections,
@@ -1086,9 +1094,9 @@ mod tests {
             pointer_to_linenumbers: 0,
             number_of_relocations: 0,
             number_of_linenumbers: 0,
-            characteristics: section_characteristics::IMAGE_SCN_CNT_CODE |
-                           section_characteristics::IMAGE_SCN_MEM_EXECUTE |
-                           section_characteristics::IMAGE_SCN_MEM_READ,
+            characteristics: section_characteristics::IMAGE_SCN_CNT_CODE
+                | section_characteristics::IMAGE_SCN_MEM_EXECUTE
+                | section_characteristics::IMAGE_SCN_MEM_READ,
         };
 
         assert!(section.is_code());

@@ -4,9 +4,9 @@
 
 #![allow(dead_code)]
 
-use crate::types::{ProbeId, Timestamp};
-use super::probe::{Probe, ProbeConfig, ProbeError, ProbeState, ProbeStats, ProbeType};
 use super::events::{CpuSample, EventData, MemorySample, RawEvent};
+use super::probe::{Probe, ProbeConfig, ProbeError, ProbeState, ProbeStats, ProbeType};
+use crate::types::{ProbeId, Timestamp};
 
 // ============================================================================
 // CPU PROBE

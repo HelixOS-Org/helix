@@ -30,7 +30,7 @@ pub use energy::{EnergyProfiler, PowerSensor, SystemEnergy, TaskEnergy};
 pub use intelligence::{PowerDecision, PowerIntelligence};
 pub use pstate::{GovernorAlgorithm, PStateGovernor, PStateStats};
 pub use thermal::{ThermalManager, ThermalZone};
-pub use types::{CState, PowerMode, PState};
+pub use types::{CState, PState, PowerMode};
 pub use workload::WorkloadPredictor;
 
 // ============================================================================
@@ -39,8 +39,9 @@ pub use workload::WorkloadPredictor;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::vec;
+
+    use super::*;
 
     #[test]
     fn test_cstate_properties() {

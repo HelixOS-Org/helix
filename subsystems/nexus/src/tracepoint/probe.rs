@@ -10,7 +10,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use super::{ProbeId, TracepointId};
 
 /// Probe type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ProbeType {
     /// Static tracepoint probe
     Static,

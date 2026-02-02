@@ -46,9 +46,9 @@ const MAX_CPUS: usize = 256;
 #[repr(u8)]
 pub enum ApicTimerMode {
     /// One-shot mode: count down and stop
-    OneShot = 0b00,
+    OneShot     = 0b00,
     /// Periodic mode: count down and reload
-    Periodic = 0b01,
+    Periodic    = 0b01,
     /// TSC-deadline mode: interrupt at TSC value
     TscDeadline = 0b10,
 }
@@ -57,13 +57,13 @@ pub enum ApicTimerMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum ApicTimerDivide {
-    By1 = 0b1011,
-    By2 = 0b0000,
-    By4 = 0b0001,
-    By8 = 0b0010,
-    By16 = 0b0011,
-    By32 = 0b1000,
-    By64 = 0b1001,
+    By1   = 0b1011,
+    By2   = 0b0000,
+    By4   = 0b0001,
+    By8   = 0b0010,
+    By16  = 0b0011,
+    By32  = 0b1000,
+    By64  = 0b1001,
     By128 = 0b1010,
 }
 
@@ -174,7 +174,9 @@ pub unsafe fn init(cpu_id: usize) -> Result<(), ApicTimerError> {
     // Stop the timer
     write_apic(apic_regs::TIMER_ICR, 0);
 
-    PER_CPU_TIMER[cpu_id].vector.store(TIMER_VECTOR as u32, Ordering::SeqCst);
+    PER_CPU_TIMER[cpu_id]
+        .vector
+        .store(TIMER_VECTOR as u32, Ordering::SeqCst);
 
     log::debug!(
         "APIC Timer: CPU {} initialized (TSC-deadline={})",
@@ -200,8 +202,12 @@ pub unsafe fn calibrate(cpu_id: usize) -> Result<u64, ApicTimerError> {
     // Use PIT for calibration
     let frequency = calibrate_with_pit()?;
 
-    PER_CPU_TIMER[cpu_id].frequency.store(frequency, Ordering::SeqCst);
-    PER_CPU_TIMER[cpu_id].calibrated.store(true, Ordering::SeqCst);
+    PER_CPU_TIMER[cpu_id]
+        .frequency
+        .store(frequency, Ordering::SeqCst);
+    PER_CPU_TIMER[cpu_id]
+        .calibrated
+        .store(true, Ordering::SeqCst);
 
     log::info!(
         "APIC Timer: CPU {} calibrated at {} Hz ({} MHz)",
@@ -277,7 +283,9 @@ pub unsafe fn start_oneshot(cpu_id: usize, ticks: u32, vector: u8) -> Result<(),
     // Set initial count (starts countdown)
     write_apic(apic_regs::TIMER_ICR, ticks);
 
-    PER_CPU_TIMER[cpu_id].mode.store(ApicTimerMode::OneShot as u32, Ordering::SeqCst);
+    PER_CPU_TIMER[cpu_id]
+        .mode
+        .store(ApicTimerMode::OneShot as u32, Ordering::SeqCst);
 
     Ok(())
 }
@@ -299,7 +307,9 @@ pub unsafe fn start_periodic(cpu_id: usize, ticks: u32, vector: u8) -> Result<()
     // Set initial count (starts countdown)
     write_apic(apic_regs::TIMER_ICR, ticks);
 
-    PER_CPU_TIMER[cpu_id].mode.store(ApicTimerMode::Periodic as u32, Ordering::SeqCst);
+    PER_CPU_TIMER[cpu_id]
+        .mode
+        .store(ApicTimerMode::Periodic as u32, Ordering::SeqCst);
 
     Ok(())
 }
@@ -309,7 +319,11 @@ pub unsafe fn start_periodic(cpu_id: usize, ticks: u32, vector: u8) -> Result<()
 /// # Safety
 ///
 /// TSC-deadline mode must be supported and the timer initialized.
-pub unsafe fn start_tsc_deadline(cpu_id: usize, deadline: u64, vector: u8) -> Result<(), ApicTimerError> {
+pub unsafe fn start_tsc_deadline(
+    cpu_id: usize,
+    deadline: u64,
+    vector: u8,
+) -> Result<(), ApicTimerError> {
     if cpu_id >= MAX_CPUS {
         return Err(ApicTimerError::InvalidCpuId);
     }
@@ -325,7 +339,9 @@ pub unsafe fn start_tsc_deadline(cpu_id: usize, deadline: u64, vector: u8) -> Re
     // Write deadline to IA32_TSC_DEADLINE MSR
     tsc::write_deadline(deadline);
 
-    PER_CPU_TIMER[cpu_id].mode.store(ApicTimerMode::TscDeadline as u32, Ordering::SeqCst);
+    PER_CPU_TIMER[cpu_id]
+        .mode
+        .store(ApicTimerMode::TscDeadline as u32, Ordering::SeqCst);
 
     Ok(())
 }
@@ -335,7 +351,11 @@ pub unsafe fn start_tsc_deadline(cpu_id: usize, deadline: u64, vector: u8) -> Re
 /// # Safety
 ///
 /// TSC-deadline mode must be supported.
-pub unsafe fn arm_deadline_ns(cpu_id: usize, ns_from_now: u64, vector: u8) -> Result<(), ApicTimerError> {
+pub unsafe fn arm_deadline_ns(
+    cpu_id: usize,
+    ns_from_now: u64,
+    vector: u8,
+) -> Result<(), ApicTimerError> {
     let ticks = super::ns_to_tsc(ns_from_now);
     let deadline = tsc::read() + ticks;
     start_tsc_deadline(cpu_id, deadline, vector)
@@ -449,7 +469,9 @@ impl ApicTimer {
     /// Check if calibrated
     #[inline]
     pub fn is_calibrated(&self) -> bool {
-        PER_CPU_TIMER[self.cpu_id].calibrated.load(Ordering::Relaxed)
+        PER_CPU_TIMER[self.cpu_id]
+            .calibrated
+            .load(Ordering::Relaxed)
     }
 
     /// Get frequency
@@ -502,7 +524,11 @@ impl ApicTimer {
     /// # Safety
     ///
     /// TSC-deadline must be supported.
-    pub unsafe fn start_tsc_deadline(&self, deadline: u64, vector: u8) -> Result<(), ApicTimerError> {
+    pub unsafe fn start_tsc_deadline(
+        &self,
+        deadline: u64,
+        vector: u8,
+    ) -> Result<(), ApicTimerError> {
         start_tsc_deadline(self.cpu_id, deadline, vector)
     }
 

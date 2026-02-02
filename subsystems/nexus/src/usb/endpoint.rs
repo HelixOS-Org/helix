@@ -2,7 +2,6 @@
 //!
 //! USB endpoint definitions and transfer tracking.
 
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 /// Endpoint direction

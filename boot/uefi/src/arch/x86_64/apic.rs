@@ -3,8 +3,9 @@
 //! Local APIC and I/O APIC implementation.
 
 use core::sync::atomic::{AtomicU32, Ordering};
-use crate::raw::types::*;
+
 use super::{rdmsr, wrmsr};
+use crate::raw::types::*;
 
 // =============================================================================
 // LOCAL APIC CONSTANTS
@@ -431,9 +432,7 @@ impl LocalApic {
     pub fn send_ipi(&self, destination: u32, vector: u8, delivery_mode: u32) {
         if self.x2apic {
             // x2APIC: single 64-bit write to ICR
-            let icr = ((destination as u64) << 32) |
-                      (vector as u64) |
-                      (delivery_mode as u64);
+            let icr = ((destination as u64) << 32) | (vector as u64) | (delivery_mode as u64);
             unsafe { wrmsr(0x830, icr) }
         } else {
             // xAPIC: write high then low
@@ -453,12 +452,20 @@ impl LocalApic {
 
     /// Send INIT IPI
     pub fn send_init(&self, destination: u32) {
-        self.send_ipi(destination, 0, icr::DELIVERY_INIT | icr::LEVEL_ASSERT | icr::TRIGGER_LEVEL);
+        self.send_ipi(
+            destination,
+            0,
+            icr::DELIVERY_INIT | icr::LEVEL_ASSERT | icr::TRIGGER_LEVEL,
+        );
     }
 
     /// Send SIPI (Startup IPI)
     pub fn send_sipi(&self, destination: u32, vector: u8) {
-        self.send_ipi(destination, vector, icr::DELIVERY_STARTUP | icr::LEVEL_ASSERT);
+        self.send_ipi(
+            destination,
+            vector,
+            icr::DELIVERY_STARTUP | icr::LEVEL_ASSERT,
+        );
     }
 
     /// Broadcast IPI to all CPUs except self
@@ -698,9 +705,11 @@ impl IoApic {
         self.configure_irq(
             irq,
             vector,
-            redir::DELIVERY_FIXED | redir::DEST_PHYSICAL |
-            redir::POLARITY_HIGH | redir::TRIGGER_EDGE,
-            destination
+            redir::DELIVERY_FIXED
+                | redir::DEST_PHYSICAL
+                | redir::POLARITY_HIGH
+                | redir::TRIGGER_EDGE,
+            destination,
         );
     }
 
@@ -910,7 +919,12 @@ pub struct ApStartupConfig {
 /// Start an Application Processor
 ///
 /// Returns true if AP responded within timeout
-pub fn start_ap(apic: &LocalApic, ap_id: u32, config: &ApStartupConfig, timeout_loops: u32) -> bool {
+pub fn start_ap(
+    apic: &LocalApic,
+    ap_id: u32,
+    config: &ApStartupConfig,
+    timeout_loops: u32,
+) -> bool {
     let initial_count = ap_ready_count();
 
     // Send INIT IPI
@@ -923,7 +937,11 @@ pub fn start_ap(apic: &LocalApic, ap_id: u32, config: &ApStartupConfig, timeout_
     }
 
     // Send de-assert INIT
-    apic.send_ipi(ap_id, 0, icr::DELIVERY_INIT | icr::LEVEL_DEASSERT | icr::TRIGGER_LEVEL);
+    apic.send_ipi(
+        ap_id,
+        0,
+        icr::DELIVERY_INIT | icr::LEVEL_DEASSERT | icr::TRIGGER_LEVEL,
+    );
     apic.wait_for_ipi_delivery();
 
     // Send SIPI (twice as per specification)

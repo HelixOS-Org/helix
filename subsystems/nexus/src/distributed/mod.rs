@@ -53,6 +53,7 @@ pub mod sync;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -804,21 +805,29 @@ pub enum DistributedError {
 
 static mut DISTRIBUTED_ENGINE: Option<DistributedEvolutionEngine> = None;
 
+/// Get pointer to the distributed engine static
+/// # Safety
+/// Returns raw pointer to the static for Edition 2024 compliance
+#[inline]
+fn distributed_engine_ptr() -> *mut Option<DistributedEvolutionEngine> {
+    core::ptr::addr_of_mut!(DISTRIBUTED_ENGINE)
+}
+
 /// Initialize global distributed engine
 pub fn init_distributed_engine(config: DistributedConfig) {
     unsafe {
-        DISTRIBUTED_ENGINE = Some(DistributedEvolutionEngine::new(config));
+        (*distributed_engine_ptr()) = Some(DistributedEvolutionEngine::new(config));
     }
 }
 
 /// Get distributed engine
 pub fn distributed_engine() -> Option<&'static DistributedEvolutionEngine> {
-    unsafe { DISTRIBUTED_ENGINE.as_ref() }
+    unsafe { (*distributed_engine_ptr()).as_ref() }
 }
 
 /// Get distributed engine mutable
 pub fn distributed_engine_mut() -> Option<&'static mut DistributedEvolutionEngine> {
-    unsafe { DISTRIBUTED_ENGINE.as_mut() }
+    unsafe { (*distributed_engine_ptr()).as_mut() }
 }
 
 // ============================================================================

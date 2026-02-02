@@ -2,14 +2,14 @@
 //!
 //! High-level block device abstraction for disk access.
 
-use crate::raw::types::*;
-use crate::raw::protocols::block::*;
+use super::{EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
-use super::{Protocol, EnumerableProtocol};
+use crate::raw::protocols::block::*;
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Block I/O Protocol GUID
 const BLOCK_IO_PROTOCOL_GUID: Guid = guids::BLOCK_IO_PROTOCOL;
@@ -41,7 +41,11 @@ impl BlockDevice {
             MediaInfo::default()
         };
 
-        Self { protocol, handle, media }
+        Self {
+            protocol,
+            handle,
+            media,
+        }
     }
 
     /// Get media information
@@ -141,9 +145,7 @@ impl BlockDevice {
 
     /// Flush blocks (ensure writes are completed)
     pub fn flush(&self) -> Result<()> {
-        let result = unsafe {
-            ((*self.protocol).flush_blocks)(self.protocol)
-        };
+        let result = unsafe { ((*self.protocol).flush_blocks)(self.protocol) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -154,9 +156,7 @@ impl BlockDevice {
 
     /// Reset device
     pub fn reset(&self, extended: bool) -> Result<()> {
-        let result = unsafe {
-            ((*self.protocol).reset)(self.protocol, extended as u8)
-        };
+        let result = unsafe { ((*self.protocol).reset)(self.protocol, extended as u8) };
 
         if result == Status::SUCCESS {
             Ok(())
@@ -252,7 +252,9 @@ impl BlockDevice {
 
         // Fall back to MBR
         let mbr = self.read_mbr()?;
-        Ok(mbr.partitions.into_iter()
+        Ok(mbr
+            .partitions
+            .into_iter()
             .filter(|p| p.partition_type != 0)
             .map(|p| Partition {
                 start_lba: p.start_lba as u64,
@@ -269,7 +271,8 @@ impl BlockDevice {
     /// Read GPT partitions
     fn read_gpt_partitions(&self, header: &GptHeader) -> Result<Vec<Partition>> {
         let entries_per_block = self.block_size() as usize / header.entry_size as usize;
-        let blocks_needed = (header.entry_count as usize + entries_per_block - 1) / entries_per_block;
+        let blocks_needed =
+            (header.entry_count as usize + entries_per_block - 1) / entries_per_block;
 
         let mut data = alloc::vec![0u8; blocks_needed * self.block_size() as usize];
         self.read_blocks(header.partition_entry_lba, &mut data)?;
@@ -423,7 +426,10 @@ impl MediaInfo {
         let bytes = self.size();
 
         if bytes >= 1024 * 1024 * 1024 * 1024 {
-            alloc::format!("{:.1} TB", bytes as f64 / (1024.0 * 1024.0 * 1024.0 * 1024.0))
+            alloc::format!(
+                "{:.1} TB",
+                bytes as f64 / (1024.0 * 1024.0 * 1024.0 * 1024.0)
+            )
         } else if bytes >= 1024 * 1024 * 1024 {
             alloc::format!("{:.1} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
         } else if bytes >= 1024 * 1024 {
@@ -581,41 +587,35 @@ impl PartitionType {
                 } else {
                     "Unknown GPT"
                 }
-            }
+            },
         }
     }
 }
 
 // Well-known GPT partition type GUIDs
-const GPT_PARTITION_TYPE_EFI_SYSTEM: Guid = Guid::new(
-    0xC12A7328, 0xF81F, 0x11D2,
-    [0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B],
-);
+const GPT_PARTITION_TYPE_EFI_SYSTEM: Guid = Guid::new(0xC12A7328, 0xF81F, 0x11D2, [
+    0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B,
+]);
 
-const GPT_PARTITION_TYPE_BASIC_DATA: Guid = Guid::new(
-    0xEBD0A0A2, 0xB9E5, 0x4433,
-    [0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7],
-);
+const GPT_PARTITION_TYPE_BASIC_DATA: Guid = Guid::new(0xEBD0A0A2, 0xB9E5, 0x4433, [
+    0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7,
+]);
 
-const GPT_PARTITION_TYPE_LINUX_FILESYSTEM: Guid = Guid::new(
-    0x0FC63DAF, 0x8483, 0x4772,
-    [0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4],
-);
+const GPT_PARTITION_TYPE_LINUX_FILESYSTEM: Guid = Guid::new(0x0FC63DAF, 0x8483, 0x4772, [
+    0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4,
+]);
 
-const GPT_PARTITION_TYPE_LINUX_SWAP: Guid = Guid::new(
-    0x0657FD6D, 0xA4AB, 0x43C4,
-    [0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F],
-);
+const GPT_PARTITION_TYPE_LINUX_SWAP: Guid = Guid::new(0x0657FD6D, 0xA4AB, 0x43C4, [
+    0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F,
+]);
 
-const GPT_PARTITION_TYPE_LINUX_LVM: Guid = Guid::new(
-    0xE6D6D379, 0xF507, 0x44C2,
-    [0xA2, 0x3C, 0x23, 0x8F, 0x2A, 0x3D, 0xF9, 0x28],
-);
+const GPT_PARTITION_TYPE_LINUX_LVM: Guid = Guid::new(0xE6D6D379, 0xF507, 0x44C2, [
+    0xA2, 0x3C, 0x23, 0x8F, 0x2A, 0x3D, 0xF9, 0x28,
+]);
 
-const GPT_PARTITION_TYPE_MICROSOFT_RESERVED: Guid = Guid::new(
-    0xE3C9E316, 0x0B5C, 0x4DB8,
-    [0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE],
-);
+const GPT_PARTITION_TYPE_MICROSOFT_RESERVED: Guid = Guid::new(0xE3C9E316, 0x0B5C, 0x4DB8, [
+    0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE,
+]);
 
 // =============================================================================
 // MBR
@@ -795,7 +795,9 @@ fn read_guid(data: &[u8], offset: usize) -> Guid {
         u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
         u16::from_le_bytes([bytes[4], bytes[5]]),
         u16::from_le_bytes([bytes[6], bytes[7]]),
-        [bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]],
+        [
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+        ],
     )
 }
 

@@ -44,15 +44,12 @@
 //! - ARM Juno reference platform
 //! - Many embedded SoCs
 
-use super::{
-    CpuTargetList, Priority, TriggerMode,
-    distributor::{
-        Distributor, GICD_CTLR, GICD_CTLR_ENABLE_GRP0, GICD_CTLR_ENABLE_GRP1,
-        GICD_ITARGETSR, GICD_SGIR,
-    },
-    SPI_BASE,
-};
 use core::ptr::{read_volatile, write_volatile};
+
+use super::distributor::{
+    Distributor, GICD_CTLR, GICD_CTLR_ENABLE_GRP0, GICD_CTLR_ENABLE_GRP1, GICD_ITARGETSR, GICD_SGIR,
+};
+use super::{CpuTargetList, Priority, TriggerMode, SPI_BASE};
 
 // ============================================================================
 // GICC Register Offsets
@@ -205,7 +202,8 @@ impl Gicv2Distributor {
         self.inner.wait_for_rwp();
 
         // Enable the distributor
-        self.inner.write_ctlr(GICD_CTLR_ENABLE_GRP0 | GICD_CTLR_ENABLE_GRP1);
+        self.inner
+            .write_ctlr(GICD_CTLR_ENABLE_GRP0 | GICD_CTLR_ENABLE_GRP1);
     }
 
     /// Set the target CPUs for an SPI
@@ -246,32 +244,21 @@ impl Gicv2Distributor {
 
     /// Send a Software Generated Interrupt (SGI)
     pub unsafe fn send_sgi(&self, sgi_id: u8, targets: CpuTargetList) {
-        let value = ((targets.mask() as u32) << 16)
-            | SGIR_TARGET_LIST
-            | ((sgi_id as u32) & 0xF);
+        let value = ((targets.mask() as u32) << 16) | SGIR_TARGET_LIST | ((sgi_id as u32) & 0xF);
 
-        write_volatile(
-            (self.base() as *mut u32).add(GICD_SGIR / 4),
-            value,
-        );
+        write_volatile((self.base() as *mut u32).add(GICD_SGIR / 4), value);
     }
 
     /// Send an SGI to all CPUs except self
     pub unsafe fn send_sgi_all_except_self(&self, sgi_id: u8) {
         let value = SGIR_TARGET_ALL_EXCEPT_SELF | ((sgi_id as u32) & 0xF);
-        write_volatile(
-            (self.base() as *mut u32).add(GICD_SGIR / 4),
-            value,
-        );
+        write_volatile((self.base() as *mut u32).add(GICD_SGIR / 4), value);
     }
 
     /// Send an SGI to self
     pub unsafe fn send_sgi_self(&self, sgi_id: u8) {
         let value = SGIR_TARGET_SELF | ((sgi_id as u32) & 0xF);
-        write_volatile(
-            (self.base() as *mut u32).add(GICD_SGIR / 4),
-            value,
-        );
+        write_volatile((self.base() as *mut u32).add(GICD_SGIR / 4), value);
     }
 
     /// Get the inner Distributor

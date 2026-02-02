@@ -29,15 +29,12 @@ pub mod parameter;
 
 // Re-export arch types
 pub use arch::{Architecture, CpuFeatures};
-
 // Re-export level types
 pub use level::{OptimizationLevel, OptimizationTarget};
-
-// Re-export parameter
-pub use parameter::OptimizationParameter;
-
 // Re-export optimizer types
 pub use optimizer::{OptimizationChange, OptimizationMetric, Optimizer, OptimizerStats};
+// Re-export parameter
+pub use parameter::OptimizationParameter;
 
 // ============================================================================
 // TESTS

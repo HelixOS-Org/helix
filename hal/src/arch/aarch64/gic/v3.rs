@@ -58,21 +58,19 @@
 //! - AWS Graviton / Ampere Altra
 //! - Apple M1/M2 (uses custom interrupt controller but similar concepts)
 
-use super::{
-    CpuAffinity, CpuTargetList, Priority, TriggerMode,
-    cpu_interface::{
-        self, acknowledge_group1, enable_system_register_interface,
-        end_of_interrupt_group1, set_priority_mask, write_icc_sgi1r_el1,
-        enable_interrupt_groups, disable_interrupt_groups,
-    },
-    distributor::{
-        Distributor, GICD_CTLR, GICD_CTLR_ARE_NS, GICD_CTLR_ARE_S,
-        GICD_CTLR_ENABLE_GRP0, GICD_CTLR_ENABLE_GRP1NS, GICD_IROUTER,
-    },
-    redistributor::{Redistributor, find_redistributor_for_current_cpu},
-    SPI_BASE,
-};
 use core::ptr::{read_volatile, write_volatile};
+
+use super::cpu_interface::{
+    self, acknowledge_group1, disable_interrupt_groups, enable_interrupt_groups,
+    enable_system_register_interface, end_of_interrupt_group1, set_priority_mask,
+    write_icc_sgi1r_el1,
+};
+use super::distributor::{
+    Distributor, GICD_CTLR, GICD_CTLR_ARE_NS, GICD_CTLR_ARE_S, GICD_CTLR_ENABLE_GRP0,
+    GICD_CTLR_ENABLE_GRP1NS, GICD_IROUTER,
+};
+use super::redistributor::{find_redistributor_for_current_cpu, Redistributor};
+use super::{CpuAffinity, CpuTargetList, Priority, TriggerMode, SPI_BASE};
 
 // ============================================================================
 // IROUTER Register Bits
@@ -149,10 +147,8 @@ impl Gicv3Distributor {
         self.inner.wait_for_rwp();
 
         // Enable the distributor with Affinity Routing
-        let ctlr = GICD_CTLR_ENABLE_GRP0
-            | GICD_CTLR_ENABLE_GRP1NS
-            | GICD_CTLR_ARE_NS
-            | GICD_CTLR_ARE_S;
+        let ctlr =
+            GICD_CTLR_ENABLE_GRP0 | GICD_CTLR_ENABLE_GRP1NS | GICD_CTLR_ARE_NS | GICD_CTLR_ARE_S;
 
         self.inner.write_ctlr(ctlr);
     }
@@ -286,7 +282,7 @@ impl Gicv3CpuInterface {
         // For simplicity, assume targets are on the same cluster (aff1=0)
         // and encode them in the target list field
         let sgi_value = ((targets.mask() as u64) << 0)  // Target list
-            | ((sgi_id as u64 & 0xF) << 24);  // INTID
+            | ((sgi_id as u64 & 0xF) << 24); // INTID
 
         write_icc_sgi1r_el1(sgi_value);
     }
@@ -378,12 +374,7 @@ impl Gicv3 {
     }
 
     /// Enable an SPI
-    pub unsafe fn enable_spi(
-        &self,
-        intid: u32,
-        priority: Priority,
-        trigger: TriggerMode,
-    ) {
+    pub unsafe fn enable_spi(&self, intid: u32, priority: Priority, trigger: TriggerMode) {
         if intid < SPI_BASE {
             return;
         }
@@ -532,10 +523,7 @@ pub unsafe fn init_qemu_virt_gicv3() -> Gicv3 {
 ///
 /// Must only be called on ARM FVP with GICv3.
 pub unsafe fn init_arm_fvp_gicv3() -> Gicv3 {
-    let gic = Gicv3::new(
-        ARM_FVP_GICD_BASE as *mut u8,
-        ARM_FVP_GICR_BASE as *mut u8,
-    );
+    let gic = Gicv3::new(ARM_FVP_GICD_BASE as *mut u8, ARM_FVP_GICR_BASE as *mut u8);
     gic.init();
     gic
 }

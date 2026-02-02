@@ -2,12 +2,12 @@
 //!
 //! Comprehensive SMBIOS parsing for system hardware enumeration.
 
-use crate::raw::types::*;
 use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::ptr;
 
 // =============================================================================
@@ -149,7 +149,7 @@ impl SmbiosParser {
                 16 => self.parse_memory_array(ptr)?,
                 17 => self.parse_memory_device(ptr)?,
                 32 => self.parse_boot_info(ptr)?,
-                _ => {}
+                _ => {},
             }
 
             // Move to next structure
@@ -295,8 +295,16 @@ impl SmbiosParser {
             None
         };
 
-        let sku_index = if header.length >= 26 { *data.add(21) } else { 0 };
-        let family_index = if header.length >= 27 { *data.add(22) } else { 0 };
+        let sku_index = if header.length >= 26 {
+            *data.add(21)
+        } else {
+            0
+        };
+        let family_index = if header.length >= 27 {
+            *data.add(22)
+        } else {
+            0
+        };
 
         self.system_info = Some(SystemInformation {
             manufacturer: self.get_string(ptr, header.length, manufacturer_index),
@@ -391,8 +399,16 @@ impl SmbiosParser {
             0
         };
 
-        let height = if header.length >= 18 { *data.add(13) } else { 0 };
-        let power_cords = if header.length >= 19 { *data.add(14) } else { 0 };
+        let height = if header.length >= 18 {
+            *data.add(13)
+        } else {
+            0
+        };
+        let power_cords = if header.length >= 19 {
+            *data.add(14)
+        } else {
+            0
+        };
 
         let sku_index = if header.length >= 22 {
             // After contained elements
@@ -461,13 +477,37 @@ impl SmbiosParser {
             0xFFFF
         };
 
-        let serial_index = if header.length >= 33 { *data.add(28) } else { 0 };
-        let asset_tag_index = if header.length >= 34 { *data.add(29) } else { 0 };
-        let part_number_index = if header.length >= 35 { *data.add(30) } else { 0 };
+        let serial_index = if header.length >= 33 {
+            *data.add(28)
+        } else {
+            0
+        };
+        let asset_tag_index = if header.length >= 34 {
+            *data.add(29)
+        } else {
+            0
+        };
+        let part_number_index = if header.length >= 35 {
+            *data.add(30)
+        } else {
+            0
+        };
 
-        let core_count = if header.length >= 36 { *data.add(31) } else { 0 };
-        let core_enabled = if header.length >= 37 { *data.add(32) } else { 0 };
-        let thread_count = if header.length >= 38 { *data.add(33) } else { 0 };
+        let core_count = if header.length >= 36 {
+            *data.add(31)
+        } else {
+            0
+        };
+        let core_enabled = if header.length >= 37 {
+            *data.add(32)
+        } else {
+            0
+        };
+        let thread_count = if header.length >= 38 {
+            *data.add(33)
+        } else {
+            0
+        };
 
         let characteristics = if header.length >= 40 {
             ptr::read_unaligned(data.add(34) as *const u16)
@@ -537,7 +577,11 @@ impl SmbiosParser {
         let supported_sram_type = ptr::read_unaligned(data.add(7) as *const u16);
         let current_sram_type = ptr::read_unaligned(data.add(9) as *const u16);
 
-        let cache_speed = if header.length >= 16 { *data.add(11) } else { 0 };
+        let cache_speed = if header.length >= 16 {
+            *data.add(11)
+        } else {
+            0
+        };
         let error_correction_type = if header.length >= 17 {
             CacheErrorCorrection::from(*data.add(12))
         } else {
@@ -630,8 +674,16 @@ impl SmbiosParser {
         } else {
             0
         };
-        let bus = if header.length >= 16 { *data.add(11) } else { 0 };
-        let device_function = if header.length >= 17 { *data.add(12) } else { 0 };
+        let bus = if header.length >= 16 {
+            *data.add(11)
+        } else {
+            0
+        };
+        let device_function = if header.length >= 17 {
+            *data.add(12)
+        } else {
+            0
+        };
 
         self.system_slots.push(SystemSlotInformation {
             slot_designation: self.get_string(ptr, header.length, designation_index),
@@ -767,12 +819,32 @@ impl SmbiosParser {
             0
         };
 
-        let manufacturer_index = if header.length >= 24 { *data.add(19) } else { 0 };
-        let serial_index = if header.length >= 25 { *data.add(20) } else { 0 };
-        let asset_tag_index = if header.length >= 26 { *data.add(21) } else { 0 };
-        let part_number_index = if header.length >= 27 { *data.add(22) } else { 0 };
+        let manufacturer_index = if header.length >= 24 {
+            *data.add(19)
+        } else {
+            0
+        };
+        let serial_index = if header.length >= 25 {
+            *data.add(20)
+        } else {
+            0
+        };
+        let asset_tag_index = if header.length >= 26 {
+            *data.add(21)
+        } else {
+            0
+        };
+        let part_number_index = if header.length >= 27 {
+            *data.add(22)
+        } else {
+            0
+        };
 
-        let attributes = if header.length >= 28 { *data.add(23) } else { 0 };
+        let attributes = if header.length >= 28 {
+            *data.add(23)
+        } else {
+            0
+        };
 
         let extended_size = if header.length >= 32 {
             ptr::read_unaligned(data.add(24) as *const u32)
@@ -862,35 +934,61 @@ impl SmbiosParser {
         // Skip reserved bytes
         let status = BootStatus::from(*data.add(6));
 
-        self.boot_info = Some(SystemBootInformation {
-            status,
-        });
+        self.boot_info = Some(SystemBootInformation { status });
 
         Ok(())
     }
 
     // Accessor methods
-    pub fn version(&self) -> super::SmbiosVersion { self.version }
-    pub fn bios_info(&self) -> Option<&BiosInformation> { self.bios_info.as_ref() }
-    pub fn system_info(&self) -> Option<&SystemInformation> { self.system_info.as_ref() }
-    pub fn baseboard_info(&self) -> Option<&BaseboardInformation> { self.baseboard_info.as_ref() }
-    pub fn chassis_info(&self) -> Option<&ChassisInformation> { self.chassis_info.as_ref() }
-    pub fn processor_info(&self) -> &[ProcessorInformation] { &self.processor_info }
-    pub fn cache_info(&self) -> &[CacheInformation] { &self.cache_info }
-    pub fn memory_devices(&self) -> &[MemoryDeviceInformation] { &self.memory_devices }
-    pub fn memory_arrays(&self) -> &[PhysicalMemoryArrayInformation] { &self.memory_arrays }
-    pub fn system_slots(&self) -> &[SystemSlotInformation] { &self.system_slots }
-    pub fn port_connectors(&self) -> &[PortConnectorInformation] { &self.port_connectors }
-    pub fn onboard_devices(&self) -> &[OnboardDeviceInformation] { &self.onboard_devices }
-    pub fn oem_strings(&self) -> &[String] { &self.oem_strings }
-    pub fn config_options(&self) -> &[String] { &self.config_options }
-    pub fn boot_info(&self) -> Option<&SystemBootInformation> { self.boot_info.as_ref() }
+    pub fn version(&self) -> super::SmbiosVersion {
+        self.version
+    }
+    pub fn bios_info(&self) -> Option<&BiosInformation> {
+        self.bios_info.as_ref()
+    }
+    pub fn system_info(&self) -> Option<&SystemInformation> {
+        self.system_info.as_ref()
+    }
+    pub fn baseboard_info(&self) -> Option<&BaseboardInformation> {
+        self.baseboard_info.as_ref()
+    }
+    pub fn chassis_info(&self) -> Option<&ChassisInformation> {
+        self.chassis_info.as_ref()
+    }
+    pub fn processor_info(&self) -> &[ProcessorInformation] {
+        &self.processor_info
+    }
+    pub fn cache_info(&self) -> &[CacheInformation] {
+        &self.cache_info
+    }
+    pub fn memory_devices(&self) -> &[MemoryDeviceInformation] {
+        &self.memory_devices
+    }
+    pub fn memory_arrays(&self) -> &[PhysicalMemoryArrayInformation] {
+        &self.memory_arrays
+    }
+    pub fn system_slots(&self) -> &[SystemSlotInformation] {
+        &self.system_slots
+    }
+    pub fn port_connectors(&self) -> &[PortConnectorInformation] {
+        &self.port_connectors
+    }
+    pub fn onboard_devices(&self) -> &[OnboardDeviceInformation] {
+        &self.onboard_devices
+    }
+    pub fn oem_strings(&self) -> &[String] {
+        &self.oem_strings
+    }
+    pub fn config_options(&self) -> &[String] {
+        &self.config_options
+    }
+    pub fn boot_info(&self) -> Option<&SystemBootInformation> {
+        self.boot_info.as_ref()
+    }
 
     /// Get total installed memory in MB
     pub fn total_memory_mb(&self) -> u64 {
-        self.memory_devices.iter()
-            .map(|d| d.size_mb)
-            .sum()
+        self.memory_devices.iter().map(|d| d.size_mb).sum()
     }
 
     /// Get total CPU count
@@ -900,14 +998,16 @@ impl SmbiosParser {
 
     /// Get total core count
     pub fn total_cores(&self) -> u32 {
-        self.processor_info.iter()
+        self.processor_info
+            .iter()
             .map(|p| p.core_count as u32)
             .sum()
     }
 
     /// Get total thread count
     pub fn total_threads(&self) -> u32 {
-        self.processor_info.iter()
+        self.processor_info
+            .iter()
             .map(|p| p.thread_count as u32)
             .sum()
     }
@@ -926,7 +1026,7 @@ impl Default for SmbiosParser {
 /// SMBIOS Entry Point (2.x)
 #[repr(C, packed)]
 struct SmbiosEntryPoint {
-    anchor_string: [u8; 4],         // "_SM_"
+    anchor_string: [u8; 4], // "_SM_"
     entry_point_checksum: u8,
     entry_point_length: u8,
     major_version: u8,
@@ -934,7 +1034,7 @@ struct SmbiosEntryPoint {
     max_structure_size: u16,
     entry_point_revision: u8,
     formatted_area: [u8; 5],
-    intermediate_anchor: [u8; 5],   // "_DMI_"
+    intermediate_anchor: [u8; 5], // "_DMI_"
     intermediate_checksum: u8,
     structure_table_length: u16,
     structure_table_address: u32,
@@ -945,7 +1045,7 @@ struct SmbiosEntryPoint {
 /// SMBIOS Entry Point (3.x)
 #[repr(C, packed)]
 struct SmbiosEntryPoint3 {
-    anchor_string: [u8; 5],         // "_SM3_"
+    anchor_string: [u8; 5], // "_SM3_"
     entry_point_checksum: u8,
     entry_point_length: u8,
     major_version: u8,
@@ -1005,7 +1105,7 @@ impl BiosInformation {
             let unit = (ext >> 14) & 0x03;
             let size = (ext & 0x3FFF) as usize;
             match unit {
-                0 => size * 1024 * 1024, // MB to KB
+                0 => size * 1024 * 1024,        // MB to KB
                 1 => size * 1024 * 1024 * 1024, // GB to KB
                 _ => (self.rom_size as usize + 1) * 64,
             }
@@ -1014,18 +1114,36 @@ impl BiosInformation {
         }
     }
 
-    pub fn supports_isa(&self) -> bool { (self.characteristics & (1 << 4)) != 0 }
-    pub fn supports_pci(&self) -> bool { (self.characteristics & (1 << 7)) != 0 }
-    pub fn supports_pnp(&self) -> bool { (self.characteristics & (1 << 9)) != 0 }
-    pub fn supports_apm(&self) -> bool { (self.characteristics & (1 << 10)) != 0 }
-    pub fn upgradeable(&self) -> bool { (self.characteristics & (1 << 11)) != 0 }
-    pub fn shadowing(&self) -> bool { (self.characteristics & (1 << 12)) != 0 }
-    pub fn escd_support(&self) -> bool { (self.characteristics & (1 << 14)) != 0 }
-    pub fn boot_from_cd(&self) -> bool { (self.characteristics & (1 << 15)) != 0 }
-    pub fn selectable_boot(&self) -> bool { (self.characteristics & (1 << 16)) != 0 }
+    pub fn supports_isa(&self) -> bool {
+        (self.characteristics & (1 << 4)) != 0
+    }
+    pub fn supports_pci(&self) -> bool {
+        (self.characteristics & (1 << 7)) != 0
+    }
+    pub fn supports_pnp(&self) -> bool {
+        (self.characteristics & (1 << 9)) != 0
+    }
+    pub fn supports_apm(&self) -> bool {
+        (self.characteristics & (1 << 10)) != 0
+    }
+    pub fn upgradeable(&self) -> bool {
+        (self.characteristics & (1 << 11)) != 0
+    }
+    pub fn shadowing(&self) -> bool {
+        (self.characteristics & (1 << 12)) != 0
+    }
+    pub fn escd_support(&self) -> bool {
+        (self.characteristics & (1 << 14)) != 0
+    }
+    pub fn boot_from_cd(&self) -> bool {
+        (self.characteristics & (1 << 15)) != 0
+    }
+    pub fn selectable_boot(&self) -> bool {
+        (self.characteristics & (1 << 16)) != 0
+    }
     pub fn uefi(&self) -> bool {
-        !self.characteristics_extension.is_empty() &&
-        (self.characteristics_extension[0] & (1 << 3)) != 0
+        !self.characteristics_extension.is_empty()
+            && (self.characteristics_extension[0] & (1 << 3)) != 0
     }
 }
 
@@ -1100,11 +1218,21 @@ pub struct BaseboardInformation {
 }
 
 impl BaseboardInformation {
-    pub fn is_hosting_board(&self) -> bool { (self.feature_flags & 0x01) != 0 }
-    pub fn requires_daughter_board(&self) -> bool { (self.feature_flags & 0x02) != 0 }
-    pub fn is_removable(&self) -> bool { (self.feature_flags & 0x04) != 0 }
-    pub fn is_replaceable(&self) -> bool { (self.feature_flags & 0x08) != 0 }
-    pub fn is_hot_swappable(&self) -> bool { (self.feature_flags & 0x10) != 0 }
+    pub fn is_hosting_board(&self) -> bool {
+        (self.feature_flags & 0x01) != 0
+    }
+    pub fn requires_daughter_board(&self) -> bool {
+        (self.feature_flags & 0x02) != 0
+    }
+    pub fn is_removable(&self) -> bool {
+        (self.feature_flags & 0x04) != 0
+    }
+    pub fn is_replaceable(&self) -> bool {
+        (self.feature_flags & 0x08) != 0
+    }
+    pub fn is_hot_swappable(&self) -> bool {
+        (self.feature_flags & 0x10) != 0
+    }
 }
 
 /// Board type
@@ -1325,7 +1453,9 @@ pub struct ProcessorInformation {
 }
 
 impl ProcessorInformation {
-    pub fn is_populated(&self) -> bool { (self.status & 0x40) != 0 }
+    pub fn is_populated(&self) -> bool {
+        (self.status & 0x40) != 0
+    }
     pub fn cpu_status(&self) -> CpuStatus {
         match self.status & 0x07 {
             0 => CpuStatus::Unknown,
@@ -1338,12 +1468,24 @@ impl ProcessorInformation {
         }
     }
 
-    pub fn supports_64bit(&self) -> bool { (self.characteristics & 0x04) != 0 }
-    pub fn supports_multicore(&self) -> bool { (self.characteristics & 0x08) != 0 }
-    pub fn supports_ht(&self) -> bool { (self.characteristics & 0x10) != 0 }
-    pub fn supports_execute_protection(&self) -> bool { (self.characteristics & 0x20) != 0 }
-    pub fn supports_enhanced_virtualization(&self) -> bool { (self.characteristics & 0x40) != 0 }
-    pub fn supports_power_perf_control(&self) -> bool { (self.characteristics & 0x80) != 0 }
+    pub fn supports_64bit(&self) -> bool {
+        (self.characteristics & 0x04) != 0
+    }
+    pub fn supports_multicore(&self) -> bool {
+        (self.characteristics & 0x08) != 0
+    }
+    pub fn supports_ht(&self) -> bool {
+        (self.characteristics & 0x10) != 0
+    }
+    pub fn supports_execute_protection(&self) -> bool {
+        (self.characteristics & 0x20) != 0
+    }
+    pub fn supports_enhanced_virtualization(&self) -> bool {
+        (self.characteristics & 0x40) != 0
+    }
+    pub fn supports_power_perf_control(&self) -> bool {
+        (self.characteristics & 0x80) != 0
+    }
 
     /// Get voltage in volts
     pub fn voltage_v(&self) -> f32 {

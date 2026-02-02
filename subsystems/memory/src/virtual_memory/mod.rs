@@ -5,9 +5,10 @@
 pub mod address_space;
 pub mod mapper;
 
-use crate::{Page, Frame, MemResult};
-use helix_hal::{VirtAddr, PhysAddr};
 use bitflags::bitflags;
+use helix_hal::{PhysAddr, VirtAddr};
+
+use crate::{Frame, MemResult, Page};
 
 bitflags! {
     /// Page mapping flags
@@ -39,19 +40,19 @@ bitflags! {
 impl PageFlags {
     /// Read-only kernel page
     pub const KERNEL_READ: Self = Self::PRESENT;
-    
+
     /// Read-write kernel page
     pub const KERNEL_WRITE: Self = Self::PRESENT.union(Self::WRITABLE);
-    
+
     /// Read-only user page
     pub const USER_READ: Self = Self::PRESENT.union(Self::USER);
-    
+
     /// Read-write user page
     pub const USER_WRITE: Self = Self::PRESENT.union(Self::USER).union(Self::WRITABLE);
-    
+
     /// Kernel code (read + execute)
     pub const KERNEL_CODE: Self = Self::PRESENT;
-    
+
     /// User code (read + execute)
     pub const USER_CODE: Self = Self::PRESENT.union(Self::USER);
 }
@@ -60,19 +61,19 @@ impl PageFlags {
 pub trait VirtualMapper: Send + Sync {
     /// Map a page to a frame
     fn map(&self, page: Page, frame: Frame, flags: PageFlags) -> MemResult<()>;
-    
+
     /// Unmap a page
     fn unmap(&self, page: Page) -> MemResult<Frame>;
-    
+
     /// Change page flags
     fn update_flags(&self, page: Page, flags: PageFlags) -> MemResult<()>;
-    
+
     /// Translate virtual to physical address
     fn translate(&self, virt: VirtAddr) -> Option<PhysAddr>;
-    
+
     /// Flush TLB for a page
     fn flush(&self, page: Page);
-    
+
     /// Flush entire TLB
     fn flush_all(&self);
 }
@@ -84,7 +85,7 @@ pub struct AddressSpaceId(u64);
 impl AddressSpaceId {
     /// Kernel address space
     pub const KERNEL: Self = Self(0);
-    
+
     /// Create a new ID
     pub fn new() -> Self {
         use core::sync::atomic::{AtomicU64, Ordering};
@@ -134,12 +135,12 @@ impl VmRegion {
     pub fn end(&self) -> VirtAddr {
         VirtAddr::new(self.start.as_u64() + self.size)
     }
-    
+
     /// Check if contains address
     pub fn contains(&self, addr: VirtAddr) -> bool {
         addr >= self.start && addr < self.end()
     }
-    
+
     /// Check if overlaps with another region
     pub fn overlaps(&self, other: &Self) -> bool {
         self.start < other.end() && other.start < self.end()

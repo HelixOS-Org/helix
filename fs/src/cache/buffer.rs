@@ -3,11 +3,9 @@
 //! Fixed-size block buffer cache with hash table lookup
 //! and LRU/CLOCK eviction.
 
-use crate::core::error::{HfsError, HfsResult};
+use crate::cache::{CacheFlags, CacheHandle, CacheKey, CacheState, CacheStats};
 use crate::core::atomic::{AtomicU32, AtomicU64, Ordering};
-use crate::cache::{
-    CacheState, CacheFlags, CacheKey, CacheHandle, CacheStats,
-};
+use crate::core::error::{HfsError, HfsResult};
 
 // ============================================================================
 // Constants
@@ -82,82 +80,82 @@ impl BufferHeader {
             data_size: block_size,
         }
     }
-    
+
     /// Get state
     #[inline]
     pub fn get_state(&self) -> CacheState {
         CacheState::from_raw(self.state.load(Ordering::Acquire) as u8)
     }
-    
+
     /// Set state
     #[inline]
     pub fn set_state(&self, state: CacheState) {
         self.state.store(state as u32, Ordering::Release);
     }
-    
+
     /// Get flags
     #[inline]
     pub fn get_flags(&self) -> CacheFlags {
         CacheFlags(self.flags.load(Ordering::Relaxed) as u16)
     }
-    
+
     /// Set flag
     #[inline]
     pub fn set_flag(&self, flag: u16) {
         self.flags.fetch_or(flag as u32, Ordering::Relaxed);
     }
-    
+
     /// Clear flag
     #[inline]
     pub fn clear_flag(&self, flag: u16) {
         self.flags.fetch_and(!(flag as u32), Ordering::Relaxed);
     }
-    
+
     /// Increment refcount
     #[inline]
     pub fn acquire(&self) -> u32 {
         self.refcount.fetch_add(1, Ordering::Acquire)
     }
-    
+
     /// Decrement refcount
     #[inline]
     pub fn release(&self) -> u32 {
         self.refcount.fetch_sub(1, Ordering::Release)
     }
-    
+
     /// Get refcount
     #[inline]
     pub fn get_refcount(&self) -> u32 {
         self.refcount.load(Ordering::Relaxed)
     }
-    
+
     /// Is buffer free
     #[inline]
     pub fn is_free(&self) -> bool {
         self.get_state() == CacheState::Free
     }
-    
+
     /// Is buffer dirty
     #[inline]
     pub fn is_dirty(&self) -> bool {
         self.get_state() == CacheState::Dirty
     }
-    
+
     /// Is buffer pinned
     #[inline]
     pub fn is_pinned(&self) -> bool {
         self.get_flags().is_pinned()
     }
-    
+
     /// Can evict buffer
     pub fn can_evict(&self) -> bool {
         let state = self.get_state();
         let refcount = self.get_refcount();
         let flags = self.get_flags();
-        
-        refcount == 0 && 
-        !flags.is_pinned() &&
-        matches!(state, CacheState::Clean | CacheState::Dirty)
+
+        refcount == 0
+            && !flags.is_pinned()
+            && matches!(state, CacheState::Clean | CacheState::Dirty)
     }
 }
 
@@ -185,19 +183,21 @@ impl HashBucket {
             _pad: [0; 56],
         }
     }
-    
+
     /// Try to acquire lock
     pub fn try_lock(&self) -> bool {
-        self.lock.compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed).is_ok()
+        self.lock
+            .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
+            .is_ok()
     }
-    
+
     /// Spin lock
     pub fn lock(&self) {
         while !self.try_lock() {
             core::hint::spin_loop();
         }
     }
-    
+
     /// Unlock
     pub fn unlock(&self) {
         self.lock.store(0, Ordering::Release);
@@ -240,39 +240,39 @@ impl BufferCache {
     fn hash_key(key: &CacheKey) -> usize {
         (key.hash() as usize) & HASH_MASK
     }
-    
+
     /// Lookup buffer by key
     pub fn lookup(&self, key: &CacheKey) -> Option<CacheHandle> {
         let bucket_idx = Self::hash_key(key);
         let bucket = &self.hash_table[bucket_idx];
-        
+
         bucket.lock();
-        
+
         let mut idx = bucket.head.load(Ordering::Relaxed);
         while idx != u32::MAX {
             if (idx as usize) >= MAX_BUFFERS {
                 break;
             }
-            
+
             let header = &self.headers[idx as usize];
             if header.key == *key && !header.is_free() {
                 header.acquire();
                 header.set_flag(CacheFlags::ACCESSED);
                 bucket.unlock();
-                
+
                 return Some(CacheHandle::new(
                     idx,
                     header.generation.load(Ordering::Relaxed),
                 ));
             }
-            
+
             idx = header.hash_next.load(Ordering::Relaxed);
         }
-        
+
         bucket.unlock();
         None
     }
-    
+
     /// Get buffer from free list
     fn get_free_buffer(&self) -> Option<u32> {
         loop {
@@ -280,53 +280,53 @@ impl BufferCache {
             if head == u32::MAX {
                 return None;
             }
-            
+
             if (head as usize) >= MAX_BUFFERS {
                 return None;
             }
-            
+
             let header = &self.headers[head as usize];
             let next = header.lru_next.load(Ordering::Relaxed);
-            
-            if self.free_head.compare_exchange(
-                head, next, 
-                Ordering::Release, 
-                Ordering::Relaxed
-            ).is_ok() {
+
+            if self
+                .free_head
+                .compare_exchange(head, next, Ordering::Release, Ordering::Relaxed)
+                .is_ok()
+            {
                 self.free_count.fetch_sub(1, Ordering::Relaxed);
                 return Some(head);
             }
         }
     }
-    
+
     /// Evict buffer using CLOCK algorithm
     pub fn evict_clock(&self) -> Option<u32> {
         let count = self.buffer_count as usize;
         if count == 0 {
             return None;
         }
-        
+
         for _ in 0..(count * 2) {
             let hand = self.clock_hand.fetch_add(1, Ordering::Relaxed) as usize % count;
             let header = &self.headers[hand];
-            
+
             if !header.can_evict() {
                 continue;
             }
-            
+
             // Check accessed bit
             let flags = header.get_flags();
             if flags.has(CacheFlags::ACCESSED) {
                 header.clear_flag(CacheFlags::ACCESSED);
                 continue;
             }
-            
+
             // Try to acquire for eviction
-            if header.refcount.compare_exchange(
-                0, 1,
-                Ordering::Acquire,
-                Ordering::Relaxed
-            ).is_ok() {
+            if header
+                .refcount
+                .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
+                .is_ok()
+            {
                 // Double-check state
                 if header.can_evict() || header.get_refcount() == 1 {
                     header.set_state(CacheState::Evicting);
@@ -335,104 +335,108 @@ impl BufferCache {
                 header.release();
             }
         }
-        
+
         None
     }
-    
+
     /// Insert buffer into hash table
     pub fn hash_insert(&self, idx: u32, key: &CacheKey) {
         let bucket_idx = Self::hash_key(key);
         let bucket = &self.hash_table[bucket_idx];
         let header = &self.headers[idx as usize];
-        
+
         bucket.lock();
-        
+
         let old_head = bucket.head.load(Ordering::Relaxed);
         header.hash_next.store(old_head, Ordering::Relaxed);
         bucket.head.store(idx, Ordering::Relaxed);
-        
+
         bucket.unlock();
     }
-    
+
     /// Remove buffer from hash table
     pub fn hash_remove(&self, idx: u32, key: &CacheKey) -> bool {
         let bucket_idx = Self::hash_key(key);
         let bucket = &self.hash_table[bucket_idx];
-        
+
         bucket.lock();
-        
+
         let mut prev_idx = u32::MAX;
         let mut cur_idx = bucket.head.load(Ordering::Relaxed);
-        
+
         while cur_idx != u32::MAX {
             if cur_idx == idx {
                 let header = &self.headers[cur_idx as usize];
                 let next = header.hash_next.load(Ordering::Relaxed);
-                
+
                 if prev_idx == u32::MAX {
                     bucket.head.store(next, Ordering::Relaxed);
                 } else {
-                    self.headers[prev_idx as usize].hash_next.store(next, Ordering::Relaxed);
+                    self.headers[prev_idx as usize]
+                        .hash_next
+                        .store(next, Ordering::Relaxed);
                 }
-                
+
                 bucket.unlock();
                 return true;
             }
-            
+
             prev_idx = cur_idx;
-            cur_idx = self.headers[cur_idx as usize].hash_next.load(Ordering::Relaxed);
+            cur_idx = self.headers[cur_idx as usize]
+                .hash_next
+                .load(Ordering::Relaxed);
         }
-        
+
         bucket.unlock();
         false
     }
-    
+
     /// Mark buffer as dirty
     pub fn mark_dirty(&self, handle: CacheHandle) -> HfsResult<()> {
         if !handle.is_valid() || (handle.index as usize) >= MAX_BUFFERS {
             return Err(HfsError::InvalidHandle);
         }
-        
+
         let header = &self.headers[handle.index as usize];
-        
+
         if header.generation.load(Ordering::Relaxed) != handle.generation {
             return Err(HfsError::InvalidHandle);
         }
-        
+
         let old_state = header.get_state();
         if old_state != CacheState::Dirty {
             header.set_state(CacheState::Dirty);
             self.dirty_count.fetch_add(1, Ordering::Relaxed);
         }
-        
+
         Ok(())
     }
-    
+
     /// Release buffer reference
     pub fn release(&self, handle: CacheHandle) {
         if !handle.is_valid() || (handle.index as usize) >= MAX_BUFFERS {
             return;
         }
-        
+
         let header = &self.headers[handle.index as usize];
         header.release();
     }
-    
+
     /// Get dirty buffer for writeback
     pub fn get_dirty_buffer(&self) -> Option<CacheHandle> {
         let count = self.buffer_count as usize;
         let start = self.clock_hand.load(Ordering::Relaxed) as usize;
-        
+
         for i in 0..count {
             let idx = (start + i) % count;
             let header = &self.headers[idx];
-            
+
             if header.is_dirty() && !header.is_pinned() {
-                if header.refcount.compare_exchange(
-                    0, 1,
-                    Ordering::Acquire,
-                    Ordering::Relaxed
-                ).is_ok() {
+                if header
+                    .refcount
+                    .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
+                    .is_ok()
+                {
                     if header.is_dirty() {
                         header.set_state(CacheState::Writing);
                         return Some(CacheHandle::new(
@@ -444,44 +448,44 @@ impl BufferCache {
                 }
             }
         }
-        
+
         None
     }
-    
+
     /// Complete writeback
     pub fn complete_writeback(&self, handle: CacheHandle) {
         if !handle.is_valid() || (handle.index as usize) >= MAX_BUFFERS {
             return;
         }
-        
+
         let header = &self.headers[handle.index as usize];
-        
+
         if header.get_state() == CacheState::Writing {
             header.set_state(CacheState::Clean);
             self.dirty_count.fetch_sub(1, Ordering::Relaxed);
         }
-        
+
         header.release();
     }
-    
+
     /// Get dirty count
     #[inline]
     pub fn get_dirty_count(&self) -> u32 {
         self.dirty_count.load(Ordering::Relaxed)
     }
-    
+
     /// Get free count
     #[inline]
     pub fn get_free_count(&self) -> u32 {
         self.free_count.load(Ordering::Relaxed)
     }
-    
+
     /// Check if writeback needed
     pub fn needs_writeback(&self, max_dirty_ratio: u32) -> bool {
         if self.buffer_count == 0 {
             return false;
         }
-        
+
         let dirty = self.get_dirty_count();
         let ratio = (dirty * 100) / self.buffer_count;
         ratio >= max_dirty_ratio
@@ -508,49 +512,49 @@ impl<'a> BufferRef<'a> {
         if !handle.is_valid() || (handle.index as usize) >= MAX_BUFFERS {
             return None;
         }
-        
+
         let header = &cache.headers[handle.index as usize];
-        
+
         if header.generation.load(Ordering::Relaxed) != handle.generation {
             return None;
         }
-        
+
         Some(Self {
             cache,
             handle,
             header,
         })
     }
-    
+
     /// Get key
     #[inline]
     pub fn key(&self) -> &CacheKey {
         &self.header.key
     }
-    
+
     /// Get state
     #[inline]
     pub fn state(&self) -> CacheState {
         self.header.get_state()
     }
-    
+
     /// Is dirty
     #[inline]
     pub fn is_dirty(&self) -> bool {
         self.header.is_dirty()
     }
-    
+
     /// Mark dirty
     pub fn mark_dirty(&self) -> HfsResult<()> {
         self.cache.mark_dirty(self.handle)
     }
-    
+
     /// Get data offset
     #[inline]
     pub fn data_offset(&self) -> u32 {
         self.header.data_offset
     }
-    
+
     /// Get data size
     #[inline]
     pub fn data_size(&self) -> u32 {
@@ -594,24 +598,23 @@ impl<'a> DirtyIterator<'a> {
 
 impl<'a> Iterator for DirtyIterator<'a> {
     type Item = CacheHandle;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         if self.count >= self.max_count {
             return None;
         }
-        
-        while (self.index as usize) < MAX_BUFFERS && 
-              self.index < self.cache.buffer_count {
+
+        while (self.index as usize) < MAX_BUFFERS && self.index < self.cache.buffer_count {
             let header = &self.cache.headers[self.index as usize];
             self.index += 1;
-            
+
             if header.is_dirty() && !header.is_pinned() {
                 // Try to acquire
-                if header.refcount.compare_exchange(
-                    0, 1,
-                    Ordering::Acquire,
-                    Ordering::Relaxed
-                ).is_ok() {
+                if header
+                    .refcount
+                    .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
+                    .is_ok()
+                {
                     if header.is_dirty() {
                         self.count += 1;
                         return Some(CacheHandle::new(
@@ -623,7 +626,7 @@ impl<'a> Iterator for DirtyIterator<'a> {
                 }
             }
         }
-        
+
         None
     }
 }
@@ -635,34 +638,34 @@ impl<'a> Iterator for DirtyIterator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_buffer_header() {
         let header = BufferHeader::new(0, 4096);
-        
+
         assert!(header.is_free());
         assert!(!header.is_dirty());
-        
+
         header.set_state(CacheState::Dirty);
         assert!(header.is_dirty());
-        
+
         header.acquire();
         assert_eq!(header.get_refcount(), 1);
-        
+
         header.release();
         assert_eq!(header.get_refcount(), 0);
     }
-    
+
     #[test]
     fn test_hash_bucket() {
         let bucket = HashBucket::new();
-        
+
         assert!(bucket.try_lock());
         assert!(!bucket.try_lock()); // Already locked
         bucket.unlock();
         assert!(bucket.try_lock()); // Now available
     }
-    
+
     #[test]
     fn test_cache_handle() {
         let handle = CacheHandle::new(42, 1);

@@ -3,13 +3,13 @@
 //! Provides recovery procedures to restore filesystem
 //! consistency after a crash or unclean shutdown.
 
-use crate::core::types::*;
 use crate::core::error::{HfsError, HfsResult};
-use crate::journal::JournalSuperblock;
-use crate::journal::wal::WalPosition;
-use crate::journal::record::*;
+use crate::core::types::*;
 use crate::journal::checkpoint::CheckpointDescriptor;
+use crate::journal::record::*;
 use crate::journal::txn::TxnId;
+use crate::journal::wal::WalPosition;
+use crate::journal::JournalSuperblock;
 
 // ============================================================================
 // Recovery State
@@ -20,21 +20,21 @@ use crate::journal::txn::TxnId;
 #[repr(u8)]
 pub enum RecoveryState {
     /// Not started
-    NotStarted = 0,
+    NotStarted   = 0,
     /// Scanning journal
-    Scanning = 1,
+    Scanning     = 1,
     /// Finding valid transactions
-    FindingTxns = 2,
+    FindingTxns  = 2,
     /// Building redo list
     BuildingRedo = 3,
     /// Replaying transactions
-    Replaying = 4,
+    Replaying    = 4,
     /// Finalizing
-    Finalizing = 5,
+    Finalizing   = 5,
     /// Complete
-    Complete = 6,
+    Complete     = 6,
     /// Failed
-    Failed = 7,
+    Failed       = 7,
 }
 
 impl RecoveryState {
@@ -51,12 +51,18 @@ impl RecoveryState {
             _ => Self::NotStarted,
         }
     }
-    
+
     /// Check if active
     #[inline]
     pub fn is_active(&self) -> bool {
-        matches!(self, Self::Scanning | Self::FindingTxns | 
-                       Self::BuildingRedo | Self::Replaying | Self::Finalizing)
+        matches!(
+            self,
+            Self::Scanning
+                | Self::FindingTxns
+                | Self::BuildingRedo
+                | Self::Replaying
+                | Self::Finalizing
+        )
     }
 }
 
@@ -99,7 +105,7 @@ impl RecoveryOptions {
             verbose: false,
         }
     }
-    
+
     /// Read-only recovery (for analysis)
     pub const fn read_only() -> Self {
         Self {
@@ -150,15 +156,15 @@ pub struct TxnLogEntry {
 pub enum TxnLogState {
     /// Unknown
     #[default]
-    Unknown = 0,
+    Unknown    = 0,
     /// In progress (uncommitted)
     InProgress = 1,
     /// Committed
-    Committed = 2,
+    Committed  = 2,
     /// Aborted
-    Aborted = 3,
+    Aborted    = 3,
     /// Replayed
-    Replayed = 4,
+    Replayed   = 4,
 }
 
 impl TxnLogEntry {
@@ -167,7 +173,7 @@ impl TxnLogEntry {
     pub fn is_committed(&self) -> bool {
         self.state == TxnLogState::Committed
     }
-    
+
     /// Check if needs replay
     #[inline]
     pub fn needs_replay(&self) -> bool {
@@ -200,8 +206,14 @@ pub struct RedoEntry {
 
 impl RedoEntry {
     /// Create new entry
-    pub fn new(txn_id: TxnId, sequence: u64, record_type: RecordType, 
-               block: BlockNum, data_offset: u64, data_len: u32) -> Self {
+    pub fn new(
+        txn_id: TxnId,
+        sequence: u64,
+        record_type: RecordType,
+        block: BlockNum,
+        data_offset: u64,
+        data_len: u32,
+    ) -> Self {
         Self {
             txn_id,
             sequence,
@@ -212,7 +224,7 @@ impl RedoEntry {
             applied: false,
         }
     }
-    
+
     /// Get record type
     #[inline]
     pub fn record_type(&self) -> RecordType {
@@ -255,7 +267,7 @@ impl RevokeTable {
             count: 0,
         }
     }
-    
+
     /// Add revoke entry
     pub fn add(&mut self, block: BlockNum, sequence: u64) -> HfsResult<()> {
         // Check if already revoked with higher sequence
@@ -267,16 +279,16 @@ impl RevokeTable {
                 return Ok(());
             }
         }
-        
+
         if self.count >= MAX_REVOKE_ENTRIES {
             return Err(HfsError::OutOfMemory);
         }
-        
+
         self.entries[self.count] = RevokeEntry { block, sequence };
         self.count += 1;
         Ok(())
     }
-    
+
     /// Check if block is revoked at sequence
     pub fn is_revoked(&self, block: BlockNum, sequence: u64) -> bool {
         for i in 0..self.count {
@@ -286,7 +298,7 @@ impl RevokeTable {
         }
         false
     }
-    
+
     /// Clear table
     pub fn clear(&mut self) {
         for i in 0..self.count {
@@ -349,12 +361,12 @@ impl RecoveryContext {
             last_error: None,
         }
     }
-    
+
     /// Set state
     pub fn set_state(&mut self, state: RecoveryState) {
         self.state = state;
     }
-    
+
     /// Find transaction by ID
     pub fn find_txn(&self, txn_id: TxnId) -> Option<&TxnLogEntry> {
         for i in 0..self.txn_count {
@@ -364,7 +376,7 @@ impl RecoveryContext {
         }
         None
     }
-    
+
     /// Find transaction by ID (mutable)
     pub fn find_txn_mut(&mut self, txn_id: TxnId) -> Option<&mut TxnLogEntry> {
         for i in 0..self.txn_count {
@@ -374,29 +386,29 @@ impl RecoveryContext {
         }
         None
     }
-    
+
     /// Add transaction
     pub fn add_txn(&mut self, entry: TxnLogEntry) -> HfsResult<()> {
         if self.txn_count >= MAX_RECOVERY_TXNS {
             return Err(HfsError::OutOfMemory);
         }
-        
+
         self.txn_log[self.txn_count] = entry;
         self.txn_count += 1;
         Ok(())
     }
-    
+
     /// Add redo entry
     pub fn add_redo(&mut self, entry: RedoEntry) -> HfsResult<()> {
         if self.redo_count >= MAX_REDO_ENTRIES {
             return Err(HfsError::OutOfMemory);
         }
-        
+
         self.redo_list[self.redo_count] = entry;
         self.redo_count += 1;
         Ok(())
     }
-    
+
     /// Count committed transactions
     pub fn committed_count(&self) -> usize {
         let mut count = 0;
@@ -407,7 +419,7 @@ impl RecoveryContext {
         }
         count
     }
-    
+
     /// Set error and fail
     pub fn fail(&mut self, error: HfsError) {
         self.last_error = Some(error);
@@ -492,7 +504,7 @@ impl RecoveryResult {
             new_tail,
         }
     }
-    
+
     /// Create failure result
     pub fn failure(error: HfsError, state: RecoveryState, stats: RecoveryStats) -> Self {
         Self {
@@ -504,7 +516,7 @@ impl RecoveryResult {
             new_tail: WalPosition::invalid(),
         }
     }
-    
+
     /// No recovery needed
     pub fn not_needed() -> Self {
         Self {
@@ -526,16 +538,16 @@ impl RecoveryResult {
 pub trait RecoveryOps {
     /// Scan journal for valid records.
     fn scan_journal(&mut self, ctx: &mut RecoveryContext) -> HfsResult<()>;
-    
+
     /// Find committed transactions.
     fn find_committed(&mut self, ctx: &mut RecoveryContext) -> HfsResult<()>;
-    
+
     /// Build redo list from committed transactions.
     fn build_redo_list(&mut self, ctx: &mut RecoveryContext) -> HfsResult<()>;
-    
+
     /// Replay redo list.
     fn replay_redo(&mut self, ctx: &mut RecoveryContext) -> HfsResult<()>;
-    
+
     /// Finalize recovery.
     fn finalize(&mut self, ctx: &mut RecoveryContext) -> HfsResult<()>;
 }
@@ -548,7 +560,7 @@ pub trait RecoveryOps {
 mod tests {
     use super::*;
     use crate::journal::JournalMode;
-    
+
     #[test]
     fn test_recovery_state() {
         assert!(!RecoveryState::NotStarted.is_active());
@@ -556,42 +568,42 @@ mod tests {
         assert!(RecoveryState::Replaying.is_active());
         assert!(!RecoveryState::Complete.is_active());
     }
-    
+
     #[test]
     fn test_recovery_options() {
         let opts = RecoveryOptions::default();
         assert!(!opts.read_only);
         assert!(opts.verify_checksums);
-        
+
         let ro = RecoveryOptions::read_only();
         assert!(ro.read_only);
     }
-    
+
     #[test]
     fn test_txn_log_entry() {
         let mut entry = TxnLogEntry::default();
         entry.txn_id = 1;
         entry.state = TxnLogState::Committed;
-        
+
         assert!(entry.is_committed());
         assert!(entry.needs_replay());
     }
-    
+
     #[test]
     fn test_redo_entry() {
         let entry = RedoEntry::new(1, 100, RecordType::BlockWrite, 500, 1000, 4096);
-        
+
         assert_eq!(entry.txn_id, 1);
         assert_eq!(entry.record_type(), RecordType::BlockWrite);
         assert!(!entry.applied);
     }
-    
+
     #[test]
     fn test_revoke_table() {
         let mut table = RevokeTable::new();
-        
+
         table.add(100, 50).unwrap();
-        
+
         // Earlier sequences should be revoked
         assert!(table.is_revoked(100, 40));
         // Later sequences should not be revoked
@@ -599,15 +611,15 @@ mod tests {
         // Other blocks not affected
         assert!(!table.is_revoked(200, 40));
     }
-    
+
     #[test]
     fn test_recovery_context() {
         let sb = JournalSuperblock::new(1000, JournalMode::Metadata);
         let mut ctx = RecoveryContext::new(sb, RecoveryOptions::default());
-        
+
         assert_eq!(ctx.state, RecoveryState::NotStarted);
         assert_eq!(ctx.txn_count, 0);
-        
+
         // Add transaction
         let entry = TxnLogEntry {
             txn_id: 1,
@@ -615,15 +627,15 @@ mod tests {
             ..TxnLogEntry::default()
         };
         ctx.add_txn(entry).unwrap();
-        
+
         assert_eq!(ctx.txn_count, 1);
         assert_eq!(ctx.committed_count(), 1);
-        
+
         let found = ctx.find_txn(1);
         assert!(found.is_some());
         assert_eq!(found.unwrap().txn_id, 1);
     }
-    
+
     #[test]
     fn test_recovery_result() {
         let success = RecoveryResult::success(
@@ -632,7 +644,7 @@ mod tests {
             WalPosition::start(),
         );
         assert!(success.success);
-        
+
         let failure = RecoveryResult::failure(
             HfsError::JournalCorrupted,
             RecoveryState::Scanning,

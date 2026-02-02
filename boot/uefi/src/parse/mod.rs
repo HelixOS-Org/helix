@@ -443,12 +443,16 @@ impl Duration {
 
     /// Create from milliseconds
     pub const fn from_ms(ms: u64) -> Self {
-        Self { microseconds: ms * 1000 }
+        Self {
+            microseconds: ms * 1000,
+        }
     }
 
     /// Create from seconds
     pub const fn from_secs(secs: u64) -> Self {
-        Self { microseconds: secs * 1_000_000 }
+        Self {
+            microseconds: secs * 1_000_000,
+        }
     }
 
     /// Get as milliseconds
@@ -649,13 +653,13 @@ impl Path {
                     if comp_count > 0 {
                         comp_count -= 1;
                     }
-                }
+                },
                 _ => {
                     if comp_count < 32 {
                         components[comp_count] = part;
                         comp_count += 1;
                     }
-                }
+                },
             }
         }
 
@@ -791,7 +795,12 @@ pub struct Guid {
 impl Guid {
     /// Create from parts
     pub const fn new(data1: u32, data2: u16, data3: u16, data4: [u8; 8]) -> Self {
-        Self { data1, data2, data3, data4 }
+        Self {
+            data1,
+            data2,
+            data3,
+            data4,
+        }
     }
 
     /// Format to string buffer (36 + 1 bytes needed)
@@ -1058,7 +1067,9 @@ mod tests {
 
     #[test]
     fn test_guid_format() {
-        let guid = Guid::new(0x12345678, 0x9ABC, 0xDEF0, [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0]);
+        let guid = Guid::new(0x12345678, 0x9ABC, 0xDEF0, [
+            0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0,
+        ]);
         let mut buf = [0u8; 37];
         let s = guid.format(&mut buf);
         assert_eq!(s, "12345678-9ABC-DEF0-1234-56789ABCDEF0");

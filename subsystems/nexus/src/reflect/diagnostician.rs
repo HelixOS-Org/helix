@@ -6,18 +6,11 @@
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::*;
 use crate::bus::Domain;
-
-// ============================================================================
-// FAILURE ID
-// ============================================================================
-
-/// Failure ID type
-define_id!(FailureId, "Cognitive failure identifier");
+use crate::types::*;
 
 // ============================================================================
 // FAILURE TYPE
@@ -126,11 +119,7 @@ pub struct CognitiveFailure {
 
 impl CognitiveFailure {
     /// Create new failure
-    pub fn new(
-        domain: Domain,
-        failure_type: FailureType,
-        description: impl Into<String>,
-    ) -> Self {
+    pub fn new(domain: Domain, failure_type: FailureType, description: impl Into<String>) -> Self {
         Self {
             id: FailureId::generate(),
             domain,
@@ -408,7 +397,10 @@ impl Diagnostician {
         // Group failures by type
         let mut by_type: BTreeMap<FailureType, Vec<&CognitiveFailure>> = BTreeMap::new();
         for failure in &self.failures {
-            by_type.entry(failure.failure_type).or_default().push(failure);
+            by_type
+                .entry(failure.failure_type)
+                .or_default()
+                .push(failure);
         }
 
         // Find repeated patterns
@@ -441,11 +433,7 @@ impl Diagnostician {
                     failure_type: failures[0].failure_type,
                     occurrences: failures.len(),
                     domains_affected: vec![domain],
-                    description: format!(
-                        "{:?} domain has {} failures",
-                        domain,
-                        failures.len()
-                    ),
+                    description: format!("{:?} domain has {} failures", domain, failures.len()),
                 });
             }
         }
@@ -492,11 +480,8 @@ mod tests {
     fn test_diagnostician() {
         let mut diagnostician = Diagnostician::new(100);
 
-        let failure = CognitiveFailure::new(
-            Domain::Reason,
-            FailureType::FalsePositive,
-            "Test failure",
-        );
+        let failure =
+            CognitiveFailure::new(Domain::Reason, FailureType::FalsePositive, "Test failure");
 
         let id = diagnostician.record_failure(failure);
         let diagnosis = diagnostician.diagnose(id);
@@ -534,11 +519,7 @@ mod tests {
 
         // Add multiple failures of same type
         for _ in 0..5 {
-            let failure = CognitiveFailure::new(
-                Domain::Act,
-                FailureType::Timeout,
-                "Timeout",
-            );
+            let failure = CognitiveFailure::new(Domain::Act, FailureType::Timeout, "Timeout");
             diagnostician.record_failure(failure);
         }
 

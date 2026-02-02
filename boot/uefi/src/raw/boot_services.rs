@@ -3,8 +3,8 @@
 //! Boot Services are only available before ExitBootServices is called.
 //! They provide memory management, protocol handling, and device management.
 
-use super::types::*;
 use super::memory::{MemoryDescriptor, MemoryType};
+use super::types::*;
 
 // =============================================================================
 // BOOT SERVICES TABLE
@@ -22,7 +22,6 @@ pub struct EfiBootServices {
     // =========================================================================
     // Task Priority Services
     // =========================================================================
-
     /// Raise the task priority level
     pub raise_tpl: unsafe extern "efiapi" fn(new_tpl: Tpl) -> Tpl,
 
@@ -32,7 +31,6 @@ pub struct EfiBootServices {
     // =========================================================================
     // Memory Services
     // =========================================================================
-
     /// Allocate pages of memory
     pub allocate_pages: unsafe extern "efiapi" fn(
         alloc_type: AllocateType,
@@ -42,10 +40,7 @@ pub struct EfiBootServices {
     ) -> Status,
 
     /// Free pages of memory
-    pub free_pages: unsafe extern "efiapi" fn(
-        memory: PhysicalAddress,
-        pages: usize,
-    ) -> Status,
+    pub free_pages: unsafe extern "efiapi" fn(memory: PhysicalAddress, pages: usize) -> Status,
 
     /// Get the memory map
     pub get_memory_map: unsafe extern "efiapi" fn(
@@ -69,12 +64,13 @@ pub struct EfiBootServices {
     // =========================================================================
     // Event & Timer Services
     // =========================================================================
-
     /// Create an event
     pub create_event: unsafe extern "efiapi" fn(
         event_type: u32,
         notify_tpl: Tpl,
-        notify_function: Option<unsafe extern "efiapi" fn(event: Event, context: *mut core::ffi::c_void)>,
+        notify_function: Option<
+            unsafe extern "efiapi" fn(event: Event, context: *mut core::ffi::c_void),
+        >,
         notify_context: *mut core::ffi::c_void,
         event: *mut Event,
     ) -> Status,
@@ -105,7 +101,6 @@ pub struct EfiBootServices {
     // =========================================================================
     // Protocol Handler Services
     // =========================================================================
-
     /// Install protocol interface
     pub install_protocol_interface: unsafe extern "efiapi" fn(
         handle: *mut Handle,
@@ -163,15 +158,12 @@ pub struct EfiBootServices {
     ) -> Status,
 
     /// Install configuration table
-    pub install_configuration_table: unsafe extern "efiapi" fn(
-        guid: *const Guid,
-        table: *mut core::ffi::c_void,
-    ) -> Status,
+    pub install_configuration_table:
+        unsafe extern "efiapi" fn(guid: *const Guid, table: *mut core::ffi::c_void) -> Status,
 
     // =========================================================================
     // Image Services
     // =========================================================================
-
     /// Load an image
     pub load_image: unsafe extern "efiapi" fn(
         boot_policy: Boolean,
@@ -201,15 +193,12 @@ pub struct EfiBootServices {
     pub unload_image: unsafe extern "efiapi" fn(image_handle: Handle) -> Status,
 
     /// Exit boot services
-    pub exit_boot_services: unsafe extern "efiapi" fn(
-        image_handle: Handle,
-        map_key: usize,
-    ) -> Status,
+    pub exit_boot_services:
+        unsafe extern "efiapi" fn(image_handle: Handle, map_key: usize) -> Status,
 
     // =========================================================================
     // Miscellaneous Services
     // =========================================================================
-
     /// Get next monotonic count
     pub get_next_monotonic_count: unsafe extern "efiapi" fn(count: *mut u64) -> Status,
 
@@ -227,7 +216,6 @@ pub struct EfiBootServices {
     // =========================================================================
     // DriverSupport Services
     // =========================================================================
-
     /// Connect controller
     pub connect_controller: unsafe extern "efiapi" fn(
         controller_handle: Handle,
@@ -246,7 +234,6 @@ pub struct EfiBootServices {
     // =========================================================================
     // Open and Close Protocol Services
     // =========================================================================
-
     /// Open protocol
     pub open_protocol: unsafe extern "efiapi" fn(
         handle: Handle,
@@ -276,7 +263,6 @@ pub struct EfiBootServices {
     // =========================================================================
     // Library Services
     // =========================================================================
-
     /// Protocols per handle
     pub protocols_per_handle: unsafe extern "efiapi" fn(
         handle: Handle,
@@ -301,51 +287,36 @@ pub struct EfiBootServices {
     ) -> Status,
 
     /// Install multiple protocol interfaces
-    pub install_multiple_protocol_interfaces: unsafe extern "efiapi" fn(
-        handle: *mut Handle,
-        ...
-    ) -> Status,
+    pub install_multiple_protocol_interfaces:
+        unsafe extern "efiapi" fn(handle: *mut Handle, ...) -> Status,
 
     /// Uninstall multiple protocol interfaces
-    pub uninstall_multiple_protocol_interfaces: unsafe extern "efiapi" fn(
-        handle: Handle,
-        ...
-    ) -> Status,
+    pub uninstall_multiple_protocol_interfaces:
+        unsafe extern "efiapi" fn(handle: Handle, ...) -> Status,
 
     // =========================================================================
     // 32-bit CRC Services
     // =========================================================================
-
     /// Calculate CRC32
-    pub calculate_crc32: unsafe extern "efiapi" fn(
-        data: *const u8,
-        data_size: usize,
-        crc32: *mut u32,
-    ) -> Status,
+    pub calculate_crc32:
+        unsafe extern "efiapi" fn(data: *const u8, data_size: usize, crc32: *mut u32) -> Status,
 
     // =========================================================================
     // Miscellaneous Services (continued)
     // =========================================================================
-
     /// Copy memory
-    pub copy_mem: unsafe extern "efiapi" fn(
-        destination: *mut u8,
-        source: *const u8,
-        length: usize,
-    ),
+    pub copy_mem: unsafe extern "efiapi" fn(destination: *mut u8, source: *const u8, length: usize),
 
     /// Set memory
-    pub set_mem: unsafe extern "efiapi" fn(
-        buffer: *mut u8,
-        size: usize,
-        value: u8,
-    ),
+    pub set_mem: unsafe extern "efiapi" fn(buffer: *mut u8, size: usize, value: u8),
 
     /// Create event (extended)
     pub create_event_ex: unsafe extern "efiapi" fn(
         event_type: u32,
         notify_tpl: Tpl,
-        notify_function: Option<unsafe extern "efiapi" fn(event: Event, context: *mut core::ffi::c_void)>,
+        notify_function: Option<
+            unsafe extern "efiapi" fn(event: Event, context: *mut core::ffi::c_void),
+        >,
         notify_context: *const core::ffi::c_void,
         event_group: *const Guid,
         event: *mut Event,
@@ -411,12 +382,8 @@ impl EfiBootServices {
         pages: usize,
     ) -> Result<(), Status> {
         let mut addr = address;
-        let status = (self.allocate_pages)(
-            AllocateType::AllocateAddress,
-            memory_type,
-            pages,
-            &mut addr,
-        );
+        let status =
+            (self.allocate_pages)(AllocateType::AllocateAddress, memory_type, pages, &mut addr);
         status.to_status_result()
     }
 
@@ -577,11 +544,7 @@ impl EfiBootServices {
     ///
     /// # Safety
     /// The caller must ensure boot services are available.
-    pub unsafe fn handle_protocol<T>(
-        &self,
-        handle: Handle,
-        guid: &Guid,
-    ) -> Result<*mut T, Status> {
+    pub unsafe fn handle_protocol<T>(&self, handle: Handle, guid: &Guid) -> Result<*mut T, Status> {
         let mut interface = core::ptr::null_mut();
         let status = (self.handle_protocol)(handle, guid, &mut interface);
         status.to_status_result_with(interface as *mut T)
@@ -734,12 +697,8 @@ impl EfiBootServices {
         timeout_seconds: usize,
         watchdog_code: u64,
     ) -> Result<(), Status> {
-        let status = (self.set_watchdog_timer)(
-            timeout_seconds,
-            watchdog_code,
-            0,
-            core::ptr::null(),
-        );
+        let status =
+            (self.set_watchdog_timer)(timeout_seconds, watchdog_code, 0, core::ptr::null());
         status.to_status_result()
     }
 

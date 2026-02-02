@@ -11,45 +11,33 @@
 //! - **Learning Integration**: Cross-module knowledge sharing
 
 // Submodules
-mod types;
 mod decision;
 mod event;
-mod policy;
-mod manager;
 mod genesis;
 mod intelligence;
+mod manager;
+mod policy;
+mod types;
 
 // Re-export core types
-pub use types::{
-    SubsystemId, subsystems, DecisionId, EventId,
-    HealthLevel, SubsystemPriority,
-    SubsystemState, SubsystemMetrics,
-};
-
 // Re-export decision types
-pub use decision::{
-    DecisionType, DecisionUrgency, DecisionStatus,
-    DecisionAction, Decision,
-};
-
+pub use decision::{Decision, DecisionAction, DecisionStatus, DecisionType, DecisionUrgency};
 // Re-export event types
-pub use event::{OrchestratorEventType, OrchestratorEvent};
-
-// Re-export policy types
-pub use policy::{PolicyType, SystemPolicy};
-
-// Re-export manager
-pub use manager::OrchestratorManager;
-
+pub use event::{OrchestratorEvent, OrchestratorEventType};
 // Re-export genesis
 pub use genesis::GenesisSummary;
-
 // Re-export intelligence
 pub use intelligence::{
-    OrchestratorAnalysis, SubsystemStatus,
-    OrchestratorIssue, OrchestratorIssueType,
-    OrchestratorRecommendation, OrchestratorAction,
-    OrchestratorIntelligence,
+    OrchestratorAction, OrchestratorAnalysis, OrchestratorIntelligence, OrchestratorIssue,
+    OrchestratorIssueType, OrchestratorRecommendation, SubsystemStatus,
+};
+// Re-export manager
+pub use manager::OrchestratorManager;
+// Re-export policy types
+pub use policy::{PolicyType, SystemPolicy};
+pub use types::{
+    DecisionId, EventId, HealthLevel, SubsystemId, SubsystemMetrics, SubsystemPriority,
+    SubsystemState, subsystems,
 };
 
 // ============================================================================

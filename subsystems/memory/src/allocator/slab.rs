@@ -2,11 +2,13 @@
 //!
 //! A slab allocator for efficient fixed-size allocations.
 
-use super::{HeapAllocator, HeapStats};
-use core::alloc::Layout;
 use alloc::vec::Vec;
-use spin::Mutex;
+use core::alloc::Layout;
 use core::sync::atomic::{AtomicU64, Ordering};
+
+use spin::Mutex;
+
+use super::{HeapAllocator, HeapStats};
 
 /// Slab size classes
 const SIZE_CLASSES: [usize; 8] = [16, 32, 64, 128, 256, 512, 1024, 2048];
@@ -33,7 +35,7 @@ impl Slab {
     /// Create a new slab
     unsafe fn new(memory: *mut u8, size: usize, obj_size: usize) -> Self {
         let capacity = size / obj_size;
-        
+
         // Initialize free list
         // SAFETY: Caller guarantees memory is valid for size bytes
         unsafe {
@@ -45,7 +47,7 @@ impl Slab {
             let last_ptr = memory.add((capacity - 1) * obj_size) as *mut usize;
             *last_ptr = usize::MAX;
         }
-        
+
         Self {
             memory,
             obj_size,
@@ -58,14 +60,14 @@ impl Slab {
     /// Allocate an object
     fn allocate(&mut self) -> Option<*mut u8> {
         let index = self.free_head?;
-        
+
         let ptr = unsafe { self.memory.add(index * self.obj_size) };
-        
+
         // Update free list
         let next = unsafe { *(ptr as *const usize) };
         self.free_head = if next == usize::MAX { None } else { Some(next) };
         self.allocated += 1;
-        
+
         Some(ptr)
     }
 
@@ -73,7 +75,7 @@ impl Slab {
     fn deallocate(&mut self, ptr: *mut u8) {
         let offset = (ptr as usize) - (self.memory as usize);
         let index = offset / self.obj_size;
-        
+
         // Add to free list
         unsafe {
             *(ptr as *mut usize) = self.free_head.unwrap_or(usize::MAX);
@@ -129,7 +131,7 @@ impl SlabCache {
                 return slab.allocate();
             }
         }
-        
+
         // Need to create a new slab
         // This would normally allocate from the physical memory manager
         // For now, we can't create new slabs without external allocation
@@ -160,10 +162,7 @@ impl SlabAllocator {
     /// Create a new slab allocator
     pub const fn new() -> Self {
         Self {
-            caches: Mutex::new([
-                None, None, None, None,
-                None, None, None, None,
-            ]),
+            caches: Mutex::new([None, None, None, None, None, None, None, None]),
             allocations: AtomicU64::new(0),
             deallocations: AtomicU64::new(0),
         }
@@ -172,14 +171,14 @@ impl SlabAllocator {
     /// Initialize with backing memory
     pub fn init(&self, memory: *mut u8, size: usize) {
         let mut caches = self.caches.lock();
-        
+
         // Divide memory among size classes
         let per_class = size / SIZE_CLASSES.len();
         let mut offset = 0;
-        
+
         for (i, &obj_size) in SIZE_CLASSES.iter().enumerate() {
             let mut cache = SlabCache::new(obj_size);
-            
+
             // Create slabs for this cache
             let slab_count = per_class / cache.slab_size;
             for j in 0..slab_count {
@@ -187,7 +186,7 @@ impl SlabAllocator {
                 let slab = unsafe { Slab::new(slab_mem, cache.slab_size, obj_size) };
                 cache.slabs.push(slab);
             }
-            
+
             caches[i] = Some(cache);
             offset += per_class;
         }
@@ -208,7 +207,7 @@ impl Default for SlabAllocator {
 impl HeapAllocator for SlabAllocator {
     fn allocate(&self, layout: Layout) -> *mut u8 {
         let size = layout.size().max(layout.align());
-        
+
         if let Some(class) = Self::size_class(size) {
             let mut caches = self.caches.lock();
             if let Some(ref mut cache) = caches[class] {
@@ -218,13 +217,13 @@ impl HeapAllocator for SlabAllocator {
                 }
             }
         }
-        
+
         core::ptr::null_mut()
     }
 
     fn deallocate(&self, ptr: *mut u8, layout: Layout) {
         let size = layout.size().max(layout.align());
-        
+
         if let Some(class) = Self::size_class(size) {
             let mut caches = self.caches.lock();
             if let Some(ref mut cache) = caches[class] {

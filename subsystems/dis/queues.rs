@@ -68,14 +68,15 @@
 //! - **Deadline Support**: Special handling for deadline-constrained tasks
 //! - **Fair Scheduling**: Virtual runtime tracking for fairness
 
-use alloc::collections::{BinaryHeap, BTreeMap, VecDeque};
+use alloc::collections::{BTreeMap, BinaryHeap, VecDeque};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering as AtomicOrdering};
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering as AtomicOrdering};
+
 use spin::{Mutex, RwLock};
 
-use super::{TaskId, Nanoseconds};
+use super::{Nanoseconds, TaskId};
 
 // =============================================================================
 // Queue Configuration
@@ -202,7 +203,7 @@ impl QueueEntry {
             flags: QueueEntryFlags::empty(),
         }
     }
-    
+
     /// Set as real-time
     pub fn realtime(mut self, priority: i16) -> Self {
         self.effective_priority = priority;
@@ -211,48 +212,48 @@ impl QueueEntry {
         self.time_slice = Nanoseconds::from_millis(2);
         self
     }
-    
+
     /// Set as interactive
     pub fn interactive(mut self) -> Self {
         self.flags.insert(QueueEntryFlags::INTERACTIVE);
         self.time_slice = Nanoseconds::from_millis(6);
         self
     }
-    
+
     /// Set as batch
     pub fn batch(mut self) -> Self {
         self.flags.insert(QueueEntryFlags::BATCH);
         self.time_slice = Nanoseconds::from_millis(100);
         self
     }
-    
+
     /// Set as background
     pub fn background(mut self) -> Self {
         self.flags.insert(QueueEntryFlags::BACKGROUND);
         self.time_slice = Nanoseconds::from_millis(200);
         self
     }
-    
+
     /// Set deadline
     pub fn with_deadline(mut self, deadline: Nanoseconds) -> Self {
         self.deadline = Some(deadline);
         self.flags.insert(QueueEntryFlags::HAS_DEADLINE);
         self
     }
-    
+
     /// Boost priority
     pub fn boost(&mut self, amount: i16) {
         self.effective_priority = self.effective_priority.saturating_add(amount);
         self.flags.insert(QueueEntryFlags::BOOSTED);
     }
-    
+
     /// Reset priority to base
     pub fn reset_priority(&mut self) {
         self.effective_priority = self.base_priority;
         self.flags.remove(QueueEntryFlags::BOOSTED);
         self.flags.remove(QueueEntryFlags::PRIORITY_INHERITED);
     }
-    
+
     /// Inherit priority
     pub fn inherit_priority(&mut self, priority: i16) {
         if priority > self.effective_priority {
@@ -260,19 +261,19 @@ impl QueueEntry {
             self.flags.insert(QueueEntryFlags::PRIORITY_INHERITED);
         }
     }
-    
+
     /// Age the entry (increase wait time)
     pub fn age(&mut self) {
         self.wait_ticks += 1;
     }
-    
+
     /// Demote to next level
     pub fn demote(&mut self) {
         if self.level < 7 {
             self.level += 1;
         }
     }
-    
+
     /// Promote to previous level
     pub fn promote(&mut self) {
         if self.level > 0 {
@@ -310,7 +311,9 @@ impl PartialOrd for DeadlineEntry {
 impl Ord for DeadlineEntry {
     fn cmp(&self, other: &Self) -> Ordering {
         // Earlier deadline = higher priority (reverse for max-heap)
-        other.deadline.cmp(&self.deadline)
+        other
+            .deadline
+            .cmp(&self.deadline)
             .then_with(|| other.priority.cmp(&self.priority))
     }
 }
@@ -329,19 +332,23 @@ impl DeadlineQueue {
             index: BTreeMap::new(),
         }
     }
-    
+
     /// Insert task with deadline
     pub fn insert(&mut self, task_id: TaskId, deadline: Nanoseconds, priority: i16) {
-        let entry = DeadlineEntry { task_id, deadline, priority };
+        let entry = DeadlineEntry {
+            task_id,
+            deadline,
+            priority,
+        };
         self.heap.push(entry);
         self.index.insert(task_id, deadline);
     }
-    
+
     /// Get next task (earliest deadline)
     pub fn peek(&self) -> Option<TaskId> {
         self.heap.peek().map(|e| e.task_id)
     }
-    
+
     /// Pop next task
     pub fn pop(&mut self) -> Option<TaskId> {
         while let Some(entry) = self.heap.pop() {
@@ -355,27 +362,31 @@ impl DeadlineQueue {
         }
         None
     }
-    
+
     /// Remove task
     pub fn remove(&mut self, task_id: TaskId) -> bool {
         self.index.remove(&task_id).is_some()
         // Note: Entry stays in heap but will be skipped in pop()
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.index.is_empty()
     }
-    
+
     /// Get count
     pub fn len(&self) -> usize {
         self.index.len()
     }
-    
+
     /// Update deadline
     pub fn update_deadline(&mut self, task_id: TaskId, new_deadline: Nanoseconds, priority: i16) {
         self.index.insert(task_id, new_deadline);
-        self.heap.push(DeadlineEntry { task_id, deadline: new_deadline, priority });
+        self.heap.push(DeadlineEntry {
+            task_id,
+            deadline: new_deadline,
+            priority,
+        });
     }
 }
 
@@ -404,19 +415,19 @@ impl FifoQueue {
             count: AtomicU32::new(0),
         }
     }
-    
+
     /// Push to back
     pub fn push_back(&mut self, entry: QueueEntry) {
         self.queue.push_back(entry);
         self.count.fetch_add(1, AtomicOrdering::Relaxed);
     }
-    
+
     /// Push to front (high priority)
     pub fn push_front(&mut self, entry: QueueEntry) {
         self.queue.push_front(entry);
         self.count.fetch_add(1, AtomicOrdering::Relaxed);
     }
-    
+
     /// Pop from front
     pub fn pop_front(&mut self) -> Option<QueueEntry> {
         let entry = self.queue.pop_front();
@@ -425,12 +436,12 @@ impl FifoQueue {
         }
         entry
     }
-    
+
     /// Peek at front
     pub fn peek(&self) -> Option<&QueueEntry> {
         self.queue.front()
     }
-    
+
     /// Remove specific task
     pub fn remove(&mut self, task_id: TaskId) -> Option<QueueEntry> {
         if let Some(pos) = self.queue.iter().position(|e| e.task_id == task_id) {
@@ -442,27 +453,28 @@ impl FifoQueue {
         }
         None
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.count.load(AtomicOrdering::Relaxed) == 0
     }
-    
+
     /// Get count
     pub fn len(&self) -> usize {
         self.count.load(AtomicOrdering::Relaxed) as usize
     }
-    
+
     /// Age all entries
     pub fn age_all(&mut self) {
         for entry in &mut self.queue {
             entry.age();
         }
     }
-    
+
     /// Get entries that need boosting
     pub fn get_aged_entries(&self, threshold: u64) -> Vec<TaskId> {
-        self.queue.iter()
+        self.queue
+            .iter()
             .filter(|e| e.wait_ticks >= threshold)
             .map(|e| e.task_id)
             .collect()
@@ -529,24 +541,24 @@ impl FairQueue {
             count: AtomicU32::new(0),
         }
     }
-    
+
     /// Insert task
     pub fn insert(&mut self, mut entry: QueueEntry) {
         // New tasks start at minimum vruntime
         if entry.vruntime == 0 {
             entry.vruntime = self.min_vruntime.load(AtomicOrdering::Relaxed);
         }
-        
+
         let ventry = VruntimeEntry {
             task_id: entry.task_id,
             vruntime: entry.vruntime,
         };
-        
+
         self.tree.push(ventry);
         self.entries.insert(entry.task_id, entry);
         self.count.fetch_add(1, AtomicOrdering::Relaxed);
     }
-    
+
     /// Get next task (lowest vruntime)
     pub fn pick_next(&mut self) -> Option<QueueEntry> {
         while let Some(ventry) = self.tree.pop() {
@@ -563,7 +575,7 @@ impl FairQueue {
         }
         None
     }
-    
+
     /// Peek at next task
     pub fn peek_next(&self) -> Option<&QueueEntry> {
         // Find first valid entry
@@ -576,7 +588,7 @@ impl FairQueue {
         }
         None
     }
-    
+
     /// Remove task
     pub fn remove(&mut self, task_id: TaskId) -> Option<QueueEntry> {
         if let Some(entry) = self.entries.remove(&task_id) {
@@ -586,20 +598,21 @@ impl FairQueue {
         }
         None
     }
-    
+
     /// Update task after running
     pub fn update_vruntime(&mut self, task_id: TaskId, delta: u64) {
         if let Some(entry) = self.entries.get_mut(&task_id) {
             entry.vruntime += delta;
-            
+
             // Update minimum
             let min = self.min_vruntime.load(AtomicOrdering::Relaxed);
             if entry.vruntime > min {
                 // Only update if we're behind
             } else {
-                self.min_vruntime.fetch_max(entry.vruntime, AtomicOrdering::Relaxed);
+                self.min_vruntime
+                    .fetch_max(entry.vruntime, AtomicOrdering::Relaxed);
             }
-            
+
             // Re-insert in tree
             self.tree.push(VruntimeEntry {
                 task_id,
@@ -607,29 +620,30 @@ impl FairQueue {
             });
         }
     }
-    
+
     /// Re-queue task after running
     pub fn requeue(&mut self, mut entry: QueueEntry, runtime: Nanoseconds) {
         // Update vruntime based on actual runtime
         let delta = runtime.raw() / 1_000_000; // Simplified weight
         entry.vruntime += delta;
-        
+
         // Update minimum vruntime
-        self.min_vruntime.fetch_max(entry.vruntime, AtomicOrdering::Relaxed);
-        
+        self.min_vruntime
+            .fetch_max(entry.vruntime, AtomicOrdering::Relaxed);
+
         self.insert(entry);
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.count.load(AtomicOrdering::Relaxed) == 0
     }
-    
+
     /// Get count
     pub fn len(&self) -> usize {
         self.count.load(AtomicOrdering::Relaxed) as usize
     }
-    
+
     /// Get minimum vruntime
     pub fn min_vruntime(&self) -> u64 {
         self.min_vruntime.load(AtomicOrdering::Relaxed)
@@ -665,13 +679,13 @@ impl MultiLevelQueue {
     pub fn new(num_levels: usize) -> Self {
         let mut levels = Vec::with_capacity(num_levels);
         let mut time_slices = Vec::with_capacity(num_levels);
-        
+
         for i in 0..num_levels {
             levels.push(Mutex::new(FifoQueue::new()));
             // Time slice doubles with each level
             time_slices.push(Nanoseconds::from_millis((10 << i) as u64));
         }
-        
+
         Self {
             levels,
             num_levels,
@@ -680,7 +694,7 @@ impl MultiLevelQueue {
             count: AtomicU32::new(0),
         }
     }
-    
+
     /// Insert task at level
     pub fn insert(&self, entry: QueueEntry, level: usize) {
         let level = level.min(self.num_levels - 1);
@@ -688,7 +702,7 @@ impl MultiLevelQueue {
         self.task_levels.write().insert(entry.task_id, level as u8);
         self.count.fetch_add(1, AtomicOrdering::Relaxed);
     }
-    
+
     /// Get next task (from highest priority level)
     pub fn pop_next(&self) -> Option<QueueEntry> {
         for level in &self.levels {
@@ -700,7 +714,7 @@ impl MultiLevelQueue {
         }
         None
     }
-    
+
     /// Remove task from any level
     pub fn remove(&self, task_id: TaskId) -> Option<QueueEntry> {
         if let Some(level) = self.task_levels.write().remove(&task_id) {
@@ -711,28 +725,38 @@ impl MultiLevelQueue {
         }
         None
     }
-    
+
     /// Requeue task at next level (demotion)
     pub fn requeue_demote(&self, mut entry: QueueEntry) {
-        let current_level = self.task_levels.read().get(&entry.task_id).copied().unwrap_or(0);
+        let current_level = self
+            .task_levels
+            .read()
+            .get(&entry.task_id)
+            .copied()
+            .unwrap_or(0);
         let new_level = ((current_level as usize) + 1).min(self.num_levels - 1);
-        
+
         entry.level = new_level as u8;
         entry.time_slice = self.time_slices[new_level];
-        
+
         self.insert(entry, new_level);
     }
-    
+
     /// Requeue task at same level
     pub fn requeue_same(&self, entry: QueueEntry) {
-        let level = self.task_levels.read().get(&entry.task_id).copied().unwrap_or(0);
+        let level = self
+            .task_levels
+            .read()
+            .get(&entry.task_id)
+            .copied()
+            .unwrap_or(0);
         self.insert(entry, level as usize);
     }
-    
+
     /// Reset all tasks to level 0 (priority boost)
     pub fn boost_all(&self) {
         let mut all_entries = Vec::new();
-        
+
         // Collect all entries
         for level in &self.levels {
             let mut queue = level.lock();
@@ -740,10 +764,10 @@ impl MultiLevelQueue {
                 all_entries.push(entry);
             }
         }
-        
+
         self.task_levels.write().clear();
         self.count.store(0, AtomicOrdering::Relaxed);
-        
+
         // Re-insert all at level 0
         for mut entry in all_entries {
             entry.level = 0;
@@ -752,22 +776,25 @@ impl MultiLevelQueue {
             self.insert(entry, 0);
         }
     }
-    
+
     /// Get time slice for level
     pub fn time_slice(&self, level: usize) -> Nanoseconds {
-        self.time_slices.get(level).copied().unwrap_or(Nanoseconds::from_millis(10))
+        self.time_slices
+            .get(level)
+            .copied()
+            .unwrap_or(Nanoseconds::from_millis(10))
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.count.load(AtomicOrdering::Relaxed) == 0
     }
-    
+
     /// Get count
     pub fn len(&self) -> usize {
         self.count.load(AtomicOrdering::Relaxed) as usize
     }
-    
+
     /// Get count per level
     pub fn level_counts(&self) -> Vec<usize> {
         self.levels.iter().map(|l| l.lock().len()).collect()
@@ -809,7 +836,7 @@ pub struct QueueManager {
 /// Queue class
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QueueClass {
-    RealTime(u8),  // Priority level
+    RealTime(u8), // Priority level
     Deadline,
     Interactive,
     Normal,
@@ -837,7 +864,7 @@ impl QueueManager {
         for _ in 0..config.realtime_levels {
             realtime.push(Mutex::new(FifoQueue::new()));
         }
-        
+
         Self {
             realtime,
             deadline: Mutex::new(DeadlineQueue::new()),
@@ -853,40 +880,42 @@ impl QueueManager {
             config: RwLock::new(config),
         }
     }
-    
+
     /// Enqueue task
     pub fn enqueue(&self, entry: QueueEntry, class: QueueClass) {
         self.task_class.write().insert(entry.task_id, class);
         self.stats.enqueues.fetch_add(1, AtomicOrdering::Relaxed);
-        
+
         match class {
             QueueClass::RealTime(prio) => {
                 let idx = (prio as usize).min(self.realtime.len() - 1);
                 self.realtime[idx].lock().push_back(entry);
-            }
+            },
             QueueClass::Deadline => {
                 if let Some(deadline) = entry.deadline {
-                    self.deadline.lock().insert(entry.task_id, deadline, entry.effective_priority);
+                    self.deadline
+                        .lock()
+                        .insert(entry.task_id, deadline, entry.effective_priority);
                 }
-            }
+            },
             QueueClass::Interactive => {
                 self.interactive.lock().insert(entry);
-            }
+            },
             QueueClass::Normal => {
                 self.normal.insert(entry, 0);
-            }
+            },
             QueueClass::Batch => {
                 self.batch.lock().push_back(entry);
-            }
+            },
             QueueClass::Background => {
                 self.background.lock().push_back(entry);
-            }
+            },
             QueueClass::Idle => {
                 self.idle.lock().push_back(entry);
-            }
+            },
         }
     }
-    
+
     /// Dequeue next task
     pub fn dequeue(&self) -> Option<(QueueEntry, QueueClass)> {
         // 1. Check deadline queue first
@@ -897,7 +926,7 @@ impl QueueManager {
                 return Some((QueueEntry::new(task_id, 99), class));
             }
         }
-        
+
         // 2. Check real-time queues (highest priority first)
         for (prio, queue) in self.realtime.iter().enumerate().rev() {
             if let Some(entry) = queue.lock().pop_front() {
@@ -906,45 +935,45 @@ impl QueueManager {
                 return Some((entry, QueueClass::RealTime(prio as u8)));
             }
         }
-        
+
         // 3. Check interactive queue
         if let Some(entry) = self.interactive.lock().pick_next() {
             self.task_class.write().remove(&entry.task_id);
             self.stats.dequeues.fetch_add(1, AtomicOrdering::Relaxed);
             return Some((entry, QueueClass::Interactive));
         }
-        
+
         // 4. Check normal MLFQ
         if let Some(entry) = self.normal.pop_next() {
             self.task_class.write().remove(&entry.task_id);
             self.stats.dequeues.fetch_add(1, AtomicOrdering::Relaxed);
             return Some((entry, QueueClass::Normal));
         }
-        
+
         // 5. Check batch queue
         if let Some(entry) = self.batch.lock().pop_front() {
             self.task_class.write().remove(&entry.task_id);
             self.stats.dequeues.fetch_add(1, AtomicOrdering::Relaxed);
             return Some((entry, QueueClass::Batch));
         }
-        
+
         // 6. Check background queue
         if let Some(entry) = self.background.lock().pop_front() {
             self.task_class.write().remove(&entry.task_id);
             self.stats.dequeues.fetch_add(1, AtomicOrdering::Relaxed);
             return Some((entry, QueueClass::Background));
         }
-        
+
         // 7. Check idle queue
         if let Some(entry) = self.idle.lock().pop_front() {
             self.task_class.write().remove(&entry.task_id);
             self.stats.dequeues.fetch_add(1, AtomicOrdering::Relaxed);
             return Some((entry, QueueClass::Idle));
         }
-        
+
         None
     }
-    
+
     /// Remove task from any queue
     pub fn remove(&self, task_id: TaskId) -> bool {
         if let Some(class) = self.task_class.write().remove(&task_id) {
@@ -952,30 +981,30 @@ impl QueueManager {
                 QueueClass::RealTime(prio) => {
                     let idx = (prio as usize).min(self.realtime.len() - 1);
                     return self.realtime[idx].lock().remove(task_id).is_some();
-                }
+                },
                 QueueClass::Deadline => {
                     return self.deadline.lock().remove(task_id);
-                }
+                },
                 QueueClass::Interactive => {
                     return self.interactive.lock().remove(task_id).is_some();
-                }
+                },
                 QueueClass::Normal => {
                     return self.normal.remove(task_id).is_some();
-                }
+                },
                 QueueClass::Batch => {
                     return self.batch.lock().remove(task_id).is_some();
-                }
+                },
                 QueueClass::Background => {
                     return self.background.lock().remove(task_id).is_some();
-                }
+                },
                 QueueClass::Idle => {
                     return self.idle.lock().remove(task_id).is_some();
-                }
+                },
             }
         }
         false
     }
-    
+
     /// Requeue task after running
     pub fn requeue(&self, entry: QueueEntry, class: QueueClass, demote: bool) {
         let task_id = entry.task_id;
@@ -984,42 +1013,42 @@ impl QueueManager {
                 self.stats.demotions.fetch_add(1, AtomicOrdering::Relaxed);
                 self.normal.requeue_demote(entry);
                 self.task_class.write().insert(task_id, class);
-            }
+            },
             _ => {
                 self.enqueue(entry, class);
-            }
+            },
         }
     }
-    
+
     /// Tick handler (for aging)
     pub fn tick(&self) {
         let tick = self.tick_counter.fetch_add(1, AtomicOrdering::Relaxed);
-        
+
         let config = self.config.read();
         if !config.aging_enabled {
             return;
         }
-        
+
         // Periodic aging
         if tick % config.aging_interval == 0 {
             // Age normal queue entries
             // Boost is handled separately
         }
-        
+
         // Periodic boost (every N * aging_interval)
         if tick % (config.aging_interval * 10) == 0 {
             self.normal.boost_all();
             self.stats.boosts.fetch_add(1, AtomicOrdering::Relaxed);
         }
     }
-    
+
     /// Inherit priority (for priority inheritance)
     pub fn inherit_priority(&self, task_id: TaskId, priority: i16) {
         let config = self.config.read();
         if !config.priority_inheritance {
             return;
         }
-        
+
         if let Some(class) = self.task_class.read().get(&task_id) {
             // Only for normal tasks
             if *class == QueueClass::Normal {
@@ -1031,7 +1060,7 @@ impl QueueManager {
             }
         }
     }
-    
+
     /// Reset inherited priority
     pub fn reset_priority(&self, task_id: TaskId) {
         if let Some(class) = self.task_class.read().get(&task_id) {
@@ -1044,7 +1073,7 @@ impl QueueManager {
             }
         }
     }
-    
+
     /// Get queue statistics
     pub fn statistics(&self) -> QueueStatistics {
         QueueStatistics {
@@ -1096,67 +1125,67 @@ pub struct QueueStatistics {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_fifo_queue() {
         let mut queue = FifoQueue::new();
-        
+
         queue.push_back(QueueEntry::new(TaskId::new(1), 10));
         queue.push_back(QueueEntry::new(TaskId::new(2), 20));
-        
+
         assert_eq!(queue.len(), 2);
-        
+
         let entry = queue.pop_front().unwrap();
         assert_eq!(entry.task_id, TaskId::new(1));
-        
+
         assert_eq!(queue.len(), 1);
     }
-    
+
     #[test]
     fn test_fair_queue() {
         let mut queue = FairQueue::new();
-        
+
         let mut entry1 = QueueEntry::new(TaskId::new(1), 10);
         entry1.vruntime = 100;
         let mut entry2 = QueueEntry::new(TaskId::new(2), 10);
         entry2.vruntime = 50;
-        
+
         queue.insert(entry1);
         queue.insert(entry2);
-        
+
         // Lower vruntime should come first
         let first = queue.pick_next().unwrap();
         assert_eq!(first.task_id, TaskId::new(2));
     }
-    
+
     #[test]
     fn test_deadline_queue() {
         let mut queue = DeadlineQueue::new();
-        
+
         queue.insert(TaskId::new(1), Nanoseconds::from_millis(100), 50);
         queue.insert(TaskId::new(2), Nanoseconds::from_millis(50), 50);
         queue.insert(TaskId::new(3), Nanoseconds::from_millis(200), 50);
-        
+
         // Earlier deadline should come first
         assert_eq!(queue.pop(), Some(TaskId::new(2)));
         assert_eq!(queue.pop(), Some(TaskId::new(1)));
         assert_eq!(queue.pop(), Some(TaskId::new(3)));
     }
-    
+
     #[test]
     fn test_queue_manager() {
         let manager = QueueManager::default();
-        
+
         let entry1 = QueueEntry::new(TaskId::new(1), 10).interactive();
         let entry2 = QueueEntry::new(TaskId::new(2), 90).realtime(90);
-        
+
         manager.enqueue(entry1, QueueClass::Interactive);
         manager.enqueue(entry2, QueueClass::RealTime(90));
-        
+
         // RT should come first
         let (first, class) = manager.dequeue().unwrap();
         assert!(matches!(class, QueueClass::RealTime(_)));
-        
+
         let (second, class) = manager.dequeue().unwrap();
         assert_eq!(class, QueueClass::Interactive);
     }

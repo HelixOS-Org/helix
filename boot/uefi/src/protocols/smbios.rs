@@ -2,13 +2,13 @@
 //!
 //! High-level SMBIOS table access abstraction.
 
-use crate::raw::types::*;
-use crate::error::{Error, Result};
 use super::Protocol;
+use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::ptr;
 
 // =============================================================================
@@ -169,7 +169,11 @@ impl SmbiosTables {
     }
 
     /// Parse strings from structure
-    unsafe fn parse_strings(&self, start: PhysicalAddress, end: PhysicalAddress) -> Result<Vec<String>> {
+    unsafe fn parse_strings(
+        &self,
+        start: PhysicalAddress,
+        end: PhysicalAddress,
+    ) -> Result<Vec<String>> {
         let mut strings = Vec::new();
         let mut ptr = start;
 
@@ -204,7 +208,11 @@ impl SmbiosTables {
     }
 
     /// Calculate strings section length
-    unsafe fn calculate_strings_length(&self, start: PhysicalAddress, end: PhysicalAddress) -> usize {
+    unsafe fn calculate_strings_length(
+        &self,
+        start: PhysicalAddress,
+        end: PhysicalAddress,
+    ) -> usize {
         let mut ptr = start;
 
         while ptr < end {
@@ -229,72 +237,69 @@ impl SmbiosTables {
 
     /// Find structures by type
     pub fn find_structures(&self, structure_type: u8) -> Vec<&SmbiosStructure> {
-        self.structures.iter()
+        self.structures
+            .iter()
             .filter(|s| s.structure_type == structure_type)
             .collect()
     }
 
     /// Find first structure by type
     pub fn find_structure(&self, structure_type: u8) -> Option<&SmbiosStructure> {
-        self.structures.iter()
+        self.structures
+            .iter()
             .find(|s| s.structure_type == structure_type)
     }
 
     /// Get BIOS information (Type 0)
     pub fn bios_info(&self) -> Option<BiosInfo> {
-        self.find_structure(0).map(|s| unsafe {
-            BiosInfo::from_structure(s)
-        })
+        self.find_structure(0)
+            .map(|s| unsafe { BiosInfo::from_structure(s) })
     }
 
     /// Get system information (Type 1)
     pub fn system_info(&self) -> Option<SystemInfo> {
-        self.find_structure(1).map(|s| unsafe {
-            SystemInfo::from_structure(s)
-        })
+        self.find_structure(1)
+            .map(|s| unsafe { SystemInfo::from_structure(s) })
     }
 
     /// Get baseboard information (Type 2)
     pub fn baseboard_info(&self) -> Option<BaseboardInfo> {
-        self.find_structure(2).map(|s| unsafe {
-            BaseboardInfo::from_structure(s)
-        })
+        self.find_structure(2)
+            .map(|s| unsafe { BaseboardInfo::from_structure(s) })
     }
 
     /// Get chassis information (Type 3)
     pub fn chassis_info(&self) -> Option<ChassisInfo> {
-        self.find_structure(3).map(|s| unsafe {
-            ChassisInfo::from_structure(s)
-        })
+        self.find_structure(3)
+            .map(|s| unsafe { ChassisInfo::from_structure(s) })
     }
 
     /// Get processor information (Type 4)
     pub fn processor_info(&self) -> Vec<ProcessorInfo> {
-        self.find_structures(4).iter().map(|s| unsafe {
-            ProcessorInfo::from_structure(s)
-        }).collect()
+        self.find_structures(4)
+            .iter()
+            .map(|s| unsafe { ProcessorInfo::from_structure(s) })
+            .collect()
     }
 
     /// Get memory device information (Type 17)
     pub fn memory_devices(&self) -> Vec<MemoryDeviceInfo> {
-        self.find_structures(17).iter().map(|s| unsafe {
-            MemoryDeviceInfo::from_structure(s)
-        }).collect()
+        self.find_structures(17)
+            .iter()
+            .map(|s| unsafe { MemoryDeviceInfo::from_structure(s) })
+            .collect()
     }
 
     /// Get total installed memory in bytes
     pub fn total_memory(&self) -> u64 {
-        self.memory_devices().iter()
-            .filter_map(|d| d.size)
-            .sum()
+        self.memory_devices().iter().filter_map(|d| d.size).sum()
     }
 }
 
 impl Protocol for SmbiosTables {
-    const GUID: Guid = Guid::new(
-        0xF2FD1544, 0x9794, 0x4A2C,
-        [0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94],
-    );
+    const GUID: Guid = Guid::new(0xF2FD1544, 0x9794, 0x4A2C, [
+        0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94,
+    ]);
 
     fn open(handle: Handle) -> Result<Self> {
         Ok(Self::new(handle))
@@ -383,10 +388,7 @@ impl SmbiosEntryPoint {
     /// Validate checksum
     pub fn validate_checksum(&self) -> bool {
         let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                self.length as usize,
-            )
+            core::slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
         };
 
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
@@ -422,10 +424,7 @@ impl SmbiosEntryPoint3 {
     /// Validate checksum
     pub fn validate_checksum(&self) -> bool {
         let bytes = unsafe {
-            core::slice::from_raw_parts(
-                self as *const _ as *const u8,
-                self.length as usize,
-            )
+            core::slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
         };
 
         bytes.iter().fold(0u8, |acc, &b| acc.wrapping_add(b)) == 0
@@ -614,12 +613,12 @@ impl BiosInfo {
     pub fn rom_size_bytes(&self) -> u64 {
         if let Some(ext) = self.extended_rom_size {
             if (ext & 0xC000) == 0 {
-                (ext as u64) * 1024 * 1024  // MB
+                (ext as u64) * 1024 * 1024 // MB
             } else {
-                (ext as u64 & 0x3FFF) * 1024 * 1024 * 1024  // GB
+                (ext as u64 & 0x3FFF) * 1024 * 1024 * 1024 // GB
             }
         } else if self.rom_size == 0xFF {
-            0  // Use extended size
+            0 // Use extended size
         } else {
             ((self.rom_size as u64) + 1) * 64 * 1024
         }
@@ -1379,20 +1378,32 @@ impl MemoryDeviceInfo {
             // Extended size field (SMBIOS 2.7+)
             if s.length >= 0x20 {
                 let ext_size = ptr::read_unaligned(data.add(24) as *const u32);
-                Some((ext_size as u64) * 1024 * 1024)  // MB
+                Some((ext_size as u64) * 1024 * 1024) // MB
             } else {
                 None
             }
         } else {
-            let granularity = if (size_raw & 0x8000) != 0 { 1024 } else { 1024 * 1024 };
+            let granularity = if (size_raw & 0x8000) != 0 {
+                1024
+            } else {
+                1024 * 1024
+            };
             Some(((size_raw & 0x7FFF) as u64) * granularity)
         };
 
         Self {
             array_handle,
             error_handle,
-            total_width: if total_width == 0xFFFF { None } else { Some(total_width) },
-            data_width: if data_width == 0xFFFF { None } else { Some(data_width) },
+            total_width: if total_width == 0xFFFF {
+                None
+            } else {
+                Some(total_width)
+            },
+            data_width: if data_width == 0xFFFF {
+                None
+            } else {
+                Some(data_width)
+            },
             size,
             form_factor,
             device_set,
@@ -1423,7 +1434,7 @@ impl MemoryDeviceInfo {
                 } else {
                     alloc::format!("{} B", bytes)
                 }
-            }
+            },
         }
     }
 }
@@ -1651,16 +1662,14 @@ pub mod smbios_guids {
     use super::*;
 
     /// SMBIOS table GUID
-    pub const SMBIOS: Guid = Guid::new(
-        0xEB9D2D31, 0x2D88, 0x11D3,
-        [0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D],
-    );
+    pub const SMBIOS: Guid = Guid::new(0xEB9D2D31, 0x2D88, 0x11D3, [
+        0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
+    ]);
 
     /// SMBIOS 3.0 table GUID
-    pub const SMBIOS3: Guid = Guid::new(
-        0xF2FD1544, 0x9794, 0x4A2C,
-        [0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94],
-    );
+    pub const SMBIOS3: Guid = Guid::new(0xF2FD1544, 0x9794, 0x4A2C, [
+        0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94,
+    ]);
 }
 
 // =============================================================================

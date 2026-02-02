@@ -5,14 +5,14 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use super::{Modification, ModificationId, SelfModError};
+use super::{Modification, SelfModError};
+use crate::math::F64Ext;
 
 // ============================================================================
 // SANDBOX TYPES

@@ -7,11 +7,9 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
-use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::genome::{CodeGenome, Gene, GeneId, GeneType, Codon, ControlCodon, GeneMetadata};
+use super::genome::{CodeGenome, Codon, ControlCodon, Gene, GeneId};
 
 // ============================================================================
 // MUTATION TYPES
@@ -137,11 +135,11 @@ fn mutate_codon(codon: &Codon) -> Codon {
             // Small change to opcode
             let delta = (rand_i32() % 5) - 2;
             Codon::Op(((*op as i32 + delta).max(0).min(255)) as u8)
-        }
+        },
         Codon::Reg(reg) => {
             // Change register
             Codon::Reg(((*reg as i32 + rand_i32() % 3 - 1).max(0).min(15)) as u8)
-        }
+        },
         Codon::Imm(val) => {
             // Small change to immediate
             let mutation_type = rand_usize(4);
@@ -151,18 +149,16 @@ fn mutate_codon(codon: &Codon) -> Codon {
                 2 => Codon::Imm(val / 2),                     // Half
                 _ => Codon::Imm(!val),                        // Flip bits
             }
-        }
+        },
         Codon::Addr(addr) => {
             let delta = rand_i32() % 64 - 32;
             Codon::Addr(addr + delta)
-        }
+        },
         Codon::Label(label) => {
             let delta = (rand_i32() % 10 - 5) as i16;
             Codon::Label(((*label as i16 + delta).max(0)) as u16)
-        }
-        Codon::Type(t) => {
-            Codon::Type(((*t as i32 + rand_i32() % 3 - 1).max(0).min(15)) as u8)
-        }
+        },
+        Codon::Type(t) => Codon::Type(((*t as i32 + rand_i32() % 3 - 1).max(0).min(15)) as u8),
         Codon::Control(_) => {
             // Randomly change control type
             let controls = [
@@ -173,7 +169,7 @@ fn mutate_codon(codon: &Codon) -> Codon {
                 ControlCodon::LoopEnd,
             ];
             Codon::Control(controls[rand_usize(controls.len())])
-        }
+        },
         Codon::Nop => {
             // Sometimes replace NOP with actual instruction
             if rand_f64() < 0.5 {
@@ -181,7 +177,7 @@ fn mutate_codon(codon: &Codon) -> Codon {
             } else {
                 Codon::Nop
             }
-        }
+        },
     }
 }
 
@@ -202,17 +198,14 @@ pub fn insertion_mutation(genome: &CodeGenome) -> CodeGenome {
                 gene.codons.insert(insert_idx, new_codon);
                 gene.metadata.mutations += 1;
             }
-        }
+        },
         1 => {
             // Insert new gene
-            let new_gene = Gene::random(
-                GeneId(rand_u64()),
-                rand_u64(),
-            );
+            let new_gene = Gene::random(GeneId(rand_u64()), rand_u64());
             let insert_idx = rand_usize(mutated.genes.len() + 1);
             mutated.genes.insert(insert_idx, new_gene);
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     mutated
@@ -240,13 +233,13 @@ pub fn deletion_mutation(genome: &CodeGenome, min_genes: usize) -> CodeGenome {
                     gene.metadata.mutations += 1;
                 }
             }
-        }
+        },
         1 => {
             // Delete gene
             let del_idx = rand_usize(mutated.genes.len());
             mutated.genes.remove(del_idx);
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     mutated
@@ -325,7 +318,7 @@ pub fn swap_mutation(genome: &CodeGenome) -> CodeGenome {
                 idx2 = rand_usize(mutated.genes.len());
             }
             mutated.genes.swap(idx1, idx2);
-        }
+        },
         1 => {
             // Swap codons within gene
             let gene_idx = rand_usize(mutated.genes.len());
@@ -339,8 +332,8 @@ pub fn swap_mutation(genome: &CodeGenome) -> CodeGenome {
                 gene.codons.swap(idx1, idx2);
                 gene.metadata.mutations += 1;
             }
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     mutated
@@ -412,10 +405,12 @@ pub fn structural_mutation(genome: &CodeGenome) -> CodeGenome {
                     enabled: true,
                 });
             }
-        }
+        },
         1 => {
             // Add connection
-            let all_nodes: Vec<super::genome::NodeId> = mutated.inputs.iter()
+            let all_nodes: Vec<super::genome::NodeId> = mutated
+                .inputs
+                .iter()
                 .chain(mutated.hidden.iter())
                 .chain(mutated.outputs.iter())
                 .copied()
@@ -426,7 +421,9 @@ pub fn structural_mutation(genome: &CodeGenome) -> CodeGenome {
                 let to = all_nodes[rand_usize(all_nodes.len())];
 
                 // Check if connection already exists
-                let exists = mutated.connections.iter()
+                let exists = mutated
+                    .connections
+                    .iter()
                     .any(|c| c.from == from && c.to == to);
 
                 if !exists && from != to {
@@ -439,7 +436,7 @@ pub fn structural_mutation(genome: &CodeGenome) -> CodeGenome {
                     });
                 }
             }
-        }
+        },
         2 => {
             // Mutate connection weight
             if !mutated.connections.is_empty() {
@@ -455,8 +452,8 @@ pub fn structural_mutation(genome: &CodeGenome) -> CodeGenome {
                     conn.weight = conn.weight.clamp(-5.0, 5.0);
                 }
             }
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     mutated
@@ -524,47 +521,47 @@ impl MutationEngine {
                     self.stats.point_mutations += 1;
                     mutations_applied += 1;
                     point_mutation(&mutated)
-                }
+                },
                 MutationType::Insertion if rand_f64() < self.config.insertion_rate => {
                     self.stats.insertions += 1;
                     mutations_applied += 1;
                     insertion_mutation(&mutated)
-                }
+                },
                 MutationType::Deletion if rand_f64() < self.config.deletion_rate => {
                     self.stats.deletions += 1;
                     mutations_applied += 1;
                     deletion_mutation(&mutated, self.config.min_genes)
-                }
+                },
                 MutationType::Duplication if rand_f64() < self.config.duplication_rate => {
                     self.stats.duplications += 1;
                     mutations_applied += 1;
                     duplication_mutation(&mutated)
-                }
+                },
                 MutationType::Inversion if rand_f64() < self.config.inversion_rate => {
                     self.stats.inversions += 1;
                     mutations_applied += 1;
                     inversion_mutation(&mutated)
-                }
+                },
                 MutationType::Swap if rand_f64() < self.config.swap_rate => {
                     self.stats.swaps += 1;
                     mutations_applied += 1;
                     swap_mutation(&mutated)
-                }
+                },
                 MutationType::Expression if rand_f64() < self.config.expression_rate => {
                     self.stats.expression_changes += 1;
                     mutations_applied += 1;
                     expression_mutation(&mutated)
-                }
+                },
                 MutationType::Toggle if rand_f64() < self.config.toggle_rate => {
                     self.stats.toggles += 1;
                     mutations_applied += 1;
                     toggle_mutation(&mutated)
-                }
+                },
                 MutationType::Structural if rand_f64() < self.config.structural_rate => {
                     self.stats.structural += 1;
                     mutations_applied += 1;
                     structural_mutation(&mutated)
-                }
+                },
                 _ => break,
             };
         }
@@ -607,17 +604,31 @@ static mut MUTATION_SEED: u64 = 13579;
 
 fn rand_u64() -> u64 {
     unsafe {
-        MUTATION_SEED = MUTATION_SEED.wrapping_mul(6364136223846793005).wrapping_add(1);
+        MUTATION_SEED = MUTATION_SEED
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1);
         MUTATION_SEED
     }
 }
 
-fn rand_u8() -> u8 { rand_u64() as u8 }
-fn rand_u16() -> u16 { rand_u64() as u16 }
-fn rand_i32() -> i32 { rand_u64() as i32 }
-fn rand_f64() -> f64 { (rand_u64() as f64) / (u64::MAX as f64) }
+fn rand_u8() -> u8 {
+    rand_u64() as u8
+}
+fn rand_u16() -> u16 {
+    rand_u64() as u16
+}
+fn rand_i32() -> i32 {
+    rand_u64() as i32
+}
+fn rand_f64() -> f64 {
+    (rand_u64() as f64) / (u64::MAX as f64)
+}
 fn rand_usize(max: usize) -> usize {
-    if max == 0 { 0 } else { (rand_u64() as usize) % max }
+    if max == 0 {
+        0
+    } else {
+        (rand_u64() as usize) % max
+    }
 }
 
 // ============================================================================
@@ -626,8 +637,9 @@ fn rand_usize(max: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::sync::atomic::AtomicU64;
+
+    use super::*;
 
     #[test]
     fn test_point_mutation() {
@@ -662,9 +674,11 @@ mod tests {
         let genome = CodeGenome::random(1, 10, &counter);
         let mutated = engine.mutate(&genome);
         // Mutation happened
-        assert!(engine.stats.point_mutations > 0 ||
-                engine.stats.insertions > 0 ||
-                engine.stats.deletions > 0 ||
-                engine.stats.expression_changes > 0);
+        assert!(
+            engine.stats.point_mutations > 0
+                || engine.stats.insertions > 0
+                || engine.stats.deletions > 0
+                || engine.stats.expression_changes > 0
+        );
     }
 }

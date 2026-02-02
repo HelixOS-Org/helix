@@ -2,8 +2,9 @@
 //!
 //! Provides access to serial devices for debugging and communication.
 
-use crate::raw::types::*;
 use core::fmt;
+
+use crate::raw::types::*;
 
 // =============================================================================
 // SERIAL I/O PROTOCOL
@@ -30,16 +31,10 @@ pub struct EfiSerialIoProtocol {
     ) -> Status,
 
     /// Set control bits
-    pub set_control: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        control: u32,
-    ) -> Status,
+    pub set_control: unsafe extern "efiapi" fn(this: *mut Self, control: u32) -> Status,
 
     /// Get control bits
-    pub get_control: unsafe extern "efiapi" fn(
-        this: *mut Self,
-        control: *mut u32,
-    ) -> Status,
+    pub get_control: unsafe extern "efiapi" fn(this: *mut Self, control: *mut u32) -> Status,
 
     /// Write data
     pub write: unsafe extern "efiapi" fn(
@@ -90,13 +85,9 @@ impl EfiSerialIoProtocol {
         stop_bits: EfiStopBits,
     ) -> Result<(), Status> {
         let status = (self.set_attributes)(
-            self,
-            baud_rate,
-            0, // Default FIFO depth
+            self, baud_rate, 0, // Default FIFO depth
             0, // Default timeout
-            parity,
-            data_bits,
-            stop_bits,
+            parity, data_bits, stop_bits,
         );
         status.to_status_result()
     }
@@ -126,11 +117,7 @@ impl EfiSerialIoProtocol {
     /// The caller must ensure the protocol pointer and buffer are valid.
     pub unsafe fn write_bytes(&mut self, data: &[u8]) -> Result<usize, Status> {
         let mut size = data.len();
-        let status = (self.write)(
-            self,
-            &mut size,
-            data.as_ptr() as *const core::ffi::c_void,
-        );
+        let status = (self.write)(self, &mut size, data.as_ptr() as *const core::ffi::c_void);
         status.to_status_result_with(size)
     }
 
@@ -247,15 +234,15 @@ pub enum EfiParity {
     /// Default parity
     Default = 0,
     /// No parity
-    None = 1,
+    None    = 1,
     /// Even parity
-    Even = 2,
+    Even    = 2,
     /// Odd parity
-    Odd = 3,
+    Odd     = 3,
     /// Mark parity
-    Mark = 4,
+    Mark    = 4,
     /// Space parity
-    Space = 5,
+    Space   = 5,
 }
 
 impl Default for EfiParity {
@@ -275,11 +262,11 @@ pub enum EfiStopBits {
     /// Default stop bits
     Default = 0,
     /// One stop bit
-    One = 1,
+    One     = 1,
     /// One and a half stop bits
     OneFive = 2,
     /// Two stop bits
-    Two = 3,
+    Two     = 3,
 }
 
 impl Default for EfiStopBits {
@@ -370,17 +357,39 @@ impl core::ops::BitAnd for SerialControl {
 impl fmt::Debug for SerialControl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut list = f.debug_set();
-        if self.contains(Self::DTR) { list.entry(&"DTR"); }
-        if self.contains(Self::RTS) { list.entry(&"RTS"); }
-        if self.contains(Self::CTS) { list.entry(&"CTS"); }
-        if self.contains(Self::DSR) { list.entry(&"DSR"); }
-        if self.contains(Self::RI) { list.entry(&"RI"); }
-        if self.contains(Self::DCD) { list.entry(&"DCD"); }
-        if self.contains(Self::INPUT_BUFFER_FULL) { list.entry(&"INPUT_BUFFER_FULL"); }
-        if self.contains(Self::OUTPUT_BUFFER_EMPTY) { list.entry(&"OUTPUT_BUFFER_EMPTY"); }
-        if self.contains(Self::HARDWARE_LOOPBACK) { list.entry(&"HARDWARE_LOOPBACK"); }
-        if self.contains(Self::SOFTWARE_LOOPBACK) { list.entry(&"SOFTWARE_LOOPBACK"); }
-        if self.contains(Self::HARDWARE_FLOW_CONTROL) { list.entry(&"HARDWARE_FLOW_CONTROL"); }
+        if self.contains(Self::DTR) {
+            list.entry(&"DTR");
+        }
+        if self.contains(Self::RTS) {
+            list.entry(&"RTS");
+        }
+        if self.contains(Self::CTS) {
+            list.entry(&"CTS");
+        }
+        if self.contains(Self::DSR) {
+            list.entry(&"DSR");
+        }
+        if self.contains(Self::RI) {
+            list.entry(&"RI");
+        }
+        if self.contains(Self::DCD) {
+            list.entry(&"DCD");
+        }
+        if self.contains(Self::INPUT_BUFFER_FULL) {
+            list.entry(&"INPUT_BUFFER_FULL");
+        }
+        if self.contains(Self::OUTPUT_BUFFER_EMPTY) {
+            list.entry(&"OUTPUT_BUFFER_EMPTY");
+        }
+        if self.contains(Self::HARDWARE_LOOPBACK) {
+            list.entry(&"HARDWARE_LOOPBACK");
+        }
+        if self.contains(Self::SOFTWARE_LOOPBACK) {
+            list.entry(&"SOFTWARE_LOOPBACK");
+        }
+        if self.contains(Self::HARDWARE_FLOW_CONTROL) {
+            list.entry(&"HARDWARE_FLOW_CONTROL");
+        }
         list.finish()
     }
 }

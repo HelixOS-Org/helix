@@ -6,7 +6,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::{VirtId, VirtType, WorkloadInfo};
+use super::{VirtId, WorkloadInfo};
 
 /// VM-specific intelligence
 pub struct VmIntelligence {

@@ -17,15 +17,15 @@ use crate::core::ComponentId;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum QuarantineLevel {
     /// Monitored - component runs but is watched closely
-    Monitored = 0,
+    Monitored  = 0,
     /// Degraded - component runs with reduced functionality
-    Degraded = 1,
+    Degraded   = 1,
     /// Restricted - limited operations allowed
     Restricted = 2,
     /// Isolated - no interaction with other components
-    Isolated = 3,
+    Isolated   = 3,
     /// Suspended - component is completely stopped
-    Suspended = 4,
+    Suspended  = 4,
 }
 
 impl QuarantineLevel {
@@ -98,10 +98,10 @@ impl QuarantineReason {
                     health * 100.0,
                     threshold * 100.0
                 )
-            }
+            },
             Self::HealingFailed { attempts } => {
                 format!("Healing failed after {} attempts", attempts)
-            }
+            },
             Self::AnomalyDetected { anomaly_type } => format!("Anomaly: {}", anomaly_type),
             Self::ResourceExhaustion { resource } => format!("Resource exhausted: {}", resource),
             Self::SecurityViolation { description } => format!("Security: {}", description),

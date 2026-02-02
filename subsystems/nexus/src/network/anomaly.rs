@@ -5,7 +5,7 @@
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::sync::atomic::AtomicU64;
 
 use super::FlowId;
 use crate::core::NexusTimestamp;

@@ -6,12 +6,12 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use super::population::Population;
 use super::{Fitness, Generation, GenomeId, Individual, SpeciesId};
+use crate::math::F64Ext;
 
 // ============================================================================
 // ELITISM TYPES

@@ -6,8 +6,6 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
-
 use super::types::{Complex, StateVector};
 
 // ============================================================================

@@ -2,9 +2,10 @@
 //!
 //! Defines the communication interface between modules.
 
-use crate::{ModuleId, ModuleResult};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::{ModuleId, ModuleResult};
 
 /// Module message
 #[derive(Debug, Clone)]
@@ -25,9 +26,14 @@ pub struct ModuleMessage {
 
 impl ModuleMessage {
     /// Create a new message
-    pub fn new(source: ModuleId, target: ModuleId, msg_type: MessageType, payload: MessagePayload) -> Self {
+    pub fn new(
+        source: ModuleId,
+        target: ModuleId,
+        msg_type: MessageType,
+        payload: MessagePayload,
+    ) -> Self {
         static ID: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(1);
-        
+
         Self {
             source,
             target,
@@ -170,7 +176,8 @@ impl InterfaceRegistry {
 
     /// Register a module as implementing an interface
     pub fn register(&self, interface: &str, module_id: ModuleId) {
-        self.interfaces.write()
+        self.interfaces
+            .write()
             .entry(interface.into())
             .or_default()
             .push(module_id);
@@ -185,7 +192,8 @@ impl InterfaceRegistry {
 
     /// Get modules implementing an interface
     pub fn get_implementors(&self, interface: &str) -> Vec<ModuleId> {
-        self.interfaces.read()
+        self.interfaces
+            .read()
             .get(interface)
             .cloned()
             .unwrap_or_default()
@@ -193,7 +201,8 @@ impl InterfaceRegistry {
 
     /// Get the primary implementor of an interface
     pub fn get_primary(&self, interface: &str) -> Option<ModuleId> {
-        self.interfaces.read()
+        self.interfaces
+            .read()
             .get(interface)
             .and_then(|v| v.first().copied())
     }
@@ -220,9 +229,10 @@ macro_rules! impl_interface {
                 $version
             }
 
-            fn handle_message(&self, message: &$crate::interface::ModuleMessage) 
-                -> $crate::ModuleResult<Option<$crate::interface::ModuleMessage>> 
-            {
+            fn handle_message(
+                &self,
+                message: &$crate::interface::ModuleMessage,
+            ) -> $crate::ModuleResult<Option<$crate::interface::ModuleMessage>> {
                 // Default implementation
                 Ok(None)
             }

@@ -54,32 +54,15 @@
 //! | 7   | Reserved                 | 8 KB    |
 
 pub mod gdt;
-pub mod tss;
-pub mod selectors;
 pub mod per_cpu;
+pub mod selectors;
+pub mod tss;
 
 // Re-exports
-pub use gdt::{
-    Gdt, GdtEntry, GdtDescriptor,
-    DescriptorType, DescriptorFlags,
-};
-
-pub use tss::{
-    Tss, TssEntry,
-    IstStack, IstIndex,
-    IST_STACK_SIZE, KERNEL_STACK_SIZE,
-};
-
-pub use selectors::{
-    SegmentSelector, Rpl,
-    KERNEL_CS, KERNEL_DS, USER_CS, USER_DS, TSS_SELECTOR,
-};
-
-pub use per_cpu::{
-    PerCpuSegmentation,
-    init_bsp, init_ap,
-    MAX_CPUS,
-};
+pub use gdt::{DescriptorFlags, DescriptorType, Gdt, GdtDescriptor, GdtEntry};
+pub use per_cpu::{init_ap, init_bsp, PerCpuSegmentation, MAX_CPUS};
+pub use selectors::{Rpl, SegmentSelector, KERNEL_CS, KERNEL_DS, TSS_SELECTOR, USER_CS, USER_DS};
+pub use tss::{IstIndex, IstStack, Tss, TssEntry, IST_STACK_SIZE, KERNEL_STACK_SIZE};
 
 /// Initialize segmentation for the bootstrap processor
 ///

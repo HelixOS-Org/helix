@@ -2,13 +2,13 @@
 //!
 //! Secure Boot, Measured Boot, and cryptographic verification.
 
-pub mod signature;
-pub mod secureboot;
-pub mod tpm;
 pub mod hash;
 pub mod keys;
+pub mod secureboot;
+pub mod signature;
+pub mod tpm;
 
 // Re-exports
-pub use signature::*;
-pub use secureboot::*;
 pub use hash::*;
+pub use secureboot::*;
+pub use signature::*;

@@ -5,23 +5,15 @@
 //! - HHDM (Higher Half Direct Map) offset
 //! - Paging mode configuration
 
-
-
-use crate::protocol::request_ids::{MEMMAP_ID, HHDM_ID, PAGING_MODE_ID};
-use crate::protocol::raw::RawMemmapEntry;
-use crate::protocol::magic::{
-    LIMINE_MEMMAP_USABLE,
-    LIMINE_MEMMAP_RESERVED,
-    LIMINE_MEMMAP_ACPI_RECLAIMABLE,
-    LIMINE_MEMMAP_ACPI_NVS,
-    LIMINE_MEMMAP_BAD_MEMORY,
-    LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE,
-    LIMINE_MEMMAP_KERNEL_AND_MODULES,
-    LIMINE_MEMMAP_FRAMEBUFFER,
-    LIMINE_PAGING_MODE_X86_64_4LVL,
-    LIMINE_PAGING_MODE_X86_64_5LVL,
-};
 use super::{LimineRequest, ResponsePtr, SafeResponse};
+use crate::protocol::magic::{
+    LIMINE_MEMMAP_ACPI_NVS, LIMINE_MEMMAP_ACPI_RECLAIMABLE, LIMINE_MEMMAP_BAD_MEMORY,
+    LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE, LIMINE_MEMMAP_FRAMEBUFFER,
+    LIMINE_MEMMAP_KERNEL_AND_MODULES, LIMINE_MEMMAP_RESERVED, LIMINE_MEMMAP_USABLE,
+    LIMINE_PAGING_MODE_X86_64_4LVL, LIMINE_PAGING_MODE_X86_64_5LVL,
+};
+use crate::protocol::raw::RawMemmapEntry;
+use crate::protocol::request_ids::{HHDM_ID, MEMMAP_ID, PAGING_MODE_ID};
 
 // =============================================================================
 // Memory Map Request
@@ -42,7 +34,8 @@ use super::{LimineRequest, ResponsePtr, SafeResponse};
 ///
 /// fn count_usable_memory() -> u64 {
 ///     if let Some(memmap) = MEMMAP.response() {
-///         memmap.entries()
+///         memmap
+///             .entries()
 ///             .filter(|e| e.kind() == MemoryKind::Usable)
 ///             .map(|e| e.length())
 ///             .sum()
@@ -90,9 +83,15 @@ impl Default for MemoryMapRequest {
 impl LimineRequest for MemoryMapRequest {
     type Response = MemoryMapResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -157,9 +156,7 @@ impl MemoryMapResponse {
 
     /// Calculate total memory (all types)
     pub fn total_memory(&self) -> u64 {
-        self.entries()
-            .map(|e| e.length())
-            .sum()
+        self.entries().map(|e| e.length()).sum()
     }
 
     /// Find largest usable region
@@ -180,9 +177,7 @@ impl MemoryMapResponse {
     pub fn find_usable_above(&self, min_addr: u64, min_size: u64) -> Option<MemoryEntry> {
         self.entries()
             .filter(|e| {
-                e.kind() == MemoryKind::Usable &&
-                e.base() >= min_addr &&
-                e.length() >= min_size
+                e.kind() == MemoryKind::Usable && e.base() >= min_addr && e.length() >= min_size
             })
             .next()
     }
@@ -289,16 +284,18 @@ impl MemoryEntry {
 
     /// Check if this memory can be reclaimed
     pub fn is_reclaimable(&self) -> bool {
-        matches!(self.kind,
-            MemoryKind::BootloaderReclaimable |
-            MemoryKind::AcpiReclaimable
+        matches!(
+            self.kind,
+            MemoryKind::BootloaderReclaimable | MemoryKind::AcpiReclaimable
         )
     }
 }
 
 impl core::fmt::Display for MemoryEntry {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:#018x} - {:#018x} ({:?}, {} KB)",
+        write!(
+            f,
+            "{:#018x} - {:#018x} ({:?}, {} KB)",
             self.base,
             self.end(),
             self.kind,
@@ -312,23 +309,23 @@ impl core::fmt::Display for MemoryEntry {
 #[repr(u64)]
 pub enum MemoryKind {
     /// Usable RAM
-    Usable = LIMINE_MEMMAP_USABLE,
+    Usable           = LIMINE_MEMMAP_USABLE,
     /// Reserved by firmware
-    Reserved = LIMINE_MEMMAP_RESERVED,
+    Reserved         = LIMINE_MEMMAP_RESERVED,
     /// ACPI reclaimable memory
-    AcpiReclaimable = LIMINE_MEMMAP_ACPI_RECLAIMABLE,
+    AcpiReclaimable  = LIMINE_MEMMAP_ACPI_RECLAIMABLE,
     /// ACPI NVS memory
-    AcpiNvs = LIMINE_MEMMAP_ACPI_NVS,
+    AcpiNvs          = LIMINE_MEMMAP_ACPI_NVS,
     /// Bad memory
-    BadMemory = LIMINE_MEMMAP_BAD_MEMORY,
+    BadMemory        = LIMINE_MEMMAP_BAD_MEMORY,
     /// Bootloader reclaimable memory
     BootloaderReclaimable = LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE,
     /// Kernel and modules
     KernelAndModules = LIMINE_MEMMAP_KERNEL_AND_MODULES,
     /// Framebuffer memory
-    Framebuffer = LIMINE_MEMMAP_FRAMEBUFFER,
+    Framebuffer      = LIMINE_MEMMAP_FRAMEBUFFER,
     /// Unknown type
-    Unknown = 0xFFFF,
+    Unknown          = 0xFFFF,
 }
 
 impl MemoryKind {
@@ -424,9 +421,15 @@ impl Default for HhdmRequest {
 impl LimineRequest for HhdmRequest {
     type Response = HhdmResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }
@@ -526,7 +529,7 @@ impl core::fmt::Debug for HhdmResponse {
 /// # Example
 ///
 /// ```rust,no_run
-/// use helix_limine::requests::{PagingModeRequest, PagingMode};
+/// use helix_limine::requests::{PagingMode, PagingModeRequest};
 ///
 /// #[used]
 /// #[link_section = ".limine_requests"]
@@ -591,9 +594,15 @@ impl Default for PagingModeRequest {
 impl LimineRequest for PagingModeRequest {
     type Response = PagingModeResponse;
 
-    fn id(&self) -> [u64; 4] { self.id }
-    fn revision(&self) -> u64 { self.revision }
-    fn has_response(&self) -> bool { self.response.is_available() }
+    fn id(&self) -> [u64; 4] {
+        self.id
+    }
+    fn revision(&self) -> u64 {
+        self.revision
+    }
+    fn has_response(&self) -> bool {
+        self.response.is_available()
+    }
     fn response(&self) -> Option<&Self::Response> {
         unsafe { self.response.get() }
     }

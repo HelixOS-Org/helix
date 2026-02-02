@@ -22,31 +22,23 @@ mod types;
 mod warmer;
 
 // Re-export types
-pub use types::{CacheId, CacheKey, CacheLevel, CacheLineState, EvictionPolicy};
-
 // Re-export entry
 pub use entry::CacheEntry;
-
-// Re-export pattern
-pub use pattern::{AccessPattern, AccessPatternTracker};
-
 // Re-export eviction
 pub use eviction::EvictionOptimizer;
-
-// Re-export stats
-pub use stats::CacheStats;
-
-// Re-export warmer
-pub use warmer::CacheWarmer;
-
-// Re-export manager
-pub use manager::CacheManager;
-
-// Re-export multilevel
-pub use multilevel::{InclusionPolicy, MultiLevelCache};
-
 // Re-export intelligence
 pub use intelligence::CacheIntelligence;
+// Re-export manager
+pub use manager::CacheManager;
+// Re-export multilevel
+pub use multilevel::{InclusionPolicy, MultiLevelCache};
+// Re-export pattern
+pub use pattern::{AccessPattern, AccessPatternTracker};
+// Re-export stats
+pub use stats::CacheStats;
+pub use types::{CacheId, CacheKey, CacheLevel, CacheLineState, EvictionPolicy};
+// Re-export warmer
+pub use warmer::CacheWarmer;
 
 // ============================================================================
 // TESTS

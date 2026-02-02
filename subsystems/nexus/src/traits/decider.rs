@@ -7,8 +7,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::types::{Confidence, Intent, NexusResult, PolicyId, Severity};
 use super::component::NexusComponent;
+use crate::types::{Confidence, Intent, NexusResult, PolicyId, Severity};
 
 // ============================================================================
 // DECIDER TRAIT
@@ -198,10 +198,13 @@ pub trait OptionGenerator: NexusComponent {
 
     /// Rank options by score
     fn rank(&self, options: Vec<Self::Option>) -> Vec<Self::Option> {
-        let mut scored: Vec<_> = options.into_iter().map(|o| {
-            let s = self.score(&o);
-            (o, s)
-        }).collect();
+        let mut scored: Vec<_> = options
+            .into_iter()
+            .map(|o| {
+                let s = self.score(&o);
+                (o, s)
+            })
+            .collect();
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         scored.into_iter().map(|(o, _)| o).collect()
     }

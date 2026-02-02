@@ -103,8 +103,9 @@ impl Time {
         if self.nanosecond > 999_999_999 {
             return false;
         }
-        if self.timezone != Self::TIMEZONE_UNSPECIFIED &&
-           (self.timezone < -1440 || self.timezone > 1440) {
+        if self.timezone != Self::TIMEZONE_UNSPECIFIED
+            && (self.timezone < -1440 || self.timezone > 1440)
+        {
             return false;
         }
         true
@@ -255,9 +256,11 @@ impl Time {
 
 impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            self.year, self.month, self.day,
-            self.hour, self.minute, self.second)
+        write!(
+            f,
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+            self.year, self.month, self.day, self.hour, self.minute, self.second
+        )
     }
 }
 
@@ -280,7 +283,11 @@ pub struct TimeCapabilities {
 impl TimeCapabilities {
     /// Create new capabilities
     pub const fn new(resolution: u32, accuracy: u32, sets_to_zero: bool) -> Self {
-        Self { resolution, accuracy, sets_to_zero }
+        Self {
+            resolution,
+            accuracy,
+            sets_to_zero,
+        }
     }
 }
 
@@ -302,7 +309,10 @@ impl Duration {
     pub const ZERO: Duration = Duration { secs: 0, nanos: 0 };
 
     /// Maximum duration
-    pub const MAX: Duration = Duration { secs: u64::MAX, nanos: 999_999_999 };
+    pub const MAX: Duration = Duration {
+        secs: u64::MAX,
+        nanos: 999_999_999,
+    };
 
     /// Nanoseconds per second
     const NANOS_PER_SEC: u32 = 1_000_000_000;
@@ -405,7 +415,9 @@ impl Duration {
     /// Checked multiply
     pub fn checked_mul(self, rhs: u32) -> Option<Duration> {
         let total_nanos = self.nanos as u64 * rhs as u64;
-        let secs = self.secs.checked_mul(rhs as u64)?
+        let secs = self
+            .secs
+            .checked_mul(rhs as u64)?
             .checked_add(total_nanos / Self::NANOS_PER_SEC as u64)?;
         let nanos = (total_nanos % Self::NANOS_PER_SEC as u64) as u32;
 
@@ -583,10 +595,10 @@ impl Timer {
             match self.mode {
                 TimerMode::OneShot => {
                     self.state = TimerState::Expired;
-                }
+                },
                 TimerMode::Periodic => {
                     self.target_tick = self.target_tick.saturating_add(self.period);
-                }
+                },
             }
 
             return true;
@@ -863,7 +875,9 @@ pub fn estimate_tsc_frequency() -> u64 {
 
         // Simple delay loop (~1ms on typical CPU)
         for _ in 0..100_000 {
-            unsafe { core::arch::asm!("pause", options(nomem, nostack)); }
+            unsafe {
+                core::arch::asm!("pause", options(nomem, nostack));
+            }
         }
 
         let end = read_tsc();
@@ -905,10 +919,14 @@ pub fn delay_cycles(cycles: u64) {
 
     while read_tsc() < target {
         #[cfg(target_arch = "x86_64")]
-        unsafe { core::arch::asm!("pause", options(nomem, nostack)); }
+        unsafe {
+            core::arch::asm!("pause", options(nomem, nostack));
+        }
 
         #[cfg(target_arch = "aarch64")]
-        unsafe { core::arch::asm!("yield", options(nomem, nostack)); }
+        unsafe {
+            core::arch::asm!("yield", options(nomem, nostack));
+        }
     }
 }
 
@@ -940,7 +958,13 @@ pub const fn is_leap_year(year: u16) -> bool {
 pub const fn days_in_month(year: u16, month: u8) -> u8 {
     match month {
         1 => 31,
-        2 => if is_leap_year(year) { 29 } else { 28 },
+        2 => {
+            if is_leap_year(year) {
+                29
+            } else {
+                28
+            }
+        },
         3 => 31,
         4 => 30,
         5 => 31,
@@ -957,7 +981,11 @@ pub const fn days_in_month(year: u16, month: u8) -> u8 {
 
 /// Days in year
 pub const fn days_in_year(year: u16) -> u16 {
-    if is_leap_year(year) { 366 } else { 365 }
+    if is_leap_year(year) {
+        366
+    } else {
+        365
+    }
 }
 
 /// Month name
@@ -1034,20 +1062,20 @@ pub const fn day_short_name(day: u8) -> &'static str {
 pub mod timezone {
     pub const UTC: i16 = 0;
     pub const GMT: i16 = 0;
-    pub const CET: i16 = 60;       // Central European Time
-    pub const EET: i16 = 120;      // Eastern European Time
-    pub const MSK: i16 = 180;      // Moscow Time
-    pub const IST: i16 = 330;      // India Standard Time
-    pub const CST: i16 = 480;      // China Standard Time
-    pub const JST: i16 = 540;      // Japan Standard Time
-    pub const AEST: i16 = 600;     // Australian Eastern Standard Time
-    pub const NZST: i16 = 720;     // New Zealand Standard Time
-    pub const EST: i16 = -300;     // Eastern Standard Time (US)
-    pub const CST_US: i16 = -360;  // Central Standard Time (US)
-    pub const MST: i16 = -420;     // Mountain Standard Time (US)
-    pub const PST: i16 = -480;     // Pacific Standard Time (US)
-    pub const AKST: i16 = -540;    // Alaska Standard Time
-    pub const HST: i16 = -600;     // Hawaii Standard Time
+    pub const CET: i16 = 60; // Central European Time
+    pub const EET: i16 = 120; // Eastern European Time
+    pub const MSK: i16 = 180; // Moscow Time
+    pub const IST: i16 = 330; // India Standard Time
+    pub const CST: i16 = 480; // China Standard Time
+    pub const JST: i16 = 540; // Japan Standard Time
+    pub const AEST: i16 = 600; // Australian Eastern Standard Time
+    pub const NZST: i16 = 720; // New Zealand Standard Time
+    pub const EST: i16 = -300; // Eastern Standard Time (US)
+    pub const CST_US: i16 = -360; // Central Standard Time (US)
+    pub const MST: i16 = -420; // Mountain Standard Time (US)
+    pub const PST: i16 = -480; // Pacific Standard Time (US)
+    pub const AKST: i16 = -540; // Alaska Standard Time
+    pub const HST: i16 = -600; // Hawaii Standard Time
 }
 
 // =============================================================================

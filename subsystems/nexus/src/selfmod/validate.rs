@@ -7,12 +7,11 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::sandbox::TestResult;
-use super::{Modification, ModificationId, RiskLevel};
+use super::{Modification, RiskLevel};
 
 // ============================================================================
 // VALIDATION TYPES

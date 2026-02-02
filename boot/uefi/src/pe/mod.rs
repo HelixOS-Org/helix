@@ -368,11 +368,12 @@ impl OptionalHeader64 {
 
     /// Is any EFI type
     pub fn is_efi(&self) -> bool {
-        matches!(self.subsystem,
-            subsystem::EFI_APPLICATION |
-            subsystem::EFI_BOOT_SERVICE_DRIVER |
-            subsystem::EFI_RUNTIME_DRIVER |
-            subsystem::EFI_ROM
+        matches!(
+            self.subsystem,
+            subsystem::EFI_APPLICATION
+                | subsystem::EFI_BOOT_SERVICE_DRIVER
+                | subsystem::EFI_RUNTIME_DRIVER
+                | subsystem::EFI_ROM
         )
     }
 
@@ -506,10 +507,10 @@ impl SectionHeader {
 
     /// Is data section
     pub fn is_data(&self) -> bool {
-        self.characteristics & (
-            section_characteristics::CNT_INITIALIZED_DATA |
-            section_characteristics::CNT_UNINITIALIZED_DATA
-        ) != 0
+        self.characteristics
+            & (section_characteristics::CNT_INITIALIZED_DATA
+                | section_characteristics::CNT_UNINITIALIZED_DATA)
+            != 0
     }
 
     /// Is readable
@@ -534,8 +535,7 @@ impl SectionHeader {
 
     /// Contains virtual address
     pub fn contains_rva(&self, rva: u32) -> bool {
-        rva >= self.virtual_address &&
-        rva < self.virtual_address + self.virtual_size
+        rva >= self.virtual_address && rva < self.virtual_address + self.virtual_size
     }
 
     /// RVA to file offset
@@ -755,9 +755,7 @@ impl ImportDescriptor {
 
     /// Is null terminator
     pub fn is_null(&self) -> bool {
-        self.original_first_thunk == 0 &&
-        self.name == 0 &&
-        self.first_thunk == 0
+        self.original_first_thunk == 0 && self.name == 0 && self.first_thunk == 0
     }
 }
 
@@ -793,8 +791,7 @@ impl<'a> PeFile<'a> {
     /// Parse PE file
     pub fn parse(data: &'a [u8]) -> Result<Self, PeError> {
         // Parse DOS header
-        let dos_header = DosHeader::from_bytes(data)
-            .ok_or(PeError::InvalidDosHeader)?;
+        let dos_header = DosHeader::from_bytes(data).ok_or(PeError::InvalidDosHeader)?;
 
         if !dos_header.is_valid() {
             return Err(PeError::InvalidDosHeader);
@@ -809,7 +806,9 @@ impl<'a> PeFile<'a> {
 
         // Check PE signature
         let signature = u32::from_le_bytes(
-            data[pe_offset..pe_offset + 4].try_into().map_err(|_| PeError::InvalidPeSignature)?
+            data[pe_offset..pe_offset + 4]
+                .try_into()
+                .map_err(|_| PeError::InvalidPeSignature)?,
         );
 
         if signature != PE_SIGNATURE {
@@ -818,8 +817,8 @@ impl<'a> PeFile<'a> {
 
         // Parse COFF header
         let coff_offset = pe_offset + 4;
-        let coff_header = CoffHeader::from_bytes(&data[coff_offset..])
-            .ok_or(PeError::InvalidCoffHeader)?;
+        let coff_header =
+            CoffHeader::from_bytes(&data[coff_offset..]).ok_or(PeError::InvalidCoffHeader)?;
 
         // Parse optional header
         let opt_offset = coff_offset + CoffHeader::SIZE;
@@ -833,7 +832,8 @@ impl<'a> PeFile<'a> {
         // Parse data directories
         let mut data_directories = [DataDirectory::default(); MAX_DATA_DIRECTORIES];
         let dir_offset = opt_offset + OptionalHeader64::SIZE;
-        let dir_count = (optional_header.number_of_rva_and_sizes as usize).min(MAX_DATA_DIRECTORIES);
+        let dir_count =
+            (optional_header.number_of_rva_and_sizes as usize).min(MAX_DATA_DIRECTORIES);
 
         for i in 0..dir_count {
             let offset = dir_offset + i * DataDirectory::SIZE;
@@ -1063,11 +1063,7 @@ impl PeLoader {
     }
 
     /// Apply relocations
-    pub fn relocate(
-        pe: &PeFile,
-        memory: &mut [u8],
-        load_base: u64,
-    ) -> Result<(), PeError> {
+    pub fn relocate(pe: &PeFile, memory: &mut [u8], load_base: u64) -> Result<(), PeError> {
         let reloc_dir = pe.data_directory(data_directory_index::BASE_RELOC);
 
         let reloc_dir = match reloc_dir {
@@ -1085,11 +1081,12 @@ impl PeLoader {
 
         while offset < reloc_dir.size {
             let block_rva = reloc_dir.virtual_address + offset;
-            let block_data = pe.data_at_rva(block_rva, BaseRelocationBlock::SIZE)
+            let block_data = pe
+                .data_at_rva(block_rva, BaseRelocationBlock::SIZE)
                 .ok_or(PeError::InvalidRelocation)?;
 
-            let block = BaseRelocationBlock::from_bytes(block_data)
-                .ok_or(PeError::InvalidRelocation)?;
+            let block =
+                BaseRelocationBlock::from_bytes(block_data).ok_or(PeError::InvalidRelocation)?;
 
             if block.size_of_block == 0 {
                 break;
@@ -1098,7 +1095,8 @@ impl PeLoader {
             // Process entries
             for i in 0..block.entry_count() {
                 let entry_offset = block_rva + BaseRelocationBlock::SIZE as u32 + (i * 2) as u32;
-                let entry_data = pe.data_at_rva(entry_offset, 2)
+                let entry_data = pe
+                    .data_at_rva(entry_offset, 2)
                     .ok_or(PeError::InvalidRelocation)?;
 
                 let entry_value = u16::from_le_bytes([entry_data[0], entry_data[1]]);
@@ -1117,25 +1115,25 @@ impl PeLoader {
                         }
 
                         let value = u64::from_le_bytes(
-                            memory[reloc_offset..reloc_offset + 8].try_into().unwrap()
+                            memory[reloc_offset..reloc_offset + 8].try_into().unwrap(),
                         );
                         let new_value = value.wrapping_add(delta);
                         memory[reloc_offset..reloc_offset + 8]
                             .copy_from_slice(&new_value.to_le_bytes());
-                    }
+                    },
                     reloc_type::HIGHLOW => {
                         if reloc_offset + 4 > memory.len() {
                             return Err(PeError::InvalidRelocation);
                         }
 
                         let value = u32::from_le_bytes(
-                            memory[reloc_offset..reloc_offset + 4].try_into().unwrap()
+                            memory[reloc_offset..reloc_offset + 4].try_into().unwrap(),
                         );
                         let new_value = value.wrapping_add(delta as u32);
                         memory[reloc_offset..reloc_offset + 4]
                             .copy_from_slice(&new_value.to_le_bytes());
-                    }
-                    _ => {} // Ignore other types
+                    },
+                    _ => {}, // Ignore other types
                 }
             }
 
@@ -1237,9 +1235,9 @@ mod tests {
             pointer_to_linenumbers: 0,
             number_of_relocations: 0,
             number_of_linenumbers: 0,
-            characteristics: section_characteristics::CNT_CODE |
-                           section_characteristics::MEM_READ |
-                           section_characteristics::MEM_EXECUTE,
+            characteristics: section_characteristics::CNT_CODE
+                | section_characteristics::MEM_READ
+                | section_characteristics::MEM_EXECUTE,
         };
 
         assert!(section.is_code());

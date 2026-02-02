@@ -15,15 +15,12 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::vec::Vec;
-use core::f64::consts::PI;
 
 use super::{
-    ComplexAmplitude, IsingModel, OptimizationMetrics, OptimizationResult, QuantumOptimizerConfig,
-    QuboMatrix,
+    IsingModel, OptimizationMetrics, OptimizationResult, QuantumOptimizerConfig, QuboMatrix,
 };
-use crate::types::{NexusError, NexusResult};
+use crate::types::NexusResult;
 
 /// Number of Trotter slices for path-integral decomposition
 const DEFAULT_TROTTER_SLICES: usize = 32;
@@ -385,7 +382,7 @@ impl QuantumAnnealingEngine {
         j_perp: f64,
         m: usize,
     ) -> f64 {
-        let n = ising.num_spins;
+        let _n = ising.num_spins;
         let s = replicas[slice][spin] as f64;
 
         // Classical energy change
@@ -450,7 +447,7 @@ impl QuantumAnnealingEngine {
         -temperature / 2.0 * libm::log(tanh_val)
     }
 
-    fn check_tunneling_event(&self, replicas: &[Vec<i8>], spin: usize, m: usize) -> bool {
+    fn check_tunneling_event(&self, replicas: &[Vec<i8>], spin: usize, _m: usize) -> bool {
         // Check if all replicas have the same spin value (coherent tunneling)
         let first = replicas[0][spin];
         replicas.iter().all(|r| r[spin] == first)
@@ -654,7 +651,7 @@ impl AdaptiveAnnealingSchedule {
     pub fn learn_from_run(
         &mut self,
         energy_hist: &[f64],
-        acceptance: f64,
+        _acceptance: f64,
         t_init: f64,
         t_final: f64,
     ) {
@@ -717,7 +714,7 @@ pub mod kernel_problems {
         num_tasks: usize,
         num_processors: usize,
         task_durations: &[u64],
-        dependencies: &[(usize, usize)],
+        _dependencies: &[(usize, usize)],
         communication_costs: &[(usize, usize, u64)],
     ) -> QuboMatrix {
         let n = num_tasks * num_processors;
@@ -812,7 +809,7 @@ pub mod kernel_problems {
     pub fn build_io_scheduling_qubo(
         num_requests: usize,
         num_queues: usize,
-        request_sizes: &[u64],
+        _request_sizes: &[u64],
         request_deadlines: &[u64],
         locality_hints: &[(usize, usize)], // (request1, request2) - close on disk
     ) -> QuboMatrix {

@@ -7,8 +7,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::types::{Confidence, NexusResult, PatternId, Timestamp};
 use super::component::NexusComponent;
+use crate::types::{Confidence, NexusResult, PatternId, Timestamp};
 
 // ============================================================================
 // ANALYZER TRAIT
@@ -158,7 +158,10 @@ pub trait Classifier: NexusComponent {
     fn classify(&self, input: &Self::Input) -> NexusResult<Self::Label>;
 
     /// Get classification confidence
-    fn classify_with_confidence(&self, input: &Self::Input) -> NexusResult<(Self::Label, Confidence)>;
+    fn classify_with_confidence(
+        &self,
+        input: &Self::Input,
+    ) -> NexusResult<(Self::Label, Confidence)>;
 
     /// Get all possible labels
     fn labels(&self) -> Vec<Self::Label>;

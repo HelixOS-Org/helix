@@ -24,30 +24,25 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
 pub mod anomaly;
 pub mod config;
-pub mod stats;
 pub mod detector;
 pub mod pattern;
+pub mod stats;
+pub mod types;
 
 // Re-export types
-pub use types::{AnomalySeverity, AnomalyType};
-
 // Re-export anomaly
 pub use anomaly::Anomaly;
-
 // Re-export config
 pub use config::DetectorConfig;
-
-// Re-export stats
-pub use stats::MetricStats;
-
 // Re-export detector
 pub use detector::AnomalyDetector;
-
 // Re-export pattern
 pub use pattern::{AnomalyPattern, PatternLibrary};
+// Re-export stats
+pub use stats::MetricStats;
+pub use types::{AnomalySeverity, AnomalyType};
 
 // ============================================================================
 // TESTS

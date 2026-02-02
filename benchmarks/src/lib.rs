@@ -56,23 +56,23 @@
 extern crate alloc;
 
 pub mod engine;
-pub mod scheduler;
-pub mod memory;
-pub mod irq;
 pub mod ipc;
-pub mod stress;
+pub mod irq;
+pub mod memory;
 pub mod results;
+pub mod scheduler;
+pub mod stress;
 pub mod timing;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, AtomicBool, Ordering};
-use spin::RwLock;
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 // Re-exports
-pub use engine::{BenchmarkEngine, BenchmarkConfig, BenchmarkRunner, RunResult};
-pub use results::{BenchmarkReport, ResultCollector, ReportFormatter};
-pub use timing::{TimingSource, CycleCounter};
+pub use engine::{BenchmarkConfig, BenchmarkEngine, BenchmarkRunner, RunResult};
+pub use results::{BenchmarkReport, ReportFormatter, ResultCollector};
+use spin::RwLock;
+pub use timing::{CycleCounter, TimingSource};
 
 // =============================================================================
 // Core Types
@@ -97,7 +97,7 @@ impl BenchmarkId {
             category: BenchmarkCategory::Custom,
         }
     }
-    
+
     pub fn with_name(id: u64, name: String, category: BenchmarkCategory) -> Self {
         Self { id, name, category }
     }
@@ -155,11 +155,11 @@ impl TimeUnit {
             Self::Milliseconds => "ms",
         }
     }
-    
+
     /// Convert cycles to this unit (assuming 2.5 GHz CPU)
     pub fn from_cycles(&self, cycles: u64) -> u64 {
         const CPU_FREQ_MHZ: u64 = 2500; // Adjustable
-        
+
         match self {
             Self::Cycles => cycles,
             Self::Nanoseconds => cycles * 1000 / CPU_FREQ_MHZ,
@@ -199,9 +199,13 @@ pub struct Measurement {
 
 impl Measurement {
     pub fn new(cycles: u64, iteration: u32, timestamp: u64) -> Self {
-        Self { cycles, iteration, timestamp }
+        Self {
+            cycles,
+            iteration,
+            timestamp,
+        }
     }
-    
+
     pub fn to_nanoseconds(&self, cpu_freq_mhz: u64) -> u64 {
         self.cycles * 1000 / cpu_freq_mhz
     }
@@ -260,29 +264,30 @@ impl Statistics {
         if samples.is_empty() {
             return Self::default();
         }
-        
+
         samples.sort_unstable();
         let len = samples.len();
-        
+
         let min = samples[0];
         let max = samples[len - 1];
         let sum: u64 = samples.iter().sum();
         let mean = sum / len as u64;
-        
+
         // Percentiles
         let p50 = samples[len / 2];
         let p95 = samples[len * 95 / 100];
         let p99 = samples[len * 99 / 100];
-        
+
         // Variance and std_dev
-        let sum_sq_diff: u64 = samples.iter()
+        let sum_sq_diff: u64 = samples
+            .iter()
             .map(|&x| {
                 let diff = if x > mean { x - mean } else { mean - x };
                 diff * diff
             })
             .sum();
         let variance = sum_sq_diff / len as u64;
-        
+
         // Integer sqrt for std_dev
         let std_dev = if variance > 0 {
             let mut x = variance;
@@ -295,7 +300,7 @@ impl Statistics {
         } else {
             0
         };
-        
+
         Self {
             min,
             max,
@@ -357,31 +362,29 @@ impl BenchmarkResults {
             failure_reason: None,
         }
     }
-    
+
     /// Add a measurement
     pub fn add_measurement(&mut self, m: Measurement) {
         self.measurements.push(m);
     }
-    
+
     /// Mark as failed
     pub fn mark_failed(&mut self, reason: &str) {
         self.failed = true;
         self.failure_reason = Some(String::from(reason));
     }
-    
+
     /// Compute statistics from measurements
     pub fn compute_statistics(&mut self) {
         if self.measurements.is_empty() {
             return;
         }
-        
-        let mut samples: Vec<u64> = self.measurements.iter()
-            .map(|m| m.cycles)
-            .collect();
-        
+
+        let mut samples: Vec<u64> = self.measurements.iter().map(|m| m.cycles).collect();
+
         self.stats = Statistics::from_samples(&mut samples);
     }
-    
+
     /// Compute comparison to baseline
     pub fn compute_comparison(&mut self) {
         if let Some(baseline) = self.baseline_cycles {
@@ -426,7 +429,7 @@ impl BenchmarkSuite {
             running: AtomicBool::new(false),
         }
     }
-    
+
     /// Register a benchmark
     pub fn register(&self, def: BenchmarkDef) -> BenchmarkId {
         let id_num = self.next_id.fetch_add(1, Ordering::SeqCst);
@@ -436,55 +439,56 @@ impl BenchmarkSuite {
         self.benchmarks.write().push(def);
         id
     }
-    
+
     /// Register all default benchmarks
     pub fn register_defaults(&self) {
         // Scheduler benchmarks
         scheduler::register_benchmarks(self);
-        
+
         // Memory benchmarks
         memory::register_benchmarks(self);
-        
+
         // IRQ benchmarks
         irq::register_benchmarks(self);
-        
+
         // IPC benchmarks
         ipc::register_benchmarks(self);
-        
+
         // Stress tests
         stress::register_benchmarks(self);
     }
-    
+
     /// Run all registered benchmarks
     pub fn run_all(&self) -> Vec<BenchmarkResults> {
         self.running.store(true, Ordering::SeqCst);
         *self.state.write() = BenchmarkState::Running;
-        
+
         let benchmarks = self.benchmarks.read();
         let mut all_results = Vec::with_capacity(benchmarks.len());
-        
+
         for bench in benchmarks.iter() {
             if !self.running.load(Ordering::SeqCst) {
                 break;
             }
-            
+
             let result = self.run_single(bench);
             all_results.push(result);
         }
-        
+
         *self.state.write() = BenchmarkState::Completed;
         self.running.store(false, Ordering::SeqCst);
-        
+
         // Store results
         *self.results.write() = all_results.clone();
-        
+
         all_results
     }
-    
+
     /// Run a single benchmark
     fn run_single(&self, bench: &BenchmarkDef) -> BenchmarkResults {
-        let mut results = BenchmarkResults::new(bench.id.clone(), bench.name.clone(), bench.category);
-        
+        let mut results =
+            BenchmarkResults::new(bench.id.clone(), bench.name.clone(), bench.category);
+
         // Setup
         if let Some(setup) = bench.setup {
             if !setup() {
@@ -492,73 +496,74 @@ impl BenchmarkSuite {
                 return results;
             }
         }
-        
+
         // Warmup phase
         *self.state.write() = BenchmarkState::WarmingUp;
         for _ in 0..self.config.warmup_iterations {
             let _ = (bench.run)();
         }
-        
+
         // Main iterations
         *self.state.write() = BenchmarkState::Running;
         let start_timestamp = timing::read_tsc();
-        
+
         for i in 0..self.config.iterations {
             let cycles = (bench.run)();
             let timestamp = timing::read_tsc();
             results.add_measurement(Measurement::new(cycles, i, timestamp));
         }
-        
+
         results.end_timestamp = timing::read_tsc();
         results.total_time_cycles = results.end_timestamp - start_timestamp;
-        
+
         // Collect phase
         *self.state.write() = BenchmarkState::Collecting;
         results.compute_statistics();
-        
+
         // Compare to baseline if available
         if let Some(baseline) = bench.baseline_cycles {
             results.baseline_cycles = Some(baseline);
             results.compute_comparison();
         }
-        
+
         // Teardown
         if let Some(teardown) = bench.teardown {
             teardown();
         }
-        
+
         results
     }
-    
+
     /// Run benchmarks by category
     pub fn run_category(&self, category: BenchmarkCategory) -> Vec<BenchmarkResults> {
         let benchmarks = self.benchmarks.read();
-        let filtered: Vec<_> = benchmarks.iter()
+        let filtered: Vec<_> = benchmarks
+            .iter()
             .filter(|b| b.category == category)
             .collect();
-        
+
         let mut results = Vec::new();
         for bench in filtered {
             results.push(self.run_single(bench));
         }
         results
     }
-    
+
     /// Stop running benchmarks
     pub fn stop(&self) {
         self.running.store(false, Ordering::SeqCst);
     }
-    
+
     /// Get current state
     pub fn state(&self) -> BenchmarkState {
         *self.state.read()
     }
-    
+
     /// Get all results
     pub fn get_results(&self) -> Vec<BenchmarkResults> {
         self.results.read().clone()
     }
-    
+
     /// Generate full report
     pub fn generate_report(&self) -> BenchmarkReport {
         let results = self.results.read().clone();
@@ -591,8 +596,8 @@ macro_rules! benchmark {
             baseline_cycles: None,
         }
     };
-    
-    ($name:expr, $category:expr, $func:expr, baseline: $baseline:expr) => {
+
+    ($name:expr, $category:expr, $func:expr,baseline: $baseline:expr) => {
         BenchmarkDef {
             id: BenchmarkId::new(0),
             name: alloc::string::String::from($name),
@@ -652,7 +657,7 @@ impl PlatformInfo {
             num_cpus: 1,        // Default, should be detected from ACPI/DT
             cache_line_size: 64,
             has_tsc: cfg!(target_arch = "x86_64"),
-            is_vm: false,       // Should be detected via CPUID
+            is_vm: false, // Should be detected via CPUID
         }
     }
 }
@@ -664,14 +669,14 @@ impl PlatformInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_benchmark_suite_creation() {
         let config = BenchmarkConfig::default();
         let suite = BenchmarkSuite::new(config);
         assert_eq!(suite.state(), BenchmarkState::Idle);
     }
-    
+
     #[test]
     fn test_measurement() {
         let m = Measurement::new(1000, 0, 12345);

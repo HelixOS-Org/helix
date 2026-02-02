@@ -159,7 +159,9 @@ impl MigrationOptimizer {
         let mut best_score = 0.0;
         let mut best_node = None;
 
-        for &node_id in self.node_resources.keys() {
+        // Collect keys first to avoid borrowing self.node_resources while calling self.calculate_score
+        let node_ids: Vec<u32> = self.node_resources.keys().copied().collect();
+        for node_id in node_ids {
             if Some(node_id) == workload.host_node {
                 continue;
             }

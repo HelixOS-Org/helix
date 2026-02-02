@@ -84,8 +84,8 @@ impl VariableAttributes {
 
     /// Is authenticated
     pub fn is_authenticated(self) -> bool {
-        self.contains(Self::TIME_BASED_AUTHENTICATED_WRITE_ACCESS) ||
-        self.contains(Self::AUTHENTICATED_WRITE_ACCESS)
+        self.contains(Self::TIME_BASED_AUTHENTICATED_WRITE_ACCESS)
+            || self.contains(Self::AUTHENTICATED_WRITE_ACCESS)
     }
 }
 
@@ -275,8 +275,16 @@ impl StoredVariable {
             let c2 = name[i];
 
             // Case-insensitive compare for ASCII letters
-            let c1_lower = if c1 >= 0x41 && c1 <= 0x5A { c1 + 32 } else { c1 };
-            let c2_lower = if c2 >= 0x41 && c2 <= 0x5A { c2 + 32 } else { c2 };
+            let c1_lower = if c1 >= 0x41 && c1 <= 0x5A {
+                c1 + 32
+            } else {
+                c1
+            };
+            let c2_lower = if c2 >= 0x41 && c2 <= 0x5A {
+                c2 + 32
+            } else {
+                c2
+            };
 
             if c1_lower != c2_lower {
                 return false;
@@ -287,7 +295,13 @@ impl StoredVariable {
     }
 
     /// Set variable
-    pub fn set(&mut self, name: &[u16], vendor_guid: &[u8; 16], attributes: VariableAttributes, data: &[u8]) -> bool {
+    pub fn set(
+        &mut self,
+        name: &[u16],
+        vendor_guid: &[u8; 16],
+        attributes: VariableAttributes,
+        data: &[u8],
+    ) -> bool {
         if name.len() > MAX_VARIABLE_NAME_LEN - 1 || data.len() > MAX_VARIABLE_SIZE {
             return false;
         }
@@ -346,7 +360,12 @@ impl VariableStorage {
     }
 
     /// Get variable data
-    pub fn get_data(&self, name: &[u16], vendor_guid: &[u8; 16], buffer: &mut [u8]) -> Result<(usize, VariableAttributes), VariableError> {
+    pub fn get_data(
+        &self,
+        name: &[u16],
+        vendor_guid: &[u8; 16],
+        buffer: &mut [u8],
+    ) -> Result<(usize, VariableAttributes), VariableError> {
         let var = self.get(name, vendor_guid).ok_or(VariableError::NotFound)?;
 
         if buffer.len() < var.data_size {
@@ -358,7 +377,13 @@ impl VariableStorage {
     }
 
     /// Set variable
-    pub fn set(&mut self, name: &[u16], vendor_guid: &[u8; 16], attributes: VariableAttributes, data: &[u8]) -> Result<(), VariableError> {
+    pub fn set(
+        &mut self,
+        name: &[u16],
+        vendor_guid: &[u8; 16],
+        attributes: VariableAttributes,
+        data: &[u8],
+    ) -> Result<(), VariableError> {
         if data.is_empty() {
             // Delete variable
             return self.delete(name, vendor_guid);
@@ -404,7 +429,11 @@ impl VariableStorage {
     }
 
     /// Get next variable name
-    pub fn get_next(&self, current_name: &[u16], current_guid: &[u8; 16]) -> Option<(&[u16], &[u8; 16])> {
+    pub fn get_next(
+        &self,
+        current_name: &[u16],
+        current_guid: &[u8; 16],
+    ) -> Option<(&[u16], &[u8; 16])> {
         // If current is empty, return first variable
         if current_name.is_empty() || current_name[0] == 0 {
             for var in &self.variables {
@@ -578,14 +607,12 @@ pub mod variable_names {
 
 /// EFI Global Variable GUID bytes
 pub const EFI_GLOBAL_VARIABLE_GUID: [u8; 16] = [
-    0x61, 0xDF, 0xE4, 0x8B, 0xCA, 0x93, 0xD2, 0x11,
-    0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
+    0x61, 0xDF, 0xE4, 0x8B, 0xCA, 0x93, 0xD2, 0x11, 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
 ];
 
 /// Image Security Database GUID bytes
 pub const EFI_IMAGE_SECURITY_DATABASE_GUID: [u8; 16] = [
-    0xCB, 0xB2, 0x19, 0xD7, 0x3A, 0x3D, 0x96, 0x45,
-    0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F,
+    0xCB, 0xB2, 0x19, 0xD7, 0x3A, 0x3D, 0x96, 0x45, 0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F,
 ];
 
 // =============================================================================
@@ -661,8 +688,16 @@ pub fn ucs2_eq_ignore_case(a: &[u16], b: &[u16]) -> bool {
         let c2 = b[i];
 
         // Case-insensitive for ASCII
-        let c1_lower = if c1 >= 0x41 && c1 <= 0x5A { c1 + 32 } else { c1 };
-        let c2_lower = if c2 >= 0x41 && c2 <= 0x5A { c2 + 32 } else { c2 };
+        let c1_lower = if c1 >= 0x41 && c1 <= 0x5A {
+            c1 + 32
+        } else {
+            c1
+        };
+        let c2_lower = if c2 >= 0x41 && c2 <= 0x5A {
+            c2 + 32
+        } else {
+            c2
+        };
 
         if c1_lower != c2_lower {
             return false;
@@ -697,7 +732,9 @@ mod tests {
         let data = [1, 2, 3, 4];
 
         // Set variable
-        storage.set(&name, &guid, VariableAttributes::BOOT_VAR, &data).unwrap();
+        storage
+            .set(&name, &guid, VariableAttributes::BOOT_VAR, &data)
+            .unwrap();
         assert_eq!(storage.count(), 1);
 
         // Get variable

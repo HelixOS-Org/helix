@@ -14,30 +14,23 @@ mod pcie;
 mod types;
 
 // Re-export types
-pub use types::{classes, vendors, ClassCode, PciDeviceId, PciDeviceType, ProductId, VendorId};
-
 // Re-export BAR
 pub use bar::{Bar, BarFlags, BarType};
-
-// Re-export capabilities
-pub use capabilities::{CapabilityId, ExtCapability, ExtCapabilityId, PciCapability};
-
-// Re-export PCIe
-pub use pcie::{PcieLink, PcieLinkSpeed, PcieLinkWidth, PowerState};
-
-// Re-export device
-pub use device::PciDevice;
-
 // Re-export bus
 pub use bus::PciBus;
-
-// Re-export manager
-pub use manager::PciManager;
-
+// Re-export capabilities
+pub use capabilities::{CapabilityId, ExtCapability, ExtCapabilityId, PciCapability};
+// Re-export device
+pub use device::PciDevice;
 // Re-export intelligence
 pub use intelligence::{
     PciAction, PciAnalysis, PciIntelligence, PciIssue, PciIssueType, PciRecommendation,
 };
+// Re-export manager
+pub use manager::PciManager;
+// Re-export PCIe
+pub use pcie::{PcieLink, PcieLinkSpeed, PcieLinkWidth, PowerState};
+pub use types::{ClassCode, PciDeviceId, PciDeviceType, ProductId, VendorId, classes, vendors};
 
 // ============================================================================
 // TESTS

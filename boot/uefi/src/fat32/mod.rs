@@ -191,9 +191,10 @@ impl BiosParameterBlock {
         }
 
         // Check sectors per cluster (must be power of 2, 1-128)
-        if self.sectors_per_cluster == 0 ||
-           (self.sectors_per_cluster & (self.sectors_per_cluster - 1)) != 0 ||
-           self.sectors_per_cluster > 128 {
+        if self.sectors_per_cluster == 0
+            || (self.sectors_per_cluster & (self.sectors_per_cluster - 1)) != 0
+            || self.sectors_per_cluster > 128
+        {
             return false;
         }
 
@@ -282,7 +283,9 @@ impl Fat32Ebpb {
     /// Get volume label as string
     pub fn volume_label_str(&self) -> &str {
         // Find end (space padded)
-        let end = self.volume_label.iter()
+        let end = self
+            .volume_label
+            .iter()
             .rposition(|&c| c != b' ')
             .map(|i| i + 1)
             .unwrap_or(0);
@@ -610,13 +613,13 @@ impl LfnEntry {
         let mut name3 = [0u16; 2];
 
         for i in 0..5 {
-            name1[i] = u16::from_le_bytes([data[1 + i*2], data[2 + i*2]]);
+            name1[i] = u16::from_le_bytes([data[1 + i * 2], data[2 + i * 2]]);
         }
         for i in 0..6 {
-            name2[i] = u16::from_le_bytes([data[14 + i*2], data[15 + i*2]]);
+            name2[i] = u16::from_le_bytes([data[14 + i * 2], data[15 + i * 2]]);
         }
         for i in 0..2 {
-            name3[i] = u16::from_le_bytes([data[28 + i*2], data[29 + i*2]]);
+            name3[i] = u16::from_le_bytes([data[28 + i * 2], data[29 + i * 2]]);
         }
 
         Some(Self {
@@ -726,9 +729,9 @@ impl FatFilesystem {
         };
 
         // Calculate filesystem layout
-        let root_dir_sectors = ((bpb.root_entry_count as u32 * 32) +
-                               (bpb.bytes_per_sector as u32 - 1)) /
-                               bpb.bytes_per_sector as u32;
+        let root_dir_sectors = ((bpb.root_entry_count as u32 * 32)
+            + (bpb.bytes_per_sector as u32 - 1))
+            / bpb.bytes_per_sector as u32;
 
         let fat_sectors = sectors_per_fat * bpb.num_fats as u32;
         let first_data_sector = bpb.reserved_sectors as u32 + fat_sectors + root_dir_sectors;
@@ -786,19 +789,19 @@ impl FatFilesystem {
                 let sector = self.fat_start_sector + offset / self.bpb.bytes_per_sector as u32;
                 let byte_offset = offset % self.bpb.bytes_per_sector as u32;
                 (sector, byte_offset)
-            }
+            },
             FatType::Fat16 => {
                 let offset = cluster * 2;
                 let sector = self.fat_start_sector + offset / self.bpb.bytes_per_sector as u32;
                 let byte_offset = offset % self.bpb.bytes_per_sector as u32;
                 (sector, byte_offset)
-            }
+            },
             FatType::Fat32 => {
                 let offset = cluster * 4;
                 let sector = self.fat_start_sector + offset / self.bpb.bytes_per_sector as u32;
                 let byte_offset = offset % self.bpb.bytes_per_sector as u32;
                 (sector, byte_offset)
-            }
+            },
             _ => (0, 0),
         }
     }
@@ -818,26 +821,30 @@ impl FatFilesystem {
                 } else {
                     (value & 0x0FFF) as u32
                 }
-            }
+            },
             FatType::Fat16 => {
                 if off + 1 >= data.len() {
                     return 0;
                 }
                 u16::from_le_bytes([data[off], data[off + 1]]) as u32
-            }
+            },
             FatType::Fat32 => {
                 if off + 3 >= data.len() {
                     return 0;
                 }
-                u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]) & 0x0FFFFFFF
-            }
+                u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]])
+                    & 0x0FFFFFFF
+            },
             _ => 0,
         }
     }
 
     /// Get volume label
     pub fn volume_label(&self) -> &str {
-        self.ebpb32.as_ref().map(|e| e.volume_label_str()).unwrap_or("")
+        self.ebpb32
+            .as_ref()
+            .map(|e| e.volume_label_str())
+            .unwrap_or("")
     }
 
     /// Get volume serial number
@@ -885,9 +892,7 @@ impl<'a> Iterator for PathIterator<'a> {
         let remaining = &self.path[self.pos..];
 
         // Find next separator
-        let end = remaining
-            .find(['/', '\\'])
-            .unwrap_or(remaining.len());
+        let end = remaining.find(['/', '\\']).unwrap_or(remaining.len());
 
         let name = &remaining[..end];
 

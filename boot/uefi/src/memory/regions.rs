@@ -2,12 +2,12 @@
 //!
 //! Track and manage memory regions during boot.
 
-use crate::raw::types::*;
 use crate::error::Result;
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // REGION MANAGER
@@ -90,7 +90,8 @@ impl RegionManager {
 
     /// Get regions by type
     pub fn regions_by_type(&self, region_type: RegionType) -> Vec<&MemoryRegion> {
-        self.regions.iter()
+        self.regions
+            .iter()
             .filter(|r| r.region_type == region_type)
             .collect()
     }
@@ -102,7 +103,8 @@ impl RegionManager {
 
     /// Find largest region by type
     pub fn find_largest_by_type(&self, region_type: RegionType) -> Option<(PhysicalAddress, u64)> {
-        self.regions.iter()
+        self.regions
+            .iter()
             .filter(|r| r.region_type == region_type)
             .max_by_key(|r| r.size)
             .map(|r| (r.base, r.size))
@@ -115,9 +117,9 @@ impl RegionManager {
 
     /// Check if address is reserved
     pub fn is_reserved(&self, address: PhysicalAddress) -> bool {
-        self.reserved.iter().any(|r| {
-            address >= r.base && address < r.base + r.size
-        })
+        self.reserved
+            .iter()
+            .any(|r| address >= r.base && address < r.base + r.size)
     }
 
     /// Check if range overlaps reserved
@@ -200,8 +202,9 @@ impl RegionManager {
             let current_end = current.base + current.size;
 
             if region.base == current_end
-               && region.region_type == current.region_type
-               && region.attributes == current.attributes {
+                && region.region_type == current.region_type
+                && region.attributes == current.attributes
+            {
                 current.size += region.size;
             } else {
                 merged.push(current);
@@ -215,7 +218,8 @@ impl RegionManager {
 
     /// Get total memory of type
     pub fn total_memory_of_type(&self, region_type: RegionType) -> u64 {
-        self.regions.iter()
+        self.regions
+            .iter()
             .filter(|r| r.region_type == region_type)
             .map(|r| r.size)
             .sum()
@@ -389,18 +393,22 @@ impl RegionType {
 
     /// Check if region must be preserved
     pub fn is_preserved(&self) -> bool {
-        matches!(self,
-            Self::RuntimeServices |
-            Self::AcpiNvs |
-            Self::Reserved |
-            Self::Kernel |
-            Self::PageTables
+        matches!(
+            self,
+            Self::RuntimeServices
+                | Self::AcpiNvs
+                | Self::Reserved
+                | Self::Kernel
+                | Self::PageTables
         )
     }
 
     /// Check if region is reclaimable after boot
     pub fn is_reclaimable(&self) -> bool {
-        matches!(self, Self::Loader | Self::BootServices | Self::AcpiReclaimable)
+        matches!(
+            self,
+            Self::Loader | Self::BootServices | Self::AcpiReclaimable
+        )
     }
 
     /// Get display name
@@ -488,20 +496,48 @@ impl RegionAttributes {
     /// Convert to UEFI memory attribute
     pub fn to_uefi(&self) -> u64 {
         let mut attr = 0u64;
-        if self.uncacheable { attr |= 0x1; }
-        if self.write_combining { attr |= 0x2; }
-        if self.write_through { attr |= 0x4; }
-        if self.write_back { attr |= 0x8; }
-        if self.uncacheable_exported { attr |= 0x10; }
-        if self.write_protected { attr |= 0x1000; }
-        if self.read_protected { attr |= 0x2000; }
-        if self.execute_protected { attr |= 0x4000; }
-        if self.non_volatile { attr |= 0x8000; }
-        if self.more_reliable { attr |= 0x10000; }
-        if self.read_only { attr |= 0x20000; }
-        if self.specific_purpose { attr |= 0x40000; }
-        if self.crypto { attr |= 0x80000; }
-        if self.runtime { attr |= 0x8000000000000000; }
+        if self.uncacheable {
+            attr |= 0x1;
+        }
+        if self.write_combining {
+            attr |= 0x2;
+        }
+        if self.write_through {
+            attr |= 0x4;
+        }
+        if self.write_back {
+            attr |= 0x8;
+        }
+        if self.uncacheable_exported {
+            attr |= 0x10;
+        }
+        if self.write_protected {
+            attr |= 0x1000;
+        }
+        if self.read_protected {
+            attr |= 0x2000;
+        }
+        if self.execute_protected {
+            attr |= 0x4000;
+        }
+        if self.non_volatile {
+            attr |= 0x8000;
+        }
+        if self.more_reliable {
+            attr |= 0x10000;
+        }
+        if self.read_only {
+            attr |= 0x20000;
+        }
+        if self.specific_purpose {
+            attr |= 0x40000;
+        }
+        if self.crypto {
+            attr |= 0x80000;
+        }
+        if self.runtime {
+            attr |= 0x8000000000000000;
+        }
         attr
     }
 }
@@ -581,16 +617,36 @@ impl KernelRegions {
     /// Get all defined regions
     pub fn all_regions(&self) -> Vec<&MemoryRegion> {
         let mut regions = Vec::new();
-        if let Some(ref r) = self.code { regions.push(r); }
-        if let Some(ref r) = self.data { regions.push(r); }
-        if let Some(ref r) = self.rodata { regions.push(r); }
-        if let Some(ref r) = self.bss { regions.push(r); }
-        if let Some(ref r) = self.stack { regions.push(r); }
-        if let Some(ref r) = self.heap { regions.push(r); }
-        if let Some(ref r) = self.page_tables { regions.push(r); }
-        if let Some(ref r) = self.boot_info { regions.push(r); }
-        if let Some(ref r) = self.initrd { regions.push(r); }
-        if let Some(ref r) = self.framebuffer { regions.push(r); }
+        if let Some(ref r) = self.code {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.data {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.rodata {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.bss {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.stack {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.heap {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.page_tables {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.boot_info {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.initrd {
+            regions.push(r);
+        }
+        if let Some(ref r) = self.framebuffer {
+            regions.push(r);
+        }
         regions
     }
 
@@ -725,8 +781,12 @@ mod tests {
     #[test]
     fn test_region_manager() {
         let mut manager = RegionManager::new();
-        manager.add_region(0x1000, 0x10000, RegionType::Usable).unwrap();
-        manager.add_region(0x20000, 0x5000, RegionType::Reserved).unwrap();
+        manager
+            .add_region(0x1000, 0x10000, RegionType::Usable)
+            .unwrap();
+        manager
+            .add_region(0x20000, 0x5000, RegionType::Reserved)
+            .unwrap();
 
         assert_eq!(manager.region_count(), 2);
         assert_eq!(manager.total_usable(), 0x10000);

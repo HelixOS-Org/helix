@@ -45,20 +45,18 @@
 //!                        └─────────────────────────────────────┘
 //! ```
 
-use crate::core::{
-    AiAction, AiEvent, Confidence, DecisionContext, ResourceType, UserActionType,
-    UserContext, WorkloadCategory,
-};
-
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::collections::VecDeque;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
+
 use spin::{Mutex, RwLock};
+
+use crate::core::{
+    AiAction, AiEvent, Confidence, DecisionContext, ResourceType, UserActionType, UserContext,
+    WorkloadCategory,
+};
 
 // =============================================================================
 // Intent Engine
@@ -490,15 +488,12 @@ impl IntentEngine {
         }
 
         match event {
-            AiEvent::UserAction { action_type, context: user_ctx } => {
-                self.handle_user_action(*action_type, user_ctx)
-            }
-            AiEvent::UserPattern { pattern_id } => {
-                self.handle_pattern(*pattern_id)
-            }
-            AiEvent::ProcessSpawn { pid, name } => {
-                self.handle_process_spawn(*pid, name)
-            }
+            AiEvent::UserAction {
+                action_type,
+                context: user_ctx,
+            } => self.handle_user_action(*action_type, user_ctx),
+            AiEvent::UserPattern { pattern_id } => self.handle_pattern(*pattern_id),
+            AiEvent::ProcessSpawn { pid, name } => self.handle_process_spawn(*pid, name),
             _ => Ok(None),
         }
     }
@@ -521,7 +516,9 @@ impl IntentEngine {
 
         // Detect intent
         if let Some(intent) = self.detect_intent() {
-            self.stats.intents_recognized.fetch_add(1, Ordering::Relaxed);
+            self.stats
+                .intents_recognized
+                .fetch_add(1, Ordering::Relaxed);
 
             // Generate proactive assistance
             if let Some(suggestion) = intent.suggestions.first() {
@@ -539,7 +536,10 @@ impl IntentEngine {
     }
 
     /// Handle pattern detection event
-    fn handle_pattern(&self, pattern_id: u64) -> Result<Option<(AiAction, Confidence, String)>, ()> {
+    fn handle_pattern(
+        &self,
+        pattern_id: u64,
+    ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         // Look up known sequence
         let sequences = self.known_sequences.read();
         if let Some(seq) = sequences.iter().find(|s| s.id == pattern_id) {
@@ -558,7 +558,11 @@ impl IntentEngine {
     }
 
     /// Handle process spawn event
-    fn handle_process_spawn(&self, pid: u64, name: &str) -> Result<Option<(AiAction, Confidence, String)>, ()> {
+    fn handle_process_spawn(
+        &self,
+        pid: u64,
+        name: &str,
+    ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         // Infer intent from process name
         let intent = self.infer_intent_from_process(name);
 
@@ -587,8 +591,11 @@ impl IntentEngine {
             return Ok(Some((
                 action,
                 Confidence::new(0.7),
-                format!("Optimizing for {} workflow (process: {})",
-                    self.intent_name(intent), name),
+                format!(
+                    "Optimizing for {} workflow (process: {})",
+                    self.intent_name(intent),
+                    name
+                ),
             )));
         }
 
@@ -604,13 +611,11 @@ impl IntentEngine {
             return None;
         }
 
-        let action_types: Vec<UserActionType> = recent
-            .iter()
-            .map(|a| a.action_type)
-            .collect();
+        let action_types: Vec<UserActionType> = recent.iter().map(|a| a.action_type).collect();
 
         // Detect goal
-        let (intent_class, confidence) = self.goal_detector
+        let (intent_class, confidence) = self
+            .goal_detector
             .detect(&action_types)
             .unwrap_or((IntentClass::Unknown, Confidence::MIN));
 
@@ -666,19 +671,29 @@ impl IntentEngine {
                     predictions.push(PredictedAction {
                         action: *next,
                         expected_delay_s: 5,
-                        confidence: Confidence::new(seq.confidence.value() * (matches as f32 / match_len as f32)),
+                        confidence: Confidence::new(
+                            seq.confidence.value() * (matches as f32 / match_len as f32),
+                        ),
                     });
                 }
             }
         }
 
-        predictions.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or(core::cmp::Ordering::Equal));
+        predictions.sort_by(|a, b| {
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         predictions.truncate(3);
         predictions
     }
 
     /// Generate suggestions based on intent
-    fn generate_suggestions(&self, intent: IntentClass, context: &UserContext) -> Vec<IntentSuggestion> {
+    fn generate_suggestions(
+        &self,
+        intent: IntentClass,
+        context: &UserContext,
+    ) -> Vec<IntentSuggestion> {
         let mut suggestions = Vec::new();
 
         match intent {
@@ -702,7 +717,7 @@ impl IntentEngine {
                     benefit: "Faster compilation times".to_string(),
                     confidence: Confidence::new(0.7),
                 });
-            }
+            },
 
             IntentClass::Gaming => {
                 suggestions.push(IntentSuggestion {
@@ -713,7 +728,7 @@ impl IntentEngine {
                     benefit: "Maximum FPS and responsiveness".to_string(),
                     confidence: Confidence::new(0.9),
                 });
-            }
+            },
 
             IntentClass::Multimedia => {
                 suggestions.push(IntentSuggestion {
@@ -725,7 +740,7 @@ impl IntentEngine {
                     benefit: "Smoother video editing".to_string(),
                     confidence: Confidence::new(0.75),
                 });
-            }
+            },
 
             IntentClass::SystemAdministration => {
                 suggestions.push(IntentSuggestion {
@@ -737,9 +752,9 @@ impl IntentEngine {
                     benefit: "Faster system diagnostics".to_string(),
                     confidence: Confidence::new(0.65),
                 });
-            }
+            },
 
-            _ => {}
+            _ => {},
         }
 
         suggestions
@@ -898,7 +913,9 @@ impl IntentEngine {
     pub fn verify_prediction(&self, predicted: UserActionType, actual: UserActionType) {
         self.stats.predictions_made.fetch_add(1, Ordering::Relaxed);
         if predicted == actual {
-            self.stats.predictions_correct.fetch_add(1, Ordering::Relaxed);
+            self.stats
+                .predictions_correct
+                .fetch_add(1, Ordering::Relaxed);
         }
     }
 
@@ -1010,10 +1027,7 @@ mod tests {
     fn test_sequence_learning() {
         let engine = IntentEngine::new(true);
 
-        let actions = vec![
-            UserActionType::FileOperation,
-            UserActionType::ProcessLaunch,
-        ];
+        let actions = vec![UserActionType::FileOperation, UserActionType::ProcessLaunch];
 
         engine.learn_sequence(actions.clone(), IntentClass::Development);
         assert_eq!(engine.known_sequences.read().len(), 1);

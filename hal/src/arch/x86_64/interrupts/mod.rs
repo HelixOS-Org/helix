@@ -65,20 +65,21 @@
 
 #![allow(dead_code)]
 
-mod idt;
 mod entries;
-mod vectors;
-mod handlers;
 mod frame;
+mod handlers;
+mod idt;
+mod vectors;
 
-pub use idt::{Idt, IdtDescriptor, load_idt};
-pub use entries::{IdtEntry, GateType, GateOptions, Dpl};
-pub use vectors::{Vector, ExceptionVector, IrqVector, SystemVector};
-pub use handlers::{InterruptFrame, ExceptionFrame, HandlerFn, ExceptionHandlerFn};
+use core::sync::atomic::{AtomicBool, Ordering};
+
+pub use entries::{Dpl, GateOptions, GateType, IdtEntry};
 pub use frame::InterruptStackFrame;
+pub use handlers::{ExceptionFrame, ExceptionHandlerFn, HandlerFn, InterruptFrame};
+pub use idt::{load_idt, Idt, IdtDescriptor};
+pub use vectors::{ExceptionVector, IrqVector, SystemVector, Vector};
 
 use super::segmentation;
-use core::sync::atomic::{AtomicBool, Ordering};
 
 // =============================================================================
 // Constants
@@ -234,7 +235,9 @@ where
     let was_enabled = disable();
     let result = f();
     if was_enabled {
-        unsafe { enable(); }
+        unsafe {
+            enable();
+        }
     }
     result
 }
@@ -281,11 +284,7 @@ pub unsafe fn end_of_interrupt(_vector: u8) {
 /// # Safety
 ///
 /// The handler must be a valid function that properly handles the interrupt.
-pub unsafe fn register_handler(
-    vector: u8,
-    handler: usize,
-    gate_type: GateType,
-) {
+pub unsafe fn register_handler(vector: u8, handler: usize, gate_type: GateType) {
     idt::set_handler(vector, handler, gate_type);
 }
 
@@ -294,11 +293,7 @@ pub unsafe fn register_handler(
 /// # Safety
 ///
 /// The handler must be a valid exception handler.
-pub unsafe fn register_exception_handler(
-    vector: u8,
-    handler: usize,
-    ist: u8,
-) {
+pub unsafe fn register_exception_handler(vector: u8, handler: usize, ist: u8) {
     idt::set_exception_handler(vector, handler, ist);
 }
 
@@ -331,7 +326,9 @@ impl Default for InterruptGuard {
 impl Drop for InterruptGuard {
     fn drop(&mut self) {
         if self.was_enabled {
-            unsafe { enable(); }
+            unsafe {
+                enable();
+            }
         }
     }
 }

@@ -70,17 +70,26 @@ impl BlockManager {
 
     /// Get all disks (non-partition devices)
     pub fn disks(&self) -> Vec<&BlockDevice> {
-        self.devices.values().filter(|d| d.parent.is_none()).collect()
+        self.devices
+            .values()
+            .filter(|d| d.parent.is_none())
+            .collect()
     }
 
     /// Get all SSDs
     pub fn ssds(&self) -> Vec<&BlockDevice> {
-        self.devices.values().filter(|d| d.device_type.is_solid_state()).collect()
+        self.devices
+            .values()
+            .filter(|d| d.device_type.is_solid_state())
+            .collect()
     }
 
     /// Get all HDDs
     pub fn hdds(&self) -> Vec<&BlockDevice> {
-        self.devices.values().filter(|d| d.device_type.is_rotational()).collect()
+        self.devices
+            .values()
+            .filter(|d| d.device_type.is_rotational())
+            .collect()
     }
 
     /// Submit I/O request

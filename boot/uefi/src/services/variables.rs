@@ -2,9 +2,9 @@
 //!
 //! High-level interface for UEFI variables.
 
-use crate::raw::types::*;
-use crate::raw::runtime_services::variable_attributes;
 use super::runtime::runtime_services;
+use crate::raw::runtime_services::variable_attributes;
+use crate::raw::types::*;
 
 // =============================================================================
 // VARIABLE
@@ -65,7 +65,9 @@ impl Variable {
                 // For now, try increasingly larger buffers
                 for size in [1024, 4096, 16384, 65536] {
                     buffer.resize(size, 0);
-                    if let Ok((attrs, actual_size)) = rs.get_variable(name, vendor_guid, &mut buffer) {
+                    if let Ok((attrs, actual_size)) =
+                        rs.get_variable(name, vendor_guid, &mut buffer)
+                    {
                         return Ok(Self {
                             name: name.to_vec(),
                             vendor_guid: *vendor_guid,
@@ -75,7 +77,7 @@ impl Variable {
                     }
                 }
                 return Err(Status::BUFFER_TOO_SMALL);
-            }
+            },
             Err(e) => return Err(e),
         };
 
@@ -127,32 +129,33 @@ impl VariableAttributes {
     pub const HARDWARE_ERROR_RECORD: Self = Self(variable_attributes::HARDWARE_ERROR_RECORD);
 
     /// Authenticated write access
-    pub const AUTHENTICATED_WRITE_ACCESS: Self = Self(variable_attributes::AUTHENTICATED_WRITE_ACCESS);
+    pub const AUTHENTICATED_WRITE_ACCESS: Self =
+        Self(variable_attributes::AUTHENTICATED_WRITE_ACCESS);
 
     /// Time-based authenticated write
-    pub const TIME_BASED_AUTHENTICATED_WRITE: Self = Self(variable_attributes::TIME_BASED_AUTHENTICATED_WRITE_ACCESS);
+    pub const TIME_BASED_AUTHENTICATED_WRITE: Self =
+        Self(variable_attributes::TIME_BASED_AUTHENTICATED_WRITE_ACCESS);
 
     /// Append write
     pub const APPEND_WRITE: Self = Self(variable_attributes::APPEND_WRITE);
 
     /// Enhanced authenticated access
-    pub const ENHANCED_AUTHENTICATED_ACCESS: Self = Self(variable_attributes::ENHANCED_AUTHENTICATED_ACCESS);
+    pub const ENHANCED_AUTHENTICATED_ACCESS: Self =
+        Self(variable_attributes::ENHANCED_AUTHENTICATED_ACCESS);
 
     /// Standard attributes for non-volatile runtime variable
     pub const NV_BS_RT: Self = Self(
-        variable_attributes::NON_VOLATILE |
-        variable_attributes::BOOTSERVICE_ACCESS |
-        variable_attributes::RUNTIME_ACCESS
+        variable_attributes::NON_VOLATILE
+            | variable_attributes::BOOTSERVICE_ACCESS
+            | variable_attributes::RUNTIME_ACCESS,
     );
 
     /// Standard attributes for boot-time only variable
     pub const BS: Self = Self(variable_attributes::BOOTSERVICE_ACCESS);
 
     /// Standard attributes for runtime-accessible variable (volatile)
-    pub const BS_RT: Self = Self(
-        variable_attributes::BOOTSERVICE_ACCESS |
-        variable_attributes::RUNTIME_ACCESS
-    );
+    pub const BS_RT: Self =
+        Self(variable_attributes::BOOTSERVICE_ACCESS | variable_attributes::RUNTIME_ACCESS);
 
     /// Create empty attributes
     pub const fn empty() -> Self {
@@ -258,20 +261,20 @@ impl Iterator for VariableIterator {
                     self.started = true;
                     let name = self.name_buffer[..len].to_vec();
                     return Some((name, self.vendor_guid));
-                }
+                },
                 Err(Status::BUFFER_TOO_SMALL) => {
                     // Grow buffer and retry
                     let new_size = self.name_buffer.len() * 2;
                     self.name_buffer.resize(new_size, 0);
-                }
+                },
                 Err(Status::NOT_FOUND) => {
                     self.finished = true;
                     return None;
-                }
+                },
                 Err(_) => {
                     self.finished = true;
                     return None;
-                }
+                },
             }
         }
     }

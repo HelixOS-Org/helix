@@ -9,19 +9,19 @@ pub enum ThreadState {
     /// Thread is being created
     Creating = 0,
     /// Thread is ready to run
-    Ready = 1,
+    Ready    = 1,
     /// Thread is currently running
-    Running = 2,
+    Running  = 2,
     /// Thread is blocked waiting for something
-    Blocked = 3,
+    Blocked  = 3,
     /// Thread is sleeping
     Sleeping = 4,
     /// Thread is stopped (by signal or debugger)
-    Stopped = 5,
+    Stopped  = 5,
     /// Thread is dead (waiting to be cleaned up)
-    Dead = 6,
+    Dead     = 6,
     /// Thread is a zombie (terminated but not reaped)
-    Zombie = 7,
+    Zombie   = 7,
 }
 
 impl ThreadState {
@@ -39,7 +39,7 @@ impl ThreadState {
             _ => None,
         }
     }
-    
+
     /// Convert to u32
     pub fn as_u32(self) -> u32 {
         self as u32

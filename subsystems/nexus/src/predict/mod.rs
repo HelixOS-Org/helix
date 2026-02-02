@@ -24,26 +24,22 @@
 extern crate alloc;
 
 // Submodules
-pub mod types;
-pub mod prediction;
-pub mod feature;
-pub mod tree;
 pub mod engine;
+pub mod feature;
+pub mod prediction;
+pub mod tree;
+pub mod types;
 
 // Re-export core types
-pub use types::{PredictionConfidence, PredictionKind, Trend};
-
-// Re-export prediction types
-pub use prediction::{CrashPrediction, PredictionFactor, RecommendedAction};
-
-// Re-export feature types
-pub use feature::{Feature, FeatureCategory};
-
-// Re-export tree types
-pub use tree::DecisionNode;
-
 // Re-export engine types
 pub use engine::PredictionEngine;
+// Re-export feature types
+pub use feature::{Feature, FeatureCategory};
+// Re-export prediction types
+pub use prediction::{CrashPrediction, PredictionFactor, RecommendedAction};
+// Re-export tree types
+pub use tree::DecisionNode;
+pub use types::{PredictionConfidence, PredictionKind, Trend};
 
 // ============================================================================
 // TESTS

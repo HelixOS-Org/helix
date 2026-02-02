@@ -3,8 +3,8 @@
 //! Defines the VFS traits that HelixFS implements, allowing
 //! integration with kernel VFS layers.
 
+use super::{Credentials, DirEntry, FileStat, FileType, FsStats, OpenFlags, MAX_PATH_LEN};
 use crate::core::error::HfsResult;
-use super::{FileType, FileStat, FsStats, DirEntry, Credentials, OpenFlags, MAX_PATH_LEN};
 
 // ============================================================================
 // VFS Operations Trait
@@ -18,162 +18,145 @@ pub trait FileSystemOps {
     // ========================================================================
     // Filesystem-level operations
     // ========================================================================
-    
+
     /// Mount the filesystem
     fn mount(&mut self, device: u64, flags: u64) -> HfsResult<()>;
-    
+
     /// Unmount the filesystem
     fn unmount(&mut self) -> HfsResult<()>;
-    
+
     /// Sync all pending data
     fn sync(&mut self) -> HfsResult<()>;
-    
+
     /// Get filesystem statistics
     fn statfs(&self) -> HfsResult<FsStats>;
-    
+
     // ========================================================================
     // Inode operations
     // ========================================================================
-    
+
     /// Lookup inode by name in parent directory
     fn lookup(&self, parent: u64, name: &[u8], cred: &Credentials) -> HfsResult<u64>;
-    
+
     /// Get inode attributes
     fn getattr(&self, ino: u64) -> HfsResult<FileStat>;
-    
+
     /// Set inode attributes
     fn setattr(&mut self, ino: u64, attr: &SetAttr, cred: &Credentials) -> HfsResult<FileStat>;
-    
+
     /// Read symbolic link
     fn readlink(&self, ino: u64) -> HfsResult<PathBuf>;
-    
+
     // ========================================================================
     // File operations
     // ========================================================================
-    
+
     /// Create regular file
     fn create(
-        &mut self, 
-        parent: u64, 
-        name: &[u8], 
-        mode: u32, 
+        &mut self,
+        parent: u64,
+        name: &[u8],
+        mode: u32,
         flags: OpenFlags,
-        cred: &Credentials
+        cred: &Credentials,
     ) -> HfsResult<(u64, FileHandle)>;
-    
+
     /// Open existing file
     fn open(&mut self, ino: u64, flags: OpenFlags, cred: &Credentials) -> HfsResult<FileHandle>;
-    
+
     /// Read from file
-    fn read(
-        &self, 
-        ino: u64, 
-        handle: &FileHandle,
-        offset: u64, 
-        buf: &mut [u8]
-    ) -> HfsResult<usize>;
-    
+    fn read(&self, ino: u64, handle: &FileHandle, offset: u64, buf: &mut [u8]) -> HfsResult<usize>;
+
     /// Write to file
-    fn write(
-        &mut self, 
-        ino: u64, 
-        handle: &FileHandle,
-        offset: u64, 
-        buf: &[u8]
-    ) -> HfsResult<usize>;
-    
+    fn write(&mut self, ino: u64, handle: &FileHandle, offset: u64, buf: &[u8])
+        -> HfsResult<usize>;
+
     /// Flush file data
     fn flush(&mut self, ino: u64, handle: &FileHandle) -> HfsResult<()>;
-    
+
     /// Release file handle
     fn release(&mut self, ino: u64, handle: FileHandle) -> HfsResult<()>;
-    
+
     /// Sync file data
     fn fsync(&mut self, ino: u64, handle: &FileHandle, datasync: bool) -> HfsResult<()>;
-    
+
     // ========================================================================
     // Directory operations
     // ========================================================================
-    
+
     /// Create directory
     fn mkdir(&mut self, parent: u64, name: &[u8], mode: u32, cred: &Credentials) -> HfsResult<u64>;
-    
+
     /// Remove directory
     fn rmdir(&mut self, parent: u64, name: &[u8], cred: &Credentials) -> HfsResult<()>;
-    
+
     /// Open directory
     fn opendir(&mut self, ino: u64, cred: &Credentials) -> HfsResult<DirHandle>;
-    
+
     /// Read directory entries
     fn readdir(
-        &self, 
-        ino: u64, 
+        &self,
+        ino: u64,
         handle: &DirHandle,
         offset: u64,
-        buf: &mut [DirEntry]
+        buf: &mut [DirEntry],
     ) -> HfsResult<usize>;
-    
+
     /// Release directory handle
     fn releasedir(&mut self, ino: u64, handle: DirHandle) -> HfsResult<()>;
-    
+
     // ========================================================================
     // Link operations
     // ========================================================================
-    
+
     /// Create hard link
     fn link(
-        &mut self, 
-        ino: u64, 
-        newparent: u64, 
-        newname: &[u8], 
-        cred: &Credentials
+        &mut self,
+        ino: u64,
+        newparent: u64,
+        newname: &[u8],
+        cred: &Credentials,
     ) -> HfsResult<()>;
-    
+
     /// Remove file (unlink)
     fn unlink(&mut self, parent: u64, name: &[u8], cred: &Credentials) -> HfsResult<()>;
-    
+
     /// Create symbolic link
     fn symlink(
-        &mut self, 
-        parent: u64, 
-        name: &[u8], 
-        target: &[u8], 
-        cred: &Credentials
+        &mut self,
+        parent: u64,
+        name: &[u8],
+        target: &[u8],
+        cred: &Credentials,
     ) -> HfsResult<u64>;
-    
+
     /// Rename file/directory
     fn rename(
-        &mut self, 
-        oldparent: u64, 
-        oldname: &[u8], 
-        newparent: u64, 
-        newname: &[u8], 
+        &mut self,
+        oldparent: u64,
+        oldname: &[u8],
+        newparent: u64,
+        newname: &[u8],
         flags: u32,
-        cred: &Credentials
+        cred: &Credentials,
     ) -> HfsResult<()>;
-    
+
     // ========================================================================
     // Special operations
     // ========================================================================
-    
+
     /// Create special file (device, fifo, socket)
     fn mknod(
-        &mut self, 
-        parent: u64, 
-        name: &[u8], 
-        mode: u32, 
+        &mut self,
+        parent: u64,
+        name: &[u8],
+        mode: u32,
         rdev: u64,
-        cred: &Credentials
+        cred: &Credentials,
     ) -> HfsResult<u64>;
-    
+
     /// Allocate space
-    fn fallocate(
-        &mut self, 
-        ino: u64, 
-        mode: u32, 
-        offset: u64, 
-        length: u64
-    ) -> HfsResult<()>;
+    fn fallocate(&mut self, ino: u64, mode: u32, offset: u64, length: u64) -> HfsResult<()>;
 }
 
 // ============================================================================
@@ -217,7 +200,7 @@ impl SetAttrValid {
     pub const MTIME: u32 = 1 << 5;
     pub const ATIME_NOW: u32 = 1 << 6;
     pub const MTIME_NOW: u32 = 1 << 7;
-    
+
     #[inline]
     pub fn has(&self, flag: u32) -> bool {
         self.0 & flag != 0
@@ -254,13 +237,13 @@ impl FileHandle {
             generation: 0,
         }
     }
-    
+
     /// Is readable
     #[inline]
     pub fn is_readable(&self) -> bool {
         self.flags.is_read()
     }
-    
+
     /// Is writable
     #[inline]
     pub fn is_writable(&self) -> bool {
@@ -318,7 +301,7 @@ impl PathBuf {
             len: 0,
         }
     }
-    
+
     /// Create from slice
     pub fn from_slice(s: &[u8]) -> Self {
         let mut path = Self::new();
@@ -327,81 +310,81 @@ impl PathBuf {
         path.len = len;
         path
     }
-    
+
     /// Get as slice
     pub fn as_slice(&self) -> &[u8] {
         &self.data[..self.len]
     }
-    
+
     /// Push component
     pub fn push(&mut self, component: &[u8]) -> bool {
         if self.len + 1 + component.len() > MAX_PATH_LEN {
             return false;
         }
-        
+
         if self.len > 0 && self.data[self.len - 1] != b'/' {
             self.data[self.len] = b'/';
             self.len += 1;
         }
-        
+
         self.data[self.len..self.len + component.len()].copy_from_slice(component);
         self.len += component.len();
-        
+
         true
     }
-    
+
     /// Get parent
     pub fn parent(&self) -> Option<PathBuf> {
         if self.len == 0 {
             return None;
         }
-        
+
         let mut end = self.len;
-        
+
         // Skip trailing slashes
         while end > 0 && self.data[end - 1] == b'/' {
             end -= 1;
         }
-        
+
         // Find last slash
         while end > 0 && self.data[end - 1] != b'/' {
             end -= 1;
         }
-        
+
         if end == 0 {
             return None;
         }
-        
+
         let mut parent = Self::new();
         parent.data[..end].copy_from_slice(&self.data[..end]);
         parent.len = end;
-        
+
         Some(parent)
     }
-    
+
     /// Get filename
     pub fn filename(&self) -> &[u8] {
         if self.len == 0 {
             return &[];
         }
-        
+
         let mut start = self.len;
-        
+
         // Skip trailing slashes
         let mut end = self.len;
         while end > 0 && self.data[end - 1] == b'/' {
             end -= 1;
         }
-        
+
         // Find last slash
         start = end;
         while start > 0 && self.data[start - 1] != b'/' {
             start -= 1;
         }
-        
+
         &self.data[start..end]
     }
-    
+
     /// Is absolute
     pub fn is_absolute(&self) -> bool {
         self.len > 0 && self.data[0] == b'/'
@@ -468,7 +451,7 @@ impl VfsInode {
             crtime: 0,
         }
     }
-    
+
     /// Convert to FileStat
     pub fn to_stat(&self, dev: u64) -> FileStat {
         FileStat {
@@ -507,13 +490,13 @@ impl Default for VfsInode {
 #[repr(u8)]
 pub enum XattrNamespace {
     /// User namespace
-    User = 0,
+    User     = 0,
     /// System namespace
-    System = 1,
+    System   = 1,
     /// Security namespace
     Security = 2,
     /// Trusted namespace
-    Trusted = 3,
+    Trusted  = 3,
 }
 
 impl XattrNamespace {
@@ -531,7 +514,7 @@ impl XattrNamespace {
             None
         }
     }
-    
+
     /// Get prefix
     pub fn prefix(&self) -> &'static [u8] {
         match self {
@@ -547,13 +530,13 @@ impl XattrNamespace {
 pub trait XattrOps {
     /// Get extended attribute
     fn getxattr(&self, ino: u64, name: &[u8], buf: &mut [u8]) -> HfsResult<usize>;
-    
+
     /// Set extended attribute
     fn setxattr(&mut self, ino: u64, name: &[u8], value: &[u8], flags: u32) -> HfsResult<()>;
-    
+
     /// List extended attributes
     fn listxattr(&self, ino: u64, buf: &mut [u8]) -> HfsResult<usize>;
-    
+
     /// Remove extended attribute
     fn removexattr(&mut self, ino: u64, name: &[u8]) -> HfsResult<()>;
 }
@@ -567,9 +550,9 @@ pub trait XattrOps {
 #[repr(u8)]
 pub enum LockType {
     /// Read lock (shared)
-    Read = 0,
+    Read   = 0,
     /// Write lock (exclusive)
-    Write = 1,
+    Write  = 1,
     /// Unlock
     Unlock = 2,
 }
@@ -597,7 +580,7 @@ impl FileLock {
             pid,
         }
     }
-    
+
     /// Create write lock
     pub fn write(start: u64, len: u64, pid: u32) -> Self {
         Self {
@@ -607,7 +590,7 @@ impl FileLock {
             pid,
         }
     }
-    
+
     /// Create unlock
     pub fn unlock(start: u64, len: u64, pid: u32) -> Self {
         Self {
@@ -617,26 +600,34 @@ impl FileLock {
             pid,
         }
     }
-    
+
     /// Check if overlaps with another lock
     pub fn overlaps(&self, other: &FileLock) -> bool {
-        let self_end = if self.len == 0 { u64::MAX } else { self.start + self.len };
-        let other_end = if other.len == 0 { u64::MAX } else { other.start + other.len };
-        
+        let self_end = if self.len == 0 {
+            u64::MAX
+        } else {
+            self.start + self.len
+        };
+        let other_end = if other.len == 0 {
+            u64::MAX
+        } else {
+            other.start + other.len
+        };
+
         self.start < other_end && other.start < self_end
     }
-    
+
     /// Check if conflicts with another lock
     pub fn conflicts(&self, other: &FileLock) -> bool {
         if !self.overlaps(other) {
             return false;
         }
-        
+
         // Same process doesn't conflict
         if self.pid == other.pid {
             return false;
         }
-        
+
         // Write lock conflicts with any lock
         self.ltype == LockType::Write || other.ltype == LockType::Write
     }
@@ -646,7 +637,7 @@ impl FileLock {
 pub trait LockOps {
     /// Get lock status
     fn getlk(&self, ino: u64, lock: &mut FileLock) -> HfsResult<()>;
-    
+
     /// Set lock (blocking)
     fn setlk(&mut self, ino: u64, lock: &FileLock, block: bool) -> HfsResult<()>;
 }
@@ -658,52 +649,58 @@ pub trait LockOps {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_path_buf() {
         let mut path = PathBuf::from_slice(b"/home/user");
         assert!(path.is_absolute());
         assert_eq!(path.filename(), b"user");
-        
+
         path.push(b"documents");
         assert_eq!(path.as_slice(), b"/home/user/documents");
-        
+
         let parent = path.parent().unwrap();
         assert_eq!(parent.as_slice(), b"/home/user/");
     }
-    
+
     #[test]
     fn test_file_handle() {
         let handle = FileHandle::new(1, 100, OpenFlags(OpenFlags::O_RDWR));
-        
+
         assert!(handle.is_readable());
         assert!(handle.is_writable());
     }
-    
+
     #[test]
     fn test_vfs_inode() {
         let inode = VfsInode::new(100, FileType::Regular);
         let stat = inode.to_stat(1);
-        
+
         assert_eq!(stat.st_ino, 100);
         assert!(stat.is_file());
     }
-    
+
     #[test]
     fn test_file_lock() {
         let lock1 = FileLock::read(0, 100, 1);
         let lock2 = FileLock::read(50, 100, 2);
         let lock3 = FileLock::write(200, 50, 3);
-        
+
         assert!(lock1.overlaps(&lock2));
         assert!(!lock1.conflicts(&lock2)); // Both read
         assert!(!lock1.overlaps(&lock3));
     }
-    
+
     #[test]
     fn test_xattr_namespace() {
-        assert_eq!(XattrNamespace::from_prefix(b"user.test"), Some(XattrNamespace::User));
-        assert_eq!(XattrNamespace::from_prefix(b"security.selinux"), Some(XattrNamespace::Security));
+        assert_eq!(
+            XattrNamespace::from_prefix(b"user.test"),
+            Some(XattrNamespace::User)
+        );
+        assert_eq!(
+            XattrNamespace::from_prefix(b"security.selinux"),
+            Some(XattrNamespace::Security)
+        );
         assert_eq!(XattrNamespace::from_prefix(b"invalid"), None);
     }
 }

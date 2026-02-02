@@ -76,19 +76,19 @@
 
 #![allow(dead_code)]
 
-pub mod tsc;
-pub mod hpet;
 pub mod apic_timer;
-pub mod pit;
 pub mod calibration;
-
-pub use tsc::{Tsc, TscFeatures};
-pub use hpet::{Hpet, HpetTimer};
-pub use apic_timer::{ApicTimer, ApicTimerMode};
-pub use pit::{Pit, PitChannel};
-pub use calibration::{CalibrationMethod, CalibrationResult};
+pub mod hpet;
+pub mod pit;
+pub mod tsc;
 
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
+pub use apic_timer::{ApicTimer, ApicTimerMode};
+pub use calibration::{CalibrationMethod, CalibrationResult};
+pub use hpet::{Hpet, HpetTimer};
+pub use pit::{Pit, PitChannel};
+pub use tsc::{Tsc, TscFeatures};
 
 // =============================================================================
 // Constants
@@ -296,12 +296,12 @@ pub fn read_ns() -> u64 {
             } else {
                 0
             }
-        }
+        },
         TimerSource::Hpet => hpet::read_ns(),
         TimerSource::Pit | TimerSource::AcpiPm => {
             // Low precision fallback
             0
-        }
+        },
     }
 }
 
@@ -440,7 +440,9 @@ impl Duration {
     /// Create a duration from nanoseconds
     #[inline]
     pub fn from_nanos(ns: u64) -> Self {
-        Self { ticks: ns_to_tsc(ns) }
+        Self {
+            ticks: ns_to_tsc(ns),
+        }
     }
 
     /// Create a duration from microseconds

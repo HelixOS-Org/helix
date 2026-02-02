@@ -2,10 +2,11 @@
 //!
 //! Defines the traits that scheduler implementations must implement.
 
-use crate::{ThreadId, ProcessId, ExecResult};
-use super::Priority;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use super::Priority;
+use crate::{ExecResult, ProcessId, ThreadId};
 
 /// Thread information for scheduling
 #[derive(Debug, Clone)]

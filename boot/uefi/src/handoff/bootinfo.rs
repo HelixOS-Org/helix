@@ -2,12 +2,12 @@
 //!
 //! The main boot information structure passed to the kernel.
 
-use crate::raw::types::*;
 use crate::handoff::{FramebufferInfo, MemoryMap, ModuleInfo};
+use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // =============================================================================
 // BOOT INFO
@@ -73,7 +73,6 @@ pub struct BootInfo {
     // =========================================================================
     // KASLR / RELOCATION FIELDS
     // =========================================================================
-
     /// KASLR slide offset (load_address - link_address)
     /// Zero if KASLR is disabled or kernel loaded at link address
     pub kernel_slide: i64,
@@ -93,7 +92,6 @@ pub struct BootInfo {
     // =========================================================================
     // END KASLR / RELOCATION FIELDS
     // =========================================================================
-
     /// Physical memory offset (for identity mapping)
     pub physical_memory_offset: Option<u64>,
 
@@ -160,8 +158,7 @@ impl BootInfo {
 
     /// Validate boot info
     pub fn validate(&self) -> bool {
-        self.magic == super::BOOT_INFO_MAGIC &&
-        self.version == super::BOOT_INFO_VERSION
+        self.magic == super::BOOT_INFO_MAGIC && self.version == super::BOOT_INFO_VERSION
     }
 
     /// Get total usable memory
@@ -224,7 +221,13 @@ impl BootInfo {
     }
 
     /// Set KASLR information
-    pub fn set_kaslr_info(&mut self, slide: i64, link_addr: u64, entropy_quality: u8, reloc_count: u64) {
+    pub fn set_kaslr_info(
+        &mut self,
+        slide: i64,
+        link_addr: u64,
+        entropy_quality: u8,
+        reloc_count: u64,
+    ) {
         self.kernel_slide = slide;
         self.kernel_link_address = link_addr;
         self.kaslr_enabled = slide != 0;
@@ -262,9 +265,9 @@ impl BootInfo {
 
     /// Check if command line option is present
     pub fn has_cmdline_option(&self, key: &str) -> bool {
-        self.command_line.split_whitespace().any(|part| {
-            part == key || part.starts_with(&alloc::format!("{}=", key))
-        })
+        self.command_line
+            .split_whitespace()
+            .any(|part| part == key || part.starts_with(&alloc::format!("{}=", key)))
     }
 }
 
@@ -337,7 +340,7 @@ impl BootFlags {
                 "safe" => flags.safe_mode = true,
                 "rescue" => flags.rescue = true,
                 "emergency" => flags.emergency = true,
-                _ => {}
+                _ => {},
             }
         }
 
@@ -403,10 +406,18 @@ impl BootInfoHeader {
     /// Create from BootInfo
     pub fn from_boot_info(info: &BootInfo) -> Self {
         let mut flags = 0u64;
-        if info.framebuffer.is_some() { flags |= 1 << 0; }
-        if info.rsdp_address.is_some() { flags |= 1 << 1; }
-        if info.smbios_address.is_some() { flags |= 1 << 2; }
-        if info.efi_system_table.is_some() { flags |= 1 << 3; }
+        if info.framebuffer.is_some() {
+            flags |= 1 << 0;
+        }
+        if info.rsdp_address.is_some() {
+            flags |= 1 << 1;
+        }
+        if info.smbios_address.is_some() {
+            flags |= 1 << 2;
+        }
+        if info.efi_system_table.is_some() {
+            flags |= 1 << 3;
+        }
 
         Self {
             magic: info.magic,

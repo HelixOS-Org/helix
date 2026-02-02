@@ -2,9 +2,9 @@
 //!
 //! High-level random number generation abstraction.
 
-use crate::raw::types::*;
-use crate::error::{Error, Result};
 use super::Protocol;
+use crate::error::{Error, Result};
+use crate::raw::types::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -60,7 +60,8 @@ impl Rng {
         let mut state = 0xDEADBEEFu64;
 
         for byte in buffer.iter_mut() {
-            state = state.wrapping_mul(6364136223846793005)
+            state = state
+                .wrapping_mul(6364136223846793005)
                 .wrapping_add(1442695040888963407);
             *byte = (state >> 33) as u8;
         }
@@ -220,10 +221,9 @@ impl Rng {
 }
 
 impl Protocol for Rng {
-    const GUID: Guid = Guid::new(
-        0x3152BCA5, 0xEADE, 0x433D,
-        [0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44],
-    );
+    const GUID: Guid = Guid::new(0x3152BCA5, 0xEADE, 0x433D, [
+        0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44,
+    ]);
 
     fn open(handle: Handle) -> Result<Self> {
         Ok(Self::new(handle))
@@ -301,10 +301,9 @@ impl RngAlgorithm {
 
     /// Check if algorithm is a DRBG
     pub fn is_drbg(&self) -> bool {
-        matches!(self,
-            Self::Sp80090HashDrbgSha256 |
-            Self::Sp80090HmacDrbgSha256 |
-            Self::Sp80090CtrDrbgAes256
+        matches!(
+            self,
+            Self::Sp80090HashDrbgSha256 | Self::Sp80090HmacDrbgSha256 | Self::Sp80090CtrDrbgAes256
         )
     }
 
@@ -323,40 +322,37 @@ pub mod rng_algorithms {
     use super::*;
 
     /// Raw entropy
-    pub const EFI_RNG_ALGORITHM_RAW: Guid = Guid::new(
-        0xE43176D7, 0xB6E8, 0x4827,
-        [0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61],
-    );
+    pub const EFI_RNG_ALGORITHM_RAW: Guid = Guid::new(0xE43176D7, 0xB6E8, 0x4827, [
+        0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61,
+    ]);
 
     /// SP800-90 Hash DRBG (SHA-256)
-    pub const EFI_RNG_ALGORITHM_SP800_90_HASH_256_GUID: Guid = Guid::new(
-        0xA7AF67CB, 0x603B, 0x4D42,
-        [0xBA, 0x21, 0x70, 0xBF, 0xB6, 0x29, 0x3F, 0x96],
-    );
+    pub const EFI_RNG_ALGORITHM_SP800_90_HASH_256_GUID: Guid =
+        Guid::new(0xA7AF67CB, 0x603B, 0x4D42, [
+            0xBA, 0x21, 0x70, 0xBF, 0xB6, 0x29, 0x3F, 0x96,
+        ]);
 
     /// SP800-90 HMAC DRBG (SHA-256)
-    pub const EFI_RNG_ALGORITHM_SP800_90_HMAC_256_GUID: Guid = Guid::new(
-        0xC5149B43, 0xAE85, 0x4F53,
-        [0x99, 0x82, 0xB9, 0x43, 0x35, 0xD3, 0xA9, 0xE7],
-    );
+    pub const EFI_RNG_ALGORITHM_SP800_90_HMAC_256_GUID: Guid =
+        Guid::new(0xC5149B43, 0xAE85, 0x4F53, [
+            0x99, 0x82, 0xB9, 0x43, 0x35, 0xD3, 0xA9, 0xE7,
+        ]);
 
     /// SP800-90 CTR DRBG (AES-256)
-    pub const EFI_RNG_ALGORITHM_SP800_90_CTR_256_GUID: Guid = Guid::new(
-        0x44F0DE6E, 0x4D8C, 0x4045,
-        [0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E],
-    );
+    pub const EFI_RNG_ALGORITHM_SP800_90_CTR_256_GUID: Guid =
+        Guid::new(0x44F0DE6E, 0x4D8C, 0x4045, [
+            0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E,
+        ]);
 
     /// X9.31-3DES (often used for RDRAND)
-    pub const EFI_RNG_ALGORITHM_X9_31_AES_GUID: Guid = Guid::new(
-        0x63C4785A, 0xCA34, 0x4012,
-        [0xA3, 0xC8, 0x0B, 0x6A, 0x32, 0x4F, 0x55, 0x46],
-    );
+    pub const EFI_RNG_ALGORITHM_X9_31_AES_GUID: Guid = Guid::new(0x63C4785A, 0xCA34, 0x4012, [
+        0xA3, 0xC8, 0x0B, 0x6A, 0x32, 0x4F, 0x55, 0x46,
+    ]);
 
     /// ARM RNDR
-    pub const EFI_RNG_ALGORITHM_ARM_RNDR_GUID: Guid = Guid::new(
-        0x43D2FDE3, 0x9D4E, 0x4D79,
-        [0xB5, 0xEC, 0x48, 0x7F, 0x53, 0x8B, 0x2F, 0x5E],
-    );
+    pub const EFI_RNG_ALGORITHM_ARM_RNDR_GUID: Guid = Guid::new(0x43D2FDE3, 0x9D4E, 0x4D79, [
+        0xB5, 0xEC, 0x48, 0x7F, 0x53, 0x8B, 0x2F, 0x5E,
+    ]);
 }
 
 // =============================================================================

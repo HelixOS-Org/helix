@@ -50,8 +50,7 @@ impl fmt::Display for MacAddress {
         write!(
             f,
             "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            self.0[0], self.0[1], self.0[2],
-            self.0[3], self.0[4], self.0[5]
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5]
         )
     }
 }
@@ -134,19 +133,24 @@ impl Ipv6Address {
     pub const LOOPBACK: Self = Self([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
 
     /// Create from parts (8 x u16)
-    pub const fn new(
-        a: u16, b: u16, c: u16, d: u16,
-        e: u16, f: u16, g: u16, h: u16,
-    ) -> Self {
+    pub const fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> Self {
         let bytes = [
-            (a >> 8) as u8, a as u8,
-            (b >> 8) as u8, b as u8,
-            (c >> 8) as u8, c as u8,
-            (d >> 8) as u8, d as u8,
-            (e >> 8) as u8, e as u8,
-            (f >> 8) as u8, f as u8,
-            (g >> 8) as u8, g as u8,
-            (h >> 8) as u8, h as u8,
+            (a >> 8) as u8,
+            a as u8,
+            (b >> 8) as u8,
+            b as u8,
+            (c >> 8) as u8,
+            c as u8,
+            (d >> 8) as u8,
+            d as u8,
+            (e >> 8) as u8,
+            e as u8,
+            (f >> 8) as u8,
+            f as u8,
+            (g >> 8) as u8,
+            g as u8,
+            (h >> 8) as u8,
+            h as u8,
         ];
         Self(bytes)
     }
@@ -215,38 +219,38 @@ impl IpAddress {
 #[repr(u8)]
 pub enum DhcpMessageType {
     Discover = 1,
-    Offer = 2,
-    Request = 3,
-    Decline = 4,
-    Ack = 5,
-    Nak = 6,
-    Release = 7,
-    Inform = 8,
+    Offer    = 2,
+    Request  = 3,
+    Decline  = 4,
+    Ack      = 5,
+    Nak      = 6,
+    Release  = 7,
+    Inform   = 8,
 }
 
 /// DHCP options
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum DhcpOption {
-    Pad = 0,
-    SubnetMask = 1,
-    Router = 3,
-    DnsServer = 6,
-    HostName = 12,
-    DomainName = 15,
-    BroadcastAddr = 28,
-    RequestedIp = 50,
-    LeaseTime = 51,
-    MessageType = 53,
-    ServerIdentifier = 54,
+    Pad                  = 0,
+    SubnetMask           = 1,
+    Router               = 3,
+    DnsServer            = 6,
+    HostName             = 12,
+    DomainName           = 15,
+    BroadcastAddr        = 28,
+    RequestedIp          = 50,
+    LeaseTime            = 51,
+    MessageType          = 53,
+    ServerIdentifier     = 54,
     ParameterRequestList = 55,
-    MaxMessageSize = 57,
-    VendorClassId = 60,
-    ClientId = 61,
-    TftpServerName = 66,
-    BootFileName = 67,
+    MaxMessageSize       = 57,
+    VendorClassId        = 60,
+    ClientId             = 61,
+    TftpServerName       = 66,
+    BootFileName         = 67,
     ClasslessStaticRoute = 121,
-    End = 255,
+    End                  = 255,
 }
 
 /// DHCP packet header
@@ -346,8 +350,7 @@ impl Default for DhcpLease {
 
 /// EFI PXE Base Code Protocol GUID
 pub const EFI_PXE_BASE_CODE_PROTOCOL_GUID: [u8; 16] = [
-    0xBC, 0x8A, 0x36, 0x03, 0xB0, 0x76, 0xD2, 0x11,
-    0x9E, 0x35, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81,
+    0xBC, 0x8A, 0x36, 0x03, 0xB0, 0x76, 0xD2, 0x11, 0x9E, 0x35, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81,
 ];
 
 /// PXE packet type
@@ -355,11 +358,11 @@ pub const EFI_PXE_BASE_CODE_PROTOCOL_GUID: [u8; 16] = [
 #[repr(u8)]
 pub enum PxePacketType {
     DhcpDiscover = 1,
-    DhcpAck = 2,
-    ProxyOffer = 3,
-    PxeDiscover = 4,
-    PxeOffer = 5,
-    PxeAck = 6,
+    DhcpAck      = 2,
+    ProxyOffer   = 3,
+    PxeDiscover  = 4,
+    PxeOffer     = 5,
+    PxeAck       = 6,
 }
 
 /// PXE mode data
@@ -414,25 +417,25 @@ pub struct PxeMode {
 #[repr(u16)]
 pub enum PxeServerType {
     /// Bootstrap server
-    Bootstrap = 0,
+    Bootstrap   = 0,
     /// Microsoft Windows NT
-    WindowsNt = 1,
+    WindowsNt   = 1,
     /// Intel LCM
-    IntelLcm = 2,
+    IntelLcm    = 2,
     /// DOS/UNDI
-    DosUndi = 3,
+    DosUndi     = 3,
     /// NEC ESMPRO
-    NecEsmpro = 4,
+    NecEsmpro   = 4,
     /// IBM WSoD
-    IbmWsod = 5,
+    IbmWsod     = 5,
     /// IBM LCCM
-    IbmLccm = 6,
+    IbmLccm     = 6,
     /// CA Unicenter
     CaUnicenter = 7,
     /// HP OpenView
-    HpOpenview = 8,
+    HpOpenview  = 8,
     /// Reserved
-    Reserved = 9,
+    Reserved    = 9,
 }
 
 /// PXE discover info
@@ -564,7 +567,11 @@ impl PxeClient {
     }
 
     /// Set station IP
-    pub fn set_station_ip(&mut self, ip: Ipv4Address, subnet: Ipv4Address) -> Result<(), NetworkError> {
+    pub fn set_station_ip(
+        &mut self,
+        ip: Ipv4Address,
+        subnet: Ipv4Address,
+    ) -> Result<(), NetworkError> {
         self.ip = ip;
         Ok(())
     }
@@ -607,17 +614,17 @@ pub enum MtftpOperation {
 #[repr(u16)]
 pub enum TftpOpcode {
     /// Read request
-    Rrq = 1,
+    Rrq   = 1,
     /// Write request
-    Wrq = 2,
+    Wrq   = 2,
     /// Data
-    Data = 3,
+    Data  = 3,
     /// Acknowledgment
-    Ack = 4,
+    Ack   = 4,
     /// Error
     Error = 5,
     /// Option acknowledgment
-    Oack = 6,
+    Oack  = 6,
 }
 
 /// TFTP error codes
@@ -625,23 +632,23 @@ pub enum TftpOpcode {
 #[repr(u16)]
 pub enum TftpErrorCode {
     /// Not defined
-    Undefined = 0,
+    Undefined       = 0,
     /// File not found
-    FileNotFound = 1,
+    FileNotFound    = 1,
     /// Access violation
     AccessViolation = 2,
     /// Disk full
-    DiskFull = 3,
+    DiskFull        = 3,
     /// Illegal operation
-    IllegalOp = 4,
+    IllegalOp       = 4,
     /// Unknown transfer ID
-    UnknownTid = 5,
+    UnknownTid      = 5,
     /// File already exists
-    FileExists = 6,
+    FileExists      = 6,
     /// No such user
-    NoSuchUser = 7,
+    NoSuchUser      = 7,
     /// Option negotiation failed
-    OptionsFailed = 8,
+    OptionsFailed   = 8,
 }
 
 /// TFTP transfer mode
@@ -830,22 +837,22 @@ impl TftpClient {
                         return Ok(true);
                     }
                 }
-            }
+            },
             5 => {
                 // ERROR
                 let code = u16::from_be_bytes([packet[2], packet[3]]);
                 self.state = TftpState::Error;
                 return Err(NetworkError::TftpError(code));
-            }
+            },
             6 => {
                 // OACK
                 self.state = TftpState::Transferring;
                 self.block = 0;
                 // Parse options and send ACK 0
-            }
+            },
             _ => {
                 return Err(NetworkError::InvalidPacket);
-            }
+            },
         }
 
         Ok(false)
@@ -899,11 +906,11 @@ impl HttpMethod {
 /// HTTP status code categories
 #[derive(Debug, Clone, Copy)]
 pub enum HttpStatusCategory {
-    Informational,  // 1xx
-    Success,        // 2xx
-    Redirection,    // 3xx
-    ClientError,    // 4xx
-    ServerError,    // 5xx
+    Informational, // 1xx
+    Success,       // 2xx
+    Redirection,   // 3xx
+    ClientError,   // 4xx
+    ServerError,   // 5xx
     Unknown,
 }
 
@@ -1137,7 +1144,10 @@ struct SmallString {
 
 impl SmallString {
     fn new() -> Self {
-        Self { buf: [0; 64], len: 0 }
+        Self {
+            buf: [0; 64],
+            len: 0,
+        }
     }
 
     fn push(&mut self, c: char) {
@@ -1208,11 +1218,7 @@ impl HttpBootClient {
     }
 
     /// Download file
-    pub fn download(
-        &mut self,
-        url: &str,
-        buffer: &mut [u8],
-    ) -> Result<usize, NetworkError> {
+    pub fn download(&mut self, url: &str, buffer: &mut [u8]) -> Result<usize, NetworkError> {
         let req = HttpRequest::get(url);
         let _response = self.request(&req)?;
 
@@ -1236,8 +1242,7 @@ impl HttpBootClient {
 
 /// EFI Simple Network Protocol GUID
 pub const EFI_SIMPLE_NETWORK_PROTOCOL_GUID: [u8; 16] = [
-    0xCE, 0x34, 0x5B, 0xA3, 0xD5, 0xBE, 0xD2, 0x11,
-    0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
+    0xCE, 0x34, 0x5B, 0xA3, 0xD5, 0xBE, 0xD2, 0x11, 0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ];
 
 /// Network interface state

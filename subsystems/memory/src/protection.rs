@@ -1,7 +1,7 @@
 //! # Memory Protection
 
-use helix_hal::VirtAddr;
 use bitflags::bitflags;
+use helix_hal::VirtAddr;
 
 bitflags! {
     /// Memory protection flags

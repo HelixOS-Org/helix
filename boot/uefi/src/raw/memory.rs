@@ -5,9 +5,9 @@
 
 extern crate alloc;
 use alloc::vec::Vec;
+use core::fmt;
 
 use super::types::{PhysicalAddress, VirtualAddress};
-use core::fmt;
 
 // =============================================================================
 // MEMORY TYPE
@@ -20,37 +20,37 @@ use core::fmt;
 #[repr(u32)]
 pub enum MemoryType {
     /// Reserved memory (unusable)
-    ReservedMemory = 0,
+    ReservedMemory      = 0,
     /// Loader code
-    LoaderCode = 1,
+    LoaderCode          = 1,
     /// Loader data
-    LoaderData = 2,
+    LoaderData          = 2,
     /// Boot services code (reclaimable after ExitBootServices)
-    BootServicesCode = 3,
+    BootServicesCode    = 3,
     /// Boot services data (reclaimable after ExitBootServices)
-    BootServicesData = 4,
+    BootServicesData    = 4,
     /// Runtime services code (must be preserved)
     RuntimeServicesCode = 5,
     /// Runtime services data (must be preserved)
     RuntimeServicesData = 6,
     /// Conventional (free) memory
-    ConventionalMemory = 7,
+    ConventionalMemory  = 7,
     /// Unusable memory (errors detected)
-    UnusableMemory = 8,
+    UnusableMemory      = 8,
     /// ACPI reclaim memory (can be freed after parsing ACPI tables)
-    AcpiReclaimMemory = 9,
+    AcpiReclaimMemory   = 9,
     /// ACPI NVS memory (must be preserved)
-    AcpiNvsMemory = 10,
+    AcpiNvsMemory       = 10,
     /// Memory-mapped I/O
-    MemoryMappedIo = 11,
+    MemoryMappedIo      = 11,
     /// Memory-mapped I/O port space
     MemoryMappedIoPortSpace = 12,
     /// Processor reserved (PAL code on Itanium)
-    PalCode = 13,
+    PalCode             = 13,
     /// Persistent memory (NVDIMM)
-    PersistentMemory = 14,
+    PersistentMemory    = 14,
     /// Unaccepted memory (TDX, SEV-SNP)
-    UnacceptedMemory = 15,
+    UnacceptedMemory    = 15,
 }
 
 impl MemoryType {
@@ -61,28 +61,30 @@ impl MemoryType {
 
     /// Check if this memory type is usable after ExitBootServices
     pub const fn is_usable_after_exit(self) -> bool {
-        matches!(self,
-            Self::LoaderCode |
-            Self::LoaderData |
-            Self::BootServicesCode |
-            Self::BootServicesData |
-            Self::ConventionalMemory |
-            Self::AcpiReclaimMemory |
-            Self::PersistentMemory
+        matches!(
+            self,
+            Self::LoaderCode
+                | Self::LoaderData
+                | Self::BootServicesCode
+                | Self::BootServicesData
+                | Self::ConventionalMemory
+                | Self::AcpiReclaimMemory
+                | Self::PersistentMemory
         )
     }
 
     /// Check if this memory type must be preserved
     pub const fn must_preserve(self) -> bool {
-        matches!(self,
-            Self::RuntimeServicesCode |
-            Self::RuntimeServicesData |
-            Self::AcpiNvsMemory |
-            Self::ReservedMemory |
-            Self::UnusableMemory |
-            Self::MemoryMappedIo |
-            Self::MemoryMappedIoPortSpace |
-            Self::PalCode
+        matches!(
+            self,
+            Self::RuntimeServicesCode
+                | Self::RuntimeServicesData
+                | Self::AcpiNvsMemory
+                | Self::ReservedMemory
+                | Self::UnusableMemory
+                | Self::MemoryMappedIo
+                | Self::MemoryMappedIoPortSpace
+                | Self::PalCode
         )
     }
 
@@ -283,20 +285,48 @@ impl fmt::Debug for MemoryAttribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut flags = Vec::new();
 
-        if self.contains(Self::UC) { flags.push("UC"); }
-        if self.contains(Self::WC) { flags.push("WC"); }
-        if self.contains(Self::WT) { flags.push("WT"); }
-        if self.contains(Self::WB) { flags.push("WB"); }
-        if self.contains(Self::UCE) { flags.push("UCE"); }
-        if self.contains(Self::WP) { flags.push("WP"); }
-        if self.contains(Self::RP) { flags.push("RP"); }
-        if self.contains(Self::XP) { flags.push("XP"); }
-        if self.contains(Self::NV) { flags.push("NV"); }
-        if self.contains(Self::MORE_RELIABLE) { flags.push("MORE_RELIABLE"); }
-        if self.contains(Self::RO) { flags.push("RO"); }
-        if self.contains(Self::SP) { flags.push("SP"); }
-        if self.contains(Self::CPU_CRYPTO) { flags.push("CPU_CRYPTO"); }
-        if self.contains(Self::RUNTIME) { flags.push("RUNTIME"); }
+        if self.contains(Self::UC) {
+            flags.push("UC");
+        }
+        if self.contains(Self::WC) {
+            flags.push("WC");
+        }
+        if self.contains(Self::WT) {
+            flags.push("WT");
+        }
+        if self.contains(Self::WB) {
+            flags.push("WB");
+        }
+        if self.contains(Self::UCE) {
+            flags.push("UCE");
+        }
+        if self.contains(Self::WP) {
+            flags.push("WP");
+        }
+        if self.contains(Self::RP) {
+            flags.push("RP");
+        }
+        if self.contains(Self::XP) {
+            flags.push("XP");
+        }
+        if self.contains(Self::NV) {
+            flags.push("NV");
+        }
+        if self.contains(Self::MORE_RELIABLE) {
+            flags.push("MORE_RELIABLE");
+        }
+        if self.contains(Self::RO) {
+            flags.push("RO");
+        }
+        if self.contains(Self::SP) {
+            flags.push("SP");
+        }
+        if self.contains(Self::CPU_CRYPTO) {
+            flags.push("CPU_CRYPTO");
+        }
+        if self.contains(Self::RUNTIME) {
+            flags.push("RUNTIME");
+        }
 
         if flags.is_empty() {
             write!(f, "MemoryAttribute(NONE)")
@@ -395,14 +425,14 @@ impl MemoryDescriptor {
 
     /// Check if this region contains an address
     pub const fn contains(&self, addr: PhysicalAddress) -> bool {
-        addr.as_u64() >= self.physical_start.as_u64() &&
-        addr.as_u64() < self.physical_end().as_u64()
+        addr.as_u64() >= self.physical_start.as_u64()
+            && addr.as_u64() < self.physical_end().as_u64()
     }
 
     /// Check if this region overlaps with another
     pub const fn overlaps(&self, other: &Self) -> bool {
-        self.physical_start.as_u64() < other.physical_end().as_u64() &&
-        other.physical_start.as_u64() < self.physical_end().as_u64()
+        self.physical_start.as_u64() < other.physical_end().as_u64()
+            && other.physical_start.as_u64() < self.physical_end().as_u64()
     }
 
     /// Check if this memory is usable after ExitBootServices
@@ -423,9 +453,7 @@ impl MemoryDescriptor {
 
 impl fmt::Debug for MemoryDescriptor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let type_name = self.get_type()
-            .map(|t| t.name())
-            .unwrap_or("Unknown");
+        let type_name = self.get_type().map(|t| t.name()).unwrap_or("Unknown");
 
         f.debug_struct("MemoryDescriptor")
             .field("type", &type_name)
@@ -440,16 +468,17 @@ impl fmt::Debug for MemoryDescriptor {
 
 impl fmt::Display for MemoryDescriptor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let type_name = self.get_type()
-            .map(|t| t.name())
-            .unwrap_or("Unknown");
+        let type_name = self.get_type().map(|t| t.name()).unwrap_or("Unknown");
 
-        write!(f, "{} - {} ({:>12} bytes) [{}] {:?}",
+        write!(
+            f,
+            "{} - {} ({:>12} bytes) [{}] {:?}",
             self.physical_start,
             self.physical_end(),
             self.size(),
             type_name,
-            self.attribute.cache_type())
+            self.attribute.cache_type()
+        )
     }
 }
 
@@ -579,21 +608,18 @@ impl MemoryMap {
 
     /// Get an iterator over the memory descriptors
     pub fn iter(&self) -> MemoryMapIter<'_> {
-        unsafe {
-            MemoryMapIter::new(self.buffer, self.map_size, self.descriptor_size)
-        }
+        unsafe { MemoryMapIter::new(self.buffer, self.map_size, self.descriptor_size) }
     }
 
     /// Get a mutable iterator over the memory descriptors
     pub fn iter_mut(&mut self) -> MemoryMapIterMut<'_> {
-        unsafe {
-            MemoryMapIterMut::new(self.buffer, self.map_size, self.descriptor_size)
-        }
+        unsafe { MemoryMapIterMut::new(self.buffer, self.map_size, self.descriptor_size) }
     }
 
     /// Find memory descriptors by type
     pub fn find_by_type(&self, memory_type: MemoryType) -> impl Iterator<Item = &MemoryDescriptor> {
-        self.iter().filter(move |d| d.get_type() == Some(memory_type))
+        self.iter()
+            .filter(move |d| d.get_type() == Some(memory_type))
     }
 
     /// Get total usable memory
@@ -621,12 +647,14 @@ impl MemoryMap {
 
     /// Get memory at or above a specific address
     pub fn memory_above(&self, addr: PhysicalAddress) -> impl Iterator<Item = &MemoryDescriptor> {
-        self.iter().filter(move |d| d.physical_start.as_u64() >= addr.as_u64())
+        self.iter()
+            .filter(move |d| d.physical_start.as_u64() >= addr.as_u64())
     }
 
     /// Get memory below a specific address
     pub fn memory_below(&self, addr: PhysicalAddress) -> impl Iterator<Item = &MemoryDescriptor> {
-        self.iter().filter(move |d| d.physical_end().as_u64() <= addr.as_u64())
+        self.iter()
+            .filter(move |d| d.physical_end().as_u64() <= addr.as_u64())
     }
 
     /// Find a suitable region for allocation
@@ -775,15 +803,13 @@ impl MemoryStats {
                 }
 
                 match mem_type {
-                    MemoryType::ReservedMemory |
-                    MemoryType::UnusableMemory => {
+                    MemoryType::ReservedMemory | MemoryType::UnusableMemory => {
                         stats.total_reserved += size;
-                    }
-                    MemoryType::MemoryMappedIo |
-                    MemoryType::MemoryMappedIoPortSpace => {
+                    },
+                    MemoryType::MemoryMappedIo | MemoryType::MemoryMappedIoPortSpace => {
                         stats.total_mmio += size;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
