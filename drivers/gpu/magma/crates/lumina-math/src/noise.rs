@@ -138,11 +138,7 @@ pub mod perlin {
         let bbb = perm(perm(perm(xi + 1) + yi + 1) + zi + 1);
 
         // Gradient values
-        let x1 = lerp(
-            grad3(aaa, xf, yf, zf),
-            grad3(baa, xf - 1.0, yf, zf),
-            u,
-        );
+        let x1 = lerp(grad3(aaa, xf, yf, zf), grad3(baa, xf - 1.0, yf, zf), u);
         let x2 = lerp(
             grad3(aba, xf, yf - 1.0, zf),
             grad3(bba, xf - 1.0, yf - 1.0, zf),
@@ -571,7 +567,10 @@ mod tests {
     fn test_simplex2_deterministic() {
         let v1 = simplex::noise2(1.0, 2.0);
         let v2 = simplex::noise2(1.0, 2.0);
-        assert!((v1 - v2).abs() < 1e-10, "Simplex noise should be deterministic");
+        assert!(
+            (v1 - v2).abs() < 1e-10,
+            "Simplex noise should be deterministic"
+        );
     }
 
     #[test]
