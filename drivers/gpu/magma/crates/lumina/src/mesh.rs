@@ -4,9 +4,10 @@
 
 use alloc::vec::Vec;
 
+use lumina_math::Vec3;
+
 use crate::buffer::{BufferUsage, GpuBuffer, IndexBuffer};
 use crate::types::{GpuData, GpuVertex};
-use lumina_math::Vec3;
 
 /// A GPU mesh combining vertices and optional indices
 pub struct GpuMesh {
@@ -184,12 +185,12 @@ pub fn generate_cube(size: f32) -> (Vec<ProceduralVertex>, Vec<u32>) {
     ];
 
     let normals = [
-        Vec3::new(0.0, 0.0, 1.0),   // Front
-        Vec3::new(0.0, 0.0, -1.0),  // Back
-        Vec3::new(0.0, 1.0, 0.0),   // Top
-        Vec3::new(0.0, -1.0, 0.0),  // Bottom
-        Vec3::new(1.0, 0.0, 0.0),   // Right
-        Vec3::new(-1.0, 0.0, 0.0),  // Left
+        Vec3::new(0.0, 0.0, 1.0),  // Front
+        Vec3::new(0.0, 0.0, -1.0), // Back
+        Vec3::new(0.0, 1.0, 0.0),  // Top
+        Vec3::new(0.0, -1.0, 0.0), // Bottom
+        Vec3::new(1.0, 0.0, 0.0),  // Right
+        Vec3::new(-1.0, 0.0, 0.0), // Left
     ];
 
     // Generate 24 vertices (4 per face to have correct normals)
@@ -238,7 +239,11 @@ pub fn generate_cube(size: f32) -> (Vec<ProceduralVertex>, Vec<u32>) {
 }
 
 /// Generates sphere vertices and indices
-pub fn generate_sphere(radius: f32, segments: u32, rings: u32) -> (Vec<ProceduralVertex>, Vec<u32>) {
+pub fn generate_sphere(
+    radius: f32,
+    segments: u32,
+    rings: u32,
+) -> (Vec<ProceduralVertex>, Vec<u32>) {
     let mut vertices = Vec::with_capacity(((segments + 1) * (rings + 1)) as usize);
     let mut indices = Vec::with_capacity((segments * rings * 6) as usize);
 
