@@ -1,7 +1,7 @@
 # Helix-GL: OpenGL Translation Layer Architecture
 
-**Version:** 0.1.0  
-**Status:** Design Phase  
+**Version:** 0.1.0
+**Status:** Design Phase
 **Target:** OpenGL 3.3+ Core Profile → Vulkan 1.3
 
 ---
@@ -658,4 +658,3 @@ After core functionality:
 | Shader Cache | `blake3` hash | Fast, collision-resistant |
 | Memory Allocator | `magma-mem` | Already implemented, zero-copy |
 | Thread Safety | `parking_lot` | Fast mutexes for context locks |
-
