@@ -2,8 +2,8 @@
 //!
 //! This module provides types for GPU memory management.
 
-use crate::types::BufferHandle;
 use crate::surface::TextureUsageFlags;
+use crate::types::BufferHandle;
 
 /// Memory type flags
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -31,7 +31,8 @@ impl MemoryPropertyFlags {
     /// CPU to GPU (upload heap)
     pub const CPU_TO_GPU: Self = Self(Self::HOST_VISIBLE.0 | Self::HOST_COHERENT.0);
     /// GPU to CPU (readback heap)
-    pub const GPU_TO_CPU: Self = Self(Self::HOST_VISIBLE.0 | Self::HOST_COHERENT.0 | Self::HOST_CACHED.0);
+    pub const GPU_TO_CPU: Self =
+        Self(Self::HOST_VISIBLE.0 | Self::HOST_COHERENT.0 | Self::HOST_CACHED.0);
 
     /// Checks if flag is set
     pub const fn contains(self, flag: Self) -> bool {
@@ -107,7 +108,11 @@ pub struct MemoryProperties {
 
 impl MemoryProperties {
     /// Finds a suitable memory type
-    pub fn find_memory_type(&self, type_bits: u32, required_flags: MemoryPropertyFlags) -> Option<u32> {
+    pub fn find_memory_type(
+        &self,
+        type_bits: u32,
+        required_flags: MemoryPropertyFlags,
+    ) -> Option<u32> {
         for i in 0..self.memory_type_count {
             if (type_bits & (1 << i)) != 0 {
                 let mem_type = &self.memory_types[i as usize];
@@ -175,12 +180,14 @@ pub struct AllocationInfo {
 impl AllocationInfo {
     /// Returns mapped slice if available
     pub unsafe fn mapped_slice(&self) -> Option<&[u8]> {
-        self.mapped_ptr.map(|ptr| core::slice::from_raw_parts(ptr, self.size as usize))
+        self.mapped_ptr
+            .map(|ptr| core::slice::from_raw_parts(ptr, self.size as usize))
     }
 
     /// Returns mapped mutable slice if available
     pub unsafe fn mapped_slice_mut(&mut self) -> Option<&mut [u8]> {
-        self.mapped_ptr.map(|ptr| core::slice::from_raw_parts_mut(ptr, self.size as usize))
+        self.mapped_ptr
+            .map(|ptr| core::slice::from_raw_parts_mut(ptr, self.size as usize))
     }
 }
 
@@ -268,28 +275,27 @@ impl MemoryUsage {
             Self::Unknown => MemoryPropertyFlags::NONE,
             Self::GpuOnly => MemoryPropertyFlags::DEVICE_LOCAL,
             Self::CpuOnly => MemoryPropertyFlags(
-                MemoryPropertyFlags::HOST_VISIBLE.0 |
-                MemoryPropertyFlags::HOST_COHERENT.0 |
-                MemoryPropertyFlags::HOST_CACHED.0
+                MemoryPropertyFlags::HOST_VISIBLE.0
+                    | MemoryPropertyFlags::HOST_COHERENT.0
+                    | MemoryPropertyFlags::HOST_CACHED.0,
             ),
             Self::CpuToGpu => MemoryPropertyFlags(
-                MemoryPropertyFlags::HOST_VISIBLE.0 |
-                MemoryPropertyFlags::HOST_COHERENT.0 |
-                MemoryPropertyFlags::DEVICE_LOCAL.0
+                MemoryPropertyFlags::HOST_VISIBLE.0
+                    | MemoryPropertyFlags::HOST_COHERENT.0
+                    | MemoryPropertyFlags::DEVICE_LOCAL.0,
             ),
             Self::GpuToCpu => MemoryPropertyFlags(
-                MemoryPropertyFlags::HOST_VISIBLE.0 |
-                MemoryPropertyFlags::HOST_COHERENT.0 |
-                MemoryPropertyFlags::HOST_CACHED.0
+                MemoryPropertyFlags::HOST_VISIBLE.0
+                    | MemoryPropertyFlags::HOST_COHERENT.0
+                    | MemoryPropertyFlags::HOST_CACHED.0,
             ),
             Self::CpuCopy => MemoryPropertyFlags(
-                MemoryPropertyFlags::HOST_VISIBLE.0 |
-                MemoryPropertyFlags::HOST_COHERENT.0 |
-                MemoryPropertyFlags::HOST_CACHED.0
+                MemoryPropertyFlags::HOST_VISIBLE.0
+                    | MemoryPropertyFlags::HOST_COHERENT.0
+                    | MemoryPropertyFlags::HOST_CACHED.0,
             ),
             Self::GpuLazilyAllocated => MemoryPropertyFlags(
-                MemoryPropertyFlags::LAZILY_ALLOCATED.0 |
-                MemoryPropertyFlags::DEVICE_LOCAL.0
+                MemoryPropertyFlags::LAZILY_ALLOCATED.0 | MemoryPropertyFlags::DEVICE_LOCAL.0,
             ),
         }
     }
@@ -574,7 +580,11 @@ pub struct TextureCreateInfo<'a> {
 
 impl<'a> TextureCreateInfo<'a> {
     /// Creates a 2D texture
-    pub const fn texture_2d(width: u32, height: u32, format: crate::compute::TextureFormat) -> Self {
+    pub const fn texture_2d(
+        width: u32,
+        height: u32,
+        format: crate::compute::TextureFormat,
+    ) -> Self {
         Self {
             texture_type: TextureType::Texture2D,
             format,
@@ -597,7 +607,11 @@ impl<'a> TextureCreateInfo<'a> {
     }
 
     /// Creates a render target
-    pub const fn render_target(width: u32, height: u32, format: crate::compute::TextureFormat) -> Self {
+    pub const fn render_target(
+        width: u32,
+        height: u32,
+        format: crate::compute::TextureFormat,
+    ) -> Self {
         Self {
             texture_type: TextureType::Texture2D,
             format,
@@ -620,7 +634,11 @@ impl<'a> TextureCreateInfo<'a> {
     }
 
     /// Creates a depth buffer
-    pub const fn depth_buffer(width: u32, height: u32, format: crate::compute::TextureFormat) -> Self {
+    pub const fn depth_buffer(
+        width: u32,
+        height: u32,
+        format: crate::compute::TextureFormat,
+    ) -> Self {
         Self {
             texture_type: TextureType::Texture2D,
             format,
