@@ -16,110 +16,110 @@ pub enum RpcFunction {
     // System Functions (0x0000-0x00FF)
     // =================================
     /// Initialize GSP
-    SystemInit = 0x0001,
+    SystemInit          = 0x0001,
     /// Shutdown GSP
-    SystemShutdown = 0x0002,
+    SystemShutdown      = 0x0002,
     /// Get GSP version
-    SystemGetVersion = 0x0003,
+    SystemGetVersion    = 0x0003,
     /// Get capabilities
-    SystemGetCaps = 0x0004,
+    SystemGetCaps       = 0x0004,
     /// Heartbeat/ping
-    SystemHeartbeat = 0x0005,
+    SystemHeartbeat     = 0x0005,
 
     // =================================
     // Memory Functions (0x0100-0x01FF)
     // =================================
     /// Allocate memory
-    MemAlloc = 0x0100,
+    MemAlloc            = 0x0100,
     /// Free memory
-    MemFree = 0x0101,
+    MemFree             = 0x0101,
     /// Map memory
-    MemMap = 0x0102,
+    MemMap              = 0x0102,
     /// Unmap memory
-    MemUnmap = 0x0103,
+    MemUnmap            = 0x0103,
     /// Get memory info
-    MemGetInfo = 0x0104,
+    MemGetInfo          = 0x0104,
     /// Flush caches
-    MemFlush = 0x0105,
+    MemFlush            = 0x0105,
 
     // =================================
     // Engine Functions (0x0200-0x02FF)
     // =================================
     /// Allocate channel
-    EngineAllocChannel = 0x0200,
+    EngineAllocChannel  = 0x0200,
     /// Free channel
-    EngineFreeChannel = 0x0201,
+    EngineFreeChannel   = 0x0201,
     /// Bind context
-    EngineBindContext = 0x0202,
+    EngineBindContext   = 0x0202,
     /// Unbind context
     EngineUnbindContext = 0x0203,
     /// Schedule work
-    EngineSchedule = 0x0204,
+    EngineSchedule      = 0x0204,
     /// Get engine status
-    EngineGetStatus = 0x0205,
+    EngineGetStatus     = 0x0205,
 
     // =================================
     // Graphics Functions (0x0300-0x03FF)
     // =================================
     /// Create graphics context
-    GrCreateContext = 0x0300,
+    GrCreateContext     = 0x0300,
     /// Destroy graphics context
-    GrDestroyContext = 0x0301,
+    GrDestroyContext    = 0x0301,
     /// Set graphics object
-    GrSetObject = 0x0302,
+    GrSetObject         = 0x0302,
     /// Preempt graphics
-    GrPreempt = 0x0303,
+    GrPreempt           = 0x0303,
 
     // =================================
     // Compute Functions (0x0400-0x04FF)
     // =================================
     /// Create compute context
-    CeCreateContext = 0x0400,
+    CeCreateContext     = 0x0400,
     /// Destroy compute context
-    CeDestroyContext = 0x0401,
+    CeDestroyContext    = 0x0401,
     /// Configure compute
-    CeConfigure = 0x0402,
+    CeConfigure         = 0x0402,
 
     // =================================
     // Display Functions (0x0500-0x05FF)
     // =================================
     /// Setup display
-    DispSetup = 0x0500,
+    DispSetup           = 0x0500,
     /// Mode set
-    DispModeSet = 0x0501,
+    DispModeSet         = 0x0501,
     /// Flip
-    DispFlip = 0x0502,
+    DispFlip            = 0x0502,
     /// Cursor update
-    DispCursor = 0x0503,
+    DispCursor          = 0x0503,
 
     // =================================
     // VBIOS Functions (0x0600-0x06FF)
     // =================================
     /// Get VBIOS info
-    VbiosGetInfo = 0x0600,
+    VbiosGetInfo        = 0x0600,
     /// Call VBIOS
-    VbiosCall = 0x0601,
+    VbiosCall           = 0x0601,
 
     // =================================
     // Fault Functions (0x0700-0x07FF)
     // =================================
     /// Get fault info
-    FaultGetInfo = 0x0700,
+    FaultGetInfo        = 0x0700,
     /// Clear fault
-    FaultClear = 0x0701,
+    FaultClear          = 0x0701,
 
     // =================================
     // Telemetry (0x0800-0x08FF)
     // =================================
     /// Get temperature
-    TelemetryGetTemp = 0x0800,
+    TelemetryGetTemp    = 0x0800,
     /// Get power
-    TelemetryGetPower = 0x0801,
+    TelemetryGetPower   = 0x0801,
     /// Get clocks
-    TelemetryGetClocks = 0x0802,
+    TelemetryGetClocks  = 0x0802,
 
     /// Unknown function
-    Unknown = 0xFFFF,
+    Unknown             = 0xFFFF,
 }
 
 impl From<u32> for RpcFunction {
@@ -325,31 +325,31 @@ impl RpcResult {
 #[repr(u32)]
 pub enum RpcStatus {
     /// Success
-    Ok = 0,
+    Ok             = 0,
     /// Generic error
-    Error = 1,
+    Error          = 1,
     /// Invalid parameter
-    InvalidParam = 2,
+    InvalidParam   = 2,
     /// Out of memory
-    OutOfMemory = 3,
+    OutOfMemory    = 3,
     /// Not supported
-    NotSupported = 4,
+    NotSupported   = 4,
     /// Object not found
-    NotFound = 5,
+    NotFound       = 5,
     /// Already exists
-    AlreadyExists = 6,
+    AlreadyExists  = 6,
     /// Busy/in use
-    Busy = 7,
+    Busy           = 7,
     /// Timeout
-    Timeout = 8,
+    Timeout        = 8,
     /// Not initialized
     NotInitialized = 9,
     /// Invalid state
-    InvalidState = 10,
+    InvalidState   = 10,
     /// Hardware error
-    HwError = 11,
+    HwError        = 11,
     /// GSP error
-    GspError = 12,
+    GspError       = 12,
 }
 
 impl From<u32> for RpcStatus {
