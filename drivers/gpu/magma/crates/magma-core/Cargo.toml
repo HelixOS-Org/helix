@@ -1,0 +1,23 @@
+[package]
+name = "magma-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "MAGMA Core - Foundational traits and types for the NVIDIA GPU driver"
+
+[features]
+default = ["std"]
+std = []
+alloc = []
+
+[dependencies]
+magma-core-types = { workspace = true }
+magma-core-sync = { workspace = true }
+magma-core-alloc = { workspace = true }
+bitflags = { workspace = true }
+log = { workspace = true }
+static_assertions = { workspace = true }
+
+[dev-dependencies]
