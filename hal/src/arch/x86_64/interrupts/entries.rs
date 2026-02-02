@@ -337,7 +337,9 @@ impl IdtEntry {
     /// Check if this entry is present
     #[inline]
     pub const fn is_present(&self) -> bool {
-        self.options.is_present()
+        // Copy to avoid unaligned reference in packed struct
+        let options = self.options;
+        options.is_present()
     }
 
     /// Set the IST index
@@ -355,10 +357,14 @@ impl Default for IdtEntry {
 
 impl fmt::Debug for IdtEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Copy fields to avoid unaligned references in packed struct
+        let handler = self.handler();
+        let selector = { self.selector };
+        let options = { self.options };
         f.debug_struct("IdtEntry")
-            .field("handler", &format_args!("{:#018x}", self.handler()))
-            .field("selector", &format_args!("{:#06x}", self.selector))
-            .field("options", &self.options)
+            .field("handler", &format_args!("{:#018x}", handler))
+            .field("selector", &format_args!("{:#06x}", selector))
+            .field("options", &options)
             .finish()
     }
 }
