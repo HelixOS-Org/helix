@@ -24,7 +24,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, ItemFn, Data, Fields, Attribute};
+use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields, ItemFn};
 
 /// Derive macro for `GpuData` trait
 ///
@@ -544,7 +544,7 @@ pub fn derive_gpu_texture_binding(input: TokenStream) -> TokenStream {
     };
 
     let mut bindings = Vec::new();
-    
+
     for field in fields {
         let field_name = field.ident.as_ref().unwrap();
         let field_name_str = field_name.to_string();
@@ -621,7 +621,7 @@ fn parse_local_size(attr: &str) -> Option<(u32, u32, u32)> {
     // Simple parser for local_size = (x, y, z)
     if let Some(start) = attr.find('(') {
         if let Some(end) = attr.find(')') {
-            let nums: Vec<&str> = attr[start+1..end].split(',').collect();
+            let nums: Vec<&str> = attr[start + 1..end].split(',').collect();
             if nums.len() == 3 {
                 let x = nums[0].trim().parse().ok()?;
                 let y = nums[1].trim().parse().ok()?;
