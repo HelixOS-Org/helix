@@ -2,7 +2,7 @@
 //!
 //! Safe abstractions for NVIDIA GPU register access via MMIO.
 
-use magma_core::{Error, Result, ByteSize};
+use magma_core::{ByteSize, Error, Result};
 
 use crate::bar::BarRegion;
 
