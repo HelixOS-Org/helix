@@ -25,7 +25,6 @@ members = [
     "subsystems/memory",
     "subsystems/dis",
     "subsystems/userspace",
-    "subsystems/ai",
     "subsystems/relocation",
     "subsystems/nexus",
 
@@ -179,7 +178,7 @@ nonstandard_style = "warn"
 future_incompatible = "warn"
 
 # Deny dangerous patterns
-unsafe_code = "allow"  # Required for kernel
+unsafe_code = "allow"                  # Required for kernel
 missing_debug_implementations = "warn"
 
 [workspace.lints.clippy]
@@ -212,8 +211,8 @@ nursery = { level = "allow", priority = -1 }
 
 # Kernel-specific overrides
 unwrap_used = "warn"
-expect_used = "allow"  # Prefer expect over unwrap
-panic = "allow"  # Kernel may panic
+expect_used = "allow"        # Prefer expect over unwrap
+panic = "allow"              # Kernel may panic
 todo = "warn"
 unimplemented = "warn"
 missing_panics_doc = "allow"
