@@ -75,7 +75,6 @@
 
 #![no_std]
 #![cfg_attr(feature = "nightly", feature(const_trait_impl))]
-#![cfg_attr(feature = "nightly", feature(effects))]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![allow(missing_docs)]
 #![warn(clippy::all)]
