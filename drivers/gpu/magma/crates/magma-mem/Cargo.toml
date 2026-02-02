@@ -1,0 +1,24 @@
+[package]
+name = "magma-mem"
+version = "0.1.0"
+edition = "2024"
+description = "VRAM Memory Management for NVIDIA GPUs"
+license = "MIT OR Apache-2.0"
+rust-version = "1.86"
+
+[dependencies]
+magma-core = { path = "../magma-core" }
+bitflags = "2.4"
+log = "0.4"
+
+[features]
+default = []
+std = ["magma-core/std"]
+alloc = ["magma-core/alloc"]
+
+# Debug allocator tracking
+debug-alloc = []
+# Fragmentation metrics
+metrics = []
+
+[dev-dependencies]
