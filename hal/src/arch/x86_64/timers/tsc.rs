@@ -113,9 +113,11 @@ fn cpuid(leaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",  // save rbx
             "cpuid",
+            "xchg {tmp}, rbx", // restore rbx, get ebx result
+            tmp = out(reg) ebx,
             inout("eax") leaf => eax,
-            out("ebx") ebx,
             out("ecx") ecx,
             out("edx") edx,
             options(nostack, preserves_flags),
@@ -128,9 +130,11 @@ fn cpuid_subleaf(leaf: u32, subleaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
+            "mov {tmp}, rbx",  // save rbx
             "cpuid",
+            "xchg {tmp}, rbx", // restore rbx, get ebx result
+            tmp = out(reg) ebx,
             inout("eax") leaf => eax,
-            out("ebx") ebx,
             inout("ecx") subleaf => ecx,
             out("edx") edx,
             options(nostack, preserves_flags),
@@ -407,13 +411,15 @@ pub fn read_synchronized() -> u64 {
 ///
 /// Must be called during CPU initialization.
 pub unsafe fn set_aux(value: u32) {
-    core::arch::asm!(
-        "wrmsr",
-        in("ecx") IA32_TSC_AUX,
-        in("eax") value,
-        in("edx") 0u32,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "wrmsr",
+            in("ecx") IA32_TSC_AUX,
+            in("eax") value,
+            in("edx") 0u32,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 // =============================================================================
@@ -433,13 +439,15 @@ const IA32_TSC_DEADLINE: u32 = 0x6E0;
 pub unsafe fn write_deadline(deadline: u64) {
     let low = deadline as u32;
     let high = (deadline >> 32) as u32;
-    core::arch::asm!(
-        "wrmsr",
-        in("ecx") IA32_TSC_DEADLINE,
-        in("eax") low,
-        in("edx") high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "wrmsr",
+            in("ecx") IA32_TSC_DEADLINE,
+            in("eax") low,
+            in("edx") high,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 /// Arm a TSC deadline relative to current time
@@ -450,7 +458,7 @@ pub unsafe fn write_deadline(deadline: u64) {
 #[inline]
 pub unsafe fn arm_deadline_relative(ticks: u64) {
     let deadline = read() + ticks;
-    write_deadline(deadline);
+    unsafe { write_deadline(deadline) };
 }
 
 /// Disarm TSC deadline timer
@@ -460,5 +468,5 @@ pub unsafe fn arm_deadline_relative(ticks: u64) {
 /// APIC timer must be configured in TSC-deadline mode.
 #[inline]
 pub unsafe fn disarm_deadline() {
-    write_deadline(0);
+    unsafe { write_deadline(0) };
 }
