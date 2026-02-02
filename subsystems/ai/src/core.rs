@@ -344,123 +344,284 @@ pub enum AiEvent {
     SystemWake,
 
     // Performance events
-    /// CPU usage threshold crossed
-    CpuThreshold { usage_percent: u8, cpu_id: u32 },
-    /// Memory pressure detected
-    MemoryPressure { available_percent: u8 },
-    /// I/O bottleneck detected
-    IoBottleneck { device_id: u32, latency_us: u64 },
-    /// Performance anomaly detected
+    /// CPU usage threshold crossed.
+    /// - `usage_percent`: CPU usage percentage.
+    /// - `cpu_id`: CPU core identifier.
+    CpuThreshold {
+        /// CPU usage percentage.
+        usage_percent: u8,
+        /// CPU core ID.
+        cpu_id: u32,
+    },
+    /// Memory pressure detected.
+    /// - `available_percent`: Available memory percentage.
+    MemoryPressure {
+        /// Available memory percentage.
+        available_percent: u8,
+    },
+    /// I/O bottleneck detected.
+    /// - `device_id`: Device identifier.
+    /// - `latency_us`: Latency in microseconds.
+    IoBottleneck {
+        /// Device ID.
+        device_id: u32,
+        /// Latency in microseconds.
+        latency_us: u64,
+    },
+    /// Performance anomaly detected.
+    /// - `component`: Component name.
+    /// - `metric`: Metric name.
+    /// - `deviation`: Deviation value.
     PerformanceAnomaly {
+        /// Component name.
         component: String,
+        /// Metric name.
         metric: String,
+        /// Deviation value.
         deviation: f32,
     },
 
     // Process events
-    /// New process spawned
-    ProcessSpawn { pid: u64, name: String },
-    /// Process terminated
-    ProcessExit { pid: u64, exit_code: i32 },
-    /// Process resource usage spike
-    ProcessResourceSpike { pid: u64, resource: ResourceType },
+    /// New process spawned.
+    /// - `pid`: Process ID.
+    /// - `name`: Process name.
+    ProcessSpawn {
+        /// Process ID.
+        pid: u64,
+        /// Process name.
+        name: String,
+    },
+    /// Process terminated.
+    /// - `pid`: Process ID.
+    /// - `exit_code`: Exit code.
+    ProcessExit {
+        /// Process ID.
+        pid: u64,
+        /// Exit code.
+        exit_code: i32,
+    },
+    /// Process resource usage spike.
+    /// - `pid`: Process ID.
+    /// - `resource`: Resource type.
+    ProcessResourceSpike {
+        /// Process ID.
+        pid: u64,
+        /// Resource type.
+        resource: ResourceType,
+    },
 
     // Security events
-    /// Anomalous behavior detected
-    AnomalyDetected { source: String, severity: u8 },
-    /// Potential attack signature matched
+    /// Anomalous behavior detected.
+    /// - `source`: Source identifier.
+    /// - `severity`: Severity level.
+    AnomalyDetected {
+        /// Source.
+        source: String,
+        /// Severity level.
+        severity: u8,
+    },
+    /// Potential attack signature matched.
+    /// - `signature_id`: Signature ID.
+    /// - `confidence`: Confidence level.
     ThreatSignature {
+        /// Signature ID.
         signature_id: u64,
+        /// Confidence level.
         confidence: Confidence,
     },
-    /// Permission violation attempt
-    PermissionViolation { pid: u64, resource: String },
+    /// Permission violation attempt.
+    /// - `pid`: Process ID.
+    /// - `resource`: Resource name.
+    PermissionViolation {
+        /// Process ID.
+        pid: u64,
+        /// Resource name.
+        resource: String,
+    },
 
     // Module events
-    /// Module loaded
-    ModuleLoaded { module_id: u64, name: String },
-    /// Module unloaded
-    ModuleUnloaded { module_id: u64 },
-    /// Module error
-    ModuleError { module_id: u64, error: String },
-    /// Module crash
-    ModuleCrash {
+    /// Module loaded.
+    /// - `module_id`: Module ID.
+    /// - `name`: Module name.
+    ModuleLoaded {
+        /// Module ID.
         module_id: u64,
+        /// Module name.
         name: String,
+    },
+    /// Module unloaded.
+    /// - `module_id`: Module ID.
+    ModuleUnloaded {
+        /// Module ID.
+        module_id: u64,
+    },
+    /// Module error.
+    /// - `module_id`: Module ID.
+    /// - `error`: Error message.
+    ModuleError {
+        /// Module ID.
+        module_id: u64,
+        /// Error message.
+        error: String,
+    },
+    /// Module crash.
+    /// - `module_id`: Module ID.
+    /// - `name`: Module name.
+    /// - `error`: Error message.
+    ModuleCrash {
+        /// Module ID.
+        module_id: u64,
+        /// Module name.
+        name: String,
+        /// Error message.
         error: String,
     },
 
     // Kernel/System fault events
-    /// Kernel panic detected
-    KernelPanic { reason: String, address: u64 },
-    /// Critical system error
-    CriticalSystemError { component: String, error: String },
+    /// Kernel panic detected.
+    /// - `reason`: Panic reason.
+    /// - `address`: Fault address.
+    KernelPanic {
+        /// Panic reason.
+        reason: String,
+        /// Fault address.
+        address: u64,
+    },
+    /// Critical system error.
+    /// - `component`: Component name.
+    /// - `error`: Error message.
+    CriticalSystemError {
+        /// Component name.
+        component: String,
+        /// Error message.
+        error: String,
+    },
 
     // Hardware events
-    /// Device connected
+    /// Device connected.
+    /// - `device_type`: Device type.
+    /// - `device_id`: Device ID.
     DeviceConnected {
+        /// Device type.
         device_type: DeviceType,
+        /// Device ID.
         device_id: u32,
     },
-    /// Device disconnected
-    DeviceDisconnected { device_id: u32 },
-    /// Hardware error
-    HardwareError { device_id: u32, error_code: u32 },
+    /// Device disconnected.
+    /// - `device_id`: Device ID.
+    DeviceDisconnected {
+        /// Device ID.
+        device_id: u32,
+    },
+    /// Hardware error.
+    /// - `device_id`: Device ID.
+    /// - `error_code`: Error code.
+    HardwareError {
+        /// Device ID.
+        device_id: u32,
+        /// Error code.
+        error_code: u32,
+    },
 
     // User events (if intent engine enabled)
-    /// User action detected
+    /// User action detected.
+    /// - `action_type`: Type of user action.
+    /// - `context`: User context.
     UserAction {
+        /// Action type.
         action_type: UserActionType,
+        /// User context.
         context: UserContext,
     },
-    /// User pattern detected
-    UserPattern { pattern_id: u64 },
+    /// User pattern detected.
+    /// - `pattern_id`: Pattern identifier.
+    UserPattern {
+        /// Pattern ID.
+        pattern_id: u64,
+    },
 
     // Learning events
-    /// New pattern discovered
+    /// New pattern discovered.
+    /// - `pattern_id`: Pattern identifier.
+    /// - `confidence`: Confidence level.
     PatternDiscovered {
+        /// Pattern ID.
         pattern_id: u64,
+        /// Confidence level.
         confidence: Confidence,
     },
-    /// Model update available
-    ModelUpdate { component: String, version: u64 },
+    /// Model update available.
+    /// - `component`: Component name.
+    /// - `version`: Version number.
+    ModelUpdate {
+        /// Component name.
+        component: String,
+        /// Version number.
+        version: u64,
+    },
 
     // Custom event
-    /// Application-specific event
-    Custom { event_id: u64, data: Vec<u8> },
+    /// Application-specific event.
+    /// - `event_id`: Event identifier.
+    /// - `data`: Event data.
+    Custom {
+        /// Event ID.
+        event_id: u64,
+        /// Event data.
+        data: Vec<u8>,
+    },
 }
 
 /// Resource types for monitoring
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResourceType {
+    /// CPU resource.
     Cpu,
+    /// Memory resource.
     Memory,
+    /// Disk resource.
     Disk,
+    /// Network resource.
     Network,
+    /// GPU resource.
     Gpu,
+    /// NPU resource.
     Npu,
 }
 
 /// Device types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceType {
+    /// Storage device.
     Storage,
+    /// Network device.
     Network,
+    /// Input device.
     Input,
+    /// Display device.
     Display,
+    /// Audio device.
     Audio,
+    /// Accelerator device.
     Accelerator,
+    /// Other device type.
     Other,
 }
 
 /// User action types (for intent engine)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UserActionType {
+    /// File operation action.
     FileOperation,
+    /// Process launch action.
     ProcessLaunch,
+    /// System setting change.
     SystemSetting,
+    /// Network access action.
     NetworkAccess,
+    /// Peripheral use action.
     PeripheralUse,
+    /// Custom action with ID.
     Custom(u32),
 }
 
@@ -484,15 +645,25 @@ pub struct UserContext {
 /// Workload categories
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WorkloadCategory {
+    /// System is idle.
     #[default]
     Idle,
+    /// Interactive workload.
     Interactive,
+    /// Computation-heavy workload.
     Computation,
+    /// I/O intensive workload.
     IoIntensive,
+    /// Multimedia workload.
     Multimedia,
+    /// Gaming workload.
     Gaming,
+    /// Development workload.
     Development,
+    /// Server workload.
     Server,
+    /// Mixed or unknown workload.
+    Mixed,
 }
 
 // =============================================================================
@@ -577,12 +748,19 @@ pub struct DecisionContext {
 /// System metrics snapshot
 #[derive(Debug, Clone, Default)]
 pub struct SystemMetrics {
+    /// CPU usage percentage.
     pub cpu_usage_percent: u8,
+    /// Memory usage percentage.
     pub memory_usage_percent: u8,
+    /// I/O wait percentage.
     pub io_wait_percent: u8,
+    /// Number of processes.
     pub process_count: u32,
+    /// Number of threads.
     pub thread_count: u32,
+    /// Interrupt rate per second.
     pub interrupt_rate: u32,
+    /// Context switch rate per second.
     pub context_switch_rate: u32,
 }
 
@@ -600,7 +778,9 @@ pub struct RollbackStrategy {
 /// A single rollback step
 #[derive(Debug, Clone)]
 pub struct RollbackStep {
+    /// Description of the rollback step.
     pub description: String,
+    /// Action to perform for rollback.
     pub action: AiAction,
 }
 
@@ -628,89 +808,242 @@ pub enum AiAction {
         /// Strategy name
         strategy: String,
     },
-    /// Adjust I/O scheduler
-    TuneIoScheduler { parameter: String, value: i64 },
-    /// Pre-allocate resources for predicted workload
-    PreallocateResources { resource: ResourceType, amount: u64 },
-    /// Migrate process to different CPU
+    /// Adjust I/O scheduler.
+    /// - `parameter`: Parameter name.
+    /// - `value`: Parameter value.
+    TuneIoScheduler {
+        /// Parameter name.
+        parameter: String,
+        /// Parameter value.
+        value: i64,
+    },
+    /// Pre-allocate resources for predicted workload.
+    /// - `resource`: Resource type.
+    /// - `amount`: Amount to allocate.
+    PreallocateResources {
+        /// Resource type.
+        resource: ResourceType,
+        /// Amount.
+        amount: u64,
+    },
+    /// Migrate process to different CPU.
+    /// - `pid`: Process ID.
+    /// - `from_cpu`: Source CPU.
+    /// - `to_cpu`: Destination CPU.
     MigrateProcess {
+        /// Process ID.
         pid: u64,
+        /// Source CPU.
         from_cpu: u32,
+        /// Destination CPU.
         to_cpu: u32,
     },
-    /// Adjust process priority
+    /// Adjust process priority.
+    /// - `pid`: Process ID.
+    /// - `old_priority`: Previous priority.
+    /// - `new_priority`: New priority.
     AdjustProcessPriority {
+        /// Process ID.
         pid: u64,
+        /// Old priority.
         old_priority: i32,
+        /// New priority.
         new_priority: i32,
     },
     /// Force garbage collection
     ForceGarbageCollection,
 
     // Self-healing actions
-    /// Restart a faulting module
-    RestartModule { module_id: u64, module_name: String },
-    /// Apply a hot patch
-    ApplyPatch { patch_id: u64, target: String },
-    /// Roll back to previous module version
-    RollbackModule { module_id: u64, target_version: u64 },
-    /// Isolate misbehaving process
-    IsolateProcess { pid: u64, isolation_level: u8 },
-    /// Clear and reinitialize cache
-    ResetCache { cache_id: u32 },
-    /// Terminate a process
-    TerminateProcess { pid: u64 },
+    /// Restart a faulting module.
+    /// - `module_id`: Module ID.
+    /// - `module_name`: Module name.
+    RestartModule {
+        /// Module ID.
+        module_id: u64,
+        /// Module name.
+        module_name: String,
+    },
+    /// Apply a hot patch.
+    /// - `patch_id`: Patch ID.
+    /// - `target`: Target component.
+    ApplyPatch {
+        /// Patch ID.
+        patch_id: u64,
+        /// Target.
+        target: String,
+    },
+    /// Roll back to previous module version.
+    /// - `module_id`: Module ID.
+    /// - `target_version`: Target version.
+    RollbackModule {
+        /// Module ID.
+        module_id: u64,
+        /// Target version.
+        target_version: u64,
+    },
+    /// Isolate misbehaving process.
+    /// - `pid`: Process ID.
+    /// - `isolation_level`: Isolation level.
+    IsolateProcess {
+        /// Process ID.
+        pid: u64,
+        /// Isolation level.
+        isolation_level: u8,
+    },
+    /// Clear and reinitialize cache.
+    /// - `cache_id`: Cache ID.
+    ResetCache {
+        /// Cache ID.
+        cache_id: u32,
+    },
+    /// Terminate a process.
+    /// - `pid`: Process ID.
+    TerminateProcess {
+        /// Process ID.
+        pid: u64,
+    },
 
     // Security actions
-    /// Block suspicious process
-    BlockProcess { pid: u64, reason: String },
-    /// Quarantine file
-    QuarantineFile { path: String, threat_id: u64 },
-    /// Block network connection
-    BlockConnection { address: String, port: u16 },
-    /// Increase security level
-    EscalateSecurityLevel { from: u8, to: u8 },
-    /// Trigger security scan
-    TriggerSecurityScan { scope: SecurityScanScope },
+    /// Block suspicious process.
+    /// - `pid`: Process ID.
+    /// - `reason`: Block reason.
+    BlockProcess {
+        /// Process ID.
+        pid: u64,
+        /// Reason.
+        reason: String,
+    },
+    /// Quarantine file.
+    /// - `path`: File path.
+    /// - `threat_id`: Threat ID.
+    QuarantineFile {
+        /// File path.
+        path: String,
+        /// Threat ID.
+        threat_id: u64,
+    },
+    /// Block network connection.
+    /// - `address`: Network address.
+    /// - `port`: Port number.
+    BlockConnection {
+        /// Address.
+        address: String,
+        /// Port.
+        port: u16,
+    },
+    /// Increase security level.
+    /// - `from`: Previous level.
+    /// - `to`: New level.
+    EscalateSecurityLevel {
+        /// From level.
+        from: u8,
+        /// To level.
+        to: u8,
+    },
+    /// Trigger security scan.
+    /// - `scope`: Scan scope.
+    TriggerSecurityScan {
+        /// Scan scope.
+        scope: SecurityScanScope,
+    },
 
     // Resource management
-    /// Offload computation to GPU
-    OffloadToGpu { task_id: u64, kernel_name: String },
-    /// Offload to NPU
-    OffloadToNpu { task_id: u64, model_id: u64 },
-    /// Adjust power profile
-    SetPowerProfile { profile: PowerProfile },
-    /// Suspend idle processes
-    SuspendIdleProcesses { threshold_seconds: u32 },
+    /// Offload computation to GPU.
+    /// - `task_id`: Task ID.
+    /// - `kernel_name`: Kernel name.
+    OffloadToGpu {
+        /// Task ID.
+        task_id: u64,
+        /// Kernel name.
+        kernel_name: String,
+    },
+    /// Offload to NPU.
+    /// - `task_id`: Task ID.
+    /// - `model_id`: Model ID.
+    OffloadToNpu {
+        /// Task ID.
+        task_id: u64,
+        /// Model ID.
+        model_id: u64,
+    },
+    /// Adjust power profile.
+    /// - `profile`: Power profile.
+    SetPowerProfile {
+        /// Power profile.
+        profile: PowerProfile,
+    },
+    /// Suspend idle processes.
+    /// - `threshold_seconds`: Idle threshold.
+    SuspendIdleProcesses {
+        /// Threshold in seconds.
+        threshold_seconds: u32,
+    },
 
     // Module management
     /// Load a module
     LoadModule {
+        /// Module name.
         module_name: String,
+        /// Configuration data.
         config: Vec<u8>,
     },
-    /// Unload a module
-    UnloadModule { module_id: u64 },
-    /// Hot-reload module
-    HotReloadModule { module_id: u64, new_version: u64 },
+    /// Unload a module.
+    /// - `module_id`: Module ID.
+    UnloadModule {
+        /// Module ID.
+        module_id: u64,
+    },
+    /// Hot-reload module.
+    /// - `module_id`: Module ID.
+    /// - `new_version`: New version.
+    HotReloadModule {
+        /// Module ID.
+        module_id: u64,
+        /// New version.
+        new_version: u64,
+    },
 
     // Learning actions
-    /// Update prediction model
-    UpdateModel { model_id: u64, delta: Vec<u8> },
-    /// Record pattern for future use
-    RecordPattern { pattern: Vec<u8>, category: String },
-    /// Invalidate outdated pattern
-    InvalidatePattern { pattern_id: u64 },
+    /// Update prediction model.
+    /// - `model_id`: Model ID.
+    /// - `delta`: Model update delta.
+    UpdateModel {
+        /// Model ID.
+        model_id: u64,
+        /// Delta.
+        delta: Vec<u8>,
+    },
+    /// Record pattern for future use.
+    /// - `pattern`: Pattern data.
+    /// - `category`: Category name.
+    RecordPattern {
+        /// Pattern data.
+        pattern: Vec<u8>,
+        /// Category.
+        category: String,
+    },
+    /// Invalidate outdated pattern.
+    /// - `pattern_id`: Pattern ID.
+    InvalidatePattern {
+        /// Pattern ID.
+        pattern_id: u64,
+    },
 
     // Composite actions
     /// Execute multiple actions in sequence
     Sequence(Vec<AiAction>),
     /// Execute actions in parallel where safe
     Parallel(Vec<AiAction>),
-    /// Conditional action
+    /// Conditional action.
+    /// - `condition`: Condition expression.
+    /// - `if_true`: Action if condition is true.
+    /// - `if_false`: Action if condition is false.
     Conditional {
+        /// Condition.
         condition: String,
+        /// Action if true.
         if_true: Box<AiAction>,
+        /// Action if false.
         if_false: Box<AiAction>,
     },
 }
@@ -718,21 +1051,32 @@ pub enum AiAction {
 /// Security scan scope
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecurityScanScope {
+    /// Quick scan.
     QuickScan,
+    /// Full system scan.
     FullSystem,
+    /// Memory scan.
     Memory,
+    /// Process scan.
     Processes,
+    /// Network scan.
     Network,
+    /// File system scan.
     FileSystem,
 }
 
 /// Power profiles
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PowerProfile {
+    /// High performance mode.
     Performance,
+    /// Balanced mode.
     Balanced,
+    /// Power saver mode.
     PowerSaver,
+    /// Ultra power saver mode.
     UltraPowerSaver,
+    /// Custom power profile.
     Custom(u8),
 }
 
@@ -752,26 +1096,61 @@ pub enum AiError {
     /// Resource exhaustion
     ResourceExhausted(String),
 
-    /// Timeout exceeded
-    Timeout { operation: String, elapsed_ms: u64 },
+    /// Timeout exceeded.
+    /// - `operation`: Operation that timed out.
+    /// - `elapsed_ms`: Elapsed time in milliseconds.
+    Timeout {
+        /// Operation name.
+        operation: String,
+        /// Elapsed time.
+        elapsed_ms: u64,
+    },
 
     /// Safety constraint violated
     SafetyViolation(String),
 
-    /// Action not permitted at current safety level
-    ActionDenied { action: String, reason: String },
+    /// Action not permitted at current safety level.
+    /// - `action`: Action that was denied.
+    /// - `reason`: Reason for denial.
+    ActionDenied {
+        /// Action name.
+        action: String,
+        /// Denial reason.
+        reason: String,
+    },
 
-    /// Rate limit exceeded
-    RateLimitExceeded { limit: u32, window_ms: u64 },
+    /// Rate limit exceeded.
+    /// - `limit`: Rate limit.
+    /// - `window_ms`: Time window in milliseconds.
+    RateLimitExceeded {
+        /// Rate limit.
+        limit: u32,
+        /// Time window.
+        window_ms: u64,
+    },
 
-    /// Confidence too low
-    LowConfidence { required: f32, actual: f32 },
+    /// Confidence too low.
+    /// - `required`: Required confidence.
+    /// - `actual`: Actual confidence.
+    LowConfidence {
+        /// Required confidence.
+        required: f32,
+        /// Actual confidence.
+        actual: f32,
+    },
 
     /// Rollback failed
     RollbackFailed(String),
 
-    /// Component error
-    ComponentError { component: String, error: String },
+    /// Component error.
+    /// - `component`: Component name.
+    /// - `error`: Error message.
+    ComponentError {
+        /// Component name.
+        component: String,
+        /// Error message.
+        error: String,
+    },
 
     /// Learning error
     LearningError(String),
