@@ -6,17 +6,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::format;
-use alloc::vec;
-
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 
-use super::ir::{
-    IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType, IRValue,
-};
+use super::ir::{IRBlock, IRFunction, IRInstruction, IRModule, IROp, IRType, IRValue};
 
 // ============================================================================
 // OPTIMIZATION TYPES
