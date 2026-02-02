@@ -1,0 +1,148 @@
+# =============================================================================
+# Helix OS - Branch Protection Configuration
+# =============================================================================
+# This file documents the recommended branch protection rules.
+# Configure these in GitHub Settings > Branches > Branch protection rules
+# =============================================================================
+
+# Note: This is a documentation file. The actual rules must be configured
+# in the GitHub repository settings UI or via the GitHub API.
+
+branches:
+  # ===========================================================================
+  # MAIN BRANCH - Production releases only
+  # ===========================================================================
+  main:
+    # Require pull request before merging
+    required_pull_request_reviews:
+      required_approving_review_count: 2
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: true
+      require_last_push_approval: true
+      # Restrict dismissals to admins only
+      dismissal_restrictions:
+        teams:
+          - helix-os/maintainers
+
+    # Require status checks
+    required_status_checks:
+      strict: true  # Require branches to be up to date
+      contexts:
+        - "✅ CI Success Gate"
+        - "🛡️ Security Gate"
+        - "🔨 Build (release)"
+        - "🔐 Supply Chain Audit"
+
+    # Additional protections
+    require_signed_commits: true
+    require_linear_history: true
+    enforce_admins: true
+
+    # Restrict push access
+    restrictions:
+      teams:
+        - helix-os/release-managers
+
+    # Prevent force pushes and deletions
+    allow_force_pushes: false
+    allow_deletions: false
+
+  # ===========================================================================
+  # DEVELOP BRANCH - Integration branch
+  # ===========================================================================
+  develop:
+    required_pull_request_reviews:
+      required_approving_review_count: 1
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: true
+
+    required_status_checks:
+      strict: true
+      contexts:
+        - "✅ CI Success Gate"
+        - "🛡️ Security Gate"
+        - "📝 Format Check"
+        - "🔨 Build (debug)"
+
+    require_signed_commits: false  # Less strict for development
+    require_linear_history: false  # Allow merge commits
+
+    allow_force_pushes: false
+    allow_deletions: false
+
+  # ===========================================================================
+  # RELEASE BRANCHES - Release candidates
+  # ===========================================================================
+  "release/*":
+    required_pull_request_reviews:
+      required_approving_review_count: 2
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: true
+      require_last_push_approval: true
+
+    required_status_checks:
+      strict: true
+      contexts:
+        - "✅ CI Success Gate"
+        - "🛡️ Security Gate"
+        - "🔨 Build (release)"
+        - "🔐 Supply Chain Audit"
+        - "🧪 Tests"
+
+    require_signed_commits: true
+    require_linear_history: true
+
+    allow_force_pushes: false
+    allow_deletions: false
+
+  # ===========================================================================
+  # HOTFIX BRANCHES - Emergency fixes
+  # ===========================================================================
+  "hotfix/*":
+    required_pull_request_reviews:
+      required_approving_review_count: 1
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: true
+
+    required_status_checks:
+      strict: true
+      contexts:
+        - "✅ CI Success Gate"
+        - "🛡️ Security Gate"
+        - "🔨 Build (release)"
+
+    require_signed_commits: true
+
+    # Allow faster process for emergencies
+    allow_force_pushes: false
+    allow_deletions: false
+
+  # ===========================================================================
+  # FEATURE BRANCHES - No protection (delete after merge)
+  # ===========================================================================
+  "feature/*":
+    # No branch protection - developers have freedom
+    # PRs still require CI to pass before merge to develop
+
+# =============================================================================
+# RULESETS (GitHub Enterprise / Advanced features)
+# =============================================================================
+rulesets:
+  security-critical:
+    name: "Security Critical Files"
+    target: push
+    enforcement: active
+    conditions:
+      ref_name:
+        include:
+          - "refs/heads/main"
+          - "refs/heads/develop"
+          - "refs/heads/release/*"
+    rules:
+      - type: file_path_restriction
+        parameters:
+          restricted_file_paths:
+            - ".github/workflows/**"
+            - "**/Cargo.toml"
+            - "deny.toml"
+            - "rust-toolchain.toml"
