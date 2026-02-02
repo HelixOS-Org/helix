@@ -6,6 +6,8 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use alloc::format;
+use alloc::vec;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
@@ -15,8 +17,8 @@ use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::ir::{IRBuilder, IRModule, IROp, IRParam, IRType, IRValue, ParamAttributes};
 use super::{
-    BinOp, Complexity, Expr, GenOptions, PerformanceSpec, Predicate, Priority, Specification,
-    TypeSpec, UnaryOp,
+    BinOp, Expr, GenOptions, Predicate, Specification,
+    TypeSpec,
 };
 
 // ============================================================================
@@ -522,13 +524,19 @@ impl SynthesisEngine {
     ) -> Vec<SynthesisCandidate> {
         let mut candidates = Vec::new();
 
-        // Find matching components
-        let matching = self.find_matching_components(spec);
+        // Find matching components - clone names to avoid borrow issues
+        let matching: Vec<String> = self.components
+            .values()
+            .filter(|c| Self::component_matches_static(c, spec))
+            .map(|c| c.name.clone())
+            .collect();
 
-        for component in matching {
-            let program = self.instantiate_component(&component, spec);
-            let candidate = self.create_candidate(spec, program);
-            candidates.push(candidate);
+        for component_name in matching {
+            if let Some(component) = self.components.get(&component_name) {
+                let program = Program::Component(component.name.clone());
+                let candidate = self.create_candidate(spec, program);
+                candidates.push(candidate);
+            }
 
             if candidates.len() >= options.max_candidates {
                 break;
@@ -550,6 +558,11 @@ impl SynthesisEngine {
         true
     }
 
+    fn component_matches_static(_component: &Component, _spec: &Specification) -> bool {
+        // Simplified matching
+        true
+    }
+
     fn instantiate_component(&self, component: &Component, _spec: &Specification) -> Program {
         Program::Component(component.name.clone())
     }
@@ -558,7 +571,7 @@ impl SynthesisEngine {
     fn constraint_based(
         &mut self,
         spec: &Specification,
-        options: &GenOptions,
+        _options: &GenOptions,
     ) -> Vec<SynthesisCandidate> {
         let mut candidates = Vec::new();
 
