@@ -58,20 +58,13 @@ pub enum Command {
     },
 
     /// Bind graphics pipeline
-    BindGraphicsPipeline {
-        pipeline: PipelineHandle,
-    },
+    BindGraphicsPipeline { pipeline: PipelineHandle },
 
     /// Bind compute pipeline
-    BindComputePipeline {
-        pipeline: PipelineHandle,
-    },
+    BindComputePipeline { pipeline: PipelineHandle },
 
     /// Set push constants
-    SetPushConstants {
-        offset: u32,
-        data: Vec<u8>,
-    },
+    SetPushConstants { offset: u32, data: Vec<u8> },
 
     /// Draw vertices
     Draw {
@@ -91,9 +84,5 @@ pub enum Command {
     },
 
     /// Dispatch compute shader
-    Dispatch {
-        x: u32,
-        y: u32,
-        z: u32,
-    },
+    Dispatch { x: u32, y: u32, z: u32 },
 }
