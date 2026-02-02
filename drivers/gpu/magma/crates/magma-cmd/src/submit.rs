@@ -4,11 +4,11 @@
 
 use alloc::vec::Vec;
 
-use magma_core::{Error, Result, GpuAddr};
 use magma_core::command::{GpuSemaphore, SubmissionToken};
+use magma_core::{Error, GpuAddr, Result};
 
 use crate::buffer::CommandBuffer;
-use crate::channel::{GpuChannel, ChannelId};
+use crate::channel::{ChannelId, GpuChannel};
 
 // =============================================================================
 // SUBMIT FLAGS
@@ -171,11 +171,11 @@ pub trait Submitter {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueuePriority {
     /// Low priority (background work)
-    Low = 0,
+    Low      = 0,
     /// Normal priority
-    Normal = 1,
+    Normal   = 1,
     /// High priority
-    High = 2,
+    High     = 2,
     /// Realtime priority
     Realtime = 3,
 }
