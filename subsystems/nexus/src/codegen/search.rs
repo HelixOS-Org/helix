@@ -6,8 +6,6 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use crate::math::F64Ext;
-
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
@@ -15,6 +13,7 @@ use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::Specification;
+use crate::math::F64Ext;
 
 // ============================================================================
 // SEARCH TYPES
