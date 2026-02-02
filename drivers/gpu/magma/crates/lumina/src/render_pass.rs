@@ -4,8 +4,8 @@
 //! including color and depth attachments, load/store operations,
 //! and clear values.
 
-use crate::types::{TextureHandle, FramebufferHandle};
 use crate::color::Color;
+use crate::types::{FramebufferHandle, TextureHandle};
 
 /// Configuration for a render pass
 #[derive(Clone, Debug)]
@@ -235,7 +235,12 @@ pub struct RenderArea {
 impl RenderArea {
     /// Creates a new render area
     pub const fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Creates a render area from origin with given size
