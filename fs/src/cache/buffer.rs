@@ -47,7 +47,7 @@ pub struct BufferHeader {
     pub hash_next: AtomicU32,
     /// LRU prev
     pub lru_prev: AtomicU32,
-    /// LRU next  
+    /// LRU next
     pub lru_next: AtomicU32,
     /// Access time
     pub access_time: AtomicU64,
@@ -431,21 +431,21 @@ impl BufferCache {
             let idx = (start + i) % count;
             let header = &self.headers[idx];
 
-            if header.is_dirty() && !header.is_pinned() {
-                if header
+            if header.is_dirty()
+                && !header.is_pinned()
+                && header
                     .refcount
                     .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
                     .is_ok()
-                {
-                    if header.is_dirty() {
-                        header.set_state(CacheState::Writing);
-                        return Some(CacheHandle::new(
-                            idx as u32,
-                            header.generation.load(Ordering::Relaxed),
-                        ));
-                    }
-                    header.release();
+            {
+                if header.is_dirty() {
+                    header.set_state(CacheState::Writing);
+                    return Some(CacheHandle::new(
+                        idx as u32,
+                        header.generation.load(Ordering::Relaxed),
+                    ));
                 }
+                header.release();
             }
         }
 
