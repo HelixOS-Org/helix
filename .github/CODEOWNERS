@@ -1,0 +1,88 @@
+# =============================================================================
+# Helix OS - Code Owners
+# =============================================================================
+# This file defines code ownership for security-sensitive review requirements.
+# Changes to files matching patterns require approval from listed owners.
+#
+# Format: <pattern> @owner1 @owner2
+# =============================================================================
+
+# =============================================================================
+# DEFAULT OWNER (fallback for all files)
+# =============================================================================
+*                                   @helix-os/maintainers
+
+# =============================================================================
+# SECURITY-CRITICAL COMPONENTS
+# =============================================================================
+
+# CI/CD Pipeline - Requires security team review
+/.github/                           @helix-os/security @helix-os/maintainers
+/.github/workflows/                 @helix-os/security @helix-os/maintainers
+
+# Dependency management - Supply chain security
+**/Cargo.toml                       @helix-os/security @helix-os/maintainers
+**/Cargo.lock                       @helix-os/security @helix-os/maintainers
+deny.toml                           @helix-os/security @helix-os/maintainers
+
+# Toolchain configuration
+rust-toolchain.toml                 @helix-os/maintainers
+
+# =============================================================================
+# BOOT & SECURITY SUBSYSTEMS
+# =============================================================================
+
+# Boot infrastructure - Critical security boundary
+/boot/                              @helix-os/security @helix-os/boot-team
+/boot/uefi/                         @helix-os/security @helix-os/boot-team
+/boot/uefi/src/security/            @helix-os/security
+
+# =============================================================================
+# HARDWARE ABSTRACTION LAYER
+# =============================================================================
+
+# HAL core
+/hal/                               @helix-os/hal-team
+
+# Architecture-specific code
+/hal/src/arch/x86_64/               @helix-os/hal-team @helix-os/x86-team
+/hal/src/arch/aarch64/              @helix-os/hal-team @helix-os/arm-team
+
+# Security-sensitive HAL components
+/hal/src/arch/x86_64/segmentation/  @helix-os/security @helix-os/hal-team
+/hal/src/arch/x86_64/interrupts/    @helix-os/security @helix-os/hal-team
+/hal/src/arch/x86_64/paging*/       @helix-os/security @helix-os/hal-team
+
+# =============================================================================
+# KERNEL CORE
+# =============================================================================
+
+/core/                              @helix-os/kernel-team
+
+# Syscall interface - Security boundary
+/core/src/syscall/                  @helix-os/security @helix-os/kernel-team
+
+# =============================================================================
+# SUBSYSTEMS
+# =============================================================================
+
+/subsystems/memory/                 @helix-os/memory-team
+/subsystems/execution/              @helix-os/kernel-team
+/subsystems/userspace/              @helix-os/security @helix-os/kernel-team
+
+# =============================================================================
+# FILESYSTEM
+# =============================================================================
+
+/fs/                                @helix-os/fs-team
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+
+/docs/                              @helix-os/docs-team
+*.md                                @helix-os/docs-team
+
+# Security documentation requires security team
+/docs/**/security*                  @helix-os/security
+/SECURITY.md                        @helix-os/security
