@@ -98,28 +98,28 @@ static HPET_NUM_TIMERS: AtomicU64 = AtomicU64::new(0);
 #[inline]
 unsafe fn read_reg(offset: u64) -> u64 {
     let base = HPET_BASE.load(Ordering::Relaxed);
-    core::ptr::read_volatile((base + offset) as *const u64)
+    unsafe { core::ptr::read_volatile((base + offset) as *const u64) }
 }
 
 /// Write a 64-bit HPET register
 #[inline]
 unsafe fn write_reg(offset: u64, value: u64) {
     let base = HPET_BASE.load(Ordering::Relaxed);
-    core::ptr::write_volatile((base + offset) as *mut u64, value);
+    unsafe { core::ptr::write_volatile((base + offset) as *mut u64, value) };
 }
 
 /// Read a 32-bit HPET register
 #[inline]
 unsafe fn read_reg32(offset: u64) -> u32 {
     let base = HPET_BASE.load(Ordering::Relaxed);
-    core::ptr::read_volatile((base + offset) as *const u32)
+    unsafe { core::ptr::read_volatile((base + offset) as *const u32) }
 }
 
 /// Write a 32-bit HPET register
 #[inline]
 unsafe fn write_reg32(offset: u64, value: u32) {
     let base = HPET_BASE.load(Ordering::Relaxed);
-    core::ptr::write_volatile((base + offset) as *mut u32, value);
+    unsafe { core::ptr::write_volatile((base + offset) as *mut u32, value) };
 }
 
 // =============================================================================
@@ -139,7 +139,7 @@ pub unsafe fn init(base: u64) -> Result<(), HpetError> {
     HPET_BASE.store(base, Ordering::SeqCst);
 
     // Read capabilities
-    let gcap = core::ptr::read_volatile(base as *const u64);
+    let gcap = unsafe { core::ptr::read_volatile(base as *const u64) };
 
     // Extract period (bits 63:32) in femtoseconds
     let period_fs = gcap >> 32;
@@ -158,8 +158,8 @@ pub unsafe fn init(base: u64) -> Result<(), HpetError> {
     HPET_NUM_TIMERS.store(num_timers, Ordering::SeqCst);
 
     // Enable the main counter
-    let gen_conf = read_reg(regs::GEN_CONF);
-    write_reg(regs::GEN_CONF, gen_conf | 1); // Set ENABLE_CNF bit
+    let gen_conf = unsafe { read_reg(regs::GEN_CONF) };
+    unsafe { write_reg(regs::GEN_CONF, gen_conf | 1) }; // Set ENABLE_CNF bit
 
     HPET_AVAILABLE.store(true, Ordering::SeqCst);
 
