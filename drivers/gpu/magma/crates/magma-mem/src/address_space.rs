@@ -4,7 +4,7 @@
 
 use alloc::vec::Vec;
 
-use magma_core::{Error, Result, GpuAddr, ByteSize};
+use magma_core::{ByteSize, Error, GpuAddr, Result};
 
 // =============================================================================
 // VIRTUAL ADDRESS RANGE
@@ -136,10 +136,7 @@ pub struct AddressSpaceStats {
 impl AddressSpace {
     /// Create a new address space
     pub fn new(asid: u64, range: VaRange) -> Self {
-        let initial_block = VaBlock {
-            range,
-            free: true,
-        };
+        let initial_block = VaBlock { range, free: true };
 
         Self {
             asid,
@@ -203,16 +200,13 @@ impl AddressSpace {
 
         // Left fragment (before allocation)
         if alloc.start > block.range.start {
-            self.blocks.insert(
-                index,
-                VaBlock {
-                    range: VaRange {
-                        start: block.range.start,
-                        end: alloc.start,
-                    },
-                    free: true,
+            self.blocks.insert(index, VaBlock {
+                range: VaRange {
+                    start: block.range.start,
+                    end: alloc.start,
                 },
-            );
+                free: true,
+            });
         }
 
         // Allocated block
@@ -221,26 +215,20 @@ impl AddressSpace {
         } else {
             index
         };
-        self.blocks.insert(
-            alloc_idx,
-            VaBlock {
-                range: alloc,
-                free: false,
-            },
-        );
+        self.blocks.insert(alloc_idx, VaBlock {
+            range: alloc,
+            free: false,
+        });
 
         // Right fragment (after allocation)
         if alloc.end < block.range.end {
-            self.blocks.insert(
-                alloc_idx + 1,
-                VaBlock {
-                    range: VaRange {
-                        start: alloc.end,
-                        end: block.range.end,
-                    },
-                    free: true,
+            self.blocks.insert(alloc_idx + 1, VaBlock {
+                range: VaRange {
+                    start: alloc.end,
+                    end: block.range.end,
                 },
-            );
+                free: true,
+            });
         }
 
         Ok(())
