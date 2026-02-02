@@ -503,6 +503,9 @@ impl Default for XtsContext {
 // Tests
 // ============================================================================
 
+// CodeQL: Test code uses zero-filled keys for deterministic testing.
+// These are NOT used in production - production keys come from KDF.
+// codeql[rust/hard-coded-cryptographic-value] - Test values only
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -510,6 +513,8 @@ mod tests {
     #[test]
     fn test_aes_context() {
         let mut ctx = Aes256Context::new();
+        // SAFETY: Test-only zero key for deterministic behavior
+        #[allow(clippy::zero_filled_array)]
         let key = [0u8; 32];
         assert!(ctx.init(&key).is_ok());
         assert_eq!(ctx.rounds, 14);
