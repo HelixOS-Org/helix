@@ -108,11 +108,13 @@ impl FxSaveArea {
     /// Must have OSFXSR bit set in CR4.
     #[inline]
     pub unsafe fn save(&mut self) {
-        asm!(
-            "fxsave64 [{}]",
-            in(reg) self as *mut Self,
-            options(nostack, preserves_flags)
-        );
+        unsafe {
+            asm!(
+                "fxsave64 [{}]",
+                in(reg) self as *mut Self,
+                options(nostack, preserves_flags)
+            );
+        }
     }
 
     /// Restore FPU/SSE state
@@ -122,11 +124,13 @@ impl FxSaveArea {
     /// Area must contain valid state.
     #[inline]
     pub unsafe fn restore(&self) {
-        asm!(
-            "fxrstor64 [{}]",
-            in(reg) self as *const Self,
-            options(nostack, preserves_flags)
-        );
+        unsafe {
+            asm!(
+                "fxrstor64 [{}]",
+                in(reg) self as *const Self,
+                options(nostack, preserves_flags)
+            );
+        }
     }
 }
 
@@ -230,13 +234,15 @@ impl XsaveArea {
 pub unsafe fn xsave(area: *mut u8, mask: u64) {
     let lo = mask as u32;
     let hi = (mask >> 32) as u32;
-    asm!(
-        "xsave64 [{}]",
-        in(reg) area,
-        in("eax") lo,
-        in("edx") hi,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "xsave64 [{}]",
+            in(reg) area,
+            in("eax") lo,
+            in("edx") hi,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// Optimized save (XSAVEOPT)
@@ -247,13 +253,15 @@ pub unsafe fn xsave(area: *mut u8, mask: u64) {
 pub unsafe fn xsaveopt(area: *mut u8, mask: u64) {
     let lo = mask as u32;
     let hi = (mask >> 32) as u32;
-    asm!(
-        "xsaveopt64 [{}]",
-        in(reg) area,
-        in("eax") lo,
-        in("edx") hi,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "xsaveopt64 [{}]",
+            in(reg) area,
+            in("eax") lo,
+            in("edx") hi,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// Compacted save (XSAVEC)
@@ -266,13 +274,15 @@ pub unsafe fn xsaveopt(area: *mut u8, mask: u64) {
 pub unsafe fn xsavec(area: *mut u8, mask: u64) {
     let lo = mask as u32;
     let hi = (mask >> 32) as u32;
-    asm!(
-        "xsavec64 [{}]",
-        in(reg) area,
-        in("eax") lo,
-        in("edx") hi,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "xsavec64 [{}]",
+            in(reg) area,
+            in("eax") lo,
+            in("edx") hi,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// Supervisor save (XSAVES)
@@ -285,13 +295,15 @@ pub unsafe fn xsavec(area: *mut u8, mask: u64) {
 pub unsafe fn xsaves(area: *mut u8, mask: u64) {
     let lo = mask as u32;
     let hi = (mask >> 32) as u32;
-    asm!(
-        "xsaves64 [{}]",
-        in(reg) area,
-        in("eax") lo,
-        in("edx") hi,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "xsaves64 [{}]",
+            in(reg) area,
+            in("eax") lo,
+            in("edx") hi,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// Restore extended state using XRSTOR
@@ -303,13 +315,15 @@ pub unsafe fn xsaves(area: *mut u8, mask: u64) {
 pub unsafe fn xrstor(area: *const u8, mask: u64) {
     let lo = mask as u32;
     let hi = (mask >> 32) as u32;
-    asm!(
-        "xrstor64 [{}]",
-        in(reg) area,
-        in("eax") lo,
-        in("edx") hi,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "xrstor64 [{}]",
+            in(reg) area,
+            in("eax") lo,
+            in("edx") hi,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// Supervisor restore (XRSTORS)
@@ -320,13 +334,15 @@ pub unsafe fn xrstor(area: *const u8, mask: u64) {
 pub unsafe fn xrstors(area: *const u8, mask: u64) {
     let lo = mask as u32;
     let hi = (mask >> 32) as u32;
-    asm!(
-        "xrstors64 [{}]",
-        in(reg) area,
-        in("eax") lo,
-        in("edx") hi,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "xrstors64 [{}]",
+            in(reg) area,
+            in("eax") lo,
+            in("edx") hi,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 // =============================================================================
@@ -355,11 +371,13 @@ pub fn get_mxcsr() -> u32 {
 /// Invalid values can cause undefined behavior.
 #[inline]
 pub unsafe fn set_mxcsr(value: u32) {
-    asm!(
-        "ldmxcsr [{}]",
-        in(reg) &value,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "ldmxcsr [{}]",
+            in(reg) &value,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// MXCSR exception flags
@@ -421,7 +439,9 @@ pub fn clear_mxcsr_exceptions() {
 /// Should only be called during CPU initialization.
 #[inline]
 pub unsafe fn fninit() {
-    asm!("fninit", options(nostack, preserves_flags));
+    unsafe {
+        asm!("fninit", options(nostack, preserves_flags));
+    }
 }
 
 /// Clear x87 exception flags
@@ -468,11 +488,13 @@ pub fn fstcw() -> u16 {
 /// Invalid values can cause undefined behavior.
 #[inline]
 pub unsafe fn fldcw(cw: u16) {
-    asm!(
-        "fldcw [{}]",
-        in(reg) &cw,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "fldcw [{}]",
+            in(reg) &cw,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// Wait for pending x87 exceptions
@@ -524,32 +546,38 @@ pub fn detect_save_mode() -> FpuSaveMode {
 /// Should only be called once per CPU during initialization.
 pub unsafe fn init_fpu() {
     // Enable FPU
-    Cr0::update(|cr0| {
-        cr0.remove(Cr0::EM); // No emulation
-        cr0.insert(Cr0::MP); // Monitor coprocessor
-        cr0.insert(Cr0::NE); // Native exceptions
-        cr0.remove(Cr0::TS); // Clear task switched flag
-    });
+    unsafe {
+        Cr0::update(|cr0| {
+            cr0.remove(Cr0::EM); // No emulation
+            cr0.insert(Cr0::MP); // Monitor coprocessor
+            cr0.insert(Cr0::NE); // Native exceptions
+            cr0.remove(Cr0::TS); // Clear task switched flag
+        });
+    }
 
     // Enable SSE/SSE2
-    Cr4::update(|cr4| {
-        cr4.insert(Cr4::OSFXSR); // Enable FXSAVE/FXRSTOR
-        cr4.insert(Cr4::OSXMMEXCPT); // Enable SSE exceptions
-    });
+    unsafe {
+        Cr4::update(|cr4| {
+            cr4.insert(Cr4::OSFXSR); // Enable FXSAVE/FXRSTOR
+            cr4.insert(Cr4::OSXMMEXCPT); // Enable SSE exceptions
+        });
+    }
 
     // Initialize FPU state
-    fninit();
+    unsafe { fninit() };
 
     // Set default MXCSR
-    set_mxcsr(DEFAULT_MXCSR);
+    unsafe { set_mxcsr(DEFAULT_MXCSR) };
 
     // If XSAVE is available, enable it
     let cpuid = super::cpuid::CpuId::new();
     if cpuid.has_xsave() {
         // Enable XSAVE
-        Cr4::update(|cr4| {
-            cr4.insert(Cr4::OSXSAVE);
-        });
+        unsafe {
+            Cr4::update(|cr4| {
+                cr4.insert(Cr4::OSXSAVE);
+            });
+        }
 
         // Enable x87 + SSE + AVX in XCR0
         let mut xcr0 = Xcr0::X87 | Xcr0::SSE;
@@ -562,7 +590,7 @@ pub unsafe fn init_fpu() {
             xcr0 |= Xcr0::OPMASK | Xcr0::ZMM_HI256 | Xcr0::HI16_ZMM;
         }
 
-        Xcr0::write(xcr0);
+        unsafe { Xcr0::write(xcr0) };
     }
 }
 
@@ -572,15 +600,19 @@ pub unsafe fn init_fpu() {
 /// in lazy FPU context switching.
 #[inline]
 pub unsafe fn clear_ts() {
-    asm!("clts", options(nostack, preserves_flags));
+    unsafe {
+        asm!("clts", options(nostack, preserves_flags));
+    }
 }
 
 /// Set TS flag to trigger #NM on FPU use
 #[inline]
 pub unsafe fn set_ts() {
-    Cr0::update(|cr0| {
-        cr0.insert(Cr0::TS);
-    });
+    unsafe {
+        Cr0::update(|cr0| {
+            cr0.insert(Cr0::TS);
+        });
+    }
 }
 
 // =============================================================================
