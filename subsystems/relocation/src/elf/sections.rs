@@ -2,27 +2,6 @@
 //!
 //! Section handling utilities.
 
-use super::SectionType;
-
-/// Section info
-#[derive(Debug, Clone)]
-pub struct SectionInfo {
-    /// Section name
-    pub name: &'static str,
-    /// Virtual address
-    pub vaddr: u64,
-    /// File offset
-    pub offset: u64,
-    /// Size in bytes
-    pub size: u64,
-    /// Section type
-    pub section_type: SectionType,
-    /// Is writable
-    pub writable: bool,
-    /// Is executable
-    pub executable: bool,
-}
-
 /// Section types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SectionType {
@@ -48,6 +27,25 @@ pub enum SectionType {
     Strtab,
     /// Other
     Other,
+}
+
+/// Section info
+#[derive(Debug, Clone)]
+pub struct SectionInfo {
+    /// Section name
+    pub name: &'static str,
+    /// Virtual address
+    pub vaddr: u64,
+    /// File offset
+    pub offset: u64,
+    /// Size in bytes
+    pub size: u64,
+    /// Section type
+    pub section_type: SectionType,
+    /// Is writable
+    pub writable: bool,
+    /// Is executable
+    pub executable: bool,
 }
 
 /// Known section names
