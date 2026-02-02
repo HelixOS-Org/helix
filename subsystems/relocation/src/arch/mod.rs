@@ -2,7 +2,7 @@
 //!
 //! Per-architecture relocation implementations.
 
-use crate::{RelocError, RelocResult};
+use crate::RelocResult;
 
 // ============================================================================
 // ARCHITECTURE TRAIT
