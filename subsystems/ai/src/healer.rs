@@ -90,25 +90,43 @@ pub struct BugSignature {
 pub enum BugPattern {
     /// Error message substring
     ErrorMessage(String),
-    /// Stack trace pattern
-    StackTrace { module: String, function: String },
-    /// Resource exhaustion
-    ResourceExhaustion { resource: String, threshold: u64 },
+    /// Stack trace pattern with module and function name
+    StackTrace {
+        /// Module name where the bug occurred
+        module: String,
+        /// Function name where the bug occurred
+        function: String,
+    },
+    /// Resource exhaustion pattern
+    ResourceExhaustion {
+        /// Resource type that was exhausted
+        resource: String,
+        /// Threshold value for exhaustion detection
+        threshold: u64,
+    },
     /// Repeated event pattern
     RepeatedEvent {
+        /// Type of event to match
         event_type: String,
+        /// Minimum number of occurrences
         min_count: u32,
+        /// Time window in milliseconds
         window_ms: u64,
     },
     /// Metric threshold
     MetricThreshold {
+        /// Metric name to check
         metric: String,
+        /// Comparison operator
         operator: ThresholdOperator,
+        /// Threshold value
         value: f64,
     },
     /// Crash signature
     CrashSignature {
+        /// Signal number
         signal: u32,
+        /// Optional address range
         address_range: Option<(u64, u64)>,
     },
 }
@@ -116,10 +134,15 @@ pub enum BugPattern {
 /// Comparison operators for thresholds
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ThresholdOperator {
+    /// Value is greater than threshold
     GreaterThan,
+    /// Value is less than threshold
     LessThan,
+    /// Value is greater than or equal to threshold
     GreaterOrEqual,
+    /// Value is less than or equal to threshold
     LessOrEqual,
+    /// Value equals threshold
     Equal,
 }
 
@@ -147,51 +170,91 @@ pub enum BugSeverity {
 pub enum HealingAction {
     /// Apply a hot patch to code
     HotPatch {
+        /// Unique patch identifier
         patch_id: u64,
+        /// Target module name
         target_module: String,
+        /// Raw patch data bytes
         patch_data: Vec<u8>,
     },
 
     /// Restart a module
     RestartModule {
+        /// Module identifier
         module_id: u64,
+        /// Whether to preserve module state
         preserve_state: bool,
+        /// Delay in milliseconds before restart
         delay_ms: u64,
     },
 
     /// Reset module state
-    ResetState { module_id: u64, state_key: String },
+    ResetState {
+        /// Module identifier
+        module_id: u64,
+        /// State key to reset
+        state_key: String,
+    },
 
     /// Rollback to previous version
-    Rollback { module_id: u64, target_version: u64 },
+    Rollback {
+        /// Module identifier
+        module_id: u64,
+        /// Target version to rollback to
+        target_version: u64,
+    },
 
     /// Clear cache or buffer
     ClearCache {
+        /// Cache identifier
         cache_id: u32,
+        /// Scope of cache clear operation
         scope: CacheClearScope,
     },
 
     /// Isolate failing component
     Isolate {
+        /// Component identifier
         component_id: u64,
+        /// Level of isolation
         isolation_level: IsolationLevel,
     },
 
     /// Reinitialize subsystem
-    Reinitialize { subsystem: String, config: Vec<u8> },
+    Reinitialize {
+        /// Subsystem name
+        subsystem: String,
+        /// Configuration bytes
+        config: Vec<u8>,
+    },
 
     /// Kill and restart process
-    RestartProcess { pid: u64, preserve_files: bool },
+    RestartProcess {
+        /// Process identifier
+        pid: u64,
+        /// Whether to preserve open files
+        preserve_files: bool,
+    },
 
     /// Increase resource limits
-    IncreaseResource { resource: String, amount: u64 },
+    IncreaseResource {
+        /// Resource name
+        resource: String,
+        /// Amount to increase by
+        amount: u64,
+    },
 
     /// Force garbage collection
-    ForceGc { scope: GcScope },
+    ForceGc {
+        /// GC scope
+        scope: GcScope,
+    },
 
     /// Apply workaround
     ApplyWorkaround {
+        /// Workaround identifier
         workaround_id: u64,
+        /// Description of the workaround
         description: String,
     },
 
@@ -200,7 +263,9 @@ pub enum HealingAction {
 
     /// Escalate to human intervention
     Escalate {
+        /// Reason for escalation
         reason: String,
+        /// Severity of the issue
         severity: BugSeverity,
     },
 }
@@ -208,9 +273,12 @@ pub enum HealingAction {
 /// Cache clear scope
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheClearScope {
+    /// Clear entire cache
     Full,
-    Partial(u32), // Percentage
-    Selective,    // Only invalid entries
+    /// Clear specified percentage of cache
+    Partial(u32),
+    /// Only clear invalid entries
+    Selective,
 }
 
 /// Isolation levels
@@ -229,9 +297,13 @@ pub enum IsolationLevel {
 /// Garbage collection scope
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GcScope {
+    /// Memory garbage collection
     Memory,
+    /// File descriptor cleanup
     FileDescriptors,
+    /// Handle cleanup
     Handles,
+    /// All resources
     All,
 }
 
@@ -276,10 +348,25 @@ pub enum PatchType {
 /// Patch application result
 #[derive(Debug, Clone)]
 pub enum PatchResult {
+    /// Patch applied successfully
     Success,
-    PartialSuccess { applied: usize, total: usize },
-    Failed { reason: String },
-    Reverted { reason: String },
+    /// Patch partially applied
+    PartialSuccess {
+        /// Number of changes applied
+        applied: usize,
+        /// Total number of changes
+        total: usize,
+    },
+    /// Patch application failed
+    Failed {
+        /// Failure reason
+        reason: String,
+    },
+    /// Patch was reverted
+    Reverted {
+        /// Revert reason
+        reason: String,
+    },
 }
 
 // =============================================================================
@@ -329,12 +416,19 @@ pub struct DetectedIssue {
 /// Issue status
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IssueStatus {
+    /// Issue has been detected
     Detected,
+    /// Issue is being analyzed
     Analyzing,
+    /// Issue is being repaired
     Repairing,
+    /// Issue has been repaired
     Repaired,
+    /// Issue is being monitored
     Monitoring,
+    /// Issue has been escalated
     Escalated,
+    /// Issue is being ignored
     Ignored,
 }
 
@@ -371,6 +465,7 @@ pub struct Healer {
 
 /// Buffered event for pattern analysis
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct BufferedEvent {
     timestamp: u64,
     event: AiEvent,
@@ -583,7 +678,7 @@ impl Healer {
         &self,
         module_id: u64,
         error: &str,
-        context: &DecisionContext,
+        _context: &DecisionContext,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         // Try to match against known bug signatures
         if let Some(signature) = self.match_error_signature(error) {
@@ -616,7 +711,7 @@ impl Healer {
         &self,
         device_id: u32,
         error_code: u32,
-        context: &DecisionContext,
+        _context: &DecisionContext,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         // Hardware errors are serious - log and potentially isolate
         self.stats.issues_detected.fetch_add(1, Ordering::Relaxed);
@@ -656,7 +751,7 @@ impl Healer {
         &self,
         source: &str,
         severity: u8,
-        context: &DecisionContext,
+        _context: &DecisionContext,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         self.stats.issues_detected.fetch_add(1, Ordering::Relaxed);
 
@@ -690,7 +785,7 @@ impl Healer {
         &self,
         pid: u64,
         resource: &crate::core::ResourceType,
-        context: &DecisionContext,
+        _context: &DecisionContext,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         use crate::core::ResourceType;
 
@@ -717,37 +812,50 @@ impl Healer {
     }
 
     /// Check for pattern matches in buffered events
+    #[allow(clippy::excessive_nesting)]
     fn check_patterns(
         &self,
-        context: &DecisionContext,
+        _context: &DecisionContext,
     ) -> Result<Option<(AiAction, Confidence, String)>, ()> {
         let signatures = self.bug_signatures.read();
         let buffer = self.event_buffer.lock();
 
         for sig in signatures.iter() {
-            for pattern in &sig.patterns {
-                if let BugPattern::RepeatedEvent {
-                    event_type,
-                    min_count,
-                    window_ms,
-                } = pattern
-                {
-                    let count = self.count_events_in_window(&buffer, event_type, *window_ms);
-                    if count >= *min_count {
-                        if let Some(fix) = sig.fixes.first() {
-                            let action = self.healing_to_ai_action(fix, 0);
-                            return Ok(Some((
-                                action,
-                                Confidence::new(0.75),
-                                format!("Pattern detected: {} ({} occurrences)", sig.name, count),
-                            )));
-                        }
-                    }
-                }
+            if let Some(result) = self.check_signature_patterns(sig, &buffer) {
+                return Ok(Some(result));
             }
         }
 
         Ok(None)
+    }
+
+    /// Check patterns for a single bug signature
+    fn check_signature_patterns(
+        &self,
+        sig: &BugSignature,
+        buffer: &VecDeque<BufferedEvent>,
+    ) -> Option<(AiAction, Confidence, String)> {
+        for pattern in &sig.patterns {
+            if let BugPattern::RepeatedEvent {
+                event_type,
+                min_count,
+                window_ms,
+            } = pattern
+            {
+                let count = self.count_events_in_window(buffer, event_type, *window_ms);
+                if count >= *min_count {
+                    if let Some(fix) = sig.fixes.first() {
+                        let action = self.healing_to_ai_action(fix, 0);
+                        return Some((
+                            action,
+                            Confidence::new(0.75),
+                            format!("Pattern detected: {} ({} occurrences)", sig.name, count),
+                        ));
+                    }
+                }
+            }
+        }
+        None
     }
 
     /// Count events of a type in a time window
@@ -845,7 +953,7 @@ impl Healer {
     }
 
     /// Record a detected issue
-    fn record_issue(&self, component_id: u64, bug_signature: u64, description: &str) {
+    fn record_issue(&self, _component_id: u64, bug_signature: u64, description: &str) {
         static ISSUE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
         let issue = DetectedIssue {
@@ -972,16 +1080,27 @@ impl Healer {
 /// Public statistics structure
 #[derive(Debug, Clone)]
 pub struct HealerStatistics {
+    /// Whether healing is enabled
     pub enabled: bool,
+    /// Number of issues detected
     pub issues_detected: u64,
+    /// Number of issues repaired
     pub issues_repaired: u64,
+    /// Number of patches applied
     pub patches_applied: u64,
+    /// Number of modules restarted
     pub modules_restarted: u64,
+    /// Number of escalations
     pub escalations: u64,
+    /// Number of false positives
     pub false_positives: u64,
+    /// Number of active issues
     pub active_issues: usize,
+    /// Number of known bug signatures
     pub known_signatures: usize,
+    /// Number of available patches
     pub available_patches: usize,
+    /// Overall system health score (0-100)
     pub system_health_score: u8,
 }
 
