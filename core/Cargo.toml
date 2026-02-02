@@ -1,0 +1,28 @@
+[package]
+name = "helix-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core kernel orchestrator for Helix OS Framework"
+
+[dependencies]
+helix-hal = { workspace = true }
+helix-memory = { workspace = true }
+helix-execution = { workspace = true }
+helix-modules = { workspace = true }
+
+# Future dependencies (uncomment when implemented):
+# helix-security = { workspace = true }
+# helix-communication = { workspace = true }
+# helix-ipc = { workspace = true }
+
+bitflags = { workspace = true }
+log = { workspace = true }
+spin = { workspace = true }
+static_assertions = { workspace = true }
+
+[features]
+default = []
+debug = []
+profiling = []

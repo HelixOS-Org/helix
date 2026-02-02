@@ -98,8 +98,9 @@ System.map
 *.pdb
 *.dwarf
 *.debug
-core
-core.*
+# Core dump files (but NOT the core/ directory)
+/core.[0-9]*
+core.[0-9]*
 vgcore.*
 
 # GDB

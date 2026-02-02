@@ -1,0 +1,552 @@
+//! # NEXUS Core
+//!
+//! Core types, traits, and the main NEXUS orchestrator.
+
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::sync::atomic::{AtomicU64, AtomicU8, Ordering};
+
+use crate::config::NexusConfig;
+use crate::error::{NexusError, NexusResult};
+use crate::event::{NexusEvent, NexusEventKind};
+use crate::stats::NexusStats;
+
+// ============================================================================
+// NEXUS LEVELS
+// ============================================================================
+
+/// Intelligence level of NEXUS
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum NexusLevel {
+    /// NEXUS is disabled
+    Disabled   = 0,
+    /// Passive monitoring only
+    Monitoring = 1,
+    /// Detection of issues
+    Detection  = 2,
+    /// Prediction of future issues
+    Prediction = 3,
+    /// Automatic correction
+    Correction = 4,
+    /// Self-healing with micro-rollback
+    Healing    = 5,
+    /// Full autonomous operation
+    Autonomous = 6,
+}
+
+impl NexusLevel {
+    /// Get level from u8
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            0 => Some(Self::Disabled),
+            1 => Some(Self::Monitoring),
+            2 => Some(Self::Detection),
+            3 => Some(Self::Prediction),
+            4 => Some(Self::Correction),
+            5 => Some(Self::Healing),
+            6 => Some(Self::Autonomous),
+            _ => None,
+        }
+    }
+
+    /// Check if monitoring is enabled
+    pub fn is_monitoring(&self) -> bool {
+        *self >= Self::Monitoring
+    }
+
+    /// Check if detection is enabled
+    pub fn is_detecting(&self) -> bool {
+        *self >= Self::Detection
+    }
+
+    /// Check if prediction is enabled
+    pub fn is_predicting(&self) -> bool {
+        *self >= Self::Prediction
+    }
+
+    /// Check if correction is enabled
+    pub fn is_correcting(&self) -> bool {
+        *self >= Self::Correction
+    }
+
+    /// Check if healing is enabled
+    pub fn is_healing(&self) -> bool {
+        *self >= Self::Healing
+    }
+
+    /// Check if autonomous operation is enabled
+    pub fn is_autonomous(&self) -> bool {
+        *self >= Self::Autonomous
+    }
+
+    /// Get the display name
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Disabled => "Disabled",
+            Self::Monitoring => "Monitoring",
+            Self::Detection => "Detection",
+            Self::Prediction => "Prediction",
+            Self::Correction => "Correction",
+            Self::Healing => "Healing",
+            Self::Autonomous => "Autonomous",
+        }
+    }
+}
+
+impl Default for NexusLevel {
+    fn default() -> Self {
+        Self::Healing
+    }
+}
+
+// ============================================================================
+// NEXUS STATE
+// ============================================================================
+
+/// State of the NEXUS system
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum NexusState {
+    /// Not yet initialized
+    Uninitialized = 0,
+    /// Currently initializing
+    Initializing  = 1,
+    /// Running normally
+    Running       = 2,
+    /// Temporarily paused
+    Paused        = 3,
+    /// Operating in degraded mode
+    Degraded      = 4,
+    /// Currently healing
+    Healing       = 5,
+    /// Shutting down
+    ShuttingDown  = 6,
+    /// Stopped
+    Stopped       = 7,
+}
+
+impl NexusState {
+    /// Create from u8
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            0 => Some(Self::Uninitialized),
+            1 => Some(Self::Initializing),
+            2 => Some(Self::Running),
+            3 => Some(Self::Paused),
+            4 => Some(Self::Degraded),
+            5 => Some(Self::Healing),
+            6 => Some(Self::ShuttingDown),
+            7 => Some(Self::Stopped),
+            _ => None,
+        }
+    }
+
+    /// Check if operational
+    pub fn is_operational(&self) -> bool {
+        matches!(self, Self::Running | Self::Degraded | Self::Healing)
+    }
+
+    /// Check if accepting events
+    pub fn accepts_events(&self) -> bool {
+        matches!(
+            self,
+            Self::Running | Self::Degraded | Self::Healing | Self::Paused
+        )
+    }
+
+    /// Get display name
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Uninitialized => "Uninitialized",
+            Self::Initializing => "Initializing",
+            Self::Running => "Running",
+            Self::Paused => "Paused",
+            Self::Degraded => "Degraded",
+            Self::Healing => "Healing",
+            Self::ShuttingDown => "ShuttingDown",
+            Self::Stopped => "Stopped",
+        }
+    }
+}
+
+// ============================================================================
+// SUBSYSTEM TRAIT
+// ============================================================================
+
+/// Trait for NEXUS subsystems
+pub trait NexusSubsystem: Send + Sync {
+    /// Get the subsystem name
+    fn name(&self) -> &'static str;
+
+    /// Initialize the subsystem
+    fn init(&mut self) -> NexusResult<()>;
+
+    /// Shutdown the subsystem
+    fn shutdown(&mut self) -> NexusResult<()>;
+
+    /// Process a tick
+    fn tick(&mut self) -> NexusResult<()>;
+
+    /// Handle an event
+    fn handle_event(&mut self, event: &NexusEvent) -> NexusResult<()>;
+
+    /// Get subsystem health (0.0 - 1.0)
+    fn health(&self) -> f32;
+
+    /// Check if subsystem is ready
+    fn is_ready(&self) -> bool;
+}
+
+// ============================================================================
+// COMPONENT ID
+// ============================================================================
+
+/// Unique identifier for a kernel component
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ComponentId(u64);
+
+impl ComponentId {
+    /// Create a new component ID
+    pub const fn new(id: u64) -> Self {
+        Self(id)
+    }
+
+    /// Get the raw ID
+    pub const fn raw(&self) -> u64 {
+        self.0
+    }
+
+    /// Well-known component IDs
+    pub const SCHEDULER: Self = Self::new(1);
+    pub const MEMORY: Self = Self::new(2);
+    pub const FILESYSTEM: Self = Self::new(3);
+    pub const NETWORK: Self = Self::new(4);
+    pub const DRIVERS: Self = Self::new(5);
+    pub const IPC: Self = Self::new(6);
+    pub const SECURITY: Self = Self::new(7);
+    pub const INTERRUPTS: Self = Self::new(8);
+    pub const TIMERS: Self = Self::new(9);
+    pub const USERLAND: Self = Self::new(10);
+}
+
+// ============================================================================
+// NEXUS TIMESTAMP
+// ============================================================================
+
+/// High-precision timestamp for NEXUS events
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NexusTimestamp(u64);
+
+impl NexusTimestamp {
+    /// Create a new timestamp
+    pub const fn new(ticks: u64) -> Self {
+        Self(ticks)
+    }
+
+    /// Create from raw ticks (alias for new)
+    pub const fn from_ticks(ticks: u64) -> Self {
+        Self(ticks)
+    }
+
+    /// Get raw ticks
+    pub const fn ticks(&self) -> u64 {
+        self.0
+    }
+
+    /// Get raw value (alias for ticks)
+    pub const fn raw(&self) -> u64 {
+        self.0
+    }
+
+    /// Get current timestamp (platform-specific)
+    #[inline]
+    pub fn now() -> Self {
+        Self::new(Self::read_tsc())
+    }
+
+    /// Read TSC or equivalent
+    #[cfg(target_arch = "x86_64")]
+    #[inline]
+    fn read_tsc() -> u64 {
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            core::arch::x86_64::_rdtsc()
+        }
+        #[cfg(not(target_arch = "x86_64"))]
+        0
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    #[inline]
+    fn read_tsc() -> u64 {
+        let cnt: u64;
+        unsafe {
+            core::arch::asm!("mrs {}, cntvct_el0", out(reg) cnt);
+        }
+        cnt
+    }
+
+    #[cfg(target_arch = "riscv64")]
+    #[inline]
+    fn read_tsc() -> u64 {
+        let cnt: u64;
+        unsafe {
+            core::arch::asm!("rdtime {}", out(reg) cnt);
+        }
+        cnt
+    }
+
+    #[cfg(not(any(
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "riscv64"
+    )))]
+    #[inline]
+    fn read_tsc() -> u64 {
+        0
+    }
+
+    /// Duration since another timestamp
+    pub fn duration_since(&self, earlier: Self) -> u64 {
+        self.0.saturating_sub(earlier.0)
+    }
+
+    /// Convert to nanoseconds (approximate)
+    pub fn to_nanos(&self, frequency_ghz: f64) -> u64 {
+        (self.0 as f64 / frequency_ghz) as u64
+    }
+}
+
+impl Default for NexusTimestamp {
+    fn default() -> Self {
+        Self::now()
+    }
+}
+
+// ============================================================================
+// NEXUS DECISION
+// ============================================================================
+
+/// A decision made by NEXUS
+#[derive(Debug, Clone)]
+pub struct NexusDecision {
+    /// Unique decision ID
+    pub id: u64,
+    /// Timestamp of decision
+    pub timestamp: NexusTimestamp,
+    /// Decision type
+    pub kind: DecisionKind,
+    /// Confidence level (0.0 - 1.0)
+    pub confidence: f32,
+    /// Reasoning chain
+    pub reasoning: Vec<String>,
+    /// Time taken to decide (cycles)
+    pub decision_time: u64,
+    /// Was this decision correct? (filled in later)
+    pub outcome: Option<DecisionOutcome>,
+}
+
+/// Kind of decision
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DecisionKind {
+    /// Do nothing
+    NoAction,
+    /// Log an observation
+    Log,
+    /// Warn about potential issue
+    Warn,
+    /// Soft recovery attempt
+    SoftRecover,
+    /// Hard recovery attempt
+    HardRecover,
+    /// Isolate a component
+    Isolate,
+    /// Substitute a component
+    Substitute,
+    /// Rollback to checkpoint
+    Rollback,
+    /// Enter survival mode
+    SurvivalMode,
+    /// Predictive action
+    Predictive,
+    /// Performance optimization
+    Optimize,
+}
+
+/// Outcome of a decision
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DecisionOutcome {
+    /// Decision was successful
+    Success,
+    /// Decision partially succeeded
+    Partial,
+    /// Decision had no effect
+    NoEffect,
+    /// Decision failed
+    Failed,
+    /// Decision made things worse
+    Regression,
+}
+
+impl NexusDecision {
+    /// Create a new decision
+    pub fn new(kind: DecisionKind, confidence: f32) -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+        Self {
+            id: NEXT_ID.fetch_add(1, Ordering::Relaxed),
+            timestamp: NexusTimestamp::now(),
+            kind,
+            confidence,
+            reasoning: Vec::new(),
+            decision_time: 0,
+            outcome: None,
+        }
+    }
+
+    /// Add reasoning step
+    pub fn with_reason(mut self, reason: impl Into<String>) -> Self {
+        self.reasoning.push(reason.into());
+        self
+    }
+
+    /// Set decision time
+    pub fn with_decision_time(mut self, cycles: u64) -> Self {
+        self.decision_time = cycles;
+        self
+    }
+
+    /// Record outcome
+    pub fn record_outcome(&mut self, outcome: DecisionOutcome) {
+        self.outcome = Some(outcome);
+    }
+}
+
+// ============================================================================
+// MAIN NEXUS STRUCT
+// ============================================================================
+
+/// Global NEXUS state
+static NEXUS_STATE: AtomicU8 = AtomicU8::new(NexusState::Uninitialized as u8);
+static NEXUS_LEVEL: AtomicU8 = AtomicU8::new(NexusLevel::Disabled as u8);
+
+/// The main NEXUS orchestrator
+pub struct Nexus {
+    /// Configuration
+    config: NexusConfig,
+    /// Statistics
+    stats: NexusStats,
+    /// Boot timestamp
+    boot_time: NexusTimestamp,
+    /// Event queue
+    event_queue: Vec<NexusEvent>,
+    /// Decision history
+    decisions: Vec<NexusDecision>,
+    /// Registered subsystems
+    subsystems: Vec<Box<dyn NexusSubsystem>>,
+}
+
+impl Nexus {
+    /// Initialize NEXUS with the given configuration
+    pub fn init(config: NexusConfig) -> NexusResult<()> {
+        // Check current state
+        let current = NEXUS_STATE.load(Ordering::SeqCst);
+        if current != NexusState::Uninitialized as u8 {
+            return Err(NexusError::AlreadyInitialized);
+        }
+
+        // Set initializing state
+        NEXUS_STATE.store(NexusState::Initializing as u8, Ordering::SeqCst);
+
+        // Set level
+        NEXUS_LEVEL.store(config.level as u8, Ordering::SeqCst);
+
+        // TODO: Initialize subsystems
+
+        // Set running state
+        NEXUS_STATE.store(NexusState::Running as u8, Ordering::SeqCst);
+
+        Ok(())
+    }
+
+    /// Get current state
+    pub fn state() -> NexusState {
+        NexusState::from_u8(NEXUS_STATE.load(Ordering::SeqCst)).unwrap_or(NexusState::Uninitialized)
+    }
+
+    /// Get current level
+    pub fn level() -> NexusLevel {
+        NexusLevel::from_u8(NEXUS_LEVEL.load(Ordering::SeqCst)).unwrap_or(NexusLevel::Disabled)
+    }
+
+    /// Set the intelligence level
+    pub fn set_level(level: NexusLevel) {
+        NEXUS_LEVEL.store(level as u8, Ordering::SeqCst);
+    }
+
+    /// Check if NEXUS is operational
+    pub fn is_operational() -> bool {
+        Self::state().is_operational()
+    }
+
+    /// Shutdown NEXUS
+    pub fn shutdown() -> NexusResult<()> {
+        NEXUS_STATE.store(NexusState::ShuttingDown as u8, Ordering::SeqCst);
+        // TODO: Shutdown subsystems
+        NEXUS_STATE.store(NexusState::Stopped as u8, Ordering::SeqCst);
+        Ok(())
+    }
+}
+
+// ============================================================================
+// TESTS
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nexus_level_ordering() {
+        assert!(NexusLevel::Disabled < NexusLevel::Monitoring);
+        assert!(NexusLevel::Monitoring < NexusLevel::Detection);
+        assert!(NexusLevel::Detection < NexusLevel::Prediction);
+        assert!(NexusLevel::Prediction < NexusLevel::Correction);
+        assert!(NexusLevel::Correction < NexusLevel::Healing);
+        assert!(NexusLevel::Healing < NexusLevel::Autonomous);
+    }
+
+    #[test]
+    fn test_nexus_level_from_u8() {
+        assert_eq!(NexusLevel::from_u8(0), Some(NexusLevel::Disabled));
+        assert_eq!(NexusLevel::from_u8(6), Some(NexusLevel::Autonomous));
+        assert_eq!(NexusLevel::from_u8(7), None);
+    }
+
+    #[test]
+    fn test_nexus_state_operational() {
+        assert!(!NexusState::Uninitialized.is_operational());
+        assert!(NexusState::Running.is_operational());
+        assert!(NexusState::Degraded.is_operational());
+        assert!(NexusState::Healing.is_operational());
+        assert!(!NexusState::Stopped.is_operational());
+    }
+
+    #[test]
+    fn test_component_id() {
+        assert_eq!(ComponentId::SCHEDULER.raw(), 1);
+        assert_eq!(ComponentId::MEMORY.raw(), 2);
+    }
+
+    #[test]
+    fn test_decision() {
+        let decision = NexusDecision::new(DecisionKind::SoftRecover, 0.85)
+            .with_reason("Memory pressure detected")
+            .with_reason("Initiating soft recovery");
+
+        assert_eq!(decision.kind, DecisionKind::SoftRecover);
+        assert_eq!(decision.confidence, 0.85);
+        assert_eq!(decision.reasoning.len(), 2);
+    }
+}
