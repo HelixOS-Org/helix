@@ -4,7 +4,7 @@
 
 use magma_core::{Error, Result};
 
-use crate::message::{RpcMessage, RpcFunction, RpcResult};
+use crate::message::{RpcFunction, RpcMessage, RpcResult};
 use crate::queue::{CommandQueue, ResponseQueue};
 
 // =============================================================================
@@ -56,11 +56,7 @@ impl RpcChannel {
     pub const DEFAULT_TIMEOUT_US: u64 = 100_000;
 
     /// Create a new RPC channel
-    pub fn new(
-        id: RpcChannelId,
-        cmd_queue: CommandQueue,
-        rsp_queue: ResponseQueue,
-    ) -> Self {
+    pub fn new(id: RpcChannelId, cmd_queue: CommandQueue, rsp_queue: ResponseQueue) -> Self {
         Self {
             id,
             cmd_queue,
@@ -106,7 +102,7 @@ impl RpcChannel {
                 } else {
                     RpcResult::Error(crate::message::RpcStatus::from(response.header.status))
                 }
-            }
+            },
             Err(Error::Timeout) => RpcResult::Timeout,
             Err(_) => RpcResult::Error(crate::message::RpcStatus::Error),
         }
