@@ -27,7 +27,7 @@
 
 use core::mem::size_of;
 
-use super::tss::{Tss, TssEntry, TSS_SIZE};
+use super::tss::{Tss, TssEntry};
 
 // =============================================================================
 // CONSTANTS
@@ -218,7 +218,8 @@ impl GdtEntry {
 
 impl core::fmt::Debug for GdtEntry {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "GdtEntry({:#018x})", self.data)
+        let data = { self.data };
+        write!(f, "GdtEntry({:#018x})", data)
     }
 }
 
@@ -248,9 +249,11 @@ impl GdtDescriptor {
 
 impl core::fmt::Debug for GdtDescriptor {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let limit = self.limit;
+        let base = self.base;
         f.debug_struct("GdtDescriptor")
-            .field("limit", &self.limit)
-            .field("base", &format_args!("{:#018x}", self.base))
+            .field("limit", &limit)
+            .field("base", &format_args!("{:#018x}", base))
             .finish()
     }
 }
@@ -308,11 +311,13 @@ impl Gdt {
     /// This replaces the current GDT and reloads segment registers.
     pub unsafe fn load(&self) {
         let desc = self.descriptor();
-        core::arch::asm!(
-            "lgdt [{}]",
-            in(reg) &desc,
-            options(preserves_flags)
-        );
+        unsafe {
+            core::arch::asm!(
+                "lgdt [{}]",
+                in(reg) &desc,
+                options(preserves_flags)
+            );
+        }
     }
 
     /// Load and reload segment registers
@@ -320,32 +325,36 @@ impl Gdt {
     /// # Safety
     /// This replaces the current GDT and all segment registers.
     pub unsafe fn load_and_reload_segments(&self) {
-        self.load();
+        unsafe { self.load() };
 
         // Reload CS with a far return
-        core::arch::asm!(
-            "push {kcs}",
-            "lea {tmp}, [rip + 1f]",
-            "push {tmp}",
-            "retfq",
-            "1:",
-            kcs = in(reg) super::KERNEL_CS.raw() as u64,
-            tmp = lateout(reg) _,
-            options(preserves_flags)
-        );
+        unsafe {
+            core::arch::asm!(
+                "push {kcs}",
+                "lea {tmp}, [rip + 2f]",
+                "push {tmp}",
+                "retfq",
+                "2:",
+                kcs = in(reg) super::KERNEL_CS.raw() as u64,
+                tmp = lateout(reg) _,
+                options(preserves_flags)
+            );
+        }
 
         // Reload data segments
-        core::arch::asm!(
-            "mov ds, {kds:x}",
-            "mov es, {kds:x}",
-            "mov ss, {kds:x}",
-            "xor {zero:e}, {zero:e}",
-            "mov fs, {zero:x}",
-            "mov gs, {zero:x}",
-            kds = in(reg) super::KERNEL_DS.raw(),
-            zero = lateout(reg) _,
-            options(preserves_flags)
-        );
+        unsafe {
+            core::arch::asm!(
+                "mov ds, {kds:x}",
+                "mov es, {kds:x}",
+                "mov ss, {kds:x}",
+                "xor {zero:e}, {zero:e}",
+                "mov fs, {zero:x}",
+                "mov gs, {zero:x}",
+                kds = in(reg) super::KERNEL_DS.raw(),
+                zero = lateout(reg) _,
+                options(preserves_flags)
+            );
+        }
     }
 
     /// Clear TSS busy flag
