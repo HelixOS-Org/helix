@@ -1,0 +1,59 @@
+# =============================================================================
+# Helix OS - CodeQL Configuration
+# =============================================================================
+# Custom configuration for analyzing no_std kernel code
+# =============================================================================
+
+name: "Helix OS Security Analysis"
+
+# Disable default queries and use security-focused ones
+disable-default-queries: false
+
+# Query suite selection
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+# Paths to analyze
+paths:
+  - core
+  - hal
+  - fs
+  - modules
+  - subsystems
+  - boot/limine/src
+  - boot/uefi/src
+  - boot/multiboot2/src
+  - benchmarks/src
+
+# Paths to ignore (build artifacts, tests, generated code)
+paths-ignore:
+  - target
+  - build
+  - "**/tests/**"
+  - "**/test_*.rs"
+  - "**/*_test.rs"
+  - "**/benches/**"
+
+# Query filters - focus on high-severity security issues
+query-filters:
+  # Include high-severity security queries
+  - include:
+      severity: error
+  - include:
+      severity: warning
+      tags contain: security
+  # Exclude noisy queries for kernel code
+  - exclude:
+      id: rust/unused-value
+  - exclude:
+      id: rust/todo-comment
+
+# Extraction settings for Rust
+extraction:
+  rust:
+    # Index strategy for better extraction
+    index:
+      # Include all crates in workspace
+      cargo:
+        include-tests: false
