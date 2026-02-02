@@ -47,11 +47,11 @@ pub struct MemoryStats {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum UploadPriority {
     /// Low priority - uploaded when bandwidth available
-    Low = 0,
+    Low       = 0,
     /// Normal priority - default
-    Normal = 1,
+    Normal    = 1,
     /// High priority - uploaded as soon as possible
-    High = 2,
+    High      = 2,
     /// Immediate - blocks until uploaded
     Immediate = 3,
 }
