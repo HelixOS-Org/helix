@@ -160,7 +160,7 @@ impl PerCpuSegmentation {
 /// # Safety
 /// Must be called exactly once during early boot on BSP.
 pub unsafe fn init_bsp() {
-    init_cpu(0);
+    unsafe { init_cpu(0) };
     log::info!("Segmentation: BSP initialized");
 }
 
@@ -172,15 +172,15 @@ pub unsafe fn init_ap(cpu_id: usize) {
     assert!(cpu_id > 0, "CPU 0 should use init_bsp");
     assert!(cpu_id < MAX_CPUS, "CPU ID exceeds MAX_CPUS");
 
-    init_cpu(cpu_id);
+    unsafe { init_cpu(cpu_id) };
     log::debug!("Segmentation: AP {} initialized", cpu_id);
 }
 
 /// Internal CPU initialization
 unsafe fn init_cpu(cpu_id: usize) {
     // Get per-CPU references
-    let gdt = &mut GDTS[cpu_id];
-    let tss = &mut TSSS[cpu_id];
+    let gdt = unsafe { &mut GDTS[cpu_id] };
+    let tss = unsafe { &mut TSSS[cpu_id] };
 
     // Initialize GDT
     *gdt = Gdt::new();
@@ -189,7 +189,7 @@ unsafe fn init_cpu(cpu_id: usize) {
     *tss = Tss::new();
 
     // Calculate stack addresses
-    let base = STACKS.stacks[cpu_id].as_ptr() as u64;
+    let base = unsafe { STACKS.stacks[cpu_id].as_ptr() as u64 };
 
     // Set kernel stack (RSP0)
     let kernel_stack_top = (base + KERNEL_STACK_SIZE as u64) & !0xF;
@@ -226,11 +226,11 @@ unsafe fn init_cpu(cpu_id: usize) {
     gdt.set_tss(tss as *const Tss);
 
     // Load GDT
-    gdt.load_and_reload_segments();
+    unsafe { gdt.load_and_reload_segments() };
 
     // Clear TSS busy bit and load TSS
     gdt.clear_tss_busy();
-    super::tss::load_tss(TSS_SELECTOR);
+    unsafe { super::tss::load_tss(TSS_SELECTOR) };
 
     // Increment CPU count
     CPU_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -275,7 +275,7 @@ pub fn current() -> PerCpuSegmentation {
 /// Must be called with a valid stack pointer.
 pub unsafe fn set_kernel_stack(cpu_id: usize, stack_top: u64) {
     assert!(cpu_id < MAX_CPUS);
-    TSSS[cpu_id].set_kernel_stack(stack_top);
+    unsafe { TSSS[cpu_id].set_kernel_stack(stack_top) };
 }
 
 /// Update kernel stack for current CPU
@@ -285,7 +285,7 @@ pub unsafe fn set_kernel_stack(cpu_id: usize, stack_top: u64) {
 #[cfg(feature = "percpu")]
 pub unsafe fn set_current_kernel_stack(stack_top: u64) {
     // TODO: Get current CPU ID from per-CPU data
-    set_kernel_stack(0, stack_top);
+    unsafe { set_kernel_stack(0, stack_top) };
 }
 
 // =============================================================================
@@ -303,13 +303,20 @@ pub fn dump_info(cpu_id: usize) {
         let gdt = &GDTS[cpu_id];
         let tss = &TSSS[cpu_id];
 
+        // Copy fields from packed struct to avoid unaligned references
+        let rsp0 = { tss.rsp0 };
+        let ist0 = { tss.ist[0] };
+        let ist1 = { tss.ist[1] };
+        let ist2 = { tss.ist[2] };
+        let ist3 = { tss.ist[3] };
+
         log::debug!("=== CPU {} Segmentation ===", cpu_id);
         log::debug!("GDT: {:?}", gdt.descriptor());
-        log::debug!("TSS RSP0: {:#018x}", tss.rsp0);
-        log::debug!("IST1 (DF): {:#018x}", tss.ist[0]);
-        log::debug!("IST2 (NMI): {:#018x}", tss.ist[1]);
-        log::debug!("IST3 (MC): {:#018x}", tss.ist[2]);
-        log::debug!("IST4 (DB): {:#018x}", tss.ist[3]);
+        log::debug!("TSS RSP0: {:#018x}", rsp0);
+        log::debug!("IST1 (DF): {:#018x}", ist0);
+        log::debug!("IST2 (NMI): {:#018x}", ist1);
+        log::debug!("IST3 (MC): {:#018x}", ist2);
+        log::debug!("IST4 (DB): {:#018x}", ist3);
     }
 }
 
