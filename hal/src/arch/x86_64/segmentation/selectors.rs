@@ -176,16 +176,18 @@ pub const TSS_SELECTOR: SegmentSelector = SegmentSelector::new(5, Rpl::Ring0);
 #[inline]
 pub unsafe fn load_cs(selector: SegmentSelector) {
     // In 64-bit mode, we need to do a far return to change CS
-    core::arch::asm!(
-        "push {sel}",
-        "lea {tmp}, [rip + 1f]",
-        "push {tmp}",
-        "retfq",
-        "1:",
-        sel = in(reg) selector.raw() as u64,
-        tmp = lateout(reg) _,
-        options(preserves_flags)
-    );
+    unsafe {
+        core::arch::asm!(
+            "push {sel}",
+            "lea {tmp}, [rip + 2f]",
+            "push {tmp}",
+            "retfq",
+            "2:",
+            sel = in(reg) selector.raw() as u64,
+            tmp = lateout(reg) _,
+            options(preserves_flags)
+        );
+    }
 }
 
 /// Load DS register
@@ -194,11 +196,13 @@ pub unsafe fn load_cs(selector: SegmentSelector) {
 /// The selector must reference a valid data segment or be null.
 #[inline]
 pub unsafe fn load_ds(selector: SegmentSelector) {
-    core::arch::asm!(
-        "mov ds, {0:x}",
-        in(reg) selector.raw(),
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov ds, {0:x}",
+            in(reg) selector.raw(),
+            options(nomem, nostack, preserves_flags)
+        );
+    }
 }
 
 /// Load ES register
@@ -207,11 +211,13 @@ pub unsafe fn load_ds(selector: SegmentSelector) {
 /// The selector must reference a valid data segment or be null.
 #[inline]
 pub unsafe fn load_es(selector: SegmentSelector) {
-    core::arch::asm!(
-        "mov es, {0:x}",
-        in(reg) selector.raw(),
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov es, {0:x}",
+            in(reg) selector.raw(),
+            options(nomem, nostack, preserves_flags)
+        );
+    }
 }
 
 /// Load FS register
@@ -220,11 +226,13 @@ pub unsafe fn load_es(selector: SegmentSelector) {
 /// The selector must reference a valid data segment or be null.
 #[inline]
 pub unsafe fn load_fs(selector: SegmentSelector) {
-    core::arch::asm!(
-        "mov fs, {0:x}",
-        in(reg) selector.raw(),
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov fs, {0:x}",
+            in(reg) selector.raw(),
+            options(nomem, nostack, preserves_flags)
+        );
+    }
 }
 
 /// Load GS register
@@ -233,11 +241,13 @@ pub unsafe fn load_fs(selector: SegmentSelector) {
 /// The selector must reference a valid data segment or be null.
 #[inline]
 pub unsafe fn load_gs(selector: SegmentSelector) {
-    core::arch::asm!(
-        "mov gs, {0:x}",
-        in(reg) selector.raw(),
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov gs, {0:x}",
+            in(reg) selector.raw(),
+            options(nomem, nostack, preserves_flags)
+        );
+    }
 }
 
 /// Load SS register
@@ -246,11 +256,13 @@ pub unsafe fn load_gs(selector: SegmentSelector) {
 /// The selector must reference a valid data segment.
 #[inline]
 pub unsafe fn load_ss(selector: SegmentSelector) {
-    core::arch::asm!(
-        "mov ss, {0:x}",
-        in(reg) selector.raw(),
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        core::arch::asm!(
+            "mov ss, {0:x}",
+            in(reg) selector.raw(),
+            options(nomem, nostack, preserves_flags)
+        );
+    }
 }
 
 /// Get current CS register value
