@@ -115,9 +115,11 @@ struct CortexComponents {
     pub learning_engine: LearningEngine,
 
     /// AI memory
+    #[allow(dead_code)]
     pub memory: AiMemory,
 
     /// Metrics collector
+    #[allow(dead_code)]
     pub metrics: MetricsCollector,
 
     /// Safety checker
@@ -128,6 +130,7 @@ struct CortexComponents {
 #[derive(Debug)]
 struct QueuedEvent {
     event: AiEvent,
+    #[allow(dead_code)]
     timestamp: u64,
     priority: AiPriority,
 }
@@ -135,30 +138,43 @@ struct QueuedEvent {
 /// Record of a decision for history/auditing
 #[derive(Debug, Clone)]
 pub struct DecisionRecord {
+    /// The AI decision that was made
     pub decision: AiDecision,
+    /// Whether the decision was executed
     pub executed: bool,
+    /// The outcome of the decision execution
     pub outcome: Option<DecisionOutcome>,
+    /// Execution time in microseconds
     pub execution_time_us: u64,
 }
 
 /// Outcome of an executed decision
 #[derive(Debug, Clone)]
 pub enum DecisionOutcome {
+    /// Decision executed successfully
     Success,
+    /// Decision partially succeeded
     PartialSuccess {
+        /// Number of completed actions
         completed_actions: usize,
+        /// Total number of actions
         total_actions: usize,
     },
+    /// Decision execution failed
     Failed {
+        /// Error description
         error: String,
     },
+    /// Decision was rolled back
     RolledBack {
+        /// Reason for rollback
         reason: String,
     },
 }
 
 /// Active rollback operation
 #[derive(Debug)]
+#[allow(dead_code)]
 struct ActiveRollback {
     decision_id: DecisionId,
     strategy: RollbackStrategy,
@@ -198,6 +214,7 @@ impl Cortex {
     const MAX_EVENT_QUEUE_SIZE: usize = 10000;
 
     /// Maximum pending decisions
+    #[allow(dead_code)]
     const MAX_PENDING_DECISIONS: usize = 1000;
 
     /// Maximum decision history size
@@ -491,16 +508,17 @@ impl Cortex {
     }
 
     /// Generate a rollback strategy for an action
+    #[allow(clippy::only_used_in_recursion)]
     fn generate_rollback(&self, action: &AiAction) -> Option<RollbackStrategy> {
         use AiAction::*;
 
         match action {
             TuneScheduler {
-                granularity_ns,
-                preemption,
+                granularity_ns: _,
+                preemption: _,
             } => Some(RollbackStrategy {
                 steps: vec![crate::core::RollbackStep {
-                    description: format!("Restore scheduler granularity to default"),
+                    description: String::from("Restore scheduler granularity to default"),
                     action: TuneScheduler {
                         granularity_ns: 10_000_000, // default 10ms
                         preemption: true,           // default to preemptive
@@ -510,9 +528,9 @@ impl Cortex {
                 guaranteed: true,
             }),
 
-            TuneAllocator { strategy } => Some(RollbackStrategy {
+            TuneAllocator { strategy: _ } => Some(RollbackStrategy {
                 steps: vec![crate::core::RollbackStep {
-                    description: format!("Restore allocator to default strategy"),
+                    description: String::from("Restore allocator to default strategy"),
                     action: TuneAllocator {
                         strategy: String::from("default"),
                     },
@@ -699,7 +717,7 @@ impl Cortex {
     /// Drain events from queue
     fn drain_events(&self) -> Vec<QueuedEvent> {
         let mut queue = self.event_queue.lock();
-        let config = self.config.read();
+        let _config = self.config.read();
 
         // Process up to a batch limit
         let batch_size = core::cmp::min(queue.len(), 100);
@@ -775,6 +793,7 @@ impl Cortex {
     }
 
     /// Execute a single action
+    #[allow(clippy::only_used_in_recursion)]
     fn execute_action(&self, action: &AiAction) -> AiResult<()> {
         use AiAction::*;
 
@@ -1106,15 +1125,25 @@ impl Cortex {
 /// Public statistics structure
 #[derive(Debug, Clone)]
 pub struct CortexStatistics {
+    /// Total number of events processed
     pub events_processed: u64,
+    /// Total number of decisions made
     pub decisions_made: u64,
+    /// Total number of actions executed
     pub actions_executed: u64,
+    /// Number of successful actions
     pub actions_successful: u64,
+    /// Number of failed actions
     pub actions_failed: u64,
+    /// Number of rollbacks initiated
     pub rollbacks_initiated: u64,
+    /// Number of successful rollbacks
     pub rollbacks_successful: u64,
+    /// Total processing time in microseconds
     pub total_processing_time_us: u64,
+    /// Current event queue size
     pub event_queue_size: usize,
+    /// Number of pending decisions
     pub pending_decisions: usize,
 }
 
