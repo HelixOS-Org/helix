@@ -2,10 +2,10 @@
 //!
 //! This module provides types for configuring the graphics pipeline.
 
-use crate::types::{ShaderHandle, PipelineHandle, VertexAttribute};
-use crate::draw::{PrimitiveTopology, FrontFace, CullMode, PolygonMode, DepthBias};
-use crate::compute::{TextureFormat, ShaderStageFlags};
 use crate::bind_group::BindGroupLayoutHandle;
+use crate::compute::{ShaderStageFlags, TextureFormat};
+use crate::draw::{CullMode, DepthBias, FrontFace, PolygonMode, PrimitiveTopology};
+use crate::types::{PipelineHandle, ShaderHandle, VertexAttribute};
 
 /// Graphics pipeline descriptor
 #[derive(Clone, Debug)]
@@ -121,7 +121,11 @@ pub struct FragmentState<'a> {
 
 impl<'a> FragmentState<'a> {
     /// Creates a fragment state
-    pub const fn new(shader: ShaderModule<'a>, entry_point: &'a str, targets: &'a [ColorTargetState]) -> Self {
+    pub const fn new(
+        shader: ShaderModule<'a>,
+        entry_point: &'a str,
+        targets: &'a [ColorTargetState],
+    ) -> Self {
         Self {
             shader,
             entry_point,
