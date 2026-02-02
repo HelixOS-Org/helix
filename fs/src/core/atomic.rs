@@ -721,14 +721,13 @@ impl<T> RwSpinLock<T> {
             }
 
             let current = self.state.load(ACQUIRE);
-            if current != Self::WRITER {
-                if self
+            if current != Self::WRITER
+                && self
                     .state
                     .compare_exchange_weak(current, current + 1, ACQUIRE, RELAXED)
                     .is_ok()
-                {
-                    return RwSpinReadGuard { lock: self };
-                }
+            {
+                return RwSpinReadGuard { lock: self };
             }
             core::hint::spin_loop();
         }
