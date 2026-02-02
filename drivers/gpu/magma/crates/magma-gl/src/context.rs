@@ -3,15 +3,17 @@
 //! The GL context holds all OpenGL state and manages translation to Vulkan.
 //! This is the main entry point for the Helix-GL implementation.
 
-use crate::enums::*;
-use crate::state::GlState;
-use crate::types::*;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, Ordering};
+
 use spin::Mutex;
+
+use crate::enums::*;
+use crate::state::GlState;
+use crate::types::*;
 
 // =============================================================================
 // CONTEXT CONFIGURATION
@@ -501,16 +503,7 @@ impl FramebufferObject {
             color_attachments: [FramebufferAttachment::default(); 8],
             depth_attachment: FramebufferAttachment::default(),
             stencil_attachment: FramebufferAttachment::default(),
-            draw_buffers: [
-                GL_COLOR_ATTACHMENT0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-            ],
+            draw_buffers: [GL_COLOR_ATTACHMENT0, 0, 0, 0, 0, 0, 0, 0],
             read_buffer: GL_COLOR_ATTACHMENT0,
             vk_framebuffer: 0,
             vk_render_pass: 0,
