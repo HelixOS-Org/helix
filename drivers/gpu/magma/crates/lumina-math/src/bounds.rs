@@ -2,7 +2,7 @@
 //!
 //! This module provides bounding box, sphere, and frustum types.
 
-use crate::{Vec2, Vec3, Vec4, Mat4};
+use crate::{Mat4, Vec2, Vec3, Vec4};
 
 /// Axis-aligned bounding box (2D)
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -84,14 +84,18 @@ impl Aabb2 {
 
     /// Checks if the AABB contains a point
     pub fn contains_point(&self, point: Vec2) -> bool {
-        point.x >= self.min.x && point.x <= self.max.x &&
-        point.y >= self.min.y && point.y <= self.max.y
+        point.x >= self.min.x
+            && point.x <= self.max.x
+            && point.y >= self.min.y
+            && point.y <= self.max.y
     }
 
     /// Checks if this AABB intersects another
     pub fn intersects(&self, other: &Self) -> bool {
-        self.min.x <= other.max.x && self.max.x >= other.min.x &&
-        self.min.y <= other.max.y && self.max.y >= other.min.y
+        self.min.x <= other.max.x
+            && self.max.x >= other.min.x
+            && self.min.y <= other.max.y
+            && self.max.y >= other.min.y
     }
 
     /// Returns the union of two AABBs
@@ -261,23 +265,32 @@ impl Aabb3 {
 
     /// Checks if the AABB contains a point
     pub fn contains_point(&self, point: Vec3) -> bool {
-        point.x >= self.min.x && point.x <= self.max.x &&
-        point.y >= self.min.y && point.y <= self.max.y &&
-        point.z >= self.min.z && point.z <= self.max.z
+        point.x >= self.min.x
+            && point.x <= self.max.x
+            && point.y >= self.min.y
+            && point.y <= self.max.y
+            && point.z >= self.min.z
+            && point.z <= self.max.z
     }
 
     /// Checks if this AABB fully contains another
     pub fn contains_aabb(&self, other: &Self) -> bool {
-        self.min.x <= other.min.x && self.max.x >= other.max.x &&
-        self.min.y <= other.min.y && self.max.y >= other.max.y &&
-        self.min.z <= other.min.z && self.max.z >= other.max.z
+        self.min.x <= other.min.x
+            && self.max.x >= other.max.x
+            && self.min.y <= other.min.y
+            && self.max.y >= other.max.y
+            && self.min.z <= other.min.z
+            && self.max.z >= other.max.z
     }
 
     /// Checks if this AABB intersects another
     pub fn intersects(&self, other: &Self) -> bool {
-        self.min.x <= other.max.x && self.max.x >= other.min.x &&
-        self.min.y <= other.max.y && self.max.y >= other.min.y &&
-        self.min.z <= other.max.z && self.max.z >= other.min.z
+        self.min.x <= other.max.x
+            && self.max.x >= other.min.x
+            && self.min.y <= other.max.y
+            && self.max.y >= other.min.y
+            && self.min.z <= other.max.z
+            && self.max.z >= other.min.z
     }
 
     /// Returns the union of two AABBs
@@ -429,12 +442,24 @@ impl BoundingSphere {
         let mut max_z = points[0];
 
         for p in points.iter() {
-            if p.x < min_x.x { min_x = *p; }
-            if p.x > max_x.x { max_x = *p; }
-            if p.y < min_y.y { min_y = *p; }
-            if p.y > max_y.y { max_y = *p; }
-            if p.z < min_z.z { min_z = *p; }
-            if p.z > max_z.z { max_z = *p; }
+            if p.x < min_x.x {
+                min_x = *p;
+            }
+            if p.x > max_x.x {
+                max_x = *p;
+            }
+            if p.y < min_y.y {
+                min_y = *p;
+            }
+            if p.y > max_y.y {
+                max_y = *p;
+            }
+            if p.z < min_z.z {
+                min_z = *p;
+            }
+            if p.z > max_z.z {
+                max_z = *p;
+            }
         }
 
         // Find the pair with maximum distance
@@ -606,9 +631,21 @@ impl Frustum {
         for plane in &self.planes {
             // Find the positive vertex (furthest along plane normal)
             let p = Vec3::new(
-                if plane.normal.x >= 0.0 { aabb.max.x } else { aabb.min.x },
-                if plane.normal.y >= 0.0 { aabb.max.y } else { aabb.min.y },
-                if plane.normal.z >= 0.0 { aabb.max.z } else { aabb.min.z },
+                if plane.normal.x >= 0.0 {
+                    aabb.max.x
+                } else {
+                    aabb.min.x
+                },
+                if plane.normal.y >= 0.0 {
+                    aabb.max.y
+                } else {
+                    aabb.min.y
+                },
+                if plane.normal.z >= 0.0 {
+                    aabb.max.z
+                } else {
+                    aabb.min.z
+                },
             );
 
             if plane.signed_distance(p) < 0.0 {
@@ -624,14 +661,38 @@ impl Frustum {
 
         for plane in &self.planes {
             let p_vertex = Vec3::new(
-                if plane.normal.x >= 0.0 { aabb.max.x } else { aabb.min.x },
-                if plane.normal.y >= 0.0 { aabb.max.y } else { aabb.min.y },
-                if plane.normal.z >= 0.0 { aabb.max.z } else { aabb.min.z },
+                if plane.normal.x >= 0.0 {
+                    aabb.max.x
+                } else {
+                    aabb.min.x
+                },
+                if plane.normal.y >= 0.0 {
+                    aabb.max.y
+                } else {
+                    aabb.min.y
+                },
+                if plane.normal.z >= 0.0 {
+                    aabb.max.z
+                } else {
+                    aabb.min.z
+                },
             );
             let n_vertex = Vec3::new(
-                if plane.normal.x >= 0.0 { aabb.min.x } else { aabb.max.x },
-                if plane.normal.y >= 0.0 { aabb.min.y } else { aabb.max.y },
-                if plane.normal.z >= 0.0 { aabb.min.z } else { aabb.max.z },
+                if plane.normal.x >= 0.0 {
+                    aabb.min.x
+                } else {
+                    aabb.max.x
+                },
+                if plane.normal.y >= 0.0 {
+                    aabb.min.y
+                } else {
+                    aabb.max.y
+                },
+                if plane.normal.z >= 0.0 {
+                    aabb.min.z
+                } else {
+                    aabb.max.z
+                },
             );
 
             if plane.signed_distance(p_vertex) < 0.0 {
