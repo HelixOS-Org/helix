@@ -295,6 +295,7 @@ pub mod safety_invariants {
 
     impl SafetyProof {
         /// Create a new safety proof (internal use only)
+        #[allow(dead_code)]
         pub(crate) const fn new() -> Self {
             Self {
                 _pointer: ValidPointer,
