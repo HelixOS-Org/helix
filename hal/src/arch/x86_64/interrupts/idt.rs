@@ -9,7 +9,7 @@
 
 use core::mem::size_of;
 
-use super::entries::{Dpl, GateOptions, GateType, IdtEntry};
+use super::entries::{GateOptions, GateType, IdtEntry};
 use super::vectors::ExceptionVector;
 use super::{handlers, segmentation};
 
@@ -147,11 +147,13 @@ impl Idt {
     #[inline]
     pub unsafe fn load(&self) {
         let desc = self.descriptor();
-        core::arch::asm!(
-            "lidt [{}]",
-            in(reg) &desc,
-            options(nostack, preserves_flags),
-        );
+        unsafe {
+            core::arch::asm!(
+                "lidt [{}]",
+                in(reg) &desc,
+                options(nostack, preserves_flags),
+            );
+        }
     }
 }
 
@@ -213,7 +215,7 @@ pub unsafe fn get_idt_mut() -> &'static mut Idt {
 /// This must only be called once during early boot.
 pub unsafe fn init_idt() {
     let idt = unsafe { get_idt_mut() };
-    let kernel_cs = segmentation::selectors::KERNEL_CS.0;
+    let kernel_cs = segmentation::selectors::KERNEL_CS.raw();
 
     // Set up exception handlers (0x00-0x1F)
     setup_exception_handlers(idt, kernel_cs);
@@ -419,7 +421,7 @@ pub unsafe fn load_idt() {
 /// The handler must be a valid interrupt handler function.
 pub unsafe fn set_handler(vector: u8, handler: usize, gate_type: GateType) {
     let idt = unsafe { get_idt_mut() };
-    let selector = segmentation::selectors::KERNEL_CS.0;
+    let selector = segmentation::selectors::KERNEL_CS.raw();
 
     idt.set(
         vector,
@@ -434,7 +436,7 @@ pub unsafe fn set_handler(vector: u8, handler: usize, gate_type: GateType) {
 /// The handler must be a valid exception handler function.
 pub unsafe fn set_exception_handler(vector: u8, handler: usize, ist: u8) {
     let idt = unsafe { get_idt_mut() };
-    let selector = segmentation::selectors::KERNEL_CS.0;
+    let selector = segmentation::selectors::KERNEL_CS.raw();
 
     idt.set(
         vector,
