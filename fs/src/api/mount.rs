@@ -479,11 +479,11 @@ impl MountTable {
             if path.starts_with(mount_path) {
                 let len = mount_path.len();
                 // Ensure it's a proper prefix (at directory boundary)
-                if len == path.len() || path[len] == b'/' || mount_path.ends_with(b"/") {
-                    if len > best_len {
-                        best_match = Some(mount);
-                        best_len = len;
-                    }
+                if (len == path.len() || path[len] == b'/' || mount_path.ends_with(b"/"))
+                    && len > best_len
+                {
+                    best_match = Some(mount);
+                    best_len = len;
                 }
             }
         }
