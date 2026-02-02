@@ -652,23 +652,23 @@ impl PageCache {
         for i in 0..MAX_PAGES {
             let page = &self.pages[i];
 
-            if page.key.ino == ino && !page.is_free() {
-                if page
+            if page.key.ino == ino
+                && !page.is_free()
+                && page
                     .refcount
                     .compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed)
                     .is_ok()
-                {
-                    self.hash_remove(i as u32, &page.key);
+            {
+                self.hash_remove(i as u32, &page.key);
 
-                    if page.is_dirty() {
-                        self.dirty_count.fetch_sub(1, Ordering::Relaxed);
-                    }
-
-                    page.set_state(CacheState::Free);
-                    page.release();
-                    self.active_count.fetch_sub(1, Ordering::Relaxed);
-                    count += 1;
+                if page.is_dirty() {
+                    self.dirty_count.fetch_sub(1, Ordering::Relaxed);
                 }
+
+                page.set_state(CacheState::Free);
+                page.release();
+                self.active_count.fetch_sub(1, Ordering::Relaxed);
+                count += 1;
             }
         }
 
