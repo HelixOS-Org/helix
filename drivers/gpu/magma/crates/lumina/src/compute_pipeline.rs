@@ -308,7 +308,12 @@ pub struct ComputeResourceRequirements {
 
 impl ComputeResourceRequirements {
     /// Calculates theoretical occupancy
-    pub fn theoretical_occupancy(&self, workgroup_size: u32, available_shared: u32, available_registers: u32) -> f32 {
+    pub fn theoretical_occupancy(
+        &self,
+        workgroup_size: u32,
+        available_shared: u32,
+        available_registers: u32,
+    ) -> f32 {
         let shared_limit = if self.shared_memory > 0 {
             available_shared / self.shared_memory
         } else {
