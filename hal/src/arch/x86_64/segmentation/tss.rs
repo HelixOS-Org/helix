@@ -233,13 +233,20 @@ impl Default for Tss {
 
 impl core::fmt::Debug for Tss {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // Copy fields to avoid unaligned references in packed struct
+        let rsp0 = { self.rsp0 };
+        let ist0 = { self.ist[0] };
+        let ist1 = { self.ist[1] };
+        let ist2 = { self.ist[2] };
+        let ist3 = { self.ist[3] };
+        let iopb_offset = { self.iopb_offset };
         f.debug_struct("Tss")
-            .field("rsp0", &format_args!("{:#018x}", self.rsp0))
-            .field("ist1", &format_args!("{:#018x}", self.ist[0]))
-            .field("ist2", &format_args!("{:#018x}", self.ist[1]))
-            .field("ist3", &format_args!("{:#018x}", self.ist[2]))
-            .field("ist4", &format_args!("{:#018x}", self.ist[3]))
-            .field("iopb_offset", &self.iopb_offset)
+            .field("rsp0", &format_args!("{:#018x}", rsp0))
+            .field("ist1", &format_args!("{:#018x}", ist0))
+            .field("ist2", &format_args!("{:#018x}", ist1))
+            .field("ist3", &format_args!("{:#018x}", ist2))
+            .field("ist4", &format_args!("{:#018x}", ist3))
+            .field("iopb_offset", &iopb_offset)
             .finish()
     }
 }
@@ -366,11 +373,13 @@ static_assertions::const_assert_eq!(size_of::<TssEntry>(), 16);
 /// The selector must reference a valid TSS descriptor in the GDT.
 #[inline]
 pub unsafe fn load_tss(selector: super::SegmentSelector) {
-    core::arch::asm!(
-        "ltr {0:x}",
-        in(reg) selector.raw(),
-        options(nomem, nostack, preserves_flags)
-    );
+    unsafe {
+        core::arch::asm!(
+            "ltr {0:x}",
+            in(reg) selector.raw(),
+            options(nomem, nostack, preserves_flags)
+        );
+    }
 }
 
 /// Get the current TSS selector
