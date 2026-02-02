@@ -4,8 +4,8 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Physical device handle
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
