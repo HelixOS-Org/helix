@@ -13,16 +13,22 @@ readme = "README.md"
 [lib]
 crate-type = ["staticlib", "rlib"]
 
-[[bin]]
-name = "helix-uefi-boot"
-path = "src/bin/main.rs"
+# Binary is currently disabled due to API mismatches
+# TODO: Fix binary to use correct library API
+# [[bin]]
+# name = "helix-uefi-boot"
+# path = "src/bin/main.rs"
 
 [dependencies]
 # No external dependencies - pure Rust UEFI implementation
 # Everything is implemented from scratch for maximum control
 
 # Relocation subsystem for PIE kernels
-helix-relocation = { path = "../../subsystems/relocation", features = ["x86_64", "kaslr", "uefi"], optional = true }
+helix-relocation = { path = "../../subsystems/relocation", features = [
+    "x86_64",
+    "kaslr",
+    "uefi",
+], optional = true }
 
 [dev-dependencies]
 
@@ -35,46 +41,57 @@ aarch64 = []
 riscv64 = []
 
 # Protocol support
-gop = []                    # Graphics Output Protocol
-simple_text = []            # Simple Text I/O
-filesystem = []             # File System protocols
-block_io = []               # Block I/O protocol
-pci = []                    # PCI protocol
-usb = []                    # USB protocols
-network = []                # Network protocols
-serial = []                 # Serial I/O
+gop = []         # Graphics Output Protocol
+simple_text = [] # Simple Text I/O
+filesystem = []  # File System protocols
+block_io = []    # Block I/O protocol
+pci = []         # PCI protocol
+usb = []         # USB protocols
+network = []     # Network protocols
+serial = []      # Serial I/O
 
 # Hardware tables
-acpi = []                   # ACPI table parsing
-smbios = []                 # SMBIOS table parsing
-dtb = []                    # Device Tree Blob (ARM)
+acpi = []   # ACPI table parsing
+smbios = [] # SMBIOS table parsing
+dtb = []    # Device Tree Blob (ARM)
 
 # Security features
-security = []               # Enable all security features
-secure_boot = ["security"]  # Secure Boot validation
-measured_boot = ["security"] # TPM measured boot
+security = []                   # Enable all security features
+secure_boot = ["security"]      # Secure Boot validation
+measured_boot = ["security"]    # TPM measured boot
 signature_verify = ["security"] # Signature verification
 
 # Advanced features
-smp = []                    # Multi-processor support
-numa = []                   # NUMA topology
-rng = []                    # Hardware RNG
-watchdog = []               # Watchdog timer
-relocation = ["dep:helix-relocation"]  # PIE kernel relocation support
+smp = []                              # Multi-processor support
+numa = []                             # NUMA topology
+rng = []                              # Hardware RNG
+watchdog = []                         # Watchdog timer
+relocation = ["dep:helix-relocation"] # PIE kernel relocation support
 
 # Debug features
-debug_output = []           # Debug output to serial/console
-verbose = ["debug_output"]  # Verbose logging
-trace = ["verbose"]         # Trace-level logging
+debug_output = []          # Debug output to serial/console
+verbose = ["debug_output"] # Verbose logging
+trace = ["verbose"]        # Trace-level logging
 
 # Full feature set
 full = [
-    "x86_64", "aarch64",
-    "gop", "simple_text", "filesystem", "block_io", "pci", "serial",
-    "acpi", "smbios",
-    "security", "secure_boot", "measured_boot",
-    "smp", "numa", "rng",
-    "debug_output"
+    "x86_64",
+    "aarch64",
+    "gop",
+    "simple_text",
+    "filesystem",
+    "block_io",
+    "pci",
+    "serial",
+    "acpi",
+    "smbios",
+    "security",
+    "secure_boot",
+    "measured_boot",
+    "smp",
+    "numa",
+    "rng",
+    "debug_output",
 ]
 
 [profile.dev]
