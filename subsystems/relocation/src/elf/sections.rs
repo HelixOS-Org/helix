@@ -2,7 +2,7 @@
 //!
 //! Section handling utilities.
 
-use super::*;
+use super::SectionType;
 
 /// Section info
 #[derive(Debug, Clone)]
