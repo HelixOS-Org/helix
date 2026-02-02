@@ -30,7 +30,9 @@
 //!
 //! #[lumina::shader(fragment)]
 //! fn fragment_main(color: Vec3) -> FragmentOutput<Rgba8> {
-//!     FragmentOutput { color: color.extend(1.0).into() }
+//!     FragmentOutput {
+//!         color: color.extend(1.0).into(),
+//!     }
 //! }
 //!
 //! fn main() -> lumina::Result<()> {
@@ -38,7 +40,8 @@
 //!     let mesh = GpuMesh::cube(1.0);
 //!
 //!     app.run(|frame, _| {
-//!         frame.render()
+//!         frame
+//!             .render()
 //!             .clear(Color::BLACK)
 //!             .draw(&mesh)
 //!             .with(vertex_main, fragment_main)
@@ -82,6 +85,10 @@ pub use lumina_math as math;
 
 /// The Lumina prelude - import this for common types
 pub mod prelude {
+    #[cfg(feature = "derive")]
+    pub use lumina_derive::{GpuData, GpuUniforms, GpuVertex};
+    pub use lumina_math::{Mat2, Mat3, Mat4, Vec2, Vec3, Vec4};
+
     pub use crate::buffer::{BufferUsage, GpuBuffer};
     pub use crate::color::Color;
     pub use crate::context::{Lumina, LuminaBuilder};
@@ -94,17 +101,13 @@ pub mod prelude {
     pub use crate::state::RenderState;
     pub use crate::texture::{GpuTexture, TextureFormat};
     pub use crate::types::*;
-
-    pub use lumina_math::{Mat2, Mat3, Mat4, Vec2, Vec3, Vec4};
-
-    #[cfg(feature = "derive")]
-    pub use lumina_derive::{GpuData, GpuUniforms, GpuVertex};
 }
 
 /// Shader output types
 pub mod output {
-    use crate::types::*;
     use lumina_math::Vec4;
+
+    use crate::types::*;
 
     /// Output from a vertex shader
     #[derive(Clone, Copy, Debug)]
