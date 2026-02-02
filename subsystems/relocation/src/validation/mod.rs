@@ -3,7 +3,7 @@
 //! Integrity checking and validation for relocations.
 
 use crate::elf::{Elf64Rela, ElfInfo};
-use crate::{PhysAddr, RelocError, RelocResult, RelocationStats, VirtAddr};
+use crate::{RelocError, RelocResult, RelocationStats};
 
 // ============================================================================
 // VALIDATION CONFIGURATION
@@ -264,7 +264,7 @@ impl PostValidator {
     /// Validate relocated kernel
     pub fn validate_relocated(
         &self,
-        kernel_base: *const u8,
+        _kernel_base: *const u8,
         kernel_size: usize,
         stats: &RelocationStats,
     ) -> RelocResult<ValidationResult> {
@@ -309,7 +309,15 @@ impl Checksum {
     pub const fn new() -> Self {
         Self { value: 0 }
     }
+}
 
+impl Default for Checksum {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Checksum {
     /// Update checksum with data
     pub fn update(&mut self, data: &[u8]) {
         // Simple FNV-1a hash for no_std
@@ -468,8 +476,8 @@ pub fn verify_kernel(ctx: &crate::context::RelocationContext) -> RelocResult<Val
 
     // Check slide is reasonable
     let max_slide = 1 << 30; // 1GB max slide
-    if ctx.slide.abs() as u64 > max_slide {
-        result.add_warning(ValidationWarning::LargeSlide(ctx.slide.abs() as u64));
+    if ctx.slide.unsigned_abs() > max_slide {
+        result.add_warning(ValidationWarning::LargeSlide(ctx.slide.unsigned_abs()));
     }
 
     Ok(result)
