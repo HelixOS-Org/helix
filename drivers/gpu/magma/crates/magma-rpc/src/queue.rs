@@ -4,9 +4,9 @@
 
 use core::sync::atomic::{AtomicU32, Ordering};
 
-use magma_core::{Error, Result, GpuAddr, ByteSize};
+use magma_core::{ByteSize, Error, GpuAddr, Result};
 
-use crate::message::{RpcMessage, RpcHeader, MAX_MESSAGE_SIZE};
+use crate::message::{RpcHeader, RpcMessage, MAX_MESSAGE_SIZE};
 
 // =============================================================================
 // QUEUE LAYOUT
