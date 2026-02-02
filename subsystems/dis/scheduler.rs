@@ -655,14 +655,12 @@ impl DISScheduler {
                 let mut best_load = u32::MAX;
 
                 for (id, cpu) in cpus.iter().enumerate() {
-                    // Check if this CPU is in the affinity mask
-                    if (task.cpu_affinity & (1 << id)) != 0 {
-                        if cpu.online.load(Ordering::Relaxed) {
-                            let load = cpu.load.load(Ordering::Relaxed);
-                            if load < best_load {
-                                best_load = load;
-                                best_cpu = Some(cpu);
-                            }
+                    // Check if this CPU is in the affinity mask and is online
+                    if (task.cpu_affinity & (1 << id)) != 0 && cpu.online.load(Ordering::Relaxed) {
+                        let load = cpu.load.load(Ordering::Relaxed);
+                        if load < best_load {
+                            best_load = load;
+                            best_cpu = Some(cpu);
                         }
                     }
                 }
