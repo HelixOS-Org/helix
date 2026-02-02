@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
+use crate::math::F64Ext;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
@@ -13,8 +14,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::synthesis::SynthesisCandidate;
-use super::{GenOptions, Priority, Specification};
+use super::Specification;
 
 // ============================================================================
 // SEARCH TYPES
@@ -576,15 +576,23 @@ impl SearchEngine {
             let selected = self.mcts_select();
 
             // Expansion
-            if let Some(node) = self.nodes.get_mut(&selected) {
-                if !node.expanded && node.depth < self.config.max_depth {
-                    let children = self.expand_mcts(node.id, spec);
-                    node.expanded = true;
-                    node.children = children.iter().map(|c| c.id).collect();
+            let expansion_needed = if let Some(node) = self.nodes.get(&selected) {
+                !node.expanded && node.depth < self.config.max_depth
+            } else {
+                false
+            };
 
-                    for child in children {
-                        self.nodes.insert(child.id, child);
-                    }
+            if expansion_needed {
+                let children = self.expand_mcts(selected, spec);
+                let child_ids: Vec<u64> = children.iter().map(|c| c.id).collect();
+
+                for child in children {
+                    self.nodes.insert(child.id, child);
+                }
+
+                if let Some(node) = self.nodes.get_mut(&selected) {
+                    node.expanded = true;
+                    node.children = child_ids;
                 }
             }
 
