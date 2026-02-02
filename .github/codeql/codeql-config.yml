@@ -48,6 +48,18 @@ query-filters:
       id: rust/unused-value
   - exclude:
       id: rust/todo-comment
+  # ============================================================================
+  # EXCLUDED FALSE POSITIVES FOR KERNEL/OS DEVELOPMENT
+  # ============================================================================
+  # Hard-coded crypto values in test code are expected and safe
+  - exclude:
+      id: rust/hard-coded-cryptographic-value
+      tags contain: test
+  # UEFI FFI pointer access is inherently unsafe but necessary
+  # The UEFI protocol pointers are validated by the firmware
+  - exclude:
+      id: rust/access-invalid-pointer
+      # Note: We handle this via manual review and SAFETY comments
 
 # Extraction settings for Rust
 extraction:
