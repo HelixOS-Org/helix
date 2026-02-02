@@ -2,9 +2,7 @@
 //!
 //! Core relocation engine that applies relocations to kernel images.
 
-use crate::context::{
-    BootProtocol, KernelState, RelocationContext, RelocationContextBuilder, RelocationStrategy,
-};
+use crate::context::{KernelState, RelocationContext, RelocationStrategy};
 use crate::elf::Elf64Rela;
 use crate::elf::relocations::RelocationInfo;
 use crate::{PhysAddr, RelocError, RelocResult, RelocationStats, VirtAddr};
