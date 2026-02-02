@@ -20,12 +20,12 @@
 //! fn kernel_entry(multiboot_magic: u32, info_ptr: *const u8) {
 //!     // Validate magic number
 //!     if multiboot_magic != helix_multiboot2::BOOTLOADER_MAGIC {
-//!         panic!("Invalid Multiboot2 magic!");
+//!         panic!(\"Invalid Multiboot2 magic!\");
 //!     }
 //!
 //!     // Parse boot information (single unsafe boundary)
 //!     let boot_info = unsafe {
-//!         Multiboot2Info::from_ptr(info_ptr).expect("Invalid boot info")
+//!         Multiboot2Info::from_ptr(info_ptr).expect(\"Invalid boot info\")
 //!     };
 //!
 //!     // Safe iteration over typed tags
@@ -61,6 +61,16 @@
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
+// Allow pedantic clippy warnings for low-level boot code
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::ptr_as_ptr)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::items_after_statements)]
+#![allow(clippy::cast_ptr_alignment)]
+#![allow(clippy::needless_lifetimes)]
 
 // =============================================================================
 // Module Declarations
