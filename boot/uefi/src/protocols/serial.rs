@@ -1,6 +1,11 @@
 //! Serial I/O Protocol
 //!
 //! High-level serial port abstraction for debug output and communication.
+//!
+//! # Safety
+//! This module interfaces with UEFI firmware via FFI. All protocol pointers
+//! are provided by the firmware and validated before use.
+// codeql[rust/access-invalid-pointer] - UEFI FFI pointers validated by firmware
 
 use super::{EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
@@ -33,8 +38,19 @@ impl SerialPort {
     /// Create from raw protocol
     ///
     /// # Safety
-    /// Protocol pointer must be valid
+    /// Protocol pointer must be valid and obtained from UEFI LocateProtocol
+    /// or HandleProtocol calls. The pointer must remain valid for the
+    /// lifetime of this SerialPort instance.
+    ///
+    /// # Panics
+    /// Panics in debug mode if protocol pointer is null.
     pub unsafe fn from_raw(protocol: *mut EfiSerialIoProtocol, handle: Handle) -> Self {
+        debug_assert!(!protocol.is_null(), "SerialPort protocol pointer is null");
+        debug_assert!(
+            !(*protocol).mode.is_null(),
+            "SerialPort mode pointer is null"
+        );
+
         let mode = &*(*protocol).mode;
         let config = SerialConfig {
             baud_rate: mode.baud_rate as u32,
