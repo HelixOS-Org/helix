@@ -110,7 +110,9 @@ impl Cr0 {
     /// - Cannot clear PG when protection is disabled
     #[inline]
     pub unsafe fn write(self) {
-        asm!("mov cr0, {}", in(reg) self.bits(), options(nomem, nostack, preserves_flags));
+        unsafe {
+            asm!("mov cr0, {}", in(reg) self.bits(), options(nomem, nostack, preserves_flags));
+        }
     }
 
     /// Update CR0 with a closure
@@ -121,7 +123,7 @@ impl Cr0 {
     pub unsafe fn update<F: FnOnce(&mut Self)>(f: F) {
         let mut cr0 = Self::read();
         f(&mut cr0);
-        cr0.write();
+        unsafe { cr0.write() };
     }
 
     /// Get the required bits for 64-bit mode
@@ -177,7 +179,9 @@ impl Cr2 {
     /// Writing is generally only useful in virtualization contexts.
     #[inline]
     pub unsafe fn write(value: u64) {
-        asm!("mov cr2, {}", in(reg) value, options(nomem, nostack, preserves_flags));
+        unsafe {
+            asm!("mov cr2, {}", in(reg) value, options(nomem, nostack, preserves_flags));
+        }
     }
 }
 
@@ -232,7 +236,9 @@ impl Cr3 {
     /// Invalidates TLB entries (unless NO_INVALIDATE is set with PCID).
     #[inline]
     pub unsafe fn write(self) {
-        asm!("mov cr3, {}", in(reg) self.value, options(nostack, preserves_flags));
+        unsafe {
+            asm!("mov cr3, {}", in(reg) self.value, options(nostack, preserves_flags));
+        }
     }
 
     /// Create a new CR3 value with physical address
@@ -290,7 +296,7 @@ impl Cr3 {
     #[inline]
     pub unsafe fn reload() {
         let cr3 = Self::read();
-        cr3.write();
+        unsafe { cr3.write() };
     }
 }
 
@@ -410,7 +416,9 @@ impl Cr4 {
     /// Incorrect values can crash the system or disable critical features.
     #[inline]
     pub unsafe fn write(self) {
-        asm!("mov cr4, {}", in(reg) self.bits(), options(nomem, nostack, preserves_flags));
+        unsafe {
+            asm!("mov cr4, {}", in(reg) self.bits(), options(nomem, nostack, preserves_flags));
+        }
     }
 
     /// Update CR4 with a closure
@@ -421,7 +429,7 @@ impl Cr4 {
     pub unsafe fn update<F: FnOnce(&mut Self)>(f: F) {
         let mut cr4 = Self::read();
         f(&mut cr4);
-        cr4.write();
+        unsafe { cr4.write() };
     }
 
     /// Get the required bits for 64-bit mode with PAE
@@ -483,7 +491,9 @@ impl Cr8 {
     #[inline]
     pub unsafe fn write(priority: u8) {
         let value = (priority & 0xF) as u64;
-        asm!("mov cr8, {}", in(reg) value, options(nomem, nostack, preserves_flags));
+        unsafe {
+            asm!("mov cr8, {}", in(reg) value, options(nomem, nostack, preserves_flags));
+        }
     }
 }
 
@@ -567,13 +577,15 @@ impl Xcr0 {
     #[inline]
     pub unsafe fn read() -> Self {
         let (lo, hi): (u32, u32);
-        asm!(
-            "xgetbv",
-            in("ecx") 0u32,
-            out("eax") lo,
-            out("edx") hi,
-            options(nomem, nostack, preserves_flags)
-        );
+        unsafe {
+            asm!(
+                "xgetbv",
+                in("ecx") 0u32,
+                out("eax") lo,
+                out("edx") hi,
+                options(nomem, nostack, preserves_flags)
+            );
+        }
         Self::from_bits_truncate(((hi as u64) << 32) | (lo as u64))
     }
 
@@ -587,13 +599,15 @@ impl Xcr0 {
         let value = self.bits();
         let lo = value as u32;
         let hi = (value >> 32) as u32;
-        asm!(
-            "xsetbv",
-            in("ecx") 0u32,
-            in("eax") lo,
-            in("edx") hi,
-            options(nomem, nostack, preserves_flags)
-        );
+        unsafe {
+            asm!(
+                "xsetbv",
+                in("ecx") 0u32,
+                in("eax") lo,
+                in("edx") hi,
+                options(nomem, nostack, preserves_flags)
+            );
+        }
     }
 
     /// Update XCR0 with a closure
@@ -602,9 +616,9 @@ impl Xcr0 {
     /// See `write`.
     #[inline]
     pub unsafe fn update<F: FnOnce(&mut Self)>(f: F) {
-        let mut xcr0 = Self::read();
+        let mut xcr0 = unsafe { Self::read() };
         f(&mut xcr0);
-        xcr0.write();
+        unsafe { xcr0.write() };
     }
 
     /// Standard x87 + SSE configuration
@@ -639,13 +653,15 @@ impl Xcr0 {
 #[inline]
 pub unsafe fn cli() -> bool {
     let rflags: u64;
-    asm!(
-        "pushfq",
-        "pop {}",
-        "cli",
-        out(reg) rflags,
-        options(preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "pushfq",
+            "pop {}",
+            "cli",
+            out(reg) rflags,
+            options(preserves_flags)
+        );
+    }
     (rflags & (1 << 9)) != 0
 }
 
@@ -655,7 +671,9 @@ pub unsafe fn cli() -> bool {
 /// Should only be called if interrupts were previously enabled.
 #[inline]
 pub unsafe fn sti() {
-    asm!("sti", options(nomem, nostack));
+    unsafe {
+        asm!("sti", options(nomem, nostack));
+    }
 }
 
 /// Restore interrupt state
@@ -665,7 +683,7 @@ pub unsafe fn sti() {
 #[inline]
 pub unsafe fn restore_interrupts(enabled: bool) {
     if enabled {
-        sti();
+        unsafe { sti() };
     }
 }
 
@@ -675,7 +693,9 @@ pub unsafe fn restore_interrupts(enabled: bool) {
 /// Will resume on next interrupt (if interrupts are enabled).
 #[inline]
 pub unsafe fn hlt() {
-    asm!("hlt", options(nomem, nostack, preserves_flags));
+    unsafe {
+        asm!("hlt", options(nomem, nostack, preserves_flags));
+    }
 }
 
 /// Pause hint for spin-wait loops
@@ -716,7 +736,7 @@ pub fn sfence() {
 /// Expensive operation, affects all address translations.
 #[inline]
 pub unsafe fn invlpg_all() {
-    Cr3::reload();
+    unsafe { Cr3::reload() };
 }
 
 /// Invalidate TLB entry for a specific virtual address
@@ -725,7 +745,9 @@ pub unsafe fn invlpg_all() {
 /// Can affect concurrent memory access.
 #[inline]
 pub unsafe fn invlpg(addr: u64) {
-    asm!("invlpg [{}]", in(reg) addr, options(nostack, preserves_flags));
+    unsafe {
+        asm!("invlpg [{}]", in(reg) addr, options(nostack, preserves_flags));
+    }
 }
 
 /// Invalidate TLB entries for PCID
@@ -735,12 +757,14 @@ pub unsafe fn invlpg(addr: u64) {
 #[inline]
 pub unsafe fn invpcid(pcid: u16, addr: u64, inv_type: u64) {
     let descriptor: [u64; 2] = [pcid as u64, addr];
-    asm!(
-        "invpcid {}, [{}]",
-        in(reg) inv_type,
-        in(reg) &descriptor,
-        options(nostack, preserves_flags)
-    );
+    unsafe {
+        asm!(
+            "invpcid {}, [{}]",
+            in(reg) inv_type,
+            in(reg) &descriptor,
+            options(nostack, preserves_flags)
+        );
+    }
 }
 
 /// INVPCID types
@@ -824,12 +848,14 @@ impl RFlags {
     /// Can affect interrupt handling, privilege levels, and execution flow.
     #[inline]
     pub unsafe fn write(self) {
-        asm!(
-            "push {}",
-            "popfq",
-            in(reg) self.bits(),
-            options(preserves_flags)
-        );
+        unsafe {
+            asm!(
+                "push {}",
+                "popfq",
+                in(reg) self.bits(),
+                options(preserves_flags)
+            );
+        }
     }
 
     /// Check if interrupts are enabled
