@@ -103,9 +103,21 @@ impl Transform {
         let inv_scale_z = if scale_z != 0.0 { 1.0 / scale_z } else { 0.0 };
 
         let rot_mat = crate::mat::Mat3::from_cols(
-            Vec3::new(m.x_axis.x * inv_scale_x, m.x_axis.y * inv_scale_x, m.x_axis.z * inv_scale_x),
-            Vec3::new(m.y_axis.x * inv_scale_y, m.y_axis.y * inv_scale_y, m.y_axis.z * inv_scale_y),
-            Vec3::new(m.z_axis.x * inv_scale_z, m.z_axis.y * inv_scale_z, m.z_axis.z * inv_scale_z),
+            Vec3::new(
+                m.x_axis.x * inv_scale_x,
+                m.x_axis.y * inv_scale_x,
+                m.x_axis.z * inv_scale_x,
+            ),
+            Vec3::new(
+                m.y_axis.x * inv_scale_y,
+                m.y_axis.y * inv_scale_y,
+                m.y_axis.z * inv_scale_y,
+            ),
+            Vec3::new(
+                m.z_axis.x * inv_scale_z,
+                m.z_axis.y * inv_scale_z,
+                m.z_axis.z * inv_scale_z,
+            ),
         );
 
         let rotation = Quat::from_rotation_matrix(&rot_mat);
@@ -127,21 +139,28 @@ impl Transform {
         let y_axis = rotation_matrix.y_axis * self.scale.y;
         let z_axis = rotation_matrix.z_axis * self.scale.z;
 
-        Mat4::from_cols(
-            x_axis,
-            y_axis,
-            z_axis,
-            self.translation.extend(1.0),
-        )
+        Mat4::from_cols(x_axis, y_axis, z_axis, self.translation.extend(1.0))
     }
 
     /// Returns the inverse of this transform
     #[inline]
     pub fn inverse(self) -> Self {
         let inv_scale = Vec3::new(
-            if self.scale.x != 0.0 { 1.0 / self.scale.x } else { 0.0 },
-            if self.scale.y != 0.0 { 1.0 / self.scale.y } else { 0.0 },
-            if self.scale.z != 0.0 { 1.0 / self.scale.z } else { 0.0 },
+            if self.scale.x != 0.0 {
+                1.0 / self.scale.x
+            } else {
+                0.0
+            },
+            if self.scale.y != 0.0 {
+                1.0 / self.scale.y
+            } else {
+                0.0
+            },
+            if self.scale.z != 0.0 {
+                1.0 / self.scale.z
+            } else {
+                0.0
+            },
         );
 
         let inv_rotation = self.rotation.conjugate();
@@ -230,11 +249,8 @@ impl Transform {
         let right = up.cross(forward).normalize();
         let actual_up = forward.cross(right);
 
-        let rotation = Quat::from_rotation_matrix(&crate::mat::Mat3::from_cols(
-            right,
-            actual_up,
-            -forward,
-        ));
+        let rotation =
+            Quat::from_rotation_matrix(&crate::mat::Mat3::from_cols(right, actual_up, -forward));
 
         Self {
             translation: self.translation,
@@ -300,7 +316,11 @@ impl Transform2D {
 
     /// Creates a new 2D transform
     #[inline]
-    pub const fn new(translation: crate::vec::Vec2, rotation: f32, scale: crate::vec::Vec2) -> Self {
+    pub const fn new(
+        translation: crate::vec::Vec2,
+        rotation: f32,
+        scale: crate::vec::Vec2,
+    ) -> Self {
         Self {
             translation,
             rotation,
@@ -366,8 +386,16 @@ impl Transform2D {
     #[inline]
     pub fn inverse(self) -> Self {
         let inv_scale = crate::vec::Vec2::new(
-            if self.scale.x != 0.0 { 1.0 / self.scale.x } else { 0.0 },
-            if self.scale.y != 0.0 { 1.0 / self.scale.y } else { 0.0 },
+            if self.scale.x != 0.0 {
+                1.0 / self.scale.x
+            } else {
+                0.0
+            },
+            if self.scale.y != 0.0 {
+                1.0 / self.scale.y
+            } else {
+                0.0
+            },
         );
 
         let inv_rotation = -self.rotation;
@@ -422,7 +450,10 @@ impl Isometry {
     /// Creates a new isometry
     #[inline]
     pub const fn new(translation: Vec3, rotation: Quat) -> Self {
-        Self { translation, rotation }
+        Self {
+            translation,
+            rotation,
+        }
     }
 
     /// Creates from translation only
