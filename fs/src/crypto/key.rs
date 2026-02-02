@@ -375,7 +375,7 @@ impl Default for KdfParams {
 pub struct HmacSha256 {
     /// Inner key
     inner_key: [u8; 64],
-    /// Outer key  
+    /// Outer key
     outer_key: [u8; 64],
 }
 
@@ -575,6 +575,9 @@ impl KeyManager {
 // Tests
 // ============================================================================
 
+// CodeQL: Test code uses zero-filled/hardcoded values for deterministic testing.
+// These are NOT used in production - production keys come from secure KDF.
+// codeql[rust/hard-coded-cryptographic-value] - Test values only
 #[cfg(test)]
 mod tests {
     use super::*;
