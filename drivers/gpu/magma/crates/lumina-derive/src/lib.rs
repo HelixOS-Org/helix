@@ -244,46 +244,16 @@ fn type_to_format_and_size(ty: &syn::Type) -> (proc_macro2::TokenStream, u32) {
     let type_str = quote!(#ty).to_string().replace(' ', "");
 
     match type_str.as_str() {
-        "f32" => (
-            quote!(lumina::types::AttributeFormat::Float),
-            4,
-        ),
-        "Vec2" | "lumina::math::Vec2" => (
-            quote!(lumina::types::AttributeFormat::Vec2),
-            8,
-        ),
-        "Vec3" | "lumina::math::Vec3" => (
-            quote!(lumina::types::AttributeFormat::Vec3),
-            12,
-        ),
-        "Vec4" | "lumina::math::Vec4" => (
-            quote!(lumina::types::AttributeFormat::Vec4),
-            16,
-        ),
-        "i32" => (
-            quote!(lumina::types::AttributeFormat::Int),
-            4,
-        ),
-        "u32" => (
-            quote!(lumina::types::AttributeFormat::UInt),
-            4,
-        ),
-        "[f32;2]" => (
-            quote!(lumina::types::AttributeFormat::Vec2),
-            8,
-        ),
-        "[f32;3]" => (
-            quote!(lumina::types::AttributeFormat::Vec3),
-            12,
-        ),
-        "[f32;4]" => (
-            quote!(lumina::types::AttributeFormat::Vec4),
-            16,
-        ),
-        _ => (
-            quote!(lumina::types::AttributeFormat::Vec4),
-            16,
-        ),
+        "f32" => (quote!(lumina::types::AttributeFormat::Float), 4),
+        "Vec2" | "lumina::math::Vec2" => (quote!(lumina::types::AttributeFormat::Vec2), 8),
+        "Vec3" | "lumina::math::Vec3" => (quote!(lumina::types::AttributeFormat::Vec3), 12),
+        "Vec4" | "lumina::math::Vec4" => (quote!(lumina::types::AttributeFormat::Vec4), 16),
+        "i32" => (quote!(lumina::types::AttributeFormat::Int), 4),
+        "u32" => (quote!(lumina::types::AttributeFormat::UInt), 4),
+        "[f32;2]" => (quote!(lumina::types::AttributeFormat::Vec2), 8),
+        "[f32;3]" => (quote!(lumina::types::AttributeFormat::Vec3), 12),
+        "[f32;4]" => (quote!(lumina::types::AttributeFormat::Vec4), 16),
+        _ => (quote!(lumina::types::AttributeFormat::Vec4), 16),
     }
 }
 
@@ -293,26 +263,14 @@ fn type_to_uniform_info(ty: &syn::Type) -> (proc_macro2::TokenStream, u32, u32) 
 
     match type_str.as_str() {
         "f32" => (quote!(lumina::types::UniformType::Float), 4, 4),
-        "Vec2" | "lumina::math::Vec2" => {
-            (quote!(lumina::types::UniformType::Vec2), 8, 8)
-        }
-        "Vec3" | "lumina::math::Vec3" => {
-            (quote!(lumina::types::UniformType::Vec3), 12, 16)
-        }
-        "Vec4" | "lumina::math::Vec4" => {
-            (quote!(lumina::types::UniformType::Vec4), 16, 16)
-        }
+        "Vec2" | "lumina::math::Vec2" => (quote!(lumina::types::UniformType::Vec2), 8, 8),
+        "Vec3" | "lumina::math::Vec3" => (quote!(lumina::types::UniformType::Vec3), 12, 16),
+        "Vec4" | "lumina::math::Vec4" => (quote!(lumina::types::UniformType::Vec4), 16, 16),
         "i32" => (quote!(lumina::types::UniformType::Int), 4, 4),
         "u32" => (quote!(lumina::types::UniformType::UInt), 4, 4),
-        "Mat2" | "lumina::math::Mat2" => {
-            (quote!(lumina::types::UniformType::Mat2), 16, 8)
-        }
-        "Mat3" | "lumina::math::Mat3" => {
-            (quote!(lumina::types::UniformType::Mat3), 48, 16)
-        }
-        "Mat4" | "lumina::math::Mat4" => {
-            (quote!(lumina::types::UniformType::Mat4), 64, 16)
-        }
+        "Mat2" | "lumina::math::Mat2" => (quote!(lumina::types::UniformType::Mat2), 16, 8),
+        "Mat3" | "lumina::math::Mat3" => (quote!(lumina::types::UniformType::Mat3), 48, 16),
+        "Mat4" | "lumina::math::Mat4" => (quote!(lumina::types::UniformType::Mat4), 64, 16),
         _ => (quote!(lumina::types::UniformType::Vec4), 16, 16),
     }
 }
