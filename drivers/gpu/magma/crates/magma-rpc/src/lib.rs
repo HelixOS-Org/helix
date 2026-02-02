@@ -54,7 +54,7 @@ pub mod transport;
 
 // Re-exports
 pub use channel::{RpcChannel, RpcChannelId};
-pub use gsp::{GspState, GspInfo};
-pub use message::{RpcMessage, RpcHeader, RpcResult};
+pub use gsp::{GspInfo, GspState};
+pub use message::{RpcHeader, RpcMessage, RpcResult};
 pub use queue::{CommandQueue, ResponseQueue};
 pub use transport::Transport;
