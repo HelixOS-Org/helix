@@ -89,27 +89,31 @@ fn lapic_base() -> u64 {
 #[inline]
 unsafe fn read_xapic(offset: u32) -> u32 {
     let addr = lapic_base() + offset as u64;
-    core::ptr::read_volatile(addr as *const u32)
+    unsafe { core::ptr::read_volatile(addr as *const u32) }
 }
 
 /// Write a Local APIC register (xAPIC mode)
 #[inline]
 unsafe fn write_xapic(offset: u32, value: u32) {
     let addr = lapic_base() + offset as u64;
-    core::ptr::write_volatile(addr as *mut u32, value);
+    unsafe {
+        core::ptr::write_volatile(addr as *mut u32, value);
+    }
 }
 
 /// Read an MSR (x2APIC mode)
 #[inline]
 unsafe fn read_msr(msr: u32) -> u64 {
     let (low, high): (u32, u32);
-    core::arch::asm!(
-        "rdmsr",
-        in("ecx") msr,
-        out("eax") low,
-        out("edx") high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "rdmsr",
+            in("ecx") msr,
+            out("eax") low,
+            out("edx") high,
+            options(nostack, preserves_flags),
+        );
+    }
     ((high as u64) << 32) | (low as u64)
 }
 
@@ -118,13 +122,15 @@ unsafe fn read_msr(msr: u32) -> u64 {
 unsafe fn write_msr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;
-    core::arch::asm!(
-        "wrmsr",
-        in("ecx") msr,
-        in("eax") low,
-        in("edx") high,
-        options(nostack, preserves_flags),
-    );
+    unsafe {
+        core::arch::asm!(
+            "wrmsr",
+            in("ecx") msr,
+            in("eax") low,
+            in("edx") high,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 /// Read a Local APIC register (auto-detects mode)
@@ -133,9 +139,9 @@ pub unsafe fn read_lapic(offset: u32) -> u32 {
     if is_x2apic_enabled() {
         // Convert offset to MSR (offset / 16 + 0x800)
         let msr = x2apic_msr::BASE + (offset >> 4);
-        read_msr(msr) as u32
+        unsafe { read_msr(msr) as u32 }
     } else {
-        read_xapic(offset)
+        unsafe { read_xapic(offset) }
     }
 }
 
@@ -144,9 +150,13 @@ pub unsafe fn read_lapic(offset: u32) -> u32 {
 pub unsafe fn write_lapic(offset: u32, value: u32) {
     if is_x2apic_enabled() {
         let msr = x2apic_msr::BASE + (offset >> 4);
-        write_msr(msr, value as u64);
+        unsafe {
+            write_msr(msr, value as u64);
+        }
     } else {
-        write_xapic(offset, value);
+        unsafe {
+            write_xapic(offset, value);
+        }
     }
 }
 
@@ -401,33 +411,55 @@ pub enum LvtEntry {
 /// Must be called during early boot.
 pub unsafe fn init(base: u64) -> Result<(), ApicError> {
     // Set the base address for register access
-    set_lapic_base(base);
+    unsafe {
+        set_lapic_base(base);
+    }
 
     // Enable the APIC with spurious vector
-    let mut svr = read_lapic(registers::SVR);
+    let mut svr = unsafe { read_lapic(registers::SVR) };
     svr |= (SPURIOUS_VECTOR as u32) | (1 << 8); // Enable + spurious vector
-    write_lapic(registers::SVR, svr);
+    unsafe {
+        write_lapic(registers::SVR, svr);
+    }
 
     // Set TPR to 0 to accept all interrupts
-    write_lapic(registers::TPR, 0);
+    unsafe {
+        write_lapic(registers::TPR, 0);
+    }
 
     // Configure error LVT
-    write_lapic(registers::LVT_ERROR, ERROR_VECTOR as u32);
+    unsafe {
+        write_lapic(registers::LVT_ERROR, ERROR_VECTOR as u32);
+    }
 
     // Clear any pending errors
-    write_lapic(registers::ESR, 0);
-    write_lapic(registers::ESR, 0);
+    unsafe {
+        write_lapic(registers::ESR, 0);
+    }
+    unsafe {
+        write_lapic(registers::ESR, 0);
+    }
 
     // Mask all LVT entries initially
-    write_lapic(registers::LVT_TIMER, 1 << 16);
-    write_lapic(registers::LVT_THERMAL, 1 << 16);
-    write_lapic(registers::LVT_PERF, 1 << 16);
+    unsafe {
+        write_lapic(registers::LVT_TIMER, 1 << 16);
+    }
+    unsafe {
+        write_lapic(registers::LVT_THERMAL, 1 << 16);
+    }
+    unsafe {
+        write_lapic(registers::LVT_PERF, 1 << 16);
+    }
 
     // For xAPIC, set flat destination mode
     if !is_x2apic_enabled() {
-        write_lapic(registers::DFR, 0xFFFF_FFFF); // Flat model
-        let id = (read_lapic(registers::ID) >> 24) & 0xFF;
-        write_lapic(registers::LDR, id << 24);
+        unsafe {
+            write_lapic(registers::DFR, 0xFFFF_FFFF);
+        } // Flat model
+        let id = unsafe { (read_lapic(registers::ID) >> 24) & 0xFF };
+        unsafe {
+            write_lapic(registers::LDR, id << 24);
+        }
     }
 
     Ok(())
@@ -456,16 +488,20 @@ pub fn send_eoi() {
 /// Send an IPI
 pub unsafe fn send_ipi(destination: IpiDestination, vector: u8) {
     if is_x2apic_enabled() {
-        send_ipi_x2apic(destination, vector);
+        unsafe {
+            send_ipi_x2apic(destination, vector);
+        }
     } else {
-        send_ipi_xapic(destination, vector);
+        unsafe {
+            send_ipi_xapic(destination, vector);
+        }
     }
 }
 
 /// Send IPI in xAPIC mode
 unsafe fn send_ipi_xapic(destination: IpiDestination, vector: u8) {
     // Wait for previous IPI to complete
-    while read_xapic(registers::ICR_LOW) & (1 << 12) != 0 {
+    while unsafe { read_xapic(registers::ICR_LOW) } & (1 << 12) != 0 {
         core::hint::spin_loop();
     }
 
@@ -477,7 +513,9 @@ unsafe fn send_ipi_xapic(destination: IpiDestination, vector: u8) {
     };
 
     // ICR High: destination
-    write_xapic(registers::ICR_HIGH, icr_high);
+    unsafe {
+        write_xapic(registers::ICR_HIGH, icr_high);
+    }
 
     // ICR Low: vector, delivery mode (fixed), level (assert), trigger (edge), shorthand
     let icr_low = (vector as u32)
@@ -487,7 +525,9 @@ unsafe fn send_ipi_xapic(destination: IpiDestination, vector: u8) {
         | (0 << 15)         // Trigger: Edge
         | ((dest_shorthand as u32) << 18);
 
-    write_xapic(registers::ICR_LOW, icr_low);
+    unsafe {
+        write_xapic(registers::ICR_LOW, icr_low);
+    }
 }
 
 /// Send IPI in x2APIC mode
@@ -500,7 +540,7 @@ unsafe fn send_ipi_x2apic(destination: IpiDestination, vector: u8) {
     };
 
     // x2APIC ICR is a single 64-bit MSR
-    let icr = (dest_id as u64) << 32
+    let icr = ((dest_id as u64) << 32)
         | (vector as u64)
         | (0b000 << 8)      // Fixed delivery mode
         | (0 << 11)         // Physical destination mode
@@ -508,7 +548,9 @@ unsafe fn send_ipi_x2apic(destination: IpiDestination, vector: u8) {
         | (0 << 15)         // Trigger: Edge
         | ((dest_shorthand as u64) << 18);
 
-    write_msr(x2apic_msr::ICR, icr);
+    unsafe {
+        write_msr(x2apic_msr::ICR, icr);
+    }
 }
 
 /// Check if an interrupt is pending
