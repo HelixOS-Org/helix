@@ -75,30 +75,30 @@ impl TextureFormat {
     /// Returns the Vulkan format constant
     pub const fn vk_format(self) -> u32 {
         match self {
-            Self::R8 => 9,          // VK_FORMAT_R8_UNORM
-            Self::Rg8 => 16,        // VK_FORMAT_R8G8_UNORM
-            Self::Rgba8 => 37,      // VK_FORMAT_R8G8B8A8_UNORM
-            Self::Rgba8Srgb => 43,  // VK_FORMAT_R8G8B8A8_SRGB
-            Self::Bgra8 => 44,      // VK_FORMAT_B8G8R8A8_UNORM
-            Self::Bgra8Srgb => 50,  // VK_FORMAT_B8G8R8A8_SRGB
-            Self::R16F => 76,       // VK_FORMAT_R16_SFLOAT
-            Self::Rg16F => 83,      // VK_FORMAT_R16G16_SFLOAT
-            Self::Rgba16F => 97,    // VK_FORMAT_R16G16B16A16_SFLOAT
-            Self::R32F => 100,      // VK_FORMAT_R32_SFLOAT
-            Self::Rg32F => 103,     // VK_FORMAT_R32G32_SFLOAT
-            Self::Rgba32F => 109,   // VK_FORMAT_R32G32B32A32_SFLOAT
-            Self::Depth16 => 124,   // VK_FORMAT_D16_UNORM
-            Self::Depth32F => 126,  // VK_FORMAT_D32_SFLOAT
-            Self::Depth24Stencil8 => 129,   // VK_FORMAT_D24_UNORM_S8_UINT
-            Self::Depth32FStencil8 => 130,  // VK_FORMAT_D32_SFLOAT_S8_UINT
-            Self::Bc1Rgb => 131,    // VK_FORMAT_BC1_RGB_UNORM_BLOCK
-            Self::Bc1Rgba => 133,   // VK_FORMAT_BC1_RGBA_UNORM_BLOCK
-            Self::Bc2 => 135,       // VK_FORMAT_BC2_UNORM_BLOCK
-            Self::Bc3 => 137,       // VK_FORMAT_BC3_UNORM_BLOCK
-            Self::Bc4 => 139,       // VK_FORMAT_BC4_UNORM_BLOCK
-            Self::Bc5 => 141,       // VK_FORMAT_BC5_UNORM_BLOCK
-            Self::Bc6H => 143,      // VK_FORMAT_BC6H_UFLOAT_BLOCK
-            Self::Bc7 => 145,       // VK_FORMAT_BC7_UNORM_BLOCK
+            Self::R8 => 9,                 // VK_FORMAT_R8_UNORM
+            Self::Rg8 => 16,               // VK_FORMAT_R8G8_UNORM
+            Self::Rgba8 => 37,             // VK_FORMAT_R8G8B8A8_UNORM
+            Self::Rgba8Srgb => 43,         // VK_FORMAT_R8G8B8A8_SRGB
+            Self::Bgra8 => 44,             // VK_FORMAT_B8G8R8A8_UNORM
+            Self::Bgra8Srgb => 50,         // VK_FORMAT_B8G8R8A8_SRGB
+            Self::R16F => 76,              // VK_FORMAT_R16_SFLOAT
+            Self::Rg16F => 83,             // VK_FORMAT_R16G16_SFLOAT
+            Self::Rgba16F => 97,           // VK_FORMAT_R16G16B16A16_SFLOAT
+            Self::R32F => 100,             // VK_FORMAT_R32_SFLOAT
+            Self::Rg32F => 103,            // VK_FORMAT_R32G32_SFLOAT
+            Self::Rgba32F => 109,          // VK_FORMAT_R32G32B32A32_SFLOAT
+            Self::Depth16 => 124,          // VK_FORMAT_D16_UNORM
+            Self::Depth32F => 126,         // VK_FORMAT_D32_SFLOAT
+            Self::Depth24Stencil8 => 129,  // VK_FORMAT_D24_UNORM_S8_UINT
+            Self::Depth32FStencil8 => 130, // VK_FORMAT_D32_SFLOAT_S8_UINT
+            Self::Bc1Rgb => 131,           // VK_FORMAT_BC1_RGB_UNORM_BLOCK
+            Self::Bc1Rgba => 133,          // VK_FORMAT_BC1_RGBA_UNORM_BLOCK
+            Self::Bc2 => 135,              // VK_FORMAT_BC2_UNORM_BLOCK
+            Self::Bc3 => 137,              // VK_FORMAT_BC3_UNORM_BLOCK
+            Self::Bc4 => 139,              // VK_FORMAT_BC4_UNORM_BLOCK
+            Self::Bc5 => 141,              // VK_FORMAT_BC5_UNORM_BLOCK
+            Self::Bc6H => 143,             // VK_FORMAT_BC6H_UFLOAT_BLOCK
+            Self::Bc7 => 145,              // VK_FORMAT_BC7_UNORM_BLOCK
         }
     }
 
