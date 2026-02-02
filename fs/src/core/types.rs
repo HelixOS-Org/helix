@@ -259,7 +259,7 @@ pub enum FileType {
     Directory   = 2,
     /// Character device
     CharDevice  = 3,
-    /// Block device  
+    /// Block device
     BlockDevice = 4,
     /// Named pipe (FIFO)
     Fifo        = 5,
@@ -476,12 +476,10 @@ impl fmt::Display for FileMode {
                 } else {
                     'x'
                 }
+            } else if perms & Self::S_ISUID != 0 {
+                'S'
             } else {
-                if perms & Self::S_ISUID != 0 {
-                    'S'
-                } else {
-                    '-'
-                }
+                '-'
             },
             if perms & Self::S_IRGRP != 0 { 'r' } else { '-' },
             if perms & Self::S_IWGRP != 0 { 'w' } else { '-' },
@@ -491,12 +489,10 @@ impl fmt::Display for FileMode {
                 } else {
                     'x'
                 }
+            } else if perms & Self::S_ISGID != 0 {
+                'S'
             } else {
-                if perms & Self::S_ISGID != 0 {
-                    'S'
-                } else {
-                    '-'
-                }
+                '-'
             },
             if perms & Self::S_IROTH != 0 { 'r' } else { '-' },
             if perms & Self::S_IWOTH != 0 { 'w' } else { '-' },
@@ -506,12 +502,10 @@ impl fmt::Display for FileMode {
                 } else {
                     'x'
                 }
+            } else if perms & Self::S_ISVTX != 0 {
+                'T'
             } else {
-                if perms & Self::S_ISVTX != 0 {
-                    'T'
-                } else {
-                    '-'
-                }
+                '-'
             },
         )
     }
