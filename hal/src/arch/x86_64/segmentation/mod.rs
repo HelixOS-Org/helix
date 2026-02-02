@@ -69,7 +69,7 @@ pub use tss::{IstIndex, IstStack, Tss, TssEntry, IST_STACK_SIZE, KERNEL_STACK_SI
 /// # Safety
 /// Must be called exactly once during early boot.
 pub unsafe fn init() {
-    per_cpu::init_bsp();
+    unsafe { per_cpu::init_bsp() };
 }
 
 /// Initialize segmentation for an application processor
@@ -77,5 +77,5 @@ pub unsafe fn init() {
 /// # Safety
 /// Must be called exactly once per AP during SMP initialization.
 pub unsafe fn init_for_ap(cpu_id: usize) {
-    per_cpu::init_ap(cpu_id);
+    unsafe { per_cpu::init_ap(cpu_id) };
 }
