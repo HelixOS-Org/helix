@@ -15,32 +15,15 @@
 
 extern crate alloc;
 
-pub mod tensor;
-pub mod layers;
 pub mod activation;
-pub mod network;
 pub mod inference;
+pub mod layers;
+pub mod network;
+pub mod tensor;
 
 // Re-export key types
-pub use tensor::{
-    Tensor, TensorShape, TensorView,
-};
-
-pub use layers::{
-    Layer, DenseLayer, LayerNorm, Dropout,
-    Conv1D, MaxPool1D,
-};
-
-pub use activation::{
-    Activation, ReLU, Sigmoid, Tanh, Softmax, GeLU,
-};
-
-pub use network::{
-    NeuralNetwork, NetworkBuilder, Forward,
-    LayerConfig, NetworkConfig,
-};
-
-pub use inference::{
-    InferenceEngine, InferenceConfig, InferenceResult,
-    BatchInference,
-};
+pub use activation::{Activation, GeLU, ReLU, Sigmoid, Softmax, Tanh};
+pub use inference::{BatchInference, InferenceConfig, InferenceEngine, InferenceResult};
+pub use layers::{Conv1D, DenseLayer, Dropout, Layer, LayerNorm, MaxPool1D};
+pub use network::{Forward, LayerConfig, NetworkBuilder, NetworkConfig, NeuralNetwork};
+pub use tensor::{Tensor, TensorShape, TensorView};
