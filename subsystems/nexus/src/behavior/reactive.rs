@@ -5,12 +5,10 @@
 
 #![allow(dead_code)]
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // Core Types
@@ -50,15 +48,15 @@ impl BehaviorId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BehaviorPriority {
     /// Emergency behaviors (highest)
-    Emergency = 5,
+    Emergency  = 5,
     /// Critical behaviors
-    Critical = 4,
+    Critical   = 4,
     /// High priority
-    High = 3,
+    High       = 3,
     /// Normal priority
-    Normal = 2,
+    Normal     = 2,
     /// Low priority
-    Low = 1,
+    Low        = 1,
     /// Background (lowest)
     Background = 0,
 }
@@ -221,30 +219,20 @@ impl ActivationCondition {
     pub fn evaluate(&self, stimuli: &[Stimulus]) -> bool {
         match self {
             Self::Always => true,
-            Self::StimulusPresent(id) => {
-                stimuli.iter().any(|s| s.id == *id)
-            }
-            Self::StimulusAbove(id, threshold) => {
-                stimuli.iter()
-                    .find(|s| s.id == *id)
-                    .map(|s| s.intensity > *threshold)
-                    .unwrap_or(false)
-            }
-            Self::StimulusBelow(id, threshold) => {
-                stimuli.iter()
-                    .find(|s| s.id == *id)
-                    .map(|s| s.intensity < *threshold)
-                    .unwrap_or(false)
-            }
-            Self::All(conditions) => {
-                conditions.iter().all(|c| c.evaluate(stimuli))
-            }
-            Self::Any(conditions) => {
-                conditions.iter().any(|c| c.evaluate(stimuli))
-            }
-            Self::Not(condition) => {
-                !condition.evaluate(stimuli)
-            }
+            Self::StimulusPresent(id) => stimuli.iter().any(|s| s.id == *id),
+            Self::StimulusAbove(id, threshold) => stimuli
+                .iter()
+                .find(|s| s.id == *id)
+                .map(|s| s.intensity > *threshold)
+                .unwrap_or(false),
+            Self::StimulusBelow(id, threshold) => stimuli
+                .iter()
+                .find(|s| s.id == *id)
+                .map(|s| s.intensity < *threshold)
+                .unwrap_or(false),
+            Self::All(conditions) => conditions.iter().all(|c| c.evaluate(stimuli)),
+            Self::Any(conditions) => conditions.iter().any(|c| c.evaluate(stimuli)),
+            Self::Not(condition) => !condition.evaluate(stimuli),
             Self::Custom(f) => f(stimuli),
         }
     }
@@ -487,9 +475,8 @@ impl StimulusBuffer {
 
     pub fn update(&mut self, current_time: u64) {
         // Remove old stimuli
-        self.stimuli.retain(|s| {
-            current_time.saturating_sub(s.timestamp) < self.max_age
-        });
+        self.stimuli
+            .retain(|s| current_time.saturating_sub(s.timestamp) < self.max_age);
     }
 
     pub fn get_stimuli(&self) -> &[Stimulus] {
@@ -560,33 +547,33 @@ impl ResponseExecutor {
 
     fn execute_action(&mut self, action: &ResponseAction) {
         match action {
-            ResponseAction::NoOp => {}
+            ResponseAction::NoOp => {},
             ResponseAction::Command(cmd) => {
                 self.pending_commands.push(cmd.clone());
-            }
+            },
             ResponseAction::SetVariable(name, value) => {
                 self.variables.insert(name.clone(), value.clone());
-            }
+            },
             ResponseAction::TriggerBehavior(id) => {
                 if !self.triggered_behaviors.contains(id) {
                     self.triggered_behaviors.push(*id);
                 }
-            }
+            },
             ResponseAction::InhibitBehavior(id) => {
                 if !self.inhibited_behaviors.contains(id) {
                     self.inhibited_behaviors.push(*id);
                 }
-            }
+            },
             ResponseAction::Sequence(actions) => {
                 for action in actions {
                     self.execute_action(action);
                 }
-            }
+            },
             ResponseAction::Custom(id) => {
                 if let Some(handler) = self.custom_handlers.get(id) {
                     handler();
                 }
-            }
+            },
         }
     }
 
@@ -657,19 +644,25 @@ pub fn create_emergency_behavior() -> ReactiveBehavior {
 
             for stimulus in stimuli {
                 if stimulus.id == KernelStimulus::Deadlock.as_stimulus_id() {
-                    responses.push(Response::new(
-                        ResponseId::new(1),
-                        "BreakDeadlock",
-                        ResponseAction::Command("kernel.break_deadlock".into()),
-                    ).with_priority(BehaviorPriority::Emergency));
+                    responses.push(
+                        Response::new(
+                            ResponseId::new(1),
+                            "BreakDeadlock",
+                            ResponseAction::Command("kernel.break_deadlock".into()),
+                        )
+                        .with_priority(BehaviorPriority::Emergency),
+                    );
                 }
 
                 if stimulus.id == KernelStimulus::StackOverflow.as_stimulus_id() {
-                    responses.push(Response::new(
-                        ResponseId::new(2),
-                        "HandleStackOverflow",
-                        ResponseAction::Command("kernel.handle_stack_overflow".into()),
-                    ).with_priority(BehaviorPriority::Emergency));
+                    responses.push(
+                        Response::new(
+                            ResponseId::new(2),
+                            "HandleStackOverflow",
+                            ResponseAction::Command("kernel.handle_stack_overflow".into()),
+                        )
+                        .with_priority(BehaviorPriority::Emergency),
+                    );
                 }
             }
 
@@ -691,21 +684,27 @@ pub fn create_memory_behavior() -> ReactiveBehavior {
             for stimulus in stimuli {
                 if stimulus.id == KernelStimulus::MemoryPressure.as_stimulus_id() {
                     if stimulus.intensity > 0.9 {
-                        responses.push(Response::new(
-                            ResponseId::new(10),
-                            "AggressiveReclaim",
-                            ResponseAction::Sequence(vec![
-                                ResponseAction::Command("kernel.reclaim_memory".into()),
-                                ResponseAction::Command("kernel.flush_caches".into()),
-                                ResponseAction::Command("kernel.oom_kill_candidates".into()),
-                            ]),
-                        ).with_priority(BehaviorPriority::Critical));
+                        responses.push(
+                            Response::new(
+                                ResponseId::new(10),
+                                "AggressiveReclaim",
+                                ResponseAction::Sequence(vec![
+                                    ResponseAction::Command("kernel.reclaim_memory".into()),
+                                    ResponseAction::Command("kernel.flush_caches".into()),
+                                    ResponseAction::Command("kernel.oom_kill_candidates".into()),
+                                ]),
+                            )
+                            .with_priority(BehaviorPriority::Critical),
+                        );
                     } else {
-                        responses.push(Response::new(
-                            ResponseId::new(11),
-                            "ModerateReclaim",
-                            ResponseAction::Command("kernel.reclaim_memory".into()),
-                        ).with_priority(BehaviorPriority::High));
+                        responses.push(
+                            Response::new(
+                                ResponseId::new(11),
+                                "ModerateReclaim",
+                                ResponseAction::Command("kernel.reclaim_memory".into()),
+                            )
+                            .with_priority(BehaviorPriority::High),
+                        );
                     }
                 }
             }
@@ -727,14 +726,17 @@ pub fn create_cpu_behavior() -> ReactiveBehavior {
 
             for stimulus in stimuli {
                 if stimulus.id == KernelStimulus::CpuOverload.as_stimulus_id() {
-                    responses.push(Response::new(
-                        ResponseId::new(20),
-                        "ThrottleCpu",
-                        ResponseAction::Sequence(vec![
-                            ResponseAction::Command("kernel.throttle_background".into()),
-                            ResponseAction::Command("kernel.migrate_tasks".into()),
-                        ]),
-                    ).with_priority(BehaviorPriority::Normal));
+                    responses.push(
+                        Response::new(
+                            ResponseId::new(20),
+                            "ThrottleCpu",
+                            ResponseAction::Sequence(vec![
+                                ResponseAction::Command("kernel.throttle_background".into()),
+                                ResponseAction::Command("kernel.migrate_tasks".into()),
+                            ]),
+                        )
+                        .with_priority(BehaviorPriority::Normal),
+                    );
                 }
             }
 
@@ -790,11 +792,7 @@ mod tests {
 
     #[test]
     fn test_response_creation() {
-        let response = Response::new(
-            ResponseId::new(1),
-            "test",
-            ResponseAction::NoOp,
-        );
+        let response = Response::new(ResponseId::new(1), "test", ResponseAction::NoOp);
 
         assert_eq!(response.id, ResponseId::new(1));
         assert_eq!(response.priority, BehaviorPriority::Normal);
