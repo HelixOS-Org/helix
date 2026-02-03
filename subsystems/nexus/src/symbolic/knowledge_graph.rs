@@ -632,12 +632,7 @@ impl TransEModel {
     }
 
     /// Corrupt the tail entity for negative sampling
-    fn corrupt_tail(
-        &self,
-        _head: EntityId,
-        _relation: RelationId,
-        tail: EntityId,
-    ) -> EntityId {
+    fn corrupt_tail(&self, _head: EntityId, _relation: RelationId, tail: EntityId) -> EntityId {
         // Simple corruption: pick a different entity
         for id in self.entity_embeddings.keys() {
             if *id != tail {
@@ -726,7 +721,12 @@ impl TransEModel {
     }
 
     /// Predict tail entity given head and relation
-    pub fn predict_tail(&self, head: EntityId, relation: RelationId, top_k: usize) -> Vec<(EntityId, f64)> {
+    pub fn predict_tail(
+        &self,
+        head: EntityId,
+        relation: RelationId,
+        top_k: usize,
+    ) -> Vec<(EntityId, f64)> {
         let mut scores: Vec<(EntityId, f64)> = self
             .entity_embeddings
             .keys()
@@ -739,7 +739,12 @@ impl TransEModel {
     }
 
     /// Predict head entity given relation and tail
-    pub fn predict_head(&self, relation: RelationId, tail: EntityId, top_k: usize) -> Vec<(EntityId, f64)> {
+    pub fn predict_head(
+        &self,
+        relation: RelationId,
+        tail: EntityId,
+        top_k: usize,
+    ) -> Vec<(EntityId, f64)> {
         let mut scores: Vec<(EntityId, f64)> = self
             .entity_embeddings
             .keys()
@@ -949,11 +954,11 @@ impl<'a> QueryEngine<'a> {
                 if *id != triple.head {
                     return None;
                 }
-            }
+            },
             QueryElement::Variable(var) => {
                 bindings.insert(var.clone(), triple.head);
-            }
-            QueryElement::Any => {}
+            },
+            QueryElement::Any => {},
         }
 
         // Match relation (need to convert to EntityId for binding)
@@ -962,11 +967,11 @@ impl<'a> QueryEngine<'a> {
                 if id.0 != triple.relation.0 {
                     return None;
                 }
-            }
+            },
             QueryElement::Variable(_var) => {
                 // Relations can't be bound as entities in this simple model
-            }
-            QueryElement::Any => {}
+            },
+            QueryElement::Any => {},
         }
 
         // Match tail
@@ -975,7 +980,7 @@ impl<'a> QueryEngine<'a> {
                 if *id != triple.tail {
                     return None;
                 }
-            }
+            },
             QueryElement::Variable(var) => {
                 // Check for consistent binding
                 if let Some(&existing) = bindings.get(var) {
@@ -984,8 +989,8 @@ impl<'a> QueryEngine<'a> {
                     }
                 }
                 bindings.insert(var.clone(), triple.tail);
-            }
-            QueryElement::Any => {}
+            },
+            QueryElement::Any => {},
         }
 
         Some(QueryBinding {
@@ -1012,11 +1017,7 @@ impl<'a> QueryEngine<'a> {
     }
 
     /// Join query results with a new pattern
-    fn join_results(
-        &self,
-        results: &[QueryBinding],
-        pattern: &TriplePattern,
-    ) -> Vec<QueryBinding> {
+    fn join_results(&self, results: &[QueryBinding], pattern: &TriplePattern) -> Vec<QueryBinding> {
         let mut new_results = Vec::new();
 
         for binding in results {
@@ -1060,7 +1061,7 @@ impl<'a> QueryEngine<'a> {
                 } else {
                     pattern.head.clone()
                 }
-            }
+            },
             other => other.clone(),
         };
 
@@ -1073,11 +1074,15 @@ impl<'a> QueryEngine<'a> {
                 } else {
                     pattern.tail.clone()
                 }
-            }
+            },
             other => other.clone(),
         };
 
-        TriplePattern { head, relation, tail }
+        TriplePattern {
+            head,
+            relation,
+            tail,
+        }
     }
 }
 
@@ -1121,12 +1126,8 @@ impl KernelKnowledgeGraph {
             false,
             true, // Transitive
         );
-        let child_of = graph.add_relation(
-            RelationType::ChildOf,
-            String::from("child_of"),
-            false,
-            true,
-        );
+        let child_of =
+            graph.add_relation(RelationType::ChildOf, String::from("child_of"), false, true);
         let owns = graph.add_relation(RelationType::Owns, String::from("owns"), false, false);
         let uses = graph.add_relation(RelationType::Uses, String::from("uses"), false, false);
         let depends_on = graph.add_relation(
@@ -1153,12 +1154,8 @@ impl KernelKnowledgeGraph {
             false,
             false,
         );
-        let runs_on = graph.add_relation(
-            RelationType::RunsOn,
-            String::from("runs_on"),
-            false,
-            false,
-        );
+        let runs_on =
+            graph.add_relation(RelationType::RunsOn, String::from("runs_on"), false, false);
         let communicates = graph.add_relation(
             RelationType::CommunicatesWith,
             String::from("communicates_with"),
@@ -1171,12 +1168,7 @@ impl KernelKnowledgeGraph {
             true, // Symmetric
             false,
         );
-        let causes = graph.add_relation(
-            RelationType::Causes,
-            String::from("causes"),
-            false,
-            true,
-        );
+        let causes = graph.add_relation(RelationType::Causes, String::from("causes"), false, true);
 
         // Set inverse relations
         if let Some(rel) = graph.relations.get_mut(&parent_of) {
@@ -1296,7 +1288,8 @@ impl KernelKnowledgeGraph {
                     continue;
                 }
                 if let Some(other_entity) = self.graph.get_entity(other_id) {
-                    let sim = self.cosine_similarity(&proc_entity.embedding, &other_entity.embedding);
+                    let sim =
+                        self.cosine_similarity(&proc_entity.embedding, &other_entity.embedding);
                     similarities.push((other_id, sim));
                 }
             }
@@ -1487,12 +1480,7 @@ mod tests {
         let b = kg.add_entity(EntityType::Process, String::from("b"), BTreeMap::new());
         let c = kg.add_entity(EntityType::Process, String::from("c"), BTreeMap::new());
 
-        let rel = kg.add_relation(
-            RelationType::ParentOf,
-            String::from("parent"),
-            false,
-            true,
-        );
+        let rel = kg.add_relation(RelationType::ParentOf, String::from("parent"), false, true);
 
         kg.add_triple(a, rel, b, 1.0);
         kg.add_triple(b, rel, c, 1.0);
