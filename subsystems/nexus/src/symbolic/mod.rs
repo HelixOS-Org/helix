@@ -62,11 +62,14 @@ pub mod ontology;
 pub mod theorem;
 
 // Re-exports
-pub use constraint::{CspSolver, DpllSolver, SchedulerCsp, MemoryAllocationCsp};
-pub use knowledge_graph::{KnowledgeGraph, Entity, Relation, Triple, QueryEngine, KernelKnowledgeGraph};
-pub use ontology::{Ontology, OntologyClass, OntologyProperty, Individual, KernelOntology};
-pub use theorem::{TheoremProver, Term, Atom, Clause, ProofTrace, KernelInvariant};
 use core::cmp::Ordering;
+
+pub use constraint::{CspSolver, DpllSolver, MemoryAllocationCsp, SchedulerCsp};
+pub use knowledge_graph::{
+    Entity, KernelKnowledgeGraph, KnowledgeGraph, QueryEngine, Relation, Triple,
+};
+pub use ontology::{Individual, KernelOntology, Ontology, OntologyClass, OntologyProperty};
+pub use theorem::{Atom, Clause, KernelInvariant, ProofTrace, Term, TheoremProver};
 
 use crate::math::F64Ext;
 
