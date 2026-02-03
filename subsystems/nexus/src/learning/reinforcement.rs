@@ -454,7 +454,11 @@ impl QLearner {
             for key in keys {
                 let trace_val = self.traces.get(&key).copied().unwrap_or(0.0);
                 let old_q = self.get_q(key.0, key.1);
-                self.set_q(key.0, key.1, old_q + self.config.learning_rate * td_error * trace_val);
+                self.set_q(
+                    key.0,
+                    key.1,
+                    old_q + self.config.learning_rate * td_error * trace_val,
+                );
 
                 // Decay trace
                 let new_trace = trace_val * self.config.discount * self.config.trace_decay;
@@ -476,8 +480,8 @@ impl QLearner {
     /// End episode (decay epsilon, clear traces)
     pub fn end_episode(&mut self) {
         self.episodes += 1;
-        self.config.epsilon = (self.config.epsilon * self.config.epsilon_decay)
-            .max(self.config.epsilon_min);
+        self.config.epsilon =
+            (self.config.epsilon * self.config.epsilon_decay).max(self.config.epsilon_min);
         self.traces.clear();
     }
 
@@ -565,7 +569,9 @@ impl PolicyGradient {
         }
 
         // Compute logits
-        let logits: Vec<f64> = self.weights.iter()
+        let logits: Vec<f64> = self
+            .weights
+            .iter()
             .map(|w| {
                 w.iter()
                     .zip(state_features.iter())
@@ -613,7 +619,8 @@ impl PolicyGradient {
 
         // Update baseline
         let avg_return = episode.total_return / episode.length as f64;
-        self.baseline = self.baseline_decay * self.baseline + (1.0 - self.baseline_decay) * avg_return;
+        self.baseline =
+            self.baseline_decay * self.baseline + (1.0 - self.baseline_decay) * avg_return;
 
         // Policy gradient update
         for (i, exp) in episode.experiences.iter().enumerate() {
@@ -694,7 +701,8 @@ impl ActorCritic {
             return 0.0;
         }
 
-        self.critic_weights.iter()
+        self.critic_weights
+            .iter()
             .zip(state_features.iter())
             .map(|(w, f)| w * f)
             .sum()
@@ -800,7 +808,13 @@ impl KernelStateEncoder {
     }
 
     /// Encode raw metrics to state
-    pub fn encode(&mut self, cpu_load: f64, memory_usage: f64, io_wait: f64, tasks: u32) -> StateId {
+    pub fn encode(
+        &mut self,
+        cpu_load: f64,
+        memory_usage: f64,
+        io_wait: f64,
+        tasks: u32,
+    ) -> StateId {
         let state = KernelState {
             cpu_bucket: ((cpu_load * 10.0).clamp(0.0, 10.0)) as u8,
             memory_bucket: ((memory_usage * 10.0).clamp(0.0, 10.0)) as u8,
@@ -981,7 +995,9 @@ impl KernelRLAgent {
         tasks: u32,
         seed: u64,
     ) -> KernelAction {
-        let state = self.state_encoder.encode(cpu_load, memory_usage, io_wait, tasks);
+        let state = self
+            .state_encoder
+            .encode(cpu_load, memory_usage, io_wait, tasks);
         let action_id = self.q_learner.select_action(state, seed);
         self.action_decoder.decode(action_id)
     }
@@ -1001,9 +1017,15 @@ impl KernelRLAgent {
         latency: f64,
         throughput: f64,
     ) {
-        let prev_state = self.state_encoder.encode(prev_cpu, prev_mem, prev_io, prev_tasks);
-        let curr_state = self.state_encoder.encode(curr_cpu, curr_mem, curr_io, curr_tasks);
-        let reward = self.reward_shaper.shape(curr_cpu, curr_mem, latency, throughput);
+        let prev_state = self
+            .state_encoder
+            .encode(prev_cpu, prev_mem, prev_io, prev_tasks);
+        let curr_state = self
+            .state_encoder
+            .encode(curr_cpu, curr_mem, curr_io, curr_tasks);
+        let reward = self
+            .reward_shaper
+            .shape(curr_cpu, curr_mem, latency, throughput);
 
         let exp = Experience {
             state: prev_state,
@@ -1145,7 +1167,7 @@ mod tests {
             | KernelAction::CompactMemory
             | KernelAction::PrefetchPages
             | KernelAction::ThrottleIO
-            | KernelAction::BoostIO => {}
+            | KernelAction::BoostIO => {},
         }
     }
 
