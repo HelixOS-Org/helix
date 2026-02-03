@@ -24,13 +24,21 @@
 
 extern crate alloc;
 use alloc::format;
-use alloc::format;
 use crate::math::F64Ext;
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+
+// Year 2 COGNITION sub-modules
+pub mod natural_explanation;
+
+// Re-exports
+pub use natural_explanation::{
+    NaturalExplanationGenerator, KernelExplainer, DecisionData, Factor, Alternative,
+    CausalStep, ExplanationContext, DetailLevel, Audience, DecisionType,
+};
 
 // ============================================================================
 // CORE EXPLANATION TYPES
