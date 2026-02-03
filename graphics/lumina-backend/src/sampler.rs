@@ -2,7 +2,8 @@
 //!
 //! Texture sampling state configuration.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use lumina_core::Handle;
