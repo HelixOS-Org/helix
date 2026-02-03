@@ -1,12 +1,18 @@
 [workspace]
 resolver = "2"
 members = [
+    # Core crates
     "lumina-core",
     "lumina-math",
     "lumina-shader",
     "lumina-ir",
     "lumina-spirv",
     "lumina-derive",
+    # Phase 3: Advanced Rendering
+    "lumina-render",
+    "lumina-pipeline",
+    "lumina-material",
+    "lumina-mesh",
 ]
 
 [workspace.package]
@@ -24,6 +30,11 @@ lumina-shader = { path = "lumina-shader" }
 lumina-ir = { path = "lumina-ir" }
 lumina-spirv = { path = "lumina-spirv" }
 lumina-derive = { path = "lumina-derive" }
+# Phase 3: Advanced Rendering
+lumina-render = { path = "lumina-render" }
+lumina-pipeline = { path = "lumina-pipeline" }
+lumina-material = { path = "lumina-material" }
+lumina-mesh = { path = "lumina-mesh" }
 
 # External dependencies
 bitflags = "2.4"
