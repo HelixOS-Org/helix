@@ -2,13 +2,12 @@
 //!
 //! Shader compilation and optimization for multiple backends.
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
-use crate::{AssetResult, AssetError, AssetErrorKind, ShaderTarget, OptimizationLevel};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use crate::{AssetError, AssetErrorKind, AssetResult, OptimizationLevel, ShaderTarget};
 
 /// Shader compiler
 pub struct ShaderCompiler {
@@ -25,17 +24,17 @@ impl ShaderCompiler {
             defines: BTreeMap::new(),
         }
     }
-    
+
     /// Add include path
     pub fn add_include_path(&mut self, path: &str) {
         self.include_paths.push(path.into());
     }
-    
+
     /// Add global define
     pub fn add_define(&mut self, name: &str, value: &str) {
         self.defines.insert(name.into(), value.into());
     }
-    
+
     /// Compile shader source
     pub fn compile(
         &self,
@@ -46,16 +45,16 @@ impl ShaderCompiler {
     ) -> AssetResult<CompiledShader> {
         // Preprocess
         let preprocessed = self.preprocess(source, defines)?;
-        
+
         // Parse
         let ast = parse_shader(&preprocessed)?;
-        
+
         // Validate
         validate_shader(&ast, stage)?;
-        
+
         // Analyze
         let analysis = analyze_shader(&ast)?;
-        
+
         // Generate target code
         let code = match self.config.target {
             ShaderTarget::SpirV => generate_spirv(&ast, stage, entry_point, &self.config)?,
@@ -63,7 +62,7 @@ impl ShaderCompiler {
             ShaderTarget::MetalSl => generate_metal(&ast, stage, entry_point, &self.config)?,
             ShaderTarget::Glsl => generate_glsl(&ast, stage, entry_point, &self.config)?,
         };
-        
+
         Ok(CompiledShader {
             stage,
             entry_point: entry_point.into(),
@@ -72,25 +71,25 @@ impl ShaderCompiler {
             target: self.config.target,
         })
     }
-    
+
     /// Preprocess shader source
     fn preprocess(&self, source: &str, defines: &[(&str, &str)]) -> AssetResult<String> {
         let mut result = String::new();
-        
+
         // Add global defines
         for (name, value) in &self.defines {
             result.push_str(&alloc::format!("#define {} {}\n", name, value));
         }
-        
+
         // Add local defines
         for &(name, value) in defines {
             result.push_str(&alloc::format!("#define {} {}\n", name, value));
         }
-        
+
         // Process includes and macros
         for line in source.lines() {
             let trimmed = line.trim();
-            
+
             if trimmed.starts_with("#include") {
                 // Would resolve include here
                 result.push_str("// Include resolved\n");
@@ -99,7 +98,7 @@ impl ShaderCompiler {
                 result.push('\n');
             }
         }
-        
+
         Ok(result)
     }
 }
@@ -233,8 +232,13 @@ pub enum UniformType {
     Int4,
     Mat3,
     Mat4,
-    Array { element: Box<UniformType>, count: u32 },
-    Struct { members: Vec<UniformMember> },
+    Array {
+        element: Box<UniformType>,
+        count: u32,
+    },
+    Struct {
+        members: Vec<UniformMember>,
+    },
 }
 
 /// Storage buffer
@@ -360,24 +364,24 @@ fn generate_spirv(
     config: &ShaderCompilerConfig,
 ) -> AssetResult<Vec<u8>> {
     let mut spirv = Vec::new();
-    
+
     // SPIR-V magic number
     spirv.extend_from_slice(&0x07230203u32.to_le_bytes());
-    
+
     // Version 1.5
     spirv.extend_from_slice(&0x00010500u32.to_le_bytes());
-    
+
     // Generator magic
     spirv.extend_from_slice(&0x4C554D49u32.to_le_bytes()); // "LUMI"
-    
+
     // Bound (placeholder)
     spirv.extend_from_slice(&100u32.to_le_bytes());
-    
+
     // Reserved
     spirv.extend_from_slice(&0u32.to_le_bytes());
-    
+
     // Would generate actual SPIR-V here
-    
+
     Ok(spirv)
 }
 
@@ -424,22 +428,22 @@ impl VariantGenerator {
             feature_defines: BTreeMap::new(),
         }
     }
-    
+
     /// Add a feature with its define options
     pub fn add_feature(&mut self, name: &str, options: Vec<String>) {
         self.feature_defines.insert(name.into(), options);
     }
-    
+
     /// Generate all variants
     pub fn generate_variants(&self) -> Vec<Vec<(String, String)>> {
         let features: Vec<_> = self.feature_defines.iter().collect();
         let mut variants = Vec::new();
-        
+
         self.generate_combinations(&features, 0, Vec::new(), &mut variants);
-        
+
         variants
     }
-    
+
     fn generate_combinations(
         &self,
         features: &[(&String, &Vec<String>)],
@@ -451,9 +455,9 @@ impl VariantGenerator {
             result.push(current);
             return;
         }
-        
+
         let (name, options) = features[index];
-        
+
         for option in options.iter() {
             let mut next = current.clone();
             next.push((name.clone(), option.clone()));
@@ -473,30 +477,30 @@ impl ShaderCache {
             cache: BTreeMap::new(),
         }
     }
-    
+
     /// Get cached shader
     pub fn get(&self, hash: u64) -> Option<&CompiledShader> {
         self.cache.get(&hash)
     }
-    
+
     /// Store compiled shader
     pub fn store(&mut self, hash: u64, shader: CompiledShader) {
         self.cache.insert(hash, shader);
     }
-    
+
     /// Clear cache
     pub fn clear(&mut self) {
         self.cache.clear();
     }
-    
+
     /// Calculate shader hash
     pub fn hash_shader(source: &str, defines: &[(&str, &str)], stage: ShaderStage) -> u64 {
         let mut hash = 0u64;
-        
+
         for byte in source.bytes() {
             hash = hash.wrapping_mul(31).wrapping_add(byte as u64);
         }
-        
+
         for &(name, value) in defines {
             for byte in name.bytes() {
                 hash = hash.wrapping_mul(31).wrapping_add(byte as u64);
@@ -505,9 +509,9 @@ impl ShaderCache {
                 hash = hash.wrapping_mul(31).wrapping_add(byte as u64);
             }
         }
-        
+
         hash = hash.wrapping_mul(31).wrapping_add(stage as u64);
-        
+
         hash
     }
 }
