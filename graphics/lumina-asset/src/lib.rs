@@ -22,30 +22,28 @@
 
 extern crate alloc;
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
-pub mod texture;
-pub mod mesh;
+pub mod cache;
+pub mod exporter;
+pub mod importer;
 pub mod material;
+pub mod mesh;
 pub mod shader;
 pub mod streaming;
-pub mod cache;
-pub mod importer;
-pub mod exporter;
+pub mod texture;
 
-pub use texture::*;
-pub use mesh::*;
+pub use cache::*;
+pub use exporter::*;
+pub use importer::*;
 pub use material::*;
+pub use mesh::*;
 pub use shader::*;
 pub use streaming::*;
-pub use cache::*;
-pub use importer::*;
-pub use exporter::*;
+pub use texture::*;
 
 /// Result type for asset operations
 pub type AssetResult<T> = Result<T, AssetError>;
@@ -72,7 +70,10 @@ pub enum AssetErrorKind {
 
 impl AssetError {
     pub fn new(kind: AssetErrorKind, message: impl Into<String>) -> Self {
-        Self { kind, message: message.into() }
+        Self {
+            kind,
+            message: message.into(),
+        }
     }
 }
 
@@ -85,14 +86,16 @@ pub struct AssetId {
 impl AssetId {
     /// Create from content hash
     pub fn from_content(data: &[u8]) -> Self {
-        Self { hash: compute_hash(data) }
+        Self {
+            hash: compute_hash(data),
+        }
     }
-    
+
     /// Create from string path
     pub fn from_path(path: &str) -> Self {
         Self::from_content(path.as_bytes())
     }
-    
+
     /// Convert to hex string
     pub fn to_hex(&self) -> String {
         let mut s = String::with_capacity(64);
@@ -165,35 +168,36 @@ impl AssetManager {
             hot_reload_enabled: false,
         })
     }
-    
+
     /// Register an asset loader
     pub fn register_loader(&mut self, asset_type: AssetType, loader: Box<dyn AssetLoader>) {
         self.loaders.insert(asset_type, loader);
     }
-    
+
     /// Load an asset synchronously
     pub fn load_sync(&mut self, id: AssetId) -> AssetResult<&LoadedAsset> {
         if self.loaded_assets.contains_key(&id) {
-            return self.loaded_assets.get(&id).ok_or_else(|| {
-                AssetError::new(AssetErrorKind::NotFound, "Asset not found")
-            });
+            return self
+                .loaded_assets
+                .get(&id)
+                .ok_or_else(|| AssetError::new(AssetErrorKind::NotFound, "Asset not found"));
         }
-        
+
         let metadata = self.cache.get_metadata(id)?;
         let data = self.cache.load_data(id)?;
-        
+
         let loader = self.loaders.get(&metadata.asset_type).ok_or_else(|| {
             AssetError::new(AssetErrorKind::InvalidFormat, "No loader for asset type")
         })?;
-        
+
         let asset = loader.load(&data, &metadata)?;
         self.loaded_assets.insert(id, asset);
-        
-        self.loaded_assets.get(&id).ok_or_else(|| {
-            AssetError::new(AssetErrorKind::NotFound, "Failed to get loaded asset")
-        })
+
+        self.loaded_assets
+            .get(&id)
+            .ok_or_else(|| AssetError::new(AssetErrorKind::NotFound, "Failed to get loaded asset"))
     }
-    
+
     /// Queue async asset load
     pub fn load_async(&mut self, id: AssetId, priority: LoadPriority) {
         self.pending_loads.push(PendingLoad {
@@ -201,10 +205,11 @@ impl AssetManager {
             priority,
             state: LoadState::Queued,
         });
-        
-        self.pending_loads.sort_by(|a, b| b.priority.cmp(&a.priority));
+
+        self.pending_loads
+            .sort_by(|a, b| b.priority.cmp(&a.priority));
     }
-    
+
     /// Process pending loads
     pub fn update(&mut self) {
         // Process one pending load per update
@@ -215,23 +220,23 @@ impl AssetManager {
             }
         }
     }
-    
+
     /// Unload an asset
     pub fn unload(&mut self, id: AssetId) {
         self.loaded_assets.remove(&id);
     }
-    
+
     /// Enable hot reload
     pub fn enable_hot_reload(&mut self, enabled: bool) {
         self.hot_reload_enabled = enabled;
     }
-    
+
     /// Check for hot reload updates
     pub fn check_hot_reload(&mut self) -> Vec<AssetId> {
         if !self.hot_reload_enabled {
             return Vec::new();
         }
-        
+
         // Would check file modification times
         Vec::new()
     }
@@ -279,9 +284,9 @@ struct PendingLoad {
 /// Load priority
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LoadPriority {
-    Low = 0,
-    Normal = 1,
-    High = 2,
+    Low      = 0,
+    Normal   = 1,
+    High     = 2,
     Critical = 3,
 }
 
@@ -313,53 +318,62 @@ impl AssetPipeline {
             cache: AssetCache::new(cache_path)?,
         })
     }
-    
+
     /// Register an importer for file extension
     pub fn register_importer(&mut self, extension: &str, importer: Box<dyn Importer>) {
         self.importers.insert(extension.to_lowercase(), importer);
     }
-    
+
     /// Add a processor
     pub fn add_processor(&mut self, processor: Box<dyn Processor>) {
         self.processors.push(processor);
     }
-    
+
     /// Register an exporter
     pub fn register_exporter(&mut self, asset_type: AssetType, exporter: Box<dyn Exporter>) {
         self.exporters.insert(asset_type, exporter);
     }
-    
+
     /// Process an asset
-    pub fn process(&mut self, source_path: &str, settings: &ImportSettings) -> AssetResult<AssetId> {
+    pub fn process(
+        &mut self,
+        source_path: &str,
+        settings: &ImportSettings,
+    ) -> AssetResult<AssetId> {
         // Get file extension
-        let ext = source_path.rsplit('.').next()
+        let ext = source_path
+            .rsplit('.')
+            .next()
             .ok_or_else(|| AssetError::new(AssetErrorKind::InvalidFormat, "No file extension"))?
             .to_lowercase();
-        
+
         // Find importer
         let importer = self.importers.get(&ext).ok_or_else(|| {
-            AssetError::new(AssetErrorKind::ImportError, alloc::format!("No importer for .{}", ext))
+            AssetError::new(
+                AssetErrorKind::ImportError,
+                alloc::format!("No importer for .{}", ext),
+            )
         })?;
-        
+
         // Import
         let mut imported = importer.import(source_path, settings)?;
-        
+
         // Process
         for processor in &self.processors {
             imported = processor.process(imported)?;
         }
-        
+
         // Export
         let exporter = self.exporters.get(&imported.asset_type).ok_or_else(|| {
             AssetError::new(AssetErrorKind::ExportError, "No exporter for asset type")
         })?;
-        
+
         let exported = exporter.export(&imported)?;
-        
+
         // Cache
         let id = AssetId::from_content(&exported.data);
         self.cache.store(id, &exported.data, &imported.metadata)?;
-        
+
         Ok(id)
     }
 }
@@ -592,13 +606,23 @@ pub enum TextureFormat {
 
 impl TextureFormat {
     pub fn is_compressed(&self) -> bool {
-        matches!(self,
-            Self::Bc1 | Self::Bc3 | Self::Bc4 | Self::Bc5 | Self::Bc6h | Self::Bc7 |
-            Self::Etc2Rgb | Self::Etc2Rgba |
-            Self::Astc4x4 | Self::Astc5x5 | Self::Astc6x6 | Self::Astc8x8
+        matches!(
+            self,
+            Self::Bc1
+                | Self::Bc3
+                | Self::Bc4
+                | Self::Bc5
+                | Self::Bc6h
+                | Self::Bc7
+                | Self::Etc2Rgb
+                | Self::Etc2Rgba
+                | Self::Astc4x4
+                | Self::Astc5x5
+                | Self::Astc6x6
+                | Self::Astc8x8
         )
     }
-    
+
     pub fn bytes_per_pixel(&self) -> Option<u32> {
         match self {
             Self::R8 => Some(1),
