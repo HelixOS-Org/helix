@@ -6,12 +6,10 @@
 //! - Fragmentation analysis
 //! - Memory timeline
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Memory profiler
 pub struct MemoryProfiler {
@@ -32,17 +30,17 @@ impl MemoryProfiler {
             stats: MemoryStats::default(),
         }
     }
-    
+
     /// Record an allocation
     pub fn record_alloc(&mut self, id: u64, info: AllocationInfo) {
         if !self.enabled {
             return;
         }
-        
+
         self.stats.total_allocated += info.size;
         self.stats.allocation_count += 1;
         self.stats.peak_allocated = self.stats.peak_allocated.max(self.stats.total_allocated);
-        
+
         self.timeline.push(MemoryEvent {
             timestamp: get_timestamp(),
             event_type: MemoryEventType::Allocate,
@@ -50,20 +48,20 @@ impl MemoryProfiler {
             size: info.size,
             heap_index: info.heap_index,
         });
-        
+
         self.allocations.insert(id, info);
     }
-    
+
     /// Record a deallocation
     pub fn record_free(&mut self, id: u64) {
         if !self.enabled {
             return;
         }
-        
+
         if let Some(info) = self.allocations.remove(&id) {
             self.stats.total_allocated -= info.size;
             self.stats.free_count += 1;
-            
+
             self.timeline.push(MemoryEvent {
                 timestamp: get_timestamp(),
                 event_type: MemoryEventType::Free,
@@ -73,12 +71,12 @@ impl MemoryProfiler {
             });
         }
     }
-    
+
     /// Set heap information
     pub fn set_heaps(&mut self, heaps: Vec<HeapInfo>) {
         self.heaps = heaps;
     }
-    
+
     /// Get current snapshot
     pub fn snapshot(&self) -> MemorySnapshot {
         MemorySnapshot {
@@ -89,12 +87,12 @@ impl MemoryProfiler {
             largest_allocations: self.get_largest_allocations(10),
         }
     }
-    
+
     /// Analyze memory usage
     pub fn analyze(&self) -> MemoryAnalysis {
         let mut issues = Vec::new();
         let mut suggestions = Vec::new();
-        
+
         // Check for fragmentation
         for (heap_idx, heap) in self.heaps.iter().enumerate() {
             let fragmentation = calculate_fragmentation(heap);
@@ -111,12 +109,14 @@ impl MemoryProfiler {
                 });
             }
         }
-        
+
         // Check for potential leaks
-        let old_allocations: Vec<_> = self.allocations.values()
+        let old_allocations: Vec<_> = self
+            .allocations
+            .values()
             .filter(|a| a.age_frames > 1000)
             .collect();
-        
+
         if !old_allocations.is_empty() {
             issues.push(MemoryIssue {
                 issue_type: MemoryIssueType::PotentialLeak,
@@ -128,18 +128,16 @@ impl MemoryProfiler {
                 severity: 0.8,
             });
         }
-        
+
         // Check for small allocations
-        let small_count = self.allocations.values()
-            .filter(|a| a.size < 256)
-            .count();
-        
+        let small_count = self.allocations.values().filter(|a| a.size < 256).count();
+
         if small_count > 100 {
             suggestions.push(String::from(
-                "Consider pooling small allocations to reduce overhead"
+                "Consider pooling small allocations to reduce overhead",
             ));
         }
-        
+
         // Check heap utilization
         for (idx, heap) in self.heaps.iter().enumerate() {
             let utilization = heap.used as f64 / heap.size as f64;
@@ -156,45 +154,47 @@ impl MemoryProfiler {
                 });
             }
         }
-        
+
         MemoryAnalysis {
             issues,
             suggestions,
-            fragmentation: self.heaps.iter()
-                .map(calculate_fragmentation)
-                .sum::<f32>() / self.heaps.len().max(1) as f32,
+            fragmentation: self.heaps.iter().map(calculate_fragmentation).sum::<f32>()
+                / self.heaps.len().max(1) as f32,
             leak_score: calculate_leak_score(&self.allocations),
         }
     }
-    
+
     /// Get timeline for visualization
     pub fn get_timeline(&self) -> &[MemoryEvent] {
         &self.timeline
     }
-    
+
     /// Clear timeline
     pub fn clear_timeline(&mut self) {
         self.timeline.clear();
     }
-    
+
     /// Get largest allocations
     fn get_largest_allocations(&self, count: usize) -> Vec<(u64, AllocationInfo)> {
-        let mut allocs: Vec<_> = self.allocations.iter()
+        let mut allocs: Vec<_> = self
+            .allocations
+            .iter()
             .map(|(id, info)| (*id, info.clone()))
             .collect();
         allocs.sort_by(|a, b| b.1.size.cmp(&a.1.size));
         allocs.truncate(count);
         allocs
     }
-    
+
     /// Find allocations by tag
     pub fn find_by_tag(&self, tag: &str) -> Vec<(u64, &AllocationInfo)> {
-        self.allocations.iter()
+        self.allocations
+            .iter()
             .filter(|(_, info)| info.tag.as_deref() == Some(tag))
             .map(|(id, info)| (*id, info))
             .collect()
     }
-    
+
     /// Get stats
     pub fn stats(&self) -> &MemoryStats {
         &self.stats
@@ -350,22 +350,20 @@ fn calculate_fragmentation(heap: &HeapInfo) -> f32 {
     if heap.blocks.is_empty() {
         return 0.0;
     }
-    
-    let free_blocks: Vec<_> = heap.blocks.iter()
-        .filter(|b| b.is_free)
-        .collect();
-    
+
+    let free_blocks: Vec<_> = heap.blocks.iter().filter(|b| b.is_free).collect();
+
     if free_blocks.is_empty() {
         return 0.0;
     }
-    
+
     let total_free: u64 = free_blocks.iter().map(|b| b.size).sum();
     let largest_free = free_blocks.iter().map(|b| b.size).max().unwrap_or(0);
-    
+
     if total_free == 0 {
         return 0.0;
     }
-    
+
     1.0 - (largest_free as f32 / total_free as f32)
 }
 
@@ -373,11 +371,9 @@ fn calculate_leak_score(allocations: &BTreeMap<u64, AllocationInfo>) -> f32 {
     if allocations.is_empty() {
         return 0.0;
     }
-    
-    let old_count = allocations.values()
-        .filter(|a| a.age_frames > 500)
-        .count();
-    
+
+    let old_count = allocations.values().filter(|a| a.age_frames > 500).count();
+
     old_count as f32 / allocations.len() as f32
 }
 
@@ -398,12 +394,12 @@ impl MemoryBudget {
             current: BTreeMap::new(),
         }
     }
-    
+
     /// Set budget limit for a usage type
     pub fn set_limit(&mut self, usage: AllocationUsage, limit: u64) {
         self.limits.insert(usage, limit);
     }
-    
+
     /// Check if allocation would exceed budget
     pub fn can_allocate(&self, usage: AllocationUsage, size: u64) -> bool {
         if let Some(limit) = self.limits.get(&usage) {
@@ -413,19 +409,19 @@ impl MemoryBudget {
             true
         }
     }
-    
+
     /// Record allocation
     pub fn record_alloc(&mut self, usage: AllocationUsage, size: u64) {
         *self.current.entry(usage).or_insert(0) += size;
     }
-    
+
     /// Record deallocation
     pub fn record_free(&mut self, usage: AllocationUsage, size: u64) {
         if let Some(current) = self.current.get_mut(&usage) {
             *current = current.saturating_sub(size);
         }
     }
-    
+
     /// Get utilization for a usage type
     pub fn utilization(&self, usage: AllocationUsage) -> Option<f32> {
         let limit = self.limits.get(&usage)?;
@@ -457,7 +453,7 @@ impl VirtualMemoryTracker {
             total_committed: 0,
         }
     }
-    
+
     /// Reserve virtual memory
     pub fn reserve(&mut self, start_page: u64, count: u64) {
         for i in 0..count {
@@ -470,7 +466,7 @@ impl VirtualMemoryTracker {
         }
         self.total_virtual += count * self.page_size;
     }
-    
+
     /// Commit a page
     pub fn commit(&mut self, page_id: u64, physical_offset: u64) {
         if let Some(page) = self.pages.get_mut(&page_id) {
@@ -481,7 +477,7 @@ impl VirtualMemoryTracker {
             }
         }
     }
-    
+
     /// Evict a page
     pub fn evict(&mut self, page_id: u64) {
         if let Some(page) = self.pages.get_mut(&page_id) {
@@ -492,7 +488,7 @@ impl VirtualMemoryTracker {
             }
         }
     }
-    
+
     /// Get commitment ratio
     pub fn commitment_ratio(&self) -> f32 {
         if self.total_virtual == 0 {
@@ -531,36 +527,36 @@ impl AccessValidator {
             access_log: Vec::new(),
         }
     }
-    
+
     /// Add valid memory range
     pub fn add_valid_range(&mut self, start: u64, size: u64) {
         self.valid_ranges.push((start, start + size));
     }
-    
+
     /// Remove valid memory range
     pub fn remove_valid_range(&mut self, start: u64) {
         self.valid_ranges.retain(|(s, _)| *s != start);
     }
-    
+
     /// Validate an access
     pub fn validate(&mut self, address: u64, size: u64) -> bool {
         let end = address + size;
-        
+
         for &(start, range_end) in &self.valid_ranges {
             if address >= start && end <= range_end {
                 return true;
             }
         }
-        
+
         self.access_log.push(AccessViolation {
             address,
             size,
             timestamp: get_timestamp(),
         });
-        
+
         false
     }
-    
+
     /// Get access violations
     pub fn violations(&self) -> &[AccessViolation] {
         &self.access_log
