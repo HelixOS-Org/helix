@@ -2,16 +2,17 @@
 //!
 //! Unified resource handle management and lifecycle tracking.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use bitflags::bitflags;
 
 use crate::buffer::BufferHandle;
-use crate::texture::{TextureHandle, TextureViewHandle};
-use crate::sampler::SamplerHandle;
-use crate::pipeline::{RenderPipelineHandle, ComputePipelineHandle, RayTracingPipelineHandle};
 use crate::descriptor::{DescriptorSetHandle, DescriptorSetLayoutHandle, PipelineLayoutHandle};
+use crate::pipeline::{ComputePipelineHandle, RayTracingPipelineHandle, RenderPipelineHandle};
+use crate::sampler::SamplerHandle;
+use crate::texture::{TextureHandle, TextureViewHandle};
 
 // ============================================================================
 // Resource Type
@@ -115,7 +116,11 @@ pub struct ResourceHandle {
 impl ResourceHandle {
     /// Create a new handle.
     pub fn new(resource_type: ResourceType, index: u32, generation: u32) -> Self {
-        Self { resource_type, index, generation }
+        Self {
+            resource_type,
+            index,
+            generation,
+        }
     }
 
     /// Create from buffer handle.
@@ -468,18 +473,18 @@ impl ResourceRegistry {
             ResourceType::Buffer => {
                 self.stats.buffer_count += 1;
                 self.stats.buffer_memory += size;
-            }
+            },
             ResourceType::Texture => {
                 self.stats.texture_count += 1;
                 self.stats.texture_memory += size;
-            }
+            },
             ResourceType::TextureView => self.stats.texture_view_count += 1,
             ResourceType::Sampler => self.stats.sampler_count += 1,
             ResourceType::RenderPipeline => self.stats.render_pipeline_count += 1,
             ResourceType::ComputePipeline => self.stats.compute_pipeline_count += 1,
             ResourceType::RayTracingPipeline => self.stats.ray_tracing_pipeline_count += 1,
             ResourceType::DescriptorSet => self.stats.descriptor_set_count += 1,
-            _ => {}
+            _ => {},
         }
         self.stats.total_memory += size;
         self.stats.peak_memory = self.stats.peak_memory.max(self.stats.total_memory);
@@ -492,30 +497,33 @@ impl ResourceRegistry {
             ResourceType::Buffer => {
                 self.stats.buffer_count = self.stats.buffer_count.saturating_sub(1);
                 self.stats.buffer_memory = self.stats.buffer_memory.saturating_sub(size);
-            }
+            },
             ResourceType::Texture => {
                 self.stats.texture_count = self.stats.texture_count.saturating_sub(1);
                 self.stats.texture_memory = self.stats.texture_memory.saturating_sub(size);
-            }
+            },
             ResourceType::TextureView => {
                 self.stats.texture_view_count = self.stats.texture_view_count.saturating_sub(1);
-            }
+            },
             ResourceType::Sampler => {
                 self.stats.sampler_count = self.stats.sampler_count.saturating_sub(1);
-            }
+            },
             ResourceType::RenderPipeline => {
-                self.stats.render_pipeline_count = self.stats.render_pipeline_count.saturating_sub(1);
-            }
+                self.stats.render_pipeline_count =
+                    self.stats.render_pipeline_count.saturating_sub(1);
+            },
             ResourceType::ComputePipeline => {
-                self.stats.compute_pipeline_count = self.stats.compute_pipeline_count.saturating_sub(1);
-            }
+                self.stats.compute_pipeline_count =
+                    self.stats.compute_pipeline_count.saturating_sub(1);
+            },
             ResourceType::RayTracingPipeline => {
-                self.stats.ray_tracing_pipeline_count = self.stats.ray_tracing_pipeline_count.saturating_sub(1);
-            }
+                self.stats.ray_tracing_pipeline_count =
+                    self.stats.ray_tracing_pipeline_count.saturating_sub(1);
+            },
             ResourceType::DescriptorSet => {
                 self.stats.descriptor_set_count = self.stats.descriptor_set_count.saturating_sub(1);
-            }
-            _ => {}
+            },
+            _ => {},
         }
         self.stats.total_memory = self.stats.total_memory.saturating_sub(size);
         self.stats.destroyed_this_frame += 1;
@@ -545,7 +553,12 @@ impl ResourceRegistry {
     /// Force garbage collection.
     pub fn garbage_collect(&mut self) {
         // Clear all pending deletions
-        let handles: Vec<_> = self.deletion_queue.entries.drain(..).map(|e| e.handle).collect();
+        let handles: Vec<_> = self
+            .deletion_queue
+            .entries
+            .drain(..)
+            .map(|e| e.handle)
+            .collect();
         for handle in handles {
             self.destroy_immediate(handle);
         }
