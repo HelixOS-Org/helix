@@ -6,10 +6,9 @@
 //! - Validation callbacks
 //! - GPU crash analysis
 
-use core::fmt;
-
 #[cfg(feature = "alloc")]
-use alloc::{string::String, vec::Vec, boxed::Box};
+use alloc::{boxed::Box, string::String, vec::Vec};
+use core::fmt;
 
 use crate::handle::Handle;
 
@@ -24,11 +23,11 @@ pub enum DebugSeverity {
     /// Verbose diagnostic information
     Verbose = 0x0001,
     /// Informational message
-    Info = 0x0010,
+    Info    = 0x0010,
     /// Warning - potential issue
     Warning = 0x0100,
     /// Error - invalid usage
-    Error = 0x1000,
+    Error   = 0x1000,
 }
 
 impl DebugSeverity {
@@ -45,10 +44,10 @@ impl DebugSeverity {
     /// Returns ANSI color code for terminal output
     pub const fn ansi_color(self) -> &'static str {
         match self {
-            Self::Verbose => "\x1b[90m",  // Gray
-            Self::Info => "\x1b[36m",     // Cyan
-            Self::Warning => "\x1b[33m",  // Yellow
-            Self::Error => "\x1b[31m",    // Red
+            Self::Verbose => "\x1b[90m", // Gray
+            Self::Info => "\x1b[36m",    // Cyan
+            Self::Warning => "\x1b[33m", // Yellow
+            Self::Error => "\x1b[31m",   // Red
         }
     }
 }
@@ -58,11 +57,11 @@ impl DebugSeverity {
 #[repr(u32)]
 pub enum DebugType {
     /// General information
-    General = 0x0001,
+    General       = 0x0001,
     /// Validation error/warning
-    Validation = 0x0002,
+    Validation    = 0x0002,
     /// Performance warning
-    Performance = 0x0004,
+    Performance   = 0x0004,
     /// Device address related
     DeviceAddress = 0x0008,
 }
@@ -87,37 +86,37 @@ impl DebugType {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum ObjectType {
-    Unknown = 0,
-    Instance = 1,
-    PhysicalDevice = 2,
-    Device = 3,
-    Queue = 4,
-    Semaphore = 5,
-    CommandBuffer = 6,
-    Fence = 7,
-    DeviceMemory = 8,
-    Buffer = 9,
-    Image = 10,
-    Event = 11,
-    QueryPool = 12,
-    BufferView = 13,
-    ImageView = 14,
-    ShaderModule = 15,
-    PipelineCache = 16,
-    PipelineLayout = 17,
-    RenderPass = 18,
-    Pipeline = 19,
+    Unknown             = 0,
+    Instance            = 1,
+    PhysicalDevice      = 2,
+    Device              = 3,
+    Queue               = 4,
+    Semaphore           = 5,
+    CommandBuffer       = 6,
+    Fence               = 7,
+    DeviceMemory        = 8,
+    Buffer              = 9,
+    Image               = 10,
+    Event               = 11,
+    QueryPool           = 12,
+    BufferView          = 13,
+    ImageView           = 14,
+    ShaderModule        = 15,
+    PipelineCache       = 16,
+    PipelineLayout      = 17,
+    RenderPass          = 18,
+    Pipeline            = 19,
     DescriptorSetLayout = 20,
-    Sampler = 21,
-    DescriptorPool = 22,
-    DescriptorSet = 23,
-    Framebuffer = 24,
-    CommandPool = 25,
-    Surface = 26,
-    Swapchain = 27,
-    DebugMessenger = 28,
+    Sampler             = 21,
+    DescriptorPool      = 22,
+    DescriptorSet       = 23,
+    Framebuffer         = 24,
+    CommandPool         = 25,
+    Surface             = 26,
+    Swapchain           = 27,
+    DebugMessenger      = 28,
     AccelerationStructure = 29,
-    DeferredOperation = 30,
+    DeferredOperation   = 30,
 }
 
 impl ObjectType {
@@ -204,7 +203,11 @@ impl<'a> fmt::Display for DebugMessage<'a> {
         if !self.objects.is_empty() {
             write!(f, "\n  Objects:")?;
             for obj in self.objects {
-                write!(f, "\n    - {:?} (0x{:x})", obj.object_type, obj.object_handle)?;
+                write!(
+                    f,
+                    "\n    - {:?} (0x{:x})",
+                    obj.object_type, obj.object_handle
+                )?;
                 if let Some(name) = obj.object_name {
                     write!(f, " \"{}\"", name)?;
                 }
@@ -272,8 +275,8 @@ impl Default for DebugMessengerCreateInfo {
     fn default() -> Self {
         Self {
             severity_filter: DebugSeverity::Warning as u32 | DebugSeverity::Error as u32,
-            type_filter: DebugType::General as u32 
-                | DebugType::Validation as u32 
+            type_filter: DebugType::General as u32
+                | DebugType::Validation as u32
                 | DebugType::Performance as u32,
             callback: None,
         }
@@ -284,12 +287,12 @@ impl DebugMessengerCreateInfo {
     /// Create with all messages enabled
     pub fn all() -> Self {
         Self {
-            severity_filter: DebugSeverity::Verbose as u32 
+            severity_filter: DebugSeverity::Verbose as u32
                 | DebugSeverity::Info as u32
-                | DebugSeverity::Warning as u32 
+                | DebugSeverity::Warning as u32
                 | DebugSeverity::Error as u32,
-            type_filter: DebugType::General as u32 
-                | DebugType::Validation as u32 
+            type_filter: DebugType::General as u32
+                | DebugType::Validation as u32
                 | DebugType::Performance as u32
                 | DebugType::DeviceAddress as u32,
             callback: None,
@@ -553,20 +556,15 @@ pub trait DebugUtils {
 
     /// Create debug messenger
     fn create_debug_messenger(
-        &self, 
-        info: &DebugMessengerCreateInfo
+        &self,
+        info: &DebugMessengerCreateInfo,
     ) -> crate::error::Result<DebugMessenger>;
 
     /// Destroy debug messenger
     fn destroy_debug_messenger(&self, messenger: DebugMessenger);
 
     /// Submit a debug message manually
-    fn submit_debug_message(
-        &self,
-        severity: DebugSeverity,
-        message_type: DebugType,
-        message: &str,
-    );
+    fn submit_debug_message(&self, severity: DebugSeverity, message_type: DebugType, message: &str);
 }
 
 // ============================================================================
