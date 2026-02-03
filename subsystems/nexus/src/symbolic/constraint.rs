@@ -17,8 +17,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -107,7 +106,10 @@ impl Domain {
 
     /// Create a boolean domain
     pub fn boolean() -> Self {
-        Self::new(vec![DomainValue::Boolean(false), DomainValue::Boolean(true)])
+        Self::new(vec![
+            DomainValue::Boolean(false),
+            DomainValue::Boolean(true),
+        ])
     }
 
     /// Check if domain is empty
@@ -162,18 +164,12 @@ impl Domain {
 
     /// Get minimum integer value
     pub fn min_integer(&self) -> Option<i64> {
-        self.values
-            .iter()
-            .filter_map(|v| v.as_integer())
-            .min()
+        self.values.iter().filter_map(|v| v.as_integer()).min()
     }
 
     /// Get maximum integer value
     pub fn max_integer(&self) -> Option<i64> {
-        self.values
-            .iter()
-            .filter_map(|v| v.as_integer())
-            .max()
+        self.values.iter().filter_map(|v| v.as_integer()).max()
     }
 }
 
@@ -282,7 +278,7 @@ impl Constraint {
 
             Constraint::EqualConstant(v, _) | Constraint::NotEqualConstant(v, _) => {
                 vec![*v]
-            }
+            },
 
             Constraint::AddEquals(a, b, c)
             | Constraint::SubEquals(a, b, c)
@@ -644,38 +640,32 @@ impl CspSolver {
         match self.var_heuristic {
             VariableHeuristic::First => Some(unassigned[0]),
 
-            VariableHeuristic::MinimumRemainingValues => {
-                unassigned
-                    .iter()
-                    .min_by_key(|v| domains.get(*v).map(|d| d.size()).unwrap_or(usize::MAX))
-                    .copied()
-            }
+            VariableHeuristic::MinimumRemainingValues => unassigned
+                .iter()
+                .min_by_key(|v| domains.get(*v).map(|d| d.size()).unwrap_or(usize::MAX))
+                .copied(),
 
-            VariableHeuristic::MaxDegree => {
-                unassigned
-                    .iter()
-                    .max_by_key(|v| {
-                        self.var_constraints.get(*v).map(|c| c.len()).unwrap_or(0)
-                    })
-                    .copied()
-            }
+            VariableHeuristic::MaxDegree => unassigned
+                .iter()
+                .max_by_key(|v| self.var_constraints.get(*v).map(|c| c.len()).unwrap_or(0))
+                .copied(),
 
-            VariableHeuristic::DomWDeg => {
-                unassigned
-                    .iter()
-                    .min_by(|a, b| {
-                        let dom_a = domains.get(*a).map(|d| d.size()).unwrap_or(1);
-                        let dom_b = domains.get(*b).map(|d| d.size()).unwrap_or(1);
-                        let deg_a = self.var_constraints.get(*a).map(|c| c.len()).unwrap_or(0);
-                        let deg_b = self.var_constraints.get(*b).map(|c| c.len()).unwrap_or(0);
+            VariableHeuristic::DomWDeg => unassigned
+                .iter()
+                .min_by(|a, b| {
+                    let dom_a = domains.get(*a).map(|d| d.size()).unwrap_or(1);
+                    let dom_b = domains.get(*b).map(|d| d.size()).unwrap_or(1);
+                    let deg_a = self.var_constraints.get(*a).map(|c| c.len()).unwrap_or(0);
+                    let deg_b = self.var_constraints.get(*b).map(|c| c.len()).unwrap_or(0);
 
-                        let ratio_a = dom_a as f64 / (deg_a as f64 + 1.0);
-                        let ratio_b = dom_b as f64 / (deg_b as f64 + 1.0);
+                    let ratio_a = dom_a as f64 / (deg_a as f64 + 1.0);
+                    let ratio_b = dom_b as f64 / (deg_b as f64 + 1.0);
 
-                        ratio_a.partial_cmp(&ratio_b).unwrap_or(core::cmp::Ordering::Equal)
-                    })
-                    .copied()
-            }
+                    ratio_a
+                        .partial_cmp(&ratio_b)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
+                .copied(),
         }
     }
 
@@ -691,14 +681,14 @@ impl CspSolver {
         match self.val_heuristic {
             ValueHeuristic::Ascending => {
                 values.sort();
-            }
+            },
             ValueHeuristic::Descending => {
                 values.sort();
                 values.reverse();
-            }
+            },
             ValueHeuristic::LeastConstraining | ValueHeuristic::Random => {
                 // Keep default order for now
-            }
+            },
         }
 
         values
@@ -731,86 +721,62 @@ impl CspSolver {
                     (Some(va), Some(vb)) => va == vb,
                     _ => true, // Not fully assigned yet
                 }
-            }
+            },
 
-            Constraint::NotEqual(a, b) => {
-                match (assignment.get(a), assignment.get(b)) {
-                    (Some(va), Some(vb)) => va != vb,
+            Constraint::NotEqual(a, b) => match (assignment.get(a), assignment.get(b)) {
+                (Some(va), Some(vb)) => va != vb,
+                _ => true,
+            },
+
+            Constraint::LessThan(a, b) => match (assignment.get(a), assignment.get(b)) {
+                (Some(va), Some(vb)) => match (va.as_integer(), vb.as_integer()) {
+                    (Some(ia), Some(ib)) => ia < ib,
                     _ => true,
-                }
-            }
+                },
+                _ => true,
+            },
 
-            Constraint::LessThan(a, b) => {
-                match (assignment.get(a), assignment.get(b)) {
-                    (Some(va), Some(vb)) => {
-                        match (va.as_integer(), vb.as_integer()) {
-                            (Some(ia), Some(ib)) => ia < ib,
-                            _ => true,
-                        }
-                    }
+            Constraint::LessEqual(a, b) => match (assignment.get(a), assignment.get(b)) {
+                (Some(va), Some(vb)) => match (va.as_integer(), vb.as_integer()) {
+                    (Some(ia), Some(ib)) => ia <= ib,
                     _ => true,
-                }
-            }
+                },
+                _ => true,
+            },
 
-            Constraint::LessEqual(a, b) => {
-                match (assignment.get(a), assignment.get(b)) {
-                    (Some(va), Some(vb)) => {
-                        match (va.as_integer(), vb.as_integer()) {
-                            (Some(ia), Some(ib)) => ia <= ib,
-                            _ => true,
-                        }
-                    }
+            Constraint::GreaterThan(a, b) => match (assignment.get(a), assignment.get(b)) {
+                (Some(va), Some(vb)) => match (va.as_integer(), vb.as_integer()) {
+                    (Some(ia), Some(ib)) => ia > ib,
                     _ => true,
-                }
-            }
+                },
+                _ => true,
+            },
 
-            Constraint::GreaterThan(a, b) => {
-                match (assignment.get(a), assignment.get(b)) {
-                    (Some(va), Some(vb)) => {
-                        match (va.as_integer(), vb.as_integer()) {
-                            (Some(ia), Some(ib)) => ia > ib,
-                            _ => true,
-                        }
-                    }
+            Constraint::GreaterEqual(a, b) => match (assignment.get(a), assignment.get(b)) {
+                (Some(va), Some(vb)) => match (va.as_integer(), vb.as_integer()) {
+                    (Some(ia), Some(ib)) => ia >= ib,
                     _ => true,
-                }
-            }
+                },
+                _ => true,
+            },
 
-            Constraint::GreaterEqual(a, b) => {
-                match (assignment.get(a), assignment.get(b)) {
-                    (Some(va), Some(vb)) => {
-                        match (va.as_integer(), vb.as_integer()) {
-                            (Some(ia), Some(ib)) => ia >= ib,
-                            _ => true,
-                        }
-                    }
-                    _ => true,
-                }
-            }
+            Constraint::EqualConstant(v, c) => match assignment.get(v) {
+                Some(val) => val == c,
+                None => true,
+            },
 
-            Constraint::EqualConstant(v, c) => {
-                match assignment.get(v) {
-                    Some(val) => val == c,
-                    None => true,
-                }
-            }
-
-            Constraint::NotEqualConstant(v, c) => {
-                match assignment.get(v) {
-                    Some(val) => val != c,
-                    None => true,
-                }
-            }
+            Constraint::NotEqualConstant(v, c) => match assignment.get(v) {
+                Some(val) => val != c,
+                None => true,
+            },
 
             Constraint::AllDifferent(vars) => {
-                let assigned: Vec<&DomainValue> = vars
-                    .iter()
-                    .filter_map(|v| assignment.get(v))
-                    .collect();
+                let assigned: Vec<&DomainValue> =
+                    vars.iter().filter_map(|v| assignment.get(v)).collect();
 
                 let unique: BTreeSet<&DomainValue> = assigned.iter().copied().collect();
                 assigned.len() == unique.len()
-            }
+            },
 
             Constraint::Sum(vars, target) => {
                 let values: Vec<Option<i64>> = vars
@@ -824,7 +790,7 @@ impl CspSolver {
                 } else {
                     true
                 }
-            }
+            },
 
             Constraint::SumLessEqual(vars, target) => {
                 let values: Vec<Option<i64>> = vars
@@ -840,7 +806,7 @@ impl CspSolver {
                     let partial_sum: i64 = values.iter().filter_map(|v| *v).sum();
                     partial_sum <= *target
                 }
-            }
+            },
 
             Constraint::SumGreaterEqual(vars, target) => {
                 let values: Vec<Option<i64>> = vars
@@ -854,25 +820,21 @@ impl CspSolver {
                 } else {
                     true
                 }
-            }
+            },
 
             Constraint::Implication(a, val_a, b, val_b) => {
                 match (assignment.get(a), assignment.get(b)) {
                     (Some(va), Some(vb)) => {
                         // If A = val_a then B must = val_b
-                        if va == val_a {
-                            vb == val_b
-                        } else {
-                            true
-                        }
-                    }
+                        if va == val_a { vb == val_b } else { true }
+                    },
                     (Some(va), None) => {
                         // If A = val_a, B is not constrained yet
                         va != val_a
-                    }
+                    },
                     _ => true,
                 }
-            }
+            },
 
             _ => true, // Other constraints need full implementation
         }
@@ -897,8 +859,8 @@ impl CspSolver {
                 | Constraint::GreaterEqual(a, b) => {
                     queue.push((*a, *b));
                     queue.push((*b, *a));
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -928,12 +890,7 @@ impl CspSolver {
     }
 
     /// Revise domain of xi based on constraint with xj
-    fn revise(
-        &self,
-        xi: VarId,
-        xj: VarId,
-        domains: &mut BTreeMap<VarId, Domain>,
-    ) -> bool {
+    fn revise(&self, xi: VarId, xj: VarId, domains: &mut BTreeMap<VarId, Domain>) -> bool {
         let mut revised = false;
 
         let di = match domains.get(&xi) {
@@ -1037,12 +994,18 @@ pub struct SatLiteral {
 impl SatLiteral {
     /// Create a positive literal
     pub fn pos(var: u32) -> Self {
-        Self { var, positive: true }
+        Self {
+            var,
+            positive: true,
+        }
     }
 
     /// Create a negative literal
     pub fn neg(var: u32) -> Self {
-        Self { var, positive: false }
+        Self {
+            var,
+            positive: false,
+        }
     }
 
     /// Negate this literal
@@ -1105,11 +1068,7 @@ impl DpllSolver {
         self.assignment = vec![None; self.num_vars as usize];
 
         if self.dpll() {
-            let model: Vec<bool> = self
-                .assignment
-                .iter()
-                .map(|a| a.unwrap_or(false))
-                .collect();
+            let model: Vec<bool> = self.assignment.iter().map(|a| a.unwrap_or(false)).collect();
             SatResult::Sat(model)
         } else if self.steps >= self.timeout {
             SatResult::Unknown
@@ -1131,7 +1090,7 @@ impl DpllSolver {
             match unit {
                 Some(lit) => {
                     self.assign(lit);
-                }
+                },
                 None => break,
             }
 
@@ -1180,12 +1139,12 @@ impl DpllSolver {
                 .filter(|lit| self.assignment[lit.var as usize].is_none())
                 .collect();
 
-            let satisfied = clause.iter().any(|lit| {
-                match self.assignment[lit.var as usize] {
+            let satisfied = clause
+                .iter()
+                .any(|lit| match self.assignment[lit.var as usize] {
                     Some(val) => val == lit.positive,
                     None => false,
-                }
-            });
+                });
 
             if !satisfied && unassigned.len() == 1 {
                 return Some(*unassigned[0]);
@@ -1202,12 +1161,12 @@ impl DpllSolver {
     /// Check if there's an empty clause (conflict)
     fn has_empty_clause(&self) -> bool {
         for clause in &self.clauses {
-            let all_false = clause.iter().all(|lit| {
-                match self.assignment[lit.var as usize] {
+            let all_false = clause
+                .iter()
+                .all(|lit| match self.assignment[lit.var as usize] {
                     Some(val) => val != lit.positive,
                     None => false,
-                }
-            });
+                });
 
             if all_false {
                 return true;
@@ -1219,12 +1178,12 @@ impl DpllSolver {
     /// Check if all clauses are satisfied
     fn all_satisfied(&self) -> bool {
         for clause in &self.clauses {
-            let satisfied = clause.iter().any(|lit| {
-                match self.assignment[lit.var as usize] {
+            let satisfied = clause
+                .iter()
+                .any(|lit| match self.assignment[lit.var as usize] {
                     Some(val) => val == lit.positive,
                     None => false,
-                }
-            });
+                });
 
             if !satisfied {
                 return false;
@@ -1277,10 +1236,8 @@ impl SchedulerCsp {
     /// Add CPU affinity constraint
     pub fn add_affinity_constraint(&mut self, task_id: u64, allowed_cpus: Vec<i64>) {
         if let Some(&var) = self.task_vars.get(&task_id) {
-            let values: Vec<DomainValue> = allowed_cpus
-                .into_iter()
-                .map(DomainValue::Integer)
-                .collect();
+            let values: Vec<DomainValue> =
+                allowed_cpus.into_iter().map(DomainValue::Integer).collect();
 
             let cpu_var = self.solver.add_variable(Domain::new(values));
             self.cpu_assignments.insert(task_id, cpu_var);
@@ -1299,10 +1256,7 @@ impl SchedulerCsp {
 
     /// Add priority ordering constraint
     pub fn add_priority_ordering(&mut self, higher: u64, lower: u64) {
-        if let (Some(&v1), Some(&v2)) = (
-            self.task_vars.get(&higher),
-            self.task_vars.get(&lower),
-        ) {
+        if let (Some(&v1), Some(&v2)) = (self.task_vars.get(&higher), self.task_vars.get(&lower)) {
             self.solver.add_constraint(Constraint::GreaterThan(v1, v2));
         }
     }
@@ -1331,7 +1285,7 @@ impl SchedulerCsp {
                 }
 
                 Some(result)
-            }
+            },
             _ => None,
         }
     }
@@ -1376,10 +1330,9 @@ impl MemoryAllocationCsp {
 
     /// Add non-overlapping constraint between regions
     pub fn add_non_overlapping(&mut self, region1: u64, region2: u64) {
-        if let (Some(&(v1, s1)), Some(&(v2, s2))) = (
-            self.regions.get(&region1),
-            self.regions.get(&region2),
-        ) {
+        if let (Some(&(v1, s1)), Some(&(v2, s2))) =
+            (self.regions.get(&region1), self.regions.get(&region2))
+        {
             // r1.start + r1.size <= r2.start OR r2.start + r2.size <= r1.start
             // This is complex for CSP, so we use a disjunctive approach
             // For simplicity, we'll just add: r1 < r2 (assuming we want ordered allocation)
@@ -1394,17 +1347,14 @@ impl MemoryAllocationCsp {
                 let mut result = BTreeMap::new();
 
                 for (&region_id, &(var, _)) in &self.regions {
-                    if let Some(addr) = solution
-                        .assignments
-                        .get(&var)
-                        .and_then(|v| v.as_integer())
+                    if let Some(addr) = solution.assignments.get(&var).and_then(|v| v.as_integer())
                     {
                         result.insert(region_id, addr as u64);
                     }
                 }
 
                 Some(result)
-            }
+            },
             _ => None,
         }
     }
@@ -1437,7 +1387,7 @@ mod tests {
                 let x_val = sol.assignments.get(&x).unwrap().as_integer().unwrap();
                 let y_val = sol.assignments.get(&y).unwrap().as_integer().unwrap();
                 assert!(x_val < y_val);
-            }
+            },
             _ => panic!("Should be satisfiable"),
         }
     }
@@ -1446,9 +1396,7 @@ mod tests {
     fn test_all_different() {
         let mut solver = CspSolver::new();
 
-        let vars: Vec<VarId> = (0..3)
-            .map(|_| solver.add_int_variable(1, 3))
-            .collect();
+        let vars: Vec<VarId> = (0..3).map(|_| solver.add_int_variable(1, 3)).collect();
 
         solver.add_constraint(Constraint::AllDifferent(vars.clone()));
 
@@ -1461,7 +1409,7 @@ mod tests {
 
                 let unique: BTreeSet<i64> = values.iter().copied().collect();
                 assert_eq!(values.len(), unique.len());
-            }
+            },
             _ => panic!("Should be satisfiable"),
         }
     }
@@ -1476,7 +1424,7 @@ mod tests {
         solver.add_constraint(Constraint::NotEqual(x, y));
 
         match solver.solve() {
-            SolverResult::Unsatisfiable => {}
+            SolverResult::Unsatisfiable => {},
             _ => panic!("Should be unsatisfiable"),
         }
     }
@@ -1500,7 +1448,7 @@ mod tests {
                 assert!(x1 || x2);
                 assert!(!x1 || x3);
                 assert!(!x2 || !x3);
-            }
+            },
             _ => panic!("Should be satisfiable"),
         }
     }
@@ -1514,7 +1462,7 @@ mod tests {
         solver.add_clause(vec![SatLiteral::neg(0)]);
 
         match solver.solve() {
-            SatResult::Unsat => {}
+            SatResult::Unsat => {},
             _ => panic!("Should be unsatisfiable"),
         }
     }
@@ -1537,7 +1485,7 @@ mod tests {
                     .filter_map(|v| sol.assignments.get(v)?.as_integer())
                     .sum();
                 assert_eq!(sum, 10);
-            }
+            },
             _ => panic!("Should be satisfiable"),
         }
     }
