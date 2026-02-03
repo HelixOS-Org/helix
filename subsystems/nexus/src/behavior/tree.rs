@@ -6,12 +6,10 @@
 
 #![allow(dead_code)]
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // Core Types
@@ -377,17 +375,17 @@ impl BehaviorNode for Sequence {
                 BehaviorStatus::Failure => {
                     self.current_child = 0;
                     return BehaviorStatus::Failure;
-                }
+                },
                 BehaviorStatus::Success => {
                     self.current_child += 1;
-                }
+                },
                 BehaviorStatus::Cancelled => {
                     self.current_child = 0;
                     return BehaviorStatus::Cancelled;
-                }
+                },
                 BehaviorStatus::Ready => {
                     // Child not started, tick it again
-                }
+                },
             }
         }
 
@@ -464,17 +462,17 @@ impl BehaviorNode for Selector {
                 BehaviorStatus::Success => {
                     self.current_child = 0;
                     return BehaviorStatus::Success;
-                }
+                },
                 BehaviorStatus::Failure => {
                     self.current_child += 1;
-                }
+                },
                 BehaviorStatus::Cancelled => {
                     self.current_child = 0;
                     return BehaviorStatus::Cancelled;
-                }
+                },
                 BehaviorStatus::Ready => {
                     // Child not started, tick it again
-                }
+                },
             }
         }
 
@@ -547,7 +545,11 @@ impl BehaviorNode for Parallel {
         for child in &mut self.children {
             child.initialize(ctx);
         }
-        self.child_statuses = self.children.iter().map(|_| BehaviorStatus::Ready).collect();
+        self.child_statuses = self
+            .children
+            .iter()
+            .map(|_| BehaviorStatus::Ready)
+            .collect();
     }
 
     fn tick(&mut self, ctx: &mut TreeContext) -> BehaviorStatus {
@@ -566,7 +568,7 @@ impl BehaviorNode for Parallel {
                 BehaviorStatus::Success => success_count += 1,
                 BehaviorStatus::Failure => failure_count += 1,
                 BehaviorStatus::Running | BehaviorStatus::Ready => running_count += 1,
-                BehaviorStatus::Cancelled => {}
+                BehaviorStatus::Cancelled => {},
             }
         }
 
@@ -579,7 +581,7 @@ impl BehaviorNode for Parallel {
                 } else {
                     BehaviorStatus::Success
                 }
-            }
+            },
             ParallelPolicy::RequireOne => {
                 if success_count > 0 {
                     BehaviorStatus::Success
@@ -588,7 +590,7 @@ impl BehaviorNode for Parallel {
                 } else {
                     BehaviorStatus::Failure
                 }
-            }
+            },
             ParallelPolicy::RequireN(n) => {
                 if success_count >= n {
                     BehaviorStatus::Success
@@ -597,7 +599,7 @@ impl BehaviorNode for Parallel {
                 } else {
                     BehaviorStatus::Running
                 }
-            }
+            },
         }
     }
 
@@ -610,7 +612,11 @@ impl BehaviorNode for Parallel {
     }
 
     fn reset(&mut self) {
-        self.child_statuses = self.children.iter().map(|_| BehaviorStatus::Ready).collect();
+        self.child_statuses = self
+            .children
+            .iter()
+            .map(|_| BehaviorStatus::Ready)
+            .collect();
         for child in &mut self.children {
             child.reset();
         }
@@ -711,13 +717,11 @@ impl BehaviorNode for Decorator {
 
     fn tick(&mut self, ctx: &mut TreeContext) -> BehaviorStatus {
         match self.decorator_type {
-            DecoratorType::Inverter => {
-                match self.child.tick(ctx) {
-                    BehaviorStatus::Success => BehaviorStatus::Failure,
-                    BehaviorStatus::Failure => BehaviorStatus::Success,
-                    other => other,
-                }
-            }
+            DecoratorType::Inverter => match self.child.tick(ctx) {
+                BehaviorStatus::Success => BehaviorStatus::Failure,
+                BehaviorStatus::Failure => BehaviorStatus::Success,
+                other => other,
+            },
             DecoratorType::Succeeder => {
                 let status = self.child.tick(ctx);
                 if status.is_terminal() {
@@ -725,55 +729,49 @@ impl BehaviorNode for Decorator {
                 } else {
                     status
                 }
-            }
-            DecoratorType::Repeat(n) => {
-                loop {
-                    let status = self.child.tick(ctx);
-                    match status {
-                        BehaviorStatus::Success => {
-                            self.repeat_count += 1;
-                            if self.repeat_count >= n {
-                                self.repeat_count = 0;
-                                return BehaviorStatus::Success;
-                            }
-                            self.child.reset();
-                        }
-                        BehaviorStatus::Failure => {
+            },
+            DecoratorType::Repeat(n) => loop {
+                let status = self.child.tick(ctx);
+                match status {
+                    BehaviorStatus::Success => {
+                        self.repeat_count += 1;
+                        if self.repeat_count >= n {
                             self.repeat_count = 0;
-                            return BehaviorStatus::Failure;
-                        }
-                        other => return other,
-                    }
-                }
-            }
-            DecoratorType::RepeatUntilFail => {
-                loop {
-                    let status = self.child.tick(ctx);
-                    match status {
-                        BehaviorStatus::Failure => {
                             return BehaviorStatus::Success;
                         }
-                        BehaviorStatus::Success => {
-                            self.child.reset();
-                        }
-                        other => return other,
-                    }
+                        self.child.reset();
+                    },
+                    BehaviorStatus::Failure => {
+                        self.repeat_count = 0;
+                        return BehaviorStatus::Failure;
+                    },
+                    other => return other,
                 }
-            }
-            DecoratorType::RepeatUntilSuccess => {
-                loop {
-                    let status = self.child.tick(ctx);
-                    match status {
-                        BehaviorStatus::Success => {
-                            return BehaviorStatus::Success;
-                        }
-                        BehaviorStatus::Failure => {
-                            self.child.reset();
-                        }
-                        other => return other,
-                    }
+            },
+            DecoratorType::RepeatUntilFail => loop {
+                let status = self.child.tick(ctx);
+                match status {
+                    BehaviorStatus::Failure => {
+                        return BehaviorStatus::Success;
+                    },
+                    BehaviorStatus::Success => {
+                        self.child.reset();
+                    },
+                    other => return other,
                 }
-            }
+            },
+            DecoratorType::RepeatUntilSuccess => loop {
+                let status = self.child.tick(ctx);
+                match status {
+                    BehaviorStatus::Success => {
+                        return BehaviorStatus::Success;
+                    },
+                    BehaviorStatus::Failure => {
+                        self.child.reset();
+                    },
+                    other => return other,
+                }
+            },
             DecoratorType::Timeout(timeout_us) => {
                 self.elapsed += ctx.delta_time;
                 if self.elapsed >= timeout_us {
@@ -781,7 +779,7 @@ impl BehaviorNode for Decorator {
                     return BehaviorStatus::Failure;
                 }
                 self.child.tick(ctx)
-            }
+            },
             DecoratorType::Once => {
                 if self.has_executed {
                     BehaviorStatus::Failure
@@ -792,7 +790,7 @@ impl BehaviorNode for Decorator {
                     }
                     status
                 }
-            }
+            },
         }
     }
 
@@ -1069,35 +1067,35 @@ impl BehaviorNode for KernelActionNode {
             KernelAction::ReclaimMemory => {
                 ctx.blackboard
                     .set("reclaim_requested".into(), BlackboardValue::Bool(true));
-            }
+            },
             KernelAction::TriggerGC => {
                 ctx.blackboard
                     .set("gc_requested".into(), BlackboardValue::Bool(true));
-            }
+            },
             KernelAction::MigrateProcesses => {
                 ctx.blackboard
                     .set("migration_requested".into(), BlackboardValue::Bool(true));
-            }
+            },
             KernelAction::ThrottleCpu => {
                 ctx.blackboard
                     .set("throttle_requested".into(), BlackboardValue::Bool(true));
-            }
+            },
             KernelAction::EnablePowerSave => {
                 ctx.blackboard
                     .set("power_save".into(), BlackboardValue::Bool(true));
-            }
+            },
             KernelAction::DisablePowerSave => {
                 ctx.blackboard
                     .set("power_save".into(), BlackboardValue::Bool(false));
-            }
+            },
             KernelAction::ExpandSwap => {
                 ctx.blackboard
                     .set("expand_swap".into(), BlackboardValue::Bool(true));
-            }
+            },
             KernelAction::CompactMemory => {
                 ctx.blackboard
                     .set("compact_memory".into(), BlackboardValue::Bool(true));
-            }
+            },
         }
 
         BehaviorStatus::Success
@@ -1176,10 +1174,10 @@ mod tests {
     fn test_blackboard() {
         let mut bb = Blackboard::new();
         bb.set("test".into(), BlackboardValue::Int(42));
-        
+
         assert!(bb.contains("test"));
         assert_eq!(bb.get("test").unwrap().as_int(), Some(42));
-        
+
         bb.remove("test");
         assert!(!bb.contains("test"));
     }
