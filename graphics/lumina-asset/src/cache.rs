@@ -2,13 +2,12 @@
 //!
 //! Content-addressed asset caching.
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
-use crate::{AssetId, AssetMetadata, AssetResult, AssetError, AssetErrorKind};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use crate::{AssetError, AssetErrorKind, AssetId, AssetMetadata, AssetResult};
 
 /// Asset cache for built assets
 pub struct AssetCache {
@@ -28,19 +27,21 @@ impl AssetCache {
             stats: CacheStats::default(),
         })
     }
-    
+
     /// Check if asset is cached
     pub fn contains(&self, id: AssetId) -> bool {
         self.index.entries.contains_key(&id)
     }
-    
+
     /// Get asset metadata
     pub fn get_metadata(&self, id: AssetId) -> AssetResult<AssetMetadata> {
-        self.index.entries.get(&id)
+        self.index
+            .entries
+            .get(&id)
             .map(|e| e.metadata.clone())
             .ok_or_else(|| AssetError::new(AssetErrorKind::NotFound, "Asset not in cache"))
     }
-    
+
     /// Load asset data
     pub fn load_data(&mut self, id: AssetId) -> AssetResult<Vec<u8>> {
         // Check memory cache first
@@ -48,30 +49,33 @@ impl AssetCache {
             self.stats.memory_hits += 1;
             return Ok(data.clone());
         }
-        
+
         self.stats.memory_misses += 1;
-        
+
         // Load from disk
-        let entry = self.index.entries.get(&id)
+        let entry = self
+            .index
+            .entries
+            .get(&id)
             .ok_or_else(|| AssetError::new(AssetErrorKind::NotFound, "Asset not in cache"))?;
-        
+
         let data = self.load_from_disk(&entry.file_path)?;
         self.stats.disk_reads += 1;
-        
+
         // Add to memory cache
         self.memory_cache.insert(id, data.clone());
-        
+
         Ok(data)
     }
-    
+
     /// Store asset in cache
     pub fn store(&mut self, id: AssetId, data: &[u8], metadata: &AssetMetadata) -> AssetResult<()> {
         let file_path = self.generate_path(id);
-        
+
         // Save to disk
         self.save_to_disk(&file_path, data)?;
         self.stats.disk_writes += 1;
-        
+
         // Update index
         self.index.entries.insert(id, CacheEntry {
             metadata: metadata.clone(),
@@ -79,13 +83,13 @@ impl AssetCache {
             size: data.len() as u64,
             timestamp: get_time(),
         });
-        
+
         // Add to memory cache
         self.memory_cache.insert(id, data.to_vec());
-        
+
         Ok(())
     }
-    
+
     /// Remove asset from cache
     pub fn remove(&mut self, id: AssetId) -> AssetResult<()> {
         if let Some(entry) = self.index.entries.remove(&id) {
@@ -94,7 +98,7 @@ impl AssetCache {
         self.memory_cache.remove(id);
         Ok(())
     }
-    
+
     /// Clear entire cache
     pub fn clear(&mut self) -> AssetResult<()> {
         self.index.entries.clear();
@@ -102,46 +106,49 @@ impl AssetCache {
         // Would delete all files from disk
         Ok(())
     }
-    
+
     /// Get cache statistics
     pub fn stats(&self) -> &CacheStats {
         &self.stats
     }
-    
+
     /// Compact cache (remove unreferenced entries)
     pub fn compact(&mut self, referenced: &[AssetId]) -> AssetResult<u64> {
         let mut freed = 0u64;
-        
-        let to_remove: Vec<_> = self.index.entries.keys()
+
+        let to_remove: Vec<_> = self
+            .index
+            .entries
+            .keys()
             .filter(|id| !referenced.contains(id))
             .copied()
             .collect();
-        
+
         for id in to_remove {
             if let Some(entry) = self.index.entries.remove(&id) {
                 freed += entry.size;
                 let _ = self.delete_from_disk(&entry.file_path);
             }
         }
-        
+
         Ok(freed)
     }
-    
+
     fn generate_path(&self, id: AssetId) -> String {
         let hex = id.to_hex();
         alloc::format!("{}/{}/{}", self.path, &hex[0..2], hex)
     }
-    
+
     fn load_from_disk(&self, _path: &str) -> AssetResult<Vec<u8>> {
         // Would read from filesystem
         Ok(Vec::new())
     }
-    
+
     fn save_to_disk(&self, _path: &str, _data: &[u8]) -> AssetResult<()> {
         // Would write to filesystem
         Ok(())
     }
-    
+
     fn delete_from_disk(&self, _path: &str) -> AssetResult<()> {
         // Would delete from filesystem
         Ok(())
@@ -187,10 +194,10 @@ impl MemoryCache {
             access_counter: 0,
         }
     }
-    
+
     fn get(&mut self, id: AssetId) -> Option<&Vec<u8>> {
         self.access_counter += 1;
-        
+
         if let Some(entry) = self.entries.get_mut(&id) {
             entry.last_access = self.access_counter;
             Some(&entry.data)
@@ -198,42 +205,40 @@ impl MemoryCache {
             None
         }
     }
-    
+
     fn insert(&mut self, id: AssetId, data: Vec<u8>) {
         let size = data.len() as u64;
-        
+
         // Evict if needed
         while self.current_size + size > self.max_size && !self.entries.is_empty() {
             self.evict_lru();
         }
-        
+
         self.access_counter += 1;
-        
+
         if let Some(old) = self.entries.insert(id, MemoryCacheEntry {
             data,
             last_access: self.access_counter,
         }) {
             self.current_size -= old.data.len() as u64;
         }
-        
+
         self.current_size += size;
     }
-    
+
     fn remove(&mut self, id: AssetId) {
         if let Some(entry) = self.entries.remove(&id) {
             self.current_size -= entry.data.len() as u64;
         }
     }
-    
+
     fn clear(&mut self) {
         self.entries.clear();
         self.current_size = 0;
     }
-    
+
     fn evict_lru(&mut self) {
-        if let Some((&id, _)) = self.entries.iter()
-            .min_by_key(|(_, e)| e.last_access)
-        {
+        if let Some((&id, _)) = self.entries.iter().min_by_key(|(_, e)| e.last_access) {
             if let Some(entry) = self.entries.remove(&id) {
                 self.current_size -= entry.data.len() as u64;
             }
@@ -288,14 +293,14 @@ impl AssetDeduplicator {
             next_chunk_id: 1,
         }
     }
-    
+
     /// Deduplicate data into chunks
     pub fn deduplicate(&mut self, data: &[u8]) -> DeduplicatedAsset {
         let mut chunk_refs = Vec::new();
-        
+
         for chunk in data.chunks(self.chunk_size) {
             let hash = hash_chunk(chunk);
-            
+
             let chunk_id = if let Some(&id) = self.chunks.get(&hash) {
                 id
             } else {
@@ -304,20 +309,20 @@ impl AssetDeduplicator {
                 self.chunks.insert(hash, id);
                 id
             };
-            
+
             chunk_refs.push(ChunkRef {
                 id: chunk_id,
                 hash,
                 size: chunk.len() as u32,
             });
         }
-        
+
         DeduplicatedAsset {
             total_size: data.len() as u64,
             chunks: chunk_refs,
         }
     }
-    
+
     /// Get deduplication ratio
     pub fn dedup_ratio(&self) -> f32 {
         // Would calculate actual ratio
@@ -369,13 +374,13 @@ impl AssetBundle {
             uncompressed_size: 0,
         }
     }
-    
+
     pub fn add_asset(&mut self, id: AssetId) {
         if !self.assets.contains(&id) {
             self.assets.push(id);
         }
     }
-    
+
     pub fn add_dependency(&mut self, bundle_name: &str) {
         if !self.dependencies.contains(&bundle_name.into()) {
             self.dependencies.push(bundle_name.into());
@@ -394,13 +399,14 @@ impl BundleBuilder {
             bundles: BTreeMap::new(),
         }
     }
-    
+
     /// Create or get a bundle
     pub fn bundle(&mut self, name: &str) -> &mut AssetBundle {
-        self.bundles.entry(name.into())
+        self.bundles
+            .entry(name.into())
             .or_insert_with(|| AssetBundle::new(name))
     }
-    
+
     /// Build all bundles
     pub fn build(self) -> Vec<AssetBundle> {
         self.bundles.into_values().collect()
