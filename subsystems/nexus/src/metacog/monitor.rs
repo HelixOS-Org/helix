@@ -137,11 +137,7 @@ pub struct CognitiveProcess {
 
 impl CognitiveProcess {
     /// Create a new cognitive process
-    pub fn new(
-        id: CognitiveProcessId,
-        process_type: CognitiveProcessType,
-        name: String,
-    ) -> Self {
+    pub fn new(id: CognitiveProcessId, process_type: CognitiveProcessType, name: String) -> Self {
         Self {
             id,
             process_type,
@@ -384,7 +380,7 @@ impl AnomalyDetector {
             confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
             failure_rate_threshold: 0.3,
             memory_threshold: 100 * 1024 * 1024, // 100MB
-            cpu_threshold: 1_000_000_000,         // 1B cycles
+            cpu_threshold: 1_000_000_000,        // 1B cycles
             load_threshold: DEFAULT_LOAD_THRESHOLD,
             anomalies: Vec::new(),
             next_anomaly_id: 0,
@@ -490,11 +486,7 @@ impl AnomalyDetector {
     }
 
     /// Check domain metrics for anomalies
-    pub fn check_domain(
-        &mut self,
-        metrics: &DomainMetrics,
-        timestamp: u64,
-    ) -> Vec<Anomaly> {
+    pub fn check_domain(&mut self, metrics: &DomainMetrics, timestamp: u64) -> Vec<Anomaly> {
         let mut detected = Vec::new();
 
         // Check failure rate
@@ -882,11 +874,9 @@ impl MetacognitionMonitor {
                 .cloned()
                 .unwrap_or_else(|| DomainMetrics::new(process.process_type));
 
-            let _anomalies = self.anomaly_detector.check_process(
-                &process,
-                &domain_metrics,
-                self.current_time,
-            );
+            let _anomalies =
+                self.anomaly_detector
+                    .check_process(&process, &domain_metrics, self.current_time);
 
             // Add to history
             self.add_to_history(process);
@@ -914,11 +904,9 @@ impl MetacognitionMonitor {
                 .cloned()
                 .unwrap_or_else(|| DomainMetrics::new(process.process_type));
 
-            let _anomalies = self.anomaly_detector.check_process(
-                &process,
-                &domain_metrics,
-                self.current_time,
-            );
+            let _anomalies =
+                self.anomaly_detector
+                    .check_process(&process, &domain_metrics, self.current_time);
 
             self.add_to_history(process);
             self.system_metrics.active_processes =
@@ -962,8 +950,8 @@ impl MetacognitionMonitor {
             self.system_metrics.success_rate * (1.0 - EMA_ALPHA) + success * EMA_ALPHA;
 
         // Update confidence
-        self.system_metrics.avg_confidence = self.system_metrics.avg_confidence * (1.0 - EMA_ALPHA)
-            + process.confidence * EMA_ALPHA;
+        self.system_metrics.avg_confidence =
+            self.system_metrics.avg_confidence * (1.0 - EMA_ALPHA) + process.confidence * EMA_ALPHA;
 
         // Update cognitive load
         let load = self.calculate_cognitive_load();
@@ -1059,7 +1047,8 @@ impl MetacognitionMonitor {
 
     /// Add calibration sample
     pub fn add_calibration_sample(&mut self, confidence: f64, was_correct: bool) {
-        self.confidence_calibrator.add_sample(confidence, was_correct);
+        self.confidence_calibrator
+            .add_sample(confidence, was_correct);
     }
 
     /// Get expected calibration error
@@ -1181,7 +1170,9 @@ mod tests {
             monitor.complete_process(id, 0.9, 0.85, 500, 512);
         }
 
-        let metrics = monitor.get_domain_metrics(CognitiveProcessType::Decision).unwrap();
+        let metrics = monitor
+            .get_domain_metrics(CognitiveProcessType::Decision)
+            .unwrap();
         assert_eq!(metrics.total_count, 10);
         assert_eq!(metrics.success_count, 10);
     }
