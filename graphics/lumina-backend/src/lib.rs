@@ -73,31 +73,32 @@ pub use swapchain::*;
 
 /// Prelude for common imports
 pub mod prelude {
-    pub use crate::buffer::{Buffer, BufferDesc, BufferMemoryType, BufferUsage};
+    pub use crate::buffer::{Buffer, BufferDesc, BufferMemoryType, BufferUsage, BufferHandle};
     pub use crate::command::{
-        CommandBuffer, CommandBufferDesc, CommandBufferLevel, CommandPool, ComputePassEncoder,
-        RenderPassEncoder, TransferEncoder,
+        CommandBuffer, CommandBufferLevel, CommandPool, ComputePassEncoder,
+        RenderPassEncoder, TransferEncoder, CommandBufferFlags,
     };
     pub use crate::descriptor::{
-        DescriptorBinding, DescriptorPool, DescriptorSet, DescriptorSetLayout,
+        DescriptorSetLayoutBinding, DescriptorPool, DescriptorSet, DescriptorSetLayout,
+        DescriptorType, DescriptorWrite, DescriptorManager, PipelineLayout,
     };
     pub use crate::device::{
         Adapter, AdapterInfo, AdapterType, BackendType, Device, DeviceCapabilities, DeviceDesc,
-        DeviceFeatures, DeviceLimits,
+        DeviceFeatures, DeviceLimits, TextureFormat,
     };
-    pub use crate::instance::{Instance, InstanceDesc, InstanceFeatures};
+    pub use crate::instance::{Instance, InstanceDesc, InstanceFlags, BackendFactory};
     pub use crate::pipeline::{
         ComputePipeline, ComputePipelineDesc, RayTracingPipeline, RayTracingPipelineDesc,
-        RenderPipeline, RenderPipelineDesc,
+        RenderPipeline, RenderPipelineDesc, PipelineManager,
     };
-    pub use crate::queue::{Queue, QueueCapabilities, QueueFamily, QueuePriority, QueueType};
-    pub use crate::resource::{ResourceHandle, ResourceState, ResourceType};
-    pub use crate::sampler::{AddressMode, CompareOp, FilterMode, Sampler, SamplerDesc};
-    pub use crate::shader_module::{ShaderModule, ShaderModuleDesc, ShaderStage};
-    pub use crate::submission::{Fence, PresentInfo, Semaphore, SubmitInfo, TimelineSemaphore};
-    pub use crate::surface::{Surface, SurfaceCapabilities, SurfaceFormat};
+    pub use crate::queue::{Queue, QueueFamily, QueuePriority, QueueManager};
+    pub use crate::resource::{ResourceHandle, ResourceType, ResourceRegistry, ResourceStatistics};
+    pub use crate::sampler::{AddressMode, CompareOp, FilterMode, Sampler, SamplerDesc, SamplerHandle};
+    pub use crate::shader_module::{ShaderModule, ShaderModuleDesc, ShaderStage, ShaderManager};
+    pub use crate::submission::{Fence, PresentInfo, Semaphore, SubmitInfo, TimelineSemaphore, SubmissionManager};
+    pub use crate::surface::{Surface, SurfaceCapabilities, SurfaceFormat, SurfaceManager};
     pub use crate::swapchain::{
-        CompositeAlpha, PresentMode, Swapchain, SwapchainDesc, SwapchainImage,
+        CompositeAlpha, PresentMode, Swapchain, SwapchainDesc, SwapchainImage, SwapchainManager,
     };
     pub use crate::texture::{Texture, TextureDesc, TextureUsage, TextureView, TextureViewDesc};
 }
