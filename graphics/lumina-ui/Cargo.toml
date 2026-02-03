@@ -1,0 +1,23 @@
+[package]
+name = "lumina-ui"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Contributors"]
+description = "Revolutionary GPU-accelerated UI framework for LUMINA"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+
+[features]
+default = ["immediate", "retained", "text", "animations"]
+immediate = []
+retained = []
+text = []
+animations = []
+accessibility = []
+hot-reload = []
+theming = []
