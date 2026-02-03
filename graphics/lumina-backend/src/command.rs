@@ -2,18 +2,20 @@
 //!
 //! GPU command recording and submission.
 
-use alloc::{string::String, vec::Vec, boxed::Box};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use bitflags::bitflags;
 use lumina_core::Handle;
-use lumina_math::{Vec4, Mat4};
+use lumina_math::{Mat4, Vec4};
 
-use crate::device::TextureFormat;
 use crate::buffer::BufferHandle;
-use crate::texture::TextureHandle;
-use crate::pipeline::{RenderPipelineHandle, ComputePipelineHandle};
 use crate::descriptor::DescriptorSetHandle;
+use crate::device::TextureFormat;
+use crate::pipeline::{ComputePipelineHandle, RenderPipelineHandle};
+use crate::texture::TextureHandle;
 
 // ============================================================================
 // Command Buffer Level
@@ -228,7 +230,12 @@ pub struct Scissor {
 impl Scissor {
     /// Create a new scissor.
     pub fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Create from dimensions.
@@ -489,41 +496,64 @@ impl<'a> RenderPassEncoder<'a> {
 
     /// Set pipeline.
     pub fn set_pipeline(&mut self, pipeline: RenderPipelineHandle) {
-        self.command_buffer.commands.push(Command::SetRenderPipeline(pipeline));
+        self.command_buffer
+            .commands
+            .push(Command::SetRenderPipeline(pipeline));
     }
 
     /// Set viewport.
     pub fn set_viewport(&mut self, viewport: Viewport) {
-        self.command_buffer.commands.push(Command::SetViewport(viewport));
+        self.command_buffer
+            .commands
+            .push(Command::SetViewport(viewport));
     }
 
     /// Set scissor.
     pub fn set_scissor(&mut self, scissor: Scissor) {
-        self.command_buffer.commands.push(Command::SetScissor(scissor));
+        self.command_buffer
+            .commands
+            .push(Command::SetScissor(scissor));
     }
 
     /// Set blend constant.
     pub fn set_blend_constant(&mut self, color: Vec4) {
-        self.command_buffer.commands.push(Command::SetBlendConstant(color));
+        self.command_buffer
+            .commands
+            .push(Command::SetBlendConstant(color));
     }
 
     /// Set stencil reference.
     pub fn set_stencil_reference(&mut self, reference: u32) {
-        self.command_buffer.commands.push(Command::SetStencilReference(reference));
+        self.command_buffer
+            .commands
+            .push(Command::SetStencilReference(reference));
     }
 
     /// Set vertex buffer.
     pub fn set_vertex_buffer(&mut self, slot: u32, buffer: BufferHandle, offset: u64) {
-        self.command_buffer.commands.push(Command::SetVertexBuffer { slot, buffer, offset });
+        self.command_buffer.commands.push(Command::SetVertexBuffer {
+            slot,
+            buffer,
+            offset,
+        });
     }
 
     /// Set index buffer.
     pub fn set_index_buffer(&mut self, buffer: BufferHandle, index_type: IndexType, offset: u64) {
-        self.command_buffer.commands.push(Command::SetIndexBuffer { buffer, index_type, offset });
+        self.command_buffer.commands.push(Command::SetIndexBuffer {
+            buffer,
+            index_type,
+            offset,
+        });
     }
 
     /// Set bind group.
-    pub fn set_bind_group(&mut self, index: u32, bind_group: DescriptorSetHandle, dynamic_offsets: &[u32]) {
+    pub fn set_bind_group(
+        &mut self,
+        index: u32,
+        bind_group: DescriptorSetHandle,
+        dynamic_offsets: &[u32],
+    ) {
         self.command_buffer.commands.push(Command::SetBindGroup {
             index,
             bind_group,
@@ -533,21 +563,31 @@ impl<'a> RenderPassEncoder<'a> {
 
     /// Set push constants.
     pub fn set_push_constants(&mut self, stages: u32, offset: u32, data: &[u8]) {
-        self.command_buffer.commands.push(Command::SetPushConstants {
-            stages,
-            offset,
-            data: data.to_vec(),
-        });
+        self.command_buffer
+            .commands
+            .push(Command::SetPushConstants {
+                stages,
+                offset,
+                data: data.to_vec(),
+            });
     }
 
     /// Draw.
-    pub fn draw(&mut self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
-        self.command_buffer.commands.push(Command::Draw(DrawCommand {
-            vertex_count,
-            instance_count,
-            first_vertex,
-            first_instance,
-        }));
+    pub fn draw(
+        &mut self,
+        vertex_count: u32,
+        instance_count: u32,
+        first_vertex: u32,
+        first_instance: u32,
+    ) {
+        self.command_buffer
+            .commands
+            .push(Command::Draw(DrawCommand {
+                vertex_count,
+                instance_count,
+                first_vertex,
+                first_instance,
+            }));
         self.command_buffer.draw_count += 1;
     }
 
@@ -560,37 +600,69 @@ impl<'a> RenderPassEncoder<'a> {
         vertex_offset: i32,
         first_instance: u32,
     ) {
-        self.command_buffer.commands.push(Command::DrawIndexed(DrawIndexedCommand {
-            index_count,
-            instance_count,
-            first_index,
-            vertex_offset,
-            first_instance,
-        }));
+        self.command_buffer
+            .commands
+            .push(Command::DrawIndexed(DrawIndexedCommand {
+                index_count,
+                instance_count,
+                first_index,
+                vertex_offset,
+                first_instance,
+            }));
         self.command_buffer.draw_count += 1;
     }
 
     /// Draw indirect.
     pub fn draw_indirect(&mut self, buffer: BufferHandle, offset: u64) {
-        self.command_buffer.commands.push(Command::DrawIndirect { buffer, offset });
+        self.command_buffer
+            .commands
+            .push(Command::DrawIndirect { buffer, offset });
         self.command_buffer.draw_count += 1;
     }
 
     /// Draw indexed indirect.
     pub fn draw_indexed_indirect(&mut self, buffer: BufferHandle, offset: u64) {
-        self.command_buffer.commands.push(Command::DrawIndexedIndirect { buffer, offset });
+        self.command_buffer
+            .commands
+            .push(Command::DrawIndexedIndirect { buffer, offset });
         self.command_buffer.draw_count += 1;
     }
 
     /// Multi-draw indirect.
-    pub fn multi_draw_indirect(&mut self, buffer: BufferHandle, offset: u64, count: u32, stride: u32) {
-        self.command_buffer.commands.push(Command::MultiDrawIndirect { buffer, offset, count, stride });
+    pub fn multi_draw_indirect(
+        &mut self,
+        buffer: BufferHandle,
+        offset: u64,
+        count: u32,
+        stride: u32,
+    ) {
+        self.command_buffer
+            .commands
+            .push(Command::MultiDrawIndirect {
+                buffer,
+                offset,
+                count,
+                stride,
+            });
         self.command_buffer.draw_count += count as u64;
     }
 
     /// Multi-draw indexed indirect.
-    pub fn multi_draw_indexed_indirect(&mut self, buffer: BufferHandle, offset: u64, count: u32, stride: u32) {
-        self.command_buffer.commands.push(Command::MultiDrawIndexedIndirect { buffer, offset, count, stride });
+    pub fn multi_draw_indexed_indirect(
+        &mut self,
+        buffer: BufferHandle,
+        offset: u64,
+        count: u32,
+        stride: u32,
+    ) {
+        self.command_buffer
+            .commands
+            .push(Command::MultiDrawIndexedIndirect {
+                buffer,
+                offset,
+                count,
+                stride,
+            });
         self.command_buffer.draw_count += count as u64;
     }
 
@@ -604,14 +676,16 @@ impl<'a> RenderPassEncoder<'a> {
         max_count: u32,
         stride: u32,
     ) {
-        self.command_buffer.commands.push(Command::MultiDrawIndirectCount {
-            buffer,
-            offset,
-            count_buffer,
-            count_offset,
-            max_count,
-            stride,
-        });
+        self.command_buffer
+            .commands
+            .push(Command::MultiDrawIndirectCount {
+                buffer,
+                offset,
+                count_buffer,
+                count_offset,
+                max_count,
+                stride,
+            });
         self.command_buffer.draw_count += 1;
     }
 
@@ -653,11 +727,18 @@ impl<'a> ComputePassEncoder<'a> {
 
     /// Set pipeline.
     pub fn set_pipeline(&mut self, pipeline: ComputePipelineHandle) {
-        self.command_buffer.commands.push(Command::SetComputePipeline(pipeline));
+        self.command_buffer
+            .commands
+            .push(Command::SetComputePipeline(pipeline));
     }
 
     /// Set bind group.
-    pub fn set_bind_group(&mut self, index: u32, bind_group: DescriptorSetHandle, dynamic_offsets: &[u32]) {
+    pub fn set_bind_group(
+        &mut self,
+        index: u32,
+        bind_group: DescriptorSetHandle,
+        dynamic_offsets: &[u32],
+    ) {
         self.command_buffer.commands.push(Command::SetBindGroup {
             index,
             bind_group,
@@ -667,22 +748,28 @@ impl<'a> ComputePassEncoder<'a> {
 
     /// Set push constants.
     pub fn set_push_constants(&mut self, stages: u32, offset: u32, data: &[u8]) {
-        self.command_buffer.commands.push(Command::SetPushConstants {
-            stages,
-            offset,
-            data: data.to_vec(),
-        });
+        self.command_buffer
+            .commands
+            .push(Command::SetPushConstants {
+                stages,
+                offset,
+                data: data.to_vec(),
+            });
     }
 
     /// Dispatch.
     pub fn dispatch(&mut self, x: u32, y: u32, z: u32) {
-        self.command_buffer.commands.push(Command::Dispatch(DispatchCommand { x, y, z }));
+        self.command_buffer
+            .commands
+            .push(Command::Dispatch(DispatchCommand { x, y, z }));
         self.command_buffer.dispatch_count += 1;
     }
 
     /// Dispatch indirect.
     pub fn dispatch_indirect(&mut self, buffer: BufferHandle, offset: u64) {
-        self.command_buffer.commands.push(Command::DispatchIndirect { buffer, offset });
+        self.command_buffer
+            .commands
+            .push(Command::DispatchIndirect { buffer, offset });
         self.command_buffer.dispatch_count += 1;
     }
 
@@ -726,13 +813,15 @@ impl<'a> TransferEncoder<'a> {
         dst_offset: u64,
         size: u64,
     ) {
-        self.command_buffer.commands.push(Command::CopyBufferToBuffer {
-            src,
-            src_offset,
-            dst,
-            dst_offset,
-            size,
-        });
+        self.command_buffer
+            .commands
+            .push(Command::CopyBufferToBuffer {
+                src,
+                src_offset,
+                dst,
+                dst_offset,
+                size,
+            });
     }
 
     /// Copy buffer to texture.
@@ -744,13 +833,15 @@ impl<'a> TransferEncoder<'a> {
         dst_origin: [u32; 3],
         extent: [u32; 3],
     ) {
-        self.command_buffer.commands.push(Command::CopyBufferToTexture {
-            src,
-            src_layout,
-            dst,
-            dst_origin,
-            extent,
-        });
+        self.command_buffer
+            .commands
+            .push(Command::CopyBufferToTexture {
+                src,
+                src_layout,
+                dst,
+                dst_origin,
+                extent,
+            });
     }
 
     /// Copy texture to buffer.
@@ -762,13 +853,15 @@ impl<'a> TransferEncoder<'a> {
         dst_layout: BufferImageCopy,
         extent: [u32; 3],
     ) {
-        self.command_buffer.commands.push(Command::CopyTextureToBuffer {
-            src,
-            src_origin,
-            dst,
-            dst_layout,
-            extent,
-        });
+        self.command_buffer
+            .commands
+            .push(Command::CopyTextureToBuffer {
+                src,
+                src_origin,
+                dst,
+                dst_layout,
+                extent,
+            });
     }
 
     /// Copy texture to texture.
@@ -780,23 +873,33 @@ impl<'a> TransferEncoder<'a> {
         dst_origin: [u32; 3],
         extent: [u32; 3],
     ) {
-        self.command_buffer.commands.push(Command::CopyTextureToTexture {
-            src,
-            src_origin,
-            dst,
-            dst_origin,
-            extent,
-        });
+        self.command_buffer
+            .commands
+            .push(Command::CopyTextureToTexture {
+                src,
+                src_origin,
+                dst,
+                dst_origin,
+                extent,
+            });
     }
 
     /// Fill buffer.
     pub fn fill_buffer(&mut self, buffer: BufferHandle, offset: u64, size: u64, value: u32) {
-        self.command_buffer.commands.push(Command::FillBuffer { buffer, offset, size, value });
+        self.command_buffer.commands.push(Command::FillBuffer {
+            buffer,
+            offset,
+            size,
+            value,
+        });
     }
 
     /// Clear texture.
     pub fn clear_texture(&mut self, texture: TextureHandle, clear_value: ClearValue) {
-        self.command_buffer.commands.push(Command::ClearTexture { texture, clear_value });
+        self.command_buffer.commands.push(Command::ClearTexture {
+            texture,
+            clear_value,
+        });
     }
 }
 
@@ -826,39 +929,117 @@ pub enum Command {
     SetScissor(Scissor),
     SetBlendConstant(Vec4),
     SetStencilReference(u32),
-    SetVertexBuffer { slot: u32, buffer: BufferHandle, offset: u64 },
-    SetIndexBuffer { buffer: BufferHandle, index_type: IndexType, offset: u64 },
-    SetBindGroup { index: u32, bind_group: DescriptorSetHandle, dynamic_offsets: Vec<u32> },
-    SetPushConstants { stages: u32, offset: u32, data: Vec<u8> },
+    SetVertexBuffer {
+        slot: u32,
+        buffer: BufferHandle,
+        offset: u64,
+    },
+    SetIndexBuffer {
+        buffer: BufferHandle,
+        index_type: IndexType,
+        offset: u64,
+    },
+    SetBindGroup {
+        index: u32,
+        bind_group: DescriptorSetHandle,
+        dynamic_offsets: Vec<u32>,
+    },
+    SetPushConstants {
+        stages: u32,
+        offset: u32,
+        data: Vec<u8>,
+    },
 
     // Draw commands
     Draw(DrawCommand),
     DrawIndexed(DrawIndexedCommand),
-    DrawIndirect { buffer: BufferHandle, offset: u64 },
-    DrawIndexedIndirect { buffer: BufferHandle, offset: u64 },
-    MultiDrawIndirect { buffer: BufferHandle, offset: u64, count: u32, stride: u32 },
-    MultiDrawIndexedIndirect { buffer: BufferHandle, offset: u64, count: u32, stride: u32 },
-    MultiDrawIndirectCount { buffer: BufferHandle, offset: u64, count_buffer: BufferHandle, count_offset: u64, max_count: u32, stride: u32 },
+    DrawIndirect {
+        buffer: BufferHandle,
+        offset: u64,
+    },
+    DrawIndexedIndirect {
+        buffer: BufferHandle,
+        offset: u64,
+    },
+    MultiDrawIndirect {
+        buffer: BufferHandle,
+        offset: u64,
+        count: u32,
+        stride: u32,
+    },
+    MultiDrawIndexedIndirect {
+        buffer: BufferHandle,
+        offset: u64,
+        count: u32,
+        stride: u32,
+    },
+    MultiDrawIndirectCount {
+        buffer: BufferHandle,
+        offset: u64,
+        count_buffer: BufferHandle,
+        count_offset: u64,
+        max_count: u32,
+        stride: u32,
+    },
 
     // Compute pass
     BeginComputePass,
     EndComputePass,
     SetComputePipeline(ComputePipelineHandle),
     Dispatch(DispatchCommand),
-    DispatchIndirect { buffer: BufferHandle, offset: u64 },
+    DispatchIndirect {
+        buffer: BufferHandle,
+        offset: u64,
+    },
 
     // Transfer commands
-    CopyBufferToBuffer { src: BufferHandle, src_offset: u64, dst: BufferHandle, dst_offset: u64, size: u64 },
-    CopyBufferToTexture { src: BufferHandle, src_layout: BufferImageCopy, dst: TextureHandle, dst_origin: [u32; 3], extent: [u32; 3] },
-    CopyTextureToBuffer { src: TextureHandle, src_origin: [u32; 3], dst: BufferHandle, dst_layout: BufferImageCopy, extent: [u32; 3] },
-    CopyTextureToTexture { src: TextureHandle, src_origin: [u32; 3], dst: TextureHandle, dst_origin: [u32; 3], extent: [u32; 3] },
-    FillBuffer { buffer: BufferHandle, offset: u64, size: u64, value: u32 },
-    ClearTexture { texture: TextureHandle, clear_value: ClearValue },
+    CopyBufferToBuffer {
+        src: BufferHandle,
+        src_offset: u64,
+        dst: BufferHandle,
+        dst_offset: u64,
+        size: u64,
+    },
+    CopyBufferToTexture {
+        src: BufferHandle,
+        src_layout: BufferImageCopy,
+        dst: TextureHandle,
+        dst_origin: [u32; 3],
+        extent: [u32; 3],
+    },
+    CopyTextureToBuffer {
+        src: TextureHandle,
+        src_origin: [u32; 3],
+        dst: BufferHandle,
+        dst_layout: BufferImageCopy,
+        extent: [u32; 3],
+    },
+    CopyTextureToTexture {
+        src: TextureHandle,
+        src_origin: [u32; 3],
+        dst: TextureHandle,
+        dst_origin: [u32; 3],
+        extent: [u32; 3],
+    },
+    FillBuffer {
+        buffer: BufferHandle,
+        offset: u64,
+        size: u64,
+        value: u32,
+    },
+    ClearTexture {
+        texture: TextureHandle,
+        clear_value: ClearValue,
+    },
 
     // Synchronization
     PipelineBarrier,
-    BufferBarrier { buffer: BufferHandle },
-    TextureBarrier { texture: TextureHandle },
+    BufferBarrier {
+        buffer: BufferHandle,
+    },
+    TextureBarrier {
+        texture: TextureHandle,
+    },
 
     // Debug
     PushDebugGroup(String),
