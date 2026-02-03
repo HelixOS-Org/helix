@@ -1,0 +1,21 @@
+[package]
+name = "lumina-shader"
+version.workspace = true
+edition = "2021"
+license.workspace = true
+description = "Shader compilation and reflection for Helix OS"
+keywords = ["shader", "spirv", "graphics", "helix"]
+categories = ["graphics", "compilers"]
+
+[features]
+default = ["alloc"]
+alloc = []
+std = ["alloc"]
+spirv = []
+reflection = []
+
+[dependencies]
+bitflags = { workspace = true }
+lumina-core = { workspace = true }
+
+[dev-dependencies]
