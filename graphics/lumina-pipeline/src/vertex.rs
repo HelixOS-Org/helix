@@ -2,7 +2,8 @@
 //!
 //! This module provides vertex input configuration for the graphics pipeline.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 
 // ============================================================================
@@ -294,44 +295,37 @@ impl VertexAttribute {
 
     /// Create position attribute.
     pub fn position(location: u32, binding: u32, offset: u32) -> Self {
-        Self::new(location, binding, VertexFormat::Float32x3, offset)
-            .with_semantic("POSITION")
+        Self::new(location, binding, VertexFormat::Float32x3, offset).with_semantic("POSITION")
     }
 
     /// Create normal attribute.
     pub fn normal(location: u32, binding: u32, offset: u32) -> Self {
-        Self::new(location, binding, VertexFormat::Float32x3, offset)
-            .with_semantic("NORMAL")
+        Self::new(location, binding, VertexFormat::Float32x3, offset).with_semantic("NORMAL")
     }
 
     /// Create tangent attribute.
     pub fn tangent(location: u32, binding: u32, offset: u32) -> Self {
-        Self::new(location, binding, VertexFormat::Float32x4, offset)
-            .with_semantic("TANGENT")
+        Self::new(location, binding, VertexFormat::Float32x4, offset).with_semantic("TANGENT")
     }
 
     /// Create texcoord attribute.
     pub fn texcoord(location: u32, binding: u32, offset: u32) -> Self {
-        Self::new(location, binding, VertexFormat::Float32x2, offset)
-            .with_semantic("TEXCOORD")
+        Self::new(location, binding, VertexFormat::Float32x2, offset).with_semantic("TEXCOORD")
     }
 
     /// Create color attribute.
     pub fn color(location: u32, binding: u32, offset: u32) -> Self {
-        Self::new(location, binding, VertexFormat::Unorm8x4, offset)
-            .with_semantic("COLOR")
+        Self::new(location, binding, VertexFormat::Unorm8x4, offset).with_semantic("COLOR")
     }
 
     /// Create joint indices attribute.
     pub fn joints(location: u32, binding: u32, offset: u32) -> Self {
-        Self::new(location, binding, VertexFormat::Uint16x4, offset)
-            .with_semantic("JOINTS")
+        Self::new(location, binding, VertexFormat::Uint16x4, offset).with_semantic("JOINTS")
     }
 
     /// Create joint weights attribute.
     pub fn weights(location: u32, binding: u32, offset: u32) -> Self {
-        Self::new(location, binding, VertexFormat::Float32x4, offset)
-            .with_semantic("WEIGHTS")
+        Self::new(location, binding, VertexFormat::Float32x4, offset).with_semantic("WEIGHTS")
     }
 }
 
@@ -543,11 +537,8 @@ impl VertexLayoutBuilder {
         self.current_binding = self.bindings.len() as u32;
         self.current_offset = 0;
         // Binding will be added when finalized or when next binding begins
-        self.bindings.push(VertexBinding::new(
-            self.current_binding,
-            0,
-            input_rate,
-        ));
+        self.bindings
+            .push(VertexBinding::new(self.current_binding, 0, input_rate));
         self
     }
 
