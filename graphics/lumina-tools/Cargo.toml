@@ -1,0 +1,20 @@
+[package]
+name = "lumina-tools"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Contributors"]
+description = "LUMINA Development Tools - Revolutionary CLI, profiling, and development utilities"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helixos/helix"
+keywords = ["graphics", "gpu", "cli", "shader", "tools", "profiling"]
+categories = ["development-tools", "command-line-utilities", "graphics"]
+
+[features]
+default = []
+std = []
+ai-assist = []
+
+[dependencies]
+
+[lib]
+crate-type = ["lib"]
