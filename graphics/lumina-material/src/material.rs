@@ -2,7 +2,10 @@
 //!
 //! This module provides the core material abstraction and management.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap, boxed::Box};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 use core::sync::atomic::{AtomicU32, Ordering};
 
@@ -536,8 +539,7 @@ impl MaterialManager {
         };
 
         // Create default material
-        let desc = MaterialDesc::new("default")
-            .shader("pbr");
+        let desc = MaterialDesc::new("default").shader("pbr");
         manager.default_material = manager.create(desc).unwrap_or(MaterialHandle::INVALID);
 
         manager
@@ -743,13 +745,10 @@ impl MaterialBuilder {
 
     /// Add texture.
     pub fn texture(mut self, name: impl Into<String>, texture: u32) -> Self {
-        self.textures.insert(
-            name.into(),
-            TextureBinding {
-                texture,
-                ..Default::default()
-            },
-        );
+        self.textures.insert(name.into(), TextureBinding {
+            texture,
+            ..Default::default()
+        });
         self
     }
 
