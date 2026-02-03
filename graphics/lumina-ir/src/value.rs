@@ -4,8 +4,8 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
-
 use core::fmt;
+
 use crate::types::{IrType, ScalarType};
 
 /// Value identifier
@@ -99,11 +99,11 @@ impl ConstantValue {
             IrType::Vector { element, size } => {
                 let elem = Self::zero(&IrType::Scalar(*element));
                 Self::Vector(vec![elem; size.count() as usize])
-            }
+            },
             IrType::Matrix { element, size } => {
                 let elem = Self::zero(&IrType::Scalar(*element));
                 Self::Matrix(vec![elem; size.component_count() as usize])
-            }
+            },
             IrType::Array(arr) => {
                 if let Some(len) = arr.length {
                     let elem = Self::zero(&arr.element);
@@ -111,11 +111,11 @@ impl ConstantValue {
                 } else {
                     Self::Array(Vec::new())
                 }
-            }
+            },
             IrType::Struct(s) => {
                 let fields = s.fields.iter().map(|f| Self::zero(&f.ty)).collect();
                 Self::Struct(fields)
-            }
+            },
             _ => Self::Null,
         }
     }
@@ -153,7 +153,7 @@ impl ConstantValue {
             Self::Null => true,
             Self::Vector(v) | Self::Matrix(v) | Self::Array(v) | Self::Struct(v) => {
                 v.iter().all(|c| c.is_zero())
-            }
+            },
             Self::Splat(v, _) => v.is_zero(),
             _ => false,
         }
@@ -447,9 +447,14 @@ impl fmt::Display for ConstantValue {
                     write!(f, "{}", c)?;
                 }
                 write!(f, ")")
-            }
+            },
             Self::Matrix(v) => write!(f, "mat({})", v.len()),
-            Self::Array(v) => write!(f, "[{}; {}]", if v.is_empty() { "..." } else { "..." }, v.len()),
+            Self::Array(v) => write!(
+                f,
+                "[{}; {}]",
+                if v.is_empty() { "..." } else { "..." },
+                v.len()
+            ),
             Self::Struct(v) => write!(f, "struct {{ {} fields }}", v.len()),
             Self::Null => write!(f, "null"),
             Self::Splat(v, n) => write!(f, "splat({}, {})", v, n),
@@ -616,7 +621,10 @@ impl ValueTable {
 
     /// Check if a value exists
     pub fn contains(&self, id: ValueId) -> bool {
-        self.values.get(id as usize).map(|v| v.is_some()).unwrap_or(false)
+        self.values
+            .get(id as usize)
+            .map(|v| v.is_some())
+            .unwrap_or(false)
     }
 
     /// Get the type of a value
@@ -721,7 +729,9 @@ impl SpecConstantMap {
 
     /// Get a constant by name
     pub fn get_by_name(&self, name: &str) -> Option<&SpecConstant> {
-        self.constants.iter().find(|c| c.name.as_deref() == Some(name))
+        self.constants
+            .iter()
+            .find(|c| c.name.as_deref() == Some(name))
     }
 
     /// Iterate over all constants
@@ -762,7 +772,7 @@ mod tests {
     fn test_constant_arithmetic() {
         let a = ConstantValue::i32(10);
         let b = ConstantValue::i32(3);
-        
+
         assert_eq!(a.add(&b), Some(ConstantValue::i32(13)));
         assert_eq!(a.sub(&b), Some(ConstantValue::i32(7)));
         assert_eq!(a.mul(&b), Some(ConstantValue::i32(30)));
@@ -772,23 +782,23 @@ mod tests {
     #[test]
     fn test_value_table() {
         let mut table = ValueTable::new();
-        
+
         let id1 = table.create_constant(IrType::i32(), ConstantValue::i32(42));
         let id2 = table.create_instruction(IrType::f32());
-        
+
         assert!(table.contains(id1));
         assert!(table.contains(id2));
         assert_eq!(table.len(), 2);
-        
+
         let val1 = table.get(id1).unwrap();
         assert!(val1.is_constant());
     }
 
     #[test]
     fn test_spec_constant() {
-        let sc = SpecConstant::new(0, IrType::i32(), ConstantValue::i32(16))
-            .with_name("BLOCK_SIZE");
-        
+        let sc =
+            SpecConstant::new(0, IrType::i32(), ConstantValue::i32(16)).with_name("BLOCK_SIZE");
+
         assert_eq!(sc.constant_id, 0);
         assert_eq!(sc.name, Some("BLOCK_SIZE".into()));
     }
