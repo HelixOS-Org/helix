@@ -496,17 +496,15 @@ impl StrategySelector {
         }
 
         let selected = match self.algorithm {
-            SelectionAlgorithm::EpsilonGreedy => {
-                self.epsilon_greedy_select(&applicable, task_type)
-            }
+            SelectionAlgorithm::EpsilonGreedy => self.epsilon_greedy_select(&applicable, task_type),
             SelectionAlgorithm::UCB => self.ucb_select(&applicable),
             SelectionAlgorithm::ThompsonSampling => {
                 self.thompson_sampling_select(&applicable, task_type)
-            }
+            },
             SelectionAlgorithm::Softmax => self.softmax_select(&applicable),
             SelectionAlgorithm::ContextualBandit => {
                 self.contextual_select(&applicable, task_type, budget)
-            }
+            },
             SelectionAlgorithm::BestKnown => self.best_known_select(&applicable, task_type),
         };
 
@@ -536,7 +534,9 @@ impl StrategySelector {
             .max_by(|a, b| {
                 let ucb_a = self.performance.get(a).map(|p| p.ucb).unwrap_or(0.0);
                 let ucb_b = self.performance.get(b).map(|p| p.ucb).unwrap_or(0.0);
-                ucb_a.partial_cmp(&ucb_b).unwrap_or(core::cmp::Ordering::Equal)
+                ucb_a
+                    .partial_cmp(&ucb_b)
+                    .unwrap_or(core::cmp::Ordering::Equal)
             })
             .copied()
     }
@@ -573,7 +573,7 @@ impl StrategySelector {
                 let successes = (tp.avg_reward * tp.count as f64) as u64;
                 let failures = tp.count - successes;
                 (successes as f64 + 1.0, failures as f64 + 1.0)
-            }
+            },
             _ => (1.0, 1.0), // Uniform prior
         };
 
@@ -599,8 +599,7 @@ impl StrategySelector {
 
             if v > 0.0 {
                 let u = self.random();
-                if u < 1.0 - 0.0331 * x.powi(4)
-                    || u.ln() < 0.5 * x.powi(2) + d * (1.0 - v + v.ln())
+                if u < 1.0 - 0.0331 * x.powi(4) || u.ln() < 0.5 * x.powi(2) + d * (1.0 - v + v.ln())
                 {
                     return d * v;
                 }
@@ -680,8 +679,8 @@ impl StrategySelector {
 
                     // Factor in efficiency (inverse of resource usage)
                     if let Some(strategy) = self.strategies.get(&id) {
-                        let time_efficiency =
-                            1.0 - (strategy.resource_requirements.max_time as f64
+                        let time_efficiency = 1.0
+                            - (strategy.resource_requirements.max_time as f64
                                 / budget.max_time as f64)
                                 .min(1.0);
                         score += time_efficiency * 0.3;
@@ -689,7 +688,11 @@ impl StrategySelector {
                 }
 
                 // Exploration bonus for under-used strategies
-                let usage = self.performance.get(&id).map(|p| p.usage_count).unwrap_or(0);
+                let usage = self
+                    .performance
+                    .get(&id)
+                    .map(|p| p.usage_count)
+                    .unwrap_or(0);
                 if usage < MIN_SAMPLES {
                     score += 0.2 * (1.0 - usage as f64 / MIN_SAMPLES as f64);
                 }
@@ -703,7 +706,10 @@ impl StrategySelector {
             return None;
         }
 
-        let max_score = scores.iter().map(|(_, s)| *s).fold(f64::NEG_INFINITY, f64::max);
+        let max_score = scores
+            .iter()
+            .map(|(_, s)| *s)
+            .fold(f64::NEG_INFINITY, f64::max);
         let exp_sum: f64 = scores
             .iter()
             .map(|(_, s)| ((s - max_score) / self.temperature).exp())
@@ -1058,8 +1064,7 @@ mod tests {
 
     #[test]
     fn test_ucb_selection() {
-        let mut selector = StrategySelector::new()
-            .with_algorithm(SelectionAlgorithm::UCB);
+        let mut selector = StrategySelector::new().with_algorithm(SelectionAlgorithm::UCB);
 
         for i in 0..5 {
             let strategy = StrategyFactory::balanced(StrategyId(i));
@@ -1084,11 +1089,11 @@ mod tests {
 
     #[test]
     fn test_composite_strategy() {
-        let pipeline = CompositeStrategy::pipeline(
-            StrategyId(10),
-            String::from("Pipeline"),
-            vec![StrategyId(0), StrategyId(1), StrategyId(2)],
-        );
+        let pipeline = CompositeStrategy::pipeline(StrategyId(10), String::from("Pipeline"), vec![
+            StrategyId(0),
+            StrategyId(1),
+            StrategyId(2),
+        ]);
 
         assert_eq!(pipeline.composition_type, CompositionType::Pipeline);
         assert_eq!(pipeline.components.len(), 3);
