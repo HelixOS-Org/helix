@@ -267,6 +267,21 @@ pub mod ltm;
 /// Continuous learning engine - adaptive learning from feedback
 pub mod learn;
 
+/// Advanced learning algorithms - reinforcement, online, meta, transfer, curriculum
+pub mod learning;
+
+/// Goal-directed planning - hierarchical, temporal, reactive planning
+pub mod planning;
+
+/// Behavior systems - trees, state machines, utility AI, subsumption
+pub mod behavior;
+
+/// Semantic processing - embeddings, similarity, concepts, knowledge bases
+pub mod semantic;
+
+/// Neural network inference - tensors, layers, activations, networks
+pub mod neural;
+
 // ============================================================================
 // YEAR 3 - EVOLUTION: SELF-EVOLUTION & GENETIC ALGORITHMS
 // ============================================================================
