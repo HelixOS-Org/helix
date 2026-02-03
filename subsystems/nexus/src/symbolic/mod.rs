@@ -69,7 +69,9 @@ pub use knowledge_graph::{
     Entity, KernelKnowledgeGraph, KnowledgeGraph, QueryEngine, Relation, Triple,
 };
 pub use ontology::{Individual, KernelOntology, Ontology, OntologyClass, OntologyProperty};
-pub use theorem::{Atom, Clause, KernelInvariant, ProofTrace, Term, TheoremProver};
+pub use theorem::{Atom as TheoremAtom, Clause as TheoremClause, Term as TheoremTerm};
+// Re-export theorem types with aliases to avoid conflicts with local types
+pub use theorem::{KernelInvariant, ProofTrace, TheoremProver};
 
 use crate::math::F64Ext;
 
