@@ -15,36 +15,25 @@
 
 extern crate alloc;
 
-pub mod tree;
-pub mod state_machine;
-pub mod reactive;
-pub mod utility;
 pub mod composite;
+pub mod reactive;
+pub mod state_machine;
+pub mod tree;
+pub mod utility;
 
 // Re-export key types
-pub use tree::{
-    BehaviorTree, BehaviorNode, BehaviorStatus,
-    Selector, Sequence, Parallel, Decorator,
-    TreeExecutor, TreeContext,
-};
-
-pub use state_machine::{
-    State, StateId, Transition, TransitionCondition,
-    StateMachine, HierarchicalStateMachine,
-    StateContext, StateEvent,
-};
-
+pub use composite::{BehaviorBlend, BehaviorComposite, BehaviorLayer, CompositeExecutor};
 pub use reactive::{
-    Stimulus, StimulusId, Response, ResponseId,
-    ReactiveBehavior, ReactiveLayer, BehaviorPriority,
+    BehaviorPriority, ReactiveBehavior, ReactiveLayer, Response, ResponseId, Stimulus, StimulusId,
 };
-
+pub use state_machine::{
+    HierarchicalStateMachine, State, StateContext, StateEvent, StateId, StateMachine, Transition,
+    TransitionCondition,
+};
+pub use tree::{
+    BehaviorNode, BehaviorStatus, BehaviorTree, Decorator, Parallel, Selector, Sequence,
+    TreeContext, TreeExecutor,
+};
 pub use utility::{
-    Consideration, ConsiderationId, UtilityCurve,
-    UtilityAction, UtilitySelector, ReasonerAI,
-};
-
-pub use composite::{
-    BehaviorComposite, BehaviorBlend, BehaviorLayer,
-    CompositeExecutor,
+    Consideration, ConsiderationId, ReasonerAI, UtilityAction, UtilityCurve, UtilitySelector,
 };
