@@ -5,12 +5,11 @@
 //! - Shader variants
 //! - Material instances
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::{AssetId, AssetResult};
 
 /// Material definition
@@ -269,11 +268,11 @@ impl MaterialInstance {
             texture_overrides: BTreeMap::new(),
         }
     }
-    
+
     pub fn set_property(&mut self, name: &str, value: PropertyValue) {
         self.property_overrides.insert(name.into(), value);
     }
-    
+
     pub fn set_texture(&mut self, name: &str, texture: TextureRef) {
         self.texture_overrides.insert(name.into(), texture);
     }
@@ -290,20 +289,20 @@ impl MaterialCompiler {
             templates: BTreeMap::new(),
         }
     }
-    
+
     /// Register a material template
     pub fn register_template(&mut self, name: &str, template: MaterialTemplate) {
         self.templates.insert(name.into(), template);
     }
-    
+
     /// Compile a material to GPU data
     pub fn compile(&self, material: &Material) -> AssetResult<CompiledMaterial> {
         // Pack properties into uniform buffer
         let uniform_data = pack_properties(&material.properties);
-        
+
         // Generate texture bindings
         let mut texture_bindings = Vec::new();
-        
+
         if let Some(ref tex) = material.textures.albedo {
             texture_bindings.push(TextureBinding {
                 slot: 0,
@@ -339,10 +338,10 @@ impl MaterialCompiler {
                 sampler: tex.sampler.clone(),
             });
         }
-        
+
         // Determine shader variant
         let shader_variant = determine_shader_variant(material);
-        
+
         Ok(CompiledMaterial {
             shader: material.shader,
             shader_variant,
@@ -496,36 +495,36 @@ pub enum PolygonMode {
 
 fn pack_properties(props: &MaterialProperties) -> Vec<u8> {
     let mut data = Vec::with_capacity(256);
-    
+
     // Pack albedo
     for &v in &props.albedo {
         data.extend_from_slice(&v.to_le_bytes());
     }
-    
+
     // Pack metallic/roughness/reflectance
     data.extend_from_slice(&props.metallic.to_le_bytes());
     data.extend_from_slice(&props.roughness.to_le_bytes());
     data.extend_from_slice(&props.reflectance.to_le_bytes());
     data.extend_from_slice(&0.0f32.to_le_bytes()); // Padding
-    
+
     // Pack emission
     for &v in &props.emission {
         data.extend_from_slice(&v.to_le_bytes());
     }
     data.extend_from_slice(&props.emission_strength.to_le_bytes());
-    
+
     // Pack various strengths
     data.extend_from_slice(&props.normal_strength.to_le_bytes());
     data.extend_from_slice(&props.ao_strength.to_le_bytes());
     data.extend_from_slice(&props.height_scale.to_le_bytes());
     data.extend_from_slice(&props.alpha_cutoff.to_le_bytes());
-    
+
     data
 }
 
 fn determine_shader_variant(material: &Material) -> u32 {
     let mut variant = 0u32;
-    
+
     if material.textures.normal.is_some() {
         variant |= 1 << 0;
     }
@@ -541,7 +540,7 @@ fn determine_shader_variant(material: &Material) -> u32 {
     if material.properties.anisotropy != 0.0 {
         variant |= 1 << 4;
     }
-    
+
     variant
 }
 
@@ -626,8 +625,12 @@ fn compile_depth_stencil_state(domain: MaterialDomain) -> DepthStencilState {
 }
 
 fn compile_rasterizer_state(cull: CullMode, flags: MaterialFlags) -> RasterizerState {
-    let cull_mode = if flags.double_sided { CullMode::None } else { cull };
-    
+    let cull_mode = if flags.double_sided {
+        CullMode::None
+    } else {
+        cull
+    };
+
     RasterizerState {
         cull_mode,
         front_face: FrontFace::CounterClockwise,
