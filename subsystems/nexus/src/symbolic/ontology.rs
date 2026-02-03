@@ -18,8 +18,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -501,8 +500,12 @@ impl Ontology {
 
         ontology.classes.insert(ClassId::THING, thing);
         ontology.classes.insert(ClassId::NOTHING, nothing);
-        ontology.class_names.insert(String::from("owl:Thing"), ClassId::THING);
-        ontology.class_names.insert(String::from("owl:Nothing"), ClassId::NOTHING);
+        ontology
+            .class_names
+            .insert(String::from("owl:Thing"), ClassId::THING);
+        ontology
+            .class_names
+            .insert(String::from("owl:Nothing"), ClassId::NOTHING);
 
         ontology
     }
@@ -773,7 +776,8 @@ impl Ontology {
 
         // Initialize all classes
         for &id in self.classes.keys() {
-            self.class_hierarchy.insert(id, ClassHierarchyInfo::default());
+            self.class_hierarchy
+                .insert(id, ClassHierarchyInfo::default());
         }
 
         // Compute transitive superclasses for each class
@@ -1195,10 +1199,12 @@ impl KernelOntology {
         ontology.set_property_domain(has_pid, process);
         ontology.make_functional(has_pid);
 
-        let has_priority = ontology.add_data_property(String::from("hasPriority"), DataType::Integer);
+        let has_priority =
+            ontology.add_data_property(String::from("hasPriority"), DataType::Integer);
         ontology.set_property_domain(has_priority, task);
 
-        let has_memory_usage = ontology.add_data_property(String::from("hasMemoryUsage"), DataType::Integer);
+        let has_memory_usage =
+            ontology.add_data_property(String::from("hasMemoryUsage"), DataType::Integer);
         ontology.set_property_domain(has_memory_usage, task);
 
         let classes = KernelClasses {
@@ -1265,11 +1271,8 @@ impl KernelOntology {
     pub fn add_thread(&mut self, name: &str, parent: IndividualId) -> IndividualId {
         let id = self.ontology.add_individual(String::from(name));
         self.ontology.add_type_assertion(id, self.classes.thread);
-        self.ontology.add_object_property_assertion(
-            parent,
-            self.properties.child_process,
-            id,
-        );
+        self.ontology
+            .add_object_property_assertion(parent, self.properties.child_process, id);
         id
     }
 
@@ -1282,20 +1285,14 @@ impl KernelOntology {
 
     /// Record lock hold
     pub fn record_lock_held(&mut self, holder: IndividualId, lock: IndividualId) {
-        self.ontology.add_object_property_assertion(
-            holder,
-            self.properties.holds_lock,
-            lock,
-        );
+        self.ontology
+            .add_object_property_assertion(holder, self.properties.holds_lock, lock);
     }
 
     /// Record lock wait
     pub fn record_lock_wait(&mut self, waiter: IndividualId, lock: IndividualId) {
-        self.ontology.add_object_property_assertion(
-            waiter,
-            self.properties.waits_for_lock,
-            lock,
-        );
+        self.ontology
+            .add_object_property_assertion(waiter, self.properties.waits_for_lock, lock);
     }
 
     /// Query all processes
