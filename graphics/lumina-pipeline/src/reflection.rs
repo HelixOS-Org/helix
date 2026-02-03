@@ -3,7 +3,9 @@
 //! This module provides comprehensive shader reflection utilities for
 //! extracting metadata from SPIR-V shaders.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // Resource Types
@@ -168,10 +170,13 @@ impl TypeKind {
                 } else {
                     element_type.size() * *element_count
                 }
-            }
+            },
             Self::RuntimeArray { .. } => 0, // Unknown size
             Self::Struct(s) => s.size,
-            Self::Image(_) | Self::Sampler | Self::SampledImage(_) | Self::AccelerationStructure => 0,
+            Self::Image(_)
+            | Self::Sampler
+            | Self::SampledImage(_)
+            | Self::AccelerationStructure => 0,
         }
     }
 }
@@ -454,7 +459,7 @@ bitflags::bitflags! {
         /// Mesh (mesh shading).
         const MESH = 0x0080;
         /// All graphics stages.
-        const ALL_GRAPHICS = Self::VERTEX.bits() | Self::FRAGMENT.bits() 
+        const ALL_GRAPHICS = Self::VERTEX.bits() | Self::FRAGMENT.bits()
             | Self::GEOMETRY.bits() | Self::TESS_CONTROL.bits() | Self::TESS_EVAL.bits();
         /// All stages.
         const ALL = 0xFFFFFFFF;
@@ -755,12 +760,12 @@ impl ProgramReflection {
     /// Add a shader stage.
     pub fn add_stage(&mut self, reflection: ShaderReflection) {
         let stage = reflection.stage;
-        
+
         // Merge vertex inputs
         if stage == ShaderStageFlags::VERTEX {
             self.vertex_inputs = reflection.vertex_inputs.clone();
         }
-        
+
         // Merge fragment outputs
         if stage == ShaderStageFlags::FRAGMENT {
             self.fragment_outputs = reflection.fragment_outputs.clone();
@@ -768,9 +773,11 @@ impl ProgramReflection {
 
         // Merge bindings
         for binding in &reflection.bindings {
-            if !self.bindings.iter().any(|b| {
-                b.set == binding.set && b.binding == binding.binding
-            }) {
+            if !self
+                .bindings
+                .iter()
+                .any(|b| b.set == binding.set && b.binding == binding.binding)
+            {
                 self.bindings.push(binding.clone());
             }
         }
@@ -779,7 +786,9 @@ impl ProgramReflection {
         for pc in &reflection.push_constants {
             if !self.push_constants.iter().any(|p| p.name == pc.name) {
                 self.push_constants.push(pc.clone());
-            } else if let Some(existing) = self.push_constants.iter_mut().find(|p| p.name == pc.name) {
+            } else if let Some(existing) =
+                self.push_constants.iter_mut().find(|p| p.name == pc.name)
+            {
                 // Merge stages
                 existing.stages |= pc.stages;
             }
@@ -823,7 +832,7 @@ pub fn is_spirv(data: &[u8]) -> bool {
     if data.len() < 4 {
         return false;
     }
-    
+
     let magic = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
     magic == 0x07230203
 }
@@ -833,7 +842,7 @@ pub fn spirv_version(data: &[u8]) -> Option<(u8, u8)> {
     if data.len() < 8 || !is_spirv(data) {
         return None;
     }
-    
+
     let version = u32::from_le_bytes([data[4], data[5], data[6], data[7]]);
     let major = ((version >> 16) & 0xFF) as u8;
     let minor = ((version >> 8) & 0xFF) as u8;
