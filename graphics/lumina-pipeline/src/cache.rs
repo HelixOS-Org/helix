@@ -6,7 +6,9 @@
 //! - Cache statistics
 //! - Automatic cache management
 
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 
 // ============================================================================
@@ -230,7 +232,11 @@ impl PipelineCache {
     }
 
     /// Create with device info.
-    pub fn with_device_info(config: CacheConfig, device_uuid: [u8; 16], driver_version: u32) -> Self {
+    pub fn with_device_info(
+        config: CacheConfig,
+        device_uuid: [u8; 16],
+        driver_version: u32,
+    ) -> Self {
         Self {
             config,
             entries: Vec::new(),
@@ -384,7 +390,12 @@ impl PipelineCache {
             return Err(CacheError::InvalidMagic);
         }
 
-        let version = u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]]);
+        let version = u32::from_le_bytes([
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+        ]);
         offset += 4;
 
         if version != self.config.cache_version {
@@ -400,7 +411,12 @@ impl PipelineCache {
             return Err(CacheError::DeviceMismatch);
         }
 
-        let driver_version = u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]]);
+        let driver_version = u32::from_le_bytes([
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+        ]);
         offset += 4;
 
         if self.config.validate_cache && driver_version != self.driver_version {
@@ -408,7 +424,12 @@ impl PipelineCache {
             return Err(CacheError::DriverMismatch);
         }
 
-        let entry_count = u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]]);
+        let entry_count = u32::from_le_bytes([
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+        ]);
         offset += 4;
 
         // Read entries
@@ -418,12 +439,23 @@ impl PipelineCache {
             }
 
             let hash = u64::from_le_bytes([
-                data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
-                data[offset + 4], data[offset + 5], data[offset + 6], data[offset + 7],
+                data[offset],
+                data[offset + 1],
+                data[offset + 2],
+                data[offset + 3],
+                data[offset + 4],
+                data[offset + 5],
+                data[offset + 6],
+                data[offset + 7],
             ]);
             offset += 8;
 
-            let size = u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]]) as usize;
+            let size = u32::from_le_bytes([
+                data[offset],
+                data[offset + 1],
+                data[offset + 2],
+                data[offset + 3],
+            ]) as usize;
             offset += 4;
 
             if offset + size > data.len() {
