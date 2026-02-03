@@ -38,10 +38,9 @@
 //! material_data.albedo_index = tex_handle.index();
 //! ```
 
-use core::sync::atomic::{AtomicU32, Ordering};
-
 #[cfg(feature = "alloc")]
-use alloc::{vec::Vec, boxed::Box};
+use alloc::{boxed::Box, vec::Vec};
+use core::sync::atomic::{AtomicU32, Ordering};
 
 use crate::error::{Error, Result};
 
@@ -69,7 +68,11 @@ impl BindlessHandle {
     };
 
     /// Create a new handle
-    pub(crate) const fn new(index: u32, generation: u16, resource_type: BindlessResourceType) -> Self {
+    pub(crate) const fn new(
+        index: u32,
+        generation: u16,
+        resource_type: BindlessResourceType,
+    ) -> Self {
         Self {
             index,
             generation,
@@ -104,9 +107,7 @@ impl BindlessHandle {
     /// Pack into a u64 for storage
     #[inline]
     pub const fn pack(&self) -> u64 {
-        ((self.resource_type as u64) << 48)
-            | ((self.generation as u64) << 32)
-            | (self.index as u64)
+        ((self.resource_type as u64) << 48) | ((self.generation as u64) << 32) | (self.index as u64)
     }
 
     /// Unpack from a u64
@@ -139,11 +140,11 @@ impl Default for BindlessHandle {
 #[repr(u8)]
 pub enum BindlessResourceType {
     /// Sampler
-    Sampler = 0,
+    Sampler       = 0,
     /// Combined image sampler or sampled image
-    SampledImage = 1,
+    SampledImage  = 1,
     /// Storage image (read/write)
-    StorageImage = 2,
+    StorageImage  = 2,
     /// Uniform buffer
     UniformBuffer = 3,
     /// Storage buffer
@@ -280,7 +281,7 @@ impl SlotAllocator {
     pub fn new(capacity: u32, resource_type: BindlessResourceType) -> Self {
         let capacity = capacity.min(Self::MAX_SLOTS as u32);
         let mut slots = [Slot::default(); Self::MAX_SLOTS];
-        
+
         // Initialize free list
         for i in 0..capacity as usize {
             slots[i].next_free = if i + 1 < capacity as usize {
@@ -307,13 +308,17 @@ impl SlotAllocator {
 
         let index = self.free_head;
         let slot = &mut self.slots[index as usize];
-        
+
         self.free_head = slot.next_free;
         slot.allocated = true;
         slot.next_free = u32::MAX;
         self.allocated_count += 1;
 
-        Ok(BindlessHandle::new(index, slot.generation, self.resource_type))
+        Ok(BindlessHandle::new(
+            index,
+            slot.generation,
+            self.resource_type,
+        ))
     }
 
     /// Free a slot
@@ -323,7 +328,7 @@ impl SlotAllocator {
         }
 
         let slot = &mut self.slots[handle.index as usize];
-        
+
         if !slot.allocated {
             return Err(Error::InvalidHandle);
         }
@@ -400,23 +405,33 @@ impl BindlessHeap {
                 BindlessResourceType::Sampler,
             ),
             sampled_image_allocator: SlotAllocator::new(
-                config.max_sampled_images.min(SlotAllocator::MAX_SLOTS as u32),
+                config
+                    .max_sampled_images
+                    .min(SlotAllocator::MAX_SLOTS as u32),
                 BindlessResourceType::SampledImage,
             ),
             storage_image_allocator: SlotAllocator::new(
-                config.max_storage_images.min(SlotAllocator::MAX_SLOTS as u32),
+                config
+                    .max_storage_images
+                    .min(SlotAllocator::MAX_SLOTS as u32),
                 BindlessResourceType::StorageImage,
             ),
             uniform_buffer_allocator: SlotAllocator::new(
-                config.max_uniform_buffers.min(SlotAllocator::MAX_SLOTS as u32),
+                config
+                    .max_uniform_buffers
+                    .min(SlotAllocator::MAX_SLOTS as u32),
                 BindlessResourceType::UniformBuffer,
             ),
             storage_buffer_allocator: SlotAllocator::new(
-                config.max_storage_buffers.min(SlotAllocator::MAX_SLOTS as u32),
+                config
+                    .max_storage_buffers
+                    .min(SlotAllocator::MAX_SLOTS as u32),
                 BindlessResourceType::StorageBuffer,
             ),
             accel_struct_allocator: SlotAllocator::new(
-                config.max_acceleration_structures.min(SlotAllocator::MAX_SLOTS as u32),
+                config
+                    .max_acceleration_structures
+                    .min(SlotAllocator::MAX_SLOTS as u32),
                 BindlessResourceType::AccelerationStructure,
             ),
             config,
@@ -486,7 +501,9 @@ impl BindlessHeap {
             BindlessResourceType::StorageImage => self.storage_image_allocator.is_valid(handle),
             BindlessResourceType::UniformBuffer => self.uniform_buffer_allocator.is_valid(handle),
             BindlessResourceType::StorageBuffer => self.storage_buffer_allocator.is_valid(handle),
-            BindlessResourceType::AccelerationStructure => self.accel_struct_allocator.is_valid(handle),
+            BindlessResourceType::AccelerationStructure => {
+                self.accel_struct_allocator.is_valid(handle)
+            },
         }
     }
 
@@ -601,9 +618,7 @@ pub enum BindlessWriteData {
         range: u64,
     },
     /// Acceleration structure
-    AccelerationStructure {
-        acceleration_structure: u64,
-    },
+    AccelerationStructure { acceleration_structure: u64 },
 }
 
 /// Image layout for descriptor writes
@@ -680,9 +695,7 @@ impl BindlessIndices {
 
     /// Check if all indices are valid
     pub fn is_valid(&self) -> bool {
-        self.albedo != u32::MAX
-            && self.normal != u32::MAX
-            && self.roughness_metallic != u32::MAX
+        self.albedo != u32::MAX && self.normal != u32::MAX && self.roughness_metallic != u32::MAX
     }
 }
 
