@@ -299,7 +299,8 @@ impl ComputePipelineCreateInfo {
 
     /// With specialization constant
     pub fn with_spec_const(mut self, id: u32, value: SpecConstValue) -> Self {
-        self.specialization.push(SpecializationConstant { id, value });
+        self.specialization
+            .push(SpecializationConstant { id, value });
         self
     }
 
@@ -453,19 +454,19 @@ impl DispatchIndirectCommand {
 #[repr(u32)]
 pub enum ReductionOp {
     /// Sum
-    Sum = 0,
+    Sum     = 0,
     /// Product
     Product = 1,
     /// Min
-    Min = 2,
+    Min     = 2,
     /// Max
-    Max = 3,
+    Max     = 3,
     /// And
-    And = 4,
+    And     = 4,
     /// Or
-    Or = 5,
+    Or      = 5,
     /// Xor
-    Xor = 6,
+    Xor     = 6,
 }
 
 /// Scan direction
@@ -474,7 +475,7 @@ pub enum ReductionOp {
 pub enum ScanDirection {
     /// Prefix (exclusive)
     #[default]
-    Prefix = 0,
+    Prefix    = 0,
     /// Inclusive
     Inclusive = 1,
 }
@@ -674,12 +675,20 @@ pub struct ImageDimensions {
 impl ImageDimensions {
     /// Creates 2D dimensions
     pub const fn d2(width: u32, height: u32) -> Self {
-        Self { width, height, depth: 1 }
+        Self {
+            width,
+            height,
+            depth: 1,
+        }
     }
 
     /// Creates 3D dimensions
     pub const fn d3(width: u32, height: u32, depth: u32) -> Self {
-        Self { width, height, depth }
+        Self {
+            width,
+            height,
+            depth,
+        }
     }
 
     /// Calculates dispatch for work group
@@ -790,9 +799,9 @@ pub enum BlitFilter {
     Nearest = 0,
     /// Bilinear
     #[default]
-    Linear = 1,
+    Linear  = 1,
     /// Cubic
-    Cubic = 2,
+    Cubic   = 2,
 }
 
 /// Convolution kernel
@@ -838,11 +847,7 @@ impl ConvolutionKernel {
     /// Creates Gaussian blur kernel (3x3)
     pub fn gaussian_3x3() -> Self {
         Self {
-            data: alloc::vec![
-                1.0, 2.0, 1.0,
-                2.0, 4.0, 2.0,
-                1.0, 2.0, 1.0,
-            ],
+            data: alloc::vec![1.0, 2.0, 1.0, 2.0, 4.0, 2.0, 1.0, 2.0, 1.0,],
             width: 3,
             height: 3,
             divisor: 16.0,
@@ -854,11 +859,8 @@ impl ConvolutionKernel {
     pub fn gaussian_5x5() -> Self {
         Self {
             data: alloc::vec![
-                1.0, 4.0, 6.0, 4.0, 1.0,
-                4.0, 16.0, 24.0, 16.0, 4.0,
-                6.0, 24.0, 36.0, 24.0, 6.0,
-                4.0, 16.0, 24.0, 16.0, 4.0,
-                1.0, 4.0, 6.0, 4.0, 1.0,
+                1.0, 4.0, 6.0, 4.0, 1.0, 4.0, 16.0, 24.0, 16.0, 4.0, 6.0, 24.0, 36.0, 24.0, 6.0,
+                4.0, 16.0, 24.0, 16.0, 4.0, 1.0, 4.0, 6.0, 4.0, 1.0,
             ],
             width: 5,
             height: 5,
@@ -870,11 +872,7 @@ impl ConvolutionKernel {
     /// Creates sharpen kernel
     pub fn sharpen() -> Self {
         Self {
-            data: alloc::vec![
-                0.0, -1.0, 0.0,
-                -1.0, 5.0, -1.0,
-                0.0, -1.0, 0.0,
-            ],
+            data: alloc::vec![0.0, -1.0, 0.0, -1.0, 5.0, -1.0, 0.0, -1.0, 0.0,],
             width: 3,
             height: 3,
             divisor: 1.0,
@@ -885,11 +883,7 @@ impl ConvolutionKernel {
     /// Creates edge detection kernel (Sobel X)
     pub fn sobel_x() -> Self {
         Self {
-            data: alloc::vec![
-                -1.0, 0.0, 1.0,
-                -2.0, 0.0, 2.0,
-                -1.0, 0.0, 1.0,
-            ],
+            data: alloc::vec![-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0,],
             width: 3,
             height: 3,
             divisor: 1.0,
@@ -900,11 +894,7 @@ impl ConvolutionKernel {
     /// Creates edge detection kernel (Sobel Y)
     pub fn sobel_y() -> Self {
         Self {
-            data: alloc::vec![
-                -1.0, -2.0, -1.0,
-                0.0, 0.0, 0.0,
-                1.0, 2.0, 1.0,
-            ],
+            data: alloc::vec![-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0,],
             width: 3,
             height: 3,
             divisor: 1.0,
@@ -915,11 +905,7 @@ impl ConvolutionKernel {
     /// Creates emboss kernel
     pub fn emboss() -> Self {
         Self {
-            data: alloc::vec![
-                -2.0, -1.0, 0.0,
-                -1.0, 1.0, 1.0,
-                0.0, 1.0, 2.0,
-            ],
+            data: alloc::vec![-2.0, -1.0, 0.0, -1.0, 1.0, 1.0, 0.0, 1.0, 2.0,],
             width: 3,
             height: 3,
             divisor: 1.0,
@@ -1000,11 +986,11 @@ impl MipmapParams {
 pub enum MipmapFilter {
     /// Box filter
     #[default]
-    Box = 0,
+    Box      = 0,
     /// Triangle filter
     Triangle = 1,
     /// Kaiser filter
-    Kaiser = 2,
+    Kaiser   = 2,
 }
 
 // ============================================================================
