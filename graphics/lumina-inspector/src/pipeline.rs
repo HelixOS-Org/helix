@@ -2,14 +2,12 @@
 //!
 //! Deep inspection of GPU pipelines with state visualization.
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
-use crate::resource::{ShaderStage, CompareOp};
+use crate::resource::{CompareOp, ShaderStage};
 
 /// Pipeline inspector
 pub struct PipelineInspector {
@@ -22,12 +20,12 @@ impl PipelineInspector {
             pipelines: BTreeMap::new(),
         }
     }
-    
+
     /// Track a pipeline
     pub fn track(&mut self, id: u64, state: PipelineState) {
         self.pipelines.insert(id, state);
     }
-    
+
     /// Get pipeline info
     pub fn get(&self, id: u64) -> Option<PipelineInfo> {
         self.pipelines.get(&id).map(|s| PipelineInfo {
@@ -35,13 +33,13 @@ impl PipelineInspector {
             state: s.clone(),
         })
     }
-    
+
     /// Analyze pipeline for issues
     pub fn analyze(&self, id: u64) -> Option<PipelineAnalysis> {
         let state = self.pipelines.get(&id)?;
         let mut issues = Vec::new();
         let mut suggestions = Vec::new();
-        
+
         // Check for common issues
         if let PipelineState::Graphics(ref gfx) = state {
             // Check for expensive blend modes
@@ -57,23 +55,31 @@ impl PipelineInspector {
                     }
                 }
             }
-            
+
             // Check depth testing
-            if !gfx.depth_stencil_state.depth_test_enable && gfx.depth_stencil_state.depth_write_enable {
-                issues.push(String::from("Depth write enabled without depth test - writes will be ignored"));
+            if !gfx.depth_stencil_state.depth_test_enable
+                && gfx.depth_stencil_state.depth_write_enable
+            {
+                issues.push(String::from(
+                    "Depth write enabled without depth test - writes will be ignored",
+                ));
             }
-            
+
             // Check for multisampling without resolve
             if gfx.multisample_state.rasterization_samples > 1 {
-                suggestions.push(String::from("Consider using sample shading for better quality"));
+                suggestions.push(String::from(
+                    "Consider using sample shading for better quality",
+                ));
             }
-            
+
             // Check for expensive rasterizer modes
             if gfx.rasterization_state.polygon_mode != PolygonMode::Fill {
-                suggestions.push(String::from("Non-fill polygon mode detected - may impact performance"));
+                suggestions.push(String::from(
+                    "Non-fill polygon mode detected - may impact performance",
+                ));
             }
         }
-        
+
         Some(PipelineAnalysis {
             pipeline_id: id,
             issues,
@@ -81,12 +87,12 @@ impl PipelineInspector {
             estimated_cost: estimate_pipeline_cost(state),
         })
     }
-    
+
     /// Compare two pipelines
     pub fn diff(&self, id_a: u64, id_b: u64) -> Option<PipelineDiff> {
         let a = self.pipelines.get(&id_a)?;
         let b = self.pipelines.get(&id_b)?;
-        
+
         Some(diff_pipelines(a, b))
     }
 }
@@ -499,32 +505,32 @@ fn estimate_pipeline_cost(state: &PipelineState) -> PipelineCost {
             let mut vertex_cost = 1.0;
             let mut fragment_cost = 1.0;
             let mut state_cost = 0.0;
-            
+
             // Tessellation adds cost
             if gfx.tessellation_state.is_some() {
                 vertex_cost += 0.5;
             }
-            
+
             // Multisampling adds cost
             fragment_cost *= gfx.multisample_state.rasterization_samples as f32;
-            
+
             // Blending adds cost
             for blend in &gfx.blend_state.attachments {
                 if blend.blend_enable {
                     fragment_cost += 0.1;
                 }
             }
-            
+
             // Dynamic state reduces switch cost
             state_cost = 1.0 - (gfx.dynamic_state.len() as f32 * 0.05);
-            
+
             PipelineCost {
                 vertex_cost,
                 fragment_cost,
                 state_switch_cost: state_cost.max(0.1),
                 overall: vertex_cost + fragment_cost + state_cost,
             }
-        }
+        },
         PipelineState::Compute(_) => PipelineCost {
             vertex_cost: 0.0,
             fragment_cost: 0.0,
@@ -553,12 +559,11 @@ fn diff_pipelines(a: &PipelineState, b: &PipelineState) -> PipelineDiff {
         (PipelineState::Graphics(ga), PipelineState::Graphics(gb)) => {
             let mut changed_stages = Vec::new();
             let mut changed_state = Vec::new();
-            
+
             // Compare shader stages
             for stage_a in &ga.shader_stages {
-                let stage_b = gb.shader_stages.iter()
-                    .find(|s| s.stage == stage_a.stage);
-                
+                let stage_b = gb.shader_stages.iter().find(|s| s.stage == stage_a.stage);
+
                 if let Some(sb) = stage_b {
                     if stage_a.module_id != sb.module_id {
                         changed_stages.push(stage_a.stage);
@@ -567,21 +572,22 @@ fn diff_pipelines(a: &PipelineState, b: &PipelineState) -> PipelineDiff {
                     changed_stages.push(stage_a.stage);
                 }
             }
-            
+
             // Compare states
             if ga.rasterization_state.cull_mode != gb.rasterization_state.cull_mode {
                 changed_state.push(String::from("cull_mode"));
             }
-            if ga.depth_stencil_state.depth_test_enable != gb.depth_stencil_state.depth_test_enable {
+            if ga.depth_stencil_state.depth_test_enable != gb.depth_stencil_state.depth_test_enable
+            {
                 changed_state.push(String::from("depth_test"));
             }
-            
+
             PipelineDiff {
                 changed_stages,
                 changed_state,
                 compatible: ga.layout_id == gb.layout_id,
             }
-        }
+        },
         _ => PipelineDiff {
             changed_stages: Vec::new(),
             changed_state: vec![String::from("pipeline_type")],
