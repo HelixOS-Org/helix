@@ -1,0 +1,32 @@
+[package]
+name = "nexus-cognition"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "NEXUS Cognition - Code Understanding, Causal Reasoning, Self-Explanation"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+documentation = "https://docs.helix-os.dev/nexus-cognition"
+keywords = ["kernel", "ai", "cognition", "reasoning", "understanding"]
+categories = ["os", "no-std", "ai"]
+
+[features]
+default = ["understanding", "reasoning", "explanation", "knowledge"]
+std = []
+alloc = []
+
+# Cognition modules
+understanding = []     # Code understanding
+reasoning = []         # Causal reasoning
+explanation = []       # Self-explanation
+knowledge = []         # Knowledge graph
+
+# Advanced features
+symbolic = []          # Symbolic reasoning
+neural = []            # Neural reasoning hybrid
+verification = []      # Formal verification integration
+
+[dependencies]
+# nexus-core = { path = "../core", default-features = false }
+
+[dev-dependencies]
