@@ -2,8 +2,11 @@
 //!
 //! GPU command queue abstraction for submission and synchronization.
 
-use alloc::{string::String, vec::Vec, collections::VecDeque, sync::Arc};
-use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use alloc::collections::VecDeque;
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use bitflags::bitflags;
 use lumina_core::Handle;
@@ -19,11 +22,11 @@ use crate::device::{QueueCapabilities, QueueType};
 #[repr(u8)]
 pub enum QueuePriority {
     /// Low priority (background tasks).
-    Low = 0,
+    Low      = 0,
     /// Normal priority (default).
-    Normal = 1,
+    Normal   = 1,
     /// High priority (important tasks).
-    High = 2,
+    High     = 2,
     /// Realtime priority (time-critical).
     Realtime = 3,
 }
@@ -387,7 +390,11 @@ impl SubmissionTracker {
     }
 
     /// Remove completed submissions.
-    pub fn retire_completed(&mut self, queue_index: usize, completed_value: u64) -> Vec<PendingSubmission> {
+    pub fn retire_completed(
+        &mut self,
+        queue_index: usize,
+        completed_value: u64,
+    ) -> Vec<PendingSubmission> {
         let mut retired = Vec::new();
 
         if queue_index < self.pending.len() {
