@@ -2,11 +2,14 @@
 //!
 //! Importers for various asset formats.
 
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use crate::{
-    AssetResult, AssetError, AssetErrorKind, AssetId, AssetType, AssetMetadata,
-    ImportSettings, ImportedAsset, ImportedData, ImportedTexture, ImportedMesh,
-    ImportedMaterial, ImportedVertex, Submesh, MeshBounds, TextureFormat, Importer,
+    AssetError, AssetErrorKind, AssetId, AssetMetadata, AssetResult, AssetType, ImportSettings,
+    ImportedAsset, ImportedData, ImportedMaterial, ImportedMesh, ImportedTexture, ImportedVertex,
+    Importer, MeshBounds, Submesh, TextureFormat,
 };
 
 /// PNG/JPEG image importer
@@ -28,7 +31,7 @@ impl Importer for ImageImporter {
             array_layers: 1,
             is_cubemap: false,
         };
-        
+
         Ok(ImportedAsset {
             asset_type: AssetType::Texture,
             metadata: AssetMetadata {
@@ -46,7 +49,7 @@ impl Importer for ImageImporter {
             data: ImportedData::Texture(texture),
         })
     }
-    
+
     fn supported_extensions(&self) -> &[&str] {
         &["png", "jpg", "jpeg", "bmp", "tga", "hdr", "exr"]
     }
@@ -105,7 +108,7 @@ impl Importer for GltfImporter {
             },
             skeleton: None,
         };
-        
+
         Ok(ImportedAsset {
             asset_type: AssetType::Mesh,
             metadata: AssetMetadata {
@@ -123,7 +126,7 @@ impl Importer for GltfImporter {
             data: ImportedData::Mesh(mesh),
         })
     }
-    
+
     fn supported_extensions(&self) -> &[&str] {
         &["gltf", "glb"]
     }
@@ -135,9 +138,12 @@ pub struct FbxImporter;
 impl Importer for FbxImporter {
     fn import(&self, path: &str, _settings: &ImportSettings) -> AssetResult<ImportedAsset> {
         // Would parse FBX
-        Err(AssetError::new(AssetErrorKind::ImportError, "FBX import not implemented"))
+        Err(AssetError::new(
+            AssetErrorKind::ImportError,
+            "FBX import not implemented",
+        ))
     }
-    
+
     fn supported_extensions(&self) -> &[&str] {
         &["fbx"]
     }
@@ -151,7 +157,7 @@ impl Importer for ObjImporter {
         // Would parse OBJ/MTL
         GltfImporter.import(path, settings) // Fallback for demo
     }
-    
+
     fn supported_extensions(&self) -> &[&str] {
         &["obj"]
     }
@@ -163,7 +169,7 @@ pub struct HlslImporter;
 impl Importer for HlslImporter {
     fn import(&self, path: &str, _settings: &ImportSettings) -> AssetResult<ImportedAsset> {
         use crate::{ImportedShader, ShaderStageSource, ShaderStageType};
-        
+
         let shader = ImportedShader {
             name: extract_name(path),
             stages: vec![
@@ -181,7 +187,7 @@ impl Importer for HlslImporter {
             defines: alloc::collections::BTreeMap::new(),
             includes: Vec::new(),
         };
-        
+
         Ok(ImportedAsset {
             asset_type: AssetType::Shader,
             metadata: AssetMetadata {
@@ -199,7 +205,7 @@ impl Importer for HlslImporter {
             data: ImportedData::Shader(shader),
         })
     }
-    
+
     fn supported_extensions(&self) -> &[&str] {
         &["hlsl", "hlsli"]
     }
@@ -212,14 +218,15 @@ impl Importer for GlslImporter {
     fn import(&self, path: &str, settings: &ImportSettings) -> AssetResult<ImportedAsset> {
         HlslImporter.import(path, settings)
     }
-    
+
     fn supported_extensions(&self) -> &[&str] {
         &["glsl", "vert", "frag", "comp", "geom", "tesc", "tese"]
     }
 }
 
 fn extract_name(path: &str) -> String {
-    path.rsplit('/').next()
+    path.rsplit('/')
+        .next()
         .and_then(|s| s.rsplit('.').last())
         .unwrap_or("unnamed")
         .into()
