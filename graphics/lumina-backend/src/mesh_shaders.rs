@@ -27,7 +27,8 @@
 //! └────────────────────────────────────────────────────────────────────┘
 //! ```
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt;
 
 use crate::buffer::BufferHandle;
@@ -70,7 +71,12 @@ impl Meshlet {
     pub const MAX_PRIMITIVES: u32 = 126;
 
     /// Create a new meshlet.
-    pub fn new(vertex_offset: u32, triangle_offset: u32, vertex_count: u32, triangle_count: u32) -> Self {
+    pub fn new(
+        vertex_offset: u32,
+        triangle_offset: u32,
+        vertex_count: u32,
+        triangle_count: u32,
+    ) -> Self {
         Self {
             vertex_offset,
             triangle_offset,
@@ -160,12 +166,14 @@ impl MeshletBounds {
             view_pos[1] - self.cone_apex[1],
             view_pos[2] - self.cone_apex[2],
         ];
-        let len = (to_apex[0] * to_apex[0] + to_apex[1] * to_apex[1] + to_apex[2] * to_apex[2]).sqrt();
+        let len =
+            (to_apex[0] * to_apex[0] + to_apex[1] * to_apex[1] + to_apex[2] * to_apex[2]).sqrt();
         if len < 0.0001 {
             return false;
         }
         let dir = [to_apex[0] / len, to_apex[1] / len, to_apex[2] / len];
-        let dot = dir[0] * self.cone_axis[0] + dir[1] * self.cone_axis[1] + dir[2] * self.cone_axis[2];
+        let dot =
+            dir[0] * self.cone_axis[0] + dir[1] * self.cone_axis[1] + dir[2] * self.cone_axis[2];
         dot < self.cone_cutoff
     }
 }
@@ -210,12 +218,7 @@ impl MeshletMesh {
     }
 
     /// Add a meshlet.
-    pub fn add_meshlet(
-        &mut self,
-        vertices: &[u32],
-        triangles: &[[u8; 3]],
-        bounds: MeshletBounds,
-    ) {
+    pub fn add_meshlet(&mut self, vertices: &[u32], triangles: &[[u8; 3]], bounds: MeshletBounds) {
         let vertex_offset = self.vertex_indices.len() as u32;
         let triangle_offset = self.triangle_indices.len() as u32;
 
@@ -285,11 +288,7 @@ impl MeshletGenerator {
     }
 
     /// Generate meshlets from triangle mesh.
-    pub fn generate(
-        &self,
-        vertices: &[[f32; 3]],
-        indices: &[u32],
-    ) -> MeshletMesh {
+    pub fn generate(&self, vertices: &[[f32; 3]], indices: &[u32]) -> MeshletMesh {
         let mut result = MeshletMesh::new();
         let triangle_count = indices.len() / 3;
 
@@ -775,11 +774,7 @@ impl MeshShaderManager {
     }
 
     /// Generate meshlets from mesh.
-    pub fn generate_meshlets(
-        &self,
-        vertices: &[[f32; 3]],
-        indices: &[u32],
-    ) -> MeshletMesh {
+    pub fn generate_meshlets(&self, vertices: &[[f32; 3]], indices: &[u32]) -> MeshletMesh {
         self.generator.generate(vertices, indices)
     }
 
