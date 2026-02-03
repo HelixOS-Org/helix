@@ -3,7 +3,7 @@
 //! This module provides specialization constant support for shader customization
 //! at pipeline creation time.
 
-use alloc::{vec::Vec};
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 
 // ============================================================================
@@ -247,7 +247,11 @@ impl SpecializationConstants {
 
     /// Update a constant value.
     pub fn set(&mut self, constant_id: u32, value: SpecializationValue) -> bool {
-        if let Some(entry) = self.entries.iter_mut().find(|e| e.constant_id == constant_id) {
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.constant_id == constant_id)
+        {
             entry.value = value;
             entry.size = value.size() as u32;
             self.pack_data();
@@ -307,43 +311,50 @@ impl SpecializationBuilder {
 
     /// Add a boolean constant.
     pub fn bool(mut self, constant_id: u32, value: bool) -> Self {
-        self.entries.push(SpecializationEntry::bool(constant_id, value));
+        self.entries
+            .push(SpecializationEntry::bool(constant_id, value));
         self
     }
 
     /// Add an i32 constant.
     pub fn int32(mut self, constant_id: u32, value: i32) -> Self {
-        self.entries.push(SpecializationEntry::int32(constant_id, value));
+        self.entries
+            .push(SpecializationEntry::int32(constant_id, value));
         self
     }
 
     /// Add a u32 constant.
     pub fn uint32(mut self, constant_id: u32, value: u32) -> Self {
-        self.entries.push(SpecializationEntry::uint32(constant_id, value));
+        self.entries
+            .push(SpecializationEntry::uint32(constant_id, value));
         self
     }
 
     /// Add an f32 constant.
     pub fn float32(mut self, constant_id: u32, value: f32) -> Self {
-        self.entries.push(SpecializationEntry::float32(constant_id, value));
+        self.entries
+            .push(SpecializationEntry::float32(constant_id, value));
         self
     }
 
     /// Add an i64 constant.
     pub fn int64(mut self, constant_id: u32, value: i64) -> Self {
-        self.entries.push(SpecializationEntry::int64(constant_id, value));
+        self.entries
+            .push(SpecializationEntry::int64(constant_id, value));
         self
     }
 
     /// Add a u64 constant.
     pub fn uint64(mut self, constant_id: u32, value: u64) -> Self {
-        self.entries.push(SpecializationEntry::uint64(constant_id, value));
+        self.entries
+            .push(SpecializationEntry::uint64(constant_id, value));
         self
     }
 
     /// Add an f64 constant.
     pub fn float64(mut self, constant_id: u32, value: f64) -> Self {
-        self.entries.push(SpecializationEntry::float64(constant_id, value));
+        self.entries
+            .push(SpecializationEntry::float64(constant_id, value));
         self
     }
 
