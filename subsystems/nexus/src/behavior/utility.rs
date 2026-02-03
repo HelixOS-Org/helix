@@ -5,12 +5,10 @@
 
 #![allow(dead_code)]
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // Core Types
@@ -104,24 +102,18 @@ pub enum UtilityCurve {
 impl UtilityCurve {
     pub fn evaluate(&self, x: f64) -> f64 {
         let result = match self {
-            Self::Linear { slope, intercept } => {
-                slope * x + intercept
-            }
-            Self::Quadratic { a, b, c } => {
-                a * x * x + b * x + c
-            }
-            Self::Exponential { a, k } => {
-                a * libm::exp(*k * x)
-            }
-            Self::Logistic { k, x0 } => {
-                1.0 / (1.0 + libm::exp(-k * (x - x0)))
-            }
-            Self::InverseLogistic { k, x0 } => {
-                1.0 - 1.0 / (1.0 + libm::exp(-k * (x - x0)))
-            }
+            Self::Linear { slope, intercept } => slope * x + intercept,
+            Self::Quadratic { a, b, c } => a * x * x + b * x + c,
+            Self::Exponential { a, k } => a * libm::exp(*k * x),
+            Self::Logistic { k, x0 } => 1.0 / (1.0 + libm::exp(-k * (x - x0))),
+            Self::InverseLogistic { k, x0 } => 1.0 - 1.0 / (1.0 + libm::exp(-k * (x - x0))),
             Self::Step { threshold } => {
-                if x >= *threshold { 1.0 } else { 0.0 }
-            }
+                if x >= *threshold {
+                    1.0
+                } else {
+                    0.0
+                }
+            },
             Self::SmoothStep { edge0, edge1 } => {
                 if x <= *edge0 {
                     0.0
@@ -131,7 +123,7 @@ impl UtilityCurve {
                     let t = (x - edge0) / (edge1 - edge0);
                     t * t * (3.0 - 2.0 * t)
                 }
-            }
+            },
             Self::Constant(v) => *v,
             Self::LookupTable(table) => {
                 if table.is_empty() {
@@ -147,12 +139,12 @@ impl UtilityCurve {
                 // Find interval and interpolate
                 for i in 1..table.len() {
                     if x < table[i].0 {
-                        let t = (x - table[i-1].0) / (table[i].0 - table[i-1].0);
-                        return table[i-1].1 + t * (table[i].1 - table[i-1].1);
+                        let t = (x - table[i - 1].0) / (table[i].0 - table[i - 1].0);
+                        return table[i - 1].1 + t * (table[i].1 - table[i - 1].1);
                     }
                 }
                 table[table.len() - 1].1
-            }
+            },
         };
 
         // Clamp to [0, 1]
@@ -242,11 +234,7 @@ pub struct UtilityAction {
 }
 
 impl UtilityAction {
-    pub fn new<F>(
-        id: ActionId,
-        name: impl Into<String>,
-        action: F,
-    ) -> Self
+    pub fn new<F>(id: ActionId, name: impl Into<String>, action: F) -> Self
     where
         F: Fn(&UtilityContext) + Send + Sync + 'static,
     {
@@ -397,7 +385,9 @@ impl UtilitySelector {
 
     /// Calculate all scores and return sorted list
     pub fn evaluate_all(&self, ctx: &UtilityContext) -> Vec<(ActionId, f64)> {
-        let mut scores: Vec<(ActionId, f64)> = self.actions.iter()
+        let mut scores: Vec<(ActionId, f64)> = self
+            .actions
+            .iter()
             .filter(|a| a.is_enabled)
             .map(|a| (a.id, a.calculate_score(ctx)))
             .filter(|(_, score)| *score >= self.min_score_threshold)
@@ -416,9 +406,7 @@ impl UtilitySelector {
         }
 
         let selected = match self.strategy {
-            SelectionStrategy::Highest => {
-                scores.first().map(|(id, _)| *id)
-            }
+            SelectionStrategy::Highest => scores.first().map(|(id, _)| *id),
             SelectionStrategy::WeightedRandom => {
                 let total: f64 = scores.iter().map(|(_, s)| s).sum();
                 if total <= 0.0 {
@@ -436,7 +424,7 @@ impl UtilitySelector {
                 }
 
                 scores.last().map(|(id, _)| *id)
-            }
+            },
             SelectionStrategy::TopN(n) => {
                 let top_n: Vec<_> = scores.iter().take(n).collect();
                 if top_n.is_empty() {
@@ -445,12 +433,11 @@ impl UtilitySelector {
 
                 let idx = (self.random_u64() as usize) % top_n.len();
                 Some(top_n[idx].0)
-            }
+            },
             SelectionStrategy::Threshold(threshold_fixed) => {
                 let threshold = threshold_fixed as f64 / 1000.0;
-                let above_threshold: Vec<_> = scores.iter()
-                    .filter(|(_, s)| *s >= threshold)
-                    .collect();
+                let above_threshold: Vec<_> =
+                    scores.iter().filter(|(_, s)| *s >= threshold).collect();
 
                 if above_threshold.is_empty() {
                     return None;
@@ -458,7 +445,7 @@ impl UtilitySelector {
 
                 // Select highest among those above threshold
                 above_threshold.first().map(|(id, _)| *id)
-            }
+            },
         };
 
         self.last_selected = selected;
@@ -556,7 +543,8 @@ impl ReasonerAI {
         let action_id = selector.select(ctx)?;
 
         // Record decision
-        let score = scores.iter()
+        let score = scores
+            .iter()
             .find(|(id, _)| *id == action_id)
             .map(|(_, s)| *s)
             .unwrap_or(0.0);
@@ -634,13 +622,9 @@ pub fn create_kernel_memory_selector() -> UtilitySelector {
     let mut selector = UtilitySelector::new(SelectionStrategy::Highest);
 
     // Reclaim memory action
-    let reclaim_action = UtilityAction::new(
-        ActionId::new(1),
-        "ReclaimMemory",
-        |_ctx| {
-            // In real kernel: trigger memory reclamation
-        },
-    )
+    let reclaim_action = UtilityAction::new(ActionId::new(1), "ReclaimMemory", |_ctx| {
+        // In real kernel: trigger memory reclamation
+    })
     .with_consideration(Consideration::new(
         ConsiderationId::new(1),
         "MemoryPressure",
@@ -656,13 +640,9 @@ pub fn create_kernel_memory_selector() -> UtilitySelector {
     .with_cooldown(1000);
 
     // Compact memory action
-    let compact_action = UtilityAction::new(
-        ActionId::new(2),
-        "CompactMemory",
-        |_ctx| {
-            // In real kernel: trigger memory compaction
-        },
-    )
+    let compact_action = UtilityAction::new(ActionId::new(2), "CompactMemory", |_ctx| {
+        // In real kernel: trigger memory compaction
+    })
     .with_consideration(Consideration::new(
         ConsiderationId::new(3),
         "Fragmentation",
@@ -678,13 +658,9 @@ pub fn create_kernel_memory_selector() -> UtilitySelector {
     .with_cooldown(5000);
 
     // Swap out action
-    let swap_action = UtilityAction::new(
-        ActionId::new(3),
-        "SwapOut",
-        |_ctx| {
-            // In real kernel: swap out cold pages
-        },
-    )
+    let swap_action = UtilityAction::new(ActionId::new(3), "SwapOut", |_ctx| {
+        // In real kernel: swap out cold pages
+    })
     .with_consideration(Consideration::new(
         ConsiderationId::new(5),
         "HighPressure",
@@ -711,13 +687,9 @@ pub fn create_kernel_cpu_selector() -> UtilitySelector {
     let mut selector = UtilitySelector::new(SelectionStrategy::Highest);
 
     // Migrate tasks action
-    let migrate_action = UtilityAction::new(
-        ActionId::new(10),
-        "MigrateTasks",
-        |_ctx| {
-            // In real kernel: balance tasks across CPUs
-        },
-    )
+    let migrate_action = UtilityAction::new(ActionId::new(10), "MigrateTasks", |_ctx| {
+        // In real kernel: balance tasks across CPUs
+    })
     .with_consideration(Consideration::new(
         ConsiderationId::new(10),
         "LoadImbalance",
@@ -727,13 +699,9 @@ pub fn create_kernel_cpu_selector() -> UtilitySelector {
     .with_cooldown(500);
 
     // Throttle background action
-    let throttle_action = UtilityAction::new(
-        ActionId::new(11),
-        "ThrottleBackground",
-        |_ctx| {
-            // In real kernel: reduce background task priority
-        },
-    )
+    let throttle_action = UtilityAction::new(ActionId::new(11), "ThrottleBackground", |_ctx| {
+        // In real kernel: reduce background task priority
+    })
     .with_consideration(Consideration::new(
         ConsiderationId::new(11),
         "HighCpuLoad",
@@ -749,13 +717,9 @@ pub fn create_kernel_cpu_selector() -> UtilitySelector {
     .with_cooldown(1000);
 
     // Boost interactive action
-    let boost_action = UtilityAction::new(
-        ActionId::new(12),
-        "BoostInteractive",
-        |_ctx| {
-            // In real kernel: increase interactive task priority
-        },
-    )
+    let boost_action = UtilityAction::new(ActionId::new(12), "BoostInteractive", |_ctx| {
+        // In real kernel: increase interactive task priority
+    })
     .with_consideration(Consideration::new(
         ConsiderationId::new(13),
         "InteractiveWaiting",
@@ -791,7 +755,10 @@ mod tests {
 
     #[test]
     fn test_utility_curve_linear() {
-        let curve = UtilityCurve::Linear { slope: 1.0, intercept: 0.0 };
+        let curve = UtilityCurve::Linear {
+            slope: 1.0,
+            intercept: 0.0,
+        };
         assert!((curve.evaluate(0.5) - 0.5).abs() < 1e-9);
     }
 
