@@ -10,7 +10,8 @@
 //! - **Sampler Feedback**: Texture streaming optimization
 //! - **Wave Intrinsics**: Subgroup operations
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use crate::buffer::BufferHandle;
@@ -538,7 +539,10 @@ impl AsyncComputeManager {
     }
 
     /// Get queue by priority.
-    pub fn queue_by_priority(&mut self, priority: ComputePriority) -> Option<&mut AsyncComputeQueue> {
+    pub fn queue_by_priority(
+        &mut self,
+        priority: ComputePriority,
+    ) -> Option<&mut AsyncComputeQueue> {
         self.queues.iter_mut().find(|q| q.priority == priority)
     }
 
@@ -731,7 +735,8 @@ impl AdvancedFeaturesManager {
     pub fn initialize(&mut self, features: AdvancedFeatures) {
         self.features = features;
         self.vrs.initialize(features.vrs);
-        self.async_compute.initialize(features.async_compute_queues, 16);
+        self.async_compute
+            .initialize(features.async_compute_queues, 16);
     }
 
     /// Get features.
