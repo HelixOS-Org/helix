@@ -38,16 +38,19 @@
 
 extern crate alloc;
 
-pub mod understanding;
-pub mod reasoning;
 pub mod explanation;
-pub mod knowledge;
-pub mod symbolic;
 pub mod inference;
+pub mod knowledge;
 pub mod proof;
 pub mod query;
+pub mod reasoning;
+pub mod symbolic;
+pub mod understanding;
 
-use alloc::{string::String, vec::Vec, boxed::Box, collections::BTreeMap};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// NEXUS Cognition Engine - The brain that understands and reasons
 pub struct CognitionEngine {
@@ -80,23 +83,23 @@ impl CognitionEngine {
             stats: CognitionStats::default(),
         }
     }
-    
+
     /// Understand a piece of code
     pub fn understand_code(&mut self, source: &str) -> UnderstandingResult {
         self.stats.understanding_queries += 1;
-        
+
         // Parse the code
         let ast = self.understanding.parse(source);
-        
+
         // Extract semantic meaning
         let semantics = self.understanding.extract_semantics(&ast);
-        
+
         // Identify invariants
         let invariants = self.understanding.extract_invariants(&ast);
-        
+
         // Update knowledge graph
         self.knowledge.integrate_code(&ast, &semantics);
-        
+
         UnderstandingResult {
             ast,
             semantics,
@@ -104,23 +107,23 @@ impl CognitionEngine {
             complexity: self.understanding.analyze_complexity(source),
         }
     }
-    
+
     /// Answer a causal query: "Why did X happen?"
     pub fn why(&mut self, event: &Event) -> CausalExplanation {
         self.stats.causal_queries += 1;
-        
+
         // Find causal chain leading to event
         let chain = self.reasoning.find_causal_chain(event);
-        
+
         // Identify root cause
         let root_cause = self.reasoning.identify_root_cause(&chain);
-        
+
         // Generate counterfactuals
         let counterfactuals = self.reasoning.generate_counterfactuals(event);
-        
+
         // Create human-readable explanation
         let explanation = self.explanation.explain_causation(&chain, &root_cause);
-        
+
         CausalExplanation {
             chain,
             root_cause,
@@ -129,20 +132,20 @@ impl CognitionEngine {
             confidence: self.reasoning.confidence(&chain),
         }
     }
-    
+
     /// Predict: "What will happen if X?"
     pub fn what_if(&mut self, hypothesis: &Hypothesis) -> PredictionResult {
         self.stats.prediction_queries += 1;
-        
+
         // Simulate the hypothesis
         let simulation = self.reasoning.simulate(hypothesis);
-        
+
         // Analyze potential outcomes
         let outcomes = self.reasoning.analyze_outcomes(&simulation);
-        
+
         // Assess risks
         let risks = self.reasoning.assess_risks(&outcomes);
-        
+
         PredictionResult {
             simulation,
             outcomes,
@@ -150,32 +153,32 @@ impl CognitionEngine {
             recommendation: self.reasoning.recommend(&outcomes, &risks),
         }
     }
-    
+
     /// Query the knowledge graph
     pub fn query(&self, query: &str) -> QueryResult {
         self.knowledge.query(query)
     }
-    
+
     /// Explain a decision made by NEXUS
     pub fn explain_decision(&mut self, decision: &Decision) -> Explanation {
         self.stats.explanation_queries += 1;
         self.explanation.explain(decision)
     }
-    
+
     /// Learn from an observation
     pub fn learn(&mut self, observation: &Observation) {
         self.stats.observations += 1;
-        
+
         // Update causal model
         self.reasoning.update_model(observation);
-        
+
         // Update knowledge graph
         self.knowledge.integrate_observation(observation);
-        
+
         // Refine understanding
         self.understanding.refine(observation);
     }
-    
+
     /// Get statistics
     pub fn stats(&self) -> &CognitionStats {
         &self.stats
