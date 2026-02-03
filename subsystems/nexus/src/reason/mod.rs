@@ -27,13 +27,13 @@ extern crate alloc;
 pub mod chain;
 pub mod counterfactual;
 pub mod cql;
+pub mod event_calculus;
 pub mod events;
 pub mod explanation;
 pub mod graph;
 pub mod intelligence;
-pub mod types;
 pub mod temporal;
-pub mod event_calculus;
+pub mod types;
 
 // Re-export types
 // Re-export chain
@@ -45,6 +45,11 @@ pub use counterfactual::{
 };
 // Re-export cql
 pub use cql::{CqlEngine, CqlQuery, CqlResult};
+// Re-export event calculus
+pub use event_calculus::{
+    Action, ActionId, Event, EventCalculus, EventId, Fluent, FluentId, FluentTimeline, FluentType,
+    FluentValue, KernelEventCalculus, KernelState, Narrative,
+};
 // Re-export events
 pub use events::{CausalEvent, CausalEventType, EventSeverity};
 // Re-export explanation
@@ -54,11 +59,6 @@ pub use graph::{CausalEdge, CausalGraph, CausalNode, CausalRelationType};
 // Re-export intelligence
 pub use intelligence::{CausalReasoningAnalysis, CausalReasoningIntelligence};
 pub use types::{CausalEdgeId, CausalEventId, CausalNodeId, ChainId, QueryId};
-// Re-export event calculus
-pub use event_calculus::{
-    EventCalculus, Fluent, FluentId, FluentType, FluentValue, Event, EventId,
-    Action, ActionId, Narrative, FluentTimeline, KernelEventCalculus, KernelState,
-};
 
 #[cfg(test)]
 mod tests {
