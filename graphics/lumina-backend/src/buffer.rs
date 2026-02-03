@@ -2,7 +2,8 @@
 //!
 //! Buffer creation, mapping, and memory management.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use bitflags::bitflags;
@@ -313,7 +314,11 @@ pub struct BufferView {
 impl BufferView {
     /// Create a new buffer view.
     pub fn new(buffer: BufferHandle, offset: u64, size: u64) -> Self {
-        Self { buffer, offset, size }
+        Self {
+            buffer,
+            offset,
+            size,
+        }
     }
 
     /// Create view of entire buffer.
