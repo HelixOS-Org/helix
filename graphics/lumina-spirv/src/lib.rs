@@ -64,10 +64,16 @@ pub mod types;
 pub mod validate;
 
 // Re-exports
-pub use binary::*;
+pub use binary::{BinaryDecoder, BinaryEncoder, Header, SectionedBinaryWriter};
 pub use builder::SpirVBuilder;
+pub use disasm::{disassemble, disassemble_bytes, Disassembler, DisassemblerOptions};
+pub use instruction::{Instruction, Operand};
 pub use module::SpirVModule;
-pub use reflect::Reflection;
+pub use opcode::Opcode;
+pub use optimizer::{OptimizationLevel, OptimizerConfig, SpirVOptimizer};
+pub use reflect::ShaderReflection;
+pub use types::{LayoutRules, SpirVType, TypeRegistry};
+pub use validate::{validate_binary, validate_bytes, ValidationResult, Validator};
 
 /// SPIR-V magic number
 pub const SPIRV_MAGIC: u32 = 0x07230203;
