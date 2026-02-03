@@ -3,7 +3,10 @@
 //! This module provides GPU-accelerated procedural texture generation
 //! including noise functions, patterns, and texture synthesis.
 
-use alloc::{string::String, vec::Vec, boxed::Box, collections::BTreeMap};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::f32::consts::PI;
 
 // ============================================================================
@@ -445,8 +448,14 @@ impl Default for GradientParams {
         Self {
             mode: GradientMode::Linear,
             stops: vec![
-                GradientStop { position: 0.0, color: [0.0, 0.0, 0.0, 1.0] },
-                GradientStop { position: 1.0, color: [1.0, 1.0, 1.0, 1.0] },
+                GradientStop {
+                    position: 0.0,
+                    color: [0.0, 0.0, 0.0, 1.0],
+                },
+                GradientStop {
+                    position: 1.0,
+                    color: [1.0, 1.0, 1.0, 1.0],
+                },
             ],
             angle: 0.0,
             center: [0.5, 0.5],
@@ -584,7 +593,7 @@ impl TextureGenerator {
 
         // Initialize permutation table
         let mut p: [u8; 256] = core::array::from_fn(|i| i as u8);
-        
+
         // Fisher-Yates shuffle with LCG
         let mut rng = seed;
         for i in (1..256).rev() {
@@ -599,10 +608,22 @@ impl TextureGenerator {
 
         // Initialize gradients
         let gradients = [
-            [1.0, 1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
-            [1.0, 0.0, 1.0], [-1.0, 0.0, 1.0], [1.0, 0.0, -1.0], [-1.0, 0.0, -1.0],
-            [0.0, 1.0, 1.0], [0.0, -1.0, 1.0], [0.0, 1.0, -1.0], [0.0, -1.0, -1.0],
-            [1.0, 1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, -1.0, 1.0], [0.0, -1.0, -1.0],
+            [1.0, 1.0, 0.0],
+            [-1.0, 1.0, 0.0],
+            [1.0, -1.0, 0.0],
+            [-1.0, -1.0, 0.0],
+            [1.0, 0.0, 1.0],
+            [-1.0, 0.0, 1.0],
+            [1.0, 0.0, -1.0],
+            [-1.0, 0.0, -1.0],
+            [0.0, 1.0, 1.0],
+            [0.0, -1.0, 1.0],
+            [0.0, 1.0, -1.0],
+            [0.0, -1.0, -1.0],
+            [1.0, 1.0, 0.0],
+            [-1.0, 1.0, 0.0],
+            [0.0, -1.0, 1.0],
+            [0.0, -1.0, -1.0],
         ];
         grad = gradients;
 
@@ -618,7 +639,14 @@ impl TextureGenerator {
         // Process each layer
         for layer in &texture.layers {
             let layer_data = self.generate_layer(layer, texture.width, texture.height);
-            self.blend_layer(&mut data, &layer_data, layer, texture.width, texture.height, channels);
+            self.blend_layer(
+                &mut data,
+                &layer_data,
+                layer,
+                texture.width,
+                texture.height,
+                channels,
+            );
         }
 
         data
@@ -632,22 +660,22 @@ impl TextureGenerator {
         match &layer.layer_type {
             LayerType::Noise(params) => {
                 self.generate_noise(&mut data, params, width, height);
-            }
+            },
             LayerType::Pattern(params) => {
                 self.generate_pattern(&mut data, params, width, height);
-            }
+            },
             LayerType::Gradient(params) => {
                 self.generate_gradient(&mut data, params, width, height);
-            }
+            },
             LayerType::Warp(_params) => {
                 // Warp would be applied to existing data
-            }
+            },
             LayerType::Filter(_params) => {
                 // Filters applied to existing data
-            }
+            },
             LayerType::Combine(_params) => {
                 // Combine multiple layers
-            }
+            },
         }
 
         data
@@ -715,12 +743,28 @@ impl TextureGenerator {
         let bab = self.hash(xi + 1, yi, zi + 1);
         let bbb = self.hash(xi + 1, yi + 1, zi + 1);
 
-        let x1 = Self::lerp(self.grad_3d(aaa, xf, yf, zf), self.grad_3d(baa, xf - 1.0, yf, zf), u);
-        let x2 = Self::lerp(self.grad_3d(aba, xf, yf - 1.0, zf), self.grad_3d(bba, xf - 1.0, yf - 1.0, zf), u);
+        let x1 = Self::lerp(
+            self.grad_3d(aaa, xf, yf, zf),
+            self.grad_3d(baa, xf - 1.0, yf, zf),
+            u,
+        );
+        let x2 = Self::lerp(
+            self.grad_3d(aba, xf, yf - 1.0, zf),
+            self.grad_3d(bba, xf - 1.0, yf - 1.0, zf),
+            u,
+        );
         let y1 = Self::lerp(x1, x2, v);
 
-        let x1 = Self::lerp(self.grad_3d(aab, xf, yf, zf - 1.0), self.grad_3d(bab, xf - 1.0, yf, zf - 1.0), u);
-        let x2 = Self::lerp(self.grad_3d(abb, xf, yf - 1.0, zf - 1.0), self.grad_3d(bbb, xf - 1.0, yf - 1.0, zf - 1.0), u);
+        let x1 = Self::lerp(
+            self.grad_3d(aab, xf, yf, zf - 1.0),
+            self.grad_3d(bab, xf - 1.0, yf, zf - 1.0),
+            u,
+        );
+        let x2 = Self::lerp(
+            self.grad_3d(abb, xf, yf - 1.0, zf - 1.0),
+            self.grad_3d(bbb, xf - 1.0, yf - 1.0, zf - 1.0),
+            u,
+        );
         let y2 = Self::lerp(x1, x2, v);
 
         Self::lerp(y1, y2, w)
@@ -830,7 +874,8 @@ impl TextureGenerator {
         let mut max_value = 0.0;
 
         for _ in 0..params.octaves {
-            value += self.sample_noise(params.noise_type, x * frequency, y * frequency, 0.0) * amplitude;
+            value +=
+                self.sample_noise(params.noise_type, x * frequency, y * frequency, 0.0) * amplitude;
             max_value += amplitude;
             amplitude *= params.gain;
             frequency *= params.lacunarity;
@@ -923,7 +968,13 @@ impl TextureGenerator {
     }
 
     /// Generate gradient.
-    fn generate_gradient(&self, data: &mut [f32], params: &GradientParams, width: u32, height: u32) {
+    fn generate_gradient(
+        &self,
+        data: &mut [f32],
+        params: &GradientParams,
+        width: u32,
+        height: u32,
+    ) {
         let cos_a = params.angle.cos();
         let sin_a = params.angle.sin();
 
@@ -936,36 +987,40 @@ impl TextureGenerator {
                     GradientMode::Linear => {
                         let ru = (u - 0.5) * cos_a - (v - 0.5) * sin_a + 0.5;
                         ru
-                    }
+                    },
                     GradientMode::Radial => {
                         let dx = u - params.center[0];
                         let dy = v - params.center[1];
                         (dx * dx + dy * dy).sqrt()
-                    }
+                    },
                     GradientMode::Angular => {
                         let dx = u - params.center[0];
                         let dy = v - params.center[1];
                         (dy.atan2(dx) / PI + 1.0) * 0.5
-                    }
+                    },
                     GradientMode::Diamond => {
                         let dx = (u - params.center[0]).abs();
                         let dy = (v - params.center[1]).abs();
                         dx + dy
-                    }
+                    },
                     GradientMode::Conical => {
                         let dx = u - params.center[0];
                         let dy = v - params.center[1];
                         dy.atan2(dx) / (2.0 * PI) + 0.5
-                    }
+                    },
                     GradientMode::Spherical => {
                         let dx = u - params.center[0];
                         let dy = v - params.center[1];
                         let d = (dx * dx + dy * dy).sqrt();
                         (1.0 - (d * PI).cos()) * 0.5
-                    }
+                    },
                 };
 
-                let t = if params.repeat { t.fract() } else { t.clamp(0.0, 1.0) };
+                let t = if params.repeat {
+                    t.fract()
+                } else {
+                    t.clamp(0.0, 1.0)
+                };
                 let color = self.sample_gradient(&params.stops, t);
 
                 let idx = ((y * width + x) * 4) as usize;
@@ -1026,7 +1081,11 @@ impl TextureGenerator {
         if smooth > 0.0 {
             Self::smoothstep(0.5 - smooth, 0.5 + smooth, f)
         } else {
-            if f < 0.5 { 0.0 } else { 1.0 }
+            if f < 0.5 {
+                0.0
+            } else {
+                1.0
+            }
         }
     }
 
@@ -1036,12 +1095,20 @@ impl TextureGenerator {
         let line_u = if smooth > 0.0 {
             1.0 - Self::smoothstep(0.0, smooth, fu.min(1.0 - fu))
         } else {
-            if fu < 0.1 || fu > 0.9 { 1.0 } else { 0.0 }
+            if fu < 0.1 || fu > 0.9 {
+                1.0
+            } else {
+                0.0
+            }
         };
         let line_v = if smooth > 0.0 {
             1.0 - Self::smoothstep(0.0, smooth, fv.min(1.0 - fv))
         } else {
-            if fv < 0.1 || fv > 0.9 { 1.0 } else { 0.0 }
+            if fv < 0.1 || fv > 0.9 {
+                1.0
+            } else {
+                0.0
+            }
         };
         line_u.max(line_v)
     }
@@ -1051,17 +1118,25 @@ impl TextureGenerator {
         let offset = if row & 1 == 1 { 0.5 } else { 0.0 };
         let bu = (u + offset).fract();
         let bv = v.fract();
-        
+
         let mortar = 0.05;
         let mx = if smooth > 0.0 {
             1.0 - Self::smoothstep(0.0, smooth, (bu.min(1.0 - bu) - mortar).max(0.0))
         } else {
-            if bu < mortar || bu > 1.0 - mortar { 1.0 } else { 0.0 }
+            if bu < mortar || bu > 1.0 - mortar {
+                1.0
+            } else {
+                0.0
+            }
         };
         let my = if smooth > 0.0 {
             1.0 - Self::smoothstep(0.0, smooth, (bv.min(1.0 - bv) - mortar).max(0.0))
         } else {
-            if bv < mortar || bv > 1.0 - mortar { 1.0 } else { 0.0 }
+            if bv < mortar || bv > 1.0 - mortar {
+                1.0
+            } else {
+                0.0
+            }
         };
 
         1.0 - mx.max(my)
@@ -1085,7 +1160,11 @@ impl TextureGenerator {
         if smooth > 0.0 {
             1.0 - Self::smoothstep(radius - smooth, radius + smooth, d)
         } else {
-            if d < radius { 1.0 } else { 0.0 }
+            if d < radius {
+                1.0
+            } else {
+                0.0
+            }
         }
     }
 
@@ -1101,7 +1180,11 @@ impl TextureGenerator {
         if smooth > 0.0 {
             1.0 - Self::smoothstep(0.0, smooth, d - 0.05)
         } else {
-            if d < 0.05 { 1.0 } else { 0.0 }
+            if d < 0.05 {
+                1.0
+            } else {
+                0.0
+            }
         }
     }
 
@@ -1143,11 +1226,17 @@ impl TextureGenerator {
                             } else {
                                 1.0 - 2.0 * (1.0 - src) * (1.0 - dst)
                             }
-                        }
+                        },
                         BlendMode::Add => (src + dst).min(1.0),
                         BlendMode::Subtract => (dst - src).max(0.0),
                         BlendMode::Difference => (src - dst).abs(),
-                        BlendMode::Divide => if src > 0.0 { dst / src } else { 1.0 },
+                        BlendMode::Divide => {
+                            if src > 0.0 {
+                                dst / src
+                            } else {
+                                1.0
+                            }
+                        },
                         BlendMode::Darken => src.min(dst),
                         BlendMode::Lighten => src.max(dst),
                         _ => src,
@@ -1222,7 +1311,12 @@ impl ProceduralPresets {
                 blend_mode: BlendMode::Normal,
                 opacity: 1.0,
                 mask: None,
-                channel_map: [ChannelSource::R, ChannelSource::R, ChannelSource::R, ChannelSource::One],
+                channel_map: [
+                    ChannelSource::R,
+                    ChannelSource::R,
+                    ChannelSource::R,
+                    ChannelSource::One,
+                ],
             }],
             channels: TextureChannels::RGBA,
             hdr: false,
@@ -1241,7 +1335,12 @@ impl ProceduralPresets {
                 blend_mode: BlendMode::Normal,
                 opacity: 1.0,
                 mask: None,
-                channel_map: [ChannelSource::R, ChannelSource::G, ChannelSource::B, ChannelSource::A],
+                channel_map: [
+                    ChannelSource::R,
+                    ChannelSource::G,
+                    ChannelSource::B,
+                    ChannelSource::A,
+                ],
             }],
             channels: TextureChannels::RGBA,
             hdr: false,
@@ -1265,7 +1364,12 @@ impl ProceduralPresets {
                 blend_mode: BlendMode::Normal,
                 opacity: 1.0,
                 mask: None,
-                channel_map: [ChannelSource::R, ChannelSource::G, ChannelSource::B, ChannelSource::A],
+                channel_map: [
+                    ChannelSource::R,
+                    ChannelSource::G,
+                    ChannelSource::B,
+                    ChannelSource::A,
+                ],
             }],
             channels: TextureChannels::RGBA,
             hdr: false,
@@ -1287,7 +1391,12 @@ impl ProceduralPresets {
                 blend_mode: BlendMode::Normal,
                 opacity: 1.0,
                 mask: None,
-                channel_map: [ChannelSource::R, ChannelSource::G, ChannelSource::B, ChannelSource::A],
+                channel_map: [
+                    ChannelSource::R,
+                    ChannelSource::G,
+                    ChannelSource::B,
+                    ChannelSource::A,
+                ],
             }],
             channels: TextureChannels::RGBA,
             hdr: false,
@@ -1308,7 +1417,12 @@ impl ProceduralPresets {
                     blend_mode: BlendMode::Normal,
                     opacity: 1.0,
                     mask: None,
-                    channel_map: [ChannelSource::R, ChannelSource::R, ChannelSource::R, ChannelSource::One],
+                    channel_map: [
+                        ChannelSource::R,
+                        ChannelSource::R,
+                        ChannelSource::R,
+                        ChannelSource::One,
+                    ],
                 },
                 // Normal map filter
                 ProceduralLayer {
@@ -1319,7 +1433,12 @@ impl ProceduralPresets {
                     blend_mode: BlendMode::Normal,
                     opacity: 1.0,
                     mask: None,
-                    channel_map: [ChannelSource::R, ChannelSource::G, ChannelSource::B, ChannelSource::One],
+                    channel_map: [
+                        ChannelSource::R,
+                        ChannelSource::G,
+                        ChannelSource::B,
+                        ChannelSource::One,
+                    ],
                 },
             ],
             channels: TextureChannels::RGBA,
