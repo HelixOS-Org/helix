@@ -1,0 +1,28 @@
+[package]
+name = "lumina-derive"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Procedural macros for LUMINA shader system"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
+
+[dev-dependencies]
+lumina-core = { workspace = true }
+lumina-ir = { workspace = true }
+lumina-spirv = { workspace = true }
+
+[features]
+default = []
+# Enable additional validation at compile time
+strict = []
+# Enable debug output from macros
+debug-macros = []
