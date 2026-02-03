@@ -3,17 +3,17 @@
 //! Convenient builder API for constructing IR.
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec, vec};
+use alloc::{string::String, vec, vec::Vec};
 
-use crate::types::{IrType, ScalarType, VectorSize, AddressSpace};
-use crate::instruction::{
-    Instruction, BinaryOp, UnaryOp, BlockId, MemoryAccess, ImageOperands,
-    LoopControl, SelectionControl, Scope, MemorySemantics, GatherComponent,
-};
-use crate::value::{ValueId, ConstantValue, ValueTable};
 use crate::block::{BasicBlock, BlockMap};
-use crate::function::{Function, ExecutionModel, ExecutionMode, FunctionId};
+use crate::function::{ExecutionMode, ExecutionModel, Function, FunctionId};
+use crate::instruction::{
+    BinaryOp, BlockId, GatherComponent, ImageOperands, Instruction, LoopControl, MemoryAccess,
+    MemorySemantics, Scope, SelectionControl, UnaryOp,
+};
 use crate::module::Module;
+use crate::types::{AddressSpace, IrType, ScalarType, VectorSize};
+use crate::value::{ConstantValue, ValueId, ValueTable};
 
 /// IR Builder for constructing functions
 #[derive(Debug)]
@@ -69,43 +69,39 @@ impl<'a> IrBuilder<'a> {
     ) -> FunctionId {
         let id = self.module.create_entry_point(name, execution_model);
         self.current_function = Some(id);
-        
+
         // Create entry block
         if let Some(func) = self.module.get_function_mut(id) {
             let block_id = func.ensure_entry_block();
             self.current_block = Some(block_id);
         }
-        
+
         id
     }
 
     /// Begin building a regular function
-    pub fn begin_function(
-        &mut self,
-        name: impl Into<String>,
-        return_type: IrType,
-    ) -> FunctionId {
+    pub fn begin_function(&mut self, name: impl Into<String>, return_type: IrType) -> FunctionId {
         let id = self.module.create_function(name, return_type);
         self.current_function = Some(id);
-        
+
         if let Some(func) = self.module.get_function_mut(id) {
             let block_id = func.ensure_entry_block();
             self.current_block = Some(block_id);
         }
-        
+
         id
     }
 
     /// Add a function parameter
     pub fn add_parameter(&mut self, ty: IrType) -> ValueId {
         let value_id = self.module.alloc_value();
-        
+
         if let Some(func_id) = self.current_function {
             if let Some(func) = self.module.get_function_mut(func_id) {
                 func.add_parameter(value_id, ty);
             }
         }
-        
+
         value_id
     }
 
@@ -193,28 +189,29 @@ impl<'a> IrBuilder<'a> {
 
     /// Create a constant
     pub fn const_bool(&mut self, value: bool) -> ValueId {
-        self.module.create_constant(IrType::bool(), ConstantValue::Bool(value))
+        self.module
+            .create_constant(IrType::bool(), ConstantValue::Bool(value))
     }
 
     pub fn const_i32(&mut self, value: i32) -> ValueId {
-        self.module.create_constant(IrType::i32(), ConstantValue::Int32(value))
+        self.module
+            .create_constant(IrType::i32(), ConstantValue::Int32(value))
     }
 
     pub fn const_u32(&mut self, value: u32) -> ValueId {
-        self.module.create_constant(IrType::u32(), ConstantValue::UInt32(value))
+        self.module
+            .create_constant(IrType::u32(), ConstantValue::UInt32(value))
     }
 
     pub fn const_f32(&mut self, value: f32) -> ValueId {
-        self.module.create_constant(IrType::f32(), ConstantValue::Float32(value))
+        self.module
+            .create_constant(IrType::f32(), ConstantValue::Float32(value))
     }
 
     pub fn const_vec2f(&mut self, x: f32, y: f32) -> ValueId {
         self.module.create_constant(
             IrType::vec2f(),
-            ConstantValue::Vector(vec![
-                ConstantValue::Float32(x),
-                ConstantValue::Float32(y),
-            ]),
+            ConstantValue::Vector(vec![ConstantValue::Float32(x), ConstantValue::Float32(y)]),
         )
     }
 
@@ -247,14 +244,14 @@ impl<'a> IrBuilder<'a> {
     pub fn alloca(&mut self, ty: IrType) -> ValueId {
         let result = self.alloc_value();
         let ptr_ty = IrType::pointer(ty.clone(), AddressSpace::Private);
-        
+
         self.insert(Instruction::Variable {
             result,
             ty: ptr_ty,
             address_space: AddressSpace::Private,
             initializer: None,
         });
-        
+
         result
     }
 
@@ -262,14 +259,14 @@ impl<'a> IrBuilder<'a> {
     pub fn alloca_init(&mut self, ty: IrType, init: ValueId) -> ValueId {
         let result = self.alloc_value();
         let ptr_ty = IrType::pointer(ty.clone(), AddressSpace::Private);
-        
+
         self.insert(Instruction::Variable {
             result,
             ty: ptr_ty,
             address_space: AddressSpace::Private,
             initializer: Some(init),
         });
-        
+
         result
     }
 
@@ -278,14 +275,14 @@ impl<'a> IrBuilder<'a> {
     /// Load from a pointer
     pub fn load(&mut self, ty: IrType, ptr: ValueId) -> ValueId {
         let result = self.alloc_value();
-        
+
         self.insert(Instruction::Load {
             result,
             ty,
             pointer: ptr,
             access: MemoryAccess::default(),
         });
-        
+
         result
     }
 
@@ -299,16 +296,21 @@ impl<'a> IrBuilder<'a> {
     }
 
     /// Access chain (struct member or array element access)
-    pub fn access_chain(&mut self, result_ty: IrType, base: ValueId, indices: &[ValueId]) -> ValueId {
+    pub fn access_chain(
+        &mut self,
+        result_ty: IrType,
+        base: ValueId,
+        indices: &[ValueId],
+    ) -> ValueId {
         let result = self.alloc_value();
-        
+
         self.insert(Instruction::AccessChain {
             result,
             ty: result_ty,
             base,
             indices: indices.to_vec(),
         });
-        
+
         result
     }
 
@@ -317,7 +319,7 @@ impl<'a> IrBuilder<'a> {
     /// Binary operation helper
     fn binary_op(&mut self, ty: IrType, op: BinaryOp, left: ValueId, right: ValueId) -> ValueId {
         let result = self.alloc_value();
-        
+
         self.insert(Instruction::BinaryOp {
             result,
             ty,
@@ -325,21 +327,21 @@ impl<'a> IrBuilder<'a> {
             left,
             right,
         });
-        
+
         result
     }
 
     /// Unary operation helper
     fn unary_op(&mut self, ty: IrType, op: UnaryOp, operand: ValueId) -> ValueId {
         let result = self.alloc_value();
-        
+
         self.insert(Instruction::UnaryOp {
             result,
             ty,
             op,
             operand,
         });
-        
+
         result
     }
 
@@ -396,7 +398,7 @@ impl<'a> IrBuilder<'a> {
     /// Fused multiply-add
     pub fn fma(&mut self, ty: IrType, a: ValueId, b: ValueId, c: ValueId) -> ValueId {
         let result = self.alloc_value();
-        
+
         self.insert(Instruction::Fma {
             result,
             ty,
@@ -404,7 +406,7 @@ impl<'a> IrBuilder<'a> {
             b,
             c,
         });
-        
+
         result
     }
 
@@ -599,7 +601,12 @@ impl<'a> IrBuilder<'a> {
 
     pub fn pow(&mut self, ty: IrType, base: ValueId, exponent: ValueId) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::Pow { result, ty, base, exponent });
+        self.insert(Instruction::Pow {
+            result,
+            ty,
+            base,
+            exponent,
+        });
         result
     }
 
@@ -623,25 +630,54 @@ impl<'a> IrBuilder<'a> {
 
     pub fn clamp(&mut self, ty: IrType, value: ValueId, min: ValueId, max: ValueId) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::Clamp { result, ty, value, min, max });
+        self.insert(Instruction::Clamp {
+            result,
+            ty,
+            value,
+            min,
+            max,
+        });
         result
     }
 
     pub fn mix(&mut self, ty: IrType, a: ValueId, b: ValueId, t: ValueId) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::Mix { result, ty, a, b, t });
+        self.insert(Instruction::Mix {
+            result,
+            ty,
+            a,
+            b,
+            t,
+        });
         result
     }
 
-    pub fn smoothstep(&mut self, ty: IrType, edge0: ValueId, edge1: ValueId, x: ValueId) -> ValueId {
+    pub fn smoothstep(
+        &mut self,
+        ty: IrType,
+        edge0: ValueId,
+        edge1: ValueId,
+        x: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::SmoothStep { result, ty, edge0, edge1, x });
+        self.insert(Instruction::SmoothStep {
+            result,
+            ty,
+            edge0,
+            edge1,
+            x,
+        });
         result
     }
 
     pub fn step(&mut self, ty: IrType, edge: ValueId, x: ValueId) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::Step { result, ty, edge, x });
+        self.insert(Instruction::Step {
+            result,
+            ty,
+            edge,
+            x,
+        });
         result
     }
 
@@ -665,19 +701,41 @@ impl<'a> IrBuilder<'a> {
 
     pub fn distance(&mut self, scalar_ty: IrType, a: ValueId, b: ValueId) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::Distance { result, ty: scalar_ty, a, b });
+        self.insert(Instruction::Distance {
+            result,
+            ty: scalar_ty,
+            a,
+            b,
+        });
         result
     }
 
     pub fn reflect(&mut self, vec_ty: IrType, incident: ValueId, normal: ValueId) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::Reflect { result, ty: vec_ty, incident, normal });
+        self.insert(Instruction::Reflect {
+            result,
+            ty: vec_ty,
+            incident,
+            normal,
+        });
         result
     }
 
-    pub fn refract(&mut self, vec_ty: IrType, incident: ValueId, normal: ValueId, eta: ValueId) -> ValueId {
+    pub fn refract(
+        &mut self,
+        vec_ty: IrType,
+        incident: ValueId,
+        normal: ValueId,
+        eta: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::Refract { result, ty: vec_ty, incident, normal, eta });
+        self.insert(Instruction::Refract {
+            result,
+            ty: vec_ty,
+            incident,
+            normal,
+            eta,
+        });
         result
     }
 
@@ -693,7 +751,12 @@ impl<'a> IrBuilder<'a> {
         result
     }
 
-    pub fn composite_extract(&mut self, ty: IrType, composite: ValueId, indices: &[u32]) -> ValueId {
+    pub fn composite_extract(
+        &mut self,
+        ty: IrType,
+        composite: ValueId,
+        indices: &[u32],
+    ) -> ValueId {
         let result = self.alloc_value();
         self.insert(Instruction::CompositeExtract {
             result,
@@ -704,7 +767,13 @@ impl<'a> IrBuilder<'a> {
         result
     }
 
-    pub fn composite_insert(&mut self, ty: IrType, object: ValueId, composite: ValueId, indices: &[u32]) -> ValueId {
+    pub fn composite_insert(
+        &mut self,
+        ty: IrType,
+        object: ValueId,
+        composite: ValueId,
+        indices: &[u32],
+    ) -> ValueId {
         let result = self.alloc_value();
         self.insert(Instruction::CompositeInsert {
             result,
@@ -716,7 +785,13 @@ impl<'a> IrBuilder<'a> {
         result
     }
 
-    pub fn vector_shuffle(&mut self, ty: IrType, v1: ValueId, v2: ValueId, components: &[u32]) -> ValueId {
+    pub fn vector_shuffle(
+        &mut self,
+        ty: IrType,
+        v1: ValueId,
+        v2: ValueId,
+        components: &[u32],
+    ) -> ValueId {
         let result = self.alloc_value();
         self.insert(Instruction::VectorShuffle {
             result,
@@ -742,27 +817,67 @@ impl<'a> IrBuilder<'a> {
         self.unary_op(ty, UnaryOp::MatrixInverse, matrix)
     }
 
-    pub fn matrix_times_vector(&mut self, vec_ty: IrType, matrix: ValueId, vector: ValueId) -> ValueId {
+    pub fn matrix_times_vector(
+        &mut self,
+        vec_ty: IrType,
+        matrix: ValueId,
+        vector: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::MatrixTimesVector { result, ty: vec_ty, matrix, vector });
+        self.insert(Instruction::MatrixTimesVector {
+            result,
+            ty: vec_ty,
+            matrix,
+            vector,
+        });
         result
     }
 
-    pub fn vector_times_matrix(&mut self, vec_ty: IrType, vector: ValueId, matrix: ValueId) -> ValueId {
+    pub fn vector_times_matrix(
+        &mut self,
+        vec_ty: IrType,
+        vector: ValueId,
+        matrix: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::VectorTimesMatrix { result, ty: vec_ty, vector, matrix });
+        self.insert(Instruction::VectorTimesMatrix {
+            result,
+            ty: vec_ty,
+            vector,
+            matrix,
+        });
         result
     }
 
-    pub fn matrix_times_matrix(&mut self, mat_ty: IrType, left: ValueId, right: ValueId) -> ValueId {
+    pub fn matrix_times_matrix(
+        &mut self,
+        mat_ty: IrType,
+        left: ValueId,
+        right: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::MatrixTimesMatrix { result, ty: mat_ty, left, right });
+        self.insert(Instruction::MatrixTimesMatrix {
+            result,
+            ty: mat_ty,
+            left,
+            right,
+        });
         result
     }
 
-    pub fn matrix_times_scalar(&mut self, mat_ty: IrType, matrix: ValueId, scalar: ValueId) -> ValueId {
+    pub fn matrix_times_scalar(
+        &mut self,
+        mat_ty: IrType,
+        matrix: ValueId,
+        scalar: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::MatrixTimesScalar { result, ty: mat_ty, matrix, scalar });
+        self.insert(Instruction::MatrixTimesScalar {
+            result,
+            ty: mat_ty,
+            matrix,
+            scalar,
+        });
         result
     }
 
@@ -838,7 +953,13 @@ impl<'a> IrBuilder<'a> {
         self.insert(Instruction::Unreachable);
     }
 
-    pub fn select(&mut self, ty: IrType, condition: ValueId, true_value: ValueId, false_value: ValueId) -> ValueId {
+    pub fn select(
+        &mut self,
+        ty: IrType,
+        condition: ValueId,
+        true_value: ValueId,
+        false_value: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
         self.insert(Instruction::Select {
             result,
@@ -903,7 +1024,13 @@ impl<'a> IrBuilder<'a> {
         result
     }
 
-    pub fn sample_lod(&mut self, ty: IrType, sampled_image: ValueId, coordinate: ValueId, lod: ValueId) -> ValueId {
+    pub fn sample_lod(
+        &mut self,
+        ty: IrType,
+        sampled_image: ValueId,
+        coordinate: ValueId,
+        lod: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
         self.insert(Instruction::ImageSampleExplicitLod {
             result,
@@ -918,7 +1045,14 @@ impl<'a> IrBuilder<'a> {
         result
     }
 
-    pub fn sample_grad(&mut self, ty: IrType, sampled_image: ValueId, coordinate: ValueId, ddx: ValueId, ddy: ValueId) -> ValueId {
+    pub fn sample_grad(
+        &mut self,
+        ty: IrType,
+        sampled_image: ValueId,
+        coordinate: ValueId,
+        ddx: ValueId,
+        ddy: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
         self.insert(Instruction::ImageSampleExplicitLod {
             result,
@@ -933,7 +1067,13 @@ impl<'a> IrBuilder<'a> {
         result
     }
 
-    pub fn sample_compare(&mut self, ty: IrType, sampled_image: ValueId, coordinate: ValueId, dref: ValueId) -> ValueId {
+    pub fn sample_compare(
+        &mut self,
+        ty: IrType,
+        sampled_image: ValueId,
+        coordinate: ValueId,
+        dref: ValueId,
+    ) -> ValueId {
         let result = self.alloc_value();
         self.insert(Instruction::ImageSampleDrefImplicitLod {
             result,
@@ -987,7 +1127,12 @@ impl<'a> IrBuilder<'a> {
 
     pub fn sampled_image(&mut self, ty: IrType, image: ValueId, sampler: ValueId) -> ValueId {
         let result = self.alloc_value();
-        self.insert(Instruction::SampledImage { result, ty, image, sampler });
+        self.insert(Instruction::SampledImage {
+            result,
+            ty,
+            image,
+            sampler,
+        });
         result
     }
 
@@ -1045,13 +1190,13 @@ mod tests {
     fn test_builder_basic() {
         let mut module = Module::new("test");
         let mut builder = IrBuilder::new(&mut module);
-        
+
         builder.begin_entry_point("main", ExecutionModel::Fragment);
         let a = builder.const_f32(1.0);
         let b = builder.const_f32(2.0);
         let _c = builder.fadd(IrType::f32(), a, b);
         builder.ret();
-        
+
         assert_eq!(module.functions.len(), 1);
     }
 
@@ -1059,23 +1204,23 @@ mod tests {
     fn test_builder_control_flow() {
         let mut module = Module::new("test");
         let mut builder = IrBuilder::new(&mut module);
-        
+
         builder.begin_entry_point("main", ExecutionModel::Fragment);
-        
+
         let then_block = builder.create_block();
         let else_block = builder.create_block();
         let merge_block = builder.create_block();
-        
+
         let cond = builder.const_bool(true);
         builder.selection_merge(merge_block);
         builder.cond_branch(cond, then_block, else_block);
-        
+
         builder.position_at_end(then_block);
         builder.branch(merge_block);
-        
+
         builder.position_at_end(else_block);
         builder.branch(merge_block);
-        
+
         builder.position_at_end(merge_block);
         builder.ret();
     }
@@ -1084,12 +1229,12 @@ mod tests {
     fn test_builder_compute() {
         let mut module = Module::new("test");
         let mut builder = IrBuilder::new(&mut module);
-        
+
         builder.begin_entry_point("main", ExecutionModel::GLCompute);
         builder.set_local_size(64, 1, 1);
         builder.workgroup_barrier();
         builder.ret();
-        
+
         let func = module.get_function(0).unwrap();
         assert_eq!(func.local_size(), Some((64, 1, 1)));
     }
