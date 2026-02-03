@@ -17,8 +17,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -102,13 +101,13 @@ impl Term {
         match self {
             Term::Variable(v) => {
                 vars.insert(v.clone());
-            }
+            },
             Term::Function(_, args) => {
                 for arg in args {
                     arg.collect_variables(vars);
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -121,14 +120,12 @@ impl Term {
                 } else {
                     self.clone()
                 }
-            }
+            },
             Term::Function(name, args) => {
-                let new_args: Vec<Term> = args
-                    .iter()
-                    .map(|a| a.apply_substitution(subst))
-                    .collect();
+                let new_args: Vec<Term> =
+                    args.iter().map(|a| a.apply_substitution(subst)).collect();
                 Term::Function(name.clone(), new_args)
-            }
+            },
             _ => self.clone(),
         }
     }
@@ -260,12 +257,7 @@ impl Unifier {
     }
 
     /// Unify with initial substitution
-    fn unify_with_subst(
-        &mut self,
-        t1: &Term,
-        t2: &Term,
-        subst: Substitution,
-    ) -> UnificationResult {
+    fn unify_with_subst(&mut self, t1: &Term, t2: &Term, subst: Substitution) -> UnificationResult {
         self.steps += 1;
         if self.steps > self.max_steps {
             return UnificationResult::Failure;
@@ -276,12 +268,8 @@ impl Unifier {
 
         match (&t1, &t2) {
             // Same terms unify trivially
-            (Term::Constant(a), Term::Constant(b)) if a == b => {
-                UnificationResult::Success(subst)
-            }
-            (Term::Integer(a), Term::Integer(b)) if a == b => {
-                UnificationResult::Success(subst)
-            }
+            (Term::Constant(a), Term::Constant(b)) if a == b => UnificationResult::Success(subst),
+            (Term::Integer(a), Term::Integer(b)) if a == b => UnificationResult::Success(subst),
 
             // Variable unification
             (Term::Variable(v), t) | (t, Term::Variable(v)) => {
@@ -299,7 +287,7 @@ impl Unifier {
                 let mut new_subst = subst;
                 new_subst.bind(v.clone(), t.clone());
                 UnificationResult::Success(new_subst)
-            }
+            },
 
             // Function unification
             (Term::Function(f1, args1), Term::Function(f2, args2)) => {
@@ -315,7 +303,7 @@ impl Unifier {
                     }
                 }
                 UnificationResult::Success(current_subst)
-            }
+            },
 
             // Different constants/types
             _ => UnificationResult::Failure,
@@ -371,7 +359,11 @@ impl Atom {
     pub fn apply_substitution(&self, subst: &Substitution) -> Atom {
         Atom {
             predicate: self.predicate.clone(),
-            args: self.args.iter().map(|a| a.apply_substitution(subst)).collect(),
+            args: self
+                .args
+                .iter()
+                .map(|a| a.apply_substitution(subst))
+                .collect(),
         }
     }
 }
@@ -499,7 +491,11 @@ impl Clause {
     pub fn apply_substitution(&self, subst: &Substitution) -> Clause {
         Clause {
             id: self.id,
-            literals: self.literals.iter().map(|l| l.apply_substitution(subst)).collect(),
+            literals: self
+                .literals
+                .iter()
+                .map(|l| l.apply_substitution(subst))
+                .collect(),
             parents: self.parents,
             depth: self.depth,
         }
@@ -589,11 +585,21 @@ impl ProofTrace {
             if clause.is_empty() {
                 explanation.push(alloc::format!("{}□ (empty clause - contradiction)", prefix));
             } else {
-                explanation.push(alloc::format!("{}[{}] {{{}}}", prefix, id, lit_str.join(" ∨ ")));
+                explanation.push(alloc::format!(
+                    "{}[{}] {{{}}}",
+                    prefix,
+                    id,
+                    lit_str.join(" ∨ ")
+                ));
             }
 
             if let Some((p1, p2)) = clause.parents {
-                explanation.push(alloc::format!("{}  resolved from [{}] and [{}]", prefix, p1, p2));
+                explanation.push(alloc::format!(
+                    "{}  resolved from [{}] and [{}]",
+                    prefix,
+                    p1,
+                    p2
+                ));
                 self.explain_clause(p1, explanation, indent + 1);
                 self.explain_clause(p2, explanation, indent + 1);
             }
@@ -663,10 +669,7 @@ impl TheoremProver {
     /// Add a rule (implication A₁ ∧ A₂ ∧ ... → B)
     /// Represented as ¬A₁ ∨ ¬A₂ ∨ ... ∨ B
     pub fn add_rule(&mut self, conditions: Vec<Atom>, conclusion: Atom) -> usize {
-        let mut literals: Vec<Literal> = conditions
-            .into_iter()
-            .map(Literal::negative)
-            .collect();
+        let mut literals: Vec<Literal> = conditions.into_iter().map(Literal::negative).collect();
         literals.push(Literal::positive(conclusion));
         self.add_clause(literals)
     }
@@ -1110,15 +1113,15 @@ impl InvariantVerifier {
                 ProofResult::Proved(trace) => {
                     // Contradiction found - invariant violated
                     results.push((invariant.name.clone(), false, Some(trace)));
-                }
+                },
                 ProofResult::Disproved | ProofResult::Unknown => {
                     // No contradiction - invariant holds
                     results.push((invariant.name.clone(), true, None));
-                }
+                },
                 ProofResult::Error(e) => {
                     results.push((invariant.name.clone(), false, None));
                     let _ = e; // Handle error
-                }
+                },
             }
         }
 
@@ -1156,7 +1159,7 @@ mod tests {
         match unifier.unify(&t1, &t2) {
             UnificationResult::Success(subst) => {
                 assert_eq!(subst.get("X"), Some(&t2));
-            }
+            },
             _ => panic!("Unification should succeed"),
         }
     }
@@ -1173,7 +1176,7 @@ mod tests {
             UnificationResult::Success(subst) => {
                 assert_eq!(subst.get("X"), Some(&Term::constant("a")));
                 assert_eq!(subst.get("Y"), Some(&Term::constant("b")));
-            }
+            },
             _ => panic!("Unification should succeed"),
         }
     }
@@ -1187,7 +1190,7 @@ mod tests {
         let t2 = Term::function("f", vec![Term::variable("X")]);
 
         match unifier.unify(&t1, &t2) {
-            UnificationResult::OccursCheckFailed => {}
+            UnificationResult::OccursCheckFailed => {},
             _ => panic!("Should fail occurs check"),
         }
     }
@@ -1213,7 +1216,7 @@ mod tests {
         let result = prover.prove(&goal);
 
         match result {
-            ProofResult::Proved(_) => {}
+            ProofResult::Proved(_) => {},
             _ => panic!("Should prove mortal(socrates)"),
         }
     }
@@ -1234,17 +1237,23 @@ mod tests {
                 Atom::new("parent", vec![Term::variable("X"), Term::variable("Y")]),
                 Atom::new("parent", vec![Term::variable("Y"), Term::variable("Z")]),
             ],
-            Atom::new("grandparent", vec![Term::variable("X"), Term::variable("Z")]),
+            Atom::new("grandparent", vec![
+                Term::variable("X"),
+                Term::variable("Z"),
+            ]),
         );
 
         // Query: grandparent(a, c)?
-        let goal = Atom::new("grandparent", vec![Term::constant("a"), Term::constant("c")]);
+        let goal = Atom::new("grandparent", vec![
+            Term::constant("a"),
+            Term::constant("c"),
+        ]);
         let result = prover.prove(&goal);
 
         match result {
             ProofResult::Proved(trace) => {
                 assert!(trace.steps > 0);
-            }
+            },
             _ => panic!("Should prove grandparent(a, c)"),
         }
     }
