@@ -1,0 +1,29 @@
+[package]
+name = "lumina-scene"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "LUMINA Scene Graph - ECS, transforms, culling, instancing"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+documentation = "https://docs.helix-os.dev/lumina-scene"
+keywords = ["graphics", "scene", "ecs", "rendering", "gpu"]
+categories = ["graphics", "rendering", "no-std"]
+
+[features]
+default = ["ecs", "culling", "instancing"]
+std = []
+alloc = []
+
+# Scene features
+ecs = []        # Entity-Component-System
+culling = []    # Frustum and occlusion culling
+instancing = [] # GPU instancing
+lod = []        # Level of detail
+streaming = []  # Scene streaming
+
+[dependencies]
+lumina-core = { path = "../lumina-core", default-features = false }
+lumina-3d = { path = "../lumina-3d", default-features = false }
+
+[dev-dependencies]
