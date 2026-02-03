@@ -2,7 +2,9 @@
 //!
 //! This module provides texture creation, management, and streaming.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 // ============================================================================
@@ -53,7 +55,7 @@ pub enum TextureFormat {
     R8Snorm,
     R8Uint,
     R8Sint,
-    
+
     // 16-bit formats
     R16Unorm,
     R16Snorm,
@@ -64,7 +66,7 @@ pub enum TextureFormat {
     Rg8Snorm,
     Rg8Uint,
     Rg8Sint,
-    
+
     // 32-bit formats
     R32Uint,
     R32Sint,
@@ -83,7 +85,7 @@ pub enum TextureFormat {
     Bgra8UnormSrgb,
     Rgb10a2Unorm,
     Rg11b10Float,
-    
+
     // 64-bit formats
     Rg32Uint,
     Rg32Sint,
@@ -93,12 +95,12 @@ pub enum TextureFormat {
     Rgba16Uint,
     Rgba16Sint,
     Rgba16Float,
-    
+
     // 128-bit formats
     Rgba32Uint,
     Rgba32Sint,
     Rgba32Float,
-    
+
     // Depth/stencil formats
     Depth16Unorm,
     Depth24Plus,
@@ -106,7 +108,7 @@ pub enum TextureFormat {
     Depth32Float,
     Depth32FloatStencil8,
     Stencil8,
-    
+
     // Compressed formats - BC
     Bc1RgbaUnorm,
     Bc1RgbaUnormSrgb,
@@ -122,7 +124,7 @@ pub enum TextureFormat {
     Bc6hRgbFloat,
     Bc7RgbaUnorm,
     Bc7RgbaUnormSrgb,
-    
+
     // Compressed formats - ASTC
     Astc4x4RgbaUnorm,
     Astc4x4RgbaUnormSrgb,
@@ -159,27 +161,53 @@ impl TextureFormat {
     pub fn bytes_per_pixel(&self) -> u32 {
         match self {
             Self::R8Unorm | Self::R8Snorm | Self::R8Uint | Self::R8Sint | Self::Stencil8 => 1,
-            
-            Self::R16Unorm | Self::R16Snorm | Self::R16Uint | Self::R16Sint | Self::R16Float
-            | Self::Rg8Unorm | Self::Rg8Snorm | Self::Rg8Uint | Self::Rg8Sint
+
+            Self::R16Unorm
+            | Self::R16Snorm
+            | Self::R16Uint
+            | Self::R16Sint
+            | Self::R16Float
+            | Self::Rg8Unorm
+            | Self::Rg8Snorm
+            | Self::Rg8Uint
+            | Self::Rg8Sint
             | Self::Depth16Unorm => 2,
-            
+
             Self::Depth24Plus => 3,
-            
-            Self::R32Uint | Self::R32Sint | Self::R32Float
-            | Self::Rg16Unorm | Self::Rg16Snorm | Self::Rg16Uint | Self::Rg16Sint | Self::Rg16Float
-            | Self::Rgba8Unorm | Self::Rgba8UnormSrgb | Self::Rgba8Snorm | Self::Rgba8Uint | Self::Rgba8Sint
-            | Self::Bgra8Unorm | Self::Bgra8UnormSrgb
-            | Self::Rgb10a2Unorm | Self::Rg11b10Float
-            | Self::Depth24PlusStencil8 | Self::Depth32Float => 4,
-            
+
+            Self::R32Uint
+            | Self::R32Sint
+            | Self::R32Float
+            | Self::Rg16Unorm
+            | Self::Rg16Snorm
+            | Self::Rg16Uint
+            | Self::Rg16Sint
+            | Self::Rg16Float
+            | Self::Rgba8Unorm
+            | Self::Rgba8UnormSrgb
+            | Self::Rgba8Snorm
+            | Self::Rgba8Uint
+            | Self::Rgba8Sint
+            | Self::Bgra8Unorm
+            | Self::Bgra8UnormSrgb
+            | Self::Rgb10a2Unorm
+            | Self::Rg11b10Float
+            | Self::Depth24PlusStencil8
+            | Self::Depth32Float => 4,
+
             Self::Depth32FloatStencil8 => 5,
-            
-            Self::Rg32Uint | Self::Rg32Sint | Self::Rg32Float
-            | Self::Rgba16Unorm | Self::Rgba16Snorm | Self::Rgba16Uint | Self::Rgba16Sint | Self::Rgba16Float => 8,
-            
+
+            Self::Rg32Uint
+            | Self::Rg32Sint
+            | Self::Rg32Float
+            | Self::Rgba16Unorm
+            | Self::Rgba16Snorm
+            | Self::Rgba16Uint
+            | Self::Rgba16Sint
+            | Self::Rgba16Float => 8,
+
             Self::Rgba32Uint | Self::Rgba32Sint | Self::Rgba32Float => 16,
-            
+
             // Compressed formats return block size / pixels per block
             _ => 0,
         }
@@ -189,27 +217,48 @@ impl TextureFormat {
     pub fn is_compressed(&self) -> bool {
         matches!(
             self,
-            Self::Bc1RgbaUnorm | Self::Bc1RgbaUnormSrgb
-                | Self::Bc2RgbaUnorm | Self::Bc2RgbaUnormSrgb
-                | Self::Bc3RgbaUnorm | Self::Bc3RgbaUnormSrgb
-                | Self::Bc4RUnorm | Self::Bc4RSnorm
-                | Self::Bc5RgUnorm | Self::Bc5RgSnorm
-                | Self::Bc6hRgbUfloat | Self::Bc6hRgbFloat
-                | Self::Bc7RgbaUnorm | Self::Bc7RgbaUnormSrgb
-                | Self::Astc4x4RgbaUnorm | Self::Astc4x4RgbaUnormSrgb
-                | Self::Astc5x4RgbaUnorm | Self::Astc5x4RgbaUnormSrgb
-                | Self::Astc5x5RgbaUnorm | Self::Astc5x5RgbaUnormSrgb
-                | Self::Astc6x5RgbaUnorm | Self::Astc6x5RgbaUnormSrgb
-                | Self::Astc6x6RgbaUnorm | Self::Astc6x6RgbaUnormSrgb
-                | Self::Astc8x5RgbaUnorm | Self::Astc8x5RgbaUnormSrgb
-                | Self::Astc8x6RgbaUnorm | Self::Astc8x6RgbaUnormSrgb
-                | Self::Astc8x8RgbaUnorm | Self::Astc8x8RgbaUnormSrgb
-                | Self::Astc10x5RgbaUnorm | Self::Astc10x5RgbaUnormSrgb
-                | Self::Astc10x6RgbaUnorm | Self::Astc10x6RgbaUnormSrgb
-                | Self::Astc10x8RgbaUnorm | Self::Astc10x8RgbaUnormSrgb
-                | Self::Astc10x10RgbaUnorm | Self::Astc10x10RgbaUnormSrgb
-                | Self::Astc12x10RgbaUnorm | Self::Astc12x10RgbaUnormSrgb
-                | Self::Astc12x12RgbaUnorm | Self::Astc12x12RgbaUnormSrgb
+            Self::Bc1RgbaUnorm
+                | Self::Bc1RgbaUnormSrgb
+                | Self::Bc2RgbaUnorm
+                | Self::Bc2RgbaUnormSrgb
+                | Self::Bc3RgbaUnorm
+                | Self::Bc3RgbaUnormSrgb
+                | Self::Bc4RUnorm
+                | Self::Bc4RSnorm
+                | Self::Bc5RgUnorm
+                | Self::Bc5RgSnorm
+                | Self::Bc6hRgbUfloat
+                | Self::Bc6hRgbFloat
+                | Self::Bc7RgbaUnorm
+                | Self::Bc7RgbaUnormSrgb
+                | Self::Astc4x4RgbaUnorm
+                | Self::Astc4x4RgbaUnormSrgb
+                | Self::Astc5x4RgbaUnorm
+                | Self::Astc5x4RgbaUnormSrgb
+                | Self::Astc5x5RgbaUnorm
+                | Self::Astc5x5RgbaUnormSrgb
+                | Self::Astc6x5RgbaUnorm
+                | Self::Astc6x5RgbaUnormSrgb
+                | Self::Astc6x6RgbaUnorm
+                | Self::Astc6x6RgbaUnormSrgb
+                | Self::Astc8x5RgbaUnorm
+                | Self::Astc8x5RgbaUnormSrgb
+                | Self::Astc8x6RgbaUnorm
+                | Self::Astc8x6RgbaUnormSrgb
+                | Self::Astc8x8RgbaUnorm
+                | Self::Astc8x8RgbaUnormSrgb
+                | Self::Astc10x5RgbaUnorm
+                | Self::Astc10x5RgbaUnormSrgb
+                | Self::Astc10x6RgbaUnorm
+                | Self::Astc10x6RgbaUnormSrgb
+                | Self::Astc10x8RgbaUnorm
+                | Self::Astc10x8RgbaUnormSrgb
+                | Self::Astc10x10RgbaUnorm
+                | Self::Astc10x10RgbaUnormSrgb
+                | Self::Astc12x10RgbaUnorm
+                | Self::Astc12x10RgbaUnormSrgb
+                | Self::Astc12x12RgbaUnorm
+                | Self::Astc12x12RgbaUnormSrgb
         )
     }
 
@@ -936,11 +985,11 @@ impl TextureManager {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StreamingPriority {
     /// Low priority.
-    Low = 0,
+    Low      = 0,
     /// Normal priority.
-    Normal = 1,
+    Normal   = 1,
     /// High priority.
-    High = 2,
+    High     = 2,
     /// Critical (needed immediately).
     Critical = 3,
 }
