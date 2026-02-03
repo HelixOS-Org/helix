@@ -53,15 +53,13 @@
 
 extern crate alloc;
 
-// TODO: Ces sous-modules doivent être créés
-// pub mod awareness;
-// pub mod confidence;
-// pub mod goals;
-// pub mod introspection;
-// pub mod reasoning;
-// pub mod reflection;
-// pub mod regulation;
-// pub mod strategy;
+// Year 2 COGNITION sub-modules
+pub mod monitor;
+pub mod strategy;
+
+// Re-exports
+pub use monitor::{MetacognitionMonitor, CognitiveProcess, ProcessState, DomainMetrics, HealthReport, AnomalyDetector, ConfidenceCalibrator};
+pub use strategy::{StrategySelector, CognitiveStrategy, StrategyId, TaskType, ResourceBudget, SelectionAlgorithm, CompositeStrategy, StrategyFactory};
 
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
