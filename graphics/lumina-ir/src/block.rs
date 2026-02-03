@@ -5,7 +5,7 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-use crate::instruction::{Instruction, BlockId, LoopControl, SelectionControl};
+use crate::instruction::{BlockId, Instruction, LoopControl, SelectionControl};
 
 /// A basic block in the IR
 #[derive(Debug, Clone)]
@@ -162,7 +162,7 @@ impl BasicBlock {
                 let mut targets = vec![*default_target];
                 targets.extend(cases.iter().map(|(_, t)| *t));
                 targets
-            }
+            },
             _ => Vec::new(),
         }
     }
@@ -217,7 +217,12 @@ impl BasicBlock {
     }
 
     /// Set as loop header
-    pub fn set_loop_header(&mut self, merge: BlockId, continue_target: BlockId, control: LoopControl) {
+    pub fn set_loop_header(
+        &mut self,
+        merge: BlockId,
+        continue_target: BlockId,
+        control: LoopControl,
+    ) {
         self.merge_block = Some(merge);
         self.continue_target = Some(continue_target);
         self.loop_control = Some(control);
@@ -255,7 +260,7 @@ pub enum BlockOrder {
 pub fn compute_rpo(entry: BlockId, blocks: &[BasicBlock]) -> Vec<BlockId> {
     let mut visited = vec![false; blocks.len()];
     let mut post_order = Vec::with_capacity(blocks.len());
-    
+
     fn dfs(
         block_id: BlockId,
         blocks: &[BasicBlock],
@@ -267,7 +272,7 @@ pub fn compute_rpo(entry: BlockId, blocks: &[BasicBlock]) -> Vec<BlockId> {
             return;
         }
         visited[idx] = true;
-        
+
         if let Some(block) = blocks.iter().find(|b| b.id == block_id) {
             for &succ in &block.successors {
                 dfs(succ, blocks, visited, post_order);
@@ -275,7 +280,7 @@ pub fn compute_rpo(entry: BlockId, blocks: &[BasicBlock]) -> Vec<BlockId> {
         }
         post_order.push(block_id);
     }
-    
+
     dfs(entry, blocks, &mut visited, &mut post_order);
     post_order.reverse();
     post_order
@@ -425,13 +430,14 @@ impl BlockMap {
             block.successors.clear();
             block.predecessors.clear();
         }
-        
+
         // Rebuild from terminators
-        let edges: Vec<_> = self.blocks
+        let edges: Vec<_> = self
+            .blocks
             .iter()
             .flat_map(|b| b.branch_targets().into_iter().map(move |t| (b.id, t)))
             .collect();
-        
+
         for (from, to) in edges {
             self.add_edge(from, to);
         }
@@ -490,7 +496,7 @@ pub fn classify_edges(entry: BlockId, blocks: &[BasicBlock]) -> Vec<(Edge, EdgeK
     let mut finished = vec![false; blocks.len()];
     let mut pre_order = vec![0u32; blocks.len()];
     let mut counter = 0u32;
-    
+
     fn dfs(
         block_id: BlockId,
         blocks: &[BasicBlock],
@@ -504,20 +510,20 @@ pub fn classify_edges(entry: BlockId, blocks: &[BasicBlock]) -> Vec<(Edge, EdgeK
         if idx >= visited.len() {
             return;
         }
-        
+
         visited[idx] = true;
         pre_order[idx] = *counter;
         *counter += 1;
-        
+
         if let Some(block) = blocks.iter().find(|b| b.id == block_id) {
             for &succ in &block.successors {
                 let succ_idx = succ as usize;
                 if succ_idx >= visited.len() {
                     continue;
                 }
-                
+
                 let edge = Edge::new(block_id, succ);
-                
+
                 if !visited[succ_idx] {
                     result.push((edge, EdgeKind::Tree));
                     dfs(succ, blocks, visited, finished, pre_order, counter, result);
@@ -530,11 +536,19 @@ pub fn classify_edges(entry: BlockId, blocks: &[BasicBlock]) -> Vec<(Edge, EdgeK
                 }
             }
         }
-        
+
         finished[idx] = true;
     }
-    
-    dfs(entry, blocks, &mut visited, &mut finished, &mut pre_order, &mut counter, &mut result);
+
+    dfs(
+        entry,
+        blocks,
+        &mut visited,
+        &mut finished,
+        &mut pre_order,
+        &mut counter,
+        &mut result,
+    );
     result
 }
 
@@ -551,18 +565,18 @@ pub fn find_back_edges(entry: BlockId, blocks: &[BasicBlock]) -> Vec<Edge> {
 pub fn find_natural_loops(entry: BlockId, blocks: &[BasicBlock]) -> Vec<NaturalLoop> {
     let back_edges = find_back_edges(entry, blocks);
     let mut loops = Vec::new();
-    
+
     for edge in back_edges {
         let header = edge.to;
         let mut body = vec![header];
         let mut worklist = vec![edge.from];
-        
+
         while let Some(block_id) = worklist.pop() {
             if body.contains(&block_id) {
                 continue;
             }
             body.push(block_id);
-            
+
             if let Some(block) = blocks.iter().find(|b| b.id == block_id) {
                 for &pred in &block.predecessors {
                     if !body.contains(&pred) {
@@ -571,14 +585,14 @@ pub fn find_natural_loops(entry: BlockId, blocks: &[BasicBlock]) -> Vec<NaturalL
                 }
             }
         }
-        
+
         loops.push(NaturalLoop {
             header,
             back_edge: edge,
             body,
         });
     }
-    
+
     loops
 }
 
@@ -639,7 +653,7 @@ mod tests {
     fn test_basic_block() {
         let mut block = BasicBlock::new(0);
         assert!(block.is_empty());
-        
+
         block.push(Instruction::Nop);
         assert!(!block.is_empty());
         assert_eq!(block.len(), 1);
@@ -651,14 +665,14 @@ mod tests {
         let entry = map.create_entry_block();
         let block1 = map.create_block();
         let block2 = map.create_block();
-        
+
         map.add_edge(entry, block1);
         map.add_edge(entry, block2);
         map.add_edge(block1, block2);
-        
+
         assert_eq!(map.len(), 3);
         assert_eq!(map.entry(), Some(entry));
-        
+
         let entry_block = map.get(entry).unwrap();
         assert_eq!(entry_block.successors.len(), 2);
     }
@@ -669,9 +683,9 @@ mod tests {
         block.push(Instruction::Nop);
         block.push(Instruction::Nop);
         block.push(Instruction::Nop);
-        
+
         let new_block = block.split_at(1, 1);
-        
+
         assert_eq!(block.len(), 1);
         assert_eq!(new_block.len(), 2);
         assert_eq!(block.successors, vec![1]);
@@ -684,11 +698,11 @@ mod tests {
         let b0 = map.create_entry_block();
         let b1 = map.create_block();
         let b2 = map.create_block();
-        
+
         map.add_edge(b0, b1);
         map.add_edge(b0, b2);
         map.add_edge(b1, b2);
-        
+
         let rpo = map.rpo();
         assert_eq!(rpo.len(), 3);
         assert_eq!(rpo[0], b0); // Entry first
