@@ -17,8 +17,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -292,13 +291,9 @@ impl IndependenceTester {
         match self.test_type {
             IndependenceTest::PartialCorrelation => {
                 self.partial_correlation_test(data, x, y, conditioning)
-            }
-            IndependenceTest::ConditionalMI => {
-                self.conditional_mi_test(data, x, y, conditioning)
-            }
-            IndependenceTest::GTest => {
-                self.g_test(data, x, y, conditioning)
-            }
+            },
+            IndependenceTest::ConditionalMI => self.conditional_mi_test(data, x, y, conditioning),
+            IndependenceTest::GTest => self.g_test(data, x, y, conditioning),
         }
     }
 
@@ -693,8 +688,12 @@ impl PCAlgorithm {
                     if let Some(test_result) = self.tester.test(data, x, y, &subset) {
                         if test_result.independent {
                             result.skeleton.remove(&edge);
-                            result.sep_sets.insert((x, y), subset.iter().copied().collect());
-                            result.sep_sets.insert((y, x), subset.iter().copied().collect());
+                            result
+                                .sep_sets
+                                .insert((x, y), subset.iter().copied().collect());
+                            result
+                                .sep_sets
+                                .insert((y, x), subset.iter().copied().collect());
                             break;
                         }
                     }
@@ -706,8 +705,12 @@ impl PCAlgorithm {
                         if let Some(test_result) = self.tester.test(data, x, y, &subset) {
                             if test_result.independent {
                                 result.skeleton.remove(&edge);
-                                result.sep_sets.insert((x, y), subset.iter().copied().collect());
-                                result.sep_sets.insert((y, x), subset.iter().copied().collect());
+                                result
+                                    .sep_sets
+                                    .insert((x, y), subset.iter().copied().collect());
+                                result
+                                    .sep_sets
+                                    .insert((y, x), subset.iter().copied().collect());
                                 break;
                             }
                         }
@@ -941,10 +944,10 @@ impl<'a> DoCalculus<'a> {
 
         if adjustment_set.is_empty() {
             // No confounding - just condition on X
-            let effect = self.estimate_conditional_mean(
-                target,
-                &[(intervention.variable, intervention.value)],
-            )?;
+            let effect = self.estimate_conditional_mean(target, &[(
+                intervention.variable,
+                intervention.value,
+            )])?;
 
             return Some(InterventionResult {
                 target,
@@ -967,10 +970,7 @@ impl<'a> DoCalculus<'a> {
             let z_range = self.get_bin_range(&z_obs, z_value);
 
             // P(Z = z)
-            let z_count = self
-                .data
-                .subset_where(&[(z, z_range.0, z_range.1)])
-                .len();
+            let z_count = self.data.subset_where(&[(z, z_range.0, z_range.1)]).len();
             let p_z = z_count as f64 / self.data.len() as f64;
 
             if p_z > 0.0 {
@@ -1019,11 +1019,10 @@ impl<'a> DoCalculus<'a> {
             let m_range = self.get_bin_range(&m_values, m_bin);
 
             // P(M=m | X=x)
-            let p_m_given_x = self.estimate_conditional_prob(
-                m,
-                m_range,
-                &[(intervention.variable, intervention.value)],
-            )?;
+            let p_m_given_x = self.estimate_conditional_prob(m, m_range, &[(
+                intervention.variable,
+                intervention.value,
+            )])?;
 
             // sum_x' P(Y | X=x', M=m) P(X=x')
             let mut inner_sum = 0.0;
@@ -1075,11 +1074,7 @@ impl<'a> DoCalculus<'a> {
     }
 
     /// Estimate conditional mean E[Y | X=x]
-    fn estimate_conditional_mean(
-        &self,
-        target: VarId,
-        conditions: &[(VarId, f64)],
-    ) -> Option<f64> {
+    fn estimate_conditional_mean(&self, target: VarId, conditions: &[(VarId, f64)]) -> Option<f64> {
         // Find observations close to condition values
         let matching: Vec<&Observation> = self
             .data
@@ -1116,7 +1111,10 @@ impl<'a> DoCalculus<'a> {
             .observations
             .iter()
             .filter(|obs| {
-                let x_ok = obs.get(x).map(|v| (v - x_value).abs() < 0.5).unwrap_or(false);
+                let x_ok = obs
+                    .get(x)
+                    .map(|v| (v - x_value).abs() < 0.5)
+                    .unwrap_or(false);
                 let z_ok = obs
                     .get(z)
                     .map(|v| v >= z_range.0 && v <= z_range.1)
