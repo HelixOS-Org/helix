@@ -3,16 +3,16 @@
 //! Validation passes for checking IR correctness.
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec, vec, format, collections::BTreeSet, collections::BTreeMap};
+use alloc::{collections::BTreeMap, collections::BTreeSet, format, string::String, vec, vec::Vec};
 #[cfg(feature = "std")]
-use std::collections::{HashSet, HashMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
-use crate::types::{IrType, ScalarType, AddressSpace};
-use crate::instruction::{Instruction, BlockId};
-use crate::value::ValueId;
 use crate::block::BasicBlock;
-use crate::function::{Function, FunctionId, ExecutionModel};
+use crate::function::{ExecutionModel, Function, FunctionId};
+use crate::instruction::{BlockId, Instruction};
 use crate::module::Module;
+use crate::types::{AddressSpace, IrType, ScalarType};
+use crate::value::ValueId;
 
 /// Validation error severity
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,17 +129,26 @@ pub struct ValidationResult {
 impl ValidationResult {
     /// Check if validation passed (no errors)
     pub fn is_valid(&self) -> bool {
-        !self.diagnostics.iter().any(|d| d.severity == Severity::Error)
+        !self
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == Severity::Error)
     }
 
     /// Get error count
     pub fn error_count(&self) -> usize {
-        self.diagnostics.iter().filter(|d| d.severity == Severity::Error).count()
+        self.diagnostics
+            .iter()
+            .filter(|d| d.severity == Severity::Error)
+            .count()
     }
 
     /// Get warning count
     pub fn warning_count(&self) -> usize {
-        self.diagnostics.iter().filter(|d| d.severity == Severity::Warning).count()
+        self.diagnostics
+            .iter()
+            .filter(|d| d.severity == Severity::Warning)
+            .count()
     }
 
     /// Add a diagnostic
@@ -217,17 +226,12 @@ impl Validator {
         // Validate memory model
         use crate::module::MemoryModel;
         match module.memory_model {
-            MemoryModel::Simple | MemoryModel::GLSL450 | MemoryModel::Vulkan => {}
+            MemoryModel::Simple | MemoryModel::GLSL450 | MemoryModel::Vulkan => {},
         }
     }
 
     /// Validate a function
-    fn validate_function(
-        &self,
-        func: &Function,
-        module: &Module,
-        result: &mut ValidationResult,
-    ) {
+    fn validate_function(&self, func: &Function, module: &Module, result: &mut ValidationResult) {
         let func_name = func.name.clone();
 
         // Validate entry point requirements
@@ -238,8 +242,7 @@ impl Validator {
         // Must have at least one block
         if func.blocks.is_empty() {
             result.add(
-                Diagnostic::error("E001", "Function has no basic blocks")
-                    .in_function(&func_name),
+                Diagnostic::error("E001", "Function has no basic blocks").in_function(&func_name),
             );
             return;
         }
@@ -268,39 +271,42 @@ impl Validator {
         match model {
             ExecutionModel::Vertex => {
                 // Vertex shaders should output position
-            }
+            },
             ExecutionModel::Fragment => {
                 // Fragment shaders can have various outputs
-            }
+            },
             ExecutionModel::GLCompute | ExecutionModel::Kernel => {
                 // Compute shaders must have local size
                 if func.local_size().is_none() {
                     result.add(
-                        Diagnostic::error("E002", "Compute shader missing LocalSize execution mode")
-                            .in_function(&func_name),
+                        Diagnostic::error(
+                            "E002",
+                            "Compute shader missing LocalSize execution mode",
+                        )
+                        .in_function(&func_name),
                     );
                 }
-            }
+            },
             ExecutionModel::Geometry => {
                 // Must specify output topology
-            }
+            },
             ExecutionModel::TessellationControl | ExecutionModel::TessellationEvaluation => {
                 // Must specify patch size
-            }
+            },
             ExecutionModel::MeshNV | ExecutionModel::MeshEXT => {
                 // Mesh shaders require local size and output limits
-            }
+            },
             ExecutionModel::TaskNV | ExecutionModel::TaskEXT => {
                 // Task shaders require local size
-            }
-            ExecutionModel::RayGenerationKHR |
-            ExecutionModel::IntersectionKHR |
-            ExecutionModel::AnyHitKHR |
-            ExecutionModel::ClosestHitKHR |
-            ExecutionModel::MissKHR |
-            ExecutionModel::CallableKHR => {
+            },
+            ExecutionModel::RayGenerationKHR
+            | ExecutionModel::IntersectionKHR
+            | ExecutionModel::AnyHitKHR
+            | ExecutionModel::ClosestHitKHR
+            | ExecutionModel::MissKHR
+            | ExecutionModel::CallableKHR => {
                 // Ray tracing shader requirements
-            }
+            },
         }
     }
 
@@ -363,10 +369,10 @@ impl Validator {
                                 .at_instruction(idx),
                         );
                     }
-                }
+                },
                 _ => {
                     phi_phase = false;
-                }
+                },
             }
         }
     }
@@ -384,47 +390,69 @@ impl Validator {
         let func_name = func.name.clone();
 
         match inst {
-            Instruction::BinaryOp { ty, op, left, right, .. } => {
+            Instruction::BinaryOp {
+                ty,
+                op,
+                left,
+                right,
+                ..
+            } => {
                 // Validate type compatibility
                 // Both operands should have matching types
-            }
+            },
 
-            Instruction::UnaryOp { ty, op, operand, .. } => {
+            Instruction::UnaryOp {
+                ty, op, operand, ..
+            } => {
                 // Validate operand type matches expected
-            }
+            },
 
             Instruction::Branch { target } => {
                 // Target must exist in function
                 if func.blocks.get(*target).is_none() {
                     result.add(
-                        Diagnostic::error("E010", format!("Branch target {} does not exist", target))
-                            .in_function(&func_name)
-                            .in_block(block_id)
-                            .at_instruction(idx),
+                        Diagnostic::error(
+                            "E010",
+                            format!("Branch target {} does not exist", target),
+                        )
+                        .in_function(&func_name)
+                        .in_block(block_id)
+                        .at_instruction(idx),
                     );
                 }
-            }
+            },
 
-            Instruction::BranchConditional { condition, true_target, false_target, .. } => {
+            Instruction::BranchConditional {
+                condition,
+                true_target,
+                false_target,
+                ..
+            } => {
                 // Condition must be boolean
                 // Targets must exist
                 if func.blocks.get(*true_target).is_none() {
                     result.add(
-                        Diagnostic::error("E011", format!("True branch target {} does not exist", true_target))
-                            .in_function(&func_name)
-                            .in_block(block_id)
-                            .at_instruction(idx),
+                        Diagnostic::error(
+                            "E011",
+                            format!("True branch target {} does not exist", true_target),
+                        )
+                        .in_function(&func_name)
+                        .in_block(block_id)
+                        .at_instruction(idx),
                     );
                 }
                 if func.blocks.get(*false_target).is_none() {
                     result.add(
-                        Diagnostic::error("E011", format!("False branch target {} does not exist", false_target))
-                            .in_function(&func_name)
-                            .in_block(block_id)
-                            .at_instruction(idx),
+                        Diagnostic::error(
+                            "E011",
+                            format!("False branch target {} does not exist", false_target),
+                        )
+                        .in_function(&func_name)
+                        .in_block(block_id)
+                        .at_instruction(idx),
                     );
                 }
-            }
+            },
 
             Instruction::Phi { operands, .. } => {
                 // Each predecessor must provide exactly one value
@@ -432,35 +460,45 @@ impl Validator {
                 for (_, pred_block) in operands {
                     if !predecessors.contains(pred_block) {
                         result.add(
-                            Diagnostic::error("E020", format!("Phi operand from non-predecessor block {}", pred_block))
-                                .in_function(&func_name)
-                                .in_block(block_id)
-                                .at_instruction(idx),
-                        );
-                    }
-                }
-            }
-
-            Instruction::FunctionCall { function, arguments, .. } => {
-                // Function must exist
-                if module.get_function(*function).is_none() {
-                    result.add(
-                        Diagnostic::error("E030", format!("Called function {} does not exist", function))
+                            Diagnostic::error(
+                                "E020",
+                                format!("Phi operand from non-predecessor block {}", pred_block),
+                            )
                             .in_function(&func_name)
                             .in_block(block_id)
                             .at_instruction(idx),
+                        );
+                    }
+                }
+            },
+
+            Instruction::FunctionCall {
+                function,
+                arguments,
+                ..
+            } => {
+                // Function must exist
+                if module.get_function(*function).is_none() {
+                    result.add(
+                        Diagnostic::error(
+                            "E030",
+                            format!("Called function {} does not exist", function),
+                        )
+                        .in_function(&func_name)
+                        .in_block(block_id)
+                        .at_instruction(idx),
                     );
                 }
-            }
+            },
 
             Instruction::Load { pointer, .. } => {
                 // Pointer must be a pointer type
-            }
+            },
 
             Instruction::Store { pointer, value, .. } => {
                 // Pointer must be a pointer type
                 // Value type must match pointee type
-            }
+            },
 
             Instruction::AccessChain { indices, .. } => {
                 // Must have at least one index
@@ -472,7 +510,7 @@ impl Validator {
                             .at_instruction(idx),
                     );
                 }
-            }
+            },
 
             Instruction::CompositeConstruct { components, .. } => {
                 // Must have at least one component
@@ -484,7 +522,7 @@ impl Validator {
                             .at_instruction(idx),
                     );
                 }
-            }
+            },
 
             Instruction::VectorShuffle { components, .. } => {
                 // Components must be valid indices
@@ -494,40 +532,53 @@ impl Validator {
                         continue;
                     }
                 }
-            }
+            },
 
-            Instruction::LoopMerge { merge_block, continue_target, .. } => {
+            Instruction::LoopMerge {
+                merge_block,
+                continue_target,
+                ..
+            } => {
                 // Merge and continue blocks must exist
                 if func.blocks.get(*merge_block).is_none() {
                     result.add(
-                        Diagnostic::error("E050", format!("Loop merge block {} does not exist", merge_block))
-                            .in_function(&func_name)
-                            .in_block(block_id)
-                            .at_instruction(idx),
+                        Diagnostic::error(
+                            "E050",
+                            format!("Loop merge block {} does not exist", merge_block),
+                        )
+                        .in_function(&func_name)
+                        .in_block(block_id)
+                        .at_instruction(idx),
                     );
                 }
                 if func.blocks.get(*continue_target).is_none() {
                     result.add(
-                        Diagnostic::error("E051", format!("Loop continue block {} does not exist", continue_target))
-                            .in_function(&func_name)
-                            .in_block(block_id)
-                            .at_instruction(idx),
+                        Diagnostic::error(
+                            "E051",
+                            format!("Loop continue block {} does not exist", continue_target),
+                        )
+                        .in_function(&func_name)
+                        .in_block(block_id)
+                        .at_instruction(idx),
                     );
                 }
-            }
+            },
 
             Instruction::SelectionMerge { merge_block, .. } => {
                 if func.blocks.get(*merge_block).is_none() {
                     result.add(
-                        Diagnostic::error("E052", format!("Selection merge block {} does not exist", merge_block))
-                            .in_function(&func_name)
-                            .in_block(block_id)
-                            .at_instruction(idx),
+                        Diagnostic::error(
+                            "E052",
+                            format!("Selection merge block {} does not exist", merge_block),
+                        )
+                        .in_function(&func_name)
+                        .in_block(block_id)
+                        .at_instruction(idx),
                     );
                 }
-            }
+            },
 
-            _ => {}
+            _ => {},
         }
     }
 
@@ -553,7 +604,7 @@ impl Validator {
             let mut reachable: HashSet<BlockId> = HashSet::new();
             #[cfg(not(feature = "std"))]
             let mut reachable: BTreeSet<BlockId> = BTreeSet::new();
-            
+
             let mut worklist = vec![entry_id];
             while let Some(block_id) = worklist.pop() {
                 if reachable.contains(&block_id) {
@@ -585,7 +636,7 @@ impl Validator {
     /// Validate SSA properties
     fn validate_ssa(&self, func: &Function, result: &mut ValidationResult) {
         let func_name = func.name.clone();
-        
+
         #[cfg(feature = "std")]
         let mut defined: HashSet<ValueId> = HashSet::new();
         #[cfg(not(feature = "std"))]
@@ -615,10 +666,13 @@ impl Validator {
                     if let Some(result_id) = inst.result() {
                         if defined.contains(&result_id) {
                             result.add(
-                                Diagnostic::error("E070", format!("Value {} defined multiple times", result_id))
-                                    .in_function(&func_name)
-                                    .in_block(block_id)
-                                    .at_instruction(idx),
+                                Diagnostic::error(
+                                    "E070",
+                                    format!("Value {} defined multiple times", result_id),
+                                )
+                                .in_function(&func_name)
+                                .in_block(block_id)
+                                .at_instruction(idx),
                             );
                         }
                         defined.insert(result_id);
@@ -642,10 +696,13 @@ impl Validator {
                 if global.decorations.location.is_none() && global.decorations.builtin.is_none() {
                     result.warning(
                         "W080",
-                        format!("Input/output variable '{}' has no location or builtin", global.name),
+                        format!(
+                            "Input/output variable '{}' has no location or builtin",
+                            global.name
+                        ),
                     );
                 }
-            }
+            },
             AddressSpace::Uniform | AddressSpace::StorageBuffer => {
                 // Must have binding
                 if global.decorations.binding.is_none() {
@@ -654,8 +711,8 @@ impl Validator {
                         format!("Uniform/storage variable '{}' has no binding", global.name),
                     );
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -668,30 +725,27 @@ impl Validator {
             for (_, block) in func.blocks.iter() {
                 for inst in block.instructions() {
                     match inst {
-                        Instruction::AtomicExchange { .. } |
-                        Instruction::AtomicCompareExchange { .. } => {
+                        Instruction::AtomicExchange { .. }
+                        | Instruction::AtomicCompareExchange { .. } => {
                             // Requires some form of atomics capability
-                        }
-                        Instruction::ImageSampleImplicitLod { .. } |
-                        Instruction::ImageSampleExplicitLod { .. } => {
+                        },
+                        Instruction::ImageSampleImplicitLod { .. }
+                        | Instruction::ImageSampleExplicitLod { .. } => {
                             if !module.has_capability(Capability::Shader) {
-                                result.warning(
-                                    "W090",
-                                    "Image sampling requires Shader capability",
-                                );
+                                result.warning("W090", "Image sampling requires Shader capability");
                             }
-                        }
-                        Instruction::GroupIAdd { .. } |
-                        Instruction::GroupFAdd { .. } => {
-                            if !module.has_capability(Capability::GroupNonUniform) &&
-                               !module.has_capability(Capability::GroupNonUniformArithmetic) {
+                        },
+                        Instruction::GroupIAdd { .. } | Instruction::GroupFAdd { .. } => {
+                            if !module.has_capability(Capability::GroupNonUniform)
+                                && !module.has_capability(Capability::GroupNonUniformArithmetic)
+                            {
                                 result.warning(
                                     "W091",
                                     "Group operations require GroupNonUniform* capabilities",
                                 );
                             }
-                        }
-                        _ => {}
+                        },
+                        _ => {},
                     }
                 }
             }
@@ -724,7 +778,7 @@ mod tests {
             .in_function("main")
             .in_block(0)
             .at_instruction(5);
-        
+
         assert_eq!(diag.severity, Severity::Error);
         assert!(diag.location.is_some());
         let loc = diag.location.unwrap();
@@ -737,7 +791,7 @@ mod tests {
     fn test_validation_result() {
         let mut result = ValidationResult::default();
         assert!(result.is_valid());
-        
+
         result.error("E001", "Test");
         assert!(!result.is_valid());
         assert_eq!(result.error_count(), 1);
