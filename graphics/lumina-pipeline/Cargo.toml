@@ -1,0 +1,26 @@
+[package]
+name = "lumina-pipeline"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix Contributors"]
+description = "Revolutionary pipeline state management for LUMINA graphics engine"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helixos/helix"
+keywords = ["graphics", "pipeline", "shader", "vulkan", "gpu"]
+categories = ["rendering", "graphics", "game-development"]
+
+[features]
+default = ["std"]
+std = []
+shader-hot-reload = []
+pipeline-cache = []
+bindless = []
+mesh-shaders = []
+ray-tracing = []
+
+[dependencies]
+lumina-core = { path = "../lumina-core" }
+lumina-math = { path = "../lumina-math" }
+bitflags = "2.4"
+
+[dev-dependencies]
