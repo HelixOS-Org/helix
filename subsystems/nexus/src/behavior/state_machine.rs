@@ -5,12 +5,10 @@
 
 #![allow(dead_code)]
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // Core Types
@@ -286,42 +284,48 @@ pub enum TransitionCondition {
 }
 
 impl TransitionCondition {
-    pub fn evaluate(&self, ctx: &StateContext, event: Option<&StateEvent>, time_in_state: u64) -> bool {
+    pub fn evaluate(
+        &self,
+        ctx: &StateContext,
+        event: Option<&StateEvent>,
+        time_in_state: u64,
+    ) -> bool {
         match self {
             Self::Always => true,
-            Self::OnEvent(id) => {
-                event.map(|e| e.id == *id).unwrap_or(false)
-            }
-            Self::VarEquals(name, expected) => {
-                ctx.get_var(name).map(|v| match (v, expected) {
+            Self::OnEvent(id) => event.map(|e| e.id == *id).unwrap_or(false),
+            Self::VarEquals(name, expected) => ctx
+                .get_var(name)
+                .map(|v| match (v, expected) {
                     (EventData::Int(a), EventData::Int(b)) => a == b,
                     (EventData::Float(a), EventData::Float(b)) => (a - b).abs() < 1e-9,
                     (EventData::Bool(a), EventData::Bool(b)) => a == b,
                     _ => false,
-                }).unwrap_or(false)
-            }
-            Self::VarGreater(name, threshold) => {
-                ctx.get_var(name).map(|v| match v {
+                })
+                .unwrap_or(false),
+            Self::VarGreater(name, threshold) => ctx
+                .get_var(name)
+                .map(|v| match v {
                     EventData::Float(f) => *f > *threshold,
                     EventData::Int(i) => (*i as f64) > *threshold,
                     _ => false,
-                }).unwrap_or(false)
-            }
-            Self::VarLess(name, threshold) => {
-                ctx.get_var(name).map(|v| match v {
+                })
+                .unwrap_or(false),
+            Self::VarLess(name, threshold) => ctx
+                .get_var(name)
+                .map(|v| match v {
                     EventData::Float(f) => *f < *threshold,
                     EventData::Int(i) => (*i as f64) < *threshold,
                     _ => false,
-                }).unwrap_or(false)
-            }
+                })
+                .unwrap_or(false),
             Self::TimeInState(threshold) => time_in_state >= *threshold,
             Self::Custom(f) => f(ctx, event),
-            Self::And(conditions) => {
-                conditions.iter().all(|c| c.evaluate(ctx, event, time_in_state))
-            }
-            Self::Or(conditions) => {
-                conditions.iter().any(|c| c.evaluate(ctx, event, time_in_state))
-            }
+            Self::And(conditions) => conditions
+                .iter()
+                .all(|c| c.evaluate(ctx, event, time_in_state)),
+            Self::Or(conditions) => conditions
+                .iter()
+                .any(|c| c.evaluate(ctx, event, time_in_state)),
             Self::Not(condition) => !condition.evaluate(ctx, event, time_in_state),
         }
     }
@@ -374,7 +378,12 @@ impl Transition {
         self
     }
 
-    pub fn can_fire(&self, ctx: &StateContext, event: Option<&StateEvent>, time_in_state: u64) -> bool {
+    pub fn can_fire(
+        &self,
+        ctx: &StateContext,
+        event: Option<&StateEvent>,
+        time_in_state: u64,
+    ) -> bool {
         self.condition.evaluate(ctx, event, time_in_state)
     }
 
@@ -426,7 +435,9 @@ impl StateMachine {
     }
 
     pub fn current_state_name(&self) -> Option<&str> {
-        self.states.get(&self.current_state).map(|s| s.name.as_str())
+        self.states
+            .get(&self.current_state)
+            .map(|s| s.name.as_str())
     }
 
     pub fn history(&self) -> &[StateId] {
@@ -458,12 +469,16 @@ impl StateMachine {
     }
 
     fn try_transition(&mut self, event: Option<&StateEvent>, ctx: &mut StateContext) -> bool {
-        let time_in_state = self.states.get(&self.current_state)
+        let time_in_state = self
+            .states
+            .get(&self.current_state)
             .map(|s| s.time_in_state())
             .unwrap_or(0);
 
         // Find first matching transition
-        let matching_transition = self.transitions.iter()
+        let matching_transition = self
+            .transitions
+            .iter()
             .find(|t| t.source == self.current_state && t.can_fire(ctx, event, time_in_state));
 
         if let Some(transition) = matching_transition {
@@ -477,7 +492,9 @@ impl StateMachine {
             // Execute transition action
             // Note: We can't call transition.execute directly due to borrow checker
             // So we store the action separately
-            let has_action = self.transitions.iter()
+            let has_action = self
+                .transitions
+                .iter()
                 .find(|t| t.source == self.current_state && t.target == target)
                 .and_then(|t| t.action.as_ref())
                 .is_some();
@@ -514,7 +531,8 @@ impl StateMachine {
 
     /// Check if in a final state
     pub fn is_finished(&self) -> bool {
-        self.states.get(&self.current_state)
+        self.states
+            .get(&self.current_state)
             .map(|s| s.is_final())
             .unwrap_or(false)
     }
@@ -654,11 +672,15 @@ impl HierarchicalStateMachine {
     pub fn process_event(&mut self, event: &StateEvent, ctx: &mut StateContext) -> bool {
         // Check transitions from leaf to root
         for &state_id in self.active_states.iter().rev() {
-            let time_in_state = self.states.get(&state_id)
+            let time_in_state = self
+                .states
+                .get(&state_id)
                 .map(|s| s.time_in_state())
                 .unwrap_or(0);
 
-            let matching = self.transitions.iter()
+            let matching = self
+                .transitions
+                .iter()
                 .find(|t| t.source == state_id && t.can_fire(ctx, Some(event), time_in_state))
                 .map(|t| (t.target, t.id));
 
@@ -681,11 +703,15 @@ impl HierarchicalStateMachine {
 
         // Try automatic transitions from leaf to root
         for &state_id in self.active_states.clone().iter().rev() {
-            let time_in_state = self.states.get(&state_id)
+            let time_in_state = self
+                .states
+                .get(&state_id)
                 .map(|s| s.time_in_state())
                 .unwrap_or(0);
 
-            let matching = self.transitions.iter()
+            let matching = self
+                .transitions
+                .iter()
                 .find(|t| t.source == state_id && t.can_fire(ctx, None, time_in_state))
                 .map(|t| t.target);
 
@@ -702,7 +728,8 @@ impl HierarchicalStateMachine {
         let source_ancestors = self.get_ancestors(source);
         let target_ancestors = self.get_ancestors(target);
 
-        let lca = source_ancestors.iter()
+        let lca = source_ancestors
+            .iter()
             .find(|s| target_ancestors.contains(s))
             .copied();
 
@@ -896,22 +923,54 @@ pub fn create_kernel_load_fsm() -> StateMachine {
     let (builder, critical) = builder.add_state("Critical", StateType::Normal);
 
     let builder = builder
-        .add_transition("to_low", idle, low,
-            TransitionCondition::VarGreater("cpu_load".into(), 0.1))
-        .add_transition("to_medium", low, medium,
-            TransitionCondition::VarGreater("cpu_load".into(), 0.4))
-        .add_transition("to_high", medium, high,
-            TransitionCondition::VarGreater("cpu_load".into(), 0.7))
-        .add_transition("to_critical", high, critical,
-            TransitionCondition::VarGreater("cpu_load".into(), 0.9))
-        .add_transition("from_low", low, idle,
-            TransitionCondition::VarLess("cpu_load".into(), 0.1))
-        .add_transition("from_medium", medium, low,
-            TransitionCondition::VarLess("cpu_load".into(), 0.4))
-        .add_transition("from_high", high, medium,
-            TransitionCondition::VarLess("cpu_load".into(), 0.7))
-        .add_transition("from_critical", critical, high,
-            TransitionCondition::VarLess("cpu_load".into(), 0.9));
+        .add_transition(
+            "to_low",
+            idle,
+            low,
+            TransitionCondition::VarGreater("cpu_load".into(), 0.1),
+        )
+        .add_transition(
+            "to_medium",
+            low,
+            medium,
+            TransitionCondition::VarGreater("cpu_load".into(), 0.4),
+        )
+        .add_transition(
+            "to_high",
+            medium,
+            high,
+            TransitionCondition::VarGreater("cpu_load".into(), 0.7),
+        )
+        .add_transition(
+            "to_critical",
+            high,
+            critical,
+            TransitionCondition::VarGreater("cpu_load".into(), 0.9),
+        )
+        .add_transition(
+            "from_low",
+            low,
+            idle,
+            TransitionCondition::VarLess("cpu_load".into(), 0.1),
+        )
+        .add_transition(
+            "from_medium",
+            medium,
+            low,
+            TransitionCondition::VarLess("cpu_load".into(), 0.4),
+        )
+        .add_transition(
+            "from_high",
+            high,
+            medium,
+            TransitionCondition::VarLess("cpu_load".into(), 0.7),
+        )
+        .add_transition(
+            "from_critical",
+            critical,
+            high,
+            TransitionCondition::VarLess("cpu_load".into(), 0.9),
+        );
 
     builder.build(idle)
 }
