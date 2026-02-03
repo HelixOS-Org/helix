@@ -3,7 +3,9 @@
 //! This module provides the core mesh abstraction including vertex data,
 //! index buffers, and mesh management.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 // ============================================================================
@@ -491,8 +493,16 @@ impl AABB {
     /// Create from center and half-extents.
     pub fn from_center_extents(center: [f32; 3], extents: [f32; 3]) -> Self {
         Self {
-            min: [center[0] - extents[0], center[1] - extents[1], center[2] - extents[2]],
-            max: [center[0] + extents[0], center[1] + extents[1], center[2] + extents[2]],
+            min: [
+                center[0] - extents[0],
+                center[1] - extents[1],
+                center[2] - extents[2],
+            ],
+            max: [
+                center[0] + extents[0],
+                center[1] + extents[1],
+                center[2] + extents[2],
+            ],
         }
     }
 
@@ -545,16 +555,22 @@ impl AABB {
 
     /// Check if contains point.
     pub fn contains_point(&self, point: [f32; 3]) -> bool {
-        point[0] >= self.min[0] && point[0] <= self.max[0]
-            && point[1] >= self.min[1] && point[1] <= self.max[1]
-            && point[2] >= self.min[2] && point[2] <= self.max[2]
+        point[0] >= self.min[0]
+            && point[0] <= self.max[0]
+            && point[1] >= self.min[1]
+            && point[1] <= self.max[1]
+            && point[2] >= self.min[2]
+            && point[2] <= self.max[2]
     }
 
     /// Check if intersects another AABB.
     pub fn intersects(&self, other: &AABB) -> bool {
-        self.min[0] <= other.max[0] && self.max[0] >= other.min[0]
-            && self.min[1] <= other.max[1] && self.max[1] >= other.min[1]
-            && self.min[2] <= other.max[2] && self.max[2] >= other.min[2]
+        self.min[0] <= other.max[0]
+            && self.max[0] >= other.min[0]
+            && self.min[1] <= other.max[1]
+            && self.max[1] >= other.min[1]
+            && self.min[2] <= other.max[2]
+            && self.max[2] >= other.min[2]
     }
 
     /// Get surface area.
@@ -589,7 +605,8 @@ impl BoundingSphere {
     pub fn from_aabb(aabb: &AABB) -> Self {
         let center = aabb.center();
         let extents = aabb.extents();
-        let radius = (extents[0] * extents[0] + extents[1] * extents[1] + extents[2] * extents[2]).sqrt();
+        let radius =
+            (extents[0] * extents[0] + extents[1] * extents[1] + extents[2] * extents[2]).sqrt();
         Self { center, radius }
     }
 
@@ -954,7 +971,8 @@ impl MeshBuilder {
     /// Set tangent for vertex.
     pub fn set_tangent(&mut self, index: usize, tangent: [f32; 4]) {
         if self.tangents.len() <= index {
-            self.tangents.resize(self.positions.len(), [1.0, 0.0, 0.0, 1.0]);
+            self.tangents
+                .resize(self.positions.len(), [1.0, 0.0, 0.0, 1.0]);
         }
         self.tangents[index] = tangent;
     }
@@ -962,7 +980,8 @@ impl MeshBuilder {
     /// Set vertex color.
     pub fn set_color(&mut self, index: usize, color: [f32; 4]) {
         if self.colors.len() <= index {
-            self.colors.resize(self.positions.len(), [1.0, 1.0, 1.0, 1.0]);
+            self.colors
+                .resize(self.positions.len(), [1.0, 1.0, 1.0, 1.0]);
         }
         self.colors[index] = color;
     }
@@ -1014,7 +1033,8 @@ impl MeshBuilder {
     /// Calculate tangents (Mikktspace-like).
     pub fn calculate_tangents(&mut self) {
         self.tangents.clear();
-        self.tangents.resize(self.positions.len(), [0.0, 0.0, 0.0, 0.0]);
+        self.tangents
+            .resize(self.positions.len(), [0.0, 0.0, 0.0, 0.0]);
 
         let mut bitangents = vec![[0.0f32; 3]; self.positions.len()];
 
@@ -1071,7 +1091,8 @@ impl MeshBuilder {
             let dot = n[0] * t[0] + n[1] * t[1] + n[2] * t[2];
             let tangent = [t[0] - n[0] * dot, t[1] - n[1] * dot, t[2] - n[2] * dot];
 
-            let len = (tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]).sqrt();
+            let len = (tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2])
+                .sqrt();
             if len > 0.0 {
                 self.tangents[i][0] = tangent[0] / len;
                 self.tangents[i][1] = tangent[1] / len;
@@ -1093,7 +1114,8 @@ impl MeshBuilder {
     pub fn build(mut self, handle: MeshHandle) -> Mesh {
         // Calculate tangents if not set
         if self.tangents.is_empty() {
-            self.tangents.resize(self.positions.len(), [1.0, 0.0, 0.0, 1.0]);
+            self.tangents
+                .resize(self.positions.len(), [1.0, 0.0, 0.0, 1.0]);
         }
 
         // Build vertex buffer
@@ -1107,7 +1129,11 @@ impl MeshBuilder {
             let vertex = Vertex {
                 position: pos,
                 normal: self.normals.get(i).copied().unwrap_or([0.0, 1.0, 0.0]),
-                tangent: self.tangents.get(i).copied().unwrap_or([1.0, 0.0, 0.0, 1.0]),
+                tangent: self
+                    .tangents
+                    .get(i)
+                    .copied()
+                    .unwrap_or([1.0, 0.0, 0.0, 1.0]),
                 uv0: self.uvs.get(i).copied().unwrap_or([0.0, 0.0]),
             };
 
