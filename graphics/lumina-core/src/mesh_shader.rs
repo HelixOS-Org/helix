@@ -18,10 +18,9 @@
 //! - **Reduced CPU Overhead**: No input assembly stage
 //! - **Meshlet-Based**: Natural fit for modern LOD systems
 
-use core::ops::Range;
-
 #[cfg(feature = "alloc")]
-use alloc::{vec::Vec, boxed::Box};
+use alloc::{boxed::Box, vec::Vec};
+use core::ops::Range;
 
 use crate::error::{Error, Result};
 use crate::pipeline::{PipelineLayout, ShaderStageFlags};
@@ -194,9 +193,9 @@ impl Meshlet {
 
     /// Check if meshlet is valid
     pub const fn is_valid(&self) -> bool {
-        self.vertex_count > 0 
+        self.vertex_count > 0
             && self.vertex_count <= Self::MAX_VERTICES
-            && self.primitive_count > 0 
+            && self.primitive_count > 0
             && self.primitive_count <= Self::MAX_PRIMITIVES
     }
 }
@@ -573,10 +572,10 @@ impl Default for MultisampleState {
 #[repr(u32)]
 pub enum SampleCount {
     #[default]
-    S1 = 1,
-    S2 = 2,
-    S4 = 4,
-    S8 = 8,
+    S1  = 1,
+    S2  = 2,
+    S4  = 4,
+    S8  = 8,
     S16 = 16,
     S32 = 32,
     S64 = 64,
