@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["lumina-core", "lumina-math", "lumina-shader"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+authors = ["Helix OS Team"]
+
+[workspace.dependencies]
+# Internal crates
+lumina-core = { path = "lumina-core" }
+lumina-math = { path = "lumina-math" }
+lumina-shader = { path = "lumina-shader" }
+
+# External dependencies
+bitflags = "2.4"
