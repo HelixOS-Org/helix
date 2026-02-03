@@ -232,7 +232,9 @@ pub struct AdaptedModel {
 impl AdaptedModel {
     /// Predict with adapted model
     pub fn predict(&self, features: &[f64]) -> f64 {
-        let dot: f64 = self.weights.iter()
+        let dot: f64 = self
+            .weights
+            .iter()
             .zip(features.iter())
             .map(|(w, f)| w * f)
             .sum();
@@ -262,7 +264,7 @@ impl MAMLLearner {
     /// Create new MAML learner
     pub fn new(config: MetaLearnerConfig) -> Self {
         let dim = config.feature_dim;
-        
+
         // Initialize meta-parameters with small random values
         let meta_weights = (0..dim)
             .map(|i| ((i * 17 + 31) % 100) as f64 / 1000.0 - 0.05)
@@ -293,10 +295,12 @@ impl MAMLLearner {
             for sample in support {
                 if let Some(label) = sample.label {
                     // Forward pass
-                    let pred: f64 = weights.iter()
+                    let pred: f64 = weights
+                        .iter()
                         .zip(sample.features.iter())
                         .map(|(w, f)| w * f)
-                        .sum::<f64>() + bias;
+                        .sum::<f64>()
+                        + bias;
 
                     let error = pred - label;
                     let loss = error * error * 0.5;
@@ -457,7 +461,12 @@ impl LearnedLRAdapter {
 
     /// Update learning rates based on gradients
     pub fn update_lrs(&mut self, gradients: &[f64], meta_gradients: &[f64]) {
-        for i in 0..self.learning_rates.len().min(gradients.len()).min(meta_gradients.len()) {
+        for i in 0..self
+            .learning_rates
+            .len()
+            .min(gradients.len())
+            .min(meta_gradients.len())
+        {
             // If gradient and meta-gradient have same sign, increase LR
             // If opposite signs, decrease LR
             let sign = gradients[i] * meta_gradients[i];
@@ -534,7 +543,8 @@ impl TaskEmbedding {
 
     /// Update task embedding
     pub fn update_embedding(&mut self, task_id: TaskId, gradient: &[f64], lr: f64) {
-        let embedding = self.embeddings
+        let embedding = self
+            .embeddings
             .entry(task_id)
             .or_insert_with(|| vec![0.0; self.embed_dim]);
 
@@ -591,13 +601,13 @@ impl FewShotLearner {
     /// Register a new task
     pub fn register_task(&mut self, name: String, support: Vec<StreamingSample>) -> TaskId {
         let id = self.tasks.create_task(name);
-        
+
         if let Some(task) = self.tasks.get_task_mut(id) {
             for sample in support {
                 task.add_support(sample);
             }
         }
-        
+
         id
     }
 
@@ -606,10 +616,10 @@ impl FewShotLearner {
         let task = self.tasks.get_task(task_id)?;
         let adapted = self.maml.adapt(&task.support);
         let loss = adapted.final_loss;
-        
+
         self.current_model = Some(adapted);
         self.current_task = Some(task_id);
-        
+
         Some(loss)
     }
 
@@ -622,7 +632,8 @@ impl FewShotLearner {
     pub fn meta_train(&mut self, iterations: usize) {
         for _ in 0..iterations {
             let task_ids = self.tasks.task_ids();
-            let tasks: Vec<MetaTask> = task_ids.iter()
+            let tasks: Vec<MetaTask> = task_ids
+                .iter()
                 .filter_map(|id| self.tasks.get_task(*id).cloned())
                 .collect();
 
@@ -653,7 +664,7 @@ mod tests {
     #[test]
     fn test_meta_task() {
         let mut task = MetaTask::new(TaskId(0), String::from("test"));
-        
+
         task.add_support(make_sample(vec![1.0, 0.0], 1.0));
         task.add_query(make_sample(vec![0.0, 1.0], 0.0));
 
@@ -692,9 +703,9 @@ mod tests {
         ];
 
         let adapted = maml.adapt(&support);
-        
+
         assert_eq!(adapted.adaptation_steps, 5);
-        
+
         // Should predict reasonably after adaptation
         let pred = adapted.predict(&[0.5, 0.5]);
         // Not exact, but should be in right direction
@@ -748,10 +759,10 @@ mod tests {
         // Gradients with same sign -> increase LR
         let gradients = vec![1.0, 1.0, -1.0, -1.0];
         let meta_gradients = vec![1.0, -1.0, -1.0, 1.0];
-        
+
         let old_lr = adapter.get_lr(0);
         adapter.update_lrs(&gradients, &meta_gradients);
-        
+
         // First param: same sign -> increased
         assert!(adapter.get_lr(0) > old_lr);
         // Second param: opposite sign -> decreased
