@@ -1,0 +1,22 @@
+[package]
+name = "lumina-asset"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "Revolutionary GPU asset pipeline for LUMINA"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["gpu", "graphics", "assets", "textures", "meshes"]
+categories = ["game-development", "graphics", "rendering"]
+
+[features]
+default = ["std"]
+std = []
+compression = []
+streaming = []
+virtual-textures = []
+mesh-optimization = []
+full = ["compression", "streaming", "virtual-textures", "mesh-optimization"]
+
+[dependencies]
+lumina-core = { path = "../lumina-core" }
