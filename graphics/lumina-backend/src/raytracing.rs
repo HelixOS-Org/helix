@@ -24,7 +24,9 @@
 //! └──────────────────────────────────────────────────────────────────┘
 //! ```
 
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt;
 
 use crate::buffer::BufferHandle;
@@ -301,22 +303,16 @@ impl Transform3x4 {
     /// Identity matrix.
     pub const fn identity() -> Self {
         Self {
-            data: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-            ],
+            data: [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [
+                0.0, 0.0, 1.0, 0.0,
+            ]],
         }
     }
 
     /// Create from translation.
     pub fn translation(x: f32, y: f32, z: f32) -> Self {
         Self {
-            data: [
-                [1.0, 0.0, 0.0, x],
-                [0.0, 1.0, 0.0, y],
-                [0.0, 0.0, 1.0, z],
-            ],
+            data: [[1.0, 0.0, 0.0, x], [0.0, 1.0, 0.0, y], [0.0, 0.0, 1.0, z]],
         }
     }
 
@@ -840,12 +836,7 @@ impl ShaderBindingTableBuilder {
         };
 
         let miss_size = if !self.miss_entries.is_empty() {
-            let max_entry = self
-                .miss_entries
-                .iter()
-                .map(|e| e.len())
-                .max()
-                .unwrap_or(0);
+            let max_entry = self.miss_entries.iter().map(|e| e.len()).max().unwrap_or(0);
             let stride = Self::align_up(max_entry as u64, handle_align);
             Self::align_up(stride * self.miss_entries.len() as u64, base_align)
         } else {
@@ -853,12 +844,7 @@ impl ShaderBindingTableBuilder {
         };
 
         let hit_size = if !self.hit_entries.is_empty() {
-            let max_entry = self
-                .hit_entries
-                .iter()
-                .map(|e| e.len())
-                .max()
-                .unwrap_or(0);
+            let max_entry = self.hit_entries.iter().map(|e| e.len()).max().unwrap_or(0);
             let stride = Self::align_up(max_entry as u64, handle_align);
             Self::align_up(stride * self.hit_entries.len() as u64, base_align)
         } else {
@@ -1124,10 +1110,10 @@ impl RayTracingManager {
                     } else {
                         (tri.vertex_count / 3) as u64
                     };
-                }
+                },
                 GeometryDesc::Aabbs(aabb) => {
                     triangle_count += (aabb.count * 12) as u64; // Estimate
-                }
+                },
             }
         }
 
@@ -1211,7 +1197,10 @@ impl RayTracingManager {
     }
 
     /// Get acceleration structure info.
-    pub fn get_info(&self, handle: AccelerationStructureHandle) -> Option<&AccelerationStructureInfo> {
+    pub fn get_info(
+        &self,
+        handle: AccelerationStructureHandle,
+    ) -> Option<&AccelerationStructureInfo> {
         self.blas_list
             .iter()
             .find(|b| b.handle == handle)
