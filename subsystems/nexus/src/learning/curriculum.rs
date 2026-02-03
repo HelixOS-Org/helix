@@ -127,7 +127,8 @@ impl Lesson {
         // High score -> lower difficulty than expected
         let performance = score.clamp(0.0, 1.0);
         let difficulty_adjustment = 0.1 * (0.5 - performance);
-        self.estimated_difficulty = (self.estimated_difficulty + difficulty_adjustment).clamp(0.0, 1.0);
+        self.estimated_difficulty =
+            (self.estimated_difficulty + difficulty_adjustment).clamp(0.0, 1.0);
 
         // Check mastery (80% success rate with 5+ attempts)
         if self.completions >= 5 {
@@ -213,16 +214,15 @@ impl TaskProgression {
 
         if success_rate >= self.min_success_rate {
             // Progress!
-            self.current_difficulty = (self.current_difficulty + self.increase_rate)
-                .min(self.target_difficulty);
+            self.current_difficulty =
+                (self.current_difficulty + self.increase_rate).min(self.target_difficulty);
             self.level += 1;
             // Reset counters
             self.recent_successes = 0;
             self.recent_total = 0;
         } else if success_rate < 0.3 && self.current_difficulty > 0.1 {
             // Regress if doing very poorly
-            self.current_difficulty = (self.current_difficulty - self.increase_rate * 0.5)
-                .max(0.1);
+            self.current_difficulty = (self.current_difficulty - self.increase_rate * 0.5).max(0.1);
             if self.level > 1 {
                 self.level -= 1;
             }
@@ -303,7 +303,9 @@ impl CurriculumLearner {
 
     /// Reorder lessons by difficulty
     fn reorder(&mut self) {
-        let mut lessons: Vec<(LessonId, f64)> = self.lessons.iter()
+        let mut lessons: Vec<(LessonId, f64)> = self
+            .lessons
+            .iter()
             .map(|(&id, lesson)| (id, lesson.estimated_difficulty))
             .collect();
 
@@ -314,7 +316,8 @@ impl CurriculumLearner {
 
     /// Get current lesson
     pub fn current_lesson(&self) -> Option<&Lesson> {
-        self.order.get(self.current_index)
+        self.order
+            .get(self.current_index)
             .and_then(|id| self.lessons.get(id))
     }
 
@@ -326,7 +329,8 @@ impl CurriculumLearner {
         };
 
         lesson.prerequisites.iter().all(|prereq_id| {
-            self.lessons.get(prereq_id)
+            self.lessons
+                .get(prereq_id)
                 .map(|l| l.mastered)
                 .unwrap_or(true) // If prereq doesn't exist, consider it met
         })
@@ -353,7 +357,7 @@ impl CurriculumLearner {
     /// Record completion of current lesson
     pub fn record_completion(&mut self, score: f64) {
         let success = score >= self.mastery_threshold;
-        
+
         // Update current lesson
         if let Some(&id) = self.order.get(self.current_index) {
             if let Some(lesson) = self.lessons.get_mut(&id) {
@@ -367,7 +371,9 @@ impl CurriculumLearner {
         // Move to next lesson if mastered
         if success && self.current_index < self.order.len() - 1 {
             // Check if current is mastered
-            let mastered = self.order.get(self.current_index)
+            let mastered = self
+                .order
+                .get(self.current_index)
                 .and_then(|id| self.lessons.get(id))
                 .map(|l| l.mastered)
                 .unwrap_or(false);
@@ -466,10 +472,13 @@ impl DifficultyEstimator {
 
     /// Estimate difficulty from features
     pub fn estimate(&self, features: &[f64]) -> f64 {
-        let score: f64 = self.weights.iter()
+        let score: f64 = self
+            .weights
+            .iter()
             .zip(features.iter())
             .map(|(w, f)| w * f)
-            .sum::<f64>() + self.bias;
+            .sum::<f64>()
+            + self.bias;
 
         // Sigmoid to bound output
         1.0 / (1.0 + (-score).exp())
@@ -512,7 +521,7 @@ mod tests {
     #[test]
     fn test_lesson_difficulty() {
         assert!(LessonDifficulty::Beginner.to_value() < LessonDifficulty::Expert.to_value());
-        
+
         let diff = LessonDifficulty::from_value(0.3);
         assert_eq!(diff, LessonDifficulty::Easy);
     }
@@ -573,7 +582,10 @@ mod tests {
         }
 
         // Check progress
-        assert!(curriculum.mastered_count() > 0 || curriculum.get_lesson(id1).unwrap().success_rate() > 0.5);
+        assert!(
+            curriculum.mastered_count() > 0
+                || curriculum.get_lesson(id1).unwrap().success_rate() > 0.5
+        );
     }
 
     #[test]
