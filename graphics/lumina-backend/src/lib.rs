@@ -50,72 +50,54 @@
 
 extern crate alloc;
 
-pub mod device;
-pub mod queue;
-pub mod swapchain;
-pub mod command;
 pub mod buffer;
-pub mod texture;
+pub mod command;
+pub mod descriptor;
+pub mod device;
+pub mod instance;
+pub mod pipeline;
+pub mod queue;
+pub mod resource;
 pub mod sampler;
 pub mod shader_module;
-pub mod pipeline;
-pub mod descriptor;
-pub mod surface;
-pub mod instance;
-pub mod resource;
 pub mod submission;
+pub mod surface;
+pub mod swapchain;
+pub mod texture;
 
 // Re-exports
+pub use command::*;
 pub use device::*;
 pub use queue::*;
 pub use swapchain::*;
-pub use command::*;
 
 /// Prelude for common imports
 pub mod prelude {
-    pub use crate::device::{
-        Device, DeviceDesc, DeviceCapabilities, DeviceFeatures, DeviceLimits,
-        Adapter, AdapterInfo, AdapterType, BackendType,
-    };
-    pub use crate::queue::{
-        Queue, QueueFamily, QueueType, QueuePriority, QueueCapabilities,
-    };
-    pub use crate::swapchain::{
-        Swapchain, SwapchainDesc, SwapchainImage, PresentMode, CompositeAlpha,
-    };
+    pub use crate::buffer::{Buffer, BufferDesc, BufferMemoryType, BufferUsage};
     pub use crate::command::{
-        CommandBuffer, CommandBufferDesc, CommandBufferLevel, CommandPool,
-        RenderPassEncoder, ComputePassEncoder, TransferEncoder,
-    };
-    pub use crate::buffer::{
-        Buffer, BufferDesc, BufferUsage, BufferMemoryType,
-    };
-    pub use crate::texture::{
-        Texture, TextureDesc, TextureUsage, TextureView, TextureViewDesc,
-    };
-    pub use crate::sampler::{
-        Sampler, SamplerDesc, FilterMode, AddressMode, CompareOp,
-    };
-    pub use crate::shader_module::{
-        ShaderModule, ShaderModuleDesc, ShaderStage,
-    };
-    pub use crate::pipeline::{
-        RenderPipeline, RenderPipelineDesc, ComputePipeline, ComputePipelineDesc,
-        RayTracingPipeline, RayTracingPipelineDesc,
+        CommandBuffer, CommandBufferDesc, CommandBufferLevel, CommandPool, ComputePassEncoder,
+        RenderPassEncoder, TransferEncoder,
     };
     pub use crate::descriptor::{
-        DescriptorSet, DescriptorSetLayout, DescriptorPool, DescriptorBinding,
+        DescriptorBinding, DescriptorPool, DescriptorSet, DescriptorSetLayout,
     };
-    pub use crate::surface::{
-        Surface, SurfaceCapabilities, SurfaceFormat,
+    pub use crate::device::{
+        Adapter, AdapterInfo, AdapterType, BackendType, Device, DeviceCapabilities, DeviceDesc,
+        DeviceFeatures, DeviceLimits,
     };
-    pub use crate::instance::{
-        Instance, InstanceDesc, InstanceFeatures,
+    pub use crate::instance::{Instance, InstanceDesc, InstanceFeatures};
+    pub use crate::pipeline::{
+        ComputePipeline, ComputePipelineDesc, RayTracingPipeline, RayTracingPipelineDesc,
+        RenderPipeline, RenderPipelineDesc,
     };
-    pub use crate::resource::{
-        ResourceHandle, ResourceType, ResourceState,
+    pub use crate::queue::{Queue, QueueCapabilities, QueueFamily, QueuePriority, QueueType};
+    pub use crate::resource::{ResourceHandle, ResourceState, ResourceType};
+    pub use crate::sampler::{AddressMode, CompareOp, FilterMode, Sampler, SamplerDesc};
+    pub use crate::shader_module::{ShaderModule, ShaderModuleDesc, ShaderStage};
+    pub use crate::submission::{Fence, PresentInfo, Semaphore, SubmitInfo, TimelineSemaphore};
+    pub use crate::surface::{Surface, SurfaceCapabilities, SurfaceFormat};
+    pub use crate::swapchain::{
+        CompositeAlpha, PresentMode, Swapchain, SwapchainDesc, SwapchainImage,
     };
-    pub use crate::submission::{
-        SubmitInfo, PresentInfo, TimelineSemaphore, Fence, Semaphore,
-    };
+    pub use crate::texture::{Texture, TextureDesc, TextureUsage, TextureView, TextureViewDesc};
 }
