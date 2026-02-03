@@ -29,29 +29,27 @@
 
 extern crate alloc;
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 pub mod capture;
-pub mod timeline;
-pub mod resource;
-pub mod pipeline;
 pub mod memory;
-pub mod shader_debug;
+pub mod pipeline;
 pub mod remote;
+pub mod resource;
+pub mod shader_debug;
+pub mod timeline;
 
 pub use capture::*;
-pub use timeline::*;
-pub use resource::*;
-pub use pipeline::*;
 pub use memory::*;
-pub use shader_debug::*;
+pub use pipeline::*;
 pub use remote::*;
+pub use resource::*;
+pub use shader_debug::*;
+pub use timeline::*;
 
 /// Result type for inspector operations
 pub type InspectorResult<T> = Result<T, InspectorError>;
@@ -85,7 +83,10 @@ pub enum InspectorErrorKind {
 
 impl InspectorError {
     pub fn new(kind: InspectorErrorKind, message: impl Into<String>) -> Self {
-        Self { kind, message: message.into() }
+        Self {
+            kind,
+            message: message.into(),
+        }
     }
 }
 
@@ -154,7 +155,7 @@ impl Inspector {
         } else {
             None
         };
-        
+
         Ok(Self {
             capture_engine: CaptureEngine::new(config.capture_buffer_size)?,
             timeline_recorder: TimelineRecorder::new(config.enable_timeline),
@@ -169,7 +170,7 @@ impl Inspector {
             config,
         })
     }
-    
+
     /// Start capturing the current frame
     pub fn begin_capture(&mut self) -> InspectorResult<CaptureHandle> {
         if self.is_capturing {
@@ -178,16 +179,19 @@ impl Inspector {
                 "Already capturing",
             ));
         }
-        
+
         self.is_capturing = true;
         let frame_id = self.frame_counter.fetch_add(1, Ordering::Relaxed);
-        
+
         self.capture_engine.begin_frame(frame_id)?;
         self.timeline_recorder.begin_frame(frame_id);
-        
-        Ok(CaptureHandle { frame_id, inspector: self })
+
+        Ok(CaptureHandle {
+            frame_id,
+            inspector: self,
+        })
     }
-    
+
     /// End frame capture
     pub fn end_capture(&mut self, handle: CaptureHandle) -> InspectorResult<CapturedFrame> {
         if !self.is_capturing {
@@ -196,47 +200,47 @@ impl Inspector {
                 "Not capturing",
             ));
         }
-        
+
         self.is_capturing = false;
-        
+
         let frame = self.capture_engine.end_frame(handle.frame_id)?;
         let timeline = self.timeline_recorder.end_frame(handle.frame_id);
         let resources = self.resource_tracker.snapshot();
         let memory = self.memory_profiler.snapshot();
-        
+
         let captured = CapturedFrame {
             frame_id: handle.frame_id,
-            frame: frame,
+            frame,
             timeline,
             resources,
             memory,
             timestamp: get_timestamp(),
         };
-        
+
         // Keep only max_captured_frames
         while self.captured_frames.len() >= self.config.max_captured_frames {
             self.captured_frames.remove(0);
         }
         self.captured_frames.push(captured.clone());
-        
+
         // Send to remote if connected
         if let Some(ref mut server) = self.remote_server {
             let _ = server.broadcast_frame(&captured);
         }
-        
+
         Ok(captured)
     }
-    
+
     /// Get captured frames
     pub fn captured_frames(&self) -> &[CapturedFrame] {
         &self.captured_frames
     }
-    
+
     /// Get a specific captured frame
     pub fn get_frame(&self, frame_id: u64) -> Option<&CapturedFrame> {
         self.captured_frames.iter().find(|f| f.frame_id == frame_id)
     }
-    
+
     /// Start shader debugging session
     pub fn debug_shader(
         &mut self,
@@ -245,22 +249,22 @@ impl Inspector {
     ) -> InspectorResult<ShaderDebugSession> {
         self.shader_debugger.start_session(shader_id, breakpoints)
     }
-    
+
     /// Analyze memory usage
     pub fn analyze_memory(&self) -> MemoryAnalysis {
         self.memory_profiler.analyze()
     }
-    
+
     /// Get resource by handle
     pub fn inspect_resource(&self, handle: u64) -> Option<ResourceInfo> {
         self.resource_tracker.get(handle)
     }
-    
+
     /// Get pipeline state
     pub fn inspect_pipeline(&self, handle: u64) -> Option<PipelineInfo> {
         self.pipeline_inspector.get(handle)
     }
-    
+
     /// Compare two frames
     pub fn diff_frames(&self, frame_a: u64, frame_b: u64) -> Option<FrameDiff> {
         let a = self.get_frame(frame_a)?;
@@ -459,11 +463,30 @@ pub enum StateType {
 pub enum StateValue {
     Handle(u64),
     Handles(Vec<u64>),
-    Viewport { x: f32, y: f32, width: f32, height: f32, min_depth: f32, max_depth: f32 },
-    Scissor { x: i32, y: i32, width: u32, height: u32 },
+    Viewport {
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        min_depth: f32,
+        max_depth: f32,
+    },
+    Scissor {
+        x: i32,
+        y: i32,
+        width: u32,
+        height: u32,
+    },
     BlendConstants([f32; 4]),
-    DepthBias { constant: f32, clamp: f32, slope: f32 },
-    StencilRef { front: u32, back: u32 },
+    DepthBias {
+        constant: f32,
+        clamp: f32,
+        slope: f32,
+    },
+    StencilRef {
+        front: u32,
+        back: u32,
+    },
 }
 
 /// Resource binding
@@ -587,35 +610,46 @@ pub struct FrameDiff {
 /// Diff two captured frames
 pub fn diff_captured_frames(a: &CapturedFrame, b: &CapturedFrame) -> FrameDiff {
     let count_commands = |f: &CapturedFrame| -> usize {
-        f.frame.command_buffers.iter()
+        f.frame
+            .command_buffers
+            .iter()
             .map(|cb| cb.commands.len())
             .sum()
     };
-    
+
     let count_draws = |f: &CapturedFrame| -> usize {
-        f.frame.command_buffers.iter()
+        f.frame
+            .command_buffers
+            .iter()
             .flat_map(|cb| &cb.commands)
-            .filter(|c| matches!(c.command_type, 
-                CommandType::Draw | 
-                CommandType::DrawIndexed |
-                CommandType::DrawIndirect |
-                CommandType::DrawIndexedIndirect |
-                CommandType::DrawMeshTasks |
-                CommandType::DrawMeshTasksIndirect
-            ))
+            .filter(|c| {
+                matches!(
+                    c.command_type,
+                    CommandType::Draw
+                        | CommandType::DrawIndexed
+                        | CommandType::DrawIndirect
+                        | CommandType::DrawIndexedIndirect
+                        | CommandType::DrawMeshTasks
+                        | CommandType::DrawMeshTasksIndirect
+                )
+            })
             .count()
     };
-    
+
     let count_dispatches = |f: &CapturedFrame| -> usize {
-        f.frame.command_buffers.iter()
+        f.frame
+            .command_buffers
+            .iter()
             .flat_map(|cb| &cb.commands)
-            .filter(|c| matches!(c.command_type,
-                CommandType::Dispatch |
-                CommandType::DispatchIndirect
-            ))
+            .filter(|c| {
+                matches!(
+                    c.command_type,
+                    CommandType::Dispatch | CommandType::DispatchIndirect
+                )
+            })
             .count()
     };
-    
+
     FrameDiff {
         frame_a_id: a.frame_id,
         frame_b_id: b.frame_id,
