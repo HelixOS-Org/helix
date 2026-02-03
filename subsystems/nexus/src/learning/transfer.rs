@@ -78,7 +78,8 @@ impl Domain {
 
     /// Normalize features for this domain
     pub fn normalize(&self, features: &[f64]) -> Vec<f64> {
-        features.iter()
+        features
+            .iter()
             .enumerate()
             .map(|(i, &f)| {
                 if i < self.feature_dim {
@@ -92,7 +93,8 @@ impl Domain {
 
     /// Denormalize features
     pub fn denormalize(&self, features: &[f64]) -> Vec<f64> {
-        features.iter()
+        features
+            .iter()
             .enumerate()
             .map(|(i, &f)| {
                 if i < self.feature_dim {
@@ -147,7 +149,13 @@ impl FeatureTransformer {
     }
 
     /// Create random initialization
-    pub fn random(source: DomainId, target: DomainId, in_dim: usize, out_dim: usize, seed: u64) -> Self {
+    pub fn random(
+        source: DomainId,
+        target: DomainId,
+        in_dim: usize,
+        out_dim: usize,
+        seed: u64,
+    ) -> Self {
         let mut rng = seed;
 
         let transform: Vec<Vec<f64>> = (0..out_dim)
@@ -173,13 +181,11 @@ impl FeatureTransformer {
 
     /// Transform features from source to target domain
     pub fn transform(&self, features: &[f64]) -> Vec<f64> {
-        self.transform.iter()
+        self.transform
+            .iter()
             .zip(self.bias.iter())
             .map(|(row, &b)| {
-                let dot: f64 = row.iter()
-                    .zip(features.iter())
-                    .map(|(w, f)| w * f)
-                    .sum();
+                let dot: f64 = row.iter().zip(features.iter()).map(|(w, f)| w * f).sum();
                 dot + b
             })
             .collect()
@@ -190,7 +196,8 @@ impl FeatureTransformer {
         let output = self.transform(source_features);
 
         // Compute error
-        let errors: Vec<f64> = output.iter()
+        let errors: Vec<f64> = output
+            .iter()
             .zip(target_features.iter())
             .map(|(o, t)| o - t)
             .collect();
@@ -276,13 +283,13 @@ impl DomainAdapter {
                 // Normalize in source, denormalize in target
                 let normalized = self.source.normalize(source_features);
                 self.target.denormalize(&normalized)
-            }
+            },
             _ => {
                 // Use learned transformer
                 let normalized = self.source.normalize(source_features);
                 let transformed = self.transformer.transform(&normalized);
                 self.target.denormalize(&transformed)
-            }
+            },
         }
     }
 
@@ -341,7 +348,7 @@ impl KnowledgeTransfer {
     /// Create new knowledge transfer
     pub fn new(source_weights: Vec<f64>, transfer_ratio: f64) -> Self {
         let target_weights = source_weights.clone();
-        
+
         Self {
             source_weights,
             target_weights,
@@ -352,7 +359,11 @@ impl KnowledgeTransfer {
 
     /// Initialize target from source (transfer)
     pub fn transfer(&mut self) {
-        for (t, &s) in self.target_weights.iter_mut().zip(self.source_weights.iter()) {
+        for (t, &s) in self
+            .target_weights
+            .iter_mut()
+            .zip(self.source_weights.iter())
+        {
             *t = self.transfer_ratio * s + (1.0 - self.transfer_ratio) * *t;
         }
     }
@@ -412,10 +423,10 @@ impl TransferLearner {
     pub fn register_domain(&mut self, name: String) -> DomainId {
         let id = DomainId(self.next_domain_id);
         self.next_domain_id += 1;
-        
+
         let domain = Domain::new(id, name, self.feature_dim);
         self.domains.insert(id, domain);
-        
+
         id
     }
 
@@ -452,20 +463,23 @@ impl TransferLearner {
         target: DomainId,
         features: &[f64],
     ) -> Option<Vec<f64>> {
-        self.adapters.get(&(source, target))
+        self.adapters
+            .get(&(source, target))
             .map(|adapter| adapter.adapt(features))
     }
 
     /// Train source model
     pub fn train_source(&mut self, features: &[f64], label: f64, lr: f64) {
         // Simple linear model
-        let pred: f64 = self.source_model.iter()
+        let pred: f64 = self
+            .source_model
+            .iter()
             .zip(features.iter())
             .map(|(w, f)| w * f)
             .sum();
-        
+
         let error = pred - label;
-        
+
         for (w, f) in self.source_model.iter_mut().zip(features.iter()) {
             *w -= lr * error * f;
         }
@@ -480,13 +494,15 @@ impl TransferLearner {
 
     /// Fine-tune target model
     pub fn finetune_target(&mut self, features: &[f64], label: f64, lr: f64) {
-        let pred: f64 = self.target_model.iter()
+        let pred: f64 = self
+            .target_model
+            .iter()
             .zip(features.iter())
             .map(|(w, f)| w * f)
             .sum();
-        
+
         let error = pred - label;
-        
+
         for (w, f) in self.target_model.iter_mut().zip(features.iter()) {
             *w -= lr * error * f;
         }
@@ -494,7 +510,8 @@ impl TransferLearner {
 
     /// Predict using target model
     pub fn predict(&self, features: &[f64]) -> f64 {
-        self.target_model.iter()
+        self.target_model
+            .iter()
             .zip(features.iter())
             .map(|(w, f)| w * f)
             .sum()
@@ -555,7 +572,7 @@ mod tests {
         let mut transfer = KnowledgeTransfer::new(source_weights.clone(), 0.8);
 
         transfer.transfer();
-        
+
         // 0.8 * source + 0.2 * target (which started as source)
         // So should equal source
         assert_eq!(transfer.target_weights(), &source_weights);
