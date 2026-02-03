@@ -7,6 +7,7 @@
 //! - **Reason** counterfactually ("what if X hadn't happened?")
 //! - **Explain** complex system behaviors in human terms
 //! - **Query** historical causality with CQL (Causal Query Language)
+//! - **Track time** with Event Calculus (fluents, actions, effects)
 //!
 //! ## Modules
 //!
@@ -18,6 +19,8 @@
 //! - [`explanation`] - Human-readable explanations
 //! - [`cql`] - Causal Query Language
 //! - [`intelligence`] - Main causal reasoning interface
+//! - [`temporal`] - Allen's interval algebra
+//! - [`event_calculus`] - Event Calculus for action reasoning
 
 extern crate alloc;
 
@@ -29,6 +32,8 @@ pub mod explanation;
 pub mod graph;
 pub mod intelligence;
 pub mod types;
+pub mod temporal;
+pub mod event_calculus;
 
 // Re-export types
 // Re-export chain
@@ -49,6 +54,11 @@ pub use graph::{CausalEdge, CausalGraph, CausalNode, CausalRelationType};
 // Re-export intelligence
 pub use intelligence::{CausalReasoningAnalysis, CausalReasoningIntelligence};
 pub use types::{CausalEdgeId, CausalEventId, CausalNodeId, ChainId, QueryId};
+// Re-export event calculus
+pub use event_calculus::{
+    EventCalculus, Fluent, FluentId, FluentType, FluentValue, Event, EventId,
+    Action, ActionId, Narrative, FluentTimeline, KernelEventCalculus, KernelState,
+};
 
 #[cfg(test)]
 mod tests {
