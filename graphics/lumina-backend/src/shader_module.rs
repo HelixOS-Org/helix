@@ -2,7 +2,9 @@
 //!
 //! Shader compilation, caching, and management.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use bitflags::bitflags;
@@ -275,13 +277,8 @@ impl ShaderModule {
         let bytes: &[u8] = match source {
             ShaderSource::SpirV(words) => {
                 // SAFETY: Vec<u32> can be safely viewed as bytes
-                unsafe {
-                    core::slice::from_raw_parts(
-                        words.as_ptr() as *const u8,
-                        words.len() * 4,
-                    )
-                }
-            }
+                unsafe { core::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 4) }
+            },
             ShaderSource::Glsl(s) => s.as_bytes(),
             ShaderSource::Hlsl(s) => s.as_bytes(),
             ShaderSource::Wgsl(s) => s.as_bytes(),
