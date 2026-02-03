@@ -5,17 +5,17 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-use crate::types::{IrType, TypeRegistry, StructType};
-use crate::value::{ValueTable, ValueId, ConstantValue, SpecConstantMap, SpecConstant};
-use crate::function::{Function, FunctionMap, GlobalVariable, ExecutionModel, FunctionId};
+use crate::function::{ExecutionModel, Function, FunctionId, FunctionMap, GlobalVariable};
 use crate::instruction::Instruction;
+use crate::types::{IrType, StructType, TypeRegistry};
+use crate::value::{ConstantValue, SpecConstant, SpecConstantMap, ValueId, ValueTable};
 
 /// SPIR-V addressing model
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[repr(u8)]
 pub enum AddressingModel {
     #[default]
-    Logical = 0,
+    Logical    = 0,
     Physical32 = 1,
     Physical64 = 2,
     PhysicalStorageBuffer64 = 5348,
@@ -25,136 +25,136 @@ pub enum AddressingModel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[repr(u8)]
 pub enum MemoryModel {
-    Simple = 0,
+    Simple  = 0,
     GLSL450 = 1,
-    OpenCL = 2,
+    OpenCL  = 2,
     #[default]
-    Vulkan = 3,
+    Vulkan  = 3,
 }
 
 /// Capability required by the module
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u16)]
 pub enum Capability {
-    Matrix = 0,
-    Shader = 1,
-    Geometry = 2,
-    Tessellation = 3,
-    Addresses = 4,
-    Linkage = 5,
-    Kernel = 6,
-    Vector16 = 7,
-    Float16Buffer = 8,
-    Float16 = 9,
-    Float64 = 10,
-    Int64 = 11,
-    Int64Atomics = 12,
-    ImageBasic = 13,
-    ImageReadWrite = 14,
-    ImageMipmap = 15,
-    Pipes = 17,
-    Groups = 18,
-    DeviceEnqueue = 19,
-    LiteralSampler = 20,
-    AtomicStorage = 21,
-    Int16 = 22,
+    Matrix               = 0,
+    Shader               = 1,
+    Geometry             = 2,
+    Tessellation         = 3,
+    Addresses            = 4,
+    Linkage              = 5,
+    Kernel               = 6,
+    Vector16             = 7,
+    Float16Buffer        = 8,
+    Float16              = 9,
+    Float64              = 10,
+    Int64                = 11,
+    Int64Atomics         = 12,
+    ImageBasic           = 13,
+    ImageReadWrite       = 14,
+    ImageMipmap          = 15,
+    Pipes                = 17,
+    Groups               = 18,
+    DeviceEnqueue        = 19,
+    LiteralSampler       = 20,
+    AtomicStorage        = 21,
+    Int16                = 22,
     TessellationPointSize = 23,
-    GeometryPointSize = 24,
-    ImageGatherExtended = 25,
+    GeometryPointSize    = 24,
+    ImageGatherExtended  = 25,
     StorageImageMultisample = 27,
     UniformBufferArrayDynamicIndexing = 28,
     SampledImageArrayDynamicIndexing = 29,
     StorageBufferArrayDynamicIndexing = 30,
     StorageImageArrayDynamicIndexing = 31,
-    ClipDistance = 32,
-    CullDistance = 33,
-    ImageCubeArray = 34,
-    SampleRateShading = 35,
-    ImageRect = 36,
-    SampledRect = 37,
-    GenericPointer = 38,
-    Int8 = 39,
-    InputAttachment = 40,
-    SparseResidency = 41,
-    MinLod = 42,
-    Sampled1D = 43,
-    Image1D = 44,
-    SampledCubeArray = 45,
-    SampledBuffer = 46,
-    ImageBuffer = 47,
-    ImageMSArray = 48,
+    ClipDistance         = 32,
+    CullDistance         = 33,
+    ImageCubeArray       = 34,
+    SampleRateShading    = 35,
+    ImageRect            = 36,
+    SampledRect          = 37,
+    GenericPointer       = 38,
+    Int8                 = 39,
+    InputAttachment      = 40,
+    SparseResidency      = 41,
+    MinLod               = 42,
+    Sampled1D            = 43,
+    Image1D              = 44,
+    SampledCubeArray     = 45,
+    SampledBuffer        = 46,
+    ImageBuffer          = 47,
+    ImageMSArray         = 48,
     StorageImageExtendedFormats = 49,
-    ImageQuery = 50,
-    DerivativeControl = 51,
+    ImageQuery           = 50,
+    DerivativeControl    = 51,
     InterpolationFunction = 52,
-    TransformFeedback = 53,
-    GeometryStreams = 54,
+    TransformFeedback    = 53,
+    GeometryStreams      = 54,
     StorageImageReadWithoutFormat = 55,
     StorageImageWriteWithoutFormat = 56,
-    MultiViewport = 57,
-    SubgroupDispatch = 58,
-    NamedBarrier = 59,
-    PipeStorage = 60,
-    GroupNonUniform = 61,
-    GroupNonUniformVote = 62,
+    MultiViewport        = 57,
+    SubgroupDispatch     = 58,
+    NamedBarrier         = 59,
+    PipeStorage          = 60,
+    GroupNonUniform      = 61,
+    GroupNonUniformVote  = 62,
     GroupNonUniformArithmetic = 63,
     GroupNonUniformBallot = 64,
     GroupNonUniformShuffle = 65,
     GroupNonUniformShuffleRelative = 66,
     GroupNonUniformClustered = 67,
-    GroupNonUniformQuad = 68,
-    ShaderLayer = 69,
-    ShaderViewportIndex = 70,
+    GroupNonUniformQuad  = 68,
+    ShaderLayer          = 69,
+    ShaderViewportIndex  = 70,
     FragmentShadingRateKHR = 4422,
-    SubgroupBallotKHR = 4423,
-    DrawParameters = 4427,
+    SubgroupBallotKHR    = 4423,
+    DrawParameters       = 4427,
     WorkgroupMemoryExplicitLayoutKHR = 4428,
     WorkgroupMemoryExplicitLayout8BitAccessKHR = 4429,
     WorkgroupMemoryExplicitLayout16BitAccessKHR = 4430,
-    SubgroupVoteKHR = 4431,
+    SubgroupVoteKHR      = 4431,
     StorageBuffer16BitAccess = 4433,
     UniformAndStorageBuffer16BitAccess = 4434,
     StoragePushConstant16 = 4435,
     StorageInputOutput16 = 4436,
-    DeviceGroup = 4437,
-    MultiView = 4439,
+    DeviceGroup          = 4437,
+    MultiView            = 4439,
     VariablePointersStorageBuffer = 4441,
-    VariablePointers = 4442,
-    AtomicStorageOps = 4445,
+    VariablePointers     = 4442,
+    AtomicStorageOps     = 4445,
     SampleMaskPostDepthCoverage = 4447,
     StorageBuffer8BitAccess = 4448,
     UniformAndStorageBuffer8BitAccess = 4449,
     StoragePushConstant8 = 4450,
-    DenormPreserve = 4464,
-    DenormFlushToZero = 4465,
+    DenormPreserve       = 4464,
+    DenormFlushToZero    = 4465,
     SignedZeroInfNanPreserve = 4466,
-    RoundingModeRTE = 4467,
-    RoundingModeRTZ = 4468,
+    RoundingModeRTE      = 4467,
+    RoundingModeRTZ      = 4468,
     RayQueryProvisionalKHR = 4471,
-    RayQueryKHR = 4472,
+    RayQueryKHR          = 4472,
     RayTraversalPrimitiveCullingKHR = 4478,
-    RayTracingKHR = 4479,
-    Float16ImageAMD = 5008,
+    RayTracingKHR        = 4479,
+    Float16ImageAMD      = 5008,
     ImageGatherBiasLodAMD = 5009,
-    FragmentMaskAMD = 5010,
-    StencilExportEXT = 5013,
+    FragmentMaskAMD      = 5010,
+    StencilExportEXT     = 5013,
     ImageReadWriteLodAMD = 5015,
-    Int64ImageEXT = 5016,
-    ShaderClockKHR = 5055,
+    Int64ImageEXT        = 5016,
+    ShaderClockKHR       = 5055,
     SampleMaskOverrideCoverageNV = 5249,
     GeometryShaderPassthroughNV = 5251,
     ShaderViewportIndexLayerEXT = 5254,
     ShaderViewportMaskNV = 5255,
-    ShaderStereoViewNV = 5259,
-    PerViewAttributesNV = 5260,
+    ShaderStereoViewNV   = 5259,
+    PerViewAttributesNV  = 5260,
     FragmentFullyCoveredEXT = 5265,
-    MeshShadingNV = 5266,
-    ImageFootprintNV = 5282,
+    MeshShadingNV        = 5266,
+    ImageFootprintNV     = 5282,
     FragmentBarycentricKHR = 5284,
     ComputeDerivativeGroupQuadsNV = 5288,
-    FragmentDensityEXT = 5291,
+    FragmentDensityEXT   = 5291,
     GroupNonUniformPartitionedNV = 5297,
-    ShaderNonUniform = 5301,
+    ShaderNonUniform     = 5301,
     RuntimeDescriptorArray = 5302,
     InputAttachmentArrayDynamicIndexing = 5303,
     UniformTexelBufferArrayDynamicIndexing = 5304,
@@ -166,20 +166,20 @@ pub enum Capability {
     InputAttachmentArrayNonUniformIndexing = 5310,
     UniformTexelBufferArrayNonUniformIndexing = 5311,
     StorageTexelBufferArrayNonUniformIndexing = 5312,
-    RayTracingNV = 5340,
+    RayTracingNV         = 5340,
     RayTracingMotionBlurNV = 5341,
-    VulkanMemoryModel = 5345,
+    VulkanMemoryModel    = 5345,
     VulkanMemoryModelDeviceScope = 5346,
     PhysicalStorageBufferAddresses = 5347,
     ComputeDerivativeGroupLinearNV = 5350,
     RayTracingProvisionalKHR = 5353,
-    CooperativeMatrixNV = 5357,
+    CooperativeMatrixNV  = 5357,
     FragmentShaderSampleInterlockEXT = 5363,
     FragmentShaderShadingRateInterlockEXT = 5372,
-    ShaderSMBuiltinsNV = 5373,
+    ShaderSMBuiltinsNV   = 5373,
     FragmentShaderPixelInterlockEXT = 5378,
     DemoteToHelperInvocation = 5379,
-    BindlessTextureNV = 5390,
+    BindlessTextureNV    = 5390,
     SubgroupShuffleINTEL = 5568,
     SubgroupBufferBlockIOINTEL = 5569,
     SubgroupImageBlockIOINTEL = 5570,
@@ -189,20 +189,20 @@ pub enum Capability {
     IntegerFunctions2INTEL = 5584,
     FunctionPointersINTEL = 5603,
     IndirectReferencesINTEL = 5604,
-    AsmINTEL = 5606,
+    AsmINTEL             = 5606,
     AtomicFloat32MinMaxEXT = 5612,
     AtomicFloat64MinMaxEXT = 5613,
     AtomicFloat16MinMaxEXT = 5616,
-    VectorComputeINTEL = 5617,
-    VectorAnyINTEL = 5619,
-    ExpectAssumeKHR = 5629,
+    VectorComputeINTEL   = 5617,
+    VectorAnyINTEL       = 5619,
+    ExpectAssumeKHR      = 5629,
     SubgroupAvcMotionEstimationINTEL = 5696,
     SubgroupAvcMotionEstimationIntraINTEL = 5697,
     SubgroupAvcMotionEstimationChromaINTEL = 5698,
     VariableLengthArrayINTEL = 5817,
     FunctionFloatControlINTEL = 5821,
     FPGAMemoryAttributesINTEL = 5824,
-    FPFastMathModeINTEL = 5837,
+    FPFastMathModeINTEL  = 5837,
     ArbitraryPrecisionIntegersINTEL = 5844,
     ArbitraryPrecisionFloatingPointINTEL = 5845,
     UnstructuredLoopControlsINTEL = 5886,
@@ -211,25 +211,25 @@ pub enum Capability {
     FPGAKernelAttributesINTEL = 5897,
     FPGAMemoryAccessesINTEL = 5898,
     FPGAClusterAttributesINTEL = 5904,
-    LoopFuseINTEL = 5906,
+    LoopFuseINTEL        = 5906,
     FPGABufferLocationINTEL = 5920,
     ArbitraryPrecisionFixedPointINTEL = 5922,
     USMStorageClassesINTEL = 5935,
-    IOPipesINTEL = 5943,
-    BlockingPipesINTEL = 5945,
-    FPGARegINTEL = 5948,
-    DotProductInputAll = 6016,
+    IOPipesINTEL         = 5943,
+    BlockingPipesINTEL   = 5945,
+    FPGARegINTEL         = 5948,
+    DotProductInputAll   = 6016,
     DotProductInput4x8Bit = 6017,
     DotProductInput4x8BitPacked = 6018,
-    DotProduct = 6019,
-    BitInstructions = 6025,
-    AtomicFloat32AddEXT = 6033,
-    AtomicFloat64AddEXT = 6034,
+    DotProduct           = 6019,
+    BitInstructions      = 6025,
+    AtomicFloat32AddEXT  = 6033,
+    AtomicFloat64AddEXT  = 6034,
     LongConstantCompositeINTEL = 6089,
-    OptNoneINTEL = 6094,
-    AtomicFloat16AddEXT = 6095,
+    OptNoneINTEL         = 6094,
+    AtomicFloat16AddEXT  = 6095,
     DebugInfoModuleINTEL = 6114,
-    MeshShadingEXT = 5283,
+    MeshShadingEXT       = 5283,
     RayTracingOpacityMicromapEXT = 5381,
     CooperativeMatrixKHR = 6022,
 }
@@ -272,19 +272,23 @@ impl Extension {
     pub const SPV_KHR_8BIT_STORAGE: &'static str = "SPV_KHR_8bit_storage";
     pub const SPV_KHR_VARIABLE_POINTERS: &'static str = "SPV_KHR_variable_pointers";
     pub const SPV_KHR_SHADER_DRAW_PARAMETERS: &'static str = "SPV_KHR_shader_draw_parameters";
-    pub const SPV_KHR_STORAGE_BUFFER_STORAGE_CLASS: &'static str = "SPV_KHR_storage_buffer_storage_class";
+    pub const SPV_KHR_STORAGE_BUFFER_STORAGE_CLASS: &'static str =
+        "SPV_KHR_storage_buffer_storage_class";
     pub const SPV_KHR_RAY_TRACING: &'static str = "SPV_KHR_ray_tracing";
     pub const SPV_KHR_RAY_QUERY: &'static str = "SPV_KHR_ray_query";
     pub const SPV_EXT_MESH_SHADER: &'static str = "SPV_EXT_mesh_shader";
     pub const SPV_EXT_DESCRIPTOR_INDEXING: &'static str = "SPV_EXT_descriptor_indexing";
     pub const SPV_EXT_FRAGMENT_FULLY_COVERED: &'static str = "SPV_EXT_fragment_fully_covered";
     pub const SPV_EXT_SHADER_STENCIL_EXPORT: &'static str = "SPV_EXT_shader_stencil_export";
-    pub const SPV_EXT_DEMOTE_TO_HELPER_INVOCATION: &'static str = "SPV_EXT_demote_to_helper_invocation";
+    pub const SPV_EXT_DEMOTE_TO_HELPER_INVOCATION: &'static str =
+        "SPV_EXT_demote_to_helper_invocation";
     pub const SPV_KHR_SHADER_CLOCK: &'static str = "SPV_KHR_shader_clock";
     pub const SPV_KHR_FRAGMENT_SHADING_RATE: &'static str = "SPV_KHR_fragment_shading_rate";
-    pub const SPV_KHR_WORKGROUP_MEMORY_EXPLICIT_LAYOUT: &'static str = "SPV_KHR_workgroup_memory_explicit_layout";
+    pub const SPV_KHR_WORKGROUP_MEMORY_EXPLICIT_LAYOUT: &'static str =
+        "SPV_KHR_workgroup_memory_explicit_layout";
     pub const SPV_EXT_SHADER_ATOMIC_FLOAT_ADD: &'static str = "SPV_EXT_shader_atomic_float_add";
-    pub const SPV_EXT_SHADER_ATOMIC_FLOAT_MIN_MAX: &'static str = "SPV_EXT_shader_atomic_float_min_max";
+    pub const SPV_EXT_SHADER_ATOMIC_FLOAT_MIN_MAX: &'static str =
+        "SPV_EXT_shader_atomic_float_min_max";
     pub const SPV_KHR_EXPECT_ASSUME: &'static str = "SPV_KHR_expect_assume";
     pub const SPV_KHR_COOPERATIVE_MATRIX: &'static str = "SPV_KHR_cooperative_matrix";
 }
@@ -309,14 +313,14 @@ impl ExtInstImport {
 #[repr(u8)]
 pub enum SourceLanguage {
     #[default]
-    Unknown = 0,
-    ESSL = 1,
-    GLSL = 2,
-    OpenCL_C = 3,
-    OpenCL_CPP = 4,
-    HLSL = 5,
+    Unknown        = 0,
+    ESSL           = 1,
+    GLSL           = 2,
+    OpenCL_C       = 3,
+    OpenCL_CPP     = 4,
+    HLSL           = 5,
     CPP_for_OpenCL = 6,
-    SYCL = 7,
+    SYCL           = 7,
 }
 
 /// Debug source info
@@ -389,10 +393,10 @@ impl Module {
             debug_names: Vec::new(),
             debug_member_names: Vec::new(),
         };
-        
+
         // Add default capabilities
         module.add_capability(Capability::Shader);
-        
+
         module
     }
 
@@ -442,10 +446,14 @@ impl Module {
 
     /// Add GLSL.std.450 import
     pub fn add_glsl_std_450(&mut self) -> u32 {
-        if let Some(import) = self.ext_inst_imports.iter().find(|i| i.name == ExtInstImport::GLSL_STD_450) {
+        if let Some(import) = self
+            .ext_inst_imports
+            .iter()
+            .find(|i| i.name == ExtInstImport::GLSL_STD_450)
+        {
             return import.id;
         }
-        
+
         let id = self.ext_inst_imports.len() as u32 + 1;
         self.ext_inst_imports.push(ExtInstImport {
             id,
@@ -481,7 +489,10 @@ impl Module {
 
     /// Get debug name for a value
     pub fn get_debug_name(&self, id: ValueId) -> Option<&str> {
-        self.debug_names.iter().find(|(v, _)| *v == id).map(|(_, n)| n.as_str())
+        self.debug_names
+            .iter()
+            .find(|(v, _)| *v == id)
+            .map(|(_, n)| n.as_str())
     }
 
     /// Create a new function
@@ -500,10 +511,10 @@ impl Module {
             ExecutionModel::Geometry => self.add_capability(Capability::Geometry),
             ExecutionModel::TessellationControl | ExecutionModel::TessellationEvaluation => {
                 self.add_capability(Capability::Tessellation);
-            }
+            },
             ExecutionModel::TaskEXT | ExecutionModel::MeshEXT => {
                 self.add_capability(Capability::MeshShadingEXT);
-            }
+            },
             ExecutionModel::RayGenerationKHR
             | ExecutionModel::IntersectionKHR
             | ExecutionModel::AnyHitKHR
@@ -511,10 +522,10 @@ impl Module {
             | ExecutionModel::MissKHR
             | ExecutionModel::CallableKHR => {
                 self.add_capability(Capability::RayTracingKHR);
-            }
-            _ => {}
+            },
+            _ => {},
         }
-        
+
         self.functions.create_entry_point(name, execution_model)
     }
 
@@ -556,12 +567,12 @@ impl Module {
     /// Validate the module
     pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
-        
+
         // Check entry points exist
         if self.functions.entry_points().is_empty() {
             errors.push(ValidationError::NoEntryPoints);
         }
-        
+
         // Check each entry point has execution model
         for &ep_id in self.functions.entry_points() {
             if let Some(func) = self.functions.get(ep_id) {
@@ -570,7 +581,7 @@ impl Module {
                 }
             }
         }
-        
+
         // Check all functions have terminators
         for func in self.functions.iter() {
             for block in func.blocks() {
@@ -582,7 +593,7 @@ impl Module {
                 }
             }
         }
-        
+
         if errors.is_empty() {
             Ok(())
         } else {
@@ -594,12 +605,12 @@ impl Module {
     pub fn stats(&self) -> ModuleStats {
         let mut instruction_count = 0;
         let mut block_count = 0;
-        
+
         for func in self.functions.iter() {
             block_count += func.block_count();
             instruction_count += func.instruction_count();
         }
-        
+
         ModuleStats {
             function_count: self.functions.len(),
             entry_point_count: self.functions.entry_points().len(),
@@ -617,11 +628,25 @@ impl Module {
 pub enum ValidationError {
     NoEntryPoints,
     MissingExecutionModel(FunctionId),
-    MissingTerminator { function: FunctionId, block: u32 },
-    InvalidType { location: String, message: String },
-    InvalidInstruction { function: FunctionId, block: u32, instruction: usize, message: String },
+    MissingTerminator {
+        function: FunctionId,
+        block: u32,
+    },
+    InvalidType {
+        location: String,
+        message: String,
+    },
+    InvalidInstruction {
+        function: FunctionId,
+        block: u32,
+        instruction: usize,
+        message: String,
+    },
     UndefinedValue(ValueId),
-    TypeMismatch { expected: String, found: String },
+    TypeMismatch {
+        expected: String,
+        found: String,
+    },
     InvalidCapability(Capability),
 }
 
@@ -690,13 +715,13 @@ impl ModuleBuilder {
     ) -> &mut Self {
         let id = self.module.create_entry_point(name, execution_model);
         self.current_function = Some(id);
-        
+
         // Create entry block
         if let Some(func) = self.module.get_function_mut(id) {
             let block_id = func.blocks.create_entry_block();
             self.current_block = Some(block_id);
         }
-        
+
         self
     }
 
@@ -704,12 +729,12 @@ impl ModuleBuilder {
     pub fn function(&mut self, name: impl Into<String>, return_type: IrType) -> &mut Self {
         let id = self.module.create_function(name, return_type);
         self.current_function = Some(id);
-        
+
         if let Some(func) = self.module.get_function_mut(id) {
             let block_id = func.blocks.create_entry_block();
             self.current_block = Some(block_id);
         }
-        
+
         self
     }
 
@@ -791,7 +816,7 @@ mod tests {
     fn test_capability_implies() {
         let mut module = Module::new("test");
         module.add_capability(Capability::Geometry);
-        
+
         // Geometry implies Shader which implies Matrix
         assert!(module.has_capability(Capability::Geometry));
         assert!(module.has_capability(Capability::Shader));
@@ -805,7 +830,7 @@ mod tests {
             .entry_point("main", ExecutionModel::Fragment)
             .instruction(Instruction::Return)
             .build();
-        
+
         assert!(module.has_capability(Capability::Float16));
         assert_eq!(module.entry_points().len(), 1);
     }
@@ -824,7 +849,7 @@ mod tests {
             .entry_point("main", ExecutionModel::Vertex)
             .instruction(Instruction::Return)
             .build();
-        
+
         let stats = module.stats();
         assert_eq!(stats.function_count, 1);
         assert_eq!(stats.entry_point_count, 1);
