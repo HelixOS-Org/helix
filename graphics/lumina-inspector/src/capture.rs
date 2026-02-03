@@ -3,18 +3,16 @@
 //! Zero-copy frame capture system with minimal GPU overhead.
 //! Uses ring buffers and async readback to avoid stalls.
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::{
-    CommandBufferData, CommandData, CommandType, FrameData, InspectorError,
-    InspectorErrorKind, InspectorResult, RecordedCommand, RenderPassData,
-    ResourceBinding, StateChange, SubmissionData, SyncPoint,
+    CommandBufferData, CommandData, CommandType, FrameData, InspectorError, InspectorErrorKind,
+    InspectorResult, RecordedCommand, RenderPassData, ResourceBinding, StateChange, SubmissionData,
+    SyncPoint,
 };
 
 /// Capture engine for recording GPU frames
@@ -39,7 +37,7 @@ impl CaptureEngine {
             enabled: AtomicBool::new(true),
         })
     }
-    
+
     /// Begin capturing a frame
     pub fn begin_frame(&mut self, frame_id: u64) -> InspectorResult<()> {
         if self.current_frame.is_some() {
@@ -48,79 +46,79 @@ impl CaptureEngine {
                 "Frame already in progress",
             ));
         }
-        
+
         self.current_frame = Some(FrameInProgress::new(frame_id));
         Ok(())
     }
-    
+
     /// End capturing a frame
     pub fn end_frame(&mut self, frame_id: u64) -> InspectorResult<FrameData> {
         let frame = self.current_frame.take().ok_or_else(|| {
             InspectorError::new(InspectorErrorKind::InvalidState, "No frame in progress")
         })?;
-        
+
         if frame.frame_id != frame_id {
             return Err(InspectorError::new(
                 InspectorErrorKind::InvalidState,
                 "Frame ID mismatch",
             ));
         }
-        
+
         self.stats.frames_captured += 1;
-        
+
         Ok(frame.finalize())
     }
-    
+
     /// Record a command
     pub fn record_command(&mut self, command: RecordedCommand) {
         if !self.enabled.load(Ordering::Relaxed) {
             return;
         }
-        
+
         if let Some(ref mut frame) = self.current_frame {
             frame.record_command(command);
             self.stats.commands_recorded += 1;
         }
     }
-    
+
     /// Record a render pass start
     pub fn begin_render_pass(&mut self, pass_id: u64, name: Option<String>) {
         if let Some(ref mut frame) = self.current_frame {
             frame.begin_render_pass(pass_id, name);
         }
     }
-    
+
     /// Record a render pass end
     pub fn end_render_pass(&mut self, pass_id: u64) {
         if let Some(ref mut frame) = self.current_frame {
             frame.end_render_pass(pass_id);
         }
     }
-    
+
     /// Record a command buffer submission
     pub fn record_submission(&mut self, submission: SubmissionData) {
         if let Some(ref mut frame) = self.current_frame {
             frame.record_submission(submission);
         }
     }
-    
+
     /// Record a sync point
     pub fn record_sync(&mut self, sync: SyncPoint) {
         if let Some(ref mut frame) = self.current_frame {
             frame.record_sync(sync);
         }
     }
-    
+
     /// Get capture statistics
     pub fn stats(&self) -> &CaptureStats {
         &self.stats
     }
-    
+
     /// Enable/disable capturing
     pub fn set_enabled(&self, enabled: bool) {
         self.enabled.store(enabled, Ordering::Relaxed);
     }
-    
+
     /// Check if capturing is enabled
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
@@ -138,30 +136,33 @@ impl CaptureBuffer {
     fn new(capacity: usize) -> InspectorResult<Self> {
         let mut data = Vec::new();
         data.try_reserve(capacity).map_err(|_| {
-            InspectorError::new(InspectorErrorKind::OutOfMemory, "Failed to allocate capture buffer")
+            InspectorError::new(
+                InspectorErrorKind::OutOfMemory,
+                "Failed to allocate capture buffer",
+            )
         })?;
         data.resize(capacity, 0);
-        
+
         Ok(Self {
             data,
             write_pos: 0,
             capacity,
         })
     }
-    
+
     fn write(&mut self, bytes: &[u8]) -> Option<usize> {
         if self.write_pos + bytes.len() > self.capacity {
             // Wrap around
             self.write_pos = 0;
         }
-        
+
         let offset = self.write_pos;
         self.data[offset..offset + bytes.len()].copy_from_slice(bytes);
         self.write_pos += bytes.len();
-        
+
         Some(offset)
     }
-    
+
     fn clear(&mut self) {
         self.write_pos = 0;
     }
@@ -190,14 +191,15 @@ impl FrameInProgress {
             start_time: get_timestamp(),
         }
     }
-    
+
     fn record_command(&mut self, command: RecordedCommand) {
-        let cb = self.command_buffers
+        let cb = self
+            .command_buffers
             .entry(self.current_command_buffer)
             .or_insert_with(|| CommandBufferInProgress::new(self.current_command_buffer));
         cb.commands.push(command);
     }
-    
+
     fn begin_render_pass(&mut self, pass_id: u64, name: Option<String>) {
         self.render_passes.push(RenderPassInProgress {
             id: pass_id,
@@ -206,28 +208,30 @@ impl FrameInProgress {
             end_time: None,
         });
     }
-    
+
     fn end_render_pass(&mut self, pass_id: u64) {
         if let Some(pass) = self.render_passes.iter_mut().find(|p| p.id == pass_id) {
             pass.end_time = Some(get_timestamp());
         }
     }
-    
+
     fn record_submission(&mut self, submission: SubmissionData) {
         self.submissions.push(submission);
     }
-    
+
     fn record_sync(&mut self, sync: SyncPoint) {
         self.sync_points.push(sync);
     }
-    
+
     fn finalize(self) -> FrameData {
         FrameData {
-            command_buffers: self.command_buffers
+            command_buffers: self
+                .command_buffers
                 .into_values()
                 .map(|cb| cb.finalize())
                 .collect(),
-            render_passes: self.render_passes
+            render_passes: self
+                .render_passes
                 .into_iter()
                 .map(|rp| rp.finalize())
                 .collect(),
@@ -256,7 +260,7 @@ impl CommandBufferInProgress {
             resource_bindings: Vec::new(),
         }
     }
-    
+
     fn finalize(self) -> CommandBufferData {
         CommandBufferData {
             id: self.id,
@@ -385,11 +389,11 @@ impl AsyncCapture {
             staging_buffer: StagingRingBuffer::new(buffer_size)?,
         })
     }
-    
+
     /// Request async readback of a resource
     pub fn request_readback(&mut self, resource_id: u64, offset: u64, size: u64) -> u64 {
         let request_id = self.pending.len() as u64;
-        
+
         self.pending.push(PendingReadback {
             request_id,
             resource_id,
@@ -398,15 +402,15 @@ impl AsyncCapture {
             staging_offset: None,
             fence: None,
         });
-        
+
         request_id
     }
-    
+
     /// Poll for completed readbacks
     pub fn poll(&mut self) -> Vec<CompletedReadback> {
         // Check which pending readbacks are complete
         let mut newly_completed = Vec::new();
-        
+
         self.pending.retain(|pending| {
             if pending.is_complete() {
                 if let Some(data) = self.staging_buffer.read(
@@ -424,7 +428,7 @@ impl AsyncCapture {
                 true
             }
         });
-        
+
         self.completed.extend(newly_completed.clone());
         newly_completed
     }
@@ -467,10 +471,13 @@ impl StagingRingBuffer {
     fn new(capacity: usize) -> InspectorResult<Self> {
         let mut data = Vec::new();
         data.try_reserve(capacity).map_err(|_| {
-            InspectorError::new(InspectorErrorKind::OutOfMemory, "Failed to allocate staging buffer")
+            InspectorError::new(
+                InspectorErrorKind::OutOfMemory,
+                "Failed to allocate staging buffer",
+            )
         })?;
         data.resize(capacity, 0);
-        
+
         Ok(Self {
             data,
             read_pos: 0,
@@ -478,19 +485,19 @@ impl StagingRingBuffer {
             capacity,
         })
     }
-    
+
     fn read(&self, offset: usize, size: usize) -> Option<Vec<u8>> {
         if offset + size > self.capacity {
             return None;
         }
         Some(self.data[offset..offset + size].to_vec())
     }
-    
+
     fn allocate(&mut self, size: usize) -> Option<usize> {
         if self.write_pos + size > self.capacity {
             self.write_pos = 0;
         }
-        
+
         let offset = self.write_pos;
         self.write_pos += size;
         Some(offset)
