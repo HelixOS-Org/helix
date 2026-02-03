@@ -1,0 +1,21 @@
+[package]
+name = "lumina-core"
+version.workspace = true
+edition = "2021"
+license.workspace = true
+description = "Core graphics API for Helix OS - low-level GPU abstractions"
+keywords = ["graphics", "gpu", "helix", "no_std"]
+categories = ["graphics", "no-std"]
+
+[features]
+default = ["alloc"]
+alloc = []
+std = ["alloc"]
+
+[dependencies]
+bitflags = { workspace = true }
+
+# Link to MAGMA driver (when available)
+# magma-hal = { path = "../../drivers/gpu/magma/crates/magma-hal", optional = true }
+
+[dev-dependencies]
