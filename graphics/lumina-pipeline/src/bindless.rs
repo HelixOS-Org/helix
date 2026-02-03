@@ -3,7 +3,9 @@
 //! This module provides a revolutionary bindless descriptor system for
 //! GPU-driven rendering and virtual texturing.
 
-use alloc::{vec::Vec, collections::BTreeMap, string::String};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 // ============================================================================
@@ -330,7 +332,8 @@ impl BindlessHeap {
         let samplers = ResourceAllocator::new(config.max_samplers, offset);
         offset += config.max_samplers;
 
-        let acceleration_structures = ResourceAllocator::new(config.max_acceleration_structures, offset);
+        let acceleration_structures =
+            ResourceAllocator::new(config.max_acceleration_structures, offset);
 
         Self {
             config,
@@ -422,22 +425,20 @@ impl BindlessHeap {
         let freed = match handle.resource_type {
             BindlessResourceType::SampledTexture => {
                 self.sampled_textures.free(handle.index, handle.generation)
-            }
+            },
             BindlessResourceType::StorageTexture => {
                 self.storage_textures.free(handle.index, handle.generation)
-            }
+            },
             BindlessResourceType::UniformBuffer => {
                 self.uniform_buffers.free(handle.index, handle.generation)
-            }
+            },
             BindlessResourceType::StorageBuffer => {
                 self.storage_buffers.free(handle.index, handle.generation)
-            }
-            BindlessResourceType::Sampler => {
-                self.samplers.free(handle.index, handle.generation)
-            }
-            BindlessResourceType::AccelerationStructure => {
-                self.acceleration_structures.free(handle.index, handle.generation)
-            }
+            },
+            BindlessResourceType::Sampler => self.samplers.free(handle.index, handle.generation),
+            BindlessResourceType::AccelerationStructure => self
+                .acceleration_structures
+                .free(handle.index, handle.generation),
             BindlessResourceType::None => false,
         };
 
@@ -479,24 +480,24 @@ impl BindlessHeap {
     /// Check if a handle is valid.
     pub fn is_valid(&self, handle: BindlessHandle) -> bool {
         match handle.resource_type {
-            BindlessResourceType::SampledTexture => {
-                self.sampled_textures.is_valid(handle.index, handle.generation)
-            }
-            BindlessResourceType::StorageTexture => {
-                self.storage_textures.is_valid(handle.index, handle.generation)
-            }
-            BindlessResourceType::UniformBuffer => {
-                self.uniform_buffers.is_valid(handle.index, handle.generation)
-            }
-            BindlessResourceType::StorageBuffer => {
-                self.storage_buffers.is_valid(handle.index, handle.generation)
-            }
+            BindlessResourceType::SampledTexture => self
+                .sampled_textures
+                .is_valid(handle.index, handle.generation),
+            BindlessResourceType::StorageTexture => self
+                .storage_textures
+                .is_valid(handle.index, handle.generation),
+            BindlessResourceType::UniformBuffer => self
+                .uniform_buffers
+                .is_valid(handle.index, handle.generation),
+            BindlessResourceType::StorageBuffer => self
+                .storage_buffers
+                .is_valid(handle.index, handle.generation),
             BindlessResourceType::Sampler => {
                 self.samplers.is_valid(handle.index, handle.generation)
-            }
-            BindlessResourceType::AccelerationStructure => {
-                self.acceleration_structures.is_valid(handle.index, handle.generation)
-            }
+            },
+            BindlessResourceType::AccelerationStructure => self
+                .acceleration_structures
+                .is_valid(handle.index, handle.generation),
             BindlessResourceType::None => false,
         }
     }
@@ -534,23 +535,24 @@ impl BindlessHeap {
         match handle.resource_type {
             BindlessResourceType::SampledTexture => {
                 self.sampled_textures.set_debug_name(handle.index, name);
-            }
+            },
             BindlessResourceType::StorageTexture => {
                 self.storage_textures.set_debug_name(handle.index, name);
-            }
+            },
             BindlessResourceType::UniformBuffer => {
                 self.uniform_buffers.set_debug_name(handle.index, name);
-            }
+            },
             BindlessResourceType::StorageBuffer => {
                 self.storage_buffers.set_debug_name(handle.index, name);
-            }
+            },
             BindlessResourceType::Sampler => {
                 self.samplers.set_debug_name(handle.index, name);
-            }
+            },
             BindlessResourceType::AccelerationStructure => {
-                self.acceleration_structures.set_debug_name(handle.index, name);
-            }
-            BindlessResourceType::None => {}
+                self.acceleration_structures
+                    .set_debug_name(handle.index, name);
+            },
+            BindlessResourceType::None => {},
         }
     }
 
@@ -907,16 +909,12 @@ impl GpuInstance {
     /// Create a default instance.
     pub fn new() -> Self {
         Self {
-            transform: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-            ],
-            prev_transform: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-            ],
+            transform: [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [
+                0.0, 0.0, 1.0, 0.0,
+            ]],
+            prev_transform: [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [
+                0.0, 0.0, 1.0, 0.0,
+            ]],
             mesh_index: u32::MAX,
             material_id: u32::MAX,
             flags: Self::FLAG_VISIBLE | Self::FLAG_CAST_SHADOW | Self::FLAG_RECEIVE_SHADOW,
