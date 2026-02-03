@@ -5,17 +5,15 @@
 
 #![allow(dead_code)]
 
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    string::String,
-    vec::Vec,
-};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
-use super::tree::{BehaviorTree, BehaviorStatus, Blackboard};
-use super::state_machine::{StateMachine, StateContext, StateEvent, StateId};
-use super::reactive::{SubsumptionArchitecture, Stimulus, Response, StimulusBuffer};
-use super::utility::{UtilitySelector, UtilityContext, ActionId as UtilityActionId};
+use super::reactive::{Response, Stimulus, StimulusBuffer, SubsumptionArchitecture};
+use super::state_machine::{StateContext, StateEvent, StateId, StateMachine};
+use super::tree::{BehaviorStatus, BehaviorTree, Blackboard};
+use super::utility::{ActionId as UtilityActionId, UtilityContext, UtilitySelector};
 
 // ============================================================================
 // Core Types
@@ -302,16 +300,22 @@ impl BehaviorBlend {
         match self.strategy {
             BlendStrategy::Priority => {
                 // Return output with highest weight
-                self.outputs.iter()
-                    .max_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap_or(core::cmp::Ordering::Equal))
+                self.outputs
+                    .iter()
+                    .max_by(|a, b| {
+                        a.weight
+                            .partial_cmp(&b.weight)
+                            .unwrap_or(core::cmp::Ordering::Equal)
+                    })
                     .map(|o| o.action.clone())
-            }
+            },
             BlendStrategy::FirstSuccess => {
                 // Return first non-None output
-                self.outputs.iter()
+                self.outputs
+                    .iter()
                     .find(|o| !matches!(o.action, BlendAction::None))
                     .map(|o| o.action.clone())
-            }
+            },
             BlendStrategy::Weighted => {
                 // Weighted average for vector/value outputs
                 let total_weight: f32 = self.outputs.iter().map(|o| o.weight).sum();
@@ -320,7 +324,9 @@ impl BehaviorBlend {
                 }
 
                 // Check if all outputs are values
-                let all_values: Vec<(f32, f64)> = self.outputs.iter()
+                let all_values: Vec<(f32, f64)> = self
+                    .outputs
+                    .iter()
                     .filter_map(|o| {
                         if let BlendAction::Value(v) = o.action {
                             Some((o.weight, v))
@@ -331,20 +337,25 @@ impl BehaviorBlend {
                     .collect();
 
                 if all_values.len() == self.outputs.len() {
-                    let weighted_sum: f64 = all_values.iter()
-                        .map(|(w, v)| *w as f64 * v)
-                        .sum();
+                    let weighted_sum: f64 = all_values.iter().map(|(w, v)| *w as f64 * v).sum();
                     return Some(BlendAction::Value(weighted_sum / total_weight as f64));
                 }
 
                 // Fallback to priority
-                self.outputs.iter()
-                    .max_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap_or(core::cmp::Ordering::Equal))
+                self.outputs
+                    .iter()
+                    .max_by(|a, b| {
+                        a.weight
+                            .partial_cmp(&b.weight)
+                            .unwrap_or(core::cmp::Ordering::Equal)
+                    })
                     .map(|o| o.action.clone())
-            }
+            },
             BlendStrategy::Combine => {
                 // Combine all commands into a vector
-                let commands: Vec<String> = self.outputs.iter()
+                let commands: Vec<String> = self
+                    .outputs
+                    .iter()
                     .filter_map(|o| {
                         if let BlendAction::Command(cmd) = &o.action {
                             Some(cmd.clone())
@@ -363,7 +374,7 @@ impl BehaviorBlend {
                     let combined = commands.join(";");
                     Some(BlendAction::Command(combined))
                 }
-            }
+            },
         }
     }
 }
@@ -473,18 +484,10 @@ impl BehaviorComposite {
 
     fn process_layer(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
         match layer.layer_type {
-            BehaviorLayerType::BehaviorTree => {
-                self.process_behavior_tree_layer(layer)
-            }
-            BehaviorLayerType::StateMachine => {
-                self.process_state_machine_layer(layer)
-            }
-            BehaviorLayerType::Reactive => {
-                self.process_reactive_layer(layer)
-            }
-            BehaviorLayerType::UtilityAI => {
-                self.process_utility_layer(layer)
-            }
+            BehaviorLayerType::BehaviorTree => self.process_behavior_tree_layer(layer),
+            BehaviorLayerType::StateMachine => self.process_state_machine_layer(layer),
+            BehaviorLayerType::Reactive => self.process_reactive_layer(layer),
+            BehaviorLayerType::UtilityAI => self.process_utility_layer(layer),
         }
     }
 
@@ -499,8 +502,7 @@ impl BehaviorComposite {
                 BehaviorStatus::Ready => CompositeStatus::Idle,
             };
 
-            CompositeResult::new(composite_status)
-                .with_layer(&layer.name)
+            CompositeResult::new(composite_status).with_layer(&layer.name)
         } else {
             CompositeResult::new(CompositeStatus::Idle)
         }
@@ -515,8 +517,7 @@ impl BehaviorComposite {
 
             let new_state = sm.current_state();
 
-            let mut result = CompositeResult::new(CompositeStatus::Running)
-                .with_layer(&layer.name);
+            let mut result = CompositeResult::new(CompositeStatus::Running).with_layer(&layer.name);
 
             if old_state != new_state {
                 result.state_changes.push(StateChange {
@@ -542,13 +543,12 @@ impl BehaviorComposite {
             let stimuli = self.stimulus_buffer.get_stimuli();
             let responses = reactive.process(stimuli, self.current_time);
 
-            let mut result = CompositeResult::new(
-                if responses.is_empty() {
-                    CompositeStatus::Idle
-                } else {
-                    CompositeStatus::Success
-                }
-            ).with_layer(&layer.name);
+            let mut result = CompositeResult::new(if responses.is_empty() {
+                CompositeStatus::Idle
+            } else {
+                CompositeStatus::Success
+            })
+            .with_layer(&layer.name);
 
             for response in responses {
                 result.responses.push(CompositeResponse {
@@ -569,7 +569,8 @@ impl BehaviorComposite {
             let ctx = self.create_utility_context();
 
             if let Some(action_id) = utility.select_and_execute(&ctx) {
-                let action_name = utility.get_action(action_id)
+                let action_name = utility
+                    .get_action(action_id)
                     .map(|a| a.name.clone())
                     .unwrap_or_else(|| alloc::format!("Action_{:?}", action_id));
 
@@ -699,7 +700,11 @@ impl CompositeExecutor {
     }
 
     /// Update all composites
-    pub fn update_all(&mut self, time: u64, delta_time: u64) -> Vec<(CompositeId, CompositeResult)> {
+    pub fn update_all(
+        &mut self,
+        time: u64,
+        delta_time: u64,
+    ) -> Vec<(CompositeId, CompositeResult)> {
         let ids: Vec<CompositeId> = self.composites.keys().copied().collect();
         let mut results = Vec::new();
 
@@ -738,40 +743,26 @@ pub fn create_kernel_composite() -> BehaviorComposite {
     use super::state_machine::create_kernel_load_fsm;
     use super::utility::create_kernel_memory_selector;
 
-    let mut composite = BehaviorComposite::new(
-        CompositeId::new(1),
-        "KernelBehavior",
-    );
+    let mut composite = BehaviorComposite::new(CompositeId::new(1), "KernelBehavior");
 
     // Layer 1: Reactive emergency responses (highest priority)
-    let reactive_layer = BehaviorLayer::new_reactive(
-        1,
-        "EmergencyReactive",
-        create_kernel_reactive_system(),
-    )
-    .with_priority(100)
-    .with_subsumption(2)
-    .with_subsumption(3);
+    let reactive_layer =
+        BehaviorLayer::new_reactive(1, "EmergencyReactive", create_kernel_reactive_system())
+            .with_priority(100)
+            .with_subsumption(2)
+            .with_subsumption(3);
 
     // Layer 2: State machine for load management
     let mut load_sm = create_kernel_load_fsm();
     let mut ctx = StateContext::new(0, 0);
     load_sm.initialize(&mut ctx);
 
-    let sm_layer = BehaviorLayer::new_state_machine(
-        2,
-        "LoadManagement",
-        load_sm,
-    )
-    .with_priority(50);
+    let sm_layer = BehaviorLayer::new_state_machine(2, "LoadManagement", load_sm).with_priority(50);
 
     // Layer 3: Utility AI for memory optimization
-    let utility_layer = BehaviorLayer::new_utility(
-        3,
-        "MemoryOptimization",
-        create_kernel_memory_selector(),
-    )
-    .with_priority(10);
+    let utility_layer =
+        BehaviorLayer::new_utility(3, "MemoryOptimization", create_kernel_memory_selector())
+            .with_priority(10);
 
     composite.add_layer(reactive_layer);
     composite.add_layer(sm_layer);
@@ -796,9 +787,8 @@ mod tests {
 
     #[test]
     fn test_composite_result() {
-        let result = CompositeResult::new(CompositeStatus::Success)
-            .with_layer("test");
-        
+        let result = CompositeResult::new(CompositeStatus::Success).with_layer("test");
+
         assert_eq!(result.status, CompositeStatus::Success);
         assert_eq!(result.active_layers.len(), 1);
     }
