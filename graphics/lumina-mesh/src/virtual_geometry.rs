@@ -4,11 +4,14 @@
 //! LOD selection and streaming based on screen-space error. Enables
 //! rendering of extremely detailed geometry with constant memory usage.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap, boxed::Box};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
-use crate::mesh::{MeshHandle, AABB, BoundingSphere};
-use crate::meshlet::{Meshlet, MeshletBounds, MeshletData, GpuMeshlet, GpuMeshletBounds};
+use crate::mesh::{BoundingSphere, MeshHandle, AABB};
+use crate::meshlet::{GpuMeshlet, GpuMeshletBounds, Meshlet, MeshletBounds, MeshletData};
 
 // ============================================================================
 // Virtual Geometry Handle
@@ -158,13 +161,13 @@ pub struct PageRequest {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum StreamingPriority {
     /// Critical - needed immediately.
-    Critical = 0,
+    Critical   = 0,
     /// High priority.
-    High = 1,
+    High       = 1,
     /// Normal priority.
-    Normal = 2,
+    Normal     = 2,
     /// Low priority.
-    Low = 3,
+    Low        = 3,
     /// Background loading.
     Background = 4,
 }
@@ -360,10 +363,11 @@ impl VirtualMesh {
     pub fn calculate_bounds(&mut self) {
         self.bounds = AABB::INVALID;
         for node in &self.nodes {
-            let node_aabb = AABB::from_center_extents(
-                node.bounds.center,
-                [node.bounds.radius, node.bounds.radius, node.bounds.radius],
-            );
+            let node_aabb = AABB::from_center_extents(node.bounds.center, [
+                node.bounds.radius,
+                node.bounds.radius,
+                node.bounds.radius,
+            ]);
             self.bounds.expand_aabb(&node_aabb);
         }
         self.sphere = BoundingSphere::from_aabb(&self.bounds);
@@ -373,7 +377,7 @@ impl VirtualMesh {
     pub fn update_stats(&mut self) {
         self.stats.node_count = self.nodes.len() as u32;
         self.stats.page_count = self.pages.len() as u32;
-        
+
         self.stats.total_meshlets = 0;
         self.stats.total_triangles = 0;
         self.stats.lod0_triangles = 0;
@@ -486,7 +490,10 @@ impl VirtualGeometrySelection {
 
     /// Get all nodes (visible + fallback).
     pub fn all_nodes(&self) -> impl Iterator<Item = u32> + '_ {
-        self.visible_nodes.iter().copied().chain(self.fallback_nodes.iter().copied())
+        self.visible_nodes
+            .iter()
+            .copied()
+            .chain(self.fallback_nodes.iter().copied())
     }
 }
 
@@ -712,14 +719,20 @@ impl VirtualGeometryBuilder {
                 let node = &mesh.nodes[node_id as usize];
                 let node_size = (node.meshlet_count as u64) * 256; // Estimate
 
-                if current_size + node_size > self.config.page_size && !current_page_nodes.is_empty() {
+                if current_size + node_size > self.config.page_size
+                    && !current_page_nodes.is_empty()
+                {
                     // Create page
                     let page_id = mesh.pages.len() as u32;
                     mesh.pages.push(VirtualPage {
                         id: page_id,
                         nodes: current_page_nodes.clone(),
                         meshlet_data: MeshletData::new(),
-                        state: if lod == 0 { PageState::Resident } else { PageState::NotLoaded },
+                        state: if lod == 0 {
+                            PageState::Resident
+                        } else {
+                            PageState::NotLoaded
+                        },
                         priority: 0.0,
                         last_used_frame: 0,
                         size_bytes: current_size,
@@ -747,7 +760,11 @@ impl VirtualGeometryBuilder {
                     id: page_id,
                     nodes: current_page_nodes.clone(),
                     meshlet_data: MeshletData::new(),
-                    state: if lod == 0 { PageState::Resident } else { PageState::NotLoaded },
+                    state: if lod == 0 {
+                        PageState::Resident
+                    } else {
+                        PageState::NotLoaded
+                    },
                     priority: 0.0,
                     last_used_frame: 0,
                     size_bytes: current_size,
