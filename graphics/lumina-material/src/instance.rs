@@ -3,7 +3,9 @@
 //! This module provides GPU-driven material instancing for efficient
 //! rendering of many objects with material variations.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 // ============================================================================
@@ -118,12 +120,14 @@ impl InstanceData {
 
     /// Set float override.
     pub fn override_float(&mut self, name: impl Into<String>, value: f32) {
-        self.overrides.insert(name.into(), ParameterOverride::Float(value));
+        self.overrides
+            .insert(name.into(), ParameterOverride::Float(value));
     }
 
     /// Set color override.
     pub fn override_color(&mut self, name: impl Into<String>, color: [f32; 4]) {
-        self.overrides.insert(name.into(), ParameterOverride::Color(color));
+        self.overrides
+            .insert(name.into(), ParameterOverride::Color(color));
     }
 
     /// Set texture override.
@@ -247,18 +251,18 @@ impl MaterialInstance {
     pub fn override_float(&mut self, name: &str, value: f32) {
         self.data.override_float(name, value);
         self.dirty = true;
-        
+
         // Update GPU data
         match name {
             "metallic" => {
                 self.gpu_data.scalar_overrides[0] = value;
                 self.gpu_data.override_mask |= GpuInstanceData::OVERRIDE_METALLIC;
-            }
+            },
             "roughness" => {
                 self.gpu_data.scalar_overrides[1] = value;
                 self.gpu_data.override_mask |= GpuInstanceData::OVERRIDE_ROUGHNESS;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -279,20 +283,20 @@ impl MaterialInstance {
             "albedo" | "base_color" => {
                 self.gpu_data.texture_overrides[0] = texture;
                 self.gpu_data.override_mask |= GpuInstanceData::OVERRIDE_ALBEDO_TEX;
-            }
+            },
             "normal" => {
                 self.gpu_data.texture_overrides[1] = texture;
                 self.gpu_data.override_mask |= GpuInstanceData::OVERRIDE_NORMAL_TEX;
-            }
+            },
             "metallic_roughness" => {
                 self.gpu_data.texture_overrides[2] = texture;
                 self.gpu_data.override_mask |= GpuInstanceData::OVERRIDE_MR_TEX;
-            }
+            },
             "occlusion" | "ao" => {
                 self.gpu_data.texture_overrides[3] = texture;
                 self.gpu_data.override_mask |= GpuInstanceData::OVERRIDE_AO_TEX;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -462,9 +466,7 @@ impl InstancePool {
 
     /// Iterate over instances.
     pub fn iter(&self) -> impl Iterator<Item = &MaterialInstance> {
-        self.slots
-            .iter()
-            .filter_map(|slot| slot.instance.as_ref())
+        self.slots.iter().filter_map(|slot| slot.instance.as_ref())
     }
 
     /// Iterate over visible instances.
