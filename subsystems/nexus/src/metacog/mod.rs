@@ -58,13 +58,19 @@ pub mod monitor;
 pub mod strategy;
 
 // Re-exports
-pub use monitor::{MetacognitionMonitor, CognitiveProcess, ProcessState, DomainMetrics, HealthReport, AnomalyDetector, ConfidenceCalibrator};
-pub use strategy::{StrategySelector, CognitiveStrategy, StrategyId, TaskType, ResourceBudget, SelectionAlgorithm, CompositeStrategy, StrategyFactory};
-
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+
+pub use monitor::{
+    AnomalyDetector, CognitiveProcess, ConfidenceCalibrator, DomainMetrics, HealthReport,
+    MetacognitionMonitor, ProcessState,
+};
+pub use strategy::{
+    CognitiveStrategy, CompositeStrategy, ResourceBudget, SelectionAlgorithm, StrategyFactory,
+    StrategyId, StrategySelector, TaskType,
+};
 
 /// Maximum history length
 const MAX_HISTORY: usize = 1000;
