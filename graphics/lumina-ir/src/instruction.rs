@@ -7,8 +7,8 @@
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
 
-use crate::types::{IrType, ScalarType, VectorSize, AddressSpace, BuiltinKind, ImageDimension};
-use crate::value::{ValueId, ConstantValue};
+use crate::types::{AddressSpace, BuiltinKind, ImageDimension, IrType, ScalarType, VectorSize};
+use crate::value::{ConstantValue, ValueId};
 
 /// Block identifier
 pub type BlockId = u32;
@@ -23,15 +23,15 @@ pub type InstructionId = u32;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum MemorySemantics {
-    None = 0,
-    Acquire = 1 << 1,
-    Release = 1 << 2,
-    AcquireRelease = (1 << 1) | (1 << 2),
+    None            = 0,
+    Acquire         = 1 << 1,
+    Release         = 1 << 2,
+    AcquireRelease  = (1 << 1) | (1 << 2),
     SequentiallyConsistent = 1 << 4,
-    UniformMemory = 1 << 6,
+    UniformMemory   = 1 << 6,
     WorkgroupMemory = 1 << 8,
-    ImageMemory = 1 << 11,
-    OutputMemory = 1 << 12,
+    ImageMemory     = 1 << 11,
+    OutputMemory    = 1 << 12,
 }
 
 /// Memory scope
@@ -39,12 +39,12 @@ pub enum MemorySemantics {
 #[repr(u8)]
 pub enum Scope {
     CrossDevice = 0,
-    Device = 1,
-    Workgroup = 2,
-    Subgroup = 3,
-    Invocation = 4,
+    Device      = 1,
+    Workgroup   = 2,
+    Subgroup    = 3,
+    Invocation  = 4,
     QueueFamily = 5,
-    ShaderCall = 6,
+    ShaderCall  = 6,
 }
 
 /// Binary operation kind
@@ -58,7 +58,7 @@ pub enum BinaryOp {
     Div,
     Rem,
     Mod,
-    
+
     // Bitwise
     BitwiseAnd,
     BitwiseOr,
@@ -66,7 +66,7 @@ pub enum BinaryOp {
     ShiftLeft,
     ShiftRightLogical,
     ShiftRightArithmetic,
-    
+
     // Comparison
     Equal,
     NotEqual,
@@ -74,17 +74,17 @@ pub enum BinaryOp {
     LessEqual,
     Greater,
     GreaterEqual,
-    
+
     // Logical
     LogicalAnd,
     LogicalOr,
     LogicalEqual,
     LogicalNotEqual,
-    
+
     // Vector
     Dot,
     Cross,
-    
+
     // Float-specific
     FAdd,
     FSub,
@@ -92,7 +92,7 @@ pub enum BinaryOp {
     FDiv,
     FRem,
     FMod,
-    
+
     // Ordered comparison (for floats)
     FOrdEqual,
     FOrdNotEqual,
@@ -100,7 +100,7 @@ pub enum BinaryOp {
     FOrdLessEqual,
     FOrdGreater,
     FOrdGreaterEqual,
-    
+
     // Unordered comparison (for floats)
     FUnordEqual,
     FUnordNotEqual,
@@ -108,7 +108,7 @@ pub enum BinaryOp {
     FUnordLessEqual,
     FUnordGreater,
     FUnordGreaterEqual,
-    
+
     // Integer-specific
     IAdd,
     ISub,
@@ -202,13 +202,13 @@ pub enum UnaryOp {
     // Arithmetic
     Negate,
     FNegate,
-    
+
     // Bitwise
     BitwiseNot,
-    
+
     // Logical
     LogicalNot,
-    
+
     // Math functions
     Abs,
     FAbs,
@@ -238,7 +238,7 @@ pub enum UnaryOp {
     Asinh,
     Acosh,
     Atanh,
-    
+
     // Conversion
     BitcastToFloat,
     BitcastToInt,
@@ -247,11 +247,11 @@ pub enum UnaryOp {
     ConvertUToF,
     ConvertFToS,
     ConvertFToU,
-    
+
     // Vector
     Length,
     Normalize,
-    
+
     // Derivative
     DPdx,
     DPdy,
@@ -262,20 +262,20 @@ pub enum UnaryOp {
     Fwidth,
     FwidthFine,
     FwidthCoarse,
-    
+
     // Bit counting
     BitCount,
     BitReverse,
     FindLSB,
     FindMSB,
     FindSMSB,
-    
+
     // Type info
     IsNan,
     IsInf,
     IsFinite,
     IsNormal,
-    
+
     // Special
     All,
     Any,
@@ -404,7 +404,7 @@ pub enum Instruction {
         ty: IrType,
         value: ConstantValue,
     },
-    
+
     /// Declare a variable
     Variable {
         result: ValueId,
@@ -412,12 +412,9 @@ pub enum Instruction {
         address_space: AddressSpace,
         initializer: Option<ValueId>,
     },
-    
+
     /// Declare a function parameter
-    FunctionParameter {
-        result: ValueId,
-        ty: IrType,
-    },
+    FunctionParameter { result: ValueId, ty: IrType },
 
     // ========== Memory Operations ==========
     /// Load from a pointer
@@ -427,14 +424,14 @@ pub enum Instruction {
         pointer: ValueId,
         access: MemoryAccess,
     },
-    
+
     /// Store to a pointer
     Store {
         pointer: ValueId,
         value: ValueId,
         access: MemoryAccess,
     },
-    
+
     /// Get pointer to struct member
     AccessChain {
         result: ValueId,
@@ -442,7 +439,7 @@ pub enum Instruction {
         base: ValueId,
         indices: Vec<ValueId>,
     },
-    
+
     /// Get pointer to array element
     PtrAccessChain {
         result: ValueId,
@@ -451,14 +448,14 @@ pub enum Instruction {
         element: ValueId,
         indices: Vec<ValueId>,
     },
-    
+
     /// Copy memory
     CopyMemory {
         target: ValueId,
         source: ValueId,
         access: MemoryAccess,
     },
-    
+
     /// Copy memory with size
     CopyMemorySized {
         target: ValueId,
@@ -476,7 +473,7 @@ pub enum Instruction {
         left: ValueId,
         right: ValueId,
     },
-    
+
     /// Unary operation
     UnaryOp {
         result: ValueId,
@@ -484,7 +481,7 @@ pub enum Instruction {
         op: UnaryOp,
         operand: ValueId,
     },
-    
+
     /// Fused multiply-add: a * b + c
     Fma {
         result: ValueId,
@@ -493,7 +490,7 @@ pub enum Instruction {
         b: ValueId,
         c: ValueId,
     },
-    
+
     /// Clamp value between min and max
     Clamp {
         result: ValueId,
@@ -502,7 +499,7 @@ pub enum Instruction {
         min: ValueId,
         max: ValueId,
     },
-    
+
     /// Mix/lerp: a + (b - a) * t
     Mix {
         result: ValueId,
@@ -511,7 +508,7 @@ pub enum Instruction {
         b: ValueId,
         t: ValueId,
     },
-    
+
     /// Smoothstep
     SmoothStep {
         result: ValueId,
@@ -520,7 +517,7 @@ pub enum Instruction {
         edge1: ValueId,
         x: ValueId,
     },
-    
+
     /// Step function
     Step {
         result: ValueId,
@@ -528,7 +525,7 @@ pub enum Instruction {
         edge: ValueId,
         x: ValueId,
     },
-    
+
     /// Min of two values
     Min {
         result: ValueId,
@@ -536,7 +533,7 @@ pub enum Instruction {
         a: ValueId,
         b: ValueId,
     },
-    
+
     /// Max of two values
     Max {
         result: ValueId,
@@ -544,7 +541,7 @@ pub enum Instruction {
         a: ValueId,
         b: ValueId,
     },
-    
+
     /// Power function
     Pow {
         result: ValueId,
@@ -552,7 +549,7 @@ pub enum Instruction {
         base: ValueId,
         exponent: ValueId,
     },
-    
+
     /// Atan2
     Atan2 {
         result: ValueId,
@@ -560,7 +557,7 @@ pub enum Instruction {
         y: ValueId,
         x: ValueId,
     },
-    
+
     /// Reflect vector
     Reflect {
         result: ValueId,
@@ -568,7 +565,7 @@ pub enum Instruction {
         incident: ValueId,
         normal: ValueId,
     },
-    
+
     /// Refract vector
     Refract {
         result: ValueId,
@@ -577,7 +574,7 @@ pub enum Instruction {
         normal: ValueId,
         eta: ValueId,
     },
-    
+
     /// Face forward
     FaceForward {
         result: ValueId,
@@ -586,7 +583,7 @@ pub enum Instruction {
         i: ValueId,
         nref: ValueId,
     },
-    
+
     /// Distance between points
     Distance {
         result: ValueId,
@@ -594,7 +591,7 @@ pub enum Instruction {
         a: ValueId,
         b: ValueId,
     },
-    
+
     /// Outer product of vectors
     OuterProduct {
         result: ValueId,
@@ -602,7 +599,7 @@ pub enum Instruction {
         a: ValueId,
         b: ValueId,
     },
-    
+
     /// Matrix times vector
     MatrixTimesVector {
         result: ValueId,
@@ -610,7 +607,7 @@ pub enum Instruction {
         matrix: ValueId,
         vector: ValueId,
     },
-    
+
     /// Vector times matrix
     VectorTimesMatrix {
         result: ValueId,
@@ -618,7 +615,7 @@ pub enum Instruction {
         vector: ValueId,
         matrix: ValueId,
     },
-    
+
     /// Matrix times matrix
     MatrixTimesMatrix {
         result: ValueId,
@@ -626,7 +623,7 @@ pub enum Instruction {
         left: ValueId,
         right: ValueId,
     },
-    
+
     /// Matrix times scalar
     MatrixTimesScalar {
         result: ValueId,
@@ -634,7 +631,7 @@ pub enum Instruction {
         matrix: ValueId,
         scalar: ValueId,
     },
-    
+
     /// Vector times scalar
     VectorTimesScalar {
         result: ValueId,
@@ -650,56 +647,56 @@ pub enum Instruction {
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Convert signed int to float
     ConvertSToF {
         result: ValueId,
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Convert unsigned int to float
     ConvertUToF {
         result: ValueId,
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Convert float to signed int
     ConvertFToS {
         result: ValueId,
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Convert float to unsigned int
     ConvertFToU {
         result: ValueId,
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Convert between signed int sizes
     SConvert {
         result: ValueId,
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Convert between unsigned int sizes
     UConvert {
         result: ValueId,
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Convert between float sizes
     FConvert {
         result: ValueId,
         ty: IrType,
         value: ValueId,
     },
-    
+
     /// Quantize float to f16 precision
     QuantizeToF16 {
         result: ValueId,
@@ -714,7 +711,7 @@ pub enum Instruction {
         ty: IrType,
         components: Vec<ValueId>,
     },
-    
+
     /// Extract a component from a composite
     CompositeExtract {
         result: ValueId,
@@ -722,7 +719,7 @@ pub enum Instruction {
         composite: ValueId,
         indices: Vec<u32>,
     },
-    
+
     /// Insert a component into a composite
     CompositeInsert {
         result: ValueId,
@@ -731,7 +728,7 @@ pub enum Instruction {
         composite: ValueId,
         indices: Vec<u32>,
     },
-    
+
     /// Shuffle vector components
     VectorShuffle {
         result: ValueId,
@@ -740,7 +737,7 @@ pub enum Instruction {
         vector2: ValueId,
         components: Vec<u32>,
     },
-    
+
     /// Extract a scalar from a vector
     VectorExtractDynamic {
         result: ValueId,
@@ -748,7 +745,7 @@ pub enum Instruction {
         vector: ValueId,
         index: ValueId,
     },
-    
+
     /// Insert a scalar into a vector
     VectorInsertDynamic {
         result: ValueId,
@@ -757,7 +754,7 @@ pub enum Instruction {
         component: ValueId,
         index: ValueId,
     },
-    
+
     /// Copy object
     CopyObject {
         result: ValueId,
@@ -767,10 +764,8 @@ pub enum Instruction {
 
     // ========== Control Flow ==========
     /// Unconditional branch
-    Branch {
-        target: BlockId,
-    },
-    
+    Branch { target: BlockId },
+
     /// Conditional branch
     BranchConditional {
         condition: ValueId,
@@ -779,22 +774,20 @@ pub enum Instruction {
         true_weight: Option<u32>,
         false_weight: Option<u32>,
     },
-    
+
     /// Switch statement
     Switch {
         selector: ValueId,
         default_target: BlockId,
         cases: Vec<(i64, BlockId)>,
     },
-    
+
     /// Return from function
     Return,
-    
+
     /// Return with value
-    ReturnValue {
-        value: ValueId,
-    },
-    
+    ReturnValue { value: ValueId },
+
     /// Function call
     FunctionCall {
         result: ValueId,
@@ -802,31 +795,29 @@ pub enum Instruction {
         function: FunctionId,
         arguments: Vec<ValueId>,
     },
-    
+
     /// Kill fragment (discard)
     Kill,
-    
+
     /// Terminate invocation
     TerminateInvocation,
-    
+
     /// Unreachable code
     Unreachable,
-    
+
     /// Demote fragment to helper invocation
     DemoteToHelperInvocation,
-    
+
     /// Check if current invocation is helper
-    IsHelperInvocation {
-        result: ValueId,
-    },
-    
+    IsHelperInvocation { result: ValueId },
+
     /// Phi node for SSA
     Phi {
         result: ValueId,
         ty: IrType,
         operands: Vec<(ValueId, BlockId)>,
     },
-    
+
     /// Select between values
     Select {
         result: ValueId,
@@ -835,24 +826,22 @@ pub enum Instruction {
         true_value: ValueId,
         false_value: ValueId,
     },
-    
+
     /// Loop merge point
     LoopMerge {
         merge_block: BlockId,
         continue_target: BlockId,
         control: LoopControl,
     },
-    
+
     /// Selection merge point
     SelectionMerge {
         merge_block: BlockId,
         control: SelectionControl,
     },
-    
+
     /// Label (block start)
-    Label {
-        result: BlockId,
-    },
+    Label { result: BlockId },
 
     // ========== Image Operations ==========
     /// Sample texture
@@ -863,7 +852,7 @@ pub enum Instruction {
         coordinate: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Sample texture with explicit LOD
     ImageSampleExplicitLod {
         result: ValueId,
@@ -872,7 +861,7 @@ pub enum Instruction {
         coordinate: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Sample depth texture with comparison
     ImageSampleDrefImplicitLod {
         result: ValueId,
@@ -882,7 +871,7 @@ pub enum Instruction {
         dref: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Sample depth texture with explicit LOD
     ImageSampleDrefExplicitLod {
         result: ValueId,
@@ -892,7 +881,7 @@ pub enum Instruction {
         dref: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Sample texture with projection
     ImageSampleProjImplicitLod {
         result: ValueId,
@@ -901,7 +890,7 @@ pub enum Instruction {
         coordinate: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Sample texture with projection and explicit LOD
     ImageSampleProjExplicitLod {
         result: ValueId,
@@ -910,7 +899,7 @@ pub enum Instruction {
         coordinate: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Fetch texel
     ImageFetch {
         result: ValueId,
@@ -919,7 +908,7 @@ pub enum Instruction {
         coordinate: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Read from storage image
     ImageRead {
         result: ValueId,
@@ -928,7 +917,7 @@ pub enum Instruction {
         coordinate: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Write to storage image
     ImageWrite {
         image: ValueId,
@@ -936,7 +925,7 @@ pub enum Instruction {
         texel: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Gather texture
     ImageGather {
         result: ValueId,
@@ -946,7 +935,7 @@ pub enum Instruction {
         component: GatherComponent,
         operands: ImageOperands,
     },
-    
+
     /// Gather depth texture
     ImageDrefGather {
         result: ValueId,
@@ -956,14 +945,14 @@ pub enum Instruction {
         dref: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Get image dimensions
     ImageQuerySize {
         result: ValueId,
         ty: IrType,
         image: ValueId,
     },
-    
+
     /// Get image dimensions with LOD
     ImageQuerySizeLod {
         result: ValueId,
@@ -971,21 +960,21 @@ pub enum Instruction {
         image: ValueId,
         lod: ValueId,
     },
-    
+
     /// Get number of LOD levels
     ImageQueryLevels {
         result: ValueId,
         ty: IrType,
         image: ValueId,
     },
-    
+
     /// Get number of samples
     ImageQuerySamples {
         result: ValueId,
         ty: IrType,
         image: ValueId,
     },
-    
+
     /// Get LOD for sampling
     ImageQueryLod {
         result: ValueId,
@@ -993,14 +982,14 @@ pub enum Instruction {
         sampled_image: ValueId,
         coordinate: ValueId,
     },
-    
+
     /// Get image from sampled image
     Image {
         result: ValueId,
         ty: IrType,
         sampled_image: ValueId,
     },
-    
+
     /// Create sampled image
     SampledImage {
         result: ValueId,
@@ -1008,7 +997,7 @@ pub enum Instruction {
         image: ValueId,
         sampler: ValueId,
     },
-    
+
     /// Sparse texture sample
     ImageSparseSampleImplicitLod {
         result: ValueId,
@@ -1017,7 +1006,7 @@ pub enum Instruction {
         coordinate: ValueId,
         operands: ImageOperands,
     },
-    
+
     /// Get sparse texture residency
     ImageSparseTexelsResident {
         result: ValueId,
@@ -1033,7 +1022,7 @@ pub enum Instruction {
         scope: Scope,
         semantics: MemorySemantics,
     },
-    
+
     /// Atomic store
     AtomicStore {
         pointer: ValueId,
@@ -1041,7 +1030,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic exchange
     AtomicExchange {
         result: ValueId,
@@ -1051,7 +1040,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic compare-exchange
     AtomicCompareExchange {
         result: ValueId,
@@ -1063,7 +1052,7 @@ pub enum Instruction {
         value: ValueId,
         comparator: ValueId,
     },
-    
+
     /// Atomic increment and wrap
     AtomicIIncrement {
         result: ValueId,
@@ -1072,7 +1061,7 @@ pub enum Instruction {
         scope: Scope,
         semantics: MemorySemantics,
     },
-    
+
     /// Atomic decrement and wrap
     AtomicIDecrement {
         result: ValueId,
@@ -1081,7 +1070,7 @@ pub enum Instruction {
         scope: Scope,
         semantics: MemorySemantics,
     },
-    
+
     /// Atomic add
     AtomicIAdd {
         result: ValueId,
@@ -1091,7 +1080,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic sub
     AtomicISub {
         result: ValueId,
@@ -1101,7 +1090,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic signed min
     AtomicSMin {
         result: ValueId,
@@ -1111,7 +1100,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic unsigned min
     AtomicUMin {
         result: ValueId,
@@ -1121,7 +1110,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic signed max
     AtomicSMax {
         result: ValueId,
@@ -1131,7 +1120,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic unsigned max
     AtomicUMax {
         result: ValueId,
@@ -1141,7 +1130,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic and
     AtomicAnd {
         result: ValueId,
@@ -1151,7 +1140,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic or
     AtomicOr {
         result: ValueId,
@@ -1161,7 +1150,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic xor
     AtomicXor {
         result: ValueId,
@@ -1171,7 +1160,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic float add
     AtomicFAdd {
         result: ValueId,
@@ -1181,7 +1170,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic float min
     AtomicFMin {
         result: ValueId,
@@ -1191,7 +1180,7 @@ pub enum Instruction {
         semantics: MemorySemantics,
         value: ValueId,
     },
-    
+
     /// Atomic float max
     AtomicFMax {
         result: ValueId,
@@ -1208,7 +1197,7 @@ pub enum Instruction {
         scope: Scope,
         semantics: MemorySemantics,
     },
-    
+
     /// Control barrier
     ControlBarrier {
         execution_scope: Scope,
@@ -1225,21 +1214,21 @@ pub enum Instruction {
         value: ValueId,
         local_id: ValueId,
     },
-    
+
     /// Subgroup any
     GroupNonUniformAny {
         result: ValueId,
         scope: Scope,
         predicate: ValueId,
     },
-    
+
     /// Subgroup all
     GroupNonUniformAll {
         result: ValueId,
         scope: Scope,
         predicate: ValueId,
     },
-    
+
     /// Subgroup all equal
     GroupNonUniformAllEqual {
         result: ValueId,
@@ -1247,7 +1236,7 @@ pub enum Instruction {
         scope: Scope,
         value: ValueId,
     },
-    
+
     /// Subgroup broadcast
     GroupNonUniformBroadcast {
         result: ValueId,
@@ -1256,7 +1245,7 @@ pub enum Instruction {
         value: ValueId,
         id: ValueId,
     },
-    
+
     /// Subgroup broadcast first
     GroupNonUniformBroadcastFirst {
         result: ValueId,
@@ -1264,21 +1253,21 @@ pub enum Instruction {
         scope: Scope,
         value: ValueId,
     },
-    
+
     /// Subgroup ballot
     GroupNonUniformBallot {
         result: ValueId,
         scope: Scope,
         predicate: ValueId,
     },
-    
+
     /// Inverse subgroup ballot
     GroupNonUniformInverseBallot {
         result: ValueId,
         scope: Scope,
         value: ValueId,
     },
-    
+
     /// Ballot bit extract
     GroupNonUniformBallotBitExtract {
         result: ValueId,
@@ -1286,7 +1275,7 @@ pub enum Instruction {
         value: ValueId,
         index: ValueId,
     },
-    
+
     /// Ballot bit count
     GroupNonUniformBallotBitCount {
         result: ValueId,
@@ -1294,21 +1283,21 @@ pub enum Instruction {
         operation: GroupOperation,
         value: ValueId,
     },
-    
+
     /// Ballot find LSB
     GroupNonUniformBallotFindLSB {
         result: ValueId,
         scope: Scope,
         value: ValueId,
     },
-    
+
     /// Ballot find MSB
     GroupNonUniformBallotFindMSB {
         result: ValueId,
         scope: Scope,
         value: ValueId,
     },
-    
+
     /// Subgroup shuffle
     GroupNonUniformShuffle {
         result: ValueId,
@@ -1317,7 +1306,7 @@ pub enum Instruction {
         value: ValueId,
         id: ValueId,
     },
-    
+
     /// Subgroup shuffle XOR
     GroupNonUniformShuffleXor {
         result: ValueId,
@@ -1326,7 +1315,7 @@ pub enum Instruction {
         value: ValueId,
         mask: ValueId,
     },
-    
+
     /// Subgroup shuffle up
     GroupNonUniformShuffleUp {
         result: ValueId,
@@ -1335,7 +1324,7 @@ pub enum Instruction {
         value: ValueId,
         delta: ValueId,
     },
-    
+
     /// Subgroup shuffle down
     GroupNonUniformShuffleDown {
         result: ValueId,
@@ -1344,7 +1333,7 @@ pub enum Instruction {
         value: ValueId,
         delta: ValueId,
     },
-    
+
     /// Subgroup reduction
     GroupNonUniformIAdd {
         result: ValueId,
@@ -1354,7 +1343,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (float)
     GroupNonUniformFAdd {
         result: ValueId,
@@ -1364,7 +1353,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (multiply)
     GroupNonUniformIMul {
         result: ValueId,
@@ -1374,7 +1363,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (float multiply)
     GroupNonUniformFMul {
         result: ValueId,
@@ -1384,7 +1373,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (min)
     GroupNonUniformSMin {
         result: ValueId,
@@ -1394,7 +1383,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (max)
     GroupNonUniformSMax {
         result: ValueId,
@@ -1404,7 +1393,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (bitwise AND)
     GroupNonUniformBitwiseAnd {
         result: ValueId,
@@ -1414,7 +1403,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (bitwise OR)
     GroupNonUniformBitwiseOr {
         result: ValueId,
@@ -1424,7 +1413,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (bitwise XOR)
     GroupNonUniformBitwiseXor {
         result: ValueId,
@@ -1434,7 +1423,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (logical AND)
     GroupNonUniformLogicalAnd {
         result: ValueId,
@@ -1443,7 +1432,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (logical OR)
     GroupNonUniformLogicalOr {
         result: ValueId,
@@ -1452,7 +1441,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Subgroup reduction (logical XOR)
     GroupNonUniformLogicalXor {
         result: ValueId,
@@ -1461,7 +1450,7 @@ pub enum Instruction {
         value: ValueId,
         cluster_size: Option<ValueId>,
     },
-    
+
     /// Quad broadcast
     GroupNonUniformQuadBroadcast {
         result: ValueId,
@@ -1470,7 +1459,7 @@ pub enum Instruction {
         value: ValueId,
         index: ValueId,
     },
-    
+
     /// Quad swap
     GroupNonUniformQuadSwap {
         result: ValueId,
@@ -1495,26 +1484,26 @@ pub enum Instruction {
         ray_tmax: ValueId,
         payload: ValueId,
     },
-    
+
     /// Report ray-triangle intersection
     ReportIntersection {
         result: ValueId,
         hit_t: ValueId,
         hit_kind: ValueId,
     },
-    
+
     /// Ignore intersection
     IgnoreIntersection,
-    
+
     /// Terminate ray
     TerminateRay,
-    
+
     /// Execute callable shader
     ExecuteCallable {
         sbt_index: ValueId,
         callable_data: ValueId,
     },
-    
+
     /// Initialize ray query
     RayQueryInitialize {
         ray_query: ValueId,
@@ -1526,149 +1515,124 @@ pub enum Instruction {
         ray_direction: ValueId,
         ray_tmax: ValueId,
     },
-    
+
     /// Proceed with ray query
-    RayQueryProceed {
-        result: ValueId,
-        ray_query: ValueId,
-    },
-    
+    RayQueryProceed { result: ValueId, ray_query: ValueId },
+
     /// Terminate ray query
-    RayQueryTerminate {
-        ray_query: ValueId,
-    },
-    
+    RayQueryTerminate { ray_query: ValueId },
+
     /// Confirm ray query intersection
-    RayQueryConfirmIntersection {
-        ray_query: ValueId,
-    },
-    
+    RayQueryConfirmIntersection { ray_query: ValueId },
+
     /// Generate candidate intersection
-    RayQueryGenerateIntersection {
-        ray_query: ValueId,
-        hit_t: ValueId,
-    },
-    
+    RayQueryGenerateIntersection { ray_query: ValueId, hit_t: ValueId },
+
     /// Get ray query intersection type
     RayQueryGetIntersectionType {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection T
     RayQueryGetIntersectionT {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection instance custom index
     RayQueryGetIntersectionInstanceCustomIndex {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection instance id
     RayQueryGetIntersectionInstanceId {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection instance shader binding table offset
     RayQueryGetIntersectionInstanceSBTOffset {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection geometry index
     RayQueryGetIntersectionGeometryIndex {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection primitive index
     RayQueryGetIntersectionPrimitiveIndex {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection barycentrics
     RayQueryGetIntersectionBarycentrics {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection front face
     RayQueryGetIntersectionFrontFace {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection candidate AABB opaque
-    RayQueryGetIntersectionCandidateAABBOpaque {
-        result: ValueId,
-        ray_query: ValueId,
-    },
-    
+    RayQueryGetIntersectionCandidateAABBOpaque { result: ValueId, ray_query: ValueId },
+
     /// Get ray query intersection object ray direction
     RayQueryGetIntersectionObjectRayDirection {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection object ray origin
     RayQueryGetIntersectionObjectRayOrigin {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query world ray direction
-    RayQueryGetWorldRayDirection {
-        result: ValueId,
-        ray_query: ValueId,
-    },
-    
+    RayQueryGetWorldRayDirection { result: ValueId, ray_query: ValueId },
+
     /// Get ray query world ray origin
-    RayQueryGetWorldRayOrigin {
-        result: ValueId,
-        ray_query: ValueId,
-    },
-    
+    RayQueryGetWorldRayOrigin { result: ValueId, ray_query: ValueId },
+
     /// Get ray query intersection object to world matrix
     RayQueryGetIntersectionObjectToWorld {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query intersection world to object matrix
     RayQueryGetIntersectionWorldToObject {
         result: ValueId,
         ray_query: ValueId,
         committed: bool,
     },
-    
+
     /// Get ray query ray Tmin
-    RayQueryGetRayTmin {
-        result: ValueId,
-        ray_query: ValueId,
-    },
-    
+    RayQueryGetRayTmin { result: ValueId, ray_query: ValueId },
+
     /// Get ray query ray flags
-    RayQueryGetRayFlags {
-        result: ValueId,
-        ray_query: ValueId,
-    },
+    RayQueryGetRayFlags { result: ValueId, ray_query: ValueId },
 
     // ========== Mesh Shader ==========
     /// Set mesh outputs
@@ -1676,18 +1640,16 @@ pub enum Instruction {
         vertex_count: ValueId,
         primitive_count: ValueId,
     },
-    
+
     /// Emit mesh vertex
-    EmitMeshVertex {
-        vertex_index: ValueId,
-    },
-    
+    EmitMeshVertex { vertex_index: ValueId },
+
     /// Emit mesh primitive
     EmitMeshPrimitive {
         primitive_index: ValueId,
         vertex_indices: Vec<ValueId>,
     },
-    
+
     /// Write packed primitive indices
     WritePrimitiveIndices {
         index_offset: ValueId,
@@ -1700,16 +1662,13 @@ pub enum Instruction {
         format: String,
         values: Vec<ValueId>,
     },
-    
+
     /// No operation
     Nop,
-    
+
     /// Undefined value
-    Undef {
-        result: ValueId,
-        ty: IrType,
-    },
-    
+    Undef { result: ValueId, ty: IrType },
+
     /// Extension instruction
     ExtInst {
         result: ValueId,
@@ -1718,12 +1677,10 @@ pub enum Instruction {
         instruction: u32,
         operands: Vec<ValueId>,
     },
-    
+
     /// Assume condition is true (for optimizer)
-    Assume {
-        condition: ValueId,
-    },
-    
+    Assume { condition: ValueId },
+
     /// Expect value (for branch prediction)
     Expect {
         result: ValueId,
@@ -1737,10 +1694,10 @@ pub enum Instruction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum GroupOperation {
-    Reduce = 0,
-    InclusiveScan = 1,
-    ExclusiveScan = 2,
-    ClusteredReduce = 3,
+    Reduce              = 0,
+    InclusiveScan       = 1,
+    ExclusiveScan       = 2,
+    ClusteredReduce     = 3,
     PartitionedReduceNV = 6,
     PartitionedInclusiveScanNV = 7,
     PartitionedExclusiveScanNV = 8,
@@ -1751,8 +1708,8 @@ pub enum GroupOperation {
 #[repr(u8)]
 pub enum QuadDirection {
     Horizontal = 0,
-    Vertical = 1,
-    Diagonal = 2,
+    Vertical   = 1,
+    Diagonal   = 2,
 }
 
 impl Instruction {
@@ -1895,7 +1852,7 @@ impl Instruction {
             | Self::Undef { result, .. }
             | Self::ExtInst { result, .. }
             | Self::Expect { result, .. } => Some(*result),
-            
+
             _ => None,
         }
     }
@@ -2006,7 +1963,7 @@ impl Instruction {
             | Self::Undef { ty, .. }
             | Self::ExtInst { ty, .. }
             | Self::Expect { ty, .. } => Some(ty),
-            
+
             _ => None,
         }
     }
@@ -2150,41 +2107,46 @@ impl Instruction {
     /// Get operand values used by this instruction
     pub fn operands(&self) -> Vec<ValueId> {
         let mut ops = Vec::new();
-        
+
         match self {
             Self::Load { pointer, .. } => ops.push(*pointer),
             Self::Store { pointer, value, .. } => {
                 ops.push(*pointer);
                 ops.push(*value);
-            }
+            },
             Self::AccessChain { base, indices, .. } => {
                 ops.push(*base);
                 ops.extend(indices.iter().copied());
-            }
+            },
             Self::BinaryOp { left, right, .. } => {
                 ops.push(*left);
                 ops.push(*right);
-            }
+            },
             Self::UnaryOp { operand, .. } => ops.push(*operand),
             Self::Phi { operands, .. } => {
                 for (val, _) in operands {
                     ops.push(*val);
                 }
-            }
-            Self::Select { condition, true_value, false_value, .. } => {
+            },
+            Self::Select {
+                condition,
+                true_value,
+                false_value,
+                ..
+            } => {
                 ops.push(*condition);
                 ops.push(*true_value);
                 ops.push(*false_value);
-            }
+            },
             Self::FunctionCall { arguments, .. } => ops.extend(arguments.iter().copied()),
             Self::CompositeConstruct { components, .. } => ops.extend(components.iter().copied()),
             Self::CompositeExtract { composite, .. } => ops.push(*composite),
             Self::BranchConditional { condition, .. } => ops.push(*condition),
             Self::ReturnValue { value } => ops.push(*value),
             // Add more cases as needed
-            _ => {}
+            _ => {},
         }
-        
+
         ops
     }
 }
