@@ -6,7 +6,10 @@
 //! - Descriptor set allocation and updates
 //! - Bindless descriptors
 
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 
 use crate::shader::ShaderStageFlags;
@@ -75,7 +78,10 @@ impl DescriptorType {
 
     /// Check if this is a dynamic type.
     pub fn is_dynamic(&self) -> bool {
-        matches!(self, Self::UniformBufferDynamic | Self::StorageBufferDynamic)
+        matches!(
+            self,
+            Self::UniformBufferDynamic | Self::StorageBufferDynamic
+        )
     }
 }
 
@@ -195,8 +201,8 @@ impl DescriptorBinding {
 
     /// Make bindless (update after bind + partially bound).
     pub fn bindless(mut self) -> Self {
-        self.flags = DescriptorBindingFlags::UPDATE_AFTER_BIND
-            .or(DescriptorBindingFlags::PARTIALLY_BOUND);
+        self.flags =
+            DescriptorBindingFlags::UPDATE_AFTER_BIND.or(DescriptorBindingFlags::PARTIALLY_BOUND);
         self
     }
 }
@@ -456,7 +462,8 @@ impl DescriptorPoolConfig {
 
     /// Add pool size.
     pub fn size(mut self, descriptor_type: DescriptorType, count: u32) -> Self {
-        self.sizes.push(DescriptorPoolSize::new(descriptor_type, count));
+        self.sizes
+            .push(DescriptorPoolSize::new(descriptor_type, count));
         self
     }
 
@@ -919,7 +926,10 @@ impl DescriptorSetAllocator {
     }
 
     /// Get or create a layout.
-    pub fn get_or_create_layout(&mut self, bindings: Vec<DescriptorBinding>) -> Arc<DescriptorSetLayout> {
+    pub fn get_or_create_layout(
+        &mut self,
+        bindings: Vec<DescriptorBinding>,
+    ) -> Arc<DescriptorSetLayout> {
         let layout = DescriptorSetLayout::new(bindings);
         let hash = layout.hash();
 
