@@ -50,16 +50,27 @@
 
 extern crate alloc;
 
+pub mod blas;
+pub mod cluster;
+pub mod lod;
 pub mod mesh;
 pub mod meshlet;
-pub mod virtual_geometry;
-pub mod lod;
-pub mod cluster;
 pub mod streaming;
-pub mod blas;
+pub mod virtual_geometry;
 
 /// Prelude for convenient imports.
 pub mod prelude {
+    pub use crate::blas::{
+        AccelerationStructure, BlasBuilder, BlasDesc, BlasFlags, BlasGeometry, BlasHandle,
+        BlasInstance, BlasManager,
+    };
+    pub use crate::cluster::{
+        Cluster, ClusterBounds, ClusterCullData, ClusterHierarchy, ClusterNode, ClusterTree,
+    };
+    pub use crate::lod::{
+        LodBias, LodChain, LodLevel, LodManager, LodMesh, LodSelection, LodSettings,
+        ScreenSpaceError,
+    };
     pub use crate::mesh::{
         Mesh, MeshBuilder, MeshData, MeshDesc, MeshFlags, MeshHandle, MeshManager, MeshPrimitive,
         Submesh, Vertex, VertexAttribute,
@@ -67,23 +78,12 @@ pub mod prelude {
     pub use crate::meshlet::{
         Meshlet, MeshletBounds, MeshletData, MeshletGenerator, MeshletMesh, MeshletStats,
     };
-    pub use crate::virtual_geometry::{
-        VirtualGeometry, VirtualGeometryNode, VirtualMesh, VirtualMeshDesc, VirtualPage,
-        PageRequest, StreamingPriority,
-    };
-    pub use crate::lod::{
-        LodBias, LodChain, LodLevel, LodManager, LodMesh, LodSelection, LodSettings,
-        ScreenSpaceError,
-    };
-    pub use crate::cluster::{
-        Cluster, ClusterBounds, ClusterCullData, ClusterHierarchy, ClusterNode, ClusterTree,
-    };
     pub use crate::streaming::{
         GeometryCache, GeometryPage, GeometryStreamer, PageId, PageState, StreamingConfig,
         StreamingStats,
     };
-    pub use crate::blas::{
-        AccelerationStructure, BlasBuilder, BlasDesc, BlasFlags, BlasGeometry, BlasHandle,
-        BlasInstance, BlasManager,
+    pub use crate::virtual_geometry::{
+        PageRequest, StreamingPriority, VirtualGeometry, VirtualGeometryNode, VirtualMesh,
+        VirtualMeshDesc, VirtualPage,
     };
 }
