@@ -4,8 +4,10 @@
 //! pipelines. Meshlets are small fixed-size clusters of triangles that
 //! enable fine-grained GPU culling and optimal cache utilization.
 
-use alloc::{string::String, vec::Vec};
-use crate::mesh::{Mesh, MeshHandle, AABB, BoundingSphere, Vertex};
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use crate::mesh::{BoundingSphere, Mesh, MeshHandle, Vertex, AABB};
 
 // ============================================================================
 // Meshlet Constants
@@ -130,9 +132,16 @@ impl MeshletBounds {
         }
 
         // Calculate cone for backface culling
-        let len = (normal_sum[0] * normal_sum[0] + normal_sum[1] * normal_sum[1] + normal_sum[2] * normal_sum[2]).sqrt();
+        let len = (normal_sum[0] * normal_sum[0]
+            + normal_sum[1] * normal_sum[1]
+            + normal_sum[2] * normal_sum[2])
+            .sqrt();
         let cone_axis = if len > 0.0 {
-            [normal_sum[0] / len, normal_sum[1] / len, normal_sum[2] / len]
+            [
+                normal_sum[0] / len,
+                normal_sum[1] / len,
+                normal_sum[2] / len,
+            ]
         } else {
             [0.0, 1.0, 0.0]
         };
@@ -140,7 +149,9 @@ impl MeshletBounds {
         // Find minimum dot product (maximum angle from average normal)
         let mut min_dot = 1.0f32;
         for v in vertices {
-            let dot = v.normal[0] * cone_axis[0] + v.normal[1] * cone_axis[1] + v.normal[2] * cone_axis[2];
+            let dot = v.normal[0] * cone_axis[0]
+                + v.normal[1] * cone_axis[1]
+                + v.normal[2] * cone_axis[2];
             min_dot = min_dot.min(dot);
         }
 
@@ -166,7 +177,10 @@ impl MeshletBounds {
     pub fn is_visible(&self, view_pos: [f32; 3], frustum_planes: &[[f32; 4]; 6]) -> bool {
         // Frustum culling against bounding sphere
         for plane in frustum_planes {
-            let dist = plane[0] * self.center[0] + plane[1] * self.center[1] + plane[2] * self.center[2] + plane[3];
+            let dist = plane[0] * self.center[0]
+                + plane[1] * self.center[1]
+                + plane[2] * self.center[2]
+                + plane[3];
             if dist < -self.radius {
                 return false;
             }
@@ -180,7 +194,9 @@ impl MeshletBounds {
             let len = (dx * dx + dy * dy + dz * dz).sqrt();
             if len > 0.0 {
                 let dir = [dx / len, dy / len, dz / len];
-                let dot = dir[0] * self.cone_axis[0] + dir[1] * self.cone_axis[1] + dir[2] * self.cone_axis[2];
+                let dot = dir[0] * self.cone_axis[0]
+                    + dir[1] * self.cone_axis[1]
+                    + dir[2] * self.cone_axis[2];
                 if dot < self.cone_cutoff {
                     return false;
                 }
@@ -239,9 +255,24 @@ impl GpuMeshletBounds {
     /// Create from bounds.
     pub fn from_bounds(bounds: &MeshletBounds) -> Self {
         Self {
-            sphere: [bounds.center[0], bounds.center[1], bounds.center[2], bounds.radius],
-            cone_apex: [bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2], 0.0],
-            cone: [bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2], bounds.cone_cutoff],
+            sphere: [
+                bounds.center[0],
+                bounds.center[1],
+                bounds.center[2],
+                bounds.radius,
+            ],
+            cone_apex: [
+                bounds.cone_apex[0],
+                bounds.cone_apex[1],
+                bounds.cone_apex[2],
+                0.0,
+            ],
+            cone: [
+                bounds.cone_axis[0],
+                bounds.cone_axis[1],
+                bounds.cone_axis[2],
+                bounds.cone_cutoff,
+            ],
         }
     }
 }
