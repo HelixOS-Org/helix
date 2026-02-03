@@ -1,0 +1,25 @@
+[package]
+name = "lumina-debug"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "LUMINA Graphics - Debug Utilities"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["graphics", "gpu", "debug", "validation", "profiling"]
+categories = ["graphics", "game-development", "rendering"]
+
+[dependencies]
+# Core utilities
+lumina-core = { path = "../lumina-core" }
+bitflags = "2.9"
+
+[features]
+default = ["std"]
+std = []
+validation = []
+profiling = []
+gpu-capture = []
+markers = []
+statistics = []
+full = ["validation", "profiling", "gpu-capture", "markers", "statistics"]
