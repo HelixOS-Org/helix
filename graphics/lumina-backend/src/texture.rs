@@ -2,7 +2,8 @@
 //!
 //! Texture creation, views, and format support.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use bitflags::bitflags;
@@ -113,13 +114,13 @@ impl Default for TextureUsage {
 #[repr(u32)]
 pub enum SampleCount {
     /// 1 sample (no multisampling).
-    S1 = 1,
+    S1  = 1,
     /// 2 samples.
-    S2 = 2,
+    S2  = 2,
     /// 4 samples.
-    S4 = 4,
+    S4  = 4,
     /// 8 samples.
-    S8 = 8,
+    S8  = 8,
     /// 16 samples.
     S16 = 16,
     /// 32 samples.
@@ -258,13 +259,14 @@ impl TextureDesc {
 
     /// Calculate max mip levels.
     pub fn max_mip_levels(&self) -> u32 {
-        let max_dim = self.width.max(self.height).max(
-            if self.dimension == TextureDimension::D3 {
+        let max_dim = self
+            .width
+            .max(self.height)
+            .max(if self.dimension == TextureDimension::D3 {
                 self.depth_or_layers
             } else {
                 1
-            }
-        );
+            });
         (32 - max_dim.leading_zeros()).max(1)
     }
 
@@ -495,11 +497,7 @@ pub struct TextureView {
 
 impl TextureView {
     /// Create a new view.
-    pub fn new(
-        handle: TextureViewHandle,
-        texture: &Texture,
-        desc: &TextureViewDesc,
-    ) -> Self {
+    pub fn new(handle: TextureViewHandle, texture: &Texture, desc: &TextureViewDesc) -> Self {
         Self {
             handle,
             texture: texture.handle,
