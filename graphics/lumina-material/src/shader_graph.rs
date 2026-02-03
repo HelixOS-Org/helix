@@ -3,7 +3,11 @@
 //! This module provides a node-based shader authoring system for
 //! procedural materials and complex shader effects.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap, boxed::Box, format};
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 
 // ============================================================================
@@ -376,7 +380,7 @@ pub enum NodeType {
     GGX,
     SmithG,
     Lambert,
-    
+
     // Output nodes
     Output,
     PbrOutput,
@@ -466,11 +470,9 @@ impl NodeType {
             | Self::Brick
             | Self::Wave => NodeCategory::Procedural,
 
-            Self::Fresnel
-            | Self::FresnelSchlick
-            | Self::GGX
-            | Self::SmithG
-            | Self::Lambert => NodeCategory::Pbr,
+            Self::Fresnel | Self::FresnelSchlick | Self::GGX | Self::SmithG | Self::Lambert => {
+                NodeCategory::Pbr
+            },
 
             Self::Custom(_) => NodeCategory::Utility,
         }
@@ -542,27 +544,36 @@ impl NodeType {
     /// Get default outputs.
     pub fn default_outputs(&self) -> Vec<NodeOutput> {
         match self {
-            Self::VertexPosition | Self::VertexNormal | Self::VertexTangent | Self::CameraPosition | Self::ViewDirection => {
+            Self::VertexPosition
+            | Self::VertexNormal
+            | Self::VertexTangent
+            | Self::CameraPosition
+            | Self::ViewDirection => {
                 vec![NodeOutput::new("xyz", DataType::Vec3)]
-            }
+            },
             Self::VertexUV(_) | Self::ScreenPosition => {
                 vec![NodeOutput::new("uv", DataType::Vec2)]
-            }
+            },
             Self::VertexColor | Self::Color => {
                 vec![NodeOutput::new("rgba", DataType::Vec4)]
-            }
+            },
             Self::Time => vec![NodeOutput::new("time", DataType::Float)],
             Self::Float | Self::Sin | Self::Cos | Self::Length | Self::Dot => {
                 vec![NodeOutput::new("value", DataType::Float)]
-            }
+            },
             Self::Vec2 => vec![NodeOutput::new("xy", DataType::Vec2)],
             Self::Vec3 | Self::Cross | Self::Normalize | Self::Reflect => {
                 vec![NodeOutput::new("xyz", DataType::Vec3)]
-            }
+            },
             Self::Vec4 | Self::SampleTexture2D => vec![NodeOutput::new("rgba", DataType::Vec4)],
-            Self::Add | Self::Subtract | Self::Multiply | Self::Divide | Self::Lerp | Self::Clamp => {
+            Self::Add
+            | Self::Subtract
+            | Self::Multiply
+            | Self::Divide
+            | Self::Lerp
+            | Self::Clamp => {
                 vec![NodeOutput::new("result", DataType::Float)]
-            }
+            },
             Self::Split => vec![
                 NodeOutput::new("x", DataType::Float),
                 NodeOutput::new("y", DataType::Float),
@@ -796,7 +807,10 @@ impl ShaderGraph {
         to_input: u32,
     ) -> Result<(), GraphError> {
         // Validate connection
-        let from = self.nodes.get(&from_node.0).ok_or(GraphError::NodeNotFound)?;
+        let from = self
+            .nodes
+            .get(&from_node.0)
+            .ok_or(GraphError::NodeNotFound)?;
         let from_type = from
             .outputs
             .get(from_output as usize)
@@ -996,8 +1010,12 @@ impl GraphCompiler {
         let node = graph.node(id).ok_or(GraphError::NodeNotFound)?;
 
         // Generate output variable
-        let out_var = format!("_n{}_{}", id.0, node.outputs.get(0).map(|o| &o.name[..]).unwrap_or("out"));
-        
+        let out_var = format!(
+            "_n{}_{}",
+            id.0,
+            node.outputs.get(0).map(|o| &o.name[..]).unwrap_or("out")
+        );
+
         // Store in var map
         for (i, _) in node.outputs.iter().enumerate() {
             self.var_map.insert((id.0, i as u32), out_var.clone());
