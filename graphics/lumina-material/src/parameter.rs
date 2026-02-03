@@ -2,7 +2,9 @@
 //!
 //! This module provides a flexible parameter system for materials.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::mem;
 
 // ============================================================================
@@ -140,25 +142,25 @@ impl ParameterValue {
             Self::Bool(v) => {
                 let value = if *v { 1u32 } else { 0u32 };
                 buffer[..4].copy_from_slice(&value.to_le_bytes());
-            }
+            },
             Self::Int(v) => buffer[..4].copy_from_slice(&v.to_le_bytes()),
             Self::Uint(v) => buffer[..4].copy_from_slice(&v.to_le_bytes()),
             Self::Float(v) => buffer[..4].copy_from_slice(&v.to_le_bytes()),
             Self::Vec2(v) => {
                 buffer[..4].copy_from_slice(&v[0].to_le_bytes());
                 buffer[4..8].copy_from_slice(&v[1].to_le_bytes());
-            }
+            },
             Self::Vec3(v) => {
                 buffer[..4].copy_from_slice(&v[0].to_le_bytes());
                 buffer[4..8].copy_from_slice(&v[1].to_le_bytes());
                 buffer[8..12].copy_from_slice(&v[2].to_le_bytes());
-            }
+            },
             Self::Vec4(v) | Self::Color(v) => {
                 buffer[..4].copy_from_slice(&v[0].to_le_bytes());
                 buffer[4..8].copy_from_slice(&v[1].to_le_bytes());
                 buffer[8..12].copy_from_slice(&v[2].to_le_bytes());
                 buffer[12..16].copy_from_slice(&v[3].to_le_bytes());
-            }
+            },
             Self::Mat3(m) => {
                 for (i, row) in m.iter().enumerate() {
                     for (j, val) in row.iter().enumerate() {
@@ -166,7 +168,7 @@ impl ParameterValue {
                         buffer[offset..offset + 4].copy_from_slice(&val.to_le_bytes());
                     }
                 }
-            }
+            },
             Self::Mat4(m) => {
                 for (i, row) in m.iter().enumerate() {
                     for (j, val) in row.iter().enumerate() {
@@ -174,10 +176,10 @@ impl ParameterValue {
                         buffer[offset..offset + 4].copy_from_slice(&val.to_le_bytes());
                     }
                 }
-            }
+            },
             Self::Texture(v) | Self::Sampler(v) => {
                 buffer[..4].copy_from_slice(&v.to_le_bytes());
-            }
+            },
         }
     }
 
@@ -253,7 +255,11 @@ pub struct ParameterUiHints {
 
 impl Parameter {
     /// Create a new parameter.
-    pub fn new(name: impl Into<String>, param_type: ParameterType, default: ParameterValue) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        param_type: ParameterType,
+        default: ParameterValue,
+    ) -> Self {
         let name = name.into();
         Self {
             display_name: name.clone(),
@@ -281,7 +287,11 @@ impl Parameter {
 
     /// Create a texture parameter.
     pub fn texture(name: impl Into<String>) -> Self {
-        Self::new(name, ParameterType::Texture, ParameterValue::Texture(u32::MAX))
+        Self::new(
+            name,
+            ParameterType::Texture,
+            ParameterValue::Texture(u32::MAX),
+        )
     }
 
     /// Set display name.
@@ -370,7 +380,8 @@ impl ParameterBlock {
 
     /// Add a parameter.
     pub fn add_parameter(&mut self, param: Parameter) {
-        self.values.insert(param.name.clone(), param.default_value.clone());
+        self.values
+            .insert(param.name.clone(), param.default_value.clone());
         self.parameters.push(param);
         self.recalculate_layout();
     }
@@ -470,64 +481,93 @@ impl ParameterBlock {
 pub fn create_pbr_block() -> ParameterBlock {
     let mut block = ParameterBlock::new("PBRMaterial");
 
-    block.add_parameter(Parameter::color("base_color", [1.0, 1.0, 1.0, 1.0])
-        .display_name("Base Color")
-        .group("Base"));
+    block.add_parameter(
+        Parameter::color("base_color", [1.0, 1.0, 1.0, 1.0])
+            .display_name("Base Color")
+            .group("Base"),
+    );
 
-    block.add_parameter(Parameter::float("metallic", 0.0)
-        .display_name("Metallic")
-        .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
-        .group("PBR"));
+    block.add_parameter(
+        Parameter::float("metallic", 0.0)
+            .display_name("Metallic")
+            .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
+            .group("PBR"),
+    );
 
-    block.add_parameter(Parameter::float("roughness", 0.5)
-        .display_name("Roughness")
-        .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
-        .group("PBR"));
+    block.add_parameter(
+        Parameter::float("roughness", 0.5)
+            .display_name("Roughness")
+            .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
+            .group("PBR"),
+    );
 
-    block.add_parameter(Parameter::float("normal_scale", 1.0)
-        .display_name("Normal Scale")
-        .range(ParameterValue::Float(0.0), ParameterValue::Float(2.0))
-        .group("Normal"));
+    block.add_parameter(
+        Parameter::float("normal_scale", 1.0)
+            .display_name("Normal Scale")
+            .range(ParameterValue::Float(0.0), ParameterValue::Float(2.0))
+            .group("Normal"),
+    );
 
-    block.add_parameter(Parameter::float("ao_strength", 1.0)
-        .display_name("AO Strength")
-        .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
-        .group("Occlusion"));
+    block.add_parameter(
+        Parameter::float("ao_strength", 1.0)
+            .display_name("AO Strength")
+            .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
+            .group("Occlusion"),
+    );
 
-    block.add_parameter(Parameter::new("emissive", ParameterType::Vec3, 
-        ParameterValue::Vec3([0.0, 0.0, 0.0]))
+    block.add_parameter(
+        Parameter::new(
+            "emissive",
+            ParameterType::Vec3,
+            ParameterValue::Vec3([0.0, 0.0, 0.0]),
+        )
         .display_name("Emissive")
-        .group("Emission"));
+        .group("Emission"),
+    );
 
-    block.add_parameter(Parameter::float("emissive_strength", 1.0)
-        .display_name("Emissive Strength")
-        .range(ParameterValue::Float(0.0), ParameterValue::Float(10.0))
-        .group("Emission"));
+    block.add_parameter(
+        Parameter::float("emissive_strength", 1.0)
+            .display_name("Emissive Strength")
+            .range(ParameterValue::Float(0.0), ParameterValue::Float(10.0))
+            .group("Emission"),
+    );
 
-    block.add_parameter(Parameter::float("alpha_cutoff", 0.5)
-        .display_name("Alpha Cutoff")
-        .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
-        .group("Alpha"));
+    block.add_parameter(
+        Parameter::float("alpha_cutoff", 0.5)
+            .display_name("Alpha Cutoff")
+            .range(ParameterValue::Float(0.0), ParameterValue::Float(1.0))
+            .group("Alpha"),
+    );
 
-    block.add_parameter(Parameter::texture("albedo_texture")
-        .display_name("Albedo Map")
-        .group("Textures"));
+    block.add_parameter(
+        Parameter::texture("albedo_texture")
+            .display_name("Albedo Map")
+            .group("Textures"),
+    );
 
-    block.add_parameter(Parameter::texture("normal_texture")
-        .display_name("Normal Map")
-        .group("Textures"));
+    block.add_parameter(
+        Parameter::texture("normal_texture")
+            .display_name("Normal Map")
+            .group("Textures"),
+    );
 
-    block.add_parameter(Parameter::texture("metallic_roughness_texture")
-        .display_name("Metallic-Roughness Map")
-        .group("Textures"));
+    block.add_parameter(
+        Parameter::texture("metallic_roughness_texture")
+            .display_name("Metallic-Roughness Map")
+            .group("Textures"),
+    );
 
-    block.add_parameter(Parameter::texture("occlusion_texture")
-        .display_name("Occlusion Map")
-        .group("Textures"));
+    block.add_parameter(
+        Parameter::texture("occlusion_texture")
+            .display_name("Occlusion Map")
+            .group("Textures"),
+    );
 
-    block.add_parameter(Parameter::texture("emissive_texture")
-        .display_name("Emissive Map")
-        .group("Textures"));
+    block.add_parameter(
+        Parameter::texture("emissive_texture")
+            .display_name("Emissive Map")
+            .group("Textures"),
+    );
 
     block
 }
@@ -535,7 +575,7 @@ pub fn create_pbr_block() -> ParameterBlock {
 /// Standard view parameter block.
 pub fn create_view_block() -> ParameterBlock {
     let mut block = ParameterBlock::new("ViewData");
-    
+
     let identity = [
         [1.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 0.0, 0.0],
@@ -543,37 +583,72 @@ pub fn create_view_block() -> ParameterBlock {
         [0.0, 0.0, 0.0, 1.0],
     ];
 
-    block.add_parameter(Parameter::new("view_matrix", ParameterType::Mat4,
-        ParameterValue::Mat4(identity))
-        .hidden());
+    block.add_parameter(
+        Parameter::new(
+            "view_matrix",
+            ParameterType::Mat4,
+            ParameterValue::Mat4(identity),
+        )
+        .hidden(),
+    );
 
-    block.add_parameter(Parameter::new("projection_matrix", ParameterType::Mat4,
-        ParameterValue::Mat4(identity))
-        .hidden());
+    block.add_parameter(
+        Parameter::new(
+            "projection_matrix",
+            ParameterType::Mat4,
+            ParameterValue::Mat4(identity),
+        )
+        .hidden(),
+    );
 
-    block.add_parameter(Parameter::new("view_projection_matrix", ParameterType::Mat4,
-        ParameterValue::Mat4(identity))
-        .hidden());
+    block.add_parameter(
+        Parameter::new(
+            "view_projection_matrix",
+            ParameterType::Mat4,
+            ParameterValue::Mat4(identity),
+        )
+        .hidden(),
+    );
 
-    block.add_parameter(Parameter::new("inverse_view_matrix", ParameterType::Mat4,
-        ParameterValue::Mat4(identity))
-        .hidden());
+    block.add_parameter(
+        Parameter::new(
+            "inverse_view_matrix",
+            ParameterType::Mat4,
+            ParameterValue::Mat4(identity),
+        )
+        .hidden(),
+    );
 
-    block.add_parameter(Parameter::new("camera_position", ParameterType::Vec3,
-        ParameterValue::Vec3([0.0, 0.0, 0.0]))
-        .hidden());
+    block.add_parameter(
+        Parameter::new(
+            "camera_position",
+            ParameterType::Vec3,
+            ParameterValue::Vec3([0.0, 0.0, 0.0]),
+        )
+        .hidden(),
+    );
 
-    block.add_parameter(Parameter::new("viewport_size", ParameterType::Vec2,
-        ParameterValue::Vec2([1920.0, 1080.0]))
-        .hidden());
+    block.add_parameter(
+        Parameter::new(
+            "viewport_size",
+            ParameterType::Vec2,
+            ParameterValue::Vec2([1920.0, 1080.0]),
+        )
+        .hidden(),
+    );
 
-    block.add_parameter(Parameter::new("time", ParameterType::Float,
-        ParameterValue::Float(0.0))
-        .hidden());
+    block.add_parameter(
+        Parameter::new("time", ParameterType::Float, ParameterValue::Float(0.0)).hidden(),
+    );
 
-    block.add_parameter(Parameter::new("delta_time", ParameterType::Float,
-        ParameterValue::Float(0.016))
-        .hidden());
+    block.add_parameter(
+        Parameter::new(
+            "delta_time",
+            ParameterType::Float,
+            ParameterValue::Float(0.016),
+        )
+        .hidden(),
+    );
 
     block
 }
