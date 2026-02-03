@@ -6,7 +6,6 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, string::String, vec::Vec};
-
 use core::fmt;
 
 /// Type identifier for fast comparison
@@ -69,7 +68,10 @@ impl ScalarType {
 
     /// Check if this is an unsigned integer type
     pub const fn is_unsigned_int(self) -> bool {
-        matches!(self, Self::UInt8 | Self::UInt16 | Self::UInt32 | Self::UInt64)
+        matches!(
+            self,
+            Self::UInt8 | Self::UInt16 | Self::UInt32 | Self::UInt64
+        )
     }
 
     /// Check if this is any integer type
@@ -132,15 +134,42 @@ pub struct MatrixSize {
 }
 
 impl MatrixSize {
-    pub const MAT2X2: Self = Self { columns: 2, rows: 2 };
-    pub const MAT2X3: Self = Self { columns: 2, rows: 3 };
-    pub const MAT2X4: Self = Self { columns: 2, rows: 4 };
-    pub const MAT3X2: Self = Self { columns: 3, rows: 2 };
-    pub const MAT3X3: Self = Self { columns: 3, rows: 3 };
-    pub const MAT3X4: Self = Self { columns: 3, rows: 4 };
-    pub const MAT4X2: Self = Self { columns: 4, rows: 2 };
-    pub const MAT4X3: Self = Self { columns: 4, rows: 3 };
-    pub const MAT4X4: Self = Self { columns: 4, rows: 4 };
+    pub const MAT2X2: Self = Self {
+        columns: 2,
+        rows: 2,
+    };
+    pub const MAT2X3: Self = Self {
+        columns: 2,
+        rows: 3,
+    };
+    pub const MAT2X4: Self = Self {
+        columns: 2,
+        rows: 4,
+    };
+    pub const MAT3X2: Self = Self {
+        columns: 3,
+        rows: 2,
+    };
+    pub const MAT3X3: Self = Self {
+        columns: 3,
+        rows: 3,
+    };
+    pub const MAT3X4: Self = Self {
+        columns: 3,
+        rows: 4,
+    };
+    pub const MAT4X2: Self = Self {
+        columns: 4,
+        rows: 2,
+    };
+    pub const MAT4X3: Self = Self {
+        columns: 4,
+        rows: 3,
+    };
+    pub const MAT4X4: Self = Self {
+        columns: 4,
+        rows: 4,
+    };
 
     /// Get the total number of components
     pub const fn component_count(&self) -> u32 {
@@ -439,17 +468,17 @@ impl StructType {
     pub fn add_field(&mut self, name: impl Into<String>, ty: IrType) {
         let field_size = ty.size_bytes();
         let field_align = ty.alignment();
-        
+
         // Align current offset
         let offset = (self.size + field_align - 1) & !(field_align - 1);
-        
+
         self.fields.push(StructField {
             name: name.into(),
             ty,
             offset,
             decorations: FieldDecorations::default(),
         });
-        
+
         self.size = offset + field_size;
         self.alignment = self.alignment.max(field_align);
     }
@@ -799,12 +828,14 @@ impl IrType {
                 if let Some(len) = arr.length {
                     let elem_size = arr.element.size_bytes();
                     let elem_align = arr.element.alignment();
-                    let stride = arr.stride.unwrap_or((elem_size + elem_align - 1) & !(elem_align - 1));
+                    let stride = arr
+                        .stride
+                        .unwrap_or((elem_size + elem_align - 1) & !(elem_align - 1));
                     stride * len
                 } else {
                     0 // Runtime arrays have no static size
                 }
-            }
+            },
             Self::Struct(s) => s.size,
             Self::Pointer(_) => 8, // Assume 64-bit pointers
             Self::Image(_) | Self::Sampler(_) | Self::SampledImage(_) => 0, // Opaque types
@@ -825,7 +856,7 @@ impl IrType {
                 } else {
                     base * size.count()
                 }
-            }
+            },
             Self::Matrix { element, size } => {
                 // Matrix columns align like vectors
                 let col_size = size.rows;
@@ -835,7 +866,7 @@ impl IrType {
                 } else {
                     base * col_size as u32
                 }
-            }
+            },
             Self::Array(arr) => arr.element.alignment(),
             Self::Struct(s) => s.alignment,
             Self::Pointer(_) => 8,
@@ -960,19 +991,31 @@ impl IrType {
         match (self, other) {
             (Self::Scalar(a), Self::Scalar(b)) => a == b,
             (
-                Self::Vector { element: e1, size: s1 },
-                Self::Vector { element: e2, size: s2 },
+                Self::Vector {
+                    element: e1,
+                    size: s1,
+                },
+                Self::Vector {
+                    element: e2,
+                    size: s2,
+                },
             ) => e1 == e2 && s1 == s2,
             (
-                Self::Matrix { element: e1, size: s1 },
-                Self::Matrix { element: e2, size: s2 },
+                Self::Matrix {
+                    element: e1,
+                    size: s1,
+                },
+                Self::Matrix {
+                    element: e2,
+                    size: s2,
+                },
             ) => e1 == e2 && s1 == s2,
             (Self::Array(a), Self::Array(b)) => {
                 a.length == b.length && a.element.is_compatible_with(&b.element)
-            }
+            },
             (Self::Pointer(a), Self::Pointer(b)) => {
                 a.address_space == b.address_space && a.pointee.is_compatible_with(&b.pointee)
-            }
+            },
             (Self::Struct(a), Self::Struct(b)) => a.name == b.name,
             (Self::Image(a), Self::Image(b)) => a == b,
             (Self::Sampler(a), Self::Sampler(b)) => a == b,
@@ -988,14 +1031,14 @@ impl fmt::Display for IrType {
             Self::Vector { element, size } => write!(f, "vec{}<{}>", size.count(), element),
             Self::Matrix { element, size } => {
                 write!(f, "mat{}x{}<{}>", size.columns, size.rows, element)
-            }
+            },
             Self::Array(arr) => {
                 if let Some(len) = arr.length {
                     write!(f, "[{}; {}]", arr.element, len)
                 } else {
                     write!(f, "[{}]", arr.element)
                 }
-            }
+            },
             Self::Pointer(p) => write!(f, "*{} {}", p.address_space, p.pointee),
             Self::Struct(s) => write!(f, "struct {}", s.name),
             Self::Image(img) => {
@@ -1013,14 +1056,14 @@ impl fmt::Display for IrType {
                 } else {
                     write!(f, "texture{}<{}>", dim, img.sampled_type)
                 }
-            }
+            },
             Self::Sampler(s) => {
                 if s.comparison {
                     write!(f, "samplerComparison")
                 } else {
                     write!(f, "sampler")
                 }
-            }
+            },
             Self::SampledImage(img) => write!(f, "sampledImage<{:?}>", img.dimension),
             Self::Function(fun) => {
                 write!(f, "fn(")?;
@@ -1031,7 +1074,7 @@ impl fmt::Display for IrType {
                     write!(f, "{}", param)?;
                 }
                 write!(f, ") -> {}", fun.return_type)
-            }
+            },
             Self::AccelerationStructure(_) => write!(f, "accelerationStructure"),
             Self::RayQuery(_) => write!(f, "rayQuery"),
         }
@@ -1080,7 +1123,10 @@ impl TypeRegistry {
 
     /// Iterate over all struct types
     pub fn structs(&self) -> impl Iterator<Item = (TypeId, &StructType)> {
-        self.structs.iter().enumerate().map(|(i, s)| (i as TypeId, s))
+        self.structs
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (i as TypeId, s))
     }
 }
 
@@ -1119,26 +1165,22 @@ impl LayoutRules {
                 } else {
                     base * 4 // vec3 and vec4 align to vec4
                 }
-            }
+            },
             IrType::Matrix { element, size } => {
                 // Matrix columns are treated as arrays of vectors
                 // Round up to vec4 alignment
                 let base = element.size_bytes();
                 let col_size = size.rows;
-                if col_size <= 2 {
-                    base * 2
-                } else {
-                    base * 4
-                }.max(16) // Minimum 16 bytes for arrays/matrices
-            }
+                if col_size <= 2 { base * 2 } else { base * 4 }.max(16) // Minimum 16 bytes for arrays/matrices
+            },
             IrType::Array(arr) => {
                 // Array element alignment rounded up to 16 bytes
                 self.std140_alignment(&arr.element).max(16)
-            }
+            },
             IrType::Struct(s) => {
                 // Struct alignment is rounded up to 16 bytes
                 s.alignment.max(16)
-            }
+            },
             _ => 4,
         }
     }
@@ -1154,7 +1196,7 @@ impl LayoutRules {
                 } else {
                     base * 4
                 }
-            }
+            },
             IrType::Matrix { element, size } => {
                 let base = element.size_bytes();
                 let col_size = size.rows;
@@ -1163,7 +1205,7 @@ impl LayoutRules {
                 } else {
                     base * 4
                 }
-            }
+            },
             IrType::Array(arr) => self.std430_alignment(&arr.element),
             IrType::Struct(s) => s.alignment,
             _ => 4,
@@ -1208,7 +1250,7 @@ mod tests {
         s.add_field("position", IrType::vec3f());
         s.add_field("normal", IrType::vec3f());
         s.add_field("uv", IrType::vec2f());
-        
+
         assert_eq!(s.fields.len(), 3);
         assert!(s.get_field("position").is_some());
     }
