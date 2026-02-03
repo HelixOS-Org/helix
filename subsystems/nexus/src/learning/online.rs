@@ -143,9 +143,10 @@ impl OnlineStats {
 
         let combined_n = self.n + other.n;
         let delta = other.mean - self.mean;
-        
+
         self.mean = (self.n as f64 * self.mean + other.n as f64 * other.mean) / combined_n as f64;
-        self.m2 = self.m2 + other.m2 + delta * delta * (self.n * other.n) as f64 / combined_n as f64;
+        self.m2 =
+            self.m2 + other.m2 + delta * delta * (self.n * other.n) as f64 / combined_n as f64;
         self.n = combined_n;
         self.min = self.min.min(other.min);
         self.max = self.max.max(other.max);
@@ -218,7 +219,9 @@ impl OnlineLearner {
 
     /// Predict value for sample
     pub fn predict(&self, features: &[f64]) -> f64 {
-        let dot: f64 = self.weights.iter()
+        let dot: f64 = self
+            .weights
+            .iter()
             .zip(features.iter())
             .map(|(w, f)| w * f)
             .sum();
@@ -328,7 +331,8 @@ impl StreamingClassifier {
 
     /// Get class scores (logits)
     pub fn scores(&self, features: &[f64]) -> Vec<f64> {
-        self.weights.iter()
+        self.weights
+            .iter()
             .zip(self.biases.iter())
             .map(|(w, &b)| {
                 let dot: f64 = w.iter().zip(features.iter()).map(|(wi, fi)| wi * fi).sum();
@@ -341,17 +345,18 @@ impl StreamingClassifier {
     pub fn probabilities(&self, features: &[f64]) -> Vec<f64> {
         let scores = self.scores(features);
         let max_score = scores.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-        
+
         let exp_scores: Vec<f64> = scores.iter().map(|s| (s - max_score).exp()).collect();
         let sum: f64 = exp_scores.iter().sum();
-        
+
         exp_scores.into_iter().map(|e| e / sum).collect()
     }
 
     /// Predict class
     pub fn predict(&self, features: &[f64]) -> usize {
         let scores = self.scores(features);
-        scores.iter()
+        scores
+            .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
             .map(|(i, _)| i)
@@ -389,7 +394,10 @@ impl StreamingClassifier {
         if total == 0.0 {
             return vec![0.0; self.num_classes];
         }
-        self.class_counts.iter().map(|&c| c as f64 / total).collect()
+        self.class_counts
+            .iter()
+            .map(|&c| c as f64 / total)
+            .collect()
     }
 
     /// Get number of classes
@@ -406,13 +414,13 @@ impl StreamingClassifier {
 pub trait DriftDetector {
     /// Update with new value
     fn update(&mut self, value: f64);
-    
+
     /// Check if drift detected
     fn drift_detected(&self) -> bool;
-    
+
     /// Check if warning level reached
     fn warning_detected(&self) -> bool;
-    
+
     /// Reset detector
     fn reset(&mut self);
 }
@@ -452,7 +460,13 @@ impl AdwinDetector {
             return (0.0, 0.0);
         }
 
-        let slice: Vec<f64> = self.window.iter().skip(start).take(end - start).copied().collect();
+        let slice: Vec<f64> = self
+            .window
+            .iter()
+            .skip(start)
+            .take(end - start)
+            .copied()
+            .collect();
         let n = slice.len() as f64;
         if n == 0.0 {
             return (0.0, 0.0);
@@ -480,7 +494,7 @@ impl AdwinDetector {
         for cut in 1..n {
             let n1 = cut as f64;
             let n2 = (n - cut) as f64;
-            
+
             if n1 < 5.0 || n2 < 5.0 {
                 continue;
             }
@@ -567,16 +581,16 @@ impl PageHinkleyDetector {
 impl DriftDetector for PageHinkleyDetector {
     fn update(&mut self, value: f64) {
         self.count += 1;
-        
+
         // Update mean
         self.mean += (value - self.mean) / self.count as f64;
-        
+
         // Update cumulative sum
         self.cumsum += value - self.mean - self.min_deviation;
-        
+
         // Update minimum
         self.min_cumsum = self.min_cumsum.min(self.cumsum);
-        
+
         // Check for drift
         self.drift = (self.cumsum - self.min_cumsum) > self.threshold;
     }
@@ -635,7 +649,7 @@ impl ConceptDriftDetector {
             if self.drift_history.len() >= self.max_history {
                 self.drift_history.pop_front();
             }
-            
+
             let detector = if self.adwin.drift_detected() && self.page_hinkley.drift_detected() {
                 String::from("both")
             } else if self.adwin.drift_detected() {
@@ -643,7 +657,7 @@ impl ConceptDriftDetector {
             } else {
                 String::from("page_hinkley")
             };
-            
+
             self.drift_history.push_back((self.timestamp, detector));
         }
     }
@@ -810,7 +824,7 @@ mod tests {
     #[test]
     fn test_online_stats() {
         let mut stats = OnlineStats::new();
-        
+
         for v in [1.0, 2.0, 3.0, 4.0, 5.0] {
             stats.update(v);
         }
