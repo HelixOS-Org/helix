@@ -2,7 +2,8 @@
 //!
 //! Surface presentation and swapchain management for window rendering.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use bitflags::bitflags;
