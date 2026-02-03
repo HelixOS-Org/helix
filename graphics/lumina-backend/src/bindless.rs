@@ -34,7 +34,8 @@
 //! └─────────────────────────────────────────────────────────────────────┘
 //! ```
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use crate::buffer::BufferHandle;
@@ -339,7 +340,7 @@ impl BindlessHeap {
         }
 
         self.allocated_count.fetch_add(1, Ordering::Relaxed);
-        
+
         // Ensure entry exists
         while self.entries.len() <= idx as usize {
             self.entries.push(DescriptorEntry::default());
@@ -364,7 +365,12 @@ impl BindlessHeap {
     }
 
     /// Write texture descriptor.
-    pub fn write_texture(&mut self, index: DescriptorIndex, texture: TextureViewHandle, is_uav: bool) {
+    pub fn write_texture(
+        &mut self,
+        index: DescriptorIndex,
+        texture: TextureViewHandle,
+        is_uav: bool,
+    ) {
         if !index.is_valid() {
             return;
         }
@@ -388,7 +394,14 @@ impl BindlessHeap {
     }
 
     /// Write buffer descriptor.
-    pub fn write_buffer(&mut self, index: DescriptorIndex, buffer: BufferHandle, offset: u64, size: u64, is_uav: bool) {
+    pub fn write_buffer(
+        &mut self,
+        index: DescriptorIndex,
+        buffer: BufferHandle,
+        offset: u64,
+        size: u64,
+        is_uav: bool,
+    ) {
         if !index.is_valid() {
             return;
         }
@@ -542,7 +555,11 @@ impl BindlessResourceManager {
     }
 
     /// Register texture.
-    pub fn register_texture(&mut self, texture: TextureHandle, view: TextureViewHandle) -> TextureIndex {
+    pub fn register_texture(
+        &mut self,
+        texture: TextureHandle,
+        view: TextureViewHandle,
+    ) -> TextureIndex {
         let desc_index = self.srv_heap.allocate();
         if !desc_index.is_valid() {
             return TextureIndex::INVALID;
@@ -551,7 +568,7 @@ impl BindlessResourceManager {
         self.srv_heap.write_texture(desc_index, view, false);
 
         let tex_index = TextureIndex(desc_index.0);
-        
+
         self.textures.push(BindlessTexture {
             index: tex_index,
             texture,
@@ -589,7 +606,8 @@ impl BindlessResourceManager {
             return BufferIndex::INVALID;
         }
 
-        self.srv_heap.write_buffer(desc_index, buffer, offset, size, false);
+        self.srv_heap
+            .write_buffer(desc_index, buffer, offset, size, false);
 
         let buf_index = BufferIndex(desc_index.0);
 
