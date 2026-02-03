@@ -1,0 +1,30 @@
+[package]
+name = "lumina-mesh"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix Team"]
+description = "Revolutionary virtual geometry and meshlet system for Lumina"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["graphics", "mesh", "meshlet", "virtual-geometry", "nanite"]
+categories = ["graphics", "rendering", "game-development"]
+
+[features]
+default = ["std"]
+std = []
+virtual-geometry = []
+meshlets = []
+mesh-shaders = []
+gpu-driven = []
+streaming = []
+lod-system = []
+compression = []
+ray-tracing = []
+
+[dependencies]
+# Core dependencies
+lumina-core = { path = "../lumina-core" }
+lumina-math = { path = "../lumina-math" }
+bitflags = "2.4"
+
+[dev-dependencies]
