@@ -3,7 +3,9 @@
 //! Provides the core device abstraction for GPU operations including
 //! device creation, capability queries, and resource management.
 
-use alloc::{string::String, vec::Vec, boxed::Box};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use bitflags::bitflags;
@@ -45,12 +47,18 @@ impl BackendType {
 
     /// Check if backend supports ray tracing.
     pub fn supports_ray_tracing(&self) -> bool {
-        matches!(self, BackendType::Vulkan | BackendType::Dx12 | BackendType::Magma)
+        matches!(
+            self,
+            BackendType::Vulkan | BackendType::Dx12 | BackendType::Magma
+        )
     }
 
     /// Check if backend supports mesh shaders.
     pub fn supports_mesh_shaders(&self) -> bool {
-        matches!(self, BackendType::Vulkan | BackendType::Dx12 | BackendType::Magma)
+        matches!(
+            self,
+            BackendType::Vulkan | BackendType::Dx12 | BackendType::Magma
+        )
     }
 }
 
@@ -626,64 +634,64 @@ impl Default for DeviceCapabilities {
 #[repr(u32)]
 pub enum TextureFormat {
     // 8-bit
-    R8Unorm = 1,
-    R8Snorm = 2,
-    R8Uint = 3,
-    R8Sint = 4,
+    R8Unorm              = 1,
+    R8Snorm              = 2,
+    R8Uint               = 3,
+    R8Sint               = 4,
     // 16-bit
-    R16Uint = 10,
-    R16Sint = 11,
-    R16Float = 12,
-    Rg8Unorm = 13,
-    Rg8Snorm = 14,
-    Rg8Uint = 15,
-    Rg8Sint = 16,
+    R16Uint              = 10,
+    R16Sint              = 11,
+    R16Float             = 12,
+    Rg8Unorm             = 13,
+    Rg8Snorm             = 14,
+    Rg8Uint              = 15,
+    Rg8Sint              = 16,
     // 32-bit
-    R32Uint = 20,
-    R32Sint = 21,
-    R32Float = 22,
-    Rg16Uint = 23,
-    Rg16Sint = 24,
-    Rg16Float = 25,
-    Rgba8Unorm = 26,
-    Rgba8UnormSrgb = 27,
-    Rgba8Snorm = 28,
-    Rgba8Uint = 29,
-    Rgba8Sint = 30,
-    Bgra8Unorm = 31,
-    Bgra8UnormSrgb = 32,
+    R32Uint              = 20,
+    R32Sint              = 21,
+    R32Float             = 22,
+    Rg16Uint             = 23,
+    Rg16Sint             = 24,
+    Rg16Float            = 25,
+    Rgba8Unorm           = 26,
+    Rgba8UnormSrgb       = 27,
+    Rgba8Snorm           = 28,
+    Rgba8Uint            = 29,
+    Rgba8Sint            = 30,
+    Bgra8Unorm           = 31,
+    Bgra8UnormSrgb       = 32,
     // 64-bit
-    Rg32Uint = 40,
-    Rg32Sint = 41,
-    Rg32Float = 42,
-    Rgba16Uint = 43,
-    Rgba16Sint = 44,
-    Rgba16Float = 45,
+    Rg32Uint             = 40,
+    Rg32Sint             = 41,
+    Rg32Float            = 42,
+    Rgba16Uint           = 43,
+    Rgba16Sint           = 44,
+    Rgba16Float          = 45,
     // 128-bit
-    Rgba32Uint = 50,
-    Rgba32Sint = 51,
-    Rgba32Float = 52,
+    Rgba32Uint           = 50,
+    Rgba32Sint           = 51,
+    Rgba32Float          = 52,
     // Depth/stencil
-    Depth16Unorm = 60,
-    Depth24Plus = 61,
-    Depth24PlusStencil8 = 62,
-    Depth32Float = 63,
+    Depth16Unorm         = 60,
+    Depth24Plus          = 61,
+    Depth24PlusStencil8  = 62,
+    Depth32Float         = 63,
     Depth32FloatStencil8 = 64,
     // Compressed
-    Bc1RgbaUnorm = 70,
-    Bc1RgbaUnormSrgb = 71,
-    Bc2RgbaUnorm = 72,
-    Bc2RgbaUnormSrgb = 73,
-    Bc3RgbaUnorm = 74,
-    Bc3RgbaUnormSrgb = 75,
-    Bc4RUnorm = 76,
-    Bc4RSnorm = 77,
-    Bc5RgUnorm = 78,
-    Bc5RgSnorm = 79,
-    Bc6hRgbUfloat = 80,
-    Bc6hRgbSfloat = 81,
-    Bc7RgbaUnorm = 82,
-    Bc7RgbaUnormSrgb = 83,
+    Bc1RgbaUnorm         = 70,
+    Bc1RgbaUnormSrgb     = 71,
+    Bc2RgbaUnorm         = 72,
+    Bc2RgbaUnormSrgb     = 73,
+    Bc3RgbaUnorm         = 74,
+    Bc3RgbaUnormSrgb     = 75,
+    Bc4RUnorm            = 76,
+    Bc4RSnorm            = 77,
+    Bc5RgUnorm           = 78,
+    Bc5RgSnorm           = 79,
+    Bc6hRgbUfloat        = 80,
+    Bc6hRgbSfloat        = 81,
+    Bc7RgbaUnorm         = 82,
+    Bc7RgbaUnormSrgb     = 83,
 }
 
 impl TextureFormat {
@@ -691,18 +699,37 @@ impl TextureFormat {
     pub fn bytes_per_pixel(&self) -> u32 {
         match self {
             Self::R8Unorm | Self::R8Snorm | Self::R8Uint | Self::R8Sint => 1,
-            Self::R16Uint | Self::R16Sint | Self::R16Float |
-            Self::Rg8Unorm | Self::Rg8Snorm | Self::Rg8Uint | Self::Rg8Sint |
-            Self::Depth16Unorm => 2,
-            Self::R32Uint | Self::R32Sint | Self::R32Float |
-            Self::Rg16Uint | Self::Rg16Sint | Self::Rg16Float |
-            Self::Rgba8Unorm | Self::Rgba8UnormSrgb | Self::Rgba8Snorm |
-            Self::Rgba8Uint | Self::Rgba8Sint |
-            Self::Bgra8Unorm | Self::Bgra8UnormSrgb |
-            Self::Depth24Plus | Self::Depth24PlusStencil8 | Self::Depth32Float => 4,
-            Self::Rg32Uint | Self::Rg32Sint | Self::Rg32Float |
-            Self::Rgba16Uint | Self::Rgba16Sint | Self::Rgba16Float |
-            Self::Depth32FloatStencil8 => 8,
+            Self::R16Uint
+            | Self::R16Sint
+            | Self::R16Float
+            | Self::Rg8Unorm
+            | Self::Rg8Snorm
+            | Self::Rg8Uint
+            | Self::Rg8Sint
+            | Self::Depth16Unorm => 2,
+            Self::R32Uint
+            | Self::R32Sint
+            | Self::R32Float
+            | Self::Rg16Uint
+            | Self::Rg16Sint
+            | Self::Rg16Float
+            | Self::Rgba8Unorm
+            | Self::Rgba8UnormSrgb
+            | Self::Rgba8Snorm
+            | Self::Rgba8Uint
+            | Self::Rgba8Sint
+            | Self::Bgra8Unorm
+            | Self::Bgra8UnormSrgb
+            | Self::Depth24Plus
+            | Self::Depth24PlusStencil8
+            | Self::Depth32Float => 4,
+            Self::Rg32Uint
+            | Self::Rg32Sint
+            | Self::Rg32Float
+            | Self::Rgba16Uint
+            | Self::Rgba16Sint
+            | Self::Rgba16Float
+            | Self::Depth32FloatStencil8 => 8,
             Self::Rgba32Uint | Self::Rgba32Sint | Self::Rgba32Float => 16,
             _ => 0, // Compressed formats
         }
@@ -710,31 +737,47 @@ impl TextureFormat {
 
     /// Check if format is depth.
     pub fn is_depth(&self) -> bool {
-        matches!(self,
-            Self::Depth16Unorm | Self::Depth24Plus |
-            Self::Depth24PlusStencil8 | Self::Depth32Float | Self::Depth32FloatStencil8
+        matches!(
+            self,
+            Self::Depth16Unorm
+                | Self::Depth24Plus
+                | Self::Depth24PlusStencil8
+                | Self::Depth32Float
+                | Self::Depth32FloatStencil8
         )
     }
 
     /// Check if format is compressed.
     pub fn is_compressed(&self) -> bool {
-        matches!(self,
-            Self::Bc1RgbaUnorm | Self::Bc1RgbaUnormSrgb |
-            Self::Bc2RgbaUnorm | Self::Bc2RgbaUnormSrgb |
-            Self::Bc3RgbaUnorm | Self::Bc3RgbaUnormSrgb |
-            Self::Bc4RUnorm | Self::Bc4RSnorm |
-            Self::Bc5RgUnorm | Self::Bc5RgSnorm |
-            Self::Bc6hRgbUfloat | Self::Bc6hRgbSfloat |
-            Self::Bc7RgbaUnorm | Self::Bc7RgbaUnormSrgb
+        matches!(
+            self,
+            Self::Bc1RgbaUnorm
+                | Self::Bc1RgbaUnormSrgb
+                | Self::Bc2RgbaUnorm
+                | Self::Bc2RgbaUnormSrgb
+                | Self::Bc3RgbaUnorm
+                | Self::Bc3RgbaUnormSrgb
+                | Self::Bc4RUnorm
+                | Self::Bc4RSnorm
+                | Self::Bc5RgUnorm
+                | Self::Bc5RgSnorm
+                | Self::Bc6hRgbUfloat
+                | Self::Bc6hRgbSfloat
+                | Self::Bc7RgbaUnorm
+                | Self::Bc7RgbaUnormSrgb
         )
     }
 
     /// Check if format is sRGB.
     pub fn is_srgb(&self) -> bool {
-        matches!(self,
-            Self::Rgba8UnormSrgb | Self::Bgra8UnormSrgb |
-            Self::Bc1RgbaUnormSrgb | Self::Bc2RgbaUnormSrgb |
-            Self::Bc3RgbaUnormSrgb | Self::Bc7RgbaUnormSrgb
+        matches!(
+            self,
+            Self::Rgba8UnormSrgb
+                | Self::Bgra8UnormSrgb
+                | Self::Bc1RgbaUnormSrgb
+                | Self::Bc2RgbaUnormSrgb
+                | Self::Bc3RgbaUnormSrgb
+                | Self::Bc7RgbaUnormSrgb
         )
     }
 }
