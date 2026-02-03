@@ -3,16 +3,16 @@
 //! Optimization passes for the intermediate representation.
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec, vec, collections::BTreeSet, collections::BTreeMap};
+use alloc::{collections::BTreeMap, collections::BTreeSet, string::String, vec, vec::Vec};
 #[cfg(feature = "std")]
-use std::collections::{HashSet, HashMap, BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-use crate::types::IrType;
-use crate::instruction::{Instruction, BinaryOp, UnaryOp, BlockId};
-use crate::value::{ValueId, ConstantValue};
 use crate::block::BasicBlock;
 use crate::function::{Function, FunctionId};
+use crate::instruction::{BinaryOp, BlockId, Instruction, UnaryOp};
 use crate::module::Module;
+use crate::types::IrType;
+use crate::value::{ConstantValue, ValueId};
 
 /// Optimization level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,20 +39,18 @@ impl Default for OptimizationLevel {
 pub trait OptimizationPass {
     /// Pass name
     fn name(&self) -> &'static str;
-    
+
     /// Run the pass on a function
     fn run_on_function(&mut self, func: &mut Function, module: &Module) -> bool;
-    
+
     /// Run the pass on the entire module
     fn run_on_module(&mut self, module: &mut Module) -> bool {
         let mut changed = false;
-        let func_ids: Vec<_> = module.functions.iter()
-            .map(|(id, _)| *id)
-            .collect();
-        
+        let func_ids: Vec<_> = module.functions.iter().map(|(id, _)| *id).collect();
+
         for func_id in func_ids {
             if let Some(func) = module.functions.get_mut(&func_id) {
-                let module_ref = unsafe { 
+                let module_ref = unsafe {
                     // Safety: We're not modifying module while reading from it
                     &*(module as *const Module)
                 };
@@ -189,37 +187,47 @@ impl Optimizer {
             config: config.clone(),
             passes: Vec::new(),
         };
-        
+
         // Add passes based on config
         if config.constant_folding {
             optimizer.passes.push(Box::new(ConstantFoldingPass::new()));
         }
         if config.algebraic_simplification {
-            optimizer.passes.push(Box::new(AlgebraicSimplificationPass::new()));
+            optimizer
+                .passes
+                .push(Box::new(AlgebraicSimplificationPass::new()));
         }
         if config.strength_reduction {
-            optimizer.passes.push(Box::new(StrengthReductionPass::new()));
+            optimizer
+                .passes
+                .push(Box::new(StrengthReductionPass::new()));
         }
         if config.instruction_combining {
-            optimizer.passes.push(Box::new(InstructionCombiningPass::new()));
+            optimizer
+                .passes
+                .push(Box::new(InstructionCombiningPass::new()));
         }
         if config.cse {
-            optimizer.passes.push(Box::new(CommonSubexpressionEliminationPass::new()));
+            optimizer
+                .passes
+                .push(Box::new(CommonSubexpressionEliminationPass::new()));
         }
         if config.dead_code_elimination {
-            optimizer.passes.push(Box::new(DeadCodeEliminationPass::new()));
+            optimizer
+                .passes
+                .push(Box::new(DeadCodeEliminationPass::new()));
         }
-        
+
         optimizer
     }
 
     /// Run all passes
     pub fn optimize(&mut self, module: &mut Module) -> OptimizationStats {
         let mut stats = OptimizationStats::default();
-        
+
         for iteration in 0..self.config.max_iterations {
             let mut changed = false;
-            
+
             for pass in &mut self.passes {
                 let pass_changed = pass.run_on_module(module);
                 if pass_changed {
@@ -227,14 +235,14 @@ impl Optimizer {
                     changed = true;
                 }
             }
-            
+
             stats.iterations = iteration + 1;
-            
+
             if !changed {
                 break;
             }
         }
-        
+
         stats
     }
 
@@ -272,7 +280,7 @@ impl ConstantFoldingPass {
     pub fn new() -> Self {
         Self { folded: 0 }
     }
-    
+
     /// Try to fold a binary operation
     fn fold_binary(
         &self,
@@ -297,7 +305,7 @@ impl ConstantFoldingPass {
             _ => None,
         }
     }
-    
+
     /// Try to fold a unary operation
     fn fold_unary(&self, op: UnaryOp, operand: &ConstantValue) -> Option<ConstantValue> {
         match op {
@@ -309,7 +317,7 @@ impl ConstantFoldingPass {
                 } else {
                     None
                 }
-            }
+            },
             _ => None,
         }
     }
@@ -319,7 +327,7 @@ impl OptimizationPass for ConstantFoldingPass {
     fn name(&self) -> &'static str {
         "constant-folding"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         let mut changed = false;
         // Placeholder: Would need value table to look up constants
@@ -340,12 +348,12 @@ impl DeadCodeEliminationPass {
     pub fn new() -> Self {
         Self { eliminated: 0 }
     }
-    
+
     /// Find all used values
     #[cfg(feature = "std")]
     fn find_used_values(&self, func: &Function) -> HashSet<ValueId> {
         let mut used = HashSet::new();
-        
+
         for (_, block) in func.blocks.iter() {
             for inst in block.instructions() {
                 // Mark operands as used
@@ -354,14 +362,14 @@ impl DeadCodeEliminationPass {
                 }
             }
         }
-        
+
         used
     }
-    
+
     #[cfg(not(feature = "std"))]
     fn find_used_values(&self, func: &Function) -> BTreeSet<ValueId> {
         let mut used = BTreeSet::new();
-        
+
         for (_, block) in func.blocks.iter() {
             for inst in block.instructions() {
                 for operand in inst.operands() {
@@ -369,7 +377,7 @@ impl DeadCodeEliminationPass {
                 }
             }
         }
-        
+
         used
     }
 }
@@ -378,38 +386,38 @@ impl OptimizationPass for DeadCodeEliminationPass {
     fn name(&self) -> &'static str {
         "dead-code-elimination"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         let used = self.find_used_values(func);
         let mut changed = false;
-        
+
         // Remove instructions whose results are not used and have no side effects
         for (_, block) in func.blocks.iter_mut() {
             let original_len = block.instructions().len();
-            
+
             block.retain(|inst| {
                 // Keep instructions with side effects
                 if inst.has_side_effects() {
                     return true;
                 }
-                
+
                 // Keep if result is used
                 if let Some(result) = inst.result() {
                     if used.contains(&result) {
                         return true;
                     }
                 }
-                
+
                 // Otherwise, remove
                 false
             });
-            
+
             if block.instructions().len() != original_len {
                 changed = true;
                 self.eliminated += (original_len - block.instructions().len()) as u32;
             }
         }
-        
+
         changed
     }
 }
@@ -431,10 +439,10 @@ impl OptimizationPass for AlgebraicSimplificationPass {
     fn name(&self) -> &'static str {
         "algebraic-simplification"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         let mut changed = false;
-        
+
         // Simplification patterns:
         // x + 0 -> x
         // x - 0 -> x
@@ -448,7 +456,7 @@ impl OptimizationPass for AlgebraicSimplificationPass {
         // x ^ x -> 0
         // x & x -> x
         // x | x -> x
-        
+
         changed
     }
 }
@@ -470,17 +478,17 @@ impl OptimizationPass for StrengthReductionPass {
     fn name(&self) -> &'static str {
         "strength-reduction"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         let mut changed = false;
-        
+
         // Strength reduction patterns:
         // x * 2 -> x + x or x << 1
         // x * 4 -> x << 2
         // x * 2^n -> x << n
         // x / 2^n -> x >> n (for unsigned)
         // x % 2^n -> x & (2^n - 1) (for unsigned)
-        
+
         changed
     }
 }
@@ -496,16 +504,14 @@ impl CommonSubexpressionEliminationPass {
     pub fn new() -> Self {
         Self
     }
-    
+
     /// Hash an instruction for CSE
     fn instruction_key(&self, inst: &Instruction) -> Option<String> {
         match inst {
-            Instruction::BinaryOp { op, left, right, .. } => {
-                Some(format!("binop:{:?}:{}:{}", op, left, right))
-            }
-            Instruction::UnaryOp { op, operand, .. } => {
-                Some(format!("unop:{:?}:{}", op, operand))
-            }
+            Instruction::BinaryOp {
+                op, left, right, ..
+            } => Some(format!("binop:{:?}:{}:{}", op, left, right)),
+            Instruction::UnaryOp { op, operand, .. } => Some(format!("unop:{:?}:{}", op, operand)),
             _ => None,
         }
     }
@@ -515,7 +521,7 @@ impl OptimizationPass for CommonSubexpressionEliminationPass {
     fn name(&self) -> &'static str {
         "cse"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         let mut changed = false;
         // CSE within basic blocks
@@ -540,16 +546,16 @@ impl OptimizationPass for InstructionCombiningPass {
     fn name(&self) -> &'static str {
         "instruction-combining"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         let mut changed = false;
-        
+
         // Combining patterns:
         // (a + b) + c -> a + (b + c) when b, c are constants
         // (a * c1) * c2 -> a * (c1 * c2)
         // neg(neg(x)) -> x
         // not(not(x)) -> x
-        
+
         changed
     }
 }
@@ -571,7 +577,7 @@ impl OptimizationPass for LoopInvariantCodeMotionPass {
     fn name(&self) -> &'static str {
         "licm"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         // Detect loops and move invariant code out
         false
@@ -591,14 +597,16 @@ impl InliningPass {
     pub fn new(threshold: u32) -> Self {
         Self { threshold }
     }
-    
+
     /// Check if function should be inlined
     fn should_inline(&self, func: &Function) -> bool {
         // Count instructions
-        let inst_count: usize = func.blocks.iter()
+        let inst_count: usize = func
+            .blocks
+            .iter()
             .map(|(_, block)| block.instructions().len())
             .sum();
-        
+
         inst_count as u32 <= self.threshold
     }
 }
@@ -607,7 +615,7 @@ impl OptimizationPass for InliningPass {
     fn name(&self) -> &'static str {
         "inlining"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         false
     }
@@ -630,7 +638,7 @@ impl OptimizationPass for CopyPropagationPass {
     fn name(&self) -> &'static str {
         "copy-propagation"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         // Replace uses of x = y with y
         false
@@ -654,7 +662,7 @@ impl OptimizationPass for SparseConditionalConstantPropagation {
     fn name(&self) -> &'static str {
         "sccp"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         false
     }
@@ -677,7 +685,7 @@ impl OptimizationPass for GlobalValueNumberingPass {
     fn name(&self) -> &'static str {
         "gvn"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         false
     }
@@ -700,7 +708,7 @@ impl OptimizationPass for MemoryToRegisterPass {
     fn name(&self) -> &'static str {
         "mem2reg"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         false
     }
@@ -723,7 +731,7 @@ impl OptimizationPass for ShaderVectorizationPass {
     fn name(&self) -> &'static str {
         "shader-vectorization"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         // Vectorize scalar operations into vector operations
         false
@@ -743,7 +751,7 @@ impl OptimizationPass for TextureOptimizationPass {
     fn name(&self) -> &'static str {
         "texture-optimization"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         // Optimize texture sampling patterns
         false
@@ -763,7 +771,7 @@ impl OptimizationPass for UniformControlFlowPass {
     fn name(&self) -> &'static str {
         "uniform-control-flow"
     }
-    
+
     fn run_on_function(&mut self, func: &mut Function, _module: &Module) -> bool {
         // Optimize for uniform control flow
         false
