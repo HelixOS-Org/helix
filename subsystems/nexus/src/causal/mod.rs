@@ -8,6 +8,9 @@
 //! - **Critical Path Analysis**: Find the critical path in execution
 //! - **Root Cause Detection**: Trace errors back to root cause
 //! - **Visualizable Output**: Generate graphs for debugging
+//! - **Causal Discovery**: Automatic structure learning (PC algorithm)
+//! - **Intervention Analysis**: Do-calculus for causal effects
+//! - **Counterfactuals**: What-if reasoning
 //!
 //! ## Architecture
 //!
@@ -16,6 +19,7 @@
 //! - `edge`: Causal edge definitions
 //! - `graph`: Main causal graph implementation
 //! - `tracker`: Runtime causality tracking
+//! - `discovery`: Causal discovery algorithms (PC, do-calculus, counterfactuals)
 
 #![allow(dead_code)]
 
@@ -26,6 +30,7 @@ pub mod edge;
 pub mod graph;
 pub mod node;
 pub mod tracker;
+pub mod discovery;
 
 // Re-export node types
 // Re-export edge types
@@ -35,6 +40,11 @@ pub use graph::CausalGraph;
 pub use node::{CausalNode, CausalNodeType};
 // Re-export tracker
 pub use tracker::CausalTracker;
+// Re-export discovery
+pub use discovery::{
+    PCAlgorithm, PCResult, Dataset, Observation, IndependenceTester, IndependenceTest,
+    DoCalculus, Intervention, InterventionResult, CounterfactualReasoner, CounterfactualQuery,
+};
 
 // ============================================================================
 // TESTS
