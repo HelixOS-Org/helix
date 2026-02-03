@@ -2,7 +2,7 @@
 //!
 //! This module provides the code understanding subsystem for NEXUS,
 //! including lexical analysis, semantic modeling, invariant mining,
-//! and control/data flow analysis.
+//! control/data flow analysis, and program analysis.
 
 mod ast;
 mod controlflow;
@@ -12,6 +12,7 @@ mod invariant;
 mod lexer;
 mod semantic;
 mod token;
+pub mod analysis;
 
 // Re-export token types
 // Re-export AST types
