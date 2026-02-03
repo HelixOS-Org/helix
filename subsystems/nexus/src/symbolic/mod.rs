@@ -53,20 +53,19 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-// TODO: Ces sous-modules doivent être créés
-// pub mod abduction;
-// pub mod causal;
-// pub mod constraint;
-// pub mod induction;
-// pub mod knowledge_graph;
-// pub mod logic;
-// pub mod neural_symbolic;
-// pub mod ontology;
-// pub mod prolog;
-// pub mod rule_learning;
-// pub mod theorem;
-// pub mod unification;
 use alloc::vec::Vec;
+
+// Year 2 COGNITION sub-modules
+pub mod constraint;
+pub mod knowledge_graph;
+pub mod ontology;
+pub mod theorem;
+
+// Re-exports
+pub use constraint::{CspSolver, DpllSolver, SchedulerCsp, MemoryAllocationCsp};
+pub use knowledge_graph::{KnowledgeGraph, Entity, Relation, Triple, QueryEngine, KernelKnowledgeGraph};
+pub use ontology::{Ontology, OntologyClass, OntologyProperty, Individual, KernelOntology};
+pub use theorem::{TheoremProver, Term, Atom, Clause, ProofTrace, KernelInvariant};
 use core::cmp::Ordering;
 
 use crate::math::F64Ext;
