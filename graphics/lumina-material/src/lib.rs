@@ -41,49 +41,41 @@
 
 extern crate alloc;
 
-pub mod material;
-pub mod pbr;
-pub mod shader_graph;
-pub mod texture;
-pub mod sampler;
-pub mod parameter;
 pub mod instance;
 pub mod layer;
+pub mod material;
+pub mod parameter;
+pub mod pbr;
 pub mod procedural;
+pub mod sampler;
+pub mod shader_graph;
+pub mod texture;
 
 /// Prelude for convenient imports.
 pub mod prelude {
+    pub use crate::instance::{InstanceData, InstanceId, InstancePool, MaterialInstance};
+    pub use crate::layer::{LayerBlend, LayerMask, LayeredMaterial, MaterialLayer};
     pub use crate::material::{
-        Material, MaterialHandle, MaterialDesc, MaterialManager,
-        MaterialFlags, BlendMode, AlphaMode,
-    };
-    pub use crate::pbr::{
-        PbrMaterial, PbrParameters, MetallicRoughness, SpecularGlossiness,
-        ClearCoat, Sheen, Transmission, Volume, Iridescence,
-    };
-    pub use crate::shader_graph::{
-        ShaderGraph, ShaderNode, NodeId, NodeInput, NodeOutput,
-        NodeType, Connection, GraphCompiler, CompiledGraph,
-    };
-    pub use crate::texture::{
-        TextureHandle, TextureDesc, TextureFormat, TextureUsage,
-        TextureManager, TextureView, TextureViewDesc,
-    };
-    pub use crate::sampler::{
-        Sampler, SamplerDesc, FilterMode, AddressMode,
-        SamplerCache, SamplerHandle,
+        AlphaMode, BlendMode, Material, MaterialDesc, MaterialFlags, MaterialHandle,
+        MaterialManager,
     };
     pub use crate::parameter::{
-        Parameter, ParameterType, ParameterValue, ParameterBlock,
-        ParameterBinding,
+        Parameter, ParameterBinding, ParameterBlock, ParameterType, ParameterValue,
     };
-    pub use crate::instance::{
-        MaterialInstance, InstanceId, InstancePool, InstanceData,
+    pub use crate::pbr::{
+        ClearCoat, Iridescence, MetallicRoughness, PbrMaterial, PbrParameters, Sheen,
+        SpecularGlossiness, Transmission, Volume,
     };
-    pub use crate::layer::{
-        MaterialLayer, LayerBlend, LayerMask, LayeredMaterial,
+    pub use crate::procedural::{Gradient, Noise, NoiseType, Pattern, ProceduralTexture};
+    pub use crate::sampler::{
+        AddressMode, FilterMode, Sampler, SamplerCache, SamplerDesc, SamplerHandle,
     };
-    pub use crate::procedural::{
-        NoiseType, Noise, Pattern, Gradient, ProceduralTexture,
+    pub use crate::shader_graph::{
+        CompiledGraph, Connection, GraphCompiler, NodeId, NodeInput, NodeOutput, NodeType,
+        ShaderGraph, ShaderNode,
+    };
+    pub use crate::texture::{
+        TextureDesc, TextureFormat, TextureHandle, TextureManager, TextureUsage, TextureView,
+        TextureViewDesc,
     };
 }
