@@ -9,6 +9,7 @@
 //! - **Capture**: GPU frame capture and debugging
 //! - **Markers**: Debug markers and regions
 //! - **Statistics**: Resource and performance statistics
+//! - **Performance Counters**: Hardware counters and bottleneck detection
 //!
 //! # Architecture
 //!
@@ -23,6 +24,11 @@
 //! │                                                         │
 //! │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
 //! │  │   Markers   │ │ Statistics  │ │   Logger    │       │
+//! │  └─────────────┘ └─────────────┘ └─────────────┘       │
+//! │                                                         │
+//! │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
+//! │  │ Perf Ctrs   │ │ Bottleneck  │ │  Heatmaps   │       │
+//! │  │  (40+ HW)   │ │  Detection  │ │  (Visual)   │       │
 //! │  └─────────────┘ └─────────────┘ └─────────────┘       │
 //! └─────────────────────────────────────────────────────────┘
 //! ```
@@ -40,6 +46,7 @@ extern crate alloc;
 pub mod capture;
 pub mod logger;
 pub mod markers;
+pub mod perf_counters;
 pub mod profiling;
 pub mod statistics;
 pub mod validation;
@@ -54,6 +61,10 @@ pub use capture::{
 pub use logger::{DebugLogger, LogBuffer, LogEntry, LogFilter, LogLevel};
 pub use markers::{
     DebugColor, DebugMarker, DebugRegion, MarkerManager, MarkerStack, ObjectLabel, ObjectLabelType,
+};
+pub use perf_counters::{
+    BottleneckAnalysis, BottleneckDetector, BottleneckType, CounterCategory, CounterSet,
+    CounterType, CounterValue, Heatmap, HeatmapType, PerfCounterFeatures, PerfCounterManager,
 };
 pub use profiling::{
     GpuProfiler, GpuTimer, GpuTimestamp, PipelineStatistics, ProfileScope, ProfilerStatistics,
