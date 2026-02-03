@@ -2,7 +2,8 @@
 //!
 //! This module provides sampler creation and caching.
 
-use alloc::{vec::Vec, collections::BTreeMap};
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 
 // ============================================================================
@@ -470,11 +471,14 @@ impl SamplerCache {
     /// Create common samplers.
     fn create_common_samplers(&mut self) {
         self.common.point_repeat = self.get_or_create(SamplerDesc::point());
-        self.common.point_clamp = self.get_or_create(SamplerDesc::point().address_mode(AddressMode::ClampToEdge));
+        self.common.point_clamp =
+            self.get_or_create(SamplerDesc::point().address_mode(AddressMode::ClampToEdge));
         self.common.linear_repeat = self.get_or_create(SamplerDesc::bilinear());
-        self.common.linear_clamp = self.get_or_create(SamplerDesc::bilinear().address_mode(AddressMode::ClampToEdge));
+        self.common.linear_clamp =
+            self.get_or_create(SamplerDesc::bilinear().address_mode(AddressMode::ClampToEdge));
         self.common.trilinear_repeat = self.get_or_create(SamplerDesc::trilinear());
-        self.common.trilinear_clamp = self.get_or_create(SamplerDesc::trilinear().address_mode(AddressMode::ClampToEdge));
+        self.common.trilinear_clamp =
+            self.get_or_create(SamplerDesc::trilinear().address_mode(AddressMode::ClampToEdge));
         self.common.aniso4x = self.get_or_create(SamplerDesc::anisotropic(4));
         self.common.aniso8x = self.get_or_create(SamplerDesc::anisotropic(8));
         self.common.aniso16x = self.get_or_create(SamplerDesc::anisotropic(16));
@@ -591,7 +595,11 @@ impl StaticSampler {
             Self::new(2, 0, SamplerDesc::trilinear()),
             Self::new(3, 0, SamplerDesc::anisotropic(8)),
             Self::new(4, 0, SamplerDesc::shadow()),
-            Self::new(5, 0, SamplerDesc::trilinear().address_mode(AddressMode::ClampToEdge)),
+            Self::new(
+                5,
+                0,
+                SamplerDesc::trilinear().address_mode(AddressMode::ClampToEdge),
+            ),
         ]
     }
 }
