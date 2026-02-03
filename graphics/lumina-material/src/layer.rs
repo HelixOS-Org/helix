@@ -3,7 +3,9 @@
 //! This module provides multi-layer material composition for complex surface
 //! appearances like weathered metal, car paint, or organic materials.
 
-use alloc::{string::String, vec::Vec, boxed::Box};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // Layer Types
@@ -307,15 +309,15 @@ impl LayeredMaterial {
     /// Calculate blended properties at a point.
     pub fn blend_at(&self, masks: &[f32]) -> LayerProperties {
         let mut result = self.base.properties.clone();
-        
+
         for (i, layer) in self.layers.iter().enumerate() {
             if !layer.enabled {
                 continue;
             }
-            
+
             let mask = masks.get(i).copied().unwrap_or(1.0);
             let weight = layer.weight * mask;
-            
+
             if weight <= 0.0 {
                 continue;
             }
@@ -344,7 +346,7 @@ impl LayeredMaterial {
                 } else {
                     Self::lerp(a, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), weight)
                 }
-            }
+            },
             LayerBlend::HeightBlend => Self::lerp(a, b, weight),
         };
 
@@ -486,7 +488,11 @@ impl GpuLayerData {
             texture_indices: [
                 layer.properties.textures.albedo.unwrap_or(u32::MAX),
                 layer.properties.textures.normal.unwrap_or(u32::MAX),
-                layer.properties.textures.metallic_roughness.unwrap_or(u32::MAX),
+                layer
+                    .properties
+                    .textures
+                    .metallic_roughness
+                    .unwrap_or(u32::MAX),
                 layer.properties.textures.height.unwrap_or(u32::MAX),
             ],
             blend_info: [
