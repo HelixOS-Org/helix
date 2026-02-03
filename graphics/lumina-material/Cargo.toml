@@ -1,0 +1,31 @@
+[package]
+name = "lumina-material"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix Team"]
+description = "Revolutionary PBR material system with shader graphs"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["graphics", "rendering", "pbr", "materials", "shader-graph"]
+categories = ["graphics", "rendering", "game-development"]
+
+[features]
+default = ["std"]
+std = []
+shader-graph = []
+hot-reload = []
+texture-streaming = []
+material-instancing = []
+layered-materials = []
+
+[dependencies]
+lumina-core = { path = "../lumina-core" }
+lumina-math = { path = "../lumina-math" }
+lumina-pipeline = { path = "../lumina-pipeline" }
+bitflags = "2.4"
+
+[dev-dependencies]
+
+[lib]
+name = "lumina_material"
+path = "src/lib.rs"
