@@ -3,7 +3,8 @@
 //! This module provides physically-based rendering materials with support
 //! for metallic-roughness and specular-glossiness workflows.
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // PBR Parameters
@@ -487,7 +488,12 @@ impl Iridescence {
     /// Convert to GPU data.
     pub fn to_gpu_data(&self) -> IridescenceGpuData {
         IridescenceGpuData {
-            params: [self.factor, self.ior, self.thickness_min, self.thickness_max],
+            params: [
+                self.factor,
+                self.ior,
+                self.thickness_min,
+                self.thickness_max,
+            ],
         }
     }
 }
@@ -819,11 +825,31 @@ impl PbrMaterial {
     pub fn to_gpu_material(&self) -> PbrGpuMaterial {
         PbrGpuMaterial {
             base: self.params.to_gpu_data(),
-            clear_coat: self.clear_coat.as_ref().map(|c| c.to_gpu_data()).unwrap_or_default(),
-            sheen: self.sheen.as_ref().map(|s| s.to_gpu_data()).unwrap_or_default(),
-            subsurface: self.subsurface.as_ref().map(|s| s.to_gpu_data()).unwrap_or_default(),
-            volume: self.volume.as_ref().map(|v| v.to_gpu_data()).unwrap_or_default(),
-            iridescence: self.iridescence.as_ref().map(|i| i.to_gpu_data()).unwrap_or_default(),
+            clear_coat: self
+                .clear_coat
+                .as_ref()
+                .map(|c| c.to_gpu_data())
+                .unwrap_or_default(),
+            sheen: self
+                .sheen
+                .as_ref()
+                .map(|s| s.to_gpu_data())
+                .unwrap_or_default(),
+            subsurface: self
+                .subsurface
+                .as_ref()
+                .map(|s| s.to_gpu_data())
+                .unwrap_or_default(),
+            volume: self
+                .volume
+                .as_ref()
+                .map(|v| v.to_gpu_data())
+                .unwrap_or_default(),
+            iridescence: self
+                .iridescence
+                .as_ref()
+                .map(|i| i.to_gpu_data())
+                .unwrap_or_default(),
             transmission: self.transmission.as_ref().map(|t| t.factor).unwrap_or(0.0),
             feature_flags: self.feature_flags(),
             _padding: [0.0; 2],
