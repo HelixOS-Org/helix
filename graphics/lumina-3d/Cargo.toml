@@ -1,0 +1,37 @@
+[package]
+name = "lumina-3d"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "LUMINA 3D Rendering - PBR, GI, shadows, post-processing"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+documentation = "https://docs.helix-os.dev/lumina-3d"
+keywords = ["graphics", "3d", "pbr", "rendering", "gpu"]
+categories = ["graphics", "rendering", "no-std"]
+
+[features]
+default = ["pbr", "shadows", "post-fx"]
+std = []
+alloc = []
+
+# Rendering features
+pbr = []        # Physical-based rendering
+shadows = []    # Shadow mapping
+gi = []         # Global illumination
+post-fx = []    # Post-processing effects
+atmosphere = [] # Atmospheric scattering
+volumetric = [] # Volumetric effects
+raytracing = [] # Ray tracing support
+
+# Quality presets
+quality-low = []
+quality-medium = []
+quality-high = []
+quality-ultra = []
+
+[dependencies]
+lumina-core = { path = "../lumina-core", default-features = false }
+lumina-backend = { path = "../lumina-backend", default-features = false }
+
+[dev-dependencies]
