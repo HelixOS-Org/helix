@@ -17,8 +17,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -259,8 +258,8 @@ impl FluentTimeline {
                 (Some(s), false) => {
                     intervals.push((s, t - 1));
                     start = None;
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -500,7 +499,12 @@ impl EventCalculus {
     }
 
     /// Execute an event (action occurrence)
-    pub fn happens(&mut self, action_id: ActionId, time: Time, args: Vec<FluentValue>) -> Option<EventId> {
+    pub fn happens(
+        &mut self,
+        action_id: ActionId,
+        time: Time,
+        args: Vec<FluentValue>,
+    ) -> Option<EventId> {
         if !self.can_happen(action_id, time) {
             return None;
         }
@@ -582,12 +586,8 @@ impl EventCalculus {
                 let current = timeline.value_at(time);
                 let matches = *current == pre.required_value;
 
-                if pre.negated {
-                    !matches
-                } else {
-                    matches
-                }
-            }
+                if pre.negated { !matches } else { matches }
+            },
         }
     }
 
@@ -744,40 +744,81 @@ impl KernelEventCalculus {
         let mut ec = EventCalculus::new();
 
         // Define kernel fluents
-        let fluent_process_running = ec.define_fluent(String::from("process_running"), FluentType::Boolean);
-        let fluent_memory_allocated = ec.define_fluent(String::from("memory_allocated"), FluentType::Boolean);
-        let fluent_resource_locked = ec.define_fluent(String::from("resource_locked"), FluentType::Boolean);
-        let fluent_device_ready = ec.define_fluent(String::from("device_ready"), FluentType::Boolean);
-        let fluent_interrupt_pending = ec.define_fluent(String::from("interrupt_pending"), FluentType::Boolean);
+        let fluent_process_running =
+            ec.define_fluent(String::from("process_running"), FluentType::Boolean);
+        let fluent_memory_allocated =
+            ec.define_fluent(String::from("memory_allocated"), FluentType::Boolean);
+        let fluent_resource_locked =
+            ec.define_fluent(String::from("resource_locked"), FluentType::Boolean);
+        let fluent_device_ready =
+            ec.define_fluent(String::from("device_ready"), FluentType::Boolean);
+        let fluent_interrupt_pending =
+            ec.define_fluent(String::from("interrupt_pending"), FluentType::Boolean);
 
         // Define kernel actions
         let action_start_process = ec.define_action(String::from("start_process"));
-        ec.add_initiates(action_start_process, fluent_process_running, FluentValue::Bool(true));
+        ec.add_initiates(
+            action_start_process,
+            fluent_process_running,
+            FluentValue::Bool(true),
+        );
 
         let action_stop_process = ec.define_action(String::from("stop_process"));
-        ec.add_precondition(action_stop_process, fluent_process_running, FluentValue::Bool(true), false);
+        ec.add_precondition(
+            action_stop_process,
+            fluent_process_running,
+            FluentValue::Bool(true),
+            false,
+        );
         ec.add_terminates(action_stop_process, fluent_process_running);
 
         let action_allocate_memory = ec.define_action(String::from("allocate_memory"));
-        ec.add_initiates(action_allocate_memory, fluent_memory_allocated, FluentValue::Bool(true));
+        ec.add_initiates(
+            action_allocate_memory,
+            fluent_memory_allocated,
+            FluentValue::Bool(true),
+        );
 
         let action_free_memory = ec.define_action(String::from("free_memory"));
-        ec.add_precondition(action_free_memory, fluent_memory_allocated, FluentValue::Bool(true), false);
+        ec.add_precondition(
+            action_free_memory,
+            fluent_memory_allocated,
+            FluentValue::Bool(true),
+            false,
+        );
         ec.add_terminates(action_free_memory, fluent_memory_allocated);
 
         let action_acquire_lock = ec.define_action(String::from("acquire_lock"));
-        ec.add_precondition(action_acquire_lock, fluent_resource_locked, FluentValue::Bool(true), true); // Not already locked
-        ec.add_initiates(action_acquire_lock, fluent_resource_locked, FluentValue::Bool(true));
+        ec.add_precondition(
+            action_acquire_lock,
+            fluent_resource_locked,
+            FluentValue::Bool(true),
+            true,
+        ); // Not already locked
+        ec.add_initiates(
+            action_acquire_lock,
+            fluent_resource_locked,
+            FluentValue::Bool(true),
+        );
 
         let action_release_lock = ec.define_action(String::from("release_lock"));
-        ec.add_precondition(action_release_lock, fluent_resource_locked, FluentValue::Bool(true), false);
+        ec.add_precondition(
+            action_release_lock,
+            fluent_resource_locked,
+            FluentValue::Bool(true),
+            false,
+        );
         ec.add_terminates(action_release_lock, fluent_resource_locked);
 
         let action_enable_interrupt = ec.define_action(String::from("enable_interrupt"));
         ec.add_terminates(action_enable_interrupt, fluent_interrupt_pending);
 
         let action_disable_interrupt = ec.define_action(String::from("disable_interrupt"));
-        ec.add_initiates(action_disable_interrupt, fluent_interrupt_pending, FluentValue::Bool(true));
+        ec.add_initiates(
+            action_disable_interrupt,
+            fluent_interrupt_pending,
+            FluentValue::Bool(true),
+        );
 
         Self {
             ec,
