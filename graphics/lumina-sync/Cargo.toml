@@ -1,0 +1,24 @@
+[package]
+name = "lumina-sync"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Contributors"]
+description = "LUMINA GPU synchronization primitives"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["graphics", "gpu", "synchronization", "fence", "semaphore"]
+categories = ["graphics", "no-std", "game-development"]
+
+[features]
+default = ["std"]
+std = []
+validation = []
+profiling = []
+timeline-semaphores = []
+external-sync = []
+
+[dependencies]
+lumina-core = { path = "../lumina-core" }
+bitflags = "2.4"
+
+[dev-dependencies]
