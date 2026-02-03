@@ -3,8 +3,11 @@
 //! Level-of-detail management for traditional and virtual geometry,
 //! including screen-space error calculation, LOD selection, and blending.
 
-use alloc::{string::String, vec::Vec, collections::BTreeMap};
-use crate::mesh::{MeshHandle, AABB, BoundingSphere};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
+
+use crate::mesh::{BoundingSphere, MeshHandle, AABB};
 
 // ============================================================================
 // Screen-Space Error
@@ -168,7 +171,8 @@ impl LodChain {
     pub fn add_level(&mut self, level: LodLevel) {
         self.levels.push(level);
         // Keep sorted by min_error (ascending = higher detail first)
-        self.levels.sort_by(|a, b| a.min_error.partial_cmp(&b.min_error).unwrap());
+        self.levels
+            .sort_by(|a, b| a.min_error.partial_cmp(&b.min_error).unwrap());
     }
 
     /// Set bounds.
@@ -229,7 +233,9 @@ impl LodChain {
         let new_lod = match self.mode {
             LodSelectionMode::ScreenSpaceError => self.select_by_error(error.screen_error),
             LodSelectionMode::Distance => self.select_by_distance(error.distance),
-            LodSelectionMode::ProjectedArea => self.select_by_area(error.distance, fov_y, screen_height),
+            LodSelectionMode::ProjectedArea => {
+                self.select_by_area(error.distance, fov_y, screen_height)
+            },
             LodSelectionMode::Manual => self.current_lod,
         };
 
@@ -250,8 +256,9 @@ impl LodChain {
                 level.min_error
             };
 
-            if (error.screen_error / boundary_error) > threshold 
-               || (error.screen_error / boundary_error) < (1.0 / threshold) {
+            if (error.screen_error / boundary_error) > threshold
+                || (error.screen_error / boundary_error) < (1.0 / threshold)
+            {
                 new_lod
             } else {
                 self.current_lod
@@ -274,7 +281,9 @@ impl LodChain {
 
         LodSelection {
             primary_lod: final_lod,
-            secondary_lod: if self.blend_factor > 0.0 && (final_lod as usize) + 1 < self.levels.len() {
+            secondary_lod: if self.blend_factor > 0.0
+                && (final_lod as usize) + 1 < self.levels.len()
+            {
                 Some(final_lod + 1)
             } else {
                 None
@@ -310,7 +319,7 @@ impl LodChain {
     fn select_by_area(&self, distance: f32, fov_y: f32, screen_height: f32) -> u32 {
         let cot_half_fov = 1.0 / (fov_y * 0.5).tan();
         let projected_size = self.bounds.radius * cot_half_fov / distance * screen_height;
-        
+
         // Use projected size as inverse of error
         let effective_error = screen_height / projected_size.max(1.0);
         self.select_by_error(effective_error)
@@ -443,8 +452,11 @@ impl LodMesh {
         fov_y: f32,
         screen_height: f32,
     ) -> (MeshHandle, LodSelection) {
-        let selection = self.chain.update(object_pos, camera_pos, fov_y, screen_height);
-        let mesh = self.chain
+        let selection = self
+            .chain
+            .update(object_pos, camera_pos, fov_y, screen_height);
+        let mesh = self
+            .chain
             .get_level(selection.primary_lod as usize)
             .map(|l| l.mesh)
             .unwrap_or(MeshHandle::INVALID);
@@ -725,11 +737,19 @@ impl LodGenerator {
 
         for i in 0..self.max_levels {
             let min_error = error;
-            error = if i == 0 { 1.0 } else { error * self.error_multiplier };
+            error = if i == 0 {
+                1.0
+            } else {
+                error * self.error_multiplier
+            };
             let max_error = error;
 
             let min_distance = distance;
-            distance = if i == 0 { 10.0 } else { distance * self.distance_multiplier };
+            distance = if i == 0 {
+                10.0
+            } else {
+                distance * self.distance_multiplier
+            };
 
             params.push((triangles, min_error, max_error, min_distance));
 
