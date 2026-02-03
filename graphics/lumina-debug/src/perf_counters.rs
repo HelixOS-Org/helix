@@ -40,7 +40,8 @@
 //! └─────────────────────────────────────────────────────────────────────┘
 //! ```
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================
@@ -432,15 +433,27 @@ impl BottleneckType {
     pub fn description(&self) -> &'static str {
         match self {
             BottleneckType::None => "No significant bottleneck detected",
-            BottleneckType::AluBound => "GPU is ALU/compute bound - consider optimizing shader arithmetic",
+            BottleneckType::AluBound => {
+                "GPU is ALU/compute bound - consider optimizing shader arithmetic"
+            },
             BottleneckType::MemoryBound => "GPU is memory bandwidth bound - reduce memory traffic",
-            BottleneckType::LatencyBound => "GPU is memory latency bound - improve cache utilization",
-            BottleneckType::TextureBound => "GPU is texture sampling bound - reduce texture samples",
-            BottleneckType::RasterizerBound => "GPU is rasterizer bound - reduce geometry complexity",
-            BottleneckType::VertexBound => "GPU is vertex processing bound - optimize vertex shaders",
+            BottleneckType::LatencyBound => {
+                "GPU is memory latency bound - improve cache utilization"
+            },
+            BottleneckType::TextureBound => {
+                "GPU is texture sampling bound - reduce texture samples"
+            },
+            BottleneckType::RasterizerBound => {
+                "GPU is rasterizer bound - reduce geometry complexity"
+            },
+            BottleneckType::VertexBound => {
+                "GPU is vertex processing bound - optimize vertex shaders"
+            },
             BottleneckType::FragmentBound => "GPU is fragment processing bound - reduce overdraw",
             BottleneckType::GeometryBound => "GPU is geometry bound - consider mesh shaders",
-            BottleneckType::TessellationBound => "GPU is tessellation bound - reduce tessellation factors",
+            BottleneckType::TessellationBound => {
+                "GPU is tessellation bound - reduce tessellation factors"
+            },
             BottleneckType::RopBound => "GPU is ROP/blend bound - reduce alpha blending",
             BottleneckType::CpuBound => "CPU is the bottleneck - reduce draw calls",
             BottleneckType::DriverOverhead => "Driver overhead is high - batch operations",
@@ -629,7 +642,10 @@ impl BottleneckDetector {
         metrics
     }
 
-    fn detect_bottleneck(&self, metrics: &BottleneckMetrics) -> (BottleneckType, Option<BottleneckType>) {
+    fn detect_bottleneck(
+        &self,
+        metrics: &BottleneckMetrics,
+    ) -> (BottleneckType, Option<BottleneckType>) {
         let mut bottlenecks: Vec<(BottleneckType, f32)> = Vec::new();
 
         // Check memory bound
@@ -646,7 +662,10 @@ impl BottleneckDetector {
 
         // Check texture bound
         if metrics.texture_hit_rate < self.thresholds.low_cache_hit {
-            bottlenecks.push((BottleneckType::TextureBound, 100.0 - metrics.texture_hit_rate));
+            bottlenecks.push((
+                BottleneckType::TextureBound,
+                100.0 - metrics.texture_hit_rate,
+            ));
         }
 
         // Check occupancy
@@ -657,7 +676,10 @@ impl BottleneckDetector {
         // Sort by severity
         bottlenecks.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
-        let primary = bottlenecks.get(0).map(|(t, _)| *t).unwrap_or(BottleneckType::None);
+        let primary = bottlenecks
+            .get(0)
+            .map(|(t, _)| *t)
+            .unwrap_or(BottleneckType::None);
         let secondary = bottlenecks.get(1).map(|(t, _)| *t);
 
         (primary, secondary)
@@ -666,55 +688,53 @@ impl BottleneckDetector {
     fn calculate_confidence(&self, metrics: &BottleneckMetrics, bottleneck: BottleneckType) -> f32 {
         match bottleneck {
             BottleneckType::None => 1.0,
-            BottleneckType::MemoryBound => {
-                (100.0 - metrics.l2_hit_rate) / 100.0
-            }
-            BottleneckType::LatencyBound => {
-                metrics.stall_percentage / 100.0
-            }
-            BottleneckType::TextureBound => {
-                (100.0 - metrics.texture_hit_rate) / 100.0
-            }
-            BottleneckType::AluBound => {
-                (100.0 - metrics.achieved_occupancy) / 100.0
-            }
+            BottleneckType::MemoryBound => (100.0 - metrics.l2_hit_rate) / 100.0,
+            BottleneckType::LatencyBound => metrics.stall_percentage / 100.0,
+            BottleneckType::TextureBound => (100.0 - metrics.texture_hit_rate) / 100.0,
+            BottleneckType::AluBound => (100.0 - metrics.achieved_occupancy) / 100.0,
             _ => 0.5,
         }
     }
 
-    fn generate_recommendations(&self, bottleneck: BottleneckType, metrics: &BottleneckMetrics) -> Vec<String> {
+    fn generate_recommendations(
+        &self,
+        bottleneck: BottleneckType,
+        metrics: &BottleneckMetrics,
+    ) -> Vec<String> {
         let mut recs = Vec::new();
 
         match bottleneck {
             BottleneckType::MemoryBound => {
                 recs.push(String::from("Consider using texture compression"));
                 recs.push(String::from("Reduce buffer sizes where possible"));
-                recs.push(String::from("Use structured buffers for better cache locality"));
+                recs.push(String::from(
+                    "Use structured buffers for better cache locality",
+                ));
                 if metrics.l1_hit_rate < 50.0 {
                     recs.push(String::from("Optimize memory access patterns"));
                 }
-            }
+            },
             BottleneckType::LatencyBound => {
                 recs.push(String::from("Increase occupancy to hide latency"));
                 recs.push(String::from("Use async compute to overlap work"));
                 recs.push(String::from("Prefetch data where possible"));
-            }
+            },
             BottleneckType::TextureBound => {
                 recs.push(String::from("Use mipmaps appropriately"));
                 recs.push(String::from("Consider texture atlases"));
                 recs.push(String::from("Reduce anisotropic filtering level"));
-            }
+            },
             BottleneckType::AluBound => {
                 recs.push(String::from("Simplify shader math"));
                 recs.push(String::from("Use lower precision where acceptable"));
                 recs.push(String::from("Consider compute pre-pass"));
-            }
+            },
             BottleneckType::FragmentBound => {
                 recs.push(String::from("Reduce overdraw with depth prepass"));
                 recs.push(String::from("Use Variable Rate Shading"));
                 recs.push(String::from("Optimize fragment shader"));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         recs
@@ -827,7 +847,8 @@ impl Heatmap {
     pub fn set(&mut self, x: u32, y: u32, value: f32) {
         if x < self.width && y < self.height {
             let idx = (y * self.width + x) as usize;
-            self.cells[idx].value = (self.cells[idx].value * self.cells[idx].samples as f32 + value)
+            self.cells[idx].value = (self.cells[idx].value * self.cells[idx].samples as f32
+                + value)
                 / (self.cells[idx].samples + 1) as f32;
             self.cells[idx].samples += 1;
 
@@ -998,7 +1019,8 @@ impl PerfCounterManager {
 
     /// Create heatmap.
     pub fn create_heatmap(&mut self, heatmap_type: HeatmapType, width: u32, height: u32) -> usize {
-        self.heatmaps.push(Heatmap::new(heatmap_type, width, height));
+        self.heatmaps
+            .push(Heatmap::new(heatmap_type, width, height));
         self.heatmaps.len() - 1
     }
 
