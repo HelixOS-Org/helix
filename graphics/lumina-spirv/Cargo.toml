@@ -1,0 +1,24 @@
+[package]
+name = "lumina-spirv"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix Team"]
+description = "SPIR-V code generation and manipulation for Lumina GPU framework"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["graphics", "gpu", "spirv", "shader", "vulkan"]
+categories = ["graphics", "rendering"]
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+lumina-core = { path = "../lumina-core", default-features = false }
+lumina-ir = { path = "../lumina-ir", default-features = false }
+
+[dev-dependencies]
+
+[lib]
+name = "lumina_spirv"
+path = "src/lib.rs"
