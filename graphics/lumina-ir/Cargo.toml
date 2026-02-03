@@ -1,0 +1,21 @@
+[package]
+name = "lumina-ir"
+version = "0.1.0"
+edition = "2021"
+authors = ["Helix OS Team"]
+description = "Lumina Intermediate Representation for shader compilation"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["graphics", "shader", "ir", "compiler"]
+categories = ["graphics", "rendering"]
+
+[dependencies]
+lumina-core = { path = "../lumina-core" }
+lumina-math = { path = "../lumina-math" }
+
+[features]
+default = ["std"]
+std = []
+no_std = []
+
+[dev-dependencies]
