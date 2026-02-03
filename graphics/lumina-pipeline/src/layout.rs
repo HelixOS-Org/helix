@@ -6,7 +6,10 @@
 //! - Descriptor set binding frequencies
 //! - Root signature management
 
-use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use core::hash::{Hash, Hasher};
 
 use crate::descriptor::DescriptorSetLayout;
@@ -107,7 +110,10 @@ impl PushConstantRange {
 
     /// Merge with another range.
     pub fn merge(&self, other: &Self) -> Option<Self> {
-        if !self.overlaps(other) && self.end_offset() != other.offset && other.end_offset() != self.offset {
+        if !self.overlaps(other)
+            && self.end_offset() != other.offset
+            && other.end_offset() != self.offset
+        {
             return None;
         }
         let stages = self.stages.or(other.stages);
@@ -253,7 +259,8 @@ impl PipelineLayoutBuilder {
         let idx = index as usize;
         while self.set_layouts.len() <= idx {
             // Add empty layouts
-            self.set_layouts.push(Arc::new(DescriptorSetLayout::new(Vec::new())));
+            self.set_layouts
+                .push(Arc::new(DescriptorSetLayout::new(Vec::new())));
         }
         self.set_layouts[idx] = layout;
         self
@@ -267,12 +274,18 @@ impl PipelineLayoutBuilder {
 
     /// Add push constants for vertex stage.
     pub fn vertex_push_constant<T>(self) -> Self {
-        self.push_constant(PushConstantRange::vertex(0, core::mem::size_of::<T>() as u32))
+        self.push_constant(PushConstantRange::vertex(
+            0,
+            core::mem::size_of::<T>() as u32,
+        ))
     }
 
     /// Add push constants for all graphics stages.
     pub fn graphics_push_constant<T>(self) -> Self {
-        self.push_constant(PushConstantRange::all_graphics(0, core::mem::size_of::<T>() as u32))
+        self.push_constant(PushConstantRange::all_graphics(
+            0,
+            core::mem::size_of::<T>() as u32,
+        ))
     }
 
     /// Set debug name.
@@ -283,8 +296,7 @@ impl PipelineLayoutBuilder {
 
     /// Build the pipeline layout.
     pub fn build(self) -> PipelineLayout {
-        PipelineLayout::new(self.set_layouts, self.push_constant_ranges)
-            .with_name(&self.name)
+        PipelineLayout::new(self.set_layouts, self.push_constant_ranges).with_name(&self.name)
     }
 }
 
@@ -389,7 +401,10 @@ impl StandardLayouts {
     }
 
     /// Create a compute layout.
-    pub fn compute(set_layout: Arc<DescriptorSetLayout>, push_constant_size: u32) -> PipelineLayout {
+    pub fn compute(
+        set_layout: Arc<DescriptorSetLayout>,
+        push_constant_size: u32,
+    ) -> PipelineLayout {
         let ranges = if push_constant_size > 0 {
             alloc::vec![PushConstantRange::compute(0, push_constant_size)]
         } else {
@@ -742,7 +757,7 @@ impl RootSignature {
         // This is a simplified conversion
         let set_layouts = Vec::new();
         let push_constant_ranges = Vec::new();
-        
+
         PipelineLayout::new(set_layouts, push_constant_ranges)
     }
 }
