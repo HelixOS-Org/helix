@@ -143,63 +143,63 @@ impl DebugObjectInfo {
 #[repr(u32)]
 pub enum DebugObjectType {
     /// Unknown object
-    Unknown = 0,
+    Unknown             = 0,
     /// Instance object
-    Instance = 1,
+    Instance            = 1,
     /// Physical device
-    PhysicalDevice = 2,
+    PhysicalDevice      = 2,
     /// Logical device
-    Device = 3,
+    Device              = 3,
     /// Queue
-    Queue = 4,
+    Queue               = 4,
     /// Semaphore
-    Semaphore = 5,
+    Semaphore           = 5,
     /// Command buffer
-    CommandBuffer = 6,
+    CommandBuffer       = 6,
     /// Fence
-    Fence = 7,
+    Fence               = 7,
     /// Device memory
-    DeviceMemory = 8,
+    DeviceMemory        = 8,
     /// Buffer
-    Buffer = 9,
+    Buffer              = 9,
     /// Image/Texture
-    Texture = 10,
+    Texture             = 10,
     /// Event
-    Event = 11,
+    Event               = 11,
     /// Query pool
-    QueryPool = 12,
+    QueryPool           = 12,
     /// Buffer view
-    BufferView = 13,
+    BufferView          = 13,
     /// Image view
-    TextureView = 14,
+    TextureView         = 14,
     /// Shader module
-    Shader = 15,
+    Shader              = 15,
     /// Pipeline cache
-    PipelineCache = 16,
+    PipelineCache       = 16,
     /// Pipeline layout
-    PipelineLayout = 17,
+    PipelineLayout      = 17,
     /// Render pass
-    RenderPass = 18,
+    RenderPass          = 18,
     /// Graphics pipeline
-    GraphicsPipeline = 19,
+    GraphicsPipeline    = 19,
     /// Compute pipeline
-    ComputePipeline = 20,
+    ComputePipeline     = 20,
     /// Descriptor set layout
     DescriptorSetLayout = 21,
     /// Sampler
-    Sampler = 22,
+    Sampler             = 22,
     /// Descriptor pool
-    DescriptorPool = 23,
+    DescriptorPool      = 23,
     /// Descriptor set
-    DescriptorSet = 24,
+    DescriptorSet       = 24,
     /// Framebuffer
-    Framebuffer = 25,
+    Framebuffer         = 25,
     /// Command pool
-    CommandPool = 26,
+    CommandPool         = 26,
     /// Surface
-    Surface = 27,
+    Surface             = 27,
     /// Swapchain
-    Swapchain = 28,
+    Swapchain           = 28,
     /// Acceleration structure
     AccelerationStructure = 29,
 }
@@ -211,11 +211,11 @@ pub enum DebugSeverity {
     /// Verbose debug info
     Verbose = 0,
     /// Informational message
-    Info = 1,
+    Info    = 1,
     /// Warning message
     Warning = 2,
     /// Error message
-    Error = 3,
+    Error   = 3,
 }
 
 /// Debug message type flags
@@ -234,9 +234,8 @@ impl DebugMessageType {
     pub const DEVICE_ADDRESS: Self = Self(1 << 3);
 
     /// All message types
-    pub const ALL: Self = Self(
-        Self::GENERAL.0 | Self::VALIDATION.0 | Self::PERFORMANCE.0 | Self::DEVICE_ADDRESS.0,
-    );
+    pub const ALL: Self =
+        Self(Self::GENERAL.0 | Self::VALIDATION.0 | Self::PERFORMANCE.0 | Self::DEVICE_ADDRESS.0);
 }
 
 impl core::ops::BitOr for DebugMessageType {
@@ -326,8 +325,7 @@ impl DebugSeverityFilter {
     pub const ERROR: Self = Self(1 << 3);
 
     /// All severities
-    pub const ALL: Self =
-        Self(Self::VERBOSE.0 | Self::INFO.0 | Self::WARNING.0 | Self::ERROR.0);
+    pub const ALL: Self = Self(Self::VERBOSE.0 | Self::INFO.0 | Self::WARNING.0 | Self::ERROR.0);
 
     /// Warnings and errors
     pub const WARNING_AND_ERROR: Self = Self(Self::WARNING.0 | Self::ERROR.0);
@@ -574,9 +572,8 @@ impl DebugReportFlags {
     pub const DEBUG: Self = Self(1 << 4);
 
     /// All flags
-    pub const ALL: Self = Self(
-        Self::INFO.0 | Self::WARNING.0 | Self::PERFORMANCE.0 | Self::ERROR.0 | Self::DEBUG.0,
-    );
+    pub const ALL: Self =
+        Self(Self::INFO.0 | Self::WARNING.0 | Self::PERFORMANCE.0 | Self::ERROR.0 | Self::DEBUG.0);
 }
 
 impl core::ops::BitOr for DebugReportFlags {
