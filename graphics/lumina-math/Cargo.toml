@@ -1,0 +1,17 @@
+[package]
+name = "lumina-math"
+version.workspace = true
+edition = "2021"
+license.workspace = true
+description = "Graphics mathematics for Helix OS - vectors, matrices, quaternions"
+keywords = ["math", "graphics", "linear-algebra", "helix"]
+categories = ["mathematics", "graphics"]
+
+[features]
+default = []
+std = []
+simd = []
+
+[dependencies]
+
+[dev-dependencies]
