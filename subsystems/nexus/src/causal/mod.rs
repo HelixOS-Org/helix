@@ -26,25 +26,25 @@
 extern crate alloc;
 
 // Submodules
+pub mod discovery;
 pub mod edge;
 pub mod graph;
 pub mod node;
 pub mod tracker;
-pub mod discovery;
 
 // Re-export node types
 // Re-export edge types
+// Re-export discovery
+pub use discovery::{
+    CounterfactualQuery, CounterfactualReasoner, Dataset, DoCalculus, IndependenceTest,
+    IndependenceTester, Intervention, InterventionResult, Observation, PCAlgorithm, PCResult,
+};
 pub use edge::{CausalEdge, CausalEdgeType};
 // Re-export graph
 pub use graph::CausalGraph;
 pub use node::{CausalNode, CausalNodeType};
 // Re-export tracker
 pub use tracker::CausalTracker;
-// Re-export discovery
-pub use discovery::{
-    PCAlgorithm, PCResult, Dataset, Observation, IndependenceTester, IndependenceTest,
-    DoCalculus, Intervention, InterventionResult, CounterfactualReasoner, CounterfactualQuery,
-};
 
 // ============================================================================
 // TESTS
