@@ -13,6 +13,11 @@ members = [
     "lumina-pipeline",
     "lumina-material",
     "lumina-mesh",
+    # Phase 4: Backend Integration
+    "lumina-backend",
+    "lumina-sync",
+    "lumina-memory",
+    "lumina-debug",
 ]
 
 [workspace.package]
@@ -35,6 +40,11 @@ lumina-render = { path = "lumina-render" }
 lumina-pipeline = { path = "lumina-pipeline" }
 lumina-material = { path = "lumina-material" }
 lumina-mesh = { path = "lumina-mesh" }
+# Phase 4: Backend Integration
+lumina-backend = { path = "lumina-backend" }
+lumina-sync = { path = "lumina-sync" }
+lumina-memory = { path = "lumina-memory" }
+lumina-debug = { path = "lumina-debug" }
 
 # External dependencies
 bitflags = "2.4"
