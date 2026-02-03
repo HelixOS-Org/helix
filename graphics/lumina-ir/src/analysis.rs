@@ -3,16 +3,16 @@
 //! Analysis passes for extracting information from IR.
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec, vec, collections::BTreeSet, collections::BTreeMap};
+use alloc::{collections::BTreeMap, collections::BTreeSet, string::String, vec, vec::Vec};
 #[cfg(feature = "std")]
-use std::collections::{HashSet, HashMap, BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-use crate::types::{IrType, AddressSpace};
-use crate::instruction::{Instruction, BlockId};
-use crate::value::ValueId;
 use crate::block::{BasicBlock, BlockMap};
 use crate::function::{Function, FunctionId};
+use crate::instruction::{BlockId, Instruction};
 use crate::module::Module;
+use crate::types::{AddressSpace, IrType};
+use crate::value::ValueId;
 
 // ============================================================================
 // Use-Def Analysis
@@ -48,7 +48,7 @@ pub struct UseDefChain {
     pub definitions: HashMap<ValueId, ValueDef>,
     #[cfg(not(feature = "std"))]
     pub definitions: BTreeMap<ValueId, ValueDef>,
-    
+
     /// Map from value to its uses
     #[cfg(feature = "std")]
     pub uses: HashMap<ValueId, Vec<ValueUse>>,
@@ -60,7 +60,7 @@ impl UseDefChain {
     /// Build use-def chains for a function
     pub fn analyze(func: &Function) -> Self {
         let mut chain = Self::default();
-        
+
         for (block_id, block) in func.blocks.iter() {
             for (inst_idx, inst) in block.instructions().iter().enumerate() {
                 // Record definition
@@ -73,31 +73,38 @@ impl UseDefChain {
                         });
                     }
                 }
-                
+
                 // Record uses
                 for (operand_idx, operand) in inst.operands().iter().enumerate() {
-                    chain.uses.entry(*operand).or_insert_with(Vec::new).push(ValueUse {
-                        block: *block_id,
-                        instruction: inst_idx,
-                        operand: operand_idx,
-                    });
+                    chain
+                        .uses
+                        .entry(*operand)
+                        .or_insert_with(Vec::new)
+                        .push(ValueUse {
+                            block: *block_id,
+                            instruction: inst_idx,
+                            operand: operand_idx,
+                        });
                 }
             }
         }
-        
+
         chain
     }
-    
+
     /// Check if a value is used
     pub fn is_used(&self, value: ValueId) -> bool {
-        self.uses.get(&value).map(|u| !u.is_empty()).unwrap_or(false)
+        self.uses
+            .get(&value)
+            .map(|u| !u.is_empty())
+            .unwrap_or(false)
     }
-    
+
     /// Get use count
     pub fn use_count(&self, value: ValueId) -> usize {
         self.uses.get(&value).map(|u| u.len()).unwrap_or(0)
     }
-    
+
     /// Check if a value has a single use
     pub fn has_single_use(&self, value: ValueId) -> bool {
         self.use_count(value) == 1
@@ -116,7 +123,7 @@ pub struct LivenessAnalysis {
     pub live_in: HashMap<BlockId, HashSet<ValueId>>,
     #[cfg(not(feature = "std"))]
     pub live_in: BTreeMap<BlockId, BTreeSet<ValueId>>,
-    
+
     /// Variables live at block exit
     #[cfg(feature = "std")]
     pub live_out: HashMap<BlockId, HashSet<ValueId>>,
@@ -128,7 +135,7 @@ impl LivenessAnalysis {
     /// Perform liveness analysis on a function
     pub fn analyze(func: &Function) -> Self {
         let mut result = Self::default();
-        
+
         // Initialize empty sets
         for (block_id, _) in func.blocks.iter() {
             #[cfg(feature = "std")]
@@ -142,18 +149,18 @@ impl LivenessAnalysis {
                 result.live_out.insert(*block_id, BTreeSet::new());
             }
         }
-        
+
         // Compute gen and kill sets
         #[cfg(feature = "std")]
         let mut gen: HashMap<BlockId, HashSet<ValueId>> = HashMap::new();
         #[cfg(feature = "std")]
         let mut kill: HashMap<BlockId, HashSet<ValueId>> = HashMap::new();
-        
+
         #[cfg(not(feature = "std"))]
         let mut gen: BTreeMap<BlockId, BTreeSet<ValueId>> = BTreeMap::new();
         #[cfg(not(feature = "std"))]
         let mut kill: BTreeMap<BlockId, BTreeSet<ValueId>> = BTreeMap::new();
-        
+
         for (block_id, block) in func.blocks.iter() {
             #[cfg(feature = "std")]
             {
@@ -165,34 +172,38 @@ impl LivenessAnalysis {
                 gen.insert(*block_id, BTreeSet::new());
                 kill.insert(*block_id, BTreeSet::new());
             }
-            
+
             for inst in block.instructions() {
                 // Uses before definition
                 for operand in inst.operands() {
-                    if !kill.get(block_id).map(|k| k.contains(&operand)).unwrap_or(false) {
+                    if !kill
+                        .get(block_id)
+                        .map(|k| k.contains(&operand))
+                        .unwrap_or(false)
+                    {
                         gen.get_mut(block_id).map(|g| g.insert(operand));
                     }
                 }
-                
+
                 // Definition
                 if let Some(result) = inst.result() {
                     kill.get_mut(block_id).map(|k| k.insert(result));
                 }
             }
         }
-        
+
         // Fixed-point iteration
         let mut changed = true;
         while changed {
             changed = false;
-            
+
             for (block_id, block) in func.blocks.iter().rev() {
                 // live_out = union of live_in of successors
                 #[cfg(feature = "std")]
                 let mut new_out: HashSet<ValueId> = HashSet::new();
                 #[cfg(not(feature = "std"))]
                 let mut new_out: BTreeSet<ValueId> = BTreeSet::new();
-                
+
                 for succ in block.successors() {
                     if let Some(succ_in) = result.live_in.get(&succ) {
                         for v in succ_in {
@@ -200,26 +211,26 @@ impl LivenessAnalysis {
                         }
                     }
                 }
-                
+
                 // live_in = gen ∪ (live_out - kill)
                 #[cfg(feature = "std")]
                 let mut new_in: HashSet<ValueId> = HashSet::new();
                 #[cfg(not(feature = "std"))]
                 let mut new_in: BTreeSet<ValueId> = BTreeSet::new();
-                
+
                 if let Some(g) = gen.get(block_id) {
                     for v in g {
                         new_in.insert(*v);
                     }
                 }
-                
+
                 let k = kill.get(block_id);
                 for v in &new_out {
                     if !k.map(|k| k.contains(v)).unwrap_or(false) {
                         new_in.insert(*v);
                     }
                 }
-                
+
                 // Check for changes
                 if result.live_in.get(block_id) != Some(&new_in) {
                     changed = true;
@@ -227,23 +238,29 @@ impl LivenessAnalysis {
                 if result.live_out.get(block_id) != Some(&new_out) {
                     changed = true;
                 }
-                
+
                 result.live_in.insert(*block_id, new_in);
                 result.live_out.insert(*block_id, new_out);
             }
         }
-        
+
         result
     }
-    
+
     /// Check if a value is live at block entry
     pub fn is_live_at_entry(&self, block: BlockId, value: ValueId) -> bool {
-        self.live_in.get(&block).map(|s| s.contains(&value)).unwrap_or(false)
+        self.live_in
+            .get(&block)
+            .map(|s| s.contains(&value))
+            .unwrap_or(false)
     }
-    
+
     /// Check if a value is live at block exit
     pub fn is_live_at_exit(&self, block: BlockId, value: ValueId) -> bool {
-        self.live_out.get(&block).map(|s| s.contains(&value)).unwrap_or(false)
+        self.live_out
+            .get(&block)
+            .map(|s| s.contains(&value))
+            .unwrap_or(false)
     }
 }
 
@@ -287,7 +304,7 @@ impl DependencyGraph {
     pub fn analyze(func: &Function) -> Self {
         let mut graph = Self::default();
         let use_def = UseDefChain::analyze(func);
-        
+
         // Find true dependencies (RAW)
         for (value, uses) in &use_def.uses {
             if let Some(def) = use_def.definitions.get(value) {
@@ -300,7 +317,7 @@ impl DependencyGraph {
                 }
             }
         }
-        
+
         graph
     }
 }
@@ -335,7 +352,7 @@ impl MemoryAnalysis {
     /// Analyze memory accesses
     pub fn analyze(func: &Function) -> Self {
         let mut analysis = Self::default();
-        
+
         for (block_id, block) in func.blocks.iter() {
             for (inst_idx, inst) in block.instructions().iter().enumerate() {
                 match inst {
@@ -347,7 +364,7 @@ impl MemoryAnalysis {
                             base: Some(*pointer),
                             address_space: AddressSpace::Private, // Would need type info
                         });
-                    }
+                    },
                     Instruction::Store { pointer, .. } => {
                         analysis.accesses.push(MemoryAccess {
                             block: *block_id,
@@ -356,7 +373,7 @@ impl MemoryAnalysis {
                             base: Some(*pointer),
                             address_space: AddressSpace::Private,
                         });
-                    }
+                    },
                     Instruction::ImageWrite { .. } => {
                         analysis.accesses.push(MemoryAccess {
                             block: *block_id,
@@ -365,7 +382,7 @@ impl MemoryAnalysis {
                             base: None,
                             address_space: AddressSpace::Image,
                         });
-                    }
+                    },
                     Instruction::ImageRead { .. } | Instruction::ImageFetch { .. } => {
                         analysis.accesses.push(MemoryAccess {
                             block: *block_id,
@@ -374,22 +391,22 @@ impl MemoryAnalysis {
                             base: None,
                             address_space: AddressSpace::Image,
                         });
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
-        
+
         analysis
     }
-    
+
     /// Check if two accesses may alias
     pub fn may_alias(&self, a: &MemoryAccess, b: &MemoryAccess) -> bool {
         // Conservative: different address spaces don't alias
         if a.address_space != b.address_space {
             return false;
         }
-        
+
         // Same base pointer may alias
         match (a.base, b.base) {
             (Some(base_a), Some(base_b)) if base_a == base_b => true,
@@ -439,72 +456,70 @@ impl ResourceUsage {
     /// Analyze resource usage for a function
     pub fn analyze(func: &Function, module: &Module) -> Self {
         let mut usage = Self::default();
-        
+
         // Count instructions and analyze usage
         for (_, block) in func.blocks.iter() {
             for inst in block.instructions() {
                 usage.instructions += 1;
-                
+
                 match inst {
-                    Instruction::AtomicExchange { .. } |
-                    Instruction::AtomicCompareExchange { .. } |
-                    Instruction::AtomicLoad { .. } |
-                    Instruction::AtomicStore { .. } |
-                    Instruction::AtomicIAdd { .. } |
-                    Instruction::AtomicISub { .. } |
-                    Instruction::AtomicAnd { .. } |
-                    Instruction::AtomicOr { .. } |
-                    Instruction::AtomicXor { .. } |
-                    Instruction::AtomicSMin { .. } |
-                    Instruction::AtomicSMax { .. } |
-                    Instruction::AtomicUMin { .. } |
-                    Instruction::AtomicUMax { .. } => {
+                    Instruction::AtomicExchange { .. }
+                    | Instruction::AtomicCompareExchange { .. }
+                    | Instruction::AtomicLoad { .. }
+                    | Instruction::AtomicStore { .. }
+                    | Instruction::AtomicIAdd { .. }
+                    | Instruction::AtomicISub { .. }
+                    | Instruction::AtomicAnd { .. }
+                    | Instruction::AtomicOr { .. }
+                    | Instruction::AtomicXor { .. }
+                    | Instruction::AtomicSMin { .. }
+                    | Instruction::AtomicSMax { .. }
+                    | Instruction::AtomicUMin { .. }
+                    | Instruction::AtomicUMax { .. } => {
                         usage.uses_atomics = true;
-                    }
-                    
-                    Instruction::ControlBarrier { .. } |
-                    Instruction::MemoryBarrier { .. } => {
+                    },
+
+                    Instruction::ControlBarrier { .. } | Instruction::MemoryBarrier { .. } => {
                         usage.uses_barriers = true;
-                    }
-                    
+                    },
+
                     Instruction::UnaryOp { op, .. } => {
                         use crate::instruction::UnaryOp::*;
                         match op {
-                            DPdx | DPdy | DPdxFine | DPdyFine | 
-                            DPdxCoarse | DPdyCoarse | Fwidth | 
-                            FwidthFine | FwidthCoarse => {
+                            DPdx | DPdy | DPdxFine | DPdyFine | DPdxCoarse | DPdyCoarse
+                            | Fwidth | FwidthFine | FwidthCoarse => {
                                 usage.uses_derivatives = true;
-                            }
-                            _ => {}
+                            },
+                            _ => {},
                         }
-                    }
-                    
-                    Instruction::GroupAll { .. } |
-                    Instruction::GroupAny { .. } |
-                    Instruction::GroupBroadcast { .. } |
-                    Instruction::GroupIAdd { .. } |
-                    Instruction::GroupFAdd { .. } |
-                    Instruction::GroupSMin { .. } |
-                    Instruction::GroupUMin { .. } |
-                    Instruction::GroupFMin { .. } |
-                    Instruction::GroupSMax { .. } |
-                    Instruction::GroupUMax { .. } |
-                    Instruction::GroupFMax { .. } |
-                    Instruction::GroupBitwiseAnd { .. } |
-                    Instruction::GroupBitwiseOr { .. } |
-                    Instruction::GroupBitwiseXor { .. } |
-                    Instruction::SubgroupElect { .. } |
-                    Instruction::SubgroupBallot { .. } |
-                    Instruction::SubgroupShuffle { .. } |
-                    Instruction::SubgroupShuffleXor { .. } => {
+                    },
+
+                    Instruction::GroupAll { .. }
+                    | Instruction::GroupAny { .. }
+                    | Instruction::GroupBroadcast { .. }
+                    | Instruction::GroupIAdd { .. }
+                    | Instruction::GroupFAdd { .. }
+                    | Instruction::GroupSMin { .. }
+                    | Instruction::GroupUMin { .. }
+                    | Instruction::GroupFMin { .. }
+                    | Instruction::GroupSMax { .. }
+                    | Instruction::GroupUMax { .. }
+                    | Instruction::GroupFMax { .. }
+                    | Instruction::GroupBitwiseAnd { .. }
+                    | Instruction::GroupBitwiseOr { .. }
+                    | Instruction::GroupBitwiseXor { .. }
+                    | Instruction::SubgroupElect { .. }
+                    | Instruction::SubgroupBallot { .. }
+                    | Instruction::SubgroupShuffle { .. }
+                    | Instruction::SubgroupShuffleXor { .. } => {
                         usage.uses_group_operations = true;
-                    }
-                    
-                    _ => {}
+                    },
+
+                    _ => {},
                 }
             }
         }
-        
+
         // Count resources from global variables
         for global in &func.interface_variables {
             if let Some(gv) = module.get_global(*global) {
@@ -517,17 +532,17 @@ impl ResourceUsage {
                         } else {
                             usage.images += 1;
                         }
-                    }
+                    },
                     AddressSpace::Workgroup => {
                         if let Some(size) = gv.ty.size_of() {
                             usage.shared_memory += size as u32;
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
-        
+
         usage
     }
 }
@@ -560,20 +575,20 @@ impl UniformityAnalysis {
     /// Analyze uniformity
     pub fn analyze(func: &Function, module: &Module) -> Self {
         let mut analysis = Self::default();
-        
+
         // Parameters are uniform if they come from uniform buffers
         // Built-ins like gl_GlobalInvocationID are non-uniform
-        
+
         // Propagate uniformity through instructions
         let mut changed = true;
         while changed {
             changed = false;
-            
+
             for (_, block) in func.blocks.iter() {
                 for inst in block.instructions() {
                     if let Some(result) = inst.result() {
                         let uniformity = analysis.compute_uniformity(inst, module);
-                        
+
                         if analysis.value_uniformity.get(&result) != Some(&uniformity) {
                             analysis.value_uniformity.insert(result, uniformity);
                             changed = true;
@@ -582,46 +597,45 @@ impl UniformityAnalysis {
                 }
             }
         }
-        
+
         analysis
     }
-    
+
     /// Compute uniformity for an instruction result
     fn compute_uniformity(&self, inst: &Instruction, _module: &Module) -> Uniformity {
         match inst {
             Instruction::Constant { .. } => Uniformity::Constant,
-            
+
             // Intrinsically non-uniform operations
             Instruction::UnaryOp { op, .. } => {
                 use crate::instruction::UnaryOp::*;
                 match op {
-                    DPdx | DPdy | DPdxFine | DPdyFine |
-                    DPdxCoarse | DPdyCoarse | Fwidth |
-                    FwidthFine | FwidthCoarse => Uniformity::NonUniform,
+                    DPdx | DPdy | DPdxFine | DPdyFine | DPdxCoarse | DPdyCoarse | Fwidth
+                    | FwidthFine | FwidthCoarse => Uniformity::NonUniform,
                     _ => self.merge_operand_uniformity(inst),
                 }
-            }
-            
+            },
+
             // Most operations inherit from operands
             _ => self.merge_operand_uniformity(inst),
         }
     }
-    
+
     /// Merge uniformity of operands
     fn merge_operand_uniformity(&self, inst: &Instruction) -> Uniformity {
         let mut result = Uniformity::Constant;
-        
+
         for operand in inst.operands() {
             match self.value_uniformity.get(&operand) {
                 Some(Uniformity::NonUniform) => return Uniformity::NonUniform,
                 Some(Uniformity::Uniform) => result = Uniformity::Uniform,
-                Some(Uniformity::Constant) | None => {}
+                Some(Uniformity::Constant) | None => {},
             }
         }
-        
+
         result
     }
-    
+
     /// Check if a value is uniform
     pub fn is_uniform(&self, value: ValueId) -> bool {
         matches!(
@@ -643,7 +657,7 @@ pub struct DivergenceAnalysis {
     pub divergent_blocks: HashSet<BlockId>,
     #[cfg(not(feature = "std"))]
     pub divergent_blocks: BTreeSet<BlockId>,
-    
+
     /// Reconvergence points
     #[cfg(feature = "std")]
     pub reconvergence_points: HashMap<BlockId, BlockId>,
@@ -655,7 +669,7 @@ impl DivergenceAnalysis {
     /// Analyze control flow divergence
     pub fn analyze(func: &Function, uniformity: &UniformityAnalysis) -> Self {
         let mut analysis = Self::default();
-        
+
         for (block_id, block) in func.blocks.iter() {
             // Check if block ends with divergent branch
             if let Some(last) = block.instructions().last() {
@@ -664,20 +678,20 @@ impl DivergenceAnalysis {
                         if !uniformity.is_uniform(*condition) {
                             analysis.divergent_blocks.insert(*block_id);
                         }
-                    }
+                    },
                     Instruction::Switch { selector, .. } => {
                         if !uniformity.is_uniform(*selector) {
                             analysis.divergent_blocks.insert(*block_id);
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
-        
+
         analysis
     }
-    
+
     /// Check if a block has divergent control flow
     pub fn is_divergent(&self, block: BlockId) -> bool {
         self.divergent_blocks.contains(&block)
