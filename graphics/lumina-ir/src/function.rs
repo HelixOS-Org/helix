@@ -5,9 +5,9 @@
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec::Vec};
 
-use crate::types::{IrType, AddressSpace, BuiltinKind};
-use crate::instruction::{FunctionId, BlockId, FunctionControl};
 use crate::block::{BasicBlock, BlockMap};
+use crate::instruction::{BlockId, FunctionControl, FunctionId};
+use crate::types::{AddressSpace, BuiltinKind, IrType};
 use crate::value::{ValueId, ValueTable};
 
 /// Shader execution model
@@ -72,7 +72,10 @@ impl ExecutionModel {
 
     /// Check if this is a mesh shader
     pub const fn is_mesh_shader(&self) -> bool {
-        matches!(self, Self::TaskNV | Self::MeshNV | Self::TaskEXT | Self::MeshEXT)
+        matches!(
+            self,
+            Self::TaskNV | Self::MeshNV | Self::TaskEXT | Self::MeshEXT
+        )
     }
 
     /// Check if this is a compute shader
@@ -121,9 +124,21 @@ pub enum ExecutionMode {
     DepthLess,
     DepthUnchanged,
     /// Local size for compute
-    LocalSize { x: u32, y: u32, z: u32 },
-    LocalSizeId { x: ValueId, y: ValueId, z: ValueId },
-    LocalSizeHint { x: u32, y: u32, z: u32 },
+    LocalSize {
+        x: u32,
+        y: u32,
+        z: u32,
+    },
+    LocalSizeId {
+        x: ValueId,
+        y: ValueId,
+        z: ValueId,
+    },
+    LocalSizeHint {
+        x: u32,
+        y: u32,
+        z: u32,
+    },
     /// Max output vertices for geometry/mesh
     OutputVertices(u32),
     /// Max output primitives for mesh
@@ -146,13 +161,23 @@ pub enum ExecutionMode {
     /// Post depth coverage
     PostDepthCoverage,
     /// Denorm mode
-    DenormPreserve { width: u32 },
-    DenormFlushToZero { width: u32 },
+    DenormPreserve {
+        width: u32,
+    },
+    DenormFlushToZero {
+        width: u32,
+    },
     /// Signed zero infinity nan preservation
-    SignedZeroInfNanPreserve { width: u32 },
+    SignedZeroInfNanPreserve {
+        width: u32,
+    },
     /// Rounding mode
-    RoundingModeRTE { width: u32 },
-    RoundingModeRTZ { width: u32 },
+    RoundingModeRTE {
+        width: u32,
+    },
+    RoundingModeRTZ {
+        width: u32,
+    },
     /// Early and late fragment tests
     EarlyAndLateFragmentTestsAMD,
     /// Maximum primitives for mesh
@@ -307,8 +332,10 @@ impl Function {
 
     /// Set local workgroup size
     pub fn set_local_size(&mut self, x: u32, y: u32, z: u32) {
-        self.execution_modes.retain(|m| !matches!(m, ExecutionMode::LocalSize { .. }));
-        self.execution_modes.push(ExecutionMode::LocalSize { x, y, z });
+        self.execution_modes
+            .retain(|m| !matches!(m, ExecutionMode::LocalSize { .. }));
+        self.execution_modes
+            .push(ExecutionMode::LocalSize { x, y, z });
     }
 
     /// Get local workgroup size
@@ -606,7 +633,8 @@ impl FunctionMap {
     ) -> FunctionId {
         let id = self.next_id;
         self.next_id += 1;
-        self.functions.push(Function::entry_point(id, name, execution_model));
+        self.functions
+            .push(Function::entry_point(id, name, execution_model));
         self.entry_points.push(id);
         id
     }
@@ -668,12 +696,12 @@ impl CallGraph {
     /// Build call graph from functions
     pub fn build(functions: &FunctionMap) -> Self {
         use crate::instruction::Instruction;
-        
+
         let mut graph = Self::new();
-        
+
         for func in functions.iter() {
             let mut callees = Vec::new();
-            
+
             for block in func.blocks.iter() {
                 for inst in block.iter() {
                     if let Instruction::FunctionCall { function, .. } = inst {
@@ -683,10 +711,10 @@ impl CallGraph {
                     }
                 }
             }
-            
+
             graph.edges.push((func.id, callees));
         }
-        
+
         graph
     }
 
@@ -712,7 +740,7 @@ impl CallGraph {
     pub fn is_recursive(&self, func: FunctionId) -> bool {
         let mut visited = Vec::new();
         let mut stack = vec![func];
-        
+
         while let Some(current) = stack.pop() {
             if visited.contains(&current) {
                 if current == func {
@@ -723,7 +751,7 @@ impl CallGraph {
             visited.push(current);
             stack.extend(self.callees(current));
         }
-        
+
         false
     }
 
@@ -731,7 +759,7 @@ impl CallGraph {
     pub fn reachable_from(&self, entry_points: &[FunctionId]) -> Vec<FunctionId> {
         let mut visited = Vec::new();
         let mut stack: Vec<_> = entry_points.to_vec();
-        
+
         while let Some(current) = stack.pop() {
             if visited.contains(&current) {
                 continue;
@@ -739,7 +767,7 @@ impl CallGraph {
             visited.push(current);
             stack.extend(self.callees(current));
         }
-        
+
         visited
     }
 
@@ -747,7 +775,7 @@ impl CallGraph {
     pub fn topological_order(&self) -> Vec<FunctionId> {
         let mut result = Vec::new();
         let mut visited = Vec::new();
-        
+
         fn visit(
             func: FunctionId,
             graph: &CallGraph,
@@ -758,18 +786,18 @@ impl CallGraph {
                 return;
             }
             visited.push(func);
-            
+
             for &callee in graph.callees(func) {
                 visit(callee, graph, visited, result);
             }
-            
+
             result.push(func);
         }
-        
+
         for (func, _) in &self.edges {
             visit(*func, self, &mut visited, &mut result);
         }
-        
+
         result
     }
 }
@@ -811,7 +839,7 @@ mod tests {
         let mut map = FunctionMap::new();
         let f1 = map.create_function("helper", IrType::f32());
         let f2 = map.create_entry_point("main", ExecutionModel::Vertex);
-        
+
         assert_eq!(map.len(), 2);
         assert_eq!(map.entry_points().len(), 1);
         assert_eq!(map.entry_points()[0], f2);
