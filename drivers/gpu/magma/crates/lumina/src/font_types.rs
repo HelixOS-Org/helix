@@ -172,9 +172,9 @@ pub enum FontRasterMode {
     #[default]
     Standard = 0,
     /// Signed distance field
-    Sdf = 1,
+    Sdf      = 1,
     /// Multi-channel signed distance field
-    Msdf = 2,
+    Msdf     = 2,
     /// Subpixel antialiasing
     Subpixel = 3,
 }
@@ -615,11 +615,11 @@ impl TextLayoutSettings {
 pub enum TextHAlign {
     /// Left aligned
     #[default]
-    Left = 0,
+    Left    = 0,
     /// Center aligned
-    Center = 1,
+    Center  = 1,
     /// Right aligned
-    Right = 2,
+    Right   = 2,
     /// Justified
     Justify = 3,
 }
@@ -630,11 +630,11 @@ pub enum TextHAlign {
 pub enum TextVAlign {
     /// Top aligned
     #[default]
-    Top = 0,
+    Top      = 0,
     /// Center aligned
-    Center = 1,
+    Center   = 1,
     /// Bottom aligned
-    Bottom = 2,
+    Bottom   = 2,
     /// Baseline
     Baseline = 3,
 }
@@ -657,12 +657,12 @@ pub enum TextDirection {
 #[repr(u32)]
 pub enum TextWrap {
     /// No wrapping
-    None = 0,
+    None            = 0,
     /// Wrap at word boundaries
     #[default]
-    Word = 1,
+    Word            = 1,
     /// Wrap at character boundaries
-    Character = 2,
+    Character       = 2,
     /// Wrap at word, then character
     WordOrCharacter = 3,
 }
@@ -673,13 +673,13 @@ pub enum TextWrap {
 pub enum TextTruncation {
     /// No truncation
     #[default]
-    None = 0,
+    None     = 0,
     /// Clip
-    Clip = 1,
+    Clip     = 1,
     /// Ellipsis at end
     Ellipsis = 2,
     /// Fade out
-    Fade = 3,
+    Fade     = 3,
 }
 
 // ============================================================================
@@ -726,9 +726,10 @@ impl LaidOutText {
     /// Hit test (returns character index)
     pub fn hit_test(&self, x: f32, y: f32) -> Option<usize> {
         // Find line
-        let line_idx = self.lines.iter().position(|line| {
-            y >= line.y && y < line.y + line.height
-        })?;
+        let line_idx = self
+            .lines
+            .iter()
+            .position(|line| y >= line.y && y < line.y + line.height)?;
 
         let line = &self.lines[line_idx];
 
@@ -891,10 +892,8 @@ impl TextDrawData {
         }
 
         // Two triangles
-        self.indices.extend_from_slice(&[
-            base, base + 1, base + 2,
-            base, base + 2, base + 3,
-        ]);
+        self.indices
+            .extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
 
         if !self.atlas_pages.contains(&glyph.glyph.atlas_page) {
             self.atlas_pages.push(glyph.glyph.atlas_page);
