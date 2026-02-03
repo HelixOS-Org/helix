@@ -50,13 +50,17 @@
 
 extern crate alloc;
 
+pub mod advanced;
+pub mod bindless;
 pub mod buffer;
 pub mod command;
 pub mod descriptor;
 pub mod device;
 pub mod instance;
+pub mod mesh_shaders;
 pub mod pipeline;
 pub mod queue;
+pub mod raytracing;
 pub mod resource;
 pub mod sampler;
 pub mod shader_module;
