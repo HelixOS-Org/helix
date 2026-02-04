@@ -29,8 +29,6 @@
 //! - Command queuing
 //! - Secure erase operations
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
