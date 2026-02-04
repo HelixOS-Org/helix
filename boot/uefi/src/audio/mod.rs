@@ -29,8 +29,6 @@
 //! - BEEP code patterns
 //! - Boot chime sequences
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
