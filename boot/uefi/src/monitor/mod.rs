@@ -40,8 +40,6 @@
 //! - Health status monitoring
 //! - Performance metrics
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
