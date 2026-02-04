@@ -8,14 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::format;
-use crate::math::F64Ext;
-
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::math::F64Ext;
 use crate::types::Timestamp;
 
 // ============================================================================
@@ -268,8 +267,9 @@ impl MetaLearner {
         }
 
         // UCB-like exploration
-        let explore_score = self.config.exploration_rate *
-            ((task.samples_seen as f64).ln() / task.strategy_performance.len().max(1) as f64).sqrt();
+        let explore_score = self.config.exploration_rate
+            * ((task.samples_seen as f64).ln() / task.strategy_performance.len().max(1) as f64)
+                .sqrt();
 
         explore_score > 0.5
     }
@@ -278,7 +278,8 @@ impl MetaLearner {
         let task = self.tasks.get(task_type)?;
 
         // Find least used strategy
-        self.strategies.values()
+        self.strategies
+            .values()
             .filter(|s| !task.strategy_performance.contains_key(&s.id))
             .min_by_key(|s| s.use_count)
             .map(|s| s.id)
@@ -340,15 +341,17 @@ impl MetaLearner {
             task.samples_seen += 1;
 
             // Update strategy performance
-            let score = (1.0 - metrics.error_rate) * 0.4 +
-                       metrics.convergence_speed * 0.3 +
-                       metrics.generalization * 0.3;
+            let score = (1.0 - metrics.error_rate) * 0.4
+                + metrics.convergence_speed * 0.3
+                + metrics.generalization * 0.3;
 
             let current = task.strategy_performance.entry(strategy).or_insert(0.5);
             *current = 0.9 * *current + 0.1 * score;
 
             // Update best strategy
-            let best = task.strategy_performance.iter()
+            let best = task
+                .strategy_performance
+                .iter()
                 .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(core::cmp::Ordering::Equal))
                 .map(|(&id, _)| id);
 
@@ -363,7 +366,9 @@ impl MetaLearner {
     }
 
     fn check_adaptation(&mut self, strategy_id: u64) {
-        let recent: Vec<_> = self.episodes.iter()
+        let recent: Vec<_> = self
+            .episodes
+            .iter()
             .rev()
             .take(self.config.history_window)
             .filter(|e| e.strategy == strategy_id)
@@ -374,9 +379,8 @@ impl MetaLearner {
         }
 
         // Calculate average error rate
-        let avg_error: f64 = recent.iter()
-            .map(|e| e.metrics.error_rate)
-            .sum::<f64>() / recent.len() as f64;
+        let avg_error: f64 =
+            recent.iter().map(|e| e.metrics.error_rate).sum::<f64>() / recent.len() as f64;
 
         // If underperforming, adapt
         if avg_error > self.config.adaptation_threshold {
@@ -474,11 +478,7 @@ mod tests {
     fn test_register_strategy() {
         let mut learner = MetaLearner::default();
 
-        let id = learner.register_strategy(
-            "test",
-            StrategyType::Supervised,
-            BTreeMap::new(),
-        );
+        let id = learner.register_strategy("test", StrategyType::Supervised, BTreeMap::new());
 
         assert!(learner.get_strategy(id).is_some());
     }
@@ -487,11 +487,7 @@ mod tests {
     fn test_select_strategy() {
         let mut learner = MetaLearner::default();
 
-        let id = learner.register_strategy(
-            "default",
-            StrategyType::Supervised,
-            BTreeMap::new(),
-        );
+        let id = learner.register_strategy("default", StrategyType::Supervised, BTreeMap::new());
 
         let selected = learner.select_strategy("classification");
         assert!(selected.is_some());
@@ -501,11 +497,8 @@ mod tests {
     fn test_record_episode() {
         let mut learner = MetaLearner::default();
 
-        let strategy = learner.register_strategy(
-            "test",
-            StrategyType::Reinforcement,
-            BTreeMap::new(),
-        );
+        let strategy =
+            learner.register_strategy("test", StrategyType::Reinforcement, BTreeMap::new());
 
         learner.record_episode(
             strategy,
@@ -527,11 +520,7 @@ mod tests {
     fn test_strategy_update() {
         let mut learner = MetaLearner::default();
 
-        let strategy = learner.register_strategy(
-            "test",
-            StrategyType::Supervised,
-            BTreeMap::new(),
-        );
+        let strategy = learner.register_strategy("test", StrategyType::Supervised, BTreeMap::new());
 
         // Record multiple successes
         for _ in 0..5 {
@@ -556,10 +545,14 @@ mod tests {
         let s2 = learner.register_strategy("s2", StrategyType::Reinforcement, BTreeMap::new());
 
         // s1 performs better
-        learner.record_episode(s1, "task", LearningOutcome::Success, 1000,
-            EpisodeMetrics { error_rate: 0.1, ..Default::default() });
-        learner.record_episode(s2, "task", LearningOutcome::Failure, 1000,
-            EpisodeMetrics { error_rate: 0.8, ..Default::default() });
+        learner.record_episode(s1, "task", LearningOutcome::Success, 1000, EpisodeMetrics {
+            error_rate: 0.1,
+            ..Default::default()
+        });
+        learner.record_episode(s2, "task", LearningOutcome::Failure, 1000, EpisodeMetrics {
+            error_rate: 0.8,
+            ..Default::default()
+        });
 
         let task = learner.task("task").unwrap();
         assert_eq!(task.strategy_performance.len(), 2);
