@@ -39,7 +39,7 @@ pub fn create_context_from_limine(
 
     // Calculate the slide (difference between where we were linked and where we are)
     // For Limine, this is typically zero unless KASLR is enabled
-    let slide = virt_base as i64 - phys_base as i64;
+    let _slide = virt_base as i64 - phys_base as i64;
 
     RelocationContextBuilder::new()
         .phys_base(phys_base)
