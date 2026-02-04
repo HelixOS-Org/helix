@@ -3,6 +3,7 @@
 //! Year 3 EVOLUTION - Q4 - Federated learning for distributed model training
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
