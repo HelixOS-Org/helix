@@ -56,6 +56,8 @@
 //! 6. **Optimization Hints**: Apply optimizer recommendations
 //! 7. **Final Selection**: Pick best candidate for execution
 
+#![allow(clippy::excessive_nesting)]
+
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
