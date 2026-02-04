@@ -878,17 +878,20 @@ impl Ontology {
 
     /// Check if an individual is an instance of a class
     pub fn is_instance_of(&mut self, individual: IndividualId, class: ClassId) -> bool {
-        // Direct type check
-        if let Some(ind) = self.individuals.get(&individual) {
+        // Get types first to avoid borrow issues
+        let types: Vec<ClassId> = if let Some(ind) = self.individuals.get(&individual) {
             if ind.types.contains(&class) {
                 return true;
             }
+            ind.types.iter().copied().collect()
+        } else {
+            return false;
+        };
 
-            // Check superclasses
-            for &type_class in &ind.types {
-                if self.is_subclass_of(type_class, class) {
-                    return true;
-                }
+        // Check superclasses
+        for type_class in types {
+            if self.is_subclass_of(type_class, class) {
+                return true;
             }
         }
 
