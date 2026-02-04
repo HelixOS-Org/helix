@@ -678,7 +678,7 @@ fn char_to_str(c: char) -> &'static str {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
