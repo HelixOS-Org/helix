@@ -3,6 +3,7 @@
 //! Year 3 EVOLUTION - Q4 - Migrate evolved code between nodes
 
 #![allow(dead_code)]
+#![allow(clippy::collapsible_else_if)]
 
 extern crate alloc;
 
