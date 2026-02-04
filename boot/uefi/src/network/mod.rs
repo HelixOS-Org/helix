@@ -500,7 +500,7 @@ impl PxeClient {
     }
 
     /// Start PXE client
-    pub fn start(&mut self, use_ipv6: bool) -> Result<(), NetworkError> {
+    pub fn start(&mut self, _use_ipv6: bool) -> Result<(), NetworkError> {
         if self.started {
             return Ok(());
         }
@@ -522,7 +522,7 @@ impl PxeClient {
     }
 
     /// Perform DHCP
-    pub fn dhcp(&mut self, sort_offers: bool) -> Result<&DhcpLease, NetworkError> {
+    pub fn dhcp(&mut self, _sort_offers: bool) -> Result<&DhcpLease, NetworkError> {
         if !self.started {
             return Err(NetworkError::NotStarted);
         }
@@ -536,9 +536,9 @@ impl PxeClient {
     /// Discover boot server
     pub fn discover(
         &mut self,
-        server_type: PxeServerType,
-        layer: u16,
-        bis_verify: bool,
+        _server_type: PxeServerType,
+        _layer: u16,
+        _bis_verify: bool,
     ) -> Result<(), NetworkError> {
         if !self.started {
             return Err(NetworkError::NotStarted);
@@ -552,10 +552,10 @@ impl PxeClient {
     /// Download file via MTFTP
     pub fn mtftp(
         &mut self,
-        operation: MtftpOperation,
-        buffer: &mut [u8],
-        server: &Ipv4Address,
-        filename: &[u8],
+        _operation: MtftpOperation,
+        _buffer: &mut [u8],
+        _server: &Ipv4Address,
+        _filename: &[u8],
     ) -> Result<usize, NetworkError> {
         if !self.started {
             return Err(NetworkError::NotStarted);
@@ -570,7 +570,7 @@ impl PxeClient {
     pub fn set_station_ip(
         &mut self,
         ip: Ipv4Address,
-        subnet: Ipv4Address,
+        _subnet: Ipv4Address,
     ) -> Result<(), NetworkError> {
         self.ip = ip;
         Ok(())
@@ -752,7 +752,7 @@ impl TftpClient {
     }
 
     /// Get file size
-    pub fn get_file_size(&mut self, filename: &str) -> Result<u64, NetworkError> {
+    pub fn get_file_size(&mut self, _filename: &str) -> Result<u64, NetworkError> {
         // Build RRQ with tsize=0 option
         // Send and wait for OACK
 
@@ -763,7 +763,7 @@ impl TftpClient {
     pub fn download(
         &mut self,
         filename: &str,
-        buffer: &mut [u8],
+        _buffer: &mut [u8],
         mode: TftpMode,
     ) -> Result<usize, NetworkError> {
         self.state = TftpState::WaitOack;
@@ -783,11 +783,10 @@ impl TftpClient {
     /// Build RRQ packet
     fn build_rrq(&self, filename: &str, mode: TftpMode) -> Result<[u8; 512], NetworkError> {
         let mut packet = [0u8; 512];
-        let mut pos = 0;
 
         // Opcode
         packet[0..2].copy_from_slice(&(TftpOpcode::Rrq as u16).to_be_bytes());
-        pos = 2;
+        let mut pos = 2;
 
         // Filename
         let fname_bytes = filename.as_bytes();
@@ -1206,7 +1205,7 @@ impl HttpBootClient {
     }
 
     /// Send request
-    pub fn request(&mut self, req: &HttpRequest) -> Result<HttpResponse, NetworkError> {
+    pub fn request(&mut self, _req: &HttpRequest) -> Result<HttpResponse, NetworkError> {
         if !self.connected {
             return Err(NetworkError::NotConnected);
         }
@@ -1218,7 +1217,7 @@ impl HttpBootClient {
     }
 
     /// Download file
-    pub fn download(&mut self, url: &str, buffer: &mut [u8]) -> Result<usize, NetworkError> {
+    pub fn download(&mut self, url: &str, _buffer: &mut [u8]) -> Result<usize, NetworkError> {
         let req = HttpRequest::get(url);
         let _response = self.request(&req)?;
 
@@ -1341,7 +1340,7 @@ impl NetworkInterface {
     }
 
     /// Initialize interface
-    pub fn initialize(&mut self, extra_rx: usize, extra_tx: usize) -> Result<(), NetworkError> {
+    pub fn initialize(&mut self, _extra_rx: usize, _extra_tx: usize) -> Result<(), NetworkError> {
         if self.state != NetworkState::Started {
             return Err(NetworkError::NotStarted);
         }
@@ -1380,8 +1379,8 @@ impl NetworkInterface {
     /// Transmit packet
     pub fn transmit(
         &mut self,
-        dest_mac: &MacAddress,
-        protocol: u16,
+        _dest_mac: &MacAddress,
+        _protocol: u16,
         data: &[u8],
     ) -> Result<(), NetworkError> {
         if self.state != NetworkState::Initialized {
@@ -1400,7 +1399,7 @@ impl NetworkInterface {
     }
 
     /// Receive packet
-    pub fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, NetworkError> {
+    pub fn receive(&mut self, _buffer: &mut [u8]) -> Result<usize, NetworkError> {
         if self.state != NetworkState::Initialized {
             return Err(NetworkError::NotStarted);
         }
