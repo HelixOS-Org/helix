@@ -4,16 +4,18 @@
 //! utility AI, reactive behaviors) into unified architectures.
 
 #![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+#![allow(clippy::let_and_return)]
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::reactive::{Response, Stimulus, StimulusBuffer, SubsumptionArchitecture};
-use super::state_machine::{StateContext, StateEvent, StateId, StateMachine};
+use super::reactive::{Stimulus, StimulusBuffer, SubsumptionArchitecture};
+use super::state_machine::{StateContext, StateEvent, StateMachine};
 use super::tree::{BehaviorStatus, BehaviorTree, Blackboard};
-use super::utility::{ActionId as UtilityActionId, UtilityContext, UtilitySelector};
+use super::utility::{UtilityContext, UtilitySelector};
 
 // ============================================================================
 // Core Types
