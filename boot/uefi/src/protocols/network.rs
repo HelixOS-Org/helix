@@ -70,7 +70,7 @@ impl NetworkInterface {
     }
 
     /// Configure interface
-    pub fn configure(&mut self, config: &NetworkConfig) -> Result<()> {
+    pub fn configure(&mut self, _config: &NetworkConfig) -> Result<()> {
         // TODO: Implement actual configuration
         Ok(())
     }
