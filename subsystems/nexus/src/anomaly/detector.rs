@@ -105,7 +105,10 @@ impl AnomalyDetector {
         }
 
         // IQR detection
-        if anomaly.is_none() && self.config.enable_iqr && stats.is_iqr_outlier(value, self.config.iqr_multiplier) {
+        if anomaly.is_none()
+            && self.config.enable_iqr
+            && stats.is_iqr_outlier(value, self.config.iqr_multiplier)
+        {
             let (q1, _q2, q3) = stats.quartiles();
             anomaly = Some(
                 Anomaly::new(AnomalyType::OutOfRange, metric, value, mean)
