@@ -429,11 +429,15 @@ pub unsafe fn is_range_mapped(start: VirtualAddress, size: usize) -> bool {
 /// The page tables must be valid.
 #[cfg(feature = "debug")]
 pub unsafe fn dump_page_table(root: PhysicalAddress, max_depth: u8) {
-    fn dump_level(table_phys: PhysicalAddress, level: PageTableLevel, max_depth: u8, prefix: &str) {
-        if level as u8 > max_depth {
+    // Pre-defined indentation strings for each depth level
+    const INDENT: [&str; 6] = ["", "  ", "    ", "      ", "        ", "          "];
+
+    fn dump_level(table_phys: PhysicalAddress, level: PageTableLevel, max_depth: u8, depth: usize) {
+        if level as u8 > max_depth || depth >= INDENT.len() {
             return;
         }
 
+        let prefix = INDENT[depth];
         let table_virt = phys_to_virt(table_phys);
         let table = unsafe { &*(table_virt.as_ptr::<PageTable>()) };
 
@@ -450,8 +454,7 @@ pub unsafe fn dump_page_table(root: PhysicalAddress, max_depth: u8) {
 
             if entry.is_present() && !entry.is_huge_page() {
                 if let Some(next) = level.next_lower() {
-                    let new_prefix = format!("{}  ", prefix);
-                    dump_level(entry.address(), next, max_depth, &new_prefix);
+                    dump_level(entry.address(), next, max_depth, depth + 1);
                 }
             }
         }
@@ -464,7 +467,7 @@ pub unsafe fn dump_page_table(root: PhysicalAddress, max_depth: u8) {
     };
 
     log::debug!("Page Table Dump (root: {:#x})", root.as_u64());
-    dump_level(root, start_level, max_depth, "");
+    dump_level(root, start_level, max_depth, 0);
 }
 
 // =============================================================================
