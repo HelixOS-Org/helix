@@ -309,7 +309,7 @@ macro_rules! limine_standard_requests {
 ///
 /// This provides a minimal panic handler for use before the kernel's
 /// own panic infrastructure is initialized.
-pub fn early_panic_handler(info: &PanicInfo<'_>) -> ! {
+pub fn early_panic_handler(_info: &PanicInfo<'_>) -> ! {
     // Prevent recursive panics
     if PANIC_IN_PROGRESS.swap(true, Ordering::AcqRel) {
         loop {
