@@ -554,7 +554,7 @@ pub struct MemoryMap {
     /// Buffer containing the memory descriptors
     buffer: *mut u8,
     /// Size of the buffer
-    buffer_size: usize,
+    _buffer_size: usize,
     /// Actual size of the memory map
     map_size: usize,
     /// Size of each descriptor
@@ -580,7 +580,7 @@ impl MemoryMap {
     ) -> Self {
         Self {
             buffer,
-            buffer_size,
+            _buffer_size: buffer_size,
             map_size,
             descriptor_size,
             descriptor_version,
