@@ -689,14 +689,14 @@ impl<T> UefiStatic<T> {
     const fn new() -> Self {
         Self(UnsafeCell::new(None))
     }
-    
+
     /// Set the value.
     /// # Safety
     /// Must only be called during single-threaded UEFI boot.
     unsafe fn set(&self, value: T) {
         unsafe { *self.0.get() = Some(value) };
     }
-    
+
     /// Get mutable access.
     /// # Safety
     /// Must only be called during single-threaded UEFI boot.
