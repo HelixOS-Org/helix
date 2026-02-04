@@ -509,6 +509,7 @@ impl BehaviorComposite {
     }
 
     fn process_state_machine_layer(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
+        let layer_name = layer.name.clone();
         if let Some(sm) = layer.state_machine_mut() {
             let old_state = sm.current_state();
 
@@ -517,11 +518,11 @@ impl BehaviorComposite {
 
             let new_state = sm.current_state();
 
-            let mut result = CompositeResult::new(CompositeStatus::Running).with_layer(&layer.name);
+            let mut result = CompositeResult::new(CompositeStatus::Running).with_layer(&layer_name);
 
             if old_state != new_state {
                 result.state_changes.push(StateChange {
-                    system: layer.name.clone(),
+                    system: layer_name.clone(),
                     from: alloc::format!("{:?}", old_state),
                     to: alloc::format!("{:?}", new_state),
                     timestamp: self.current_time,
@@ -539,6 +540,8 @@ impl BehaviorComposite {
     }
 
     fn process_reactive_layer(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
+        let layer_name = layer.name.clone();
+        let layer_priority = layer.priority;
         if let Some(reactive) = layer.reactive_mut() {
             let stimuli = self.stimulus_buffer.get_stimuli();
             let responses = reactive.process(stimuli, self.current_time);
@@ -548,11 +551,11 @@ impl BehaviorComposite {
             } else {
                 CompositeStatus::Success
             })
-            .with_layer(&layer.name);
+            .with_layer(&layer_name);
 
             for response in responses {
                 result.responses.push(CompositeResponse {
-                    source: layer.name.clone(),
+                    source: layer_name.clone(),
                     action: response.name.clone(),
                     priority: response.priority as u8,
                 });
@@ -565,6 +568,8 @@ impl BehaviorComposite {
     }
 
     fn process_utility_layer(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
+        let layer_name = layer.name.clone();
+        let layer_priority = layer.priority;
         if let Some(utility) = layer.utility_mut() {
             let ctx = self.create_utility_context();
 
@@ -575,11 +580,11 @@ impl BehaviorComposite {
                     .unwrap_or_else(|| alloc::format!("Action_{:?}", action_id));
 
                 CompositeResult::new(CompositeStatus::Success)
-                    .with_layer(&layer.name)
+                    .with_layer(&layer_name)
                     .with_response(CompositeResponse {
-                        source: layer.name.clone(),
+                        source: layer_name.clone(),
                         action: action_name,
-                        priority: layer.priority as u8,
+                        priority: layer_priority as u8,
                     })
             } else {
                 CompositeResult::new(CompositeStatus::Idle)
