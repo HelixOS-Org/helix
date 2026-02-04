@@ -846,7 +846,7 @@ impl fmt::Display for RuntimeError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
