@@ -2,6 +2,8 @@
 //!
 //! Provides information about loaded UEFI images.
 
+#![allow(non_camel_case_types)]
+
 use core::fmt;
 
 use crate::raw::memory::MemoryType;
