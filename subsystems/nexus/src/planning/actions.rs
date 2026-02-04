@@ -4,8 +4,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -193,16 +192,16 @@ impl ActionPrecondition {
         match (&self.value, actual) {
             (StateValue::Bool(expected), StateValue::Bool(actual)) => {
                 self.compare_bool(*expected, *actual)
-            }
+            },
             (StateValue::Int(expected), StateValue::Int(actual)) => {
                 self.compare_ord(*expected, *actual)
-            }
+            },
             (StateValue::Float(expected), StateValue::Float(actual)) => {
                 self.compare_float(*expected, *actual)
-            }
+            },
             (StateValue::String(expected), StateValue::String(actual)) => {
                 self.compare_ord(expected, actual)
-            }
+            },
             _ => false, // Type mismatch
         }
     }
@@ -301,7 +300,7 @@ impl ActionEffect {
         match self.effect_type {
             EffectType::Set => {
                 state.set(self.variable.clone(), self.value.clone());
-            }
+            },
             EffectType::Add => {
                 if let Some(current) = state.get(&self.variable).cloned() {
                     let new_value = match (&current, &self.value) {
@@ -311,7 +310,7 @@ impl ActionEffect {
                     };
                     state.set(self.variable.clone(), new_value);
                 }
-            }
+            },
             EffectType::Subtract => {
                 if let Some(current) = state.get(&self.variable).cloned() {
                     let new_value = match (&current, &self.value) {
@@ -321,15 +320,15 @@ impl ActionEffect {
                     };
                     state.set(self.variable.clone(), new_value);
                 }
-            }
+            },
             EffectType::Toggle => {
                 if let Some(StateValue::Bool(b)) = state.get(&self.variable).cloned() {
                     state.set(self.variable.clone(), StateValue::Bool(!b));
                 }
-            }
+            },
             EffectType::Delete => {
                 state.variables.remove(&self.variable);
-            }
+            },
         }
     }
 }
@@ -414,7 +413,10 @@ impl Action {
 
     /// Get variables read by this action
     pub fn reads(&self) -> BTreeSet<StateVar> {
-        self.preconditions.iter().map(|p| p.variable.clone()).collect()
+        self.preconditions
+            .iter()
+            .map(|p| p.variable.clone())
+            .collect()
     }
 
     /// Get variables written by this action
@@ -475,7 +477,8 @@ impl ActionSpace {
 
     /// Get applicable actions for state
     pub fn get_applicable(&self, state: &WorldState) -> Vec<&Action> {
-        self.actions.values()
+        self.actions
+            .values()
             .filter(|a| a.is_applicable(state))
             .collect()
     }
@@ -572,12 +575,10 @@ mod tests {
     fn test_action_space() {
         let mut space = ActionSpace::new();
 
-        let action = Action::new(ActionId(0), String::from("walk"))
-            .with_cost(1.0);
+        let action = Action::new(ActionId(0), String::from("walk")).with_cost(1.0);
         space.add(action);
 
-        let action2 = Action::new(ActionId(1), String::from("run"))
-            .with_cost(2.0);
+        let action2 = Action::new(ActionId(1), String::from("run")).with_cost(2.0);
         space.add(action2);
 
         assert_eq!(space.count(), 2);
