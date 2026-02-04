@@ -452,19 +452,31 @@ unsafe impl Sync for PerCpuData {}
 // Per-CPU Array
 // ============================================================================
 
+use core::sync::atomic::{AtomicPtr, Ordering};
+
 /// Maximum CPUs supported
 pub const MAX_CPUS: usize = super::MAX_CPUS;
 
-/// Array of per-CPU data pointers
-static mut PERCPU_PTRS: [*mut PerCpuData; MAX_CPUS] = [core::ptr::null_mut(); MAX_CPUS];
+/// Array of per-CPU data pointers using AtomicPtr for thread-safety
+///
+/// SAFETY: Each slot is only written once during CPU initialization,
+/// and only read by the owning CPU or during cross-CPU inspection
+/// (e.g., for IPI or migration). AtomicPtr ensures visibility.
+static PERCPU_PTRS: [AtomicPtr<PerCpuData>; MAX_CPUS] = {
+    // Initialize all entries to null
+    const NULL: AtomicPtr<PerCpuData> = AtomicPtr::new(core::ptr::null_mut());
+    [NULL; MAX_CPUS]
+};
 
 /// Get per-CPU data for a specific CPU
 ///
 /// # Safety
 ///
-/// The CPU must have been initialized.
+/// The CPU must have been initialized. The returned reference is only
+/// safe to use if called from the owning CPU or if proper synchronization
+/// (e.g., the CPU is halted) is in place.
 pub unsafe fn get_percpu(cpu_id: u32) -> Option<&'static mut PerCpuData> {
-    let ptr = PERCPU_PTRS.get(cpu_id as usize).copied()?;
+    let ptr = PERCPU_PTRS.get(cpu_id as usize)?.load(Ordering::Acquire);
     if ptr.is_null() {
         None
     } else {
@@ -479,7 +491,7 @@ pub unsafe fn get_percpu(cpu_id: u32) -> Option<&'static mut PerCpuData> {
 /// Must only be called once per CPU during initialization.
 pub unsafe fn register_percpu(cpu_id: u32, data: *mut PerCpuData) {
     if (cpu_id as usize) < MAX_CPUS {
-        PERCPU_PTRS[cpu_id as usize] = data;
+        PERCPU_PTRS[cpu_id as usize].store(data, Ordering::Release);
     }
 }
 
@@ -487,21 +499,50 @@ pub unsafe fn register_percpu(cpu_id: u32, data: *mut PerCpuData) {
 // Initialization
 // ============================================================================
 
+use core::cell::UnsafeCell;
+
+/// Wrapper for BSP per-CPU data that is initialized once during boot.
+///
+/// SAFETY: BSP_PERCPU is only mutated during single-threaded boot-time
+/// initialization before any other CPUs are started. After initialization,
+/// it is only accessed by the BSP.
+struct BspPercpu(UnsafeCell<PerCpuData>);
+
+// SAFETY: See above - single-threaded initialization, CPU-local access
+unsafe impl Sync for BspPercpu {}
+
+impl BspPercpu {
+    const fn new() -> Self {
+        Self(UnsafeCell::new(PerCpuData::new()))
+    }
+
+    /// Get mutable pointer for initialization
+    ///
+    /// # Safety
+    /// Only call during BSP initialization before SMP is enabled.
+    unsafe fn as_mut_ptr(&self) -> *mut PerCpuData {
+        self.0.get()
+    }
+}
+
+/// Static storage for BSP per-CPU data
+static BSP_PERCPU: BspPercpu = BspPercpu::new();
+
 /// Initialize per-CPU data for the BSP (Boot Processor)
 pub fn init_percpu_bsp() {
-    // For BSP, we use a static allocation or early memory allocation
+    // For BSP, we use a static allocation
     // In a real kernel, this would allocate from early boot memory
 
-    static mut BSP_PERCPU: PerCpuData = PerCpuData::new();
-
     unsafe {
+        let bsp_data = BSP_PERCPU.as_mut_ptr();
+
         // Initialize BSP per-CPU data
-        BSP_PERCPU.init(0, 0, 0); // Stack info will be set separately
-        BSP_PERCPU.mpidr = Mpidr::current().value();
+        (*bsp_data).init(0, 0, 0); // Stack info will be set separately
+        (*bsp_data).mpidr = Mpidr::current().value();
 
         // Register and activate
-        register_percpu(0, &mut BSP_PERCPU);
-        write_tpidr_el1(&BSP_PERCPU as *const _ as u64);
+        register_percpu(0, bsp_data);
+        write_tpidr_el1(bsp_data as u64);
     }
 }
 
