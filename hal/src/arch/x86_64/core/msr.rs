@@ -78,10 +78,11 @@ pub unsafe fn wrmsr(msr: u32, value: u64) {
 // MSR ADDRESSES
 // =============================================================================
 
-/// MSR address namespace
+/// MSR addresses organized by category.
+///
+/// This module contains constants for all known Model Specific Register addresses,
+/// organized by category (TSC, APIC, x2APIC, etc.).
 pub mod addr {
-    //! MSR addresses organized by category
-
     // =========================================================================
     // Time Stamp Counter
     // =========================================================================
