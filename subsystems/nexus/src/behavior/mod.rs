@@ -11,8 +11,6 @@
 //! - `utility`: Utility-based AI decision making
 //! - `composite`: Composite behavior patterns
 
-#![no_std]
-
 extern crate alloc;
 
 pub mod composite;
