@@ -8,15 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::format;
-use crate::math::F64Ext;
-use alloc::vec;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::math::F64Ext;
 use crate::types::Timestamp;
 
 // ============================================================================
@@ -347,9 +345,7 @@ impl ReplayBuffer {
         // Evenly spaced samples
         let step = len / actual_size.max(1);
 
-        (0..actual_size)
-            .map(|i| (i * step) % len)
-            .collect()
+        (0..actual_size).map(|i| (i * step) % len).collect()
     }
 
     /// Update priorities
@@ -465,9 +461,12 @@ impl MultiBufferReplay {
     pub fn sample_all(&mut self, batch_size_per_buffer: usize) -> Vec<ReplayBatch> {
         let categories: Vec<String> = self.buffers.keys().cloned().collect();
 
-        categories.iter()
+        categories
+            .iter()
             .filter_map(|cat| {
-                self.buffers.get_mut(cat).map(|b| b.sample(batch_size_per_buffer))
+                self.buffers
+                    .get_mut(cat)
+                    .map(|b| b.sample(batch_size_per_buffer))
             })
             .collect()
     }
@@ -501,13 +500,7 @@ mod tests {
     fn test_add_experience() {
         let mut buffer = ReplayBuffer::new(100, ReplayConfig::default());
 
-        let id = buffer.add(
-            make_state(1),
-            make_action(1),
-            1.0,
-            make_state(2),
-            false,
-        );
+        let id = buffer.add(make_state(1), make_action(1), 1.0, make_state(2), false);
 
         assert!(buffer.get(0).is_some());
         assert_eq!(buffer.len(), 1);
@@ -537,13 +530,7 @@ mod tests {
         let mut buffer = ReplayBuffer::new(5, ReplayConfig::default());
 
         for i in 0..10 {
-            buffer.add(
-                make_state(i),
-                make_action(i),
-                1.0,
-                make_state(i + 1),
-                false,
-            );
+            buffer.add(make_state(i), make_action(i), 1.0, make_state(i + 1), false);
         }
 
         assert_eq!(buffer.len(), 5);
@@ -555,13 +542,7 @@ mod tests {
         let mut buffer = ReplayBuffer::new(100, ReplayConfig::default());
 
         for i in 0..5 {
-            buffer.add(
-                make_state(i),
-                make_action(i),
-                1.0,
-                make_state(i + 1),
-                false,
-            );
+            buffer.add(make_state(i), make_action(i), 1.0, make_state(i + 1), false);
         }
 
         buffer.update_priorities(&[0, 1, 2], &[10.0, 20.0, 30.0]);
@@ -595,21 +576,13 @@ mod tests {
         let config = ReplayConfig::default();
         let mut multi = MultiBufferReplay::new(100, config);
 
-        multi.buffer("success").add(
-            make_state(1),
-            make_action(1),
-            1.0,
-            make_state(2),
-            false,
-        );
+        multi
+            .buffer("success")
+            .add(make_state(1), make_action(1), 1.0, make_state(2), false);
 
-        multi.buffer("failure").add(
-            make_state(3),
-            make_action(3),
-            -1.0,
-            make_state(4),
-            true,
-        );
+        multi
+            .buffer("failure")
+            .add(make_state(3), make_action(3), -1.0, make_state(4), true);
 
         let batches = multi.sample_all(1);
         assert_eq!(batches.len(), 2);
