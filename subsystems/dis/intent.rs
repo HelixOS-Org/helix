@@ -796,6 +796,9 @@ impl Default for IntentBuilder {
 // Intent Engine
 // =============================================================================
 
+/// Type alias for intent validation function
+type IntentValidator = Box<dyn Fn(&Intent) -> DISResult<()> + Send + Sync>;
+
 /// The Intent Engine processes and manages task intents
 pub struct IntentEngine {
     /// Registered intents
@@ -803,7 +806,7 @@ pub struct IntentEngine {
     /// Intent statistics
     intent_stats: spin::RwLock<IntentStats>,
     /// Intent validation rules
-    validation_rules: Vec<Box<dyn Fn(&Intent) -> DISResult<()> + Send + Sync>>,
+    validation_rules: Vec<IntentValidator>,
 }
 
 /// Statistics about intent usage
