@@ -368,8 +368,6 @@ impl PathBuf {
             return &[];
         }
 
-        let mut start = self.len;
-
         // Skip trailing slashes
         let mut end = self.len;
         while end > 0 && self.data[end - 1] == b'/' {
@@ -377,7 +375,7 @@ impl PathBuf {
         }
 
         // Find last slash
-        start = end;
+        let mut start = end;
         while start > 0 && self.data[start - 1] != b'/' {
             start -= 1;
         }
