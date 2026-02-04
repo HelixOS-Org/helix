@@ -69,8 +69,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc as alloc_crate;
 
-#[cfg(feature = "std")]
-extern crate std;
+// std is only available when the "std" feature is enabled AND we're not on a no_std target
+// Note: This feature should only be enabled for testing on standard platforms
 
 // ============================================================================
 // Core Module Exports
