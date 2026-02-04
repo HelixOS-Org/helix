@@ -8,14 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::vec;
-use crate::math::F64Ext;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::math::F64Ext;
 use crate::types::Timestamp;
 
 // ============================================================================
@@ -311,7 +310,8 @@ impl RegressionDetector {
         // Now create the regressions
         let mut detected = Vec::new();
         for (metric_id, baseline, current, change_percent) in regressions_to_create {
-            let regression_id = self.create_regression(metric_id, baseline, current, change_percent);
+            let regression_id =
+                self.create_regression(metric_id, baseline, current, change_percent);
             detected.push(regression_id);
         }
 
