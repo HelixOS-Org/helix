@@ -10,6 +10,7 @@
 //! - **Health Integration**: Integrate with health system
 
 #![allow(dead_code)]
+#![allow(clippy::module_inception)]
 
 extern crate alloc;
 
