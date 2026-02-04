@@ -363,7 +363,7 @@ impl<'a> BootValidator<'a> {
             return; // Framebuffer is optional
         };
 
-        for (i, fb) in fb_response.iter().enumerate() {
+        for (_i, fb) in fb_response.iter().enumerate() {
             // Check for valid dimensions
             if fb.width() == 0 || fb.height() == 0 {
                 self.errors
