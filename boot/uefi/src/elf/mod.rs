@@ -1061,7 +1061,7 @@ impl fmt::Display for ElfError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
