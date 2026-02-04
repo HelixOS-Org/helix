@@ -442,7 +442,7 @@ impl TplStats {
 }
 
 // Global stats (thread-local in real implementation)
-static TPL_STATS: TplLock<TplStats> = TplLock::new(TplStats::new());
+static _TPL_STATS: TplLock<TplStats> = TplLock::new(TplStats::new());
 
 /// Get TPL statistics
 pub fn get_tpl_stats() -> TplStats {
