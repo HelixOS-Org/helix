@@ -4,6 +4,7 @@
 //! Finds optimal code sequences through exhaustive search.
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 use alloc::boxed::Box;
