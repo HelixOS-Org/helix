@@ -268,7 +268,7 @@ pub struct WatchdogKicker {
     /// Timer event
     timer: Option<super::events::Timer>,
     /// Kick interval in 100ns units
-    interval_100ns: u64,
+    _interval_100ns: u64,
 }
 
 impl WatchdogKicker {
@@ -276,7 +276,7 @@ impl WatchdogKicker {
     pub fn new(interval_ms: u64) -> Self {
         Self {
             timer: None,
-            interval_100ns: interval_ms * 10_000, // ms to 100ns
+            _interval_100ns: interval_ms * 10_000, // ms to 100ns
         }
     }
 
@@ -311,7 +311,7 @@ impl WatchdogKicker {
 /// Automatically extends watchdog timeout during long operations.
 pub struct LongOperationGuard {
     /// Guard that disabled watchdog
-    guard: Option<WatchdogGuard>,
+    _guard: Option<WatchdogGuard>,
 }
 
 impl LongOperationGuard {
@@ -322,14 +322,18 @@ impl LongOperationGuard {
 
         let guard = WatchdogGuard::with_timeout(timeout)?;
 
-        Ok(Self { guard: Some(guard) })
+        Ok(Self {
+            _guard: Some(guard),
+        })
     }
 
     /// Create guard that completely disables watchdog
     pub fn disable() -> Result<Self, Status> {
         let guard = WatchdogGuard::disable()?;
 
-        Ok(Self { guard: Some(guard) })
+        Ok(Self {
+            _guard: Some(guard),
+        })
     }
 
     /// Mark progress (extend timeout if needed)
