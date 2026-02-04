@@ -11,8 +11,6 @@
 //! - DHCP integration
 //! - Network configuration
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
