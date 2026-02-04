@@ -618,9 +618,8 @@ impl<T> SpinMutex<T> {
                 core::hint::spin_loop();
                 spins = spins.saturating_add(1);
                 if spins > 1000 {
-                    // Yield to other threads after many spins
-                    #[cfg(feature = "std")]
-                    std::thread::yield_now();
+                    // Yield in no_std kernel context - just spin more
+                    spins = 0;
                 }
             }
         }
