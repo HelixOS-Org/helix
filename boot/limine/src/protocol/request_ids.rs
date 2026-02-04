@@ -3,6 +3,9 @@
 //! This module contains the unique identifiers for each Limine request type.
 //! Each request type has a unique 4-element u64 array identifier.
 
+// These are protocol-defined magic values that must be exact
+#![allow(clippy::unreadable_literal)]
+
 use super::magic::make_request_id;
 
 // =============================================================================
