@@ -5,6 +5,12 @@
 //! - Kernel physical/virtual addresses
 //! - Boot modules
 
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::missing_fields_in_debug)]
+#![allow(clippy::needless_lifetimes)]
+
 use core::ffi::CStr;
 use core::{ptr, slice};
 
