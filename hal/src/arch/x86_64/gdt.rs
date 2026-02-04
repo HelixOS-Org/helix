@@ -294,10 +294,12 @@ struct InterruptStack {
 // SAFETY: InterruptStack is a simple byte array, safe to share
 unsafe impl Sync for InterruptStack {}
 
-static DOUBLE_FAULT_STACK: CpuStatic<InterruptStack> =
-    CpuStatic::new(InterruptStack { _data: [0; INTERRUPT_STACK_SIZE] });
-static PAGE_FAULT_STACK: CpuStatic<InterruptStack> =
-    CpuStatic::new(InterruptStack { _data: [0; INTERRUPT_STACK_SIZE] });
+static DOUBLE_FAULT_STACK: CpuStatic<InterruptStack> = CpuStatic::new(InterruptStack {
+    _data: [0; INTERRUPT_STACK_SIZE],
+});
+static PAGE_FAULT_STACK: CpuStatic<InterruptStack> = CpuStatic::new(InterruptStack {
+    _data: [0; INTERRUPT_STACK_SIZE],
+});
 
 // =============================================================================
 // Initialization
@@ -312,8 +314,9 @@ struct KernelRing0Stack {
 // SAFETY: KernelRing0Stack is a simple byte array, safe to share
 unsafe impl Sync for KernelRing0Stack {}
 
-static KERNEL_RING0_STACK: CpuStatic<KernelRing0Stack> =
-    CpuStatic::new(KernelRing0Stack { _data: [0; 32 * 1024] });
+static KERNEL_RING0_STACK: CpuStatic<KernelRing0Stack> = CpuStatic::new(KernelRing0Stack {
+    _data: [0; 32 * 1024],
+});
 
 /// Initialize the GDT and TSS
 ///
