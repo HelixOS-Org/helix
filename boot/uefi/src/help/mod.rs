@@ -11,8 +11,6 @@
 //! - Interactive help browser
 //! - Quick tips and hints
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
