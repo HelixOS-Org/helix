@@ -112,7 +112,7 @@ pub const BLOCK_MASK: u64 = (BLOCK_SIZE - 1) as u64;
 /// Maximum filename length
 pub const MAX_NAME_LEN: usize = 255;
 
-/// Maximum path length  
+/// Maximum path length
 pub const MAX_PATH_LEN: usize = 4096;
 
 /// Maximum file size (16 EB theoretical, limited by extent tree depth)
