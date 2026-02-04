@@ -19,6 +19,7 @@ use core::{slice, str};
 
 /// Represents a file loaded by the bootloader
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 pub struct File {
     /// Virtual address of file contents
     address: u64,
@@ -465,11 +466,13 @@ impl PathBuf {
         }
 
         // Add separator if needed
-        if self.len > 0 && !self.buffer[self.len - 1] == b'/' && !component.starts_with('/') {
-            if self.remaining() > 0 {
-                self.buffer[self.len] = b'/';
-                self.len += 1;
-            }
+        if self.len > 0
+            && self.buffer[self.len - 1] != b'/'
+            && !component.starts_with('/')
+            && self.remaining() > 0
+        {
+            self.buffer[self.len] = b'/';
+            self.len += 1;
         }
 
         // Copy component
@@ -559,7 +562,7 @@ impl FileType {
         // Mach-O (32 and 64 bit, both endians)
         if data.len() >= 4 {
             let magic = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-            if matches!(magic, 0xfeedface | 0xfeedfacf | 0xcefaedfe | 0xcffaedfe) {
+            if matches!(magic, 0xfeed_face | 0xfeed_facf | 0xcefa_edfe | 0xcffa_edfe) {
                 return Self::MachO;
             }
         }
@@ -588,7 +591,7 @@ impl FileType {
         // Device Tree Blob
         if data.len() >= 4 {
             let dtb_magic = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
-            if dtb_magic == 0xd00dfeed {
+            if dtb_magic == 0xd00d_feed {
                 return Self::DeviceTree;
             }
         }
