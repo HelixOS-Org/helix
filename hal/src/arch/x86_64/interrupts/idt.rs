@@ -181,10 +181,53 @@ impl core::ops::IndexMut<u8> for Idt {
 // Static IDT
 // =============================================================================
 
+use core::cell::UnsafeCell;
+
+/// Wrapper for CPU-local static data that requires interior mutability.
+///
+/// # Safety
+///
+/// This type is only safe to use for data that is:
+/// 1. Initialized once during boot before other CPUs start
+/// 2. Only accessed by a single CPU at a time (per-CPU data)
+/// 3. Or protected by external synchronization
+struct CpuStatic<T>(UnsafeCell<T>);
+
+impl<T> CpuStatic<T> {
+    /// Create a new CpuStatic with the given value.
+    const fn new(value: T) -> Self {
+        Self(UnsafeCell::new(value))
+    }
+
+    /// Get a reference to the inner value.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure no mutable references exist.
+    unsafe fn get(&self) -> &T {
+        unsafe { &*self.0.get() }
+    }
+
+    /// Get a mutable reference to the inner value.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure exclusive access.
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn get_mut(&self) -> &mut T {
+        unsafe { &mut *self.0.get() }
+    }
+}
+
+// SAFETY: IDT is initialized during boot and accessed per-CPU.
+// Each CPU loads its own view, and modifications are synchronized
+// by the boot sequence (single-threaded until APs are started).
+unsafe impl<T> Sync for CpuStatic<T> {}
+
 /// The global IDT instance
 ///
 /// This is shared across all CPUs.
-static mut IDT: Idt = Idt::new();
+static IDT: CpuStatic<Idt> = CpuStatic::new(Idt::new());
 
 /// Get a reference to the global IDT
 ///
@@ -192,7 +235,7 @@ static mut IDT: Idt = Idt::new();
 ///
 /// The caller must ensure exclusive access if modifying.
 pub unsafe fn get_idt() -> &'static Idt {
-    unsafe { &IDT }
+    unsafe { IDT.get() }
 }
 
 /// Get a mutable reference to the global IDT
@@ -201,7 +244,7 @@ pub unsafe fn get_idt() -> &'static Idt {
 ///
 /// The caller must ensure exclusive access.
 pub unsafe fn get_idt_mut() -> &'static mut Idt {
-    unsafe { &mut IDT }
+    unsafe { IDT.get_mut() }
 }
 
 // =============================================================================
