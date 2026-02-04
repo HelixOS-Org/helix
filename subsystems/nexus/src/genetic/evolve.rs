@@ -725,14 +725,19 @@ fn shuffle<T>(slice: &mut [T]) {
 // RANDOM HELPERS
 // ============================================================================
 
-static mut EVOLVE_SEED: u64 = 46802;
+use core::sync::atomic::{AtomicU64, Ordering};
+
+static EVOLVE_SEED: AtomicU64 = AtomicU64::new(46802);
 
 fn rand_u64() -> u64 {
-    unsafe {
-        EVOLVE_SEED = EVOLVE_SEED
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1);
-        EVOLVE_SEED
+    let mut current = EVOLVE_SEED.load(Ordering::Relaxed);
+    loop {
+        let next = current.wrapping_mul(6364136223846793005).wrapping_add(1);
+        match EVOLVE_SEED.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed)
+        {
+            Ok(_) => return next,
+            Err(x) => current = x,
+        }
     }
 }
 
