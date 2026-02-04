@@ -655,7 +655,7 @@ impl RuntimeServices {
     pub fn update_capsule(
         &self,
         _capsules: &[&CapsuleHeader],
-        scatter_gather_list: usize,
+        _scatter_gather_list: usize,
     ) -> Result<(), RuntimeError> {
         // Would call runtime_services.update_capsule
         Ok(())
@@ -664,7 +664,7 @@ impl RuntimeServices {
     /// Query capsule capabilities
     pub fn query_capsule_capabilities(
         &self,
-        capsules: &[&CapsuleHeader],
+        _capsules: &[&CapsuleHeader],
     ) -> Result<CapsuleCapabilities, RuntimeError> {
         // Would call runtime_services.query_capsule_capabilities
         Ok(CapsuleCapabilities {
@@ -676,9 +676,9 @@ impl RuntimeServices {
     /// Set virtual address map
     pub fn set_virtual_address_map(
         &mut self,
-        memory_map: &[MemoryDescriptor],
-        descriptor_size: usize,
-        descriptor_version: u32,
+        _memory_map: &[MemoryDescriptor],
+        _descriptor_size: usize,
+        _descriptor_version: u32,
     ) -> Result<(), RuntimeError> {
         // Would call runtime_services.set_virtual_address_map
         self.virtual_mode = true;
@@ -688,8 +688,8 @@ impl RuntimeServices {
     /// Convert pointer
     pub fn convert_pointer(
         &self,
-        debug_disposition: u32,
-        address: &mut usize,
+        _debug_disposition: u32,
+        _address: &mut usize,
     ) -> Result<(), RuntimeError> {
         // Would call runtime_services.convert_pointer
         Ok(())
