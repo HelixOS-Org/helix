@@ -264,10 +264,9 @@ pub mod reason;
 /// Long-term memory - episodic, semantic, and procedural memory
 pub mod ltm;
 
-/// Continuous learning engine - adaptive learning from feedback
-pub mod learn;
-
 /// Advanced learning algorithms - reinforcement, online, meta, transfer, curriculum
+/// Also includes: feedback loops, hypothesis testing, safe learning, regression detection
+/// (Unified from learn/ and learning/ modules)
 pub mod learning;
 
 /// Goal-directed planning - hierarchical, temporal, reactive planning
@@ -286,14 +285,25 @@ pub mod neural;
 // YEAR 3 - EVOLUTION: SELF-EVOLUTION & GENETIC ALGORITHMS
 // ============================================================================
 
+// DANGER: The following modules can modify the kernel at runtime.
+// They are exposed through the sandbox module with safety controls.
+// Direct usage should be avoided in production.
+
 /// Code generation engine - synthesize, verify, and optimize kernel code
+/// WARNING: Can generate and execute arbitrary code
 pub mod codegen;
 
 /// Genetic algorithm engine - evolutionary optimization
+/// WARNING: Can evolve system parameters
 pub mod genetic;
 
 /// Self-modification engine - runtime kernel evolution
+/// WARNING: Can modify running kernel code
 pub mod selfmod;
+
+/// Sandbox for dangerous Year 3 modules with safety controls
+/// Use this instead of direct access to codegen/genetic/selfmod
+pub mod sandbox;
 
 /// Distributed evolution - federated learning across nodes
 pub mod distributed;
