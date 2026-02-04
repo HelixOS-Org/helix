@@ -60,7 +60,7 @@ impl FileMeta {
 
         // Update hot status
         self.is_hot = self.access_count > 100
-            && self.last_access.duration_since(self.created) < 3600_000_000_000;
+            && self.last_access.duration_since(self.created) < 3_600_000_000_000;
     }
 
     /// Get access rate (accesses per hour)
@@ -69,13 +69,13 @@ impl FileMeta {
         if age == 0 {
             0.0
         } else {
-            self.access_count as f64 * 3600_000_000_000.0 / age as f64
+            self.access_count as f64 * 3_600_000_000_000.0 / age as f64
         }
     }
 
     /// Is file cold (rarely accessed)?
     pub fn is_cold(&self) -> bool {
         let idle = NexusTimestamp::now().duration_since(self.last_access);
-        idle > 86400_000_000_000 && self.access_count < 10 // 24 hours
+        idle > 86_400_000_000_000 && self.access_count < 10 // 24 hours
     }
 }
