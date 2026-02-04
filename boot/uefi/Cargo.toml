@@ -97,16 +97,8 @@ full = [
     "debug_output",
 ]
 
-[profile.dev]
-panic = "abort"
-opt-level = 1
-
-[profile.release]
-panic = "abort"
-lto = true
-opt-level = "z"
-codegen-units = 1
-strip = true
+# NOTE: Profile configurations moved to workspace root Cargo.toml
+# Profiles defined here are ignored when building as part of the workspace
 
 [package.metadata.docs.rs]
 all-features = true
