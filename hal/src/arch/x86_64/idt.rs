@@ -205,8 +205,42 @@ impl Idt {
 // Global IDT
 // =============================================================================
 
-/// Static IDT
-static mut IDT: Idt = Idt::new();
+use core::cell::UnsafeCell;
+
+/// Wrapper for CPU-referenced static data.
+///
+/// This provides interior mutability for data that is only accessed from a single
+/// CPU during initialization. After initialization, access is read-only.
+#[repr(transparent)]
+struct CpuStatic<T>(UnsafeCell<T>);
+
+impl<T> CpuStatic<T> {
+    /// Create a new CpuStatic wrapper.
+    const fn new(value: T) -> Self {
+        Self(UnsafeCell::new(value))
+    }
+
+    /// Get a mutable reference.
+    ///
+    /// # Safety
+    /// Caller must ensure exclusive access (e.g., during single-CPU init).
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn as_mut(&self) -> &mut T {
+        unsafe { &mut *self.0.get() }
+    }
+
+    /// Get the raw pointer (for logging).
+    fn as_ptr(&self) -> *const T {
+        self.0.get()
+    }
+}
+
+// SAFETY: IDT is only mutated during single-CPU initialization.
+// After init, it is only read through the CPU's IDTR.
+unsafe impl<T: Sync> Sync for CpuStatic<T> {}
+
+/// Static IDT wrapped for safe access
+static IDT: CpuStatic<Idt> = CpuStatic::new(Idt::new());
 
 /// Exception vector numbers
 pub mod vectors {
@@ -252,123 +286,125 @@ pub mod vectors {
 pub unsafe fn init() {
     use super::exceptions;
 
-    unsafe {
-        // CPU Exceptions
-        IDT.set_handler(
-            vectors::DIVISION_ERROR,
-            exceptions::division_error_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    // SAFETY: Single-CPU initialization, exclusive access guaranteed by boot sequence.
+    let idt = unsafe { IDT.as_mut() };
 
-        IDT.set_handler(
-            vectors::DEBUG,
-            exceptions::debug_handler as u64,
-            IdtEntryOptions::trap(),
-        );
+    // CPU Exceptions
+    idt.set_handler(
+        vectors::DIVISION_ERROR,
+        exceptions::division_error_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::NMI,
-            exceptions::nmi_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::DEBUG,
+        exceptions::debug_handler as u64,
+        IdtEntryOptions::trap(),
+    );
 
-        IDT.set_handler(
-            vectors::BREAKPOINT,
-            exceptions::breakpoint_handler as u64,
-            IdtEntryOptions::trap(),
-        );
+    idt.set_handler(
+        vectors::NMI,
+        exceptions::nmi_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::OVERFLOW,
-            exceptions::overflow_handler as u64,
-            IdtEntryOptions::trap(),
-        );
+    idt.set_handler(
+        vectors::BREAKPOINT,
+        exceptions::breakpoint_handler as u64,
+        IdtEntryOptions::trap(),
+    );
 
-        IDT.set_handler(
-            vectors::BOUND_RANGE,
-            exceptions::bound_range_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::OVERFLOW,
+        exceptions::overflow_handler as u64,
+        IdtEntryOptions::trap(),
+    );
 
-        IDT.set_handler(
-            vectors::INVALID_OPCODE,
-            exceptions::invalid_opcode_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::BOUND_RANGE,
+        exceptions::bound_range_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::DEVICE_NOT_AVAILABLE,
-            exceptions::device_not_available_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::INVALID_OPCODE,
+        exceptions::invalid_opcode_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        // Double fault uses IST1 for safety
-        IDT.set_handler(
-            vectors::DOUBLE_FAULT,
-            exceptions::double_fault_handler as u64,
-            IdtEntryOptions::interrupt_with_ist(1),
-        );
+    idt.set_handler(
+        vectors::DEVICE_NOT_AVAILABLE,
+        exceptions::device_not_available_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::INVALID_TSS,
-            exceptions::invalid_tss_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    // Double fault uses IST1 for safety
+    idt.set_handler(
+        vectors::DOUBLE_FAULT,
+        exceptions::double_fault_handler as u64,
+        IdtEntryOptions::interrupt_with_ist(1),
+    );
 
-        IDT.set_handler(
-            vectors::SEGMENT_NOT_PRESENT,
-            exceptions::segment_not_present_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::INVALID_TSS,
+        exceptions::invalid_tss_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::STACK_SEGMENT,
-            exceptions::stack_segment_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::SEGMENT_NOT_PRESENT,
+        exceptions::segment_not_present_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::GENERAL_PROTECTION,
-            exceptions::general_protection_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::STACK_SEGMENT,
+        exceptions::stack_segment_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        // Page fault uses IST2 for safety
-        IDT.set_handler(
-            vectors::PAGE_FAULT,
-            exceptions::page_fault_handler as u64,
-            IdtEntryOptions::interrupt_with_ist(2),
-        );
+    idt.set_handler(
+        vectors::GENERAL_PROTECTION,
+        exceptions::general_protection_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::X87_FLOATING_POINT,
-            exceptions::x87_floating_point_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    // Page fault uses IST2 for safety
+    idt.set_handler(
+        vectors::PAGE_FAULT,
+        exceptions::page_fault_handler as u64,
+        IdtEntryOptions::interrupt_with_ist(2),
+    );
 
-        IDT.set_handler(
-            vectors::ALIGNMENT_CHECK,
-            exceptions::alignment_check_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::X87_FLOATING_POINT,
+        exceptions::x87_floating_point_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::MACHINE_CHECK,
-            exceptions::machine_check_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::ALIGNMENT_CHECK,
+        exceptions::alignment_check_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        IDT.set_handler(
-            vectors::SIMD_FLOATING_POINT,
-            exceptions::simd_floating_point_handler as u64,
-            IdtEntryOptions::interrupt(),
-        );
+    idt.set_handler(
+        vectors::MACHINE_CHECK,
+        exceptions::machine_check_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        // Load the IDT
-        IDT.load();
+    idt.set_handler(
+        vectors::SIMD_FLOATING_POINT,
+        exceptions::simd_floating_point_handler as u64,
+        IdtEntryOptions::interrupt(),
+    );
 
-        log::debug!("IDT initialized at {:p}", &raw const IDT);
-    }
+    // Load the IDT
+    // SAFETY: We are in the init function, which is already marked unsafe.
+    unsafe { idt.load() };
+
+    log::debug!("IDT initialized at {:p}", IDT.as_ptr());
 }
 
 /// Register a handler for an interrupt vector
@@ -377,9 +413,9 @@ pub unsafe fn init() {
 /// The handler must be a valid function pointer that follows the x86_64 interrupt
 /// calling convention.
 pub unsafe fn set_handler(vector: u8, handler: u64, options: IdtEntryOptions) {
-    unsafe {
-        IDT.set_handler(vector, handler, options);
-    }
+    // SAFETY: Caller guarantees exclusive access context.
+    let idt = unsafe { IDT.as_mut() };
+    idt.set_handler(vector, handler, options);
 }
 
 /// Reload the IDT (after modifying handlers)
@@ -387,7 +423,8 @@ pub unsafe fn set_handler(vector: u8, handler: u64, options: IdtEntryOptions) {
 /// # Safety
 /// The IDT must still be valid.
 pub unsafe fn reload() {
-    unsafe {
-        IDT.load();
-    }
+    // SAFETY: Caller guarantees the IDT is valid.
+    let idt = unsafe { IDT.as_mut() };
+    // SAFETY: Function is marked unsafe, caller ensures IDT validity.
+    unsafe { idt.load() };
 }
