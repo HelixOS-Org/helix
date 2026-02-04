@@ -231,7 +231,8 @@ impl Timeline {
 
     /// Get actions at current time
     pub fn current_actions(&self) -> Vec<&ScheduledAction> {
-        self.actions.iter()
+        self.actions
+            .iter()
             .filter(|a| a.start <= self.current_time && self.current_time < a.end)
             .collect()
     }
@@ -322,8 +323,8 @@ impl TemporalPlanner {
             self.action_starts.get(&after),
         ) {
             let duration = self.action_durations.get(&before).copied().unwrap_or(1);
-            let constraint = TemporalConstraint::before(tp1, tp2)
-                .with_distance(duration, TimeValue::MAX);
+            let constraint =
+                TemporalConstraint::before(tp1, tp2).with_distance(duration, TimeValue::MAX);
             self.add_constraint(constraint);
         }
     }
@@ -348,15 +349,15 @@ impl TemporalPlanner {
                 ConstraintType::Before => {
                     // to - from >= min_distance
                     edges.push((constraint.from, constraint.to, constraint.min_distance));
-                }
+                },
                 ConstraintType::After => {
                     // from - to >= min_distance
                     edges.push((constraint.to, constraint.from, constraint.min_distance));
-                }
+                },
                 ConstraintType::Duration => {
                     // Already encoded in action durations
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -410,7 +411,8 @@ impl TemporalPlanner {
 
     /// Get action start time
     pub fn get_start_time(&self, action: ActionId) -> Option<TimeValue> {
-        self.action_starts.get(&action)
+        self.action_starts
+            .get(&action)
             .and_then(|tp| self.time_points.get(tp))
             .copied()
     }
@@ -486,8 +488,7 @@ mod tests {
 
     #[test]
     fn test_temporal_constraint() {
-        let c = TemporalConstraint::before(TimePoint(0), TimePoint(1))
-            .with_distance(5, 10);
+        let c = TemporalConstraint::before(TimePoint(0), TimePoint(1)).with_distance(5, 10);
 
         assert_eq!(c.min_distance, 5);
         assert_eq!(c.max_distance, 10);
