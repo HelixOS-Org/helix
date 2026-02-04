@@ -1002,7 +1002,7 @@ pub const BOOT_QUICK_REF: QuickReference = QuickReference {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
