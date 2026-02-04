@@ -1121,7 +1121,7 @@ pub fn path_join<const N: usize>(base: &str, component: &str) -> StringBuilder<N
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
