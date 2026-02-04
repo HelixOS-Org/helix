@@ -5,11 +5,10 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 
-use crate::types::{NexusError, NexusResult};
-
 use super::game::{Game, StrategyProfile};
 use super::strategy::MixedStrategy;
 use super::types::{PlayerId, StrategyId, Utility};
+use crate::types::{NexusError, NexusResult};
 
 /// Nash equilibrium solver
 pub struct NashSolver {
