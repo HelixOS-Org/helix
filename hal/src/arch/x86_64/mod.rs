@@ -101,7 +101,7 @@ use crate::HalResult;
 
 /// x86_64 HAL Implementation
 pub struct X86_64Hal {
-    cpu: cpu::X86_64Cpu,
+    _cpu: cpu::X86_64Cpu,
     // mmu: X86_64Mmu,
     // interrupts: X86_64InterruptController,
     // firmware: X86_64Firmware,
@@ -124,7 +124,7 @@ impl X86_64Hal {
         }
 
         Ok(Self {
-            cpu: cpu::X86_64Cpu::new(),
+            _cpu: cpu::X86_64Cpu::new(),
         })
     }
 }
