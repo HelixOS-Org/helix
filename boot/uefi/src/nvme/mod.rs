@@ -29,8 +29,6 @@
 //! - Power state management
 //! - Health monitoring (SMART)
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
