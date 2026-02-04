@@ -218,7 +218,7 @@ pub struct FramebufferInfo {
 
 impl FramebufferInfo {
     /// Calculate framebuffer size from dimensions
-    pub fn calculate_size(width: u32, height: u32, stride: u32) -> u64 {
+    pub fn calculate_size(_width: u32, height: u32, stride: u32) -> u64 {
         (height as u64) * (stride as u64)
     }
 
