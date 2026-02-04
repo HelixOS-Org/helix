@@ -428,7 +428,6 @@ pub fn pbkdf2_sha256(
 
     for block_idx in 0..block_count {
         let mut u = [0u8; 32];
-        let mut result = [0u8; 32];
 
         // First iteration: HMAC(password, salt || block_num)
         let mut msg = [0u8; 128];
@@ -437,7 +436,7 @@ pub fn pbkdf2_sha256(
         msg[salt_len..salt_len + 4].copy_from_slice(&(block_idx as u32 + 1).to_be_bytes());
 
         hmac.compute(&msg[..salt_len + 4], &mut u);
-        result = u;
+        let mut result = u;
 
         // Remaining iterations
         for _ in 1..iterations {
