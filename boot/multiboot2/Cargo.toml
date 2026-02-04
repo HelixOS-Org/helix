@@ -34,6 +34,8 @@ full = ["framebuffer", "elf_sections", "acpi"]
 header_gen = []
 # Debug assertions for development
 debug_validation = []
+# Standard library (enables tests)
+std = []
 
 [dependencies]
 # No dependencies - pure no_std implementation
