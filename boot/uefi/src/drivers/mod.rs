@@ -1052,7 +1052,7 @@ impl fmt::Display for DriverError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
