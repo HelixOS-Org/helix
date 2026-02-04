@@ -12,10 +12,11 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use crate::math::F64Ext;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+
+use crate::math::F64Ext;
 
 // ============================================================================
 // DOMAIN TYPES
