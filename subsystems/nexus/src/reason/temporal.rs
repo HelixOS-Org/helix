@@ -8,10 +8,9 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::vec;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -262,8 +261,9 @@ impl TemporalReasoner {
         }
 
         // Equals
-        if (a.start.0 as i64 - b.start.0 as i64).unsigned_abs() <= tol &&
-           (a.end.0 as i64 - b.end.0 as i64).unsigned_abs() <= tol {
+        if (a.start.0 as i64 - b.start.0 as i64).unsigned_abs() <= tol
+            && (a.end.0 as i64 - b.end.0 as i64).unsigned_abs() <= tol
+        {
             return IntervalRelation::Equals;
         }
 
@@ -334,7 +334,8 @@ impl TemporalReasoner {
     pub fn check_constraints(&mut self) -> Vec<(u64, bool)> {
         self.stats.constraints_checked += self.constraints.len() as u64;
 
-        self.constraints.iter()
+        self.constraints
+            .iter()
             .filter_map(|c| {
                 let rel = self.relation(c.event_a, c.event_b)?;
                 Some((c.id, c.relations.contains(&rel)))
@@ -431,31 +432,33 @@ impl TemporalReasoner {
 
     /// Query before
     pub fn before(&self, time: TimePoint) -> Vec<&TemporalEvent> {
-        self.events.values()
+        self.events
+            .values()
             .filter(|e| e.interval.end.0 < time.0)
             .collect()
     }
 
     /// Query after
     pub fn after(&self, time: TimePoint) -> Vec<&TemporalEvent> {
-        self.events.values()
+        self.events
+            .values()
             .filter(|e| e.interval.start.0 > time.0)
             .collect()
     }
 
     /// Query between
     pub fn between(&self, start: TimePoint, end: TimePoint) -> Vec<&TemporalEvent> {
-        self.events.values()
+        self.events
+            .values()
             .filter(|e| e.interval.start.0 >= start.0 && e.interval.end.0 <= end.0)
             .collect()
     }
 
     /// Query overlapping
     pub fn overlapping(&self, interval: TimeInterval) -> Vec<&TemporalEvent> {
-        self.events.values()
-            .filter(|e| {
-                e.interval.start.0 < interval.end.0 && e.interval.end.0 > interval.start.0
-            })
+        self.events
+            .values()
+            .filter(|e| e.interval.start.0 < interval.end.0 && e.interval.end.0 > interval.start.0)
             .collect()
     }
 
@@ -543,9 +546,18 @@ mod tests {
         reasoner.add_event("end", TimePoint(20), TimePoint(25), BTreeMap::new());
 
         let pattern_id = reasoner.add_pattern("sequence", vec![
-            PatternEvent { name_pattern: "start".into(), properties: BTreeMap::new() },
-            PatternEvent { name_pattern: "middle".into(), properties: BTreeMap::new() },
-            PatternEvent { name_pattern: "end".into(), properties: BTreeMap::new() },
+            PatternEvent {
+                name_pattern: "start".into(),
+                properties: BTreeMap::new(),
+            },
+            PatternEvent {
+                name_pattern: "middle".into(),
+                properties: BTreeMap::new(),
+            },
+            PatternEvent {
+                name_pattern: "end".into(),
+                properties: BTreeMap::new(),
+            },
         ]);
 
         let matches = reasoner.find_pattern(pattern_id);
