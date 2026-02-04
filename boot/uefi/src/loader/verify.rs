@@ -49,7 +49,7 @@ impl ImageVerifier {
     }
 
     /// Verify image
-    pub fn verify_image(&mut self, image: &LoadedImage) -> Result<VerificationResult> {
+    pub fn verify_image(&mut self, _image: &LoadedImage) -> Result<VerificationResult> {
         let result = VerificationResult {
             hash_valid: true,
             signature_valid: false,
