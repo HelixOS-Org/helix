@@ -1572,7 +1572,7 @@ pub const fn next_power_of_2(mut n: u16) -> u16 {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
