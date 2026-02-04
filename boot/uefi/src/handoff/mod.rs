@@ -466,7 +466,7 @@ pub const BOOT_INFO_VERSION: u32 = 1;
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
