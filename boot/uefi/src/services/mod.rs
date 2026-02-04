@@ -413,6 +413,7 @@ pub unsafe fn reset_system(reset_type: ResetType, status: Status, data: Option<&
     (rs.reset_system)(reset_type, status, data_size, data_ptr);
 
     // Should never return, but just in case
+    #[allow(unreachable_code)]
     loop {
         core::hint::spin_loop();
     }
