@@ -121,8 +121,8 @@ impl Sequential {
     }
 
     /// Get mutable layer by index
-    pub fn layer_mut(&mut self, index: usize) -> Option<&mut dyn Layer> {
-        self.layers.get_mut(index).map(|l| l.as_mut())
+    pub fn layer_mut(&mut self, index: usize) -> Option<&mut (dyn Layer + 'static)> {
+        self.layers.get_mut(index).map(|l| &mut **l)
     }
 }
 
