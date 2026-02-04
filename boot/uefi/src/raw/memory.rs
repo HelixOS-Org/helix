@@ -874,7 +874,7 @@ fn format_u64(mut value: u64, buf: &mut [u8]) -> usize {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
