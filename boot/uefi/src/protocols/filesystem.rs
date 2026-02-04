@@ -450,7 +450,7 @@ impl File {
     }
 
     /// Set file info
-    pub fn set_info(&mut self, info: &FileInfo) -> Result<()> {
+    pub fn set_info(&mut self, _info: &FileInfo) -> Result<()> {
         // TODO: Implement set_info
         Ok(())
     }
