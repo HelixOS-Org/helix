@@ -596,12 +596,16 @@ impl GeneticEngine {
 // RANDOM HELPERS (simplified for no_std)
 // ============================================================================
 
-static mut SEED: u64 = 12345;
+static SEED: AtomicU64 = AtomicU64::new(12345);
 
 fn rand_u64() -> u64 {
-    unsafe {
-        SEED = SEED.wrapping_mul(6364136223846793005).wrapping_add(1);
-        SEED
+    let mut current = SEED.load(Ordering::Relaxed);
+    loop {
+        let next = current.wrapping_mul(6364136223846793005).wrapping_add(1);
+        match SEED.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed) {
+            Ok(_) => return next,
+            Err(x) => current = x,
+        }
     }
 }
 
