@@ -1307,7 +1307,7 @@ impl fmt::Display for InputError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
