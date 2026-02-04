@@ -444,7 +444,8 @@ impl ConceptHierarchy {
         }
 
         // Compute depths
-        for &root in &hierarchy.roots {
+        let roots: Vec<ConceptId> = hierarchy.roots.clone();
+        for root in roots {
             hierarchy.compute_depths(root, 0);
         }
 
