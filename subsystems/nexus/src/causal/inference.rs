@@ -282,7 +282,7 @@ impl CausalGraph {
 
         let mut queue: Vec<u32> = in_degree
             .iter()
-            .filter(|(_, &d)| d == 0)
+            .filter(|&(_, &d)| d == 0)
             .map(|(&id, _)| id)
             .collect();
 
@@ -365,7 +365,7 @@ impl StructuralEquation {
         self.parents
             .iter()
             .zip(self.coefficients.iter())
-            .find(|(&p, _)| p == parent)
+            .find(|&(&p, _)| p == parent)
             .map(|(_, &c)| c)
             .unwrap_or(0.0)
     }
@@ -1388,7 +1388,7 @@ impl KernelCausalManager {
             let event_type = self
                 .event_nodes
                 .iter()
-                .find(|(_, &n)| n == *node_id)
+                .find(|&(_, &n)| n == *node_id)
                 .map(|(e, _)| *e)
                 .unwrap_or(KernelCausalEvent::Syscall);
 
@@ -1449,7 +1449,7 @@ impl KernelCausalManager {
         let event = self
             .event_nodes
             .iter()
-            .find(|(_, &n)| n == parent)
+            .find(|&(_, &n)| n == parent)
             .map(|(e, _)| *e)?;
 
         Some((event, best_effect))
