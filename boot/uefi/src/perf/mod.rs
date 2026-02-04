@@ -12,8 +12,6 @@
 //! - Boot time analysis
 //! - Performance reporting
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
