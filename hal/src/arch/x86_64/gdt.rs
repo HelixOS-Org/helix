@@ -234,18 +234,68 @@ impl Gdt {
 // Global State
 // =============================================================================
 
+// NOTE: GDT, TSS, and interrupt stacks MUST be static because the CPU holds
+// direct references to them. We use a wrapper type to make access safer
+// and to document the safety requirements.
+
+use core::cell::UnsafeCell;
+
+/// Wrapper for CPU-referenced static data that must remain at a fixed address.
+///
+/// # Safety
+/// This type allows mutable access to static data. The caller must ensure:
+/// 1. Initialization happens before any concurrent access (single-threaded boot)
+/// 2. After initialization, only safe accessor functions are used
+/// 3. The data is never moved or deallocated while the CPU references it
+#[repr(transparent)]
+struct CpuStatic<T>(UnsafeCell<T>);
+
+// SAFETY: CpuStatic is only used for CPU-local data structures (GDT, TSS, stacks)
+// that are initialized once during single-threaded boot and then only read by the CPU.
+// Writes after initialization only happen through controlled unsafe functions.
+unsafe impl<T: Sync> Sync for CpuStatic<T> {}
+
+impl<T> CpuStatic<T> {
+    const fn new(value: T) -> Self {
+        Self(UnsafeCell::new(value))
+    }
+
+    /// Get a pointer to the inner value.
+    ///
+    /// # Safety
+    /// Caller must ensure no mutable references exist.
+    const fn as_ptr(&self) -> *const T {
+        self.0.get()
+    }
+
+    /// Get a mutable pointer to the inner value.
+    ///
+    /// # Safety
+    /// Caller must ensure exclusive access (e.g., during single-threaded boot).
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn as_mut(&self) -> &mut T {
+        // SAFETY: Caller guarantees exclusive access
+        unsafe { &mut *self.0.get() }
+    }
+}
+
 /// Static GDT - must be static because CPU references it
-static mut GDT: Gdt = Gdt::new();
+static GDT: CpuStatic<Gdt> = CpuStatic::new(Gdt::new());
 
 /// Static TSS
-static mut TSS: TaskStateSegment = TaskStateSegment::new();
+static TSS: CpuStatic<TaskStateSegment> = CpuStatic::new(TaskStateSegment::new());
 
 /// Interrupt stack for double faults (IST1)
 #[repr(align(16))]
 struct InterruptStack([u8; INTERRUPT_STACK_SIZE]);
 
-static mut DOUBLE_FAULT_STACK: InterruptStack = InterruptStack([0; INTERRUPT_STACK_SIZE]);
-static mut PAGE_FAULT_STACK: InterruptStack = InterruptStack([0; INTERRUPT_STACK_SIZE]);
+// SAFETY: InterruptStack is a simple byte array, safe to share
+unsafe impl Sync for InterruptStack {}
+
+static DOUBLE_FAULT_STACK: CpuStatic<InterruptStack> =
+    CpuStatic::new(InterruptStack([0; INTERRUPT_STACK_SIZE]));
+static PAGE_FAULT_STACK: CpuStatic<InterruptStack> =
+    CpuStatic::new(InterruptStack([0; INTERRUPT_STACK_SIZE]));
 
 // =============================================================================
 // Initialization
@@ -255,31 +305,39 @@ static mut PAGE_FAULT_STACK: InterruptStack = InterruptStack([0; INTERRUPT_STACK
 #[repr(align(16))]
 struct KernelRing0Stack([u8; 32 * 1024]); // 32KB kernel stack
 
-static mut KERNEL_RING0_STACK: KernelRing0Stack = KernelRing0Stack([0; 32 * 1024]);
+// SAFETY: KernelRing0Stack is a simple byte array, safe to share
+unsafe impl Sync for KernelRing0Stack {}
+
+static KERNEL_RING0_STACK: CpuStatic<KernelRing0Stack> =
+    CpuStatic::new(KernelRing0Stack([0; 32 * 1024]));
 
 /// Initialize the GDT and TSS
 ///
 /// # Safety
-/// Must be called only once during early boot.
+/// Must be called only once during early boot, in a single-threaded context.
 pub unsafe fn init() {
+    // SAFETY: We're in early boot, single-threaded. No other code accesses these yet.
     unsafe {
+        let tss = TSS.as_mut();
+        let gdt = GDT.as_mut();
+
         // Set up interrupt stacks in TSS
         let double_fault_stack_end =
-            DOUBLE_FAULT_STACK.0.as_ptr() as u64 + INTERRUPT_STACK_SIZE as u64;
-        let page_fault_stack_end = PAGE_FAULT_STACK.0.as_ptr() as u64 + INTERRUPT_STACK_SIZE as u64;
+            DOUBLE_FAULT_STACK.as_ptr() as u64 + INTERRUPT_STACK_SIZE as u64;
+        let page_fault_stack_end = PAGE_FAULT_STACK.as_ptr() as u64 + INTERRUPT_STACK_SIZE as u64;
 
-        TSS.interrupt_stack_table[0] = double_fault_stack_end; // IST1 for double fault
-        TSS.interrupt_stack_table[1] = page_fault_stack_end; // IST2 for page fault
+        tss.interrupt_stack_table[0] = double_fault_stack_end; // IST1 for double fault
+        tss.interrupt_stack_table[1] = page_fault_stack_end; // IST2 for page fault
 
         // Set RSP0 - the kernel stack used when transitioning from Ring 3 to Ring 0
-        let kernel_stack_top = KERNEL_RING0_STACK.0.as_ptr() as u64 + 32 * 1024;
-        TSS.privilege_stack_table[0] = kernel_stack_top; // RSP0
+        let kernel_stack_top = KERNEL_RING0_STACK.as_ptr() as u64 + 32 * 1024;
+        tss.privilege_stack_table[0] = kernel_stack_top; // RSP0
 
         // Set the TSS in the GDT
-        GDT.set_tss(&TSS);
+        gdt.set_tss(&*TSS.as_ptr());
 
         // Load the GDT
-        let gdt_ptr = GDT.pointer();
+        let gdt_ptr = gdt.pointer();
         asm!(
             "lgdt [{}]",
             in(reg) &gdt_ptr,
@@ -317,7 +375,7 @@ pub unsafe fn init() {
             options(nostack, preserves_flags),
         );
 
-        log::debug!("GDT initialized at {:p}", &GDT);
+        log::debug!("GDT initialized at {:p}", GDT.as_ptr());
         log::debug!("TSS initialized with RSP0={:#x}", kernel_stack_top);
     }
 }
@@ -326,9 +384,11 @@ pub unsafe fn init() {
 ///
 /// # Safety
 /// Must be called with a valid kernel stack pointer.
+/// Must be called with interrupts disabled or from interrupt context.
 pub unsafe fn set_kernel_stack(stack_top: u64) {
+    // SAFETY: Caller ensures this is called safely (interrupts disabled or single-threaded)
     unsafe {
-        TSS.privilege_stack_table[0] = stack_top;
+        TSS.as_mut().privilege_stack_table[0] = stack_top;
     }
 }
 
