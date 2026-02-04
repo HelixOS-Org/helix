@@ -1001,7 +1001,7 @@ pub struct HubDescriptor {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
