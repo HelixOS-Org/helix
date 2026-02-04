@@ -927,7 +927,7 @@ pub unsafe fn device_path_last_node(
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
