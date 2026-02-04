@@ -1654,7 +1654,7 @@ pub const fn prp_entries_needed(offset: usize, length: usize, page_size: usize) 
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
