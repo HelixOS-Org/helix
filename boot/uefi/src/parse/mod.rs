@@ -14,8 +14,6 @@
 //! - UUID/GUID formatting
 //! - Configuration file parsing
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
