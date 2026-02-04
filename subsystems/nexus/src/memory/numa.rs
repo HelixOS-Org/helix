@@ -101,7 +101,7 @@ impl NumaAnalyzer {
         node_counts
             .iter()
             .enumerate()
-            .max_by_key(|(_, &c)| c)
+            .max_by_key(|&(_, &c)| c)
             .map(|(i, _)| i as u32)
             .unwrap_or(0)
     }
