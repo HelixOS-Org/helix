@@ -304,6 +304,8 @@ impl RuntimeServices {
 
         (self.rs().reset_system)(reset_type, status, data_size, data_ptr);
 
+        // Safety fallback - should never be reached as reset_system diverges
+        #[allow(unreachable_code)]
         loop {
             core::hint::spin_loop();
         }
