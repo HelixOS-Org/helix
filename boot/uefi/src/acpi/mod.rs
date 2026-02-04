@@ -1570,7 +1570,7 @@ impl fmt::Display for AcpiError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
