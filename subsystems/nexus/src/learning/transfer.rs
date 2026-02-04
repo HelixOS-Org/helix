@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use crate::math::F64Ext;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -345,6 +346,11 @@ pub struct KnowledgeTransfer {
 }
 
 impl KnowledgeTransfer {
+    /// Create new knowledge transfer with default settings
+    pub fn default_new() -> Self {
+        Self::new(Vec::new(), 0.5)
+    }
+
     /// Create new knowledge transfer
     pub fn new(source_weights: Vec<f64>, transfer_ratio: f64) -> Self {
         let target_weights = source_weights.clone();
@@ -383,6 +389,11 @@ impl KnowledgeTransfer {
     /// Set fine-tune learning rate
     pub fn set_finetune_lr(&mut self, lr: f64) {
         self.finetune_lr = lr;
+    }
+
+    /// Count the number of weights (for knowledge_items)
+    pub fn count(&self) -> usize {
+        self.target_weights.len()
     }
 }
 
