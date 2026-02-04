@@ -391,17 +391,16 @@ impl<T> TicketLock<T> {
         let next = self.next.load(Ordering::Relaxed);
         let serving = self.serving.load(Ordering::Relaxed);
 
-        if next == serving {
-            if self
+        if next == serving
+            && self
                 .next
                 .compare_exchange(next, next + 1, Ordering::Acquire, Ordering::Relaxed)
                 .is_ok()
-            {
-                return Some(TicketLockGuard {
-                    lock: self,
-                    _marker: PhantomData,
-                });
-            }
+        {
+            return Some(TicketLockGuard {
+                lock: self,
+                _marker: PhantomData,
+            });
         }
         None
     }
