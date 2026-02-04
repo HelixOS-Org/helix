@@ -161,16 +161,26 @@ impl<T: Clone> CacheLayer<T> {
 
     /// Get entry
     pub fn get(&mut self, key: &str) -> Option<&T> {
-        if let Some(entry) = self.entries.get_mut(key) {
-            // Check expiration
+        // Check expiration first without mutable borrow
+        let should_remove = if let Some(entry) = self.entries.get(key) {
             if let Some(expires) = entry.expires {
-                if Timestamp::now().0 > expires.0 {
-                    self.remove(key);
-                    self.stats.misses += 1;
-                    return None;
-                }
+                Timestamp::now().0 > expires.0
+            } else {
+                false
             }
+        } else {
+            self.stats.misses += 1;
+            return None;
+        };
 
+        if should_remove {
+            self.remove(key);
+            self.stats.misses += 1;
+            return None;
+        }
+
+        // Now do the update
+        if let Some(entry) = self.entries.get_mut(key) {
             entry.last_accessed = Timestamp::now();
             entry.access_count += 1;
             self.reference_bits.insert(key.into(), true);
