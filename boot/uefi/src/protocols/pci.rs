@@ -908,7 +908,7 @@ pub fn find_by_id(vendor_id: u16, device_id: Option<u16>) -> Result<Vec<PciDevic
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
