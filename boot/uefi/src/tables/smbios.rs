@@ -928,7 +928,7 @@ impl SmbiosParser {
 
     /// Parse system boot information
     unsafe fn parse_boot_info(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+        let _header = &*(ptr as *const SmbiosHeader);
         let data = ptr.add(4);
 
         // Skip reserved bytes
