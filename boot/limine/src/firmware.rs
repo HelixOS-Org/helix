@@ -88,6 +88,7 @@ impl AcpiSdtHeader {
 
 /// RSDT (Root System Description Table) - 32-bit addresses
 pub struct Rsdt {
+    #[allow(dead_code)]
     header: &'static AcpiSdtHeader,
     entries: &'static [u32],
 }
@@ -140,6 +141,7 @@ impl Rsdt {
 
 /// XSDT (Extended System Description Table) - 64-bit addresses
 pub struct Xsdt {
+    #[allow(dead_code)]
     header: &'static AcpiSdtHeader,
     entries: &'static [u64],
 }
@@ -693,17 +695,17 @@ impl EfiGuid {
     }
 
     /// ACPI 2.0 table GUID
-    pub const ACPI_20_TABLE: Self = Self::new(0x8868e871, 0xe4f1, 0x11d3, [
+    pub const ACPI_20_TABLE: Self = Self::new(0x8868_e871, 0xe4f1, 0x11d3, [
         0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81,
     ]);
 
     /// SMBIOS 3.0 table GUID
-    pub const SMBIOS3_TABLE: Self = Self::new(0xf2fd1544, 0x9794, 0x4a2c, [
+    pub const SMBIOS3_TABLE: Self = Self::new(0xf2fd_1544, 0x9794, 0x4a2c, [
         0x99, 0x2e, 0xe5, 0xbb, 0xcf, 0x20, 0xe3, 0x94,
     ]);
 
     /// SMBIOS table GUID
-    pub const SMBIOS_TABLE: Self = Self::new(0xeb9d2d31, 0x2d88, 0x11d3, [
+    pub const SMBIOS_TABLE: Self = Self::new(0xeb9d_2d31, 0x2d88, 0x11d3, [
         0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d,
     ]);
 }
@@ -846,11 +848,13 @@ impl EfiMemoryDescriptor {
     pub fn is_usable(&self) -> bool {
         matches!(
             self.get_type(),
-            Some(EfiMemoryType::ConventionalMemory)
-                | Some(EfiMemoryType::BootServicesCode)
-                | Some(EfiMemoryType::BootServicesData)
-                | Some(EfiMemoryType::LoaderCode)
-                | Some(EfiMemoryType::LoaderData)
+            Some(
+                EfiMemoryType::ConventionalMemory
+                    | EfiMemoryType::BootServicesCode
+                    | EfiMemoryType::BootServicesData
+                    | EfiMemoryType::LoaderCode
+                    | EfiMemoryType::LoaderData
+            )
         )
     }
 
@@ -892,7 +896,7 @@ pub struct FdtHeader {
 
 impl FdtHeader {
     /// Magic value for valid DTB
-    pub const MAGIC: u32 = 0xd00dfeed;
+    pub const MAGIC: u32 = 0xd00d_feed;
 
     /// Validate header
     pub fn is_valid(&self) -> bool {
@@ -924,11 +928,11 @@ impl FdtHeader {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum FdtToken {
-    BeginNode = 0x00000001,
-    EndNode   = 0x00000002,
-    Prop      = 0x00000003,
-    Nop       = 0x00000004,
-    End       = 0x00000009,
+    BeginNode = 1,
+    EndNode   = 2,
+    Prop      = 3,
+    Nop       = 4,
+    End       = 9,
 }
 
 /// Device tree parser
