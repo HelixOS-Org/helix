@@ -679,8 +679,38 @@ const EFI_SERIAL_HARDWARE_FLOW_CONTROL_ENABLE: u32 = 0x4000;
 // DEBUG OUTPUT
 // =============================================================================
 
-/// Global debug serial port
-static mut DEBUG_PORT: Option<SerialPort> = None;
+use core::cell::UnsafeCell;
+
+/// Wrapper for single-threaded UEFI boot context.
+/// UEFI boot services run single-threaded before ExitBootServices.
+struct UefiStatic<T>(UnsafeCell<Option<T>>);
+
+impl<T> UefiStatic<T> {
+    const fn new() -> Self {
+        Self(UnsafeCell::new(None))
+    }
+    
+    /// Set the value.
+    /// # Safety
+    /// Must only be called during single-threaded UEFI boot.
+    unsafe fn set(&self, value: T) {
+        unsafe { *self.0.get() = Some(value) };
+    }
+    
+    /// Get mutable access.
+    /// # Safety
+    /// Must only be called during single-threaded UEFI boot.
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn get_mut(&self) -> Option<&mut T> {
+        unsafe { (*self.0.get()).as_mut() }
+    }
+}
+
+// SAFETY: UEFI boot services are single-threaded before ExitBootServices.
+unsafe impl<T> Sync for UefiStatic<T> {}
+
+/// Global debug serial port (single-threaded UEFI context)
+static DEBUG_PORT: UefiStatic<SerialPort> = UefiStatic::new();
 
 /// Initialize debug output
 ///
@@ -689,7 +719,7 @@ static mut DEBUG_PORT: Option<SerialPort> = None;
 pub unsafe fn init_debug_port() -> Result<()> {
     let ports = SerialPort::enumerate()?;
     if let Some(port) = ports.into_iter().next() {
-        DEBUG_PORT = Some(port);
+        unsafe { DEBUG_PORT.set(port) };
         Ok(())
     } else {
         Err(Error::NotFound)
@@ -698,8 +728,9 @@ pub unsafe fn init_debug_port() -> Result<()> {
 
 /// Write to debug port
 pub fn debug_write(s: &str) {
+    // SAFETY: Single-threaded UEFI boot context.
     unsafe {
-        if let Some(ref mut port) = DEBUG_PORT {
+        if let Some(port) = DEBUG_PORT.get_mut() {
             let _ = port.write_str(s);
         }
     }
@@ -707,8 +738,9 @@ pub fn debug_write(s: &str) {
 
 /// Write line to debug port
 pub fn debug_writeln(s: &str) {
+    // SAFETY: Single-threaded UEFI boot context.
     unsafe {
-        if let Some(ref mut port) = DEBUG_PORT {
+        if let Some(port) = DEBUG_PORT.get_mut() {
             let _ = port.writeln(s);
         }
     }
@@ -741,7 +773,7 @@ macro_rules! debug_println {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
