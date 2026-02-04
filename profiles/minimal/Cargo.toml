@@ -29,10 +29,5 @@ helix-relocation = { path = "../../subsystems/relocation", features = [
 default = ["serial_console"]
 serial_console = []
 
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
-lto = true
-opt-level = "s"
+# NOTE: Profile configurations moved to workspace root Cargo.toml
+# Profiles defined here are ignored when building as part of the workspace
