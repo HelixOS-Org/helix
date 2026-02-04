@@ -3,6 +3,10 @@
 //! This module defines all magic numbers, revision constants, and identifiers
 //! used by the Limine boot protocol.
 
+// These are protocol-defined magic values that must be exact
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::doc_markdown)]
+
 // =============================================================================
 // Protocol Version Constants
 // =============================================================================
