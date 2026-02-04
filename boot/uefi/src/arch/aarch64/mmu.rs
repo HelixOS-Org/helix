@@ -827,7 +827,7 @@ pub unsafe fn disable_mmu() {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
