@@ -28,8 +28,6 @@
 //! - Hotkey support
 //! - International keyboard layouts
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
