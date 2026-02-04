@@ -8,6 +8,8 @@ use alloc::vec::Vec;
 use core::ffi::c_void;
 use core::ptr;
 
+use spin::Mutex;
+
 use crate::context::{GlContext, SharedGlContext};
 use crate::enums::*;
 use crate::state::DirtyFlags;
@@ -17,25 +19,30 @@ use crate::types::*;
 // THREAD-LOCAL CONTEXT
 // =============================================================================
 
-// In a real implementation, this would be a thread-local
-// For now, we use a static option that requires explicit initialization
-static mut CURRENT_CONTEXT: Option<SharedGlContext> = None;
+/// Thread-safe storage for the current GL context.
+///
+/// In a full implementation, this would use true thread-local storage (TLS).
+/// For now, we use a mutex-protected global that provides thread-safe access.
+///
+/// # Note
+/// This means only one context can be "current" across all threads,
+/// which differs from standard OpenGL behavior where each thread can
+/// have its own current context. A proper TLS implementation would be
+/// needed for full multi-threaded GL support.
+static CURRENT_CONTEXT: Mutex<Option<SharedGlContext>> = Mutex::new(None);
 
 /// Make a context current
 ///
-/// # Safety
-/// This function modifies global state and should be called
-/// from a single thread or with proper synchronization.
-pub unsafe fn make_current(context: Option<SharedGlContext>) {
-    CURRENT_CONTEXT = context;
+/// Thread-safe: Uses mutex to protect global state.
+pub fn make_current(context: Option<SharedGlContext>) {
+    *CURRENT_CONTEXT.lock() = context;
 }
 
 /// Get the current context
 ///
-/// # Safety
-/// This function reads global state.
-pub unsafe fn get_current() -> Option<SharedGlContext> {
-    CURRENT_CONTEXT.clone()
+/// Thread-safe: Uses mutex to protect global state.
+pub fn get_current() -> Option<SharedGlContext> {
+    CURRENT_CONTEXT.lock().clone()
 }
 
 /// Execute a closure with the current context
@@ -44,13 +51,12 @@ where
     F: FnOnce(&mut GlContext) -> R,
     R: Default,
 {
-    unsafe {
-        if let Some(ref ctx) = CURRENT_CONTEXT {
-            let mut guard = ctx.lock();
-            f(&mut guard)
-        } else {
-            R::default()
-        }
+    let context = CURRENT_CONTEXT.lock();
+    if let Some(ref ctx) = *context {
+        let mut guard = ctx.lock();
+        f(&mut guard)
+    } else {
+        R::default()
     }
 }
 
