@@ -9,7 +9,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::AtomicBool;
 
-use super::curriculum::{CurriculumLearner, LessonDifficulty};
+use super::curriculum::{CurriculumLearner, DifficultyLevel, LessonDifficulty};
 use super::feedback::{FeedbackEntry, FeedbackLoop, FeedbackType};
 use super::generalizer::Generalizer;
 use super::hypothesis::HypothesisManager;
@@ -75,7 +75,7 @@ impl ContinuousLearningIntelligence {
             safe_learner: SafeLearner::new(),
             regression: RegressionDetector::new(),
             hypotheses: HypothesisManager::new(),
-            knowledge: KnowledgeTransfer::new(),
+            knowledge: KnowledgeTransfer::default_new(),
             enabled: AtomicBool::new(true),
             session: SessionId::new(session_id),
         }
@@ -182,7 +182,7 @@ impl ContinuousLearningIntelligence {
 
         let health_score = if total_rules > 0 {
             (reliable_rules as f32 / total_rules as f32) * 50.0
-                + self.curriculum.overall_progress() * 30.0
+                + self.curriculum.progress() as f32 * 30.0
                 + (1.0 - (self.safe_learner.violation_count() as f32 / 100.0).min(1.0)) * 20.0
         } else {
             50.0
@@ -192,7 +192,7 @@ impl ContinuousLearningIntelligence {
             total_experiences: self.feedback.history_len() as u64,
             total_rules,
             reliable_rules,
-            curriculum_progress: self.curriculum.overall_progress(),
+            curriculum_progress: self.curriculum.progress() as f32,
             current_difficulty: self.curriculum.current_difficulty(),
             safety_violations: self.safe_learner.violation_count() as u64,
             regressions: self.regression.regression_count() as u64,
