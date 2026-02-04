@@ -567,7 +567,7 @@ pub fn get_cache_info() -> [Option<CacheInfo>; 4] {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
