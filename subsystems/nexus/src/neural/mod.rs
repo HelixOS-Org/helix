@@ -22,8 +22,8 @@ pub mod network;
 pub mod tensor;
 
 // Re-export key types
-pub use activation::{Activation, GeLU, ReLU, Sigmoid, Softmax, Tanh};
-pub use inference::{BatchInference, InferenceConfig, InferenceEngine, InferenceResult};
+pub use activation::{Activation, GELU, ReLU, Sigmoid, Softmax, Tanh};
+pub use inference::{InferenceConfig, InferenceEngine, InferenceResult};
 pub use layers::{Conv1D, DenseLayer, Dropout, Layer, LayerNorm, MaxPool1D};
-pub use network::{Forward, LayerConfig, NetworkBuilder, NetworkConfig, NeuralNetwork};
+pub use network::{NetworkBuilder, NetworkConfig, Sequential};
 pub use tensor::{Tensor, TensorShape, TensorView};
