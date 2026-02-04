@@ -35,6 +35,9 @@ helix-relocation = { path = "../../subsystems/relocation", features = [
 [features]
 default = ["x86_64", "gop", "filesystem", "acpi", "smbios", "security"]
 
+# Standard library (for tests only)
+std = []
+
 # Architecture support
 x86_64 = []
 aarch64 = []
