@@ -517,28 +517,50 @@ pub type RawInterruptHandler = extern "C" fn(*mut InterruptContext);
 // STATIC IDT
 // =============================================================================
 
+use core::cell::UnsafeCell;
+
+/// Wrapper for CPU-referenced static data.
+#[repr(transparent)]
+struct CpuStatic<T>(UnsafeCell<T>);
+
+impl<T> CpuStatic<T> {
+    const fn new(value: T) -> Self {
+        Self(UnsafeCell::new(value))
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn as_mut(&self) -> &mut T {
+        unsafe { &mut *self.0.get() }
+    }
+}
+
+// SAFETY: IDT only mutated during single-CPU init.
+unsafe impl<T: Sync> Sync for CpuStatic<T> {}
+
 /// Static IDT instance
-static mut STATIC_IDT: Idt = Idt::new();
+static STATIC_IDT: CpuStatic<Idt> = CpuStatic::new(Idt::new());
 
 /// Initialize static IDT
 pub unsafe fn init_static() {
-    // Load IDT
-    STATIC_IDT.load();
+    let idt = unsafe { STATIC_IDT.as_mut() };
+    idt.load();
 }
 
 /// Set handler in static IDT
 pub unsafe fn set_handler(vector: u8, handler: u64) {
-    STATIC_IDT.set_handler(vector, handler);
+    let idt = unsafe { STATIC_IDT.as_mut() };
+    idt.set_handler(vector, handler);
 }
 
 /// Set handler with IST in static IDT
 pub unsafe fn set_handler_ist(vector: u8, handler: u64, ist: u8) {
-    STATIC_IDT.set_handler_ist(vector, handler, ist);
+    let idt = unsafe { STATIC_IDT.as_mut() };
+    idt.set_handler_ist(vector, handler, ist);
 }
 
 /// Get static IDT
 pub unsafe fn get_static_idt() -> &'static mut Idt {
-    &mut STATIC_IDT
+    unsafe { STATIC_IDT.as_mut() }
 }
 
 // =============================================================================
