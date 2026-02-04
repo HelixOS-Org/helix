@@ -42,8 +42,6 @@
 //! - Progress bar rendering
 //! - Multi-monitor support
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
