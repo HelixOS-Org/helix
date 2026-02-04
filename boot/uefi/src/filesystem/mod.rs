@@ -1053,7 +1053,7 @@ impl fmt::Display for FileError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
