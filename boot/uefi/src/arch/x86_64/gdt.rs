@@ -483,20 +483,47 @@ pub unsafe fn reload_segments(code_sel: u16, data_sel: u16) {
 // STATIC GDT
 // =============================================================================
 
+use core::cell::UnsafeCell;
+
+/// Wrapper for CPU-referenced static data.
+#[repr(transparent)]
+struct CpuStatic<T>(UnsafeCell<T>);
+
+impl<T> CpuStatic<T> {
+    const fn new(value: T) -> Self {
+        Self(UnsafeCell::new(value))
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn as_mut(&self) -> &mut T {
+        unsafe { &mut *self.0.get() }
+    }
+
+    fn as_ptr(&self) -> *const T {
+        self.0.get()
+    }
+}
+
+// SAFETY: GDT/TSS only mutated during single-CPU init.
+unsafe impl<T: Sync> Sync for CpuStatic<T> {}
+
 /// Static GDT instance
-static mut STATIC_GDT: Gdt = Gdt::new();
+static STATIC_GDT: CpuStatic<Gdt> = CpuStatic::new(Gdt::new());
 
 /// Static TSS instance
-static mut STATIC_TSS: TaskStateSegment = TaskStateSegment::new();
+static STATIC_TSS: CpuStatic<TaskStateSegment> = CpuStatic::new(TaskStateSegment::new());
 
 /// Initialize static GDT and TSS
 pub unsafe fn init_static() {
+    let gdt = unsafe { STATIC_GDT.as_mut() };
+    let tss = unsafe { STATIC_TSS.as_mut() };
+
     // Set up TSS in GDT
-    let tss_addr = &STATIC_TSS as *const _ as u64;
-    STATIC_GDT.set_tss(tss_addr);
+    let tss_addr = tss as *const _ as u64;
+    gdt.set_tss(tss_addr);
 
     // Load GDT
-    STATIC_GDT.load();
+    gdt.load();
 
     // Reload segment registers
     reload_segments(selectors::KERNEL_CODE, selectors::KERNEL_DATA);
@@ -507,12 +534,14 @@ pub unsafe fn init_static() {
 
 /// Set kernel stack in TSS
 pub unsafe fn set_kernel_stack(stack: u64) {
-    STATIC_TSS.set_rsp0(stack);
+    let tss = unsafe { STATIC_TSS.as_mut() };
+    tss.set_rsp0(stack);
 }
 
 /// Set interrupt stack in TSS
 pub unsafe fn set_interrupt_stack(ist_index: usize, stack: u64) {
-    STATIC_TSS.set_ist(ist_index, stack);
+    let tss = unsafe { STATIC_TSS.as_mut() };
+    tss.set_ist(ist_index, stack);
 }
 
 // =============================================================================
