@@ -2109,7 +2109,7 @@ pub fn crc16(data: &[u8]) -> u16 {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
@@ -2148,11 +2148,14 @@ mod tests {
     #[test]
     fn test_adma2_descriptor() {
         let desc = Adma2Descriptor::transfer(0x1000, 512, true, false);
-        assert_eq!(desc.address, 0x1000);
-        let attr = desc.attr_len as u16;
-        assert!((attr & adma2_attr::VALID) != 0);
-        assert!((attr & adma2_attr::END) != 0);
-        assert!((attr & adma2_attr::TRAN) != 0);
+        // SAFETY: Reading from packed struct fields using unaligned access
+        unsafe {
+            assert_eq!(core::ptr::addr_of!(desc.address).read_unaligned(), 0x1000);
+            let attr = core::ptr::addr_of!(desc.attr_len).read_unaligned() as u16;
+            assert!((attr & adma2_attr::VALID) != 0);
+            assert!((attr & adma2_attr::END) != 0);
+            assert!((attr & adma2_attr::TRAN) != 0);
+        }
     }
 
     #[test]
