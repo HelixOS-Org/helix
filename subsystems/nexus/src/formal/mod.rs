@@ -61,17 +61,17 @@ pub mod solver;
 pub mod types;
 
 // Re-export all public types
-pub use assignment::Assignment;
-pub use clause::Clause;
-pub use formula::CnfFormula;
-pub use solver::{SatResult, SatSolver, SmtSolver, SmtSort, SmtTerm};
-pub use types::{Literal, VarId};
-
 use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+
+pub use assignment::Assignment;
+pub use clause::Clause;
+pub use formula::CnfFormula;
+pub use solver::{SatResult, SatSolver, SmtSolver, SmtSort, SmtTerm};
+pub use types::{Literal, VarId};
 
 /// LTL Formula for temporal properties
 #[derive(Debug, Clone)]
