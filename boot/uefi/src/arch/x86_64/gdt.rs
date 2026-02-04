@@ -164,23 +164,54 @@ impl SegmentDescriptor {
     }
 
     /// Get base address
+    ///
+    /// # Safety
+    /// Uses unaligned reads for packed struct field access.
     pub fn base(&self) -> u32 {
-        (self.base_low as u32) | ((self.base_middle as u32) << 16) | ((self.base_high as u32) << 24)
+        // SAFETY: Reading from packed struct fields using unaligned access
+        unsafe {
+            let base_low = core::ptr::addr_of!(self.base_low).read_unaligned() as u32;
+            let base_middle = core::ptr::addr_of!(self.base_middle).read_unaligned() as u32;
+            let base_high = core::ptr::addr_of!(self.base_high).read_unaligned() as u32;
+            base_low | (base_middle << 16) | (base_high << 24)
+        }
     }
 
     /// Get limit
+    ///
+    /// # Safety
+    /// Uses unaligned reads for packed struct field access.
     pub fn limit(&self) -> u32 {
-        (self.limit_low as u32) | (((self.limit_flags & 0x0F) as u32) << 16)
+        // SAFETY: Reading from packed struct fields using unaligned access
+        unsafe {
+            let limit_low = core::ptr::addr_of!(self.limit_low).read_unaligned() as u32;
+            let limit_flags = core::ptr::addr_of!(self.limit_flags).read_unaligned();
+            limit_low | (((limit_flags & 0x0F) as u32) << 16)
+        }
     }
 
     /// Check if present
+    ///
+    /// # Safety
+    /// Uses unaligned reads for packed struct field access.
     pub fn is_present(&self) -> bool {
-        (self.access & access::PRESENT) != 0
+        // SAFETY: Reading from packed struct field using unaligned access
+        unsafe {
+            let access = core::ptr::addr_of!(self.access).read_unaligned();
+            (access & access::PRESENT) != 0
+        }
     }
 
     /// Get DPL
+    ///
+    /// # Safety
+    /// Uses unaligned reads for packed struct field access.
     pub fn dpl(&self) -> u8 {
-        (self.access >> 5) & 3
+        // SAFETY: Reading from packed struct field using unaligned access
+        unsafe {
+            let access = core::ptr::addr_of!(self.access).read_unaligned();
+            (access >> 5) & 3
+        }
     }
 }
 
