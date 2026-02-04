@@ -730,26 +730,17 @@ pub struct NexusStatus {
 // GLOBAL INSTANCE (optional pattern)
 // ============================================================================
 
-use core::cell::UnsafeCell;
+use spin::RwLock;
 
-/// Global NEXUS instance holder
-struct NexusHolder {
-    instance: UnsafeCell<Option<Nexus>>,
-}
-
-unsafe impl Sync for NexusHolder {}
-
-static NEXUS: NexusHolder = NexusHolder {
-    instance: UnsafeCell::new(None),
-};
+/// Global NEXUS instance (thread-safe singleton)
+static NEXUS: spin::Once<RwLock<Nexus>> = spin::Once::new();
 
 /// Initialize global NEXUS instance
 ///
 /// # Safety
 /// Must only be called once during kernel initialization
 pub unsafe fn init_global(boot_id: u64, config: NexusConfig) -> NexusResult<()> {
-    let instance = unsafe { &mut *NEXUS.instance.get() };
-    if instance.is_some() {
+    if NEXUS.get().is_some() {
         return Err(NexusError::new(
             ErrorCode::AlreadyInitialized,
             "NEXUS already initialized",
@@ -759,26 +750,24 @@ pub unsafe fn init_global(boot_id: u64, config: NexusConfig) -> NexusResult<()> 
     let mut nexus = Nexus::new(boot_id, config);
     nexus.init()?;
 
-    *instance = Some(nexus);
+    NEXUS.call_once(|| RwLock::new(nexus));
     Ok(())
 }
 
-/// Get reference to global NEXUS instance
+/// Get reference to global NEXUS instance (read access)
 ///
 /// # Safety
 /// Must only be called after init_global
-pub unsafe fn get_global() -> Option<&'static Nexus> {
-    let instance = unsafe { &*NEXUS.instance.get() };
-    instance.as_ref()
+pub fn get_global() -> Option<spin::RwLockReadGuard<'static, Nexus>> {
+    NEXUS.get().map(|n| n.read())
 }
 
-/// Get mutable reference to global NEXUS instance
+/// Get mutable reference to global NEXUS instance (write access)
 ///
 /// # Safety
 /// Must ensure single-threaded access or proper synchronization
-pub unsafe fn get_global_mut() -> Option<&'static mut Nexus> {
-    let instance = unsafe { &mut *NEXUS.instance.get() };
-    instance.as_mut()
+pub fn get_global_mut() -> Option<spin::RwLockWriteGuard<'static, Nexus>> {
+    NEXUS.get().map(|n| n.write())
 }
 
 // ============================================================================
