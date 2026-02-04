@@ -9,6 +9,7 @@
 
 extern crate alloc;
 use alloc::format;
+use crate::math::F64Ext;
 use alloc::vec;
 
 use alloc::collections::BTreeMap;
