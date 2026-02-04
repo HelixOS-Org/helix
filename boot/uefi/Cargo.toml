@@ -23,6 +23,9 @@ crate-type = ["staticlib", "rlib"]
 # No external dependencies - pure Rust UEFI implementation
 # Everything is implemented from scratch for maximum control
 
+# Spin locks for thread-safe static data
+spin = { workspace = true }
+
 # Relocation subsystem for PIE kernels
 helix-relocation = { path = "../../subsystems/relocation", features = [
     "x86_64",
