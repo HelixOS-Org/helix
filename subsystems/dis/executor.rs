@@ -258,7 +258,7 @@ impl ExecutionContext {
 pub struct TimeAccounting {
     /// Time spent in user mode
     pub user_time: Nanoseconds,
-    /// Time spent in kernel mode  
+    /// Time spent in kernel mode
     pub kernel_time: Nanoseconds,
     /// Time spent waiting for CPU
     pub wait_time: Nanoseconds,
