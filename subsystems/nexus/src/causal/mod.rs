@@ -20,6 +20,7 @@
 //! - `graph`: Main causal graph implementation
 //! - `tracker`: Runtime causality tracking
 //! - `discovery`: Causal discovery algorithms (PC, do-calculus, counterfactuals)
+//! - `inference`: Year 3 advanced causal inference (SCM, do-calculus, counterfactuals)
 
 #![allow(dead_code)]
 
@@ -29,6 +30,7 @@ extern crate alloc;
 pub mod discovery;
 pub mod edge;
 pub mod graph;
+pub mod inference;
 pub mod node;
 pub mod tracker;
 
