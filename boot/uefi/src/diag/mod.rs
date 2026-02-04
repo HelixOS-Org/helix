@@ -923,7 +923,7 @@ pub fn tsc_delay(cycles: u64) {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
