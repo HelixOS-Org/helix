@@ -1,5 +1,7 @@
 //! Canary monitor for invariants and canary values.
 
+#![allow(clippy::excessive_nesting)]
+
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
