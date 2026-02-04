@@ -530,8 +530,8 @@ impl RuntimeServices {
     /// Set wakeup time
     pub fn set_wakeup_time(
         &self,
-        enable: bool,
-        time: Option<&EfiTime>,
+        _enable: bool,
+        _time: Option<&EfiTime>,
     ) -> Result<(), RuntimeError> {
         // Would call runtime_services.set_wakeup_time
         Ok(())
@@ -540,9 +540,9 @@ impl RuntimeServices {
     /// Get variable
     pub fn get_variable(
         &self,
-        name: &[u16],
-        vendor_guid: &[u8; 16],
-        buffer: &mut [u8],
+        _name: &[u16],
+        _vendor_guid: &[u8; 16],
+        _buffer: &mut [u8],
     ) -> Result<(usize, u32), RuntimeError> {
         // Would call runtime_services.get_variable
         // Returns (data_size, attributes)
@@ -552,10 +552,10 @@ impl RuntimeServices {
     /// Set variable
     pub fn set_variable(
         &self,
-        name: &[u16],
-        vendor_guid: &[u8; 16],
-        attributes: u32,
-        data: &[u8],
+        _name: &[u16],
+        _vendor_guid: &[u8; 16],
+        _attributes: u32,
+        _data: &[u8],
     ) -> Result<(), RuntimeError> {
         // Would call runtime_services.set_variable
         Ok(())
@@ -573,9 +573,9 @@ impl RuntimeServices {
     /// Get next variable name
     pub fn get_next_variable_name(
         &self,
-        name: &mut [u16],
-        name_size: &mut usize,
-        vendor_guid: &mut [u8; 16],
+        _name: &mut [u16],
+        _name_size: &mut usize,
+        _vendor_guid: &mut [u8; 16],
     ) -> Result<bool, RuntimeError> {
         // Would call runtime_services.get_next_variable_name
         // Returns true if more variables, false if done
@@ -626,7 +626,7 @@ impl RuntimeServices {
     /// Query variable info
     pub fn query_variable_info(
         &self,
-        attributes: u32,
+        _attributes: u32,
     ) -> Result<VariableStorageInfo, RuntimeError> {
         // Would call runtime_services.query_variable_info
         Ok(VariableStorageInfo {
@@ -637,7 +637,7 @@ impl RuntimeServices {
     }
 
     /// Reset system
-    pub fn reset_system(&self, reset_type: ResetType, status: usize, data: Option<&[u8]>) -> ! {
+    pub fn reset_system(&self, _reset_type: ResetType, _status: usize, _data: Option<&[u8]>) -> ! {
         // Would call runtime_services.reset_system
         // This function never returns
         loop {
@@ -654,7 +654,7 @@ impl RuntimeServices {
     /// Update capsule
     pub fn update_capsule(
         &self,
-        capsules: &[&CapsuleHeader],
+        _capsules: &[&CapsuleHeader],
         scatter_gather_list: usize,
     ) -> Result<(), RuntimeError> {
         // Would call runtime_services.update_capsule
