@@ -665,8 +665,8 @@ impl fmt::Display for HfsError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for HfsError {}
+// Note: std::error::Error is not available in no_std kernel context.
+// Core::error::Error requires nightly feature.
 
 // ============================================================================
 // Error Context
