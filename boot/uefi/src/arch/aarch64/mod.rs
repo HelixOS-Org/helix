@@ -689,7 +689,7 @@ pub fn init_interrupts() {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
