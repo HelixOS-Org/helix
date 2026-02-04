@@ -43,6 +43,11 @@ pub type HfsResult<T> = Result<T, HfsError>;
 // RAM Disk Backend
 // ============================================================================
 
+use core::cell::UnsafeCell;
+use core::sync::atomic::{AtomicBool, Ordering};
+
+use spin::Mutex;
+
 /// RAM disk size (4MB for demo)
 const RAMDISK_SIZE: usize = 4 * 1024 * 1024;
 /// Block size (4KB)
@@ -55,18 +60,53 @@ const BLOCK_COUNT: usize = RAMDISK_SIZE / BLOCK_SIZE;
 #[repr(align(4096))]
 struct RamDiskBuffer([u8; RAMDISK_SIZE]);
 
-/// Static RAM disk buffer - initialized to zeros in .bss
-static mut RAMDISK_BUFFER: RamDiskBuffer = RamDiskBuffer([0u8; RAMDISK_SIZE]);
+/// Wrapper for RAM disk buffer that provides interior mutability.
+///
+/// SAFETY: Access to the RAM disk is protected by RAMDISK_LOCK mutex.
+/// All read/write operations must hold the lock.
+struct StaticRamDisk(UnsafeCell<RamDiskBuffer>);
 
-/// Flag to track initialization
-static mut RAMDISK_INITIALIZED: bool = false;
+// SAFETY: Access is protected by RAMDISK_LOCK
+unsafe impl Sync for StaticRamDisk {}
+
+impl StaticRamDisk {
+    const fn new() -> Self {
+        Self(UnsafeCell::new(RamDiskBuffer([0u8; RAMDISK_SIZE])))
+    }
+
+    /// Get mutable access to the buffer
+    ///
+    /// # Safety
+    /// Caller must hold RAMDISK_LOCK
+    #[inline]
+    unsafe fn as_mut(&self) -> &mut RamDiskBuffer {
+        &mut *self.0.get()
+    }
+
+    /// Get immutable access to the buffer
+    ///
+    /// # Safety
+    /// Caller must hold RAMDISK_LOCK
+    #[inline]
+    unsafe fn as_ref(&self) -> &RamDiskBuffer {
+        &*self.0.get()
+    }
+}
+
+/// Static RAM disk buffer
+static RAMDISK_BUFFER: StaticRamDisk = StaticRamDisk::new();
+
+/// Lock for RAM disk access
+static RAMDISK_LOCK: Mutex<()> = Mutex::new(());
+
+/// Flag to track initialization (atomic for lock-free check)
+static RAMDISK_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 /// Initialize the RAM disk
 fn init_ramdisk() {
-    unsafe {
-        // Buffer is already zero-initialized in .bss, just mark as initialized
-        RAMDISK_INITIALIZED = true;
-    }
+    let _lock = RAMDISK_LOCK.lock();
+    // Buffer is already zero-initialized in .bss, just mark as initialized
+    RAMDISK_INITIALIZED.store(true, Ordering::Release);
 }
 
 /// Read a block from RAM disk
@@ -78,14 +118,18 @@ fn read_block(block_num: u64, buffer: &mut [u8]) -> HfsResult<()> {
         return Err(HfsError::BufferTooSmall);
     }
 
-    unsafe {
-        if !RAMDISK_INITIALIZED {
-            return Err(HfsError::NotInitialized);
-        }
-        let offset = block_num as usize * BLOCK_SIZE;
-        buffer[..BLOCK_SIZE].copy_from_slice(&RAMDISK_BUFFER.0[offset..offset + BLOCK_SIZE]);
-        Ok(())
+    let _lock = RAMDISK_LOCK.lock();
+    if !RAMDISK_INITIALIZED.load(Ordering::Acquire) {
+        return Err(HfsError::NotInitialized);
     }
+
+    // SAFETY: We hold RAMDISK_LOCK
+    unsafe {
+        let offset = block_num as usize * BLOCK_SIZE;
+        buffer[..BLOCK_SIZE]
+            .copy_from_slice(&RAMDISK_BUFFER.as_ref().0[offset..offset + BLOCK_SIZE]);
+    }
+    Ok(())
 }
 
 /// Write a block to RAM disk
@@ -97,14 +141,17 @@ fn write_block(block_num: u64, data: &[u8]) -> HfsResult<()> {
         return Err(HfsError::BufferTooSmall);
     }
 
-    unsafe {
-        if !RAMDISK_INITIALIZED {
-            return Err(HfsError::NotInitialized);
-        }
-        let offset = block_num as usize * BLOCK_SIZE;
-        RAMDISK_BUFFER.0[offset..offset + BLOCK_SIZE].copy_from_slice(&data[..BLOCK_SIZE]);
-        Ok(())
+    let _lock = RAMDISK_LOCK.lock();
+    if !RAMDISK_INITIALIZED.load(Ordering::Acquire) {
+        return Err(HfsError::NotInitialized);
     }
+
+    // SAFETY: We hold RAMDISK_LOCK
+    unsafe {
+        let offset = block_num as usize * BLOCK_SIZE;
+        RAMDISK_BUFFER.as_mut().0[offset..offset + BLOCK_SIZE].copy_from_slice(&data[..BLOCK_SIZE]);
+    }
+    Ok(())
 }
 
 // ============================================================================
@@ -144,7 +191,8 @@ impl HelixFsState {
     }
 }
 
-static mut FS_STATE: HelixFsState = HelixFsState::new();
+/// Thread-safe filesystem state protected by mutex
+static FS_STATE: Mutex<HelixFsState> = Mutex::new(HelixFsState::new());
 
 // ============================================================================
 // Filesystem Operations
@@ -238,30 +286,28 @@ fn mount_root() -> HfsResult<()> {
         return Err(HfsError::BadMagic);
     }
 
-    unsafe {
-        FS_STATE.mounted = true;
-        FS_STATE.total_blocks = u64::from_le_bytes(superblock[12..20].try_into().unwrap());
-        FS_STATE.free_blocks = u64::from_le_bytes(superblock[20..28].try_into().unwrap());
-        FS_STATE.root_ino = u64::from_le_bytes(superblock[28..36].try_into().unwrap());
-    }
+    let mut fs_state = FS_STATE.lock();
+    fs_state.mounted = true;
+    fs_state.total_blocks = u64::from_le_bytes(superblock[12..20].try_into().unwrap());
+    fs_state.free_blocks = u64::from_le_bytes(superblock[20..28].try_into().unwrap());
+    fs_state.root_ino = u64::from_le_bytes(superblock[28..36].try_into().unwrap());
 
     Ok(())
 }
 
 /// Get filesystem statistics
 pub fn get_fs_stats() -> (u64, u64, u32) {
-    unsafe {
-        (
-            FS_STATE.total_blocks,
-            FS_STATE.free_blocks,
-            FS_STATE.block_size,
-        )
-    }
+    let fs_state = FS_STATE.lock();
+    (
+        fs_state.total_blocks,
+        fs_state.free_blocks,
+        fs_state.block_size,
+    )
 }
 
 /// Check if filesystem is mounted
 pub fn is_mounted() -> bool {
-    unsafe { FS_STATE.mounted }
+    FS_STATE.lock().mounted
 }
 
 // ============================================================================
@@ -348,9 +394,10 @@ pub fn create_file(parent: &str, name: &str) -> HfsResult<u64> {
     }
 
     // Allocate new inode
-    let new_ino = unsafe {
-        let ino = FS_STATE.next_ino;
-        FS_STATE.next_ino += 1;
+    let new_ino = {
+        let mut fs_state = FS_STATE.lock();
+        let ino = fs_state.next_ino;
+        fs_state.next_ino += 1;
         ino
     };
 
@@ -415,9 +462,10 @@ pub fn create_dir(parent: &str, name: &str) -> HfsResult<u64> {
     }
 
     // Allocate new inode
-    let new_ino = unsafe {
-        let ino = FS_STATE.next_ino;
-        FS_STATE.next_ino += 1;
+    let new_ino = {
+        let mut fs_state = FS_STATE.lock();
+        let ino = fs_state.next_ino;
+        fs_state.next_ino += 1;
         ino
     };
 
