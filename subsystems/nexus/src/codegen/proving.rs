@@ -4,6 +4,7 @@
 //! Proves program properties using formal methods.
 
 #![allow(dead_code)]
+#![allow(clippy::collapsible_if)]
 
 extern crate alloc;
 
