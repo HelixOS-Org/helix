@@ -8,9 +8,10 @@
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::math::F64Ext;
+use crate::math::{F32Ext, F64Ext};
 
 // ============================================================================
 // Core Types
@@ -323,7 +324,7 @@ impl EmbeddingSpace {
 // ============================================================================
 
 /// Trait for encoding objects to embeddings
-pub trait EmbeddingEncoder<T>: Send + Sync {
+pub trait EmbeddingEncoder<T: ?Sized>: Send + Sync {
     fn encode(&self, input: &T) -> Embedding;
     fn dimension(&self) -> usize;
 }
