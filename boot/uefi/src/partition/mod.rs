@@ -11,8 +11,6 @@
 //! - Partition type identification
 //! - GUID handling
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
