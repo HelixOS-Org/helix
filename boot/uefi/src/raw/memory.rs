@@ -3,6 +3,8 @@
 //! This module defines the low-level memory structures used by UEFI,
 //! including memory types, descriptors, and attributes.
 
+#![allow(clippy::unreadable_literal)]
+
 extern crate alloc;
 use alloc::vec::Vec;
 use core::fmt;
