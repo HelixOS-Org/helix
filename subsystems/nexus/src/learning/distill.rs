@@ -8,13 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::vec;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
-use crate::math::F64Ext;
 
+use crate::math::F64Ext;
 use crate::types::Timestamp;
 
 // ============================================================================
@@ -207,12 +207,7 @@ impl DistillationEngine {
     }
 
     /// Create student
-    pub fn create_student(
-        &mut self,
-        name: &str,
-        teacher_id: u64,
-        complexity: f64,
-    ) -> Option<u64> {
+    pub fn create_student(&mut self, name: &str, teacher_id: u64, complexity: f64) -> Option<u64> {
         if !self.teachers.contains_key(&teacher_id) {
             return None;
         }
@@ -240,7 +235,9 @@ impl DistillationEngine {
         let mut output = Vec::with_capacity(input.len());
 
         for (i, &x) in input.iter().enumerate() {
-            let weight = teacher.parameters.get("weights")
+            let weight = teacher
+                .parameters
+                .get("weights")
                 .and_then(|w| w.get(i % w.len()))
                 .copied()
                 .unwrap_or(1.0);
@@ -262,9 +259,7 @@ impl DistillationEngine {
         let max = logits.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
         let exp_sum: f64 = logits.iter().map(|&x| (x - max).exp()).sum();
 
-        logits.iter()
-            .map(|&x| (x - max).exp() / exp_sum)
-            .collect()
+        logits.iter().map(|&x| (x - max).exp() / exp_sum).collect()
     }
 
     /// Add distillation example
@@ -394,14 +389,21 @@ impl DistillationEngine {
 
         // Compute loss
         let soft_loss = self.compute_loss(&student_output, &example.soft_labels);
-        let hard_loss = example.hard_labels.as_ref()
+        let hard_loss = example
+            .hard_labels
+            .as_ref()
             .map(|labels| self.compute_loss(&student_output, labels))
             .unwrap_or(0.0);
 
         let total_loss = self.config.alpha * soft_loss + (1.0 - self.config.alpha) * hard_loss;
 
         // Backward pass (simplified gradient update)
-        self.update_student(student_id, &example.input, &student_output, &example.soft_labels);
+        self.update_student(
+            student_id,
+            &example.input,
+            &student_output,
+            &example.soft_labels,
+        );
 
         total_loss
     }
@@ -415,7 +417,9 @@ impl DistillationEngine {
         let mut output = Vec::with_capacity(input.len());
 
         for (i, &x) in input.iter().enumerate() {
-            let weight = student.parameters.get("weights")
+            let weight = student
+                .parameters
+                .get("weights")
                 .and_then(|w| w.get(i % w.len().max(1)))
                 .copied()
                 .unwrap_or(1.0);
@@ -440,14 +444,15 @@ impl DistillationEngine {
                     }
                 }
                 kl
-            }
+            },
             DistillationLoss::MSE => {
-                let sum: f64 = predicted.iter()
+                let sum: f64 = predicted
+                    .iter()
                     .zip(target.iter())
                     .map(|(p, t)| (p - t).powi(2))
                     .sum();
                 sum / predicted.len() as f64
-            }
+            },
             DistillationLoss::CrossEntropy => {
                 let mut ce = 0.0;
                 for (p, t) in predicted.iter().zip(target.iter()) {
@@ -456,22 +461,27 @@ impl DistillationEngine {
                     }
                 }
                 ce
-            }
+            },
             DistillationLoss::Hinton => {
                 // Hinton's distillation loss
                 let t2 = self.config.temperature * self.config.temperature;
                 let kl = self.compute_loss_impl(predicted, target, DistillationLoss::KLDivergence);
                 kl * t2
-            }
+            },
             DistillationLoss::Combined => {
                 let kl = self.compute_loss_impl(predicted, target, DistillationLoss::KLDivergence);
                 let mse = self.compute_loss_impl(predicted, target, DistillationLoss::MSE);
                 (kl + mse) / 2.0
-            }
+            },
         }
     }
 
-    fn compute_loss_impl(&self, predicted: &[f64], target: &[f64], loss_type: DistillationLoss) -> f64 {
+    fn compute_loss_impl(
+        &self,
+        predicted: &[f64],
+        target: &[f64],
+        loss_type: DistillationLoss,
+    ) -> f64 {
         match loss_type {
             DistillationLoss::KLDivergence => {
                 let mut kl = 0.0;
@@ -481,20 +491,23 @@ impl DistillationEngine {
                     }
                 }
                 kl
-            }
+            },
             DistillationLoss::MSE => {
-                let sum: f64 = predicted.iter()
+                let sum: f64 = predicted
+                    .iter()
                     .zip(target.iter())
                     .map(|(p, t)| (p - t).powi(2))
                     .sum();
                 sum / predicted.len().max(1) as f64
-            }
+            },
             _ => 0.0,
         }
     }
 
     fn update_student(&mut self, student_id: u64, input: &[f64], output: &[f64], target: &[f64]) {
-        let lr = self.training_state.as_ref()
+        let lr = self
+            .training_state
+            .as_ref()
             .map(|s| s.learning_rate)
             .unwrap_or(self.config.learning_rate);
 
@@ -615,11 +628,7 @@ mod tests {
 
         // Add examples
         for _ in 0..10 {
-            engine.add_example(
-                vec![1.0, 2.0, 3.0],
-                vec![0.1, 0.3, 0.6],
-                None,
-            );
+            engine.add_example(vec![1.0, 2.0, 3.0], vec![0.1, 0.3, 0.6], None);
         }
 
         let result = engine.train_student(student);
