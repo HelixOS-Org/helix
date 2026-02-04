@@ -26,11 +26,12 @@ pub mod intelligence;
 pub mod numa;
 pub mod pattern;
 pub mod prefetch;
+pub mod types;
 
 // Re-exports
 pub use allocation::AllocationIntelligence;
 pub use hotpage::HotPageTracker;
 pub use intelligence::MemoryIntelligence;
 pub use numa::NumaAnalyzer;
-pub use pattern::PatternRecognizer;
+pub use pattern::PatternDetector;
 pub use prefetch::PrefetchPredictor;
