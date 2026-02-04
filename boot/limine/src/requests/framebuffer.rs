@@ -4,6 +4,15 @@
 //! It includes comprehensive pixel format handling, drawing primitives,
 //! and multi-monitor support.
 
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_lossless)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::return_self_not_must_use)]
+#![allow(clippy::mut_from_ref)]
+#![allow(clippy::cast_ptr_alignment)]
+#![allow(clippy::ptr_as_ptr)]
+#![allow(clippy::needless_lifetimes)]
+
 use core::{ptr, slice};
 
 use super::{LimineRequest, ResponsePtr, SafeResponse};
@@ -130,6 +139,7 @@ impl FramebufferResponse {
     }
 
     /// Iterate over all framebuffers
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> FramebufferIterator<'_> {
         FramebufferIterator {
             response: self,
@@ -188,7 +198,7 @@ impl<'a> Iterator for FramebufferIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for FramebufferIterator<'a> {}
+impl ExactSizeIterator for FramebufferIterator<'_> {}
 
 /// A single framebuffer
 pub struct Framebuffer<'a> {
