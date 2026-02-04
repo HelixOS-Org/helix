@@ -306,9 +306,9 @@ impl IntrospectionEngine {
     }
 }
 
-/// Confidence calibrator
+/// Local confidence calibrator for internal metacog use
 #[derive(Debug, Clone)]
-pub struct ConfidenceCalibrator {
+pub struct LocalConfidenceCalibrator {
     /// Temperature for temperature scaling
     temperature: f64,
     /// Platt scaling parameters per subsystem
@@ -319,7 +319,7 @@ pub struct ConfidenceCalibrator {
     calibration_data: BTreeMap<SubsystemId, Vec<(f64, bool)>>,
 }
 
-impl ConfidenceCalibrator {
+impl LocalConfidenceCalibrator {
     /// Create a new confidence calibrator
     pub fn new() -> Self {
         Self {
@@ -574,9 +574,9 @@ impl StrategyArm {
     }
 }
 
-/// Strategy selector using UCB
+/// Local strategy selector using UCB for internal metacog use
 #[derive(Debug, Clone)]
-pub struct StrategySelector {
+pub struct LocalStrategySelector {
     /// Available strategies
     strategies: Vec<StrategyArm>,
     /// Exploration constant
@@ -587,7 +587,7 @@ pub struct StrategySelector {
     current: Option<u32>,
 }
 
-impl StrategySelector {
+impl LocalStrategySelector {
     /// Create a new strategy selector
     pub fn new(num_strategies: u32) -> Self {
         Self {
@@ -1030,9 +1030,9 @@ pub struct MetacognitiveController {
     /// Introspection engine
     introspection: IntrospectionEngine,
     /// Confidence calibrator
-    calibrator: ConfidenceCalibrator,
+    calibrator: LocalConfidenceCalibrator,
     /// Strategy selector
-    strategy: StrategySelector,
+    strategy: LocalStrategySelector,
     /// Cognitive regulator
     regulator: CognitiveRegulator,
     /// Meta-reasoner
@@ -1046,8 +1046,8 @@ impl MetacognitiveController {
     pub fn new(num_strategies: u32, resource_budget: f64) -> Self {
         Self {
             introspection: IntrospectionEngine::new(),
-            calibrator: ConfidenceCalibrator::new(),
-            strategy: StrategySelector::new(num_strategies),
+            calibrator: LocalConfidenceCalibrator::new(),
+            strategy: LocalStrategySelector::new(num_strategies),
             regulator: CognitiveRegulator::new(resource_budget),
             reasoner: MetaReasoner::new(),
             time: 0,
@@ -1235,7 +1235,7 @@ mod tests {
 
     #[test]
     fn test_confidence_calibration() {
-        let mut calibrator = ConfidenceCalibrator::new();
+        let mut calibrator = LocalConfidenceCalibrator::new();
 
         // Add data points
         for i in 0..100 {
@@ -1253,7 +1253,7 @@ mod tests {
 
     #[test]
     fn test_strategy_selector() {
-        let mut selector = StrategySelector::new(3);
+        let mut selector = LocalStrategySelector::new(3);
 
         // Select and update
         for _ in 0..10 {
