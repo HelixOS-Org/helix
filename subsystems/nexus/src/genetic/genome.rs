@@ -601,14 +601,17 @@ impl Gene {
 // RANDOM HELPERS
 // ============================================================================
 
-static mut GENOME_SEED: u64 = 67890;
+static GENOME_SEED: AtomicU64 = AtomicU64::new(67890);
 
 fn rand_u64() -> u64 {
-    unsafe {
-        GENOME_SEED = GENOME_SEED
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1);
-        GENOME_SEED
+    let mut current = GENOME_SEED.load(Ordering::Relaxed);
+    loop {
+        let next = current.wrapping_mul(6364136223846793005).wrapping_add(1);
+        match GENOME_SEED.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed)
+        {
+            Ok(_) => return next,
+            Err(x) => current = x,
+        }
     }
 }
 
