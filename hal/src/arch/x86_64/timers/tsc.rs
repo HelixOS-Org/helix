@@ -113,9 +113,9 @@ fn cpuid(leaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
-            "mov {tmp}, rbx",  // save rbx
+            "mov {tmp:r}, rbx",  // save rbx
             "cpuid",
-            "xchg {tmp}, rbx", // restore rbx, get ebx result
+            "xchg {tmp:r}, rbx", // restore rbx, get ebx result
             tmp = out(reg) ebx,
             inout("eax") leaf => eax,
             out("ecx") ecx,
@@ -130,9 +130,9 @@ fn cpuid_subleaf(leaf: u32, subleaf: u32) -> (u32, u32, u32, u32) {
     let (eax, ebx, ecx, edx): (u32, u32, u32, u32);
     unsafe {
         core::arch::asm!(
-            "mov {tmp}, rbx",  // save rbx
+            "mov {tmp:r}, rbx",  // save rbx
             "cpuid",
-            "xchg {tmp}, rbx", // restore rbx, get ebx result
+            "xchg {tmp:r}, rbx", // restore rbx, get ebx result
             tmp = out(reg) ebx,
             inout("eax") leaf => eax,
             inout("ecx") subleaf => ecx,
