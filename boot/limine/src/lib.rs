@@ -67,6 +67,9 @@
 
 #![no_std]
 #![allow(unsafe_op_in_unsafe_fn)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::unnested_or_patterns)]
+#![allow(unused_doc_comments)]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
@@ -226,7 +229,7 @@ pub struct BaseRevision {
 
 impl BaseRevision {
     /// Magic identifier for base revision
-    const MAGIC: [u64; 2] = [0xf9562b2d5c95a6c8, 0x6a7b384944536bdc];
+    const MAGIC: [u64; 2] = [0xf956_2b2d_5c95_a6c8, 0x6a7b_3849_4453_6bdc];
 
     /// Create a new base revision marker
     pub const fn new() -> Self {
@@ -287,10 +290,10 @@ impl RequestsStartMarker {
     pub const fn new() -> Self {
         Self {
             marker: [
-                0xf9562b2d5c95a6c8,
-                0x6a7b384944536bdc,
-                0xf9562b2d5c95a6c8,
-                0x6a7b384944536bdc,
+                0xf956_2b2d_5c95_a6c8,
+                0x6a7b_3849_4453_6bdc,
+                0xf956_2b2d_5c95_a6c8,
+                0x6a7b_3849_4453_6bdc,
             ],
         }
     }
@@ -312,7 +315,7 @@ impl RequestsEndMarker {
     /// Create the end marker
     pub const fn new() -> Self {
         Self {
-            marker: [0xadc0e0531bb10d03, 0x9572709f31764c62],
+            marker: [0xadc0_e053_1bb1_0d03, 0x9572_709f_3176_4c62],
         }
     }
 }
