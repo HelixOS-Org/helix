@@ -4,6 +4,7 @@
 //! transitions, guards, and actions for kernel AI behavior modeling.
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
