@@ -4,8 +4,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -23,11 +22,11 @@ pub enum GoalPriority {
     /// Critical - must achieve
     Critical = 100,
     /// High priority
-    High = 75,
+    High     = 75,
     /// Medium priority
-    Medium = 50,
+    Medium   = 50,
     /// Low priority
-    Low = 25,
+    Low      = 25,
     /// Optional - nice to have
     Optional = 10,
 }
@@ -300,25 +299,36 @@ impl GoalManager {
 
     /// Activate goal
     pub fn activate(&mut self, id: GoalId) -> bool {
-        if let Some(goal) = self.goals.get_mut(&id) {
-            if goal.is_actionable() {
-                // Check prerequisites
-                if !self.prerequisites_met(id) {
-                    return false;
-                }
+        // Pre-check prerequisites and conflicts
+        let prereqs_met = self.prerequisites_met(id);
+        if !prereqs_met {
+            return false;
+        }
 
-                // Check for conflicts with active goals
-                for &active_id in &self.active {
-                    if goal.conflicts.contains(&active_id) {
-                        return false;
-                    }
-                }
+        // Get goal data first
+        let (is_actionable, conflicts) = if let Some(goal) = self.goals.get(&id) {
+            (goal.is_actionable(), goal.conflicts.clone())
+        } else {
+            return false;
+        };
 
-                goal.status = GoalStatus::Active;
-                goal.updated_at = self.current_time;
-                self.active.insert(id);
-                return true;
+        if !is_actionable {
+            return false;
+        }
+
+        // Check for conflicts with active goals
+        for &active_id in &self.active {
+            if conflicts.contains(&active_id) {
+                return false;
             }
+        }
+
+        // Now we can mutably borrow and update
+        if let Some(goal) = self.goals.get_mut(&id) {
+            goal.status = GoalStatus::Active;
+            goal.updated_at = self.current_time;
+            self.active.insert(id);
+            return true;
         }
         false
     }
@@ -375,8 +385,14 @@ impl GoalManager {
             return;
         }
 
-        let achieved = subgoals.iter()
-            .filter(|id| self.goals.get(id).map(|g| g.status == GoalStatus::Achieved).unwrap_or(false))
+        let achieved = subgoals
+            .iter()
+            .filter(|id| {
+                self.goals
+                    .get(id)
+                    .map(|g| g.status == GoalStatus::Achieved)
+                    .unwrap_or(false)
+            })
             .count();
 
         let progress = achieved as f64 / subgoals.len() as f64;
@@ -400,7 +416,8 @@ impl GoalManager {
         };
 
         goal.prerequisites.iter().all(|prereq_id| {
-            self.goals.get(prereq_id)
+            self.goals
+                .get(prereq_id)
                 .map(|g| g.status == GoalStatus::Achieved)
                 .unwrap_or(true)
         })
@@ -418,14 +435,18 @@ impl GoalManager {
 
     /// Get active goals sorted by priority
     pub fn get_active_sorted(&self) -> Vec<&Goal> {
-        let mut active: Vec<&Goal> = self.active.iter()
+        let mut active: Vec<&Goal> = self
+            .active
+            .iter()
             .filter_map(|id| self.goals.get(id))
             .collect();
 
         active.sort_by(|a, b| {
             let score_a = a.priority_score(self.current_time);
             let score_b = b.priority_score(self.current_time);
-            score_b.partial_cmp(&score_a).unwrap_or(core::cmp::Ordering::Equal)
+            score_b
+                .partial_cmp(&score_a)
+                .unwrap_or(core::cmp::Ordering::Equal)
         });
 
         active
@@ -438,7 +459,8 @@ impl GoalManager {
 
     /// Get pending goals that can be activated
     pub fn get_activatable(&self) -> Vec<&Goal> {
-        self.goals.values()
+        self.goals
+            .values()
             .filter(|g| g.status == GoalStatus::Pending && self.prerequisites_met(g.id))
             .collect()
     }
@@ -460,7 +482,8 @@ impl GoalManager {
 
     /// Get achieved count
     pub fn achieved_count(&self) -> usize {
-        self.goals.values()
+        self.goals
+            .values()
             .filter(|g| g.status == GoalStatus::Achieved)
             .count()
     }
@@ -518,35 +541,34 @@ impl GoalSelector {
 
         match self.strategy {
             SelectionStrategy::HighestPriority => {
-                goals.iter()
-                    .max_by_key(|g| g.priority.value())
-                    .copied()
-            }
-            SelectionStrategy::MostUrgent => {
-                goals.iter()
-                    .filter(|g| g.deadline.is_some())
-                    .min_by_key(|g| g.deadline.unwrap())
-                    .copied()
-                    .or_else(|| goals.first().copied())
-            }
-            SelectionStrategy::BestUtility => {
-                goals.iter()
-                    .max_by(|a, b| {
-                        let ratio_a = a.utility / (1.0 + a.cost);
-                        let ratio_b = b.utility / (1.0 + b.cost);
-                        ratio_a.partial_cmp(&ratio_b).unwrap_or(core::cmp::Ordering::Equal)
-                    })
-                    .copied()
-            }
-            SelectionStrategy::Weighted => {
-                goals.iter()
-                    .max_by(|a, b| {
-                        let score_a = self.weighted_score(a, current_time);
-                        let score_b = self.weighted_score(b, current_time);
-                        score_a.partial_cmp(&score_b).unwrap_or(core::cmp::Ordering::Equal)
-                    })
-                    .copied()
-            }
+                goals.iter().max_by_key(|g| g.priority.value()).copied()
+            },
+            SelectionStrategy::MostUrgent => goals
+                .iter()
+                .filter(|g| g.deadline.is_some())
+                .min_by_key(|g| g.deadline.unwrap())
+                .copied()
+                .or_else(|| goals.first().copied()),
+            SelectionStrategy::BestUtility => goals
+                .iter()
+                .max_by(|a, b| {
+                    let ratio_a = a.utility / (1.0 + a.cost);
+                    let ratio_b = b.utility / (1.0 + b.cost);
+                    ratio_a
+                        .partial_cmp(&ratio_b)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
+                .copied(),
+            SelectionStrategy::Weighted => goals
+                .iter()
+                .max_by(|a, b| {
+                    let score_a = self.weighted_score(a, current_time);
+                    let score_b = self.weighted_score(b, current_time);
+                    score_a
+                        .partial_cmp(&score_b)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
+                .copied(),
         }
     }
 
