@@ -985,7 +985,7 @@ pub fn start_all_aps(apic: &LocalApic, config: &ApStartupConfig, ap_ids: &[u32])
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
