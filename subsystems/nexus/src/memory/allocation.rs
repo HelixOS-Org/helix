@@ -95,9 +95,11 @@ impl AllocationIntelligence {
     /// Record deallocation
     pub fn record_dealloc(&mut self, id: u64) {
         // Find the record and get necessary data before any mutable operations
-        let record_data = self.history.iter().find(|r| r.id == id).map(|r| {
-            (r.alloc_time, r.size, r.id)
-        });
+        let record_data = self
+            .history
+            .iter()
+            .find(|r| r.id == id)
+            .map(|r| (r.alloc_time, r.size, r.id));
 
         if let Some((alloc_time, size, _record_id)) = record_data {
             let now = NexusTimestamp::now();
