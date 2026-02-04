@@ -131,7 +131,7 @@ impl KernelLoader {
     }
 
     /// Load kernel from file path
-    pub fn load_file(&mut self, path: &str) -> Result<&LoadedImage> {
+    pub fn load_file(&mut self, _path: &str) -> Result<&LoadedImage> {
         // This would use filesystem protocol
         // For now just return error
         Err(Error::NotSupported)
