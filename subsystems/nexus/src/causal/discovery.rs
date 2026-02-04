@@ -14,6 +14,9 @@
 //! - Structure learning from data
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::only_used_in_recursion)]
+#![allow(clippy::needless_range_loop)]
 
 extern crate alloc;
 
@@ -890,7 +893,7 @@ impl<'a> DoCalculus<'a> {
     }
 
     /// Find a valid backdoor adjustment set
-    fn find_backdoor_adjustment(&self, x: VarId, y: VarId) -> Option<Vec<VarId>> {
+    fn find_backdoor_adjustment(&self, x: VarId, _y: VarId) -> Option<Vec<VarId>> {
         // A set Z satisfies the backdoor criterion if:
         // 1. No node in Z is a descendant of X
         // 2. Z blocks all backdoor paths from X to Y
@@ -1397,7 +1400,7 @@ fn subsets_of_size(set: &BTreeSet<VarId>, size: usize) -> Vec<Vec<VarId>> {
             }
         }
 
-        if i == 0 && indices[0] >= elements.len() - size + 1 {
+        if i == 0 && indices[0] > elements.len() - size {
             break;
         }
     }
