@@ -1092,7 +1092,7 @@ pub const fn char_direction(c: char) -> CharDirection {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
