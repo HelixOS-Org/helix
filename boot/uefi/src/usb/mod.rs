@@ -1148,8 +1148,15 @@ impl CommandBlockWrapper {
     }
 
     /// Check if direction is IN
-    pub const fn is_in(&self) -> bool {
-        (self.flags & 0x80) != 0
+    ///
+    /// # Safety
+    /// Uses unaligned reads for packed struct field access.
+    pub fn is_in(&self) -> bool {
+        // SAFETY: Reading from packed struct field using unaligned access
+        unsafe {
+            let flags = core::ptr::addr_of!(self.flags).read_unaligned();
+            (flags & 0x80) != 0
+        }
     }
 }
 
@@ -1179,13 +1186,28 @@ impl CommandStatusWrapper {
     pub const STATUS_PHASE_ERROR: u8 = 0x02;
 
     /// Check if command succeeded
-    pub const fn is_success(&self) -> bool {
-        self.status == Self::STATUS_PASSED && self.signature == Self::SIGNATURE
+    ///
+    /// # Safety
+    /// Uses unaligned reads for packed struct field access.
+    pub fn is_success(&self) -> bool {
+        // SAFETY: Reading from packed struct fields using unaligned access
+        unsafe {
+            let status = core::ptr::addr_of!(self.status).read_unaligned();
+            let signature = core::ptr::addr_of!(self.signature).read_unaligned();
+            status == Self::STATUS_PASSED && signature == Self::SIGNATURE
+        }
     }
 
     /// Check if signature is valid
-    pub const fn is_valid(&self) -> bool {
-        self.signature == Self::SIGNATURE
+    ///
+    /// # Safety
+    /// Uses unaligned reads for packed struct field access.
+    pub fn is_valid(&self) -> bool {
+        // SAFETY: Reading from packed struct field using unaligned access
+        unsafe {
+            let signature = core::ptr::addr_of!(self.signature).read_unaligned();
+            signature == Self::SIGNATURE
+        }
     }
 }
 
@@ -2105,7 +2127,7 @@ pub enum LinkState {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
@@ -2151,7 +2173,13 @@ mod tests {
     #[test]
     fn test_cbw_csw() {
         let cbw = CommandBlockWrapper::new(1, 512, true, 0);
-        assert_eq!(cbw.signature, CommandBlockWrapper::SIGNATURE);
+        // SAFETY: Reading from packed struct field using unaligned access
+        unsafe {
+            assert_eq!(
+                core::ptr::addr_of!(cbw.signature).read_unaligned(),
+                CommandBlockWrapper::SIGNATURE
+            );
+        }
         assert!(cbw.is_in());
 
         let csw = CommandStatusWrapper {
