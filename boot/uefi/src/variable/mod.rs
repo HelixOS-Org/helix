@@ -711,7 +711,7 @@ pub fn ucs2_eq_ignore_case(a: &[u16], b: &[u16]) -> bool {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
