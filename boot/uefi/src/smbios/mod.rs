@@ -1291,7 +1291,7 @@ impl fmt::Display for SmbiosError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
