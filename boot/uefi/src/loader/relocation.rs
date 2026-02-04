@@ -31,10 +31,6 @@
 
 use crate::error::{Error, Result};
 use crate::handoff::BootInfo;
-use crate::raw::types::PhysicalAddress;
-
-extern crate alloc;
-use alloc::vec::Vec;
 
 // ============================================================================
 // RELOCATION CONFIGURATION
@@ -548,15 +544,7 @@ impl BootInfoRelocationExt for BootInfo {
     fn print_relocation_summary(&self) {
         // This would use the console/framebuffer to print
         // For now, it's a placeholder for integration
-        #[cfg(feature = "debug")]
-        {
-            if self.kaslr_enabled {
-                // log!("KASLR: enabled, slide=0x{:x}", self.kernel_slide);
-                // log!("KASLR: entropy quality: {}", self.kaslr_entropy_description());
-                // log!("KASLR: {} relocations applied", self.relocation_count);
-            } else {
-                // log!("KASLR: disabled");
-            }
-        }
+        // TODO: Implement debug logging when console is available
+        let _ = self.kaslr_enabled; // Silence unused warning
     }
 }
