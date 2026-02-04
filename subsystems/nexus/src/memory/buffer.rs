@@ -168,8 +168,9 @@ impl<T: Clone> MemoryBuffer<T> {
     /// Put with priority
     pub fn put_with_priority(&mut self, key: &str, value: T, size: usize, priority: f64) -> u64 {
         // Check if need to evict
-        while self.entries.len() >= self.config.max_capacity ||
-              self.current_size + size > self.config.max_size {
+        while self.entries.len() >= self.config.max_capacity
+            || self.current_size + size > self.config.max_size
+        {
             if !self.evict() {
                 break;
             }
@@ -244,13 +245,15 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     fn find_lru(&self) -> Option<String> {
-        self.entries.values()
+        self.entries
+            .values()
             .min_by_key(|e| e.last_accessed.0)
             .map(|e| e.key.clone())
     }
 
     fn find_lfu(&self) -> Option<String> {
-        self.entries.values()
+        self.entries
+            .values()
             .min_by_key(|e| e.access_count)
             .map(|e| e.key.clone())
     }
@@ -260,13 +263,19 @@ impl<T: Clone> MemoryBuffer<T> {
     }
 
     fn find_lowest_priority(&self) -> Option<String> {
-        self.entries.values()
-            .min_by(|a, b| a.priority.partial_cmp(&b.priority).unwrap_or(core::cmp::Ordering::Equal))
+        self.entries
+            .values()
+            .min_by(|a, b| {
+                a.priority
+                    .partial_cmp(&b.priority)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })
             .map(|e| e.key.clone())
     }
 
     fn find_largest(&self) -> Option<String> {
-        self.entries.values()
+        self.entries
+            .values()
             .max_by_key(|e| e.size)
             .map(|e| e.key.clone())
     }
