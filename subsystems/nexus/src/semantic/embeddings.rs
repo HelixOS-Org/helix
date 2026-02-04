@@ -10,6 +10,8 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::math::F64Ext;
+
 // ============================================================================
 // Core Types
 // ============================================================================
