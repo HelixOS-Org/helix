@@ -1109,7 +1109,7 @@ impl fmt::Display for MonitorError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
