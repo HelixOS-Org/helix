@@ -329,24 +329,22 @@ extern "C" {
 /// # Safety
 /// Symbols must be defined in linker script
 pub unsafe fn get_kernel_info_from_symbols(load_addr: u64) -> UefiKernelInfo {
-    unsafe {
-        let kernel_start = core::ptr::addr_of!(__kernel_start) as u64;
-        let kernel_end = core::ptr::addr_of!(__kernel_end) as u64;
-        let rela_start = core::ptr::addr_of!(__rela_start) as u64;
-        let rela_end = core::ptr::addr_of!(__rela_end) as u64;
-        let dynamic_start = core::ptr::addr_of!(__dynamic_start) as u64;
-        let dynamic_end = core::ptr::addr_of!(__dynamic_end) as u64;
+    let kernel_start = core::ptr::addr_of!(__kernel_start) as u64;
+    let kernel_end = core::ptr::addr_of!(__kernel_end) as u64;
+    let rela_start = core::ptr::addr_of!(__rela_start) as u64;
+    let rela_end = core::ptr::addr_of!(__rela_end) as u64;
+    let dynamic_start = core::ptr::addr_of!(__dynamic_start) as u64;
+    let dynamic_end = core::ptr::addr_of!(__dynamic_end) as u64;
 
-        UefiKernelInfo {
-            phys_base: load_addr,
-            virt_base: 0xFFFF_FFFF_8000_0000, // Higher-half default
-            link_base: kernel_start,
-            kernel_size: (kernel_end - kernel_start) as usize,
-            rela_base: rela_start,
-            rela_size: (rela_end - rela_start) as usize,
-            dynamic_base: dynamic_start,
-            dynamic_size: (dynamic_end - dynamic_start) as usize,
-        }
+    UefiKernelInfo {
+        phys_base: load_addr,
+        virt_base: 0xFFFF_FFFF_8000_0000, // Higher-half default
+        link_base: kernel_start,
+        kernel_size: (kernel_end - kernel_start) as usize,
+        rela_base: rela_start,
+        rela_size: (rela_end - rela_start) as usize,
+        dynamic_base: dynamic_start,
+        dynamic_size: (dynamic_end - dynamic_start) as usize,
     }
 }
 
