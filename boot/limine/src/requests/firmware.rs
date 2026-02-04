@@ -7,6 +7,8 @@
 //! - EFI Memory Map
 //! - Device Tree Blob (DTB)
 
+#![allow(clippy::cast_possible_truncation)]
+
 use core::slice;
 
 use super::{LimineRequest, ResponsePtr, SafeResponse};
@@ -106,7 +108,7 @@ impl RsdpResponse {
         if self.address.is_null() {
             return None;
         }
-        unsafe { Some(&*(self.address as *const [u8; 8])) }
+        unsafe { Some(&*self.address.cast::<[u8; 8]>()) }
     }
 
     /// Check if this is ACPI 2.0+ (XSDP)
@@ -130,19 +132,21 @@ impl RsdpResponse {
     }
 
     /// Get the RSDT address (ACPI 1.0)
+    #[allow(clippy::cast_ptr_alignment)]
     pub fn rsdt_address(&self) -> Option<u32> {
         if self.address.is_null() {
             return None;
         }
-        unsafe { Some(*(self.address.add(16) as *const u32)) }
+        unsafe { Some(*self.address.add(16).cast::<u32>()) }
     }
 
     /// Get the XSDT address (ACPI 2.0+)
+    #[allow(clippy::cast_ptr_alignment)]
     pub fn xsdt_address(&self) -> Option<u64> {
         if !self.is_xsdp() {
             return None;
         }
-        unsafe { Some(*(self.address.add(24) as *const u64)) }
+        unsafe { Some(*self.address.add(24).cast::<u64>()) }
     }
 }
 
@@ -161,13 +165,14 @@ unsafe impl SafeResponse for RsdpResponse {
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl core::fmt::Debug for RsdpResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("RsdpResponse")
             .field("address", &self.address)
             .field("is_xsdp", &self.is_xsdp())
             .field("acpi_revision", &self.acpi_revision())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -300,6 +305,7 @@ unsafe impl SafeResponse for SmbiosResponse {
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl core::fmt::Debug for SmbiosResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("SmbiosResponse")
@@ -307,7 +313,7 @@ impl core::fmt::Debug for SmbiosResponse {
             .field("has_64bit", &!self.entry_64.is_null())
             .field("version_32", &self.version_32())
             .field("version_64", &self.version_64())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -398,7 +404,7 @@ impl EfiSystemTableResponse {
         if self.address.is_null() {
             None
         } else {
-            Some(self.address as *const T)
+            Some(self.address.cast::<T>())
         }
     }
 }
@@ -409,12 +415,13 @@ unsafe impl SafeResponse for EfiSystemTableResponse {
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl core::fmt::Debug for EfiSystemTableResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("EfiSystemTableResponse")
             .field("address", &self.address)
             .field("available", &self.is_available())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -560,6 +567,7 @@ unsafe impl SafeResponse for EfiMemmapResponse {
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl core::fmt::Debug for EfiMemmapResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("EfiMemmapResponse")
@@ -567,7 +575,7 @@ impl core::fmt::Debug for EfiMemmapResponse {
             .field("descriptor_size", &self.descriptor_size())
             .field("descriptor_count", &self.descriptor_count())
             .field("descriptor_version", &self.desc_version)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -577,7 +585,7 @@ pub struct EfiDescriptorIterator<'a> {
     index: usize,
 }
 
-impl<'a> Iterator for EfiDescriptorIterator<'a> {
+impl Iterator for EfiDescriptorIterator<'_> {
     type Item = EfiMemoryDescriptor;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -826,7 +834,7 @@ impl DtbResponse {
 
     /// Validate the DTB magic
     pub fn is_valid(&self) -> bool {
-        self.magic() == Some(0xD00DFEED)
+        self.magic() == Some(0xD00D_FEED)
     }
 
     /// Get the DTB as a byte slice
@@ -845,6 +853,7 @@ unsafe impl SafeResponse for DtbResponse {
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl core::fmt::Debug for DtbResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("DtbResponse")
@@ -852,7 +861,7 @@ impl core::fmt::Debug for DtbResponse {
             .field("magic", &self.magic())
             .field("size", &self.size())
             .field("valid", &self.is_valid())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
