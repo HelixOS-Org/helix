@@ -230,7 +230,7 @@ unsafe fn calibrate_with_pit() -> Result<u64, ApicTimerError> {
 
     // Set up APIC timer to maximum count
     unsafe { write_apic(apic_regs::TIMER_DCR, ApicTimerDivide::By1 as u32) };
-    unsafe { write_apic(apic_regs::LVT_TIMER, (1 << 16)) }; // Masked, one-shot
+    unsafe { write_apic(apic_regs::LVT_TIMER, 1 << 16) }; // Masked, one-shot
     unsafe { write_apic(apic_regs::TIMER_ICR, 0xFFFF_FFFF) };
 
     // Wait using TSC (if available and calibrated) or busy loop
@@ -277,7 +277,7 @@ pub unsafe fn start_oneshot(cpu_id: usize, ticks: u32, vector: u8) -> Result<(),
     }
 
     // Configure LVT: one-shot mode, specified vector, not masked
-    let lvt = (vector as u32) | (ApicTimerMode::OneShot as u32) << 17;
+    let lvt = (vector as u32) | ((ApicTimerMode::OneShot as u32) << 17);
     unsafe { write_apic(apic_regs::LVT_TIMER, lvt) };
 
     // Set initial count (starts countdown)
@@ -301,7 +301,7 @@ pub unsafe fn start_periodic(cpu_id: usize, ticks: u32, vector: u8) -> Result<()
     }
 
     // Configure LVT: periodic mode, specified vector, not masked
-    let lvt = (vector as u32) | (ApicTimerMode::Periodic as u32) << 17;
+    let lvt = (vector as u32) | ((ApicTimerMode::Periodic as u32) << 17);
     unsafe { write_apic(apic_regs::LVT_TIMER, lvt) };
 
     // Set initial count (starts countdown)
@@ -333,7 +333,7 @@ pub unsafe fn start_tsc_deadline(
     }
 
     // Configure LVT: TSC-deadline mode, specified vector, not masked
-    let lvt = (vector as u32) | (ApicTimerMode::TscDeadline as u32) << 17;
+    let lvt = (vector as u32) | ((ApicTimerMode::TscDeadline as u32) << 17);
     unsafe { write_apic(apic_regs::LVT_TIMER, lvt) };
 
     // Write deadline to IA32_TSC_DEADLINE MSR
