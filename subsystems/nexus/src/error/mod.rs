@@ -5,7 +5,6 @@
 extern crate alloc;
 
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::fmt;
 
 use crate::core::ComponentId;
