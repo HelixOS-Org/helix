@@ -51,7 +51,7 @@ const EMA_ALPHA: f64 = 0.1;
 pub struct CognitiveProcessId(pub u64);
 
 /// Types of cognitive processes
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CognitiveProcessType {
     /// Perception/sensing
     Perception,
