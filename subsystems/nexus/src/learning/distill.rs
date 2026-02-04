@@ -9,11 +9,11 @@
 
 extern crate alloc;
 use alloc::vec;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
+use crate::math::F64Ext;
 
 use crate::types::Timestamp;
 
