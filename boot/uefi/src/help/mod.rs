@@ -838,7 +838,7 @@ impl HelpBrowser {
     }
 
     /// Navigate to topic by ID
-    pub fn goto_topic(&mut self, topic_id: u16) {
+    pub fn goto_topic(&mut self, _topic_id: u16) {
         // Push current to history
         if self.history_depth < 8 {
             self.history[self.history_depth] = self.current_topic_id();
