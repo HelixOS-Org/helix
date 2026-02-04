@@ -158,8 +158,8 @@ impl PatternDetector {
         let (stride, count) = self
             .strides
             .iter()
-            .filter(|(&s, _)| s != 0 && s.abs() > 64 && s.abs() < 4096)
-            .max_by_key(|(_, &c)| c)?;
+            .filter(|&(&s, _)| s != 0 && s.abs() > 64 && s.abs() < 4096)
+            .max_by_key(|&(_, &c)| c)?;
 
         let score = *count as f64 / total as f64;
         Some((*stride, score))
