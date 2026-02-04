@@ -53,6 +53,7 @@ macro_rules! kprintln {
 // Kernel Heap Allocator
 // =============================================================================
 
+use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 /// Kernel heap size (1MB for benchmarks)
@@ -62,7 +63,32 @@ const HEAP_SIZE: usize = 1024 * 1024; // 1MB heap for benchmarks
 #[repr(align(4096))]
 struct HeapBuffer([u8; HEAP_SIZE]);
 
-static mut HEAP_BUFFER: HeapBuffer = HeapBuffer([0; HEAP_SIZE]);
+/// Wrapper for heap buffer that allows safe sharing as static memory.
+///
+/// SAFETY: The HeapBuffer is only used as backing storage for the bump allocator.
+/// Access to individual bytes is managed by the atomic operations in BumpAllocator.
+/// The buffer contents are never directly read/written through this wrapper.
+struct StaticHeap(UnsafeCell<HeapBuffer>);
+
+// SAFETY: The heap memory is only accessed through the allocator's atomic operations.
+// The buffer address is taken once during init, after which no mutable access occurs
+// through this wrapper.
+unsafe impl Sync for StaticHeap {}
+
+impl StaticHeap {
+    const fn new() -> Self {
+        Self(UnsafeCell::new(HeapBuffer([0; HEAP_SIZE])))
+    }
+
+    /// Get the start address of the heap buffer
+    ///
+    /// SAFETY: Only call during single-threaded initialization.
+    fn start_addr(&self) -> usize {
+        self.0.get() as usize
+    }
+}
+
+static HEAP_BUFFER: StaticHeap = StaticHeap::new();
 
 /// Simple bump allocator for early boot
 ///
@@ -124,10 +150,8 @@ static ALLOCATOR: BumpAllocator = BumpAllocator::new();
 
 /// Initialize the heap allocator
 fn init_heap() {
-    unsafe {
-        let heap_start = HEAP_BUFFER.0.as_ptr() as usize;
-        ALLOCATOR.init(heap_start, HEAP_SIZE);
-    }
+    let heap_start = HEAP_BUFFER.start_addr();
+    ALLOCATOR.init(heap_start, HEAP_SIZE);
     serial_write_str("  Heap: 256KB bump allocator initialized\n");
 }
 
