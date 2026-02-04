@@ -23,6 +23,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 
+use crate::math::F64Ext;
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -685,7 +687,7 @@ impl TransEModel {
                 for i in 0..self.dim {
                     h_emb[i] -= lr * grad_h[i];
                 }
-                self.normalize(h_emb);
+                Self::normalize_vec(h_emb);
             }
 
             if let Some(r_emb) = self.relation_embeddings.get_mut(&relation) {
@@ -698,20 +700,21 @@ impl TransEModel {
                 for i in 0..self.dim {
                     t_emb[i] -= lr * grad_t[i];
                 }
-                self.normalize(t_emb);
+                Self::normalize_vec(t_emb);
             }
 
             if let Some(nt_emb) = self.entity_embeddings.get_mut(&neg_tail) {
                 for i in 0..self.dim {
                     nt_emb[i] -= lr * grad_nt[i];
                 }
-                self.normalize(nt_emb);
+                Self::normalize_vec(nt_emb);
             }
         }
     }
 
-    /// Normalize a vector
-    fn normalize(&self, v: &mut [f64]) {
+    /// Normalize a vector (static version)
+    fn normalize_vec(v: &mut [f64]) {
+        use crate::math::F64Ext;
         let norm: f64 = v.iter().map(|x| x * x).sum::<f64>().sqrt();
         if norm > 1e-10 {
             for x in v {
