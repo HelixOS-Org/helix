@@ -20,6 +20,7 @@
 //! - `pattern`: Pattern library for known anomalies
 
 #![allow(dead_code)]
+#![allow(clippy::module_inception)]
 
 extern crate alloc;
 
