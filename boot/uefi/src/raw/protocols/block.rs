@@ -2,6 +2,8 @@
 //!
 //! Provides raw block-level access to storage devices.
 
+#![allow(clippy::unreadable_literal)]
+
 use core::fmt;
 
 use crate::raw::types::*;
