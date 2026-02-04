@@ -1,0 +1,24 @@
+[package]
+name = "helix-nexus-cognitive"
+version = "0.1.0"
+edition = "2024"
+authors = ["Helix OS Team"]
+description = "Year 2 COGNITION modules for the NEXUS cognitive kernel subsystem"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helix-os/helix"
+keywords = ["kernel", "os", "cognitive", "ai", "understanding"]
+categories = ["no-std", "data-structures"]
+
+[lib]
+name = "helix_nexus_cognitive"
+path = "src/lib.rs"
+
+[features]
+default = []
+std = []
+alloc = []
+
+[dependencies]
+helix-nexus-types = { path = "../nexus-types" }
+helix-nexus-core = { path = "../nexus-core" }
+libm = "0.2"
