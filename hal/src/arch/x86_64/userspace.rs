@@ -18,6 +18,7 @@
 //! ```
 
 use core::arch::{asm, naked_asm};
+use core::cell::UnsafeCell;
 
 /// User stack size (64KB)
 const USER_STACK_SIZE: usize = 64 * 1024;
@@ -26,7 +27,38 @@ const USER_STACK_SIZE: usize = 64 * 1024;
 #[repr(align(4096))]
 struct UserStack([u8; USER_STACK_SIZE]);
 
-static mut USER_STACK: UserStack = UserStack([0; USER_STACK_SIZE]);
+/// Wrapper for CPU-local static data.
+///
+/// # Safety
+///
+/// This type is safe only when used for data that is:
+/// 1. Initialized during boot before other CPUs start
+/// 2. Only accessed from a single CPU at a time
+struct CpuStatic<T>(UnsafeCell<T>);
+
+impl<T> CpuStatic<T> {
+    /// Create a new CpuStatic with the given value.
+    const fn new(value: T) -> Self {
+        Self(UnsafeCell::new(value))
+    }
+
+    /// Get a pointer to the inner value.
+    fn as_ptr(&self) -> *const T {
+        self.0.get()
+    }
+
+    /// Get a mutable pointer to the inner value.
+    fn as_mut_ptr(&self) -> *mut T {
+        self.0.get()
+    }
+}
+
+// SAFETY: UserStack is initialized at boot and used only by the current CPU.
+// The userspace transition is single-threaded during the boot process.
+unsafe impl<T> Sync for CpuStatic<T> {}
+
+/// Static user stack storage
+static USER_STACK: CpuStatic<UserStack> = CpuStatic::new(UserStack([0; USER_STACK_SIZE]));
 
 /// Jump to userspace and execute code at the given entry point
 ///
@@ -38,7 +70,9 @@ static mut USER_STACK: UserStack = UserStack([0; USER_STACK_SIZE]);
 /// # Safety
 /// The entry point must be valid executable code that uses syscalls properly.
 pub unsafe fn jump_to_userspace(entry_point: u64) -> ! {
-    let user_stack_top = unsafe { USER_STACK.0.as_ptr() as u64 + USER_STACK_SIZE as u64 };
+    // SAFETY: USER_STACK is initialized statically and we're in single-threaded boot context
+    let user_stack_top =
+        unsafe { (*USER_STACK.as_ptr()).0.as_ptr() as u64 + USER_STACK_SIZE as u64 };
 
     // Debug output
     let msg = b"[USERSPACE] Jumping to Ring 3...\n";
@@ -231,13 +265,16 @@ impl UserspaceProgram {
 }
 
 /// Static storage for the userspace program
-static mut USERSPACE_PROGRAM: UserspaceProgram = UserspaceProgram { code: [0; 4096] };
+static USERSPACE_PROGRAM: CpuStatic<UserspaceProgram> =
+    CpuStatic::new(UserspaceProgram { code: [0; 4096] });
 
 /// Initialize and get the userspace program entry point
 pub fn init_hello_world() -> u64 {
+    // SAFETY: Single-threaded boot context, exclusive access to program storage
     unsafe {
-        USERSPACE_PROGRAM = UserspaceProgram::hello_world();
-        USERSPACE_PROGRAM.entry_point()
+        let prog_ptr = USERSPACE_PROGRAM.as_mut_ptr();
+        *prog_ptr = UserspaceProgram::hello_world();
+        (*prog_ptr).entry_point()
     }
 }
 
@@ -269,7 +306,8 @@ pub unsafe fn run_hello_world() -> ! {
         super::paging::make_user_accessible(code_page_start, 4096);
 
         // Also make the user stack accessible from Ring 3
-        let stack_start = USER_STACK.0.as_ptr() as u64;
+        // SAFETY: Single-threaded boot context, reading static memory location
+        let stack_start = (*USER_STACK.as_ptr()).0.as_ptr() as u64;
         super::paging::make_user_accessible(stack_start, USER_STACK_SIZE);
 
         jump_to_userspace(entry)
