@@ -549,7 +549,7 @@ pub struct IntentEngineHandle<'a> {
     dis: &'a DIS,
 }
 
-impl<'a> IntentEngineHandle<'a> {
+impl IntentEngineHandle<'_> {
     /// Create intent builder
     pub fn build(&self) -> IntentBuilder {
         IntentBuilder::new()
@@ -617,7 +617,7 @@ pub struct PolicyEngineHandle<'a> {
     dis: &'a DIS,
 }
 
-impl<'a> PolicyEngineHandle<'a> {
+impl PolicyEngineHandle<'_> {
     /// Create policy builder
     pub fn build(&self, name: &str) -> PolicyBuilder {
         PolicyBuilder::new(name)
@@ -669,7 +669,7 @@ pub struct SecurityHandle<'a> {
     dis: &'a DIS,
 }
 
-impl<'a> SecurityHandle<'a> {
+impl SecurityHandle<'_> {
     /// Create domain
     pub fn create_domain(
         &self,
