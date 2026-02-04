@@ -319,13 +319,13 @@ impl TimeAccounting {
 
             match self.current_state {
                 AccountingState::Running => {
-                    self.user_time = self.user_time + delta;
+                    self.user_time += delta;
                 },
                 AccountingState::Waiting => {
-                    self.wait_time = self.wait_time + delta;
+                    self.wait_time += delta;
                 },
                 AccountingState::Blocked => {
-                    self.blocked_time = self.blocked_time + delta;
+                    self.blocked_time += delta;
                 },
                 AccountingState::Idle => {},
             }
