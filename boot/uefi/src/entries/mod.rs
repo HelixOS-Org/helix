@@ -1327,7 +1327,7 @@ pub const DETECTION_HINTS: &[DetectionHint] = &[
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
