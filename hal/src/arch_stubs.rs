@@ -357,7 +357,7 @@ impl PageTable for StubPageTable {
     }
 }
 
-/// Stub MMU implementation  
+/// Stub MMU implementation
 pub struct StubMmu {
     page_table: StubPageTable,
 }
@@ -603,28 +603,52 @@ impl FirmwareInterface for StubFirmware {
 /// Current architecture HAL type alias
 pub type CurrentHal = StubHal;
 
-/// Global HAL instance (for easy access)
-pub static mut HAL: Option<StubHal> = None;
+/// Global HAL instance using thread-safe initialization
+///
+/// Uses `spin::Once` for safe one-time initialization without data races.
+static HAL: spin::Once<StubHal> = spin::Once::new();
 
 /// Initialize the global HAL instance
 ///
 /// # Safety
 /// This must be called exactly once during early boot, before any other HAL usage.
+/// Multiple calls are safe (will be no-ops) but the first call must happen
+/// in a single-threaded context before SMP is enabled.
 pub unsafe fn init_hal() -> HalResult<()> {
-    unsafe {
-        HAL = Some(StubHal::new());
-        if let Some(ref mut hal) = HAL {
-            hal.early_init()?;
-            hal.init()?;
+    let mut result = Ok(());
+
+    HAL.call_once(|| {
+        let mut hal = StubHal::new();
+        // Note: early_init and init are safe methods, we're in an unsafe fn
+        // because the caller must ensure single-threaded boot context
+        if let Err(e) = hal.early_init() {
+            result = Err(e);
         }
-    }
-    Ok(())
+        if result.is_ok() {
+            if let Err(e) = hal.init() {
+                result = Err(e);
+            }
+        }
+        hal
+    });
+
+    result
+}
+
+/// Get a reference to the global HAL
+///
+/// Returns `None` if HAL hasn't been initialized yet.
+pub fn try_hal() -> Option<&'static StubHal> {
+    HAL.get()
 }
 
 /// Get a reference to the global HAL
 ///
 /// # Panics
-/// Panics if HAL hasn't been initialized
+/// Panics if HAL hasn't been initialized. For kernel code that runs after
+/// initialization, prefer using `hal()`. For code that may run before
+/// initialization, use `try_hal()`.
 pub fn hal() -> &'static StubHal {
-    unsafe { HAL.as_ref().expect("HAL not initialized") }
+    HAL.get()
+        .expect("HAL not initialized - call init_hal() first during early boot")
 }
