@@ -39,8 +39,8 @@ pub mod imitation;
 pub mod incremental;
 pub mod intelligence;
 pub mod meta_learn;
-pub mod regression;
 pub mod regress;
+pub mod regression;
 pub mod replay;
 pub mod safety;
 pub mod types;
@@ -48,11 +48,6 @@ pub mod validate;
 
 // Re-exports from original learning modules
 pub use curriculum::{CurriculumLearner, Lesson, LessonDifficulty, TaskProgression};
-pub use meta::{MAMLLearner, MetaLearner, MetaTask, TaskDistribution};
-pub use online::{ConceptDriftDetector, OnlineLearner, StreamingClassifier, StreamingSample};
-pub use reinforcement::{ActionSpace, Episode, PolicyGradient, QLearner, RewardSignal, StateSpace};
-pub use transfer::{DomainAdapter, FeatureTransformer, KnowledgeTransfer, TransferLearner};
-
 // Re-exports from migrated learn/ modules
 pub use feedback::{ActionStats, FeedbackEntry, FeedbackLoop, FeedbackType};
 pub use generalizer::{
@@ -60,11 +55,15 @@ pub use generalizer::{
 };
 pub use hypothesis::{Hypothesis, HypothesisManager, HypothesisStatus};
 pub use intelligence::{ContinuousLearningIntelligence, LearningAnalysis};
+pub use meta::{MAMLLearner, MetaLearner, MetaTask, TaskDistribution};
+pub use online::{ConceptDriftDetector, OnlineLearner, StreamingClassifier, StreamingSample};
 pub use regression::{
     MetricHistory, MetricSample, MetricType, RegressionDetector, RegressionEvent,
     RegressionSeverity,
 };
+pub use reinforcement::{ActionSpace, Episode, PolicyGradient, QLearner, RewardSignal, StateSpace};
 pub use safety::{
     ConstraintType, ExplorationPolicy, SafeLearner, SafetyConstraint, SafetyViolation,
 };
+pub use transfer::{DomainAdapter, FeatureTransformer, KnowledgeTransfer, TransferLearner};
 pub use types::{ExperienceId, HypothesisId, RuleId, SessionId, Timestamp};
