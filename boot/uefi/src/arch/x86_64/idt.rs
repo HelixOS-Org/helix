@@ -595,8 +595,8 @@ macro_rules! interrupt_stub {
     };
 }
 
-/// Common interrupt handler stub (assembly)
-/// This saves all registers and calls the Rust handler
+// Common interrupt handler stub (assembly)
+// This saves all registers and calls the Rust handler
 #[cfg(target_arch = "x86_64")]
 core::arch::global_asm!(
     r#"
