@@ -882,7 +882,7 @@ fn read_counter() -> u64 {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
