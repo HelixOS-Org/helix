@@ -519,7 +519,7 @@ pub unsafe fn set_interrupt_stack(ist_index: usize, stack: u64) {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
