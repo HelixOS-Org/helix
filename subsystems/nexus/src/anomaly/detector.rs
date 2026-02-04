@@ -105,16 +105,14 @@ impl AnomalyDetector {
         }
 
         // IQR detection
-        if anomaly.is_none() && self.config.enable_iqr {
-            if stats.is_iqr_outlier(value, self.config.iqr_multiplier) {
-                let (q1, _q2, q3) = stats.quartiles();
-                anomaly = Some(
-                    Anomaly::new(AnomalyType::OutOfRange, metric, value, mean)
-                        .with_context("q1", q1)
-                        .with_context("q3", q3)
-                        .with_context("iqr", stats.iqr()),
-                );
-            }
+        if anomaly.is_none() && self.config.enable_iqr && stats.is_iqr_outlier(value, self.config.iqr_multiplier) {
+            let (q1, _q2, q3) = stats.quartiles();
+            anomaly = Some(
+                Anomaly::new(AnomalyType::OutOfRange, metric, value, mean)
+                    .with_context("q1", q1)
+                    .with_context("q3", q3)
+                    .with_context("iqr", stats.iqr()),
+            );
         }
 
         // Trend detection
