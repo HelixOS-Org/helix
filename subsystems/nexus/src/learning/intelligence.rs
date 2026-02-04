@@ -9,7 +9,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::AtomicBool;
 
-use super::curriculum::{CurriculumLearner, DifficultyLevel};
+use super::curriculum::{CurriculumLearner, LessonDifficulty};
 use super::feedback::{FeedbackEntry, FeedbackLoop, FeedbackType};
 use super::generalizer::Generalizer;
 use super::hypothesis::HypothesisManager;
