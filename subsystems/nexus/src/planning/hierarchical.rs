@@ -84,7 +84,6 @@ impl Task {
 }
 
 /// A method for decomposing compound tasks
-#[derive(Debug, Clone)]
 pub struct Method {
     /// Method ID
     pub id: MethodId,
@@ -98,6 +97,19 @@ pub struct Method {
     pub subtasks: Vec<TaskId>,
     /// Cost multiplier
     pub cost_factor: f64,
+}
+
+impl Clone for Method {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            name: self.name.clone(),
+            task: self.task,
+            precondition: None, // Cannot clone closures
+            subtasks: self.subtasks.clone(),
+            cost_factor: self.cost_factor,
+        }
+    }
 }
 
 impl Method {
