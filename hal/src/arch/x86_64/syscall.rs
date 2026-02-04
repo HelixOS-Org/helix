@@ -178,7 +178,7 @@ pub extern "C" fn syscall_dispatcher(
     arg0: u64,       // RSI - first argument
     arg1: u64,       // RDX - second argument
     arg2: u64,       // RCX - third argument
-    arg3: u64,       // R8 - fourth argument
+    _arg3: u64,      // R8 - fourth argument
     _arg4: u64,      // R9 - fifth argument
 ) -> u64 {
     match syscall_nr {
