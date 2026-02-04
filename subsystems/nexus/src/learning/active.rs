@@ -196,8 +196,9 @@ impl ActiveLearner {
     /// Update uncertainty scores
     pub fn update_uncertainty(&mut self, predictions: &BTreeMap<u64, Vec<f64>>) {
         for (id, probs) in predictions {
+            let uncertainty = self.compute_uncertainty(probs);
             if let Some(sample) = self.samples.get_mut(id) {
-                sample.uncertainty = self.compute_uncertainty(probs);
+                sample.uncertainty = uncertainty;
             }
         }
     }
