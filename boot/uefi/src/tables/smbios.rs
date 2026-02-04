@@ -2680,7 +2680,7 @@ impl From<u8> for BootStatus {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
