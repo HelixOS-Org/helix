@@ -553,8 +553,8 @@ impl StrategySelector {
         applicable
             .iter()
             .max_by(|a, b| {
-                let sample_a = self.sample_beta(*a, task_type);
-                let sample_b = self.sample_beta(*b, task_type);
+                let sample_a = self.sample_beta(**a, task_type);
+                let sample_b = self.sample_beta(**b, task_type);
                 sample_a
                     .partial_cmp(&sample_b)
                     .unwrap_or(core::cmp::Ordering::Equal)
