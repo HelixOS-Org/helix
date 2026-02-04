@@ -73,7 +73,7 @@ pub struct MemoryMap {
     /// Buffer containing the memory map
     buffer: *mut u8,
     /// Buffer size
-    buffer_size: usize,
+    _buffer_size: usize,
     /// Map size (actual used)
     map_size: usize,
     /// Memory map key
@@ -131,7 +131,7 @@ impl MemoryMap {
 
         Ok(Self {
             buffer,
-            buffer_size,
+            _buffer_size: buffer_size,
             map_size: actual_size,
             key: MemoryMapKey(key_value),
             descriptor_size,
@@ -437,7 +437,7 @@ unsafe impl GlobalAlloc for UefiAllocator {
 
 // Note: Global allocator defined in lib.rs (BootAllocator)
 // UefiAllocator is available for explicit use when needed
-static ALLOCATOR: UefiAllocator = UefiAllocator;
+static _ALLOCATOR: UefiAllocator = UefiAllocator;
 
 // =============================================================================
 // MEMORY REGION HELPERS
