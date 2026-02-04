@@ -40,8 +40,6 @@
 //! - Battery information
 //! - NUMA topology discovery
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
