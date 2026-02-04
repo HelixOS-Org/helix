@@ -12,6 +12,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use crate::math::F64Ext;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -66,6 +67,9 @@ impl LessonDifficulty {
         }
     }
 }
+
+/// Alias for backward compatibility
+pub type DifficultyLevel = LessonDifficulty;
 
 /// A lesson in the curriculum
 #[derive(Debug, Clone)]
@@ -409,6 +413,11 @@ impl CurriculumLearner {
             return 0.0;
         }
         self.mastered_count() as f64 / self.lessons.len() as f64
+    }
+
+    /// Get current difficulty level
+    pub fn current_difficulty(&self) -> LessonDifficulty {
+        LessonDifficulty::from_value(self.progression.current_difficulty)
     }
 
     /// Get curriculum status
