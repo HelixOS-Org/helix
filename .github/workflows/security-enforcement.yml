@@ -36,17 +36,17 @@ jobs:
       - name: 🔍 Check for new #[allow(...)] attributes
         run: |
           echo "Checking for new #[allow(...)] attributes..."
-          
+
           # Get the diff against the base branch
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          
+
           # Check for new allow attributes (excluding common safe ones)
           NEW_ALLOWS=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- '*.rs' | \
             grep -E '^\+.*#\[allow\(' | \
             grep -v 'dead_code' | \
             grep -v 'unused' || true)
-          
+
           if [ -n "$NEW_ALLOWS" ]; then
             echo "::error::Found new #[allow(...)] attributes. These are not permitted:"
             echo "$NEW_ALLOWS"
@@ -54,19 +54,19 @@ jobs:
             echo "Please fix the underlying issues instead of suppressing warnings."
             exit 1
           fi
-          
+
           echo "✅ No new #[allow(...)] attributes found"
 
       - name: 🔍 Check for new static mut declarations
         run: |
           echo "Checking for new static mut declarations..."
-          
+
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          
+
           NEW_STATIC_MUT=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- '*.rs' | \
             grep -E '^\+.*static\s+mut\s+' || true)
-          
+
           if [ -n "$NEW_STATIC_MUT" ]; then
             echo "::error::Found new 'static mut' declarations. These are not permitted:"
             echo "$NEW_STATIC_MUT"
@@ -77,28 +77,28 @@ jobs:
             echo "  - AtomicXxx types for primitive values"
             exit 1
           fi
-          
+
           echo "✅ No new static mut declarations found"
 
       - name: 🔍 Check unsafe blocks have safety comments
         run: |
           echo "Checking that new unsafe blocks have safety comments..."
-          
+
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          
+
           # Get files with new unsafe blocks
           DIFF=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- '*.rs')
-          
+
           # Look for unsafe blocks without preceding SAFETY comment
           # This is a heuristic - it checks for unsafe blocks in added lines
           # without a SAFETY: comment in the preceding 3 lines
-          
+
           NEW_UNSAFE=$(echo "$DIFF" | \
             grep -B3 '^\+.*unsafe\s*{' | \
             grep -v 'SAFETY:' | \
             grep '^\+.*unsafe\s*{' || true)
-          
+
           if [ -n "$NEW_UNSAFE" ]; then
             echo "::warning::Found unsafe blocks that may be missing SAFETY comments:"
             echo "$NEW_UNSAFE"
@@ -106,22 +106,22 @@ jobs:
             echo "Please ensure all unsafe blocks have a '// SAFETY: ...' comment explaining"
             echo "why the unsafe operation is sound."
           fi
-          
+
           echo "✅ Unsafe block check complete"
 
       - name: 🔍 Check for panics in kernel code
         run: |
           echo "Checking for new unwrap()/expect() in kernel code..."
-          
+
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          
+
           # Check core kernel paths for new unwrap/expect usage
           KERNEL_PATHS="core/ hal/ boot/ subsystems/memory/ subsystems/execution/"
-          
+
           NEW_PANICS=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- $KERNEL_PATHS | \
             grep -E '^\+.*(\.unwrap\(\)|\.expect\()' || true)
-          
+
           if [ -n "$NEW_PANICS" ]; then
             echo "::warning::Found new unwrap()/expect() in kernel code paths:"
             echo "$NEW_PANICS"
@@ -129,7 +129,7 @@ jobs:
             echo "Consider using Result/Option propagation instead of panicking."
             echo "Panics in kernel code can cause system crashes."
           fi
-          
+
           echo "✅ Panic check complete"
 
   cargo-deny:
