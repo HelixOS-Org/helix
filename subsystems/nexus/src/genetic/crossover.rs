@@ -591,14 +591,23 @@ impl Default for CrossoverEngine {
 // RANDOM HELPERS
 // ============================================================================
 
-static mut CROSSOVER_SEED: u64 = 24680;
+use core::sync::atomic::{AtomicU64, Ordering};
+
+static CROSSOVER_SEED: AtomicU64 = AtomicU64::new(24680);
 
 fn rand_u64() -> u64 {
-    unsafe {
-        CROSSOVER_SEED = CROSSOVER_SEED
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1);
-        CROSSOVER_SEED
+    let mut current = CROSSOVER_SEED.load(Ordering::Relaxed);
+    loop {
+        let next = current.wrapping_mul(6364136223846793005).wrapping_add(1);
+        match CROSSOVER_SEED.compare_exchange_weak(
+            current,
+            next,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => return next,
+            Err(x) => current = x,
+        }
     }
 }
 
