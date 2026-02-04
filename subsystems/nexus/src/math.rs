@@ -92,6 +92,7 @@ pub trait F32Ext {
     fn tanh(self) -> f32;
     fn powf(self, n: f32) -> f32;
     fn powi(self, n: i32) -> f32;
+    fn round(self) -> f32;
 }
 
 impl F32Ext for f32 {
@@ -118,6 +119,10 @@ impl F32Ext for f32 {
     #[inline]
     fn powi(self, n: i32) -> f32 {
         libm::powf(self, n as f32)
+    }
+    #[inline]
+    fn round(self) -> f32 {
+        libm::roundf(self)
     }
 }
 
