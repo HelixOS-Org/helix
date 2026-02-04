@@ -1,0 +1,163 @@
+# =============================================================================
+# Helix OS - Security Enforcement Workflow
+# =============================================================================
+# This workflow enforces security requirements on all PRs:
+# - No new #[allow(...)] attributes
+# - No new static mut declarations
+# - All new unsafe blocks must have safety comments
+# =============================================================================
+
+name: 🔐 Security Enforcement
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+    paths:
+      - '**.rs'
+      - '**/Cargo.toml'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  security-check:
+    name: 🛡️ Security Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Check for new #[allow(...)] attributes
+        run: |
+          echo "Checking for new #[allow(...)] attributes..."
+          
+          # Get the diff against the base branch
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          # Check for new allow attributes (excluding common safe ones)
+          NEW_ALLOWS=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- '*.rs' | \
+            grep -E '^\+.*#\[allow\(' | \
+            grep -v 'dead_code' | \
+            grep -v 'unused' || true)
+          
+          if [ -n "$NEW_ALLOWS" ]; then
+            echo "::error::Found new #[allow(...)] attributes. These are not permitted:"
+            echo "$NEW_ALLOWS"
+            echo ""
+            echo "Please fix the underlying issues instead of suppressing warnings."
+            exit 1
+          fi
+          
+          echo "✅ No new #[allow(...)] attributes found"
+
+      - name: 🔍 Check for new static mut declarations
+        run: |
+          echo "Checking for new static mut declarations..."
+          
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          NEW_STATIC_MUT=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- '*.rs' | \
+            grep -E '^\+.*static\s+mut\s+' || true)
+          
+          if [ -n "$NEW_STATIC_MUT" ]; then
+            echo "::error::Found new 'static mut' declarations. These are not permitted:"
+            echo "$NEW_STATIC_MUT"
+            echo ""
+            echo "Use thread-safe alternatives like:"
+            echo "  - spin::Once<T> for one-time initialization"
+            echo "  - spin::Mutex<T> or spin::RwLock<T> for mutable access"
+            echo "  - AtomicXxx types for primitive values"
+            exit 1
+          fi
+          
+          echo "✅ No new static mut declarations found"
+
+      - name: 🔍 Check unsafe blocks have safety comments
+        run: |
+          echo "Checking that new unsafe blocks have safety comments..."
+          
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          # Get files with new unsafe blocks
+          DIFF=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- '*.rs')
+          
+          # Look for unsafe blocks without preceding SAFETY comment
+          # This is a heuristic - it checks for unsafe blocks in added lines
+          # without a SAFETY: comment in the preceding 3 lines
+          
+          NEW_UNSAFE=$(echo "$DIFF" | \
+            grep -B3 '^\+.*unsafe\s*{' | \
+            grep -v 'SAFETY:' | \
+            grep '^\+.*unsafe\s*{' || true)
+          
+          if [ -n "$NEW_UNSAFE" ]; then
+            echo "::warning::Found unsafe blocks that may be missing SAFETY comments:"
+            echo "$NEW_UNSAFE"
+            echo ""
+            echo "Please ensure all unsafe blocks have a '// SAFETY: ...' comment explaining"
+            echo "why the unsafe operation is sound."
+          fi
+          
+          echo "✅ Unsafe block check complete"
+
+      - name: 🔍 Check for panics in kernel code
+        run: |
+          echo "Checking for new unwrap()/expect() in kernel code..."
+          
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          # Check core kernel paths for new unwrap/expect usage
+          KERNEL_PATHS="core/ hal/ boot/ subsystems/memory/ subsystems/execution/"
+          
+          NEW_PANICS=$(git diff "$BASE_SHA"..."$HEAD_SHA" -- $KERNEL_PATHS | \
+            grep -E '^\+.*(\.unwrap\(\)|\.expect\()' || true)
+          
+          if [ -n "$NEW_PANICS" ]; then
+            echo "::warning::Found new unwrap()/expect() in kernel code paths:"
+            echo "$NEW_PANICS"
+            echo ""
+            echo "Consider using Result/Option propagation instead of panicking."
+            echo "Panics in kernel code can cause system crashes."
+          fi
+          
+          echo "✅ Panic check complete"
+
+  cargo-deny:
+    name: 📦 Dependency Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔒 Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          log-level: warn
+          command: check
+          arguments: --all-features
+
+  cargo-audit:
+    name: 🔍 Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🦀 Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: 📦 Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: 🔍 Run audit
+        run: cargo audit --deny warnings
