@@ -30,6 +30,10 @@
 //! }
 //! ```
 
+// In inline assembly, we intentionally use rbx with a 32-bit output
+// since we save/restore the full register but only use the lower bits
+#![allow(asm_sub_register)]
+
 use core::arch::asm;
 
 // =============================================================================
