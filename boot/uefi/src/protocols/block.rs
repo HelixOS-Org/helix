@@ -823,7 +823,7 @@ fn read_ucs2_string(data: &[u8]) -> String {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
