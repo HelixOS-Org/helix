@@ -20,6 +20,7 @@
 //! - Explaining why anomalies occurred
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
@@ -926,7 +927,7 @@ impl CausalDiscovery {
         // Create graph from skeleton
         let mut graph = CausalGraph::new();
 
-        for (&id, name) in &self.names {
+        for (&_id, name) in &self.names {
             graph.add_node(name.clone(), CausalNodeType::Observed);
         }
 
