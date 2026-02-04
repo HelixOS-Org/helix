@@ -3,6 +3,8 @@
 //! Year 3 EVOLUTION - Q4 - State synchronization across distributed nodes
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::redundant_closure)]
 
 extern crate alloc;
 
