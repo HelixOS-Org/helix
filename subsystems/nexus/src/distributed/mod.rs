@@ -803,31 +803,25 @@ pub enum DistributedError {
 // GLOBAL ACCESS
 // ============================================================================
 
-static mut DISTRIBUTED_ENGINE: Option<DistributedEvolutionEngine> = None;
+use spin::RwLock;
 
-/// Get pointer to the distributed engine static
-/// # Safety
-/// Returns raw pointer to the static for Edition 2024 compliance
-#[inline]
-fn distributed_engine_ptr() -> *mut Option<DistributedEvolutionEngine> {
-    core::ptr::addr_of_mut!(DISTRIBUTED_ENGINE)
-}
+/// Global distributed engine (thread-safe singleton)
+static DISTRIBUTED_ENGINE: spin::Once<RwLock<DistributedEvolutionEngine>> = spin::Once::new();
 
 /// Initialize global distributed engine
 pub fn init_distributed_engine(config: DistributedConfig) {
-    unsafe {
-        (*distributed_engine_ptr()) = Some(DistributedEvolutionEngine::new(config));
-    }
+    DISTRIBUTED_ENGINE.call_once(|| RwLock::new(DistributedEvolutionEngine::new(config)));
 }
 
-/// Get distributed engine
-pub fn distributed_engine() -> Option<&'static DistributedEvolutionEngine> {
-    unsafe { (*distributed_engine_ptr()).as_ref() }
+/// Get distributed engine (read access)
+pub fn distributed_engine() -> Option<spin::RwLockReadGuard<'static, DistributedEvolutionEngine>> {
+    DISTRIBUTED_ENGINE.get().map(|e| e.read())
 }
 
-/// Get distributed engine mutable
-pub fn distributed_engine_mut() -> Option<&'static mut DistributedEvolutionEngine> {
-    unsafe { (*distributed_engine_ptr()).as_mut() }
+/// Get distributed engine (write access)
+pub fn distributed_engine_mut()
+-> Option<spin::RwLockWriteGuard<'static, DistributedEvolutionEngine>> {
+    DISTRIBUTED_ENGINE.get().map(|e| e.write())
 }
 
 // ============================================================================
