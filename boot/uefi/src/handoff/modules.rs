@@ -899,7 +899,7 @@ impl<'a> CpioReader<'a> {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
