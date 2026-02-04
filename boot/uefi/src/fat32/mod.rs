@@ -967,7 +967,7 @@ pub fn to_short_name(name: &str) -> Option<[u8; 11]> {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
