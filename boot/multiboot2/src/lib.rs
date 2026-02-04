@@ -55,7 +55,7 @@
 //! └─────────────────────────────────────────────────────────────────────────┘
 //! ```
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
@@ -73,6 +73,9 @@
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::redundant_closure_for_method_calls)]
 #![allow(clippy::match_same_arms)]
+
+#[cfg(feature = "std")]
+extern crate std;
 
 // =============================================================================
 // Module Declarations
