@@ -58,8 +58,8 @@ use alloc::vec::Vec;
 pub use circuits::{CircuitExecutor, Instruction, QuantumCircuit};
 pub use types::{Complex, Hamiltonian, Pauli, PauliString, QubitState, StateVector};
 
-// Import RunningStats from learn module
-use crate::learn::incremental::RunningStats;
+// Import RunningStats from learning module
+use crate::learning::incremental::RunningStats;
 use crate::types::NexusResult;
 
 /// Quantum-inspired optimization problem types
