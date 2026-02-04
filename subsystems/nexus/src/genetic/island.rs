@@ -4,6 +4,7 @@
 //! Multiple isolated populations with periodic migration.
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
@@ -512,14 +513,19 @@ impl IslandManager {
 // RANDOM HELPERS
 // ============================================================================
 
-static mut ISLAND_SEED: u64 = 57913;
+use core::sync::atomic::{AtomicU64, Ordering};
+
+static ISLAND_SEED: AtomicU64 = AtomicU64::new(57913);
 
 fn rand_u64() -> u64 {
-    unsafe {
-        ISLAND_SEED = ISLAND_SEED
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1);
-        ISLAND_SEED
+    let mut current = ISLAND_SEED.load(Ordering::Relaxed);
+    loop {
+        let next = current.wrapping_mul(6364136223846793005).wrapping_add(1);
+        match ISLAND_SEED.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed)
+        {
+            Ok(_) => return next,
+            Err(x) => current = x,
+        }
     }
 }
 
