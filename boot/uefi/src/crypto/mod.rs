@@ -957,7 +957,7 @@ impl fmt::Display for CryptoError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
