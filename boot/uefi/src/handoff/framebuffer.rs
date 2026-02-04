@@ -852,7 +852,7 @@ impl<'a> FramebufferConsole<'a> {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
