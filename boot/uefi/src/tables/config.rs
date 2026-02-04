@@ -821,7 +821,7 @@ impl Default for SystemInfoAggregator {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
