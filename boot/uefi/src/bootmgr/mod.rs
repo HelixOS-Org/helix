@@ -11,8 +11,6 @@
 //! - State machine management
 //! - Error handling integration
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
