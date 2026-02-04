@@ -778,7 +778,7 @@ impl fmt::Display for CompressionError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
