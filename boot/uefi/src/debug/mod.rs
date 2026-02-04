@@ -1006,7 +1006,7 @@ pub fn walk_stack() -> impl Iterator<Item = StackFrame> {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
