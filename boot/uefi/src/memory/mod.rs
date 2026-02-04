@@ -394,7 +394,7 @@ pub const fn align_down(addr: u64, alignment: u64) -> u64 {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
