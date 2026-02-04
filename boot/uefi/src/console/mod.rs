@@ -686,7 +686,7 @@ fn get_glyph(c: char) -> [u8; 16] {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
