@@ -8,14 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::vec;
-use crate::math::F64Ext;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::math::F64Ext;
 use crate::types::Timestamp;
 
 // ============================================================================
@@ -188,7 +187,8 @@ impl ImitationLearner {
         let start = Timestamp::now();
 
         // Collect valid demonstrations
-        let demos: Vec<&Demonstration> = demo_ids.iter()
+        let demos: Vec<&Demonstration> = demo_ids
+            .iter()
             .filter_map(|id| self.demonstrations.get(id))
             .filter(|d| d.quality >= self.config.min_quality)
             .collect();
@@ -271,7 +271,7 @@ impl ImitationLearner {
                     return false;
                 }
                 x.iter().zip(y.iter()).all(|(a, b)| (a - b).abs() < 0.1)
-            }
+            },
             _ => false,
         }
     }
@@ -290,20 +290,19 @@ impl ImitationLearner {
             PolicyMapping::Table(table) => {
                 let key = self.discretize_state(state);
                 table.get(&key).cloned()
-            }
+            },
 
             PolicyMapping::NearestNeighbor { states, actions } => {
                 self.find_nearest(state, states, actions)
-            }
+            },
 
-            PolicyMapping::Linear { weights, bias } => {
-                self.linear_predict(state, weights, bias)
-            }
+            PolicyMapping::Linear { weights, bias } => self.linear_predict(state, weights, bias),
         }
     }
 
     fn discretize_state(&self, state: &[f64]) -> Vec<i64> {
-        state.iter()
+        state
+            .iter()
             .map(|x| {
                 let bin = (x * self.config.discretization_bins as f64) as i64;
                 bin.max(0).min(self.config.discretization_bins as i64 - 1)
@@ -311,13 +310,19 @@ impl ImitationLearner {
             .collect()
     }
 
-    fn find_nearest(&self, state: &[f64], states: &[Vec<f64>], actions: &[ActionData]) -> Option<ActionData> {
+    fn find_nearest(
+        &self,
+        state: &[f64],
+        states: &[Vec<f64>],
+        actions: &[ActionData],
+    ) -> Option<ActionData> {
         if states.is_empty() || actions.is_empty() {
             return None;
         }
 
         // Find K nearest neighbors
-        let mut distances: Vec<(usize, f64)> = states.iter()
+        let mut distances: Vec<(usize, f64)> = states
+            .iter()
             .enumerate()
             .map(|(i, s)| (i, self.euclidean_distance(state, s)))
             .collect();
@@ -335,14 +340,20 @@ impl ImitationLearner {
     fn euclidean_distance(&self, a: &[f64], b: &[f64]) -> f64 {
         let min_len = a.len().min(b.len());
 
-        a.iter().take(min_len)
+        a.iter()
+            .take(min_len)
             .zip(b.iter().take(min_len))
             .map(|(x, y)| (x - y).powi(2))
             .sum::<f64>()
             .sqrt()
     }
 
-    fn linear_predict(&self, state: &[f64], weights: &[Vec<f64>], bias: &[f64]) -> Option<ActionData> {
+    fn linear_predict(
+        &self,
+        state: &[f64],
+        weights: &[Vec<f64>],
+        bias: &[f64],
+    ) -> Option<ActionData> {
         if weights.is_empty() {
             return None;
         }
@@ -350,10 +361,7 @@ impl ImitationLearner {
         let mut output = Vec::new();
 
         for (i, w) in weights.iter().enumerate() {
-            let dot: f64 = state.iter()
-                .zip(w.iter())
-                .map(|(s, w)| s * w)
-                .sum();
+            let dot: f64 = state.iter().zip(w.iter()).map(|(s, w)| s * w).sum();
 
             let b = bias.get(i).copied().unwrap_or(0.0);
             output.push(dot + b);
@@ -366,7 +374,8 @@ impl ImitationLearner {
     pub fn train_table(&mut self, demo_ids: &[u64], name: &str) -> Option<TrainingResult> {
         let start = Timestamp::now();
 
-        let demos: Vec<&Demonstration> = demo_ids.iter()
+        let demos: Vec<&Demonstration> = demo_ids
+            .iter()
             .filter_map(|id| self.demonstrations.get(id))
             .filter(|d| d.quality >= self.config.min_quality)
             .collect();
@@ -423,7 +432,8 @@ impl ImitationLearner {
 
     /// Get demos by expert
     pub fn demos_by_expert(&self, expert: &str) -> Vec<&Demonstration> {
-        self.demonstrations.values()
+        self.demonstrations
+            .values()
             .filter(|d| d.expert == expert)
             .collect()
     }
