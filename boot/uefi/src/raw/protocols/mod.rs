@@ -3,6 +3,8 @@
 //! This module contains the raw FFI definitions for UEFI protocols.
 //! These are low-level structures matching the UEFI specification exactly.
 
+#![allow(clippy::unreadable_literal)]
+
 pub mod block;
 pub mod device_path;
 pub mod file;
