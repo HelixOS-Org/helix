@@ -4,6 +4,11 @@
 //! Intelligent exploration of the synthesis search space.
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::only_used_in_recursion)]
+#![allow(clippy::while_let_loop)]
+#![allow(clippy::single_match)]
+#![allow(clippy::derivable_impls)]
 
 extern crate alloc;
 use alloc::boxed::Box;
