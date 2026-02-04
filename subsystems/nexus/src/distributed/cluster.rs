@@ -3,6 +3,8 @@
 //! Year 3 EVOLUTION - Q4 - Cluster lifecycle and membership management
 
 #![allow(dead_code)]
+#![allow(clippy::collapsible_else_if)]
+#![allow(clippy::unwrap_or_default)]
 
 extern crate alloc;
 
