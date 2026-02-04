@@ -844,8 +844,8 @@ pub unsafe fn disable_pic() {
 /// Must only be called during early boot
 pub unsafe fn remap_and_disable_pic() {
     // Save masks
-    let master_mask = super::inb(pic::MASTER_DATA);
-    let slave_mask = super::inb(pic::SLAVE_DATA);
+    let _master_mask = super::inb(pic::MASTER_DATA);
+    let _slave_mask = super::inb(pic::SLAVE_DATA);
 
     // ICW1: Initialize + ICW4 needed
     super::outb(pic::MASTER_COMMAND, 0x11);
