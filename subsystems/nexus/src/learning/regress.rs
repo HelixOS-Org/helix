@@ -268,13 +268,14 @@ impl RegressionDetector {
 
     /// Check for regressions
     pub fn check(&mut self) -> Vec<u64> {
-        let mut detected = Vec::new();
-
         let baseline_values = self
             .current_baseline
             .and_then(|id| self.baselines.get(&id))
             .map(|b| b.values.clone())
             .unwrap_or_default();
+
+        // Collect regression data first to avoid borrow issues
+        let mut regressions_to_create: Vec<(u64, f64, f64, f64)> = Vec::new();
 
         for metric in self.metrics.values() {
             if metric.history.is_empty() {
@@ -303,10 +304,15 @@ impl RegressionDetector {
             };
 
             if is_regression && change_percent > self.config.sensitivity * 100.0 {
-                let regression_id =
-                    self.create_regression(metric.id, baseline, current, change_percent);
-                detected.push(regression_id);
+                regressions_to_create.push((metric.id, baseline, current, change_percent));
             }
+        }
+
+        // Now create the regressions
+        let mut detected = Vec::new();
+        for (metric_id, baseline, current, change_percent) in regressions_to_create {
+            let regression_id = self.create_regression(metric_id, baseline, current, change_percent);
+            detected.push(regression_id);
         }
 
         detected
