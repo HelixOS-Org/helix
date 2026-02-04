@@ -448,27 +448,39 @@ impl BehaviorComposite {
 
         let mut result = CompositeResult::new(CompositeStatus::Idle);
 
-        // Process layers in priority order
-        for layer in &mut self.layers {
-            if !layer.is_enabled {
+        // Process layers in priority order using indices to avoid borrow issues
+        let layer_count = self.layers.len();
+        for i in 0..layer_count {
+            let (is_enabled, layer_id, layer_name, subsumes) = {
+                let layer = &self.layers[i];
+                (
+                    layer.is_enabled,
+                    layer.id,
+                    layer.name.clone(),
+                    layer.subsumes.clone(),
+                )
+            };
+
+            if !is_enabled {
                 continue;
             }
 
-            if self.suppressed_layers.contains(&layer.id) {
+            if self.suppressed_layers.contains(&layer_id) {
                 continue;
             }
 
-            let layer_result = self.process_layer(layer);
+            // Process layer by index to avoid double borrow
+            let layer_result = self.process_layer_by_index(i);
 
             if layer_result.status != CompositeStatus::Idle {
-                result.active_layers.push(layer.name.clone());
+                result.active_layers.push(layer_name);
                 result.responses.extend(layer_result.responses);
                 result.state_changes.extend(layer_result.state_changes);
 
                 // Apply subsumption
-                for subsumed_id in &layer.subsumes {
-                    if !self.suppressed_layers.contains(subsumed_id) {
-                        self.suppressed_layers.push(*subsumed_id);
+                for subsumed_id in subsumes {
+                    if !self.suppressed_layers.contains(&subsumed_id) {
+                        self.suppressed_layers.push(subsumed_id);
                     }
                 }
 
@@ -482,13 +494,112 @@ impl BehaviorComposite {
         result
     }
 
-    fn process_layer(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
+    fn process_layer_by_index(&mut self, index: usize) -> CompositeResult {
+        let layer_type = self.layers[index].layer_type;
+        let layer_name = self.layers[index].name.clone();
+        let current_time = self.current_time;
+        let delta_time = self.delta_time;
+
+        match layer_type {
+            BehaviorLayerType::BehaviorTree => {
+                if let Some(tree) = self.layers[index].behavior_tree_mut() {
+                    let status = tree.tick(current_time, delta_time);
+                    let composite_status = match status {
+                        BehaviorStatus::Success => CompositeStatus::Success,
+                        BehaviorStatus::Running => CompositeStatus::Running,
+                        BehaviorStatus::Failure | BehaviorStatus::Cancelled => {
+                            CompositeStatus::Failed
+                        },
+                        BehaviorStatus::Ready => CompositeStatus::Idle,
+                    };
+                    CompositeResult::new(composite_status).with_layer(&layer_name)
+                } else {
+                    CompositeResult::new(CompositeStatus::Idle)
+                }
+            },
+            BehaviorLayerType::StateMachine => {
+                if let Some(sm) = self.layers[index].state_machine_mut() {
+                    let old_state = sm.current_state();
+                    let mut ctx = StateContext::new(current_time, delta_time);
+                    sm.update(&mut ctx);
+                    let new_state = sm.current_state();
+                    let mut result =
+                        CompositeResult::new(CompositeStatus::Running).with_layer(&layer_name);
+                    if old_state != new_state {
+                        result.state_changes.push(StateChange {
+                            system: layer_name.clone(),
+                            from: alloc::format!("{:?}", old_state),
+                            to: alloc::format!("{:?}", new_state),
+                            timestamp: current_time,
+                        });
+                    }
+                    if sm.is_finished() {
+                        result.status = CompositeStatus::Success;
+                    }
+                    result
+                } else {
+                    CompositeResult::new(CompositeStatus::Idle)
+                }
+            },
+            BehaviorLayerType::Reactive => {
+                if let Some(reactive) = self.layers[index].reactive_mut() {
+                    let stimuli = self.stimulus_buffer.get_stimuli();
+                    let responses = reactive.process(stimuli, current_time);
+                    let mut result = CompositeResult::new(if responses.is_empty() {
+                        CompositeStatus::Idle
+                    } else {
+                        CompositeStatus::Success
+                    })
+                    .with_layer(&layer_name);
+                    for response in responses {
+                        result.responses.push(CompositeResponse {
+                            source: layer_name.clone(),
+                            action: response.name.clone(),
+                            priority: response.priority as u8,
+                        });
+                    }
+                    result
+                } else {
+                    CompositeResult::new(CompositeStatus::Idle)
+                }
+            },
+            BehaviorLayerType::UtilityAI => {
+                let priority = self.layers[index].priority;
+                if let Some(utility) = self.layers[index].utility_mut() {
+                    let ctx = UtilityContext::new();
+                    if let Some(action_id) = utility.select_and_execute(&ctx) {
+                        let action_name = utility
+                            .get_action(action_id)
+                            .map(|a| a.name.clone())
+                            .unwrap_or_else(|| alloc::format!("Action_{:?}", action_id));
+                        CompositeResult::new(CompositeStatus::Success)
+                            .with_layer(&layer_name)
+                            .with_response(CompositeResponse {
+                                source: layer_name.clone(),
+                                action: action_name,
+                                priority: priority as u8,
+                            })
+                    } else {
+                        CompositeResult::new(CompositeStatus::Idle).with_layer(&layer_name)
+                    }
+                } else {
+                    CompositeResult::new(CompositeStatus::Idle)
+                }
+            },
+        }
+    }
+
+    fn process_layer_internal(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
         match layer.layer_type {
             BehaviorLayerType::BehaviorTree => self.process_behavior_tree_layer(layer),
             BehaviorLayerType::StateMachine => self.process_state_machine_layer(layer),
             BehaviorLayerType::Reactive => self.process_reactive_layer(layer),
             BehaviorLayerType::UtilityAI => self.process_utility_layer(layer),
         }
+    }
+
+    fn process_layer(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
+        self.process_layer_internal(layer)
     }
 
     fn process_behavior_tree_layer(&mut self, layer: &mut BehaviorLayer) -> CompositeResult {
