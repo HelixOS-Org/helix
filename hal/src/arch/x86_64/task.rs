@@ -113,7 +113,7 @@ impl CpuContext {
     }
 
     /// Create a new context for a user task
-    pub fn new_user(entry_point: u64, stack_top: u64, kernel_stack: u64) -> Self {
+    pub fn new_user(entry_point: u64, stack_top: u64, _kernel_stack: u64) -> Self {
         Self {
             r15: 0,
             r14: 0,
