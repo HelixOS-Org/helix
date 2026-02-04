@@ -449,7 +449,7 @@ pub struct ProtocolNotification {
     /// Event handle
     event: Event,
     /// Registration key
-    registration: *mut core::ffi::c_void,
+    _registration: *mut core::ffi::c_void,
 }
 
 impl ProtocolNotification {
@@ -493,7 +493,7 @@ impl ProtocolNotification {
 
         Ok(Self {
             event,
-            registration,
+            _registration: registration,
         })
     }
 
