@@ -323,17 +323,18 @@ impl BootTimeResponse {
 
 unsafe impl SafeResponse for BootTimeResponse {
     fn validate(&self) -> bool {
-        // Boot time should be after year 2000
-        self.boot_time > 946684800
+        // Boot time should be after year 2000 (946684800 = 2000-01-01 00:00:00 UTC)
+        self.boot_time > 946_684_800
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl core::fmt::Debug for BootTimeResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("BootTimeResponse")
             .field("timestamp", &self.boot_time)
             .field("datetime", &self.as_datetime())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -356,6 +357,8 @@ pub struct DateTime {
 
 impl DateTime {
     /// Convert from UNIX timestamp
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
     pub fn from_timestamp(timestamp: i64) -> Self {
         // Simple implementation - doesn't handle leap seconds
         let mut days = (timestamp / 86400) as i32;
