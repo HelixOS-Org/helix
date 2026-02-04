@@ -50,7 +50,7 @@ pub struct Pattern {
 }
 
 /// Pattern type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PatternType {
     /// Structural pattern
     Structural,
@@ -403,7 +403,7 @@ impl GeneralizationEngine {
 
         match values[0] {
             FeatureValue::Bool(_) => {
-                let all_same = values.iter().all(|v| v == values[0]);
+                let all_same = values.iter().all(|v| *v == values[0]);
                 if all_same {
                     (
                         FeatureType::Boolean,
@@ -498,15 +498,21 @@ impl GeneralizationEngine {
 
     /// Generalize pattern
     pub fn generalize(&mut self, pattern_id: u64, new_example: &Example) -> bool {
-        let pattern = match self.patterns.get_mut(&pattern_id) {
-            Some(p) => p,
-            None => return false,
+        // First check if pattern exists and if example matches
+        let matches = if let Some(pattern) = self.patterns.get(&pattern_id) {
+            self.matches_pattern(new_example, pattern)
+        } else {
+            return false;
         };
 
         self.stats.generalizations += 1;
 
-        // Check if example matches current pattern
-        let matches = self.matches_pattern(new_example, pattern);
+        let strategy = self.config.strategy;
+
+        let pattern = match self.patterns.get_mut(&pattern_id) {
+            Some(p) => p,
+            None => return false,
+        };
 
         if matches {
             // Just add as supporting example
@@ -515,14 +521,58 @@ impl GeneralizationEngine {
             pattern.updated = Timestamp::now();
             true
         } else {
-            // Try to generalize
-            match self.config.strategy {
-                Strategy::Specific => self.generalize_specific(pattern, new_example),
-                Strategy::General => self.generalize_general(pattern, new_example),
-                Strategy::Balanced => self.generalize_balanced(pattern, new_example),
-                _ => false,
+            // Try to generalize - need to handle this differently to avoid borrow issues
+            // Since generalize_* methods need &mut self, we'll inline the logic here
+            Self::generalize_pattern_inline(pattern, new_example, strategy)
+        }
+    }
+
+    fn generalize_pattern_inline(pattern: &mut Pattern, example: &Example, strategy: Strategy) -> bool {
+        match strategy {
+            Strategy::Specific => Self::generalize_specific_inline(pattern, example),
+            Strategy::General => Self::generalize_general_inline(pattern, example),
+            Strategy::Balanced => Self::generalize_balanced_inline(pattern, example),
+            _ => false,
+        }
+    }
+
+    fn generalize_specific_inline(pattern: &mut Pattern, example: &Example) -> bool {
+        // Minimal generalization: only widen constraints as needed
+        let mut changed = false;
+
+        for feature in &mut pattern.features {
+            if let Some(_value) = example.get(&feature.name) {
+                // Feature exists in example
+            } else if feature.required {
+                // Make optional
+                feature.required = false;
+                changed = true;
             }
         }
+
+        if changed {
+            pattern.examples.push(example.id);
+            pattern.support += 1;
+            pattern.updated = Timestamp::now();
+        }
+
+        changed
+    }
+
+    fn generalize_general_inline(pattern: &mut Pattern, example: &Example) -> bool {
+        // More aggressive generalization
+        pattern.examples.push(example.id);
+        pattern.support += 1;
+        pattern.updated = Timestamp::now();
+        true
+    }
+
+    fn generalize_balanced_inline(pattern: &mut Pattern, example: &Example) -> bool {
+        // Balanced approach
+        pattern.examples.push(example.id);
+        pattern.support += 1;
+        pattern.updated = Timestamp::now();
+        true
     }
 
     fn matches_pattern(&self, example: &Example, pattern: &Pattern) -> bool {
