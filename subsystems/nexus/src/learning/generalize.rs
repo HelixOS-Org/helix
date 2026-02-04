@@ -8,12 +8,10 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::format;
-use alloc::vec;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::types::Timestamp;
@@ -527,7 +525,11 @@ impl GeneralizationEngine {
         }
     }
 
-    fn generalize_pattern_inline(pattern: &mut Pattern, example: &Example, strategy: Strategy) -> bool {
+    fn generalize_pattern_inline(
+        pattern: &mut Pattern,
+        example: &Example,
+        strategy: Strategy,
+    ) -> bool {
         match strategy {
             Strategy::Specific => Self::generalize_specific_inline(pattern, example),
             Strategy::General => Self::generalize_general_inline(pattern, example),
