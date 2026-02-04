@@ -432,7 +432,7 @@ use alloc::boxed::Box;
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
