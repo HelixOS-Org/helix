@@ -9,6 +9,8 @@
 //! All structures in this module are `#[repr(C)]` to ensure ABI compatibility.
 //! They should only be accessed through the safe abstractions in higher layers.
 
+#![allow(clippy::doc_markdown)]
+
 use core::ffi::c_char;
 use core::ptr;
 
