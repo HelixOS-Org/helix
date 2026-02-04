@@ -727,7 +727,7 @@ impl ArchOperations for X86_64Ops {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
