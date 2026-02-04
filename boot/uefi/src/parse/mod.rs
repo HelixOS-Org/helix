@@ -995,7 +995,7 @@ pub fn parse_config_line(line: &str) -> ConfigLine {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
