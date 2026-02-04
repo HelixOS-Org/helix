@@ -19,8 +19,10 @@ pub mod reactive;
 pub mod temporal;
 
 // Re-exports
-pub use actions::{Action, ActionEffect, ActionId, ActionPrecondition, ActionSpace as PlanActionSpace};
+pub use actions::{
+    Action, ActionEffect, ActionId, ActionPrecondition, ActionSpace as PlanActionSpace,
+};
 pub use goals::{Goal, GoalId, GoalManager, GoalPriority, GoalStatus};
 pub use hierarchical::{HTNPlanner, Method, MethodId, Task, TaskId, TaskNetwork};
-pub use reactive::{ReactivePlanner, Trigger, TriggerCondition, Response};
+pub use reactive::{ReactivePlanner, Response, Trigger, TriggerCondition};
 pub use temporal::{TemporalConstraint, TemporalPlanner, TimePoint, Timeline};
