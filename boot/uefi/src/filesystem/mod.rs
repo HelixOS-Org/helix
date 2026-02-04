@@ -380,7 +380,7 @@ impl FileHandle {
     }
 
     /// Read from file
-    pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, FileError> {
+    pub fn read(&mut self, _buffer: &mut [u8]) -> Result<usize, FileError> {
         if !self.is_open {
             return Err(FileError::NotOpen);
         }
@@ -396,7 +396,7 @@ impl FileHandle {
     }
 
     /// Write to file
-    pub fn write(&mut self, buffer: &[u8]) -> Result<usize, FileError> {
+    pub fn write(&mut self, _buffer: &[u8]) -> Result<usize, FileError> {
         if !self.is_open {
             return Err(FileError::NotOpen);
         }
@@ -498,7 +498,7 @@ impl FileHandle {
     }
 
     /// Set file info
-    pub fn set_info(&mut self, info: &FileInfo) -> Result<(), FileError> {
+    pub fn set_info(&mut self, _info: &FileInfo) -> Result<(), FileError> {
         if !self.is_open {
             return Err(FileError::NotOpen);
         }
@@ -595,12 +595,12 @@ impl FileSystem {
     }
 
     /// Open file
-    pub fn open(&mut self, path: &str, mode: u64, attrs: u64) -> Result<FileHandle, FileError> {
-        let root = self.open_volume()?;
+    pub fn open(&mut self, path: &str, _mode: u64, _attrs: u64) -> Result<FileHandle, FileError> {
+        let _root = self.open_volume()?;
 
         // Convert path to UCS-2
         let mut path_ucs2 = [0u16; 256];
-        let path_len = path_to_ucs2(path, &mut path_ucs2);
+        let _path_len = path_to_ucs2(path, &mut path_ucs2);
 
         // Would call root.handle.Open()
 
