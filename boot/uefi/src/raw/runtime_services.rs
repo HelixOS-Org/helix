@@ -3,6 +3,8 @@
 //! Runtime Services remain available after ExitBootServices is called.
 //! They provide time, variable storage, and system control services.
 
+#![allow(clippy::unreadable_literal)]
+
 use super::memory::MemoryDescriptor;
 use super::types::*;
 
