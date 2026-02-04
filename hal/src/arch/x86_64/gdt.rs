@@ -287,15 +287,17 @@ static TSS: CpuStatic<TaskStateSegment> = CpuStatic::new(TaskStateSegment::new()
 
 /// Interrupt stack for double faults (IST1)
 #[repr(align(16))]
-struct InterruptStack([u8; INTERRUPT_STACK_SIZE]);
+struct InterruptStack {
+    _data: [u8; INTERRUPT_STACK_SIZE],
+}
 
 // SAFETY: InterruptStack is a simple byte array, safe to share
 unsafe impl Sync for InterruptStack {}
 
 static DOUBLE_FAULT_STACK: CpuStatic<InterruptStack> =
-    CpuStatic::new(InterruptStack([0; INTERRUPT_STACK_SIZE]));
+    CpuStatic::new(InterruptStack { _data: [0; INTERRUPT_STACK_SIZE] });
 static PAGE_FAULT_STACK: CpuStatic<InterruptStack> =
-    CpuStatic::new(InterruptStack([0; INTERRUPT_STACK_SIZE]));
+    CpuStatic::new(InterruptStack { _data: [0; INTERRUPT_STACK_SIZE] });
 
 // =============================================================================
 // Initialization
@@ -303,13 +305,15 @@ static PAGE_FAULT_STACK: CpuStatic<InterruptStack> =
 
 /// Kernel stack for Ring 3 -> Ring 0 transitions
 #[repr(align(16))]
-struct KernelRing0Stack([u8; 32 * 1024]); // 32KB kernel stack
+struct KernelRing0Stack {
+    _data: [u8; 32 * 1024],
+} // 32KB kernel stack
 
 // SAFETY: KernelRing0Stack is a simple byte array, safe to share
 unsafe impl Sync for KernelRing0Stack {}
 
 static KERNEL_RING0_STACK: CpuStatic<KernelRing0Stack> =
-    CpuStatic::new(KernelRing0Stack([0; 32 * 1024]));
+    CpuStatic::new(KernelRing0Stack { _data: [0; 32 * 1024] });
 
 /// Initialize the GDT and TSS
 ///
