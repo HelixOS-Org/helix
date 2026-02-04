@@ -8,13 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::vec;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
-use crate::math::F64Ext;
 
+use crate::math::F64Ext;
 use crate::types::Timestamp;
 
 // ============================================================================
@@ -208,7 +208,8 @@ impl ActiveLearner {
         }
 
         // Entropy-based uncertainty
-        let entropy: f64 = probs.iter()
+        let entropy: f64 = probs
+            .iter()
             .filter(|&&p| p > 0.0)
             .map(|&p| -p * p.ln())
             .sum();
@@ -228,7 +229,11 @@ impl ActiveLearner {
     }
 
     /// Query with specific strategy
-    pub fn query_with_strategy(&mut self, strategy: QueryStrategy, count: Option<usize>) -> QueryResult {
+    pub fn query_with_strategy(
+        &mut self,
+        strategy: QueryStrategy,
+        count: Option<usize>,
+    ) -> QueryResult {
         let batch_size = count.unwrap_or(self.config.batch_size);
 
         let selected = match strategy {
@@ -260,7 +265,9 @@ impl ActiveLearner {
     }
 
     fn query_uncertainty(&self, count: usize) -> Vec<u64> {
-        let mut candidates: Vec<_> = self.samples.iter()
+        let mut candidates: Vec<_> = self
+            .samples
+            .iter()
             .filter(|(_, s)| !s.selected && s.label.is_none())
             .filter(|(_, s)| s.uncertainty >= self.config.min_uncertainty)
             .map(|(&id, s)| (id, s.uncertainty))
@@ -268,7 +275,8 @@ impl ActiveLearner {
 
         candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
-        candidates.into_iter()
+        candidates
+            .into_iter()
             .take(count)
             .map(|(id, _)| id)
             .collect()
@@ -286,7 +294,9 @@ impl ActiveLearner {
     }
 
     fn query_diversity(&self, count: usize) -> Vec<u64> {
-        let mut candidates: Vec<_> = self.samples.iter()
+        let mut candidates: Vec<_> = self
+            .samples
+            .iter()
             .filter(|(_, s)| !s.selected && s.label.is_none())
             .map(|(&id, s)| (id, s.features.clone(), s.uncertainty))
             .collect();
@@ -308,13 +318,14 @@ impl ActiveLearner {
                     1.0
                 } else {
                     // Min distance to any selected sample
-                    selected_features.iter()
+                    selected_features
+                        .iter()
                         .map(|sf| self.euclidean_distance(features, sf))
                         .fold(f64::INFINITY, f64::min)
                 };
 
-                let score = (1.0 - self.config.diversity_weight) * uncertainty +
-                            self.config.diversity_weight * diversity;
+                let score = (1.0 - self.config.diversity_weight) * uncertainty
+                    + self.config.diversity_weight * diversity;
 
                 if score > best_score {
                     best_score = score;
@@ -332,14 +343,14 @@ impl ActiveLearner {
 
     fn query_random(&self, count: usize) -> Vec<u64> {
         // Simple deterministic "random" for no_std
-        let candidates: Vec<u64> = self.samples.iter()
+        let candidates: Vec<u64> = self
+            .samples
+            .iter()
             .filter(|(_, s)| !s.selected && s.label.is_none())
             .map(|(&id, _)| id)
             .collect();
 
-        candidates.into_iter()
-            .take(count)
-            .collect()
+        candidates.into_iter().take(count).collect()
     }
 
     fn euclidean_distance(&self, a: &[f64], b: &[f64]) -> f64 {
@@ -375,7 +386,8 @@ impl ActiveLearner {
 
     /// Get unlabeled samples
     pub fn unlabeled(&self) -> Vec<&Sample> {
-        self.samples.values()
+        self.samples
+            .values()
             .filter(|s| s.label.is_none())
             .collect()
     }
