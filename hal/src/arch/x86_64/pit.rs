@@ -14,8 +14,8 @@ use core::sync::atomic::{AtomicU64, Ordering};
 /// PIT I/O ports
 mod ports {
     pub const CHANNEL_0: u16 = 0x40;
-    pub const CHANNEL_1: u16 = 0x41;
-    pub const CHANNEL_2: u16 = 0x42;
+    pub const _CHANNEL_1: u16 = 0x41;
+    pub const _CHANNEL_2: u16 = 0x42;
     pub const COMMAND: u16 = 0x43;
 }
 
@@ -40,7 +40,7 @@ mod command {
     pub const CHANNEL_0: u8 = 0b00_000000;
     pub const ACCESS_LOHI: u8 = 0b00_110000;
     pub const MODE_RATE_GEN: u8 = 0b00_000100; // Mode 2: Rate generator
-    pub const MODE_SQUARE: u8 = 0b00_000110; // Mode 3: Square wave
+    pub const _MODE_SQUARE: u8 = 0b00_000110; // Mode 3: Square wave
     pub const BINARY: u8 = 0b00_000000;
 }
 
