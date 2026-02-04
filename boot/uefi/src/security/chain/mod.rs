@@ -970,7 +970,7 @@ impl fmt::Display for ChainError {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 
