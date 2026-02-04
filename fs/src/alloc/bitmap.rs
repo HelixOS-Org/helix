@@ -3,6 +3,8 @@
 //! Uses hierarchical bitmaps for fast free block finding.
 //! Each bit represents one block (0 = free, 1 = used).
 
+#![allow(clippy::excessive_nesting)]
+
 use core::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================
