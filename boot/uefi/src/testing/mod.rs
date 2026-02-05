@@ -283,9 +283,9 @@ impl MemoryTest {
     /// Get test pattern (for simple patterns)
     pub const fn pattern(&self) -> u64 {
         match self {
-            MemoryTest::AllZeros => 0x0000000000000000,
-            MemoryTest::AllOnes => 0xFFFFFFFFFFFFFFFF,
-            MemoryTest::Checkerboard => 0xAAAAAAAAAAAAAAAA,
+            MemoryTest::AllZeros => 0x0000_0000_0000_0000,
+            MemoryTest::AllOnes => 0xFFFF_FFFF_FFFF_FFFF,
+            MemoryTest::Checkerboard => 0xAAAA_AAAA_AAAA_AAAA,
             _ => 0,
         }
     }
@@ -316,7 +316,7 @@ impl Default for MemoryTestConfig {
             tests: 0xFFFF, // All tests
             start_addr: 0,
             end_addr: 0, // Will be detected
-            seed: 0x12345678,
+            seed: 0x1234_5678,
             passes: 1,
             timeout_secs: 300,
             stop_on_error: false,
@@ -710,7 +710,7 @@ pub struct TestSuiteConfig {
 impl Default for TestSuiteConfig {
     fn default() -> Self {
         Self {
-            categories: 0xFFFFFFFF,
+            categories: 0xFFFF_FFFF,
             min_severity: TestSeverity::Low,
             stop_on_fail: false,
             timeout_secs: 60,
