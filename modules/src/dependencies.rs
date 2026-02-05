@@ -99,7 +99,7 @@ impl DependencyGraph {
 
     /// Topological sort (returns load order)
     pub fn topological_sort(&self) -> ModuleResult<Vec<ModuleId>> {
-        if let Some(cycle) = self.has_cycle() {
+        if let Some(_cycle) = self.has_cycle() {
             return Err(ModuleError::CircularDependency);
         }
 
