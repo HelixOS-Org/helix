@@ -11,8 +11,6 @@
 //! - `network`: Network composition and execution
 //! - `inference`: Optimized inference engine
 
-#![no_std]
-
 extern crate alloc;
 
 pub mod activation;
