@@ -662,7 +662,7 @@ impl IdentityMapper {
     }
 
     /// Get page tables
-    pub fn page_tables(&self) -> &PageTableManager {
+    pub const fn page_tables(&self) -> &PageTableManager {
         &self.page_tables
     }
 
@@ -789,7 +789,7 @@ impl HigherHalfMapper {
     }
 
     /// Get page tables
-    pub fn page_tables(&self) -> &PageTableManager {
+    pub const fn page_tables(&self) -> &PageTableManager {
         &self.page_tables
     }
 
@@ -842,7 +842,7 @@ pub struct KernelMapping {
 
 impl KernelMapping {
     /// Get total size
-    pub fn total_size(&self) -> u64 {
+    pub const fn total_size(&self) -> u64 {
         self.code_size + self.data_size + self.rodata_size
     }
 }
@@ -909,7 +909,7 @@ impl PhysicalMapper {
     }
 
     /// Convert physical to virtual
-    pub fn phys_to_virt(&self, physical: PhysicalAddress) -> Option<VirtualAddress> {
+    pub const fn phys_to_virt(&self, physical: PhysicalAddress) -> Option<VirtualAddress> {
         if physical.0 < self.size {
             Some(VirtualAddress(self.base.0 + physical.0))
         } else {
@@ -918,7 +918,7 @@ impl PhysicalMapper {
     }
 
     /// Convert virtual to physical
-    pub fn virt_to_phys(&self, virtual_addr: VirtualAddress) -> Option<PhysicalAddress> {
+    pub const fn virt_to_phys(&self, virtual_addr: VirtualAddress) -> Option<PhysicalAddress> {
         if virtual_addr.0 >= self.base.0 && virtual_addr.0 < self.base.0 + self.size {
             Some(PhysicalAddress(virtual_addr.0 - self.base.0))
         } else {
@@ -927,12 +927,12 @@ impl PhysicalMapper {
     }
 
     /// Get base address
-    pub fn base(&self) -> VirtualAddress {
+    pub const fn base(&self) -> VirtualAddress {
         self.base
     }
 
     /// Get mapped size
-    pub fn size(&self) -> u64 {
+    pub const fn size(&self) -> u64 {
         self.size
     }
 }
@@ -984,7 +984,7 @@ pub mod tlb {
         #[cfg(target_arch = "x86_64")]
         unsafe {
             // INVPCID instruction
-            let descriptor: [u64; 2] = [pcid as u64, 0];
+            let descriptor: [u64; 2] = [u64::from(pcid), 0];
             core::arch::asm!(
                 "invpcid {}, [{}]",
                 in(reg) 0u64, // type 0 = single address
@@ -1024,7 +1024,7 @@ pub mod tlb {
 // MEMORY PROTECTION KEYS
 // =============================================================================
 
-/// Memory protection keys (x86_64 PKU)
+/// Memory protection keys (`x86_64` PKU)
 pub mod pku {
     /// Protection key rights
     #[derive(Debug, Clone, Copy)]
@@ -1040,7 +1040,7 @@ pub mod pku {
         #[cfg(target_arch = "x86_64")]
         {
             let mut pkru = read_pkru();
-            let shift = (key as u32) * 2;
+            let shift = u32::from(key) * 2;
             let mask = 0b11u32 << shift;
 
             pkru &= !mask;
