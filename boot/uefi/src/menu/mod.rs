@@ -125,16 +125,16 @@ impl<'a> BootMenu<'a> {
             Key::Enter => {
                 return Some(MenuResult::Boot(self.selected));
             },
-            Key::Char('e') | Key::Char('E') => {
+            Key::Char('e' | 'E') => {
                 self.enter_editor();
             },
-            Key::Char('c') | Key::Char('C') => {
+            Key::Char('c' | 'C') => {
                 return Some(MenuResult::Shell);
             },
-            Key::Char('r') | Key::Char('R') => {
+            Key::Char('r' | 'R') => {
                 return Some(MenuResult::Reboot);
             },
-            Key::Char('s') | Key::Char('S') => {
+            Key::Char('s' | 'S') => {
                 return Some(MenuResult::Shutdown);
             },
             Key::Escape => {
