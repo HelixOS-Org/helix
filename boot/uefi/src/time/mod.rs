@@ -128,31 +128,37 @@ impl Time {
     /// Day of week (0=Sunday, 6=Saturday)
     pub fn day_of_week(&self) -> u8 {
         // Zeller's congruence
-        let mut y = self.year as i32;
-        let mut m = self.month as i32;
+        let mut year_adj = self.year as i32;
+        let mut month_adj = self.month as i32;
 
-        if m < 3 {
-            m += 12;
-            y -= 1;
+        if month_adj < 3 {
+            month_adj += 12;
+            year_adj -= 1;
         }
 
-        let q = self.day as i32;
-        let k = y % 100;
-        let j = y / 100;
+        let day_of_month = self.day as i32;
+        let year_of_century = year_adj % 100;
+        let century = year_adj / 100;
 
-        let h = (q + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
+        let zeller_result = (day_of_month
+            + (13 * (month_adj + 1)) / 5
+            + year_of_century
+            + year_of_century / 4
+            + century / 4
+            - 2 * century)
+            % 7;
 
         // Convert from Zeller (Saturday=0) to (Sunday=0)
-        ((h + 6) % 7) as u8
+        ((zeller_result + 6) % 7) as u8
     }
 
     /// Week of year (ISO 8601)
     pub fn week_of_year(&self) -> u8 {
-        let doy = self.day_of_year() as i32;
-        let dow = self.day_of_week() as i32;
+        let day_of_year = self.day_of_year() as i32;
+        let day_of_week = self.day_of_week() as i32;
 
         // Thursday-based week
-        let week = (doy - dow + 10) / 7;
+        let week = (day_of_year - day_of_week + 10) / 7;
 
         week.max(1).min(53) as u8
     }
