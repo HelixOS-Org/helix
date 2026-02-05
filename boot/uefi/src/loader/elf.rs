@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 use crate::loader::{
     ImageFlags, ImageFormat, ImageSection, LoadedImage, MachineType, SectionFlags,
 };
-use crate::raw::types::*;
+use crate::raw::types::VirtualAddress;
 
 extern crate alloc;
 use alloc::string::String;
@@ -69,9 +69,9 @@ pub mod pt {
     pub const PT_SHLIB: u32 = 5;
     pub const PT_PHDR: u32 = 6;
     pub const PT_TLS: u32 = 7;
-    pub const PT_GNU_EH_FRAME: u32 = 0x6474e550;
-    pub const PT_GNU_STACK: u32 = 0x6474e551;
-    pub const PT_GNU_RELRO: u32 = 0x6474e552;
+    pub const PT_GNU_EH_FRAME: u32 = 0x6474_e550;
+    pub const PT_GNU_STACK: u32 = 0x6474_e551;
+    pub const PT_GNU_RELRO: u32 = 0x6474_e552;
 }
 
 /// Program header flags
@@ -132,7 +132,7 @@ pub mod stt {
     pub const STT_TLS: u8 = 6;
 }
 
-/// Relocation types for x86_64
+/// Relocation types for `x86_64`
 pub mod r_x86_64 {
     pub const R_X86_64_NONE: u32 = 0;
     pub const R_X86_64_64: u32 = 1;
@@ -230,7 +230,8 @@ impl Elf64Header {
             return Err(Error::UnsupportedFormat);
         }
 
-        Ok(unsafe { *(data.as_ptr() as *const Self) })
+        // SAFETY: We've validated the data length and magic bytes above
+        Ok(unsafe { *data.as_ptr().cast::<Self>() })
     }
 
     /// Validate header
@@ -260,7 +261,8 @@ impl Elf64Header {
     }
 
     /// Get machine type
-    pub fn machine_type(&self) -> MachineType {
+    #[must_use]
+    pub const fn machine_type(&self) -> MachineType {
         match self.e_machine {
             machine::EM_386 => MachineType::X86,
             machine::EM_X86_64 => MachineType::X86_64,
@@ -272,7 +274,8 @@ impl Elf64Header {
     }
 
     /// Check if position independent
-    pub fn is_pie(&self) -> bool {
+    #[must_use]
+    pub const fn is_pie(&self) -> bool {
         self.e_type == elf_type::ET_DYN
     }
 }
@@ -306,31 +309,37 @@ impl Elf64ProgramHeader {
             return Err(Error::InvalidData);
         }
 
-        Ok(unsafe { *(data[offset..].as_ptr() as *const Self) })
+        // SAFETY: We've validated the data length above
+        Ok(unsafe { *data[offset..].as_ptr().cast::<Self>() })
     }
 
     /// Check if loadable
-    pub fn is_load(&self) -> bool {
+    #[must_use]
+    pub const fn is_load(&self) -> bool {
         self.p_type == pt::PT_LOAD
     }
 
     /// Check if executable
-    pub fn is_executable(&self) -> bool {
+    #[must_use]
+    pub const fn is_executable(&self) -> bool {
         (self.p_flags & pf::PF_X) != 0
     }
 
     /// Check if writable
-    pub fn is_writable(&self) -> bool {
+    #[must_use]
+    pub const fn is_writable(&self) -> bool {
         (self.p_flags & pf::PF_W) != 0
     }
 
     /// Check if readable
-    pub fn is_readable(&self) -> bool {
+    #[must_use]
+    pub const fn is_readable(&self) -> bool {
         (self.p_flags & pf::PF_R) != 0
     }
 
     /// Get BSS size (memsz - filesz)
-    pub fn bss_size(&self) -> u64 {
+    #[must_use]
+    pub const fn bss_size(&self) -> u64 {
         if self.p_memsz > self.p_filesz {
             self.p_memsz - self.p_filesz
         } else {
@@ -372,21 +381,25 @@ impl Elf64SectionHeader {
             return Err(Error::InvalidData);
         }
 
-        Ok(unsafe { *(data[offset..].as_ptr() as *const Self) })
+        // SAFETY: We've validated the data length above
+        Ok(unsafe { *data[offset..].as_ptr().cast::<Self>() })
     }
 
     /// Check if allocated
-    pub fn is_allocated(&self) -> bool {
+    #[must_use]
+    pub const fn is_allocated(&self) -> bool {
         (self.sh_flags & shf::SHF_ALLOC) != 0
     }
 
     /// Check if writable
-    pub fn is_writable(&self) -> bool {
+    #[must_use]
+    pub const fn is_writable(&self) -> bool {
         (self.sh_flags & shf::SHF_WRITE) != 0
     }
 
     /// Check if executable
-    pub fn is_executable(&self) -> bool {
+    #[must_use]
+    pub const fn is_executable(&self) -> bool {
         (self.sh_flags & shf::SHF_EXECINSTR) != 0
     }
 
