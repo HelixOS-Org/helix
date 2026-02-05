@@ -18,7 +18,7 @@ use crate::raw::types::*;
 /// Secure Boot protocol for managing secure boot state
 pub struct SecureBoot {
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// Secure boot enabled
     enabled: bool,
     /// Setup mode
@@ -33,7 +33,7 @@ impl SecureBoot {
     /// Create new Secure Boot accessor
     pub fn new(handle: Handle) -> Self {
         Self {
-            handle,
+            _handle: handle,
             enabled: false,
             setup_mode: false,
             audit_mode: false,
@@ -491,7 +491,7 @@ pub mod signature_types {
 /// Measured Boot protocol for TPM interactions
 pub struct MeasuredBoot {
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// TPM version
     tpm_version: TpmVersion,
     /// TPM present
@@ -504,7 +504,7 @@ impl MeasuredBoot {
     /// Create new Measured Boot accessor
     pub fn new(handle: Handle) -> Self {
         Self {
-            handle,
+            _handle: handle,
             tpm_version: TpmVersion::Unknown,
             tpm_present: false,
             measurements: Vec::new(),
