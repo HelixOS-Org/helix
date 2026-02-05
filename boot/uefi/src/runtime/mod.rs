@@ -490,7 +490,7 @@ pub mod capsule_flags {
 /// Runtime services wrapper
 pub struct RuntimeServices {
     /// Table pointer
-    table: *const RuntimeServicesTable,
+    _table: *const RuntimeServicesTable,
     /// Virtual address mode
     virtual_mode: bool,
 }
@@ -499,7 +499,7 @@ impl RuntimeServices {
     /// Create from table pointer
     pub unsafe fn from_table(table: *const RuntimeServicesTable) -> Self {
         Self {
-            table,
+            _table: table,
             virtual_mode: false,
         }
     }
