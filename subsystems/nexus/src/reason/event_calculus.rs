@@ -14,6 +14,7 @@
 //! - Abductive reasoning about missing events
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
