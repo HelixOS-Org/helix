@@ -73,71 +73,71 @@ pub const EMMC_BOOT_MULT: u32 = 128 * 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SdCommand {
-    /// GO_IDLE_STATE - Reset all cards
+    /// `GO_IDLE_STATE` - Reset all cards
     GoIdleState        = 0,
-    /// ALL_SEND_CID - Request all cards send CID
+    /// `ALL_SEND_CID` - Request all cards send CID
     AllSendCid         = 2,
-    /// SEND_RELATIVE_ADDR - Ask card to publish RCA
+    /// `SEND_RELATIVE_ADDR` - Ask card to publish RCA
     SendRelativeAddr   = 3,
-    /// SET_DSR - Set driver stage register
+    /// `SET_DSR` - Set driver stage register
     SetDsr             = 4,
-    /// SWITCH - Switch function/high speed
+    /// `SWITCH` - Switch function/high speed
     Switch             = 6,
-    /// SELECT_CARD - Select/deselect card
+    /// `SELECT_CARD` - Select/deselect card
     SelectCard         = 7,
-    /// SEND_IF_COND - Send interface condition
+    /// `SEND_IF_COND` - Send interface condition
     SendIfCond         = 8,
-    /// SEND_CSD - Request CSD from card
+    /// `SEND_CSD` - Request CSD from card
     SendCsd            = 9,
-    /// SEND_CID - Request CID from card
+    /// `SEND_CID` - Request CID from card
     SendCid            = 10,
-    /// VOLTAGE_SWITCH - Switch to 1.8V signaling
+    /// `VOLTAGE_SWITCH` - Switch to 1.8V signaling
     VoltageSwitch      = 11,
-    /// STOP_TRANSMISSION - Stop transmission
+    /// `STOP_TRANSMISSION` - Stop transmission
     StopTransmission   = 12,
-    /// SEND_STATUS - Request card status
+    /// `SEND_STATUS` - Request card status
     SendStatus         = 13,
-    /// GO_INACTIVE_STATE - Set card to inactive
+    /// `GO_INACTIVE_STATE` - Set card to inactive
     GoInactiveState    = 15,
-    /// SET_BLOCKLEN - Set block length
+    /// `SET_BLOCKLEN` - Set block length
     SetBlocklen        = 16,
-    /// READ_SINGLE_BLOCK - Read single block
+    /// `READ_SINGLE_BLOCK` - Read single block
     ReadSingleBlock    = 17,
-    /// READ_MULTIPLE_BLOCK - Read multiple blocks
+    /// `READ_MULTIPLE_BLOCK` - Read multiple blocks
     ReadMultipleBlock  = 18,
-    /// SEND_TUNING_BLOCK - Send tuning pattern
+    /// `SEND_TUNING_BLOCK` - Send tuning pattern
     SendTuningBlock    = 19,
-    /// SPEED_CLASS_CONTROL - Speed class control
+    /// `SPEED_CLASS_CONTROL` - Speed class control
     SpeedClassControl  = 20,
-    /// SET_BLOCK_COUNT - Set block count for multi-block
+    /// `SET_BLOCK_COUNT` - Set block count for multi-block
     SetBlockCount      = 23,
-    /// WRITE_BLOCK - Write single block
+    /// `WRITE_BLOCK` - Write single block
     WriteBlock         = 24,
-    /// WRITE_MULTIPLE_BLOCK - Write multiple blocks
+    /// `WRITE_MULTIPLE_BLOCK` - Write multiple blocks
     WriteMultipleBlock = 25,
-    /// PROGRAM_CSD - Program CSD
+    /// `PROGRAM_CSD` - Program CSD
     ProgramCsd         = 27,
-    /// SET_WRITE_PROT - Set write protection
+    /// `SET_WRITE_PROT` - Set write protection
     SetWriteProt       = 28,
-    /// CLR_WRITE_PROT - Clear write protection
+    /// `CLR_WRITE_PROT` - Clear write protection
     ClrWriteProt       = 29,
-    /// SEND_WRITE_PROT - Send write protection status
+    /// `SEND_WRITE_PROT` - Send write protection status
     SendWriteProt      = 30,
-    /// ERASE_WR_BLK_START - Set first erase block
+    /// `ERASE_WR_BLK_START` - Set first erase block
     EraseWrBlkStart    = 32,
-    /// ERASE_WR_BLK_END - Set last erase block
+    /// `ERASE_WR_BLK_END` - Set last erase block
     EraseWrBlkEnd      = 33,
-    /// ERASE - Erase blocks
+    /// `ERASE` - Erase blocks
     Erase              = 38,
-    /// LOCK_UNLOCK - Lock/unlock card
+    /// `LOCK_UNLOCK` - Lock/unlock card
     LockUnlock         = 42,
-    /// APP_CMD - Next command is application command
+    /// `APP_CMD` - Next command is application command
     AppCmd             = 55,
-    /// GEN_CMD - General command
+    /// `GEN_CMD` - General command
     GenCmd             = 56,
-    /// READ_OCR - Read OCR register (SPI mode)
+    /// `READ_OCR` - Read OCR register (SPI mode)
     ReadOcr            = 58,
-    /// CRC_ON_OFF - Turn CRC on/off (SPI mode)
+    /// `CRC_ON_OFF` - Turn CRC on/off (SPI mode)
     CrcOnOff           = 59,
 }
 
@@ -145,19 +145,19 @@ pub enum SdCommand {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SdAcmd {
-    /// SET_BUS_WIDTH
+    /// `SET_BUS_WIDTH`
     SetBusWidth        = 6,
-    /// SD_STATUS
+    /// `SD_STATUS`
     SdStatus           = 13,
-    /// SEND_NUM_WR_BLOCKS
+    /// `SEND_NUM_WR_BLOCKS`
     SendNumWrBlocks    = 22,
-    /// SET_WR_BLK_ERASE_COUNT
+    /// `SET_WR_BLK_ERASE_COUNT`
     SetWrBlkEraseCount = 23,
-    /// SD_SEND_OP_COND
+    /// `SD_SEND_OP_COND`
     SdSendOpCond       = 41,
-    /// SET_CLR_CARD_DETECT
+    /// `SET_CLR_CARD_DETECT`
     SetClrCardDetect   = 42,
-    /// SEND_SCR
+    /// `SEND_SCR`
     SendScr            = 51,
 }
 
@@ -165,23 +165,23 @@ pub enum SdAcmd {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum MmcCommand {
-    /// SEND_OP_COND - Request OCR from card
+    /// `SEND_OP_COND` - Request OCR from card
     SendOpCond      = 1,
-    /// SET_RELATIVE_ADDR - Assign RCA
+    /// `SET_RELATIVE_ADDR` - Assign RCA
     SetRelativeAddr = 3,
-    /// SLEEP_AWAKE - Toggle sleep mode
+    /// `SLEEP_AWAKE` - Toggle sleep mode
     SleepAwake      = 5,
-    /// SWITCH - Extended CSD access
+    /// `SWITCH` - Extended CSD access
     Switch          = 6,
-    /// SEND_EXT_CSD - Send extended CSD
+    /// `SEND_EXT_CSD` - Send extended CSD
     SendExtCsd      = 8,
-    /// BUSTEST_W - Bus test write
+    /// `BUSTEST_W` - Bus test write
     BustestW        = 19,
-    /// BUSTEST_R - Bus test read
+    /// `BUSTEST_R` - Bus test read
     BustestR        = 14,
-    /// ERASE_GROUP_START - Set first erase group
+    /// `ERASE_GROUP_START` - Set first erase group
     EraseGroupStart = 35,
-    /// ERASE_GROUP_END - Set last erase group
+    /// `ERASE_GROUP_END` - Set last erase group
     EraseGroupEnd   = 36,
 }
 
@@ -225,6 +225,84 @@ pub enum DataDirection {
     Write,
 }
 
+/// Packed command option flags to reduce bool count
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CommandOptionFlags {
+    /// Packed flags: bit 0 = `multi_block`, bit 1 = `use_dma`, bit 2 = `auto_cmd12`,
+    /// bit 3 = `auto_cmd23`, bit 4 = `check_crc`, bit 5 = `check_index`
+    bits: u8,
+}
+
+impl CommandOptionFlags {
+    /// Multi-block transfer flag bit
+    const MULTI_BLOCK: u8 = 1 << 0;
+    /// Use DMA flag bit
+    const USE_DMA: u8 = 1 << 1;
+    /// Auto CMD12 flag bit
+    const AUTO_CMD12: u8 = 1 << 2;
+    /// Auto CMD23 flag bit
+    const AUTO_CMD23: u8 = 1 << 3;
+    /// Check CRC flag bit
+    const CHECK_CRC: u8 = 1 << 4;
+    /// Check index flag bit
+    const CHECK_INDEX: u8 = 1 << 5;
+
+    /// Create new empty flags
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { bits: 0 }
+    }
+
+    /// Create flags with CRC and index check enabled
+    #[must_use]
+    pub const fn with_crc_and_index() -> Self {
+        Self { bits: Self::CHECK_CRC | Self::CHECK_INDEX }
+    }
+
+    /// Create flags with only CRC check enabled
+    #[must_use]
+    pub const fn with_crc_only() -> Self {
+        Self { bits: Self::CHECK_CRC }
+    }
+
+    /// Check if multi-block transfer is enabled
+    pub const fn multi_block(&self) -> bool {
+        (self.bits & Self::MULTI_BLOCK) != 0
+    }
+
+    /// Check if DMA is enabled
+    pub const fn use_dma(&self) -> bool {
+        (self.bits & Self::USE_DMA) != 0
+    }
+
+    /// Check if auto CMD12 is enabled
+    pub const fn auto_cmd12(&self) -> bool {
+        (self.bits & Self::AUTO_CMD12) != 0
+    }
+
+    /// Check if auto CMD23 is enabled
+    pub const fn auto_cmd23(&self) -> bool {
+        (self.bits & Self::AUTO_CMD23) != 0
+    }
+
+    /// Check if CRC check is enabled
+    pub const fn check_crc(&self) -> bool {
+        (self.bits & Self::CHECK_CRC) != 0
+    }
+
+    /// Check if index check is enabled
+    pub const fn check_index(&self) -> bool {
+        (self.bits & Self::CHECK_INDEX) != 0
+    }
+
+    /// Set multi-block flag
+    #[must_use]
+    pub const fn set_multi_block(mut self) -> Self {
+        self.bits |= Self::MULTI_BLOCK;
+        self
+    }
+}
+
 /// Command flags
 #[derive(Debug, Clone, Copy, Default)]
 pub struct CommandFlags {
@@ -232,134 +310,99 @@ pub struct CommandFlags {
     pub response: ResponseType,
     /// Data direction
     pub data: DataDirection,
-    /// Multiple block transfer
-    pub multi_block: bool,
-    /// Use DMA
-    pub use_dma: bool,
-    /// Auto CMD12
-    pub auto_cmd12: bool,
-    /// Auto CMD23
-    pub auto_cmd23: bool,
-    /// Check CRC
-    pub check_crc: bool,
-    /// Check index
-    pub check_index: bool,
+    /// Packed option flags
+    pub options: CommandOptionFlags,
 }
 
 impl CommandFlags {
     /// Create flags for no-response command
+    #[must_use]
     pub const fn no_response() -> Self {
         Self {
             response: ResponseType::None,
             data: DataDirection::None,
-            multi_block: false,
-            use_dma: false,
-            auto_cmd12: false,
-            auto_cmd23: false,
-            check_crc: false,
-            check_index: false,
+            options: CommandOptionFlags::new(),
         }
     }
 
     /// Create flags for R1 response
+    #[must_use]
     pub const fn r1() -> Self {
         Self {
             response: ResponseType::R1,
             data: DataDirection::None,
-            multi_block: false,
-            use_dma: false,
-            auto_cmd12: false,
-            auto_cmd23: false,
-            check_crc: true,
-            check_index: true,
+            options: CommandOptionFlags::with_crc_and_index(),
         }
     }
 
     /// Create flags for R1b response
+    #[must_use]
     pub const fn r1b() -> Self {
         Self {
             response: ResponseType::R1b,
             data: DataDirection::None,
-            multi_block: false,
-            use_dma: false,
-            auto_cmd12: false,
-            auto_cmd23: false,
-            check_crc: true,
-            check_index: true,
+            options: CommandOptionFlags::with_crc_and_index(),
         }
     }
 
     /// Create flags for R2 response
+    #[must_use]
     pub const fn r2() -> Self {
         Self {
             response: ResponseType::R2,
             data: DataDirection::None,
-            multi_block: false,
-            use_dma: false,
-            auto_cmd12: false,
-            auto_cmd23: false,
-            check_crc: true,
-            check_index: false,
+            options: CommandOptionFlags::with_crc_only(),
         }
     }
 
     /// Create flags for R3 response (OCR)
+    #[must_use]
     pub const fn r3() -> Self {
         Self {
             response: ResponseType::R3,
             data: DataDirection::None,
-            multi_block: false,
-            use_dma: false,
-            auto_cmd12: false,
-            auto_cmd23: false,
-            check_crc: false,
-            check_index: false,
+            options: CommandOptionFlags::new(),
         }
     }
 
     /// Create flags for R6 response (RCA)
+    #[must_use]
     pub const fn r6() -> Self {
         Self {
             response: ResponseType::R6,
             data: DataDirection::None,
-            multi_block: false,
-            use_dma: false,
-            auto_cmd12: false,
-            auto_cmd23: false,
-            check_crc: true,
-            check_index: true,
+            options: CommandOptionFlags::with_crc_and_index(),
         }
     }
 
     /// Create flags for R7 response
+    #[must_use]
     pub const fn r7() -> Self {
         Self {
             response: ResponseType::R7,
             data: DataDirection::None,
-            multi_block: false,
-            use_dma: false,
-            auto_cmd12: false,
-            auto_cmd23: false,
-            check_crc: true,
-            check_index: true,
+            options: CommandOptionFlags::with_crc_and_index(),
         }
     }
 
     /// Set read data transfer
+    #[must_use]
     pub const fn with_read(mut self) -> Self {
         self.data = DataDirection::Read;
         self
     }
 
     /// Set write data transfer
+    #[must_use]
     pub const fn with_write(mut self) -> Self {
         self.data = DataDirection::Write;
         self
     }
 
     /// Set multi-block transfer
+    #[must_use]
     pub const fn multi(mut self) -> Self {
-        self.multi_block = true;
+        self.options = self.options.set_multi_block();
         self
     }
 }
@@ -580,10 +623,10 @@ impl SdCid {
 
     /// Product serial number (PSN)
     pub fn product_serial(&self) -> u32 {
-        ((self.raw[9] as u32) << 24)
-            | ((self.raw[10] as u32) << 16)
-            | ((self.raw[11] as u32) << 8)
-            | (self.raw[12] as u32)
+        (u32::from(self.raw[9]) << 24)
+            | (u32::from(self.raw[10]) << 16)
+            | (u32::from(self.raw[11]) << 8)
+            | u32::from(self.raw[12])
     }
 
     /// Manufacturing date year (0 = 2000)
@@ -645,10 +688,10 @@ impl MmcCid {
 
     /// Serial number
     pub fn serial_number(&self) -> u32 {
-        ((self.raw[10] as u32) << 24)
-            | ((self.raw[11] as u32) << 16)
-            | ((self.raw[12] as u32) << 8)
-            | (self.raw[13] as u32)
+        (u32::from(self.raw[10]) << 24)
+            | (u32::from(self.raw[11]) << 16)
+            | (u32::from(self.raw[12]) << 8)
+            | u32::from(self.raw[13])
     }
 
     /// Manufacturing date
@@ -703,7 +746,7 @@ impl Csd {
         self.raw[2]
     }
 
-    /// TRAN_SPEED - Max data transfer rate
+    /// `TRAN_SPEED` - Max data transfer rate
     pub const fn tran_speed(&self) -> u8 {
         self.raw[3]
     }
@@ -742,10 +785,10 @@ impl Csd {
 
     /// CCC - Card command classes
     pub fn ccc(&self) -> u16 {
-        ((self.raw[4] as u16) << 4) | ((self.raw[5] >> 4) as u16)
+        (u16::from(self.raw[4]) << 4) | u16::from(self.raw[5] >> 4)
     }
 
-    /// READ_BL_LEN - Max read data block length
+    /// `READ_BL_LEN` - Max read data block length
     pub const fn read_bl_len(&self) -> u8 {
         self.raw[5] & 0x0F
     }
@@ -755,46 +798,46 @@ impl Csd {
         1 << (self.raw[5] & 0x0F)
     }
 
-    /// READ_BL_PARTIAL - Partial blocks for read allowed
+    /// `READ_BL_PARTIAL` - Partial blocks for read allowed
     pub const fn read_bl_partial(&self) -> bool {
         (self.raw[6] & 0x80) != 0
     }
 
-    /// WRITE_BLK_MISALIGN - Write block misalignment
+    /// `WRITE_BLK_MISALIGN` - Write block misalignment
     pub const fn write_blk_misalign(&self) -> bool {
         (self.raw[6] & 0x40) != 0
     }
 
-    /// READ_BLK_MISALIGN - Read block misalignment
+    /// `READ_BLK_MISALIGN` - Read block misalignment
     pub const fn read_blk_misalign(&self) -> bool {
         (self.raw[6] & 0x20) != 0
     }
 
-    /// DSR_IMP - DSR implemented
+    /// `DSR_IMP` - DSR implemented
     pub const fn dsr_imp(&self) -> bool {
         (self.raw[6] & 0x10) != 0
     }
 
-    /// C_SIZE - Device size (version dependent)
+    /// `C_SIZE` - Device size (version dependent)
     pub fn c_size(&self) -> u32 {
         match self.version() {
             CsdVersion::V1 => {
-                let c_size_high = ((self.raw[6] & 0x03) as u32) << 10;
-                let c_size_mid = (self.raw[7] as u32) << 2;
-                let c_size_low = ((self.raw[8] >> 6) as u32) & 0x03;
+                let c_size_high = u32::from(self.raw[6] & 0x03) << 10;
+                let c_size_mid = u32::from(self.raw[7]) << 2;
+                let c_size_low = u32::from(self.raw[8] >> 6) & 0x03;
                 c_size_high | c_size_mid | c_size_low
             },
             CsdVersion::V2 | CsdVersion::V3 => {
-                let c_size_high = ((self.raw[7] & 0x3F) as u32) << 16;
-                let c_size_mid = (self.raw[8] as u32) << 8;
-                let c_size_low = self.raw[9] as u32;
+                let c_size_high = u32::from(self.raw[7] & 0x3F) << 16;
+                let c_size_mid = u32::from(self.raw[8]) << 8;
+                let c_size_low = u32::from(self.raw[9]);
                 c_size_high | c_size_mid | c_size_low
             },
             CsdVersion::Unknown => 0,
         }
     }
 
-    /// C_SIZE_MULT - Device size multiplier (V1 only)
+    /// `C_SIZE_MULT` - Device size multiplier (V1 only)
     pub const fn c_size_mult(&self) -> u8 {
         ((self.raw[9] & 0x03) << 1) | ((self.raw[10] >> 7) & 0x01)
     }
@@ -803,21 +846,17 @@ impl Csd {
     pub fn capacity_sectors(&self) -> u64 {
         match self.version() {
             CsdVersion::V1 => {
-                let c_size = self.c_size() as u64;
-                let c_size_mult = self.c_size_mult() as u64;
-                let read_bl_len = self.read_bl_len() as u64;
+                let c_size = u64::from(self.c_size());
+                let c_size_mult = u64::from(self.c_size_mult());
+                let read_bl_len = u64::from(self.read_bl_len());
                 let mult = 1u64 << (c_size_mult + 2);
                 let blocknr = (c_size + 1) * mult;
                 let block_len = 1u64 << read_bl_len;
                 (blocknr * block_len) / 512
             },
-            CsdVersion::V2 => {
+            CsdVersion::V2 | CsdVersion::V3 => {
                 // (C_SIZE + 1) * 512K bytes
-                (self.c_size() as u64 + 1) * 1024
-            },
-            CsdVersion::V3 => {
-                // (C_SIZE + 1) * 512K bytes (same as V2 for SDUC)
-                (self.c_size() as u64 + 1) * 1024
+                (u64::from(self.c_size()) + 1) * 1024
             },
             CsdVersion::Unknown => 0,
         }
@@ -828,42 +867,42 @@ impl Csd {
         self.capacity_sectors() * 512
     }
 
-    /// ERASE_BLK_EN - Erase single block enable
+    /// `ERASE_BLK_EN` - Erase single block enable
     pub const fn erase_blk_en(&self) -> bool {
         (self.raw[10] & 0x40) != 0
     }
 
-    /// SECTOR_SIZE - Erase sector size
+    /// `SECTOR_SIZE` - Erase sector size
     pub const fn sector_size(&self) -> u8 {
         ((self.raw[10] & 0x3F) << 1) | ((self.raw[11] >> 7) & 0x01)
     }
 
-    /// WP_GRP_SIZE - Write protect group size
+    /// `WP_GRP_SIZE` - Write protect group size
     pub const fn wp_grp_size(&self) -> u8 {
         self.raw[11] & 0x7F
     }
 
-    /// WP_GRP_ENABLE - Write protect group enable
+    /// `WP_GRP_ENABLE` - Write protect group enable
     pub const fn wp_grp_enable(&self) -> bool {
         (self.raw[12] & 0x80) != 0
     }
 
-    /// R2W_FACTOR - Write speed factor
+    /// `R2W_FACTOR` - Write speed factor
     pub const fn r2w_factor(&self) -> u8 {
         (self.raw[12] >> 2) & 0x07
     }
 
-    /// WRITE_BL_LEN - Max write data block length
+    /// `WRITE_BL_LEN` - Max write data block length
     pub const fn write_bl_len(&self) -> u8 {
         ((self.raw[12] & 0x03) << 2) | ((self.raw[13] >> 6) & 0x03)
     }
 
-    /// WRITE_BL_PARTIAL - Partial blocks for write allowed
+    /// `WRITE_BL_PARTIAL` - Partial blocks for write allowed
     pub const fn write_bl_partial(&self) -> bool {
         (self.raw[13] & 0x20) != 0
     }
 
-    /// FILE_FORMAT_GRP - File format group
+    /// `FILE_FORMAT_GRP` - File format group
     pub const fn file_format_grp(&self) -> bool {
         (self.raw[14] & 0x80) != 0
     }
@@ -873,17 +912,17 @@ impl Csd {
         (self.raw[14] & 0x40) != 0
     }
 
-    /// PERM_WRITE_PROTECT - Permanent write protection
+    /// `PERM_WRITE_PROTECT` - Permanent write protection
     pub const fn perm_write_protect(&self) -> bool {
         (self.raw[14] & 0x20) != 0
     }
 
-    /// TMP_WRITE_PROTECT - Temporary write protection
+    /// `TMP_WRITE_PROTECT` - Temporary write protection
     pub const fn tmp_write_protect(&self) -> bool {
         (self.raw[14] & 0x10) != 0
     }
 
-    /// FILE_FORMAT - File format
+    /// `FILE_FORMAT` - File format
     pub const fn file_format(&self) -> u8 {
         (self.raw[14] >> 2) & 0x03
     }
@@ -1047,15 +1086,15 @@ impl Ssr {
 
     /// SD card type
     pub fn sd_card_type(&self) -> u16 {
-        ((self.raw[2] as u16) << 8) | (self.raw[3] as u16)
+        (u16::from(self.raw[2]) << 8) | u16::from(self.raw[3])
     }
 
     /// Size of protected area in bytes
     pub fn size_of_protected_area(&self) -> u32 {
-        ((self.raw[4] as u32) << 24)
-            | ((self.raw[5] as u32) << 16)
-            | ((self.raw[6] as u32) << 8)
-            | (self.raw[7] as u32)
+        (u32::from(self.raw[4]) << 24)
+            | (u32::from(self.raw[5]) << 16)
+            | (u32::from(self.raw[6]) << 8)
+            | u32::from(self.raw[7])
     }
 
     /// Speed class
@@ -1076,7 +1115,7 @@ impl Ssr {
     /// AU size in bytes
     pub fn au_size_bytes(&self) -> u32 {
         match self.au_size() {
-            0 => 0,
+            0 | 16.. => 0,
             1 => 16 * 1024,
             2 => 32 * 1024,
             3 => 64 * 1024,
@@ -1092,13 +1131,12 @@ impl Ssr {
             13 => 24 * 1024 * 1024,
             14 => 32 * 1024 * 1024,
             15 => 64 * 1024 * 1024,
-            _ => 0,
         }
     }
 
     /// Erase size (AU count)
     pub fn erase_size(&self) -> u16 {
-        ((self.raw[11] as u16) << 8) | (self.raw[12] as u16)
+        (u16::from(self.raw[11]) << 8) | u16::from(self.raw[12])
     }
 
     /// Erase timeout (seconds)
@@ -1128,14 +1166,14 @@ impl Ssr {
 
     /// VSC AU size
     pub fn vsc_au_size(&self) -> u16 {
-        (((self.raw[16] & 0x03) as u16) << 8) | (self.raw[17] as u16)
+        (u16::from(self.raw[16] & 0x03) << 8) | u16::from(self.raw[17])
     }
 
     /// Suspension address
     pub fn sus_addr(&self) -> u32 {
-        (((self.raw[18] & 0x3F) as u32) << 16)
-            | ((self.raw[19] as u32) << 8)
-            | (self.raw[20] as u32)
+        (u32::from(self.raw[18] & 0x3F) << 16)
+            | (u32::from(self.raw[19]) << 8)
+            | u32::from(self.raw[20])
     }
 
     /// Application performance class
@@ -1192,12 +1230,11 @@ impl SpeedClass {
     /// Get minimum write speed in MB/s
     pub const fn min_write_speed_mbps(&self) -> u8 {
         match self {
-            SpeedClass::Class0 => 0,
-            SpeedClass::Class2 => 2,
-            SpeedClass::Class4 => 4,
-            SpeedClass::Class6 => 6,
-            SpeedClass::Class10 => 10,
-            SpeedClass::Unknown(_) => 0,
+            Self::Class0 | Self::Unknown(_) => 0,
+            Self::Class2 => 2,
+            Self::Class4 => 4,
+            Self::Class6 => 6,
+            Self::Class10 => 10,
         }
     }
 }
@@ -1217,241 +1254,241 @@ pub struct ExtCsd {
 /// Extended CSD field offsets
 pub mod ext_csd {
     // Properties segment (read-only)
-    /// S_CMD_SET
+    /// `S_CMD_SET` - Supported command sets
     pub const S_CMD_SET: usize = 504;
-    /// HPI_FEATURES
+    /// `HPI_FEATURES` - HPI feature support
     pub const HPI_FEATURES: usize = 503;
-    /// BKOPS_SUPPORT
+    /// `BKOPS_SUPPORT` - Background operations support
     pub const BKOPS_SUPPORT: usize = 502;
-    /// MAX_PACKED_READS
+    /// `MAX_PACKED_READS` - Maximum packed read commands
     pub const MAX_PACKED_READS: usize = 501;
-    /// MAX_PACKED_WRITES
+    /// `MAX_PACKED_WRITES` - Maximum packed write commands
     pub const MAX_PACKED_WRITES: usize = 500;
-    /// DATA_TAG_SUPPORT
+    /// `DATA_TAG_SUPPORT` - Data tag support
     pub const DATA_TAG_SUPPORT: usize = 499;
-    /// TAG_UNIT_SIZE
+    /// `TAG_UNIT_SIZE` - Tag unit size
     pub const TAG_UNIT_SIZE: usize = 498;
-    /// TAG_RES_SIZE
+    /// `TAG_RES_SIZE` - Tag resource size
     pub const TAG_RES_SIZE: usize = 497;
-    /// CONTEXT_CAPABILITIES
+    /// `CONTEXT_CAPABILITIES` - Context management capabilities
     pub const CONTEXT_CAPABILITIES: usize = 496;
-    /// LARGE_UNIT_SIZE_M1
+    /// `LARGE_UNIT_SIZE_M1` - Large unit size minus 1
     pub const LARGE_UNIT_SIZE_M1: usize = 495;
-    /// EXT_SUPPORT
+    /// `EXT_SUPPORT` - Extended partitions support
     pub const EXT_SUPPORT: usize = 494;
-    /// SUPPORTED_MODES
+    /// `SUPPORTED_MODES` - Supported device modes
     pub const SUPPORTED_MODES: usize = 493;
-    /// FFU_FEATURES
+    /// `FFU_FEATURES` - FFU features
     pub const FFU_FEATURES: usize = 492;
-    /// OPERATION_CODE_TIMEOUT
+    /// `OPERATION_CODE_TIMEOUT` - Operation code timeout
     pub const OPERATION_CODE_TIMEOUT: usize = 491;
-    /// FFU_ARG
+    /// `FFU_ARG` - FFU argument
     pub const FFU_ARG: usize = 487;
-    /// BARRIER_SUPPORT
+    /// `BARRIER_SUPPORT` - Barrier command support
     pub const BARRIER_SUPPORT: usize = 486;
-    /// CMDQ_SUPPORT
+    /// `CMDQ_SUPPORT` - Command queuing support
     pub const CMDQ_SUPPORT: usize = 308;
-    /// CMDQ_DEPTH
+    /// `CMDQ_DEPTH` - Command queue depth
     pub const CMDQ_DEPTH: usize = 307;
-    /// NUMBER_OF_FW_SECTORS_CORRECTLY_PROGRAMMED
+    /// `NUM_FW_SECTORS` - Number of FW sectors correctly programmed
     pub const NUM_FW_SECTORS: usize = 302;
-    /// FIRMWARE_VERSION
+    /// `FIRMWARE_VERSION` - Device firmware version
     pub const FIRMWARE_VERSION: usize = 254;
-    /// DEVICE_VERSION
+    /// `DEVICE_VERSION` - Device version
     pub const DEVICE_VERSION: usize = 252;
-    /// OPTIMAL_TRIM_UNIT_SIZE
+    /// `OPTIMAL_TRIM_UNIT_SIZE` - Optimal trim unit size
     pub const OPTIMAL_TRIM_UNIT_SIZE: usize = 264;
-    /// OPTIMAL_WRITE_SIZE
+    /// `OPTIMAL_WRITE_SIZE` - Optimal write size
     pub const OPTIMAL_WRITE_SIZE: usize = 263;
-    /// OPTIMAL_READ_SIZE
+    /// `OPTIMAL_READ_SIZE` - Optimal read size
     pub const OPTIMAL_READ_SIZE: usize = 262;
-    /// PRE_EOL_INFO
+    /// `PRE_EOL_INFO` - Pre end of life information
     pub const PRE_EOL_INFO: usize = 267;
-    /// DEVICE_LIFE_TIME_EST_TYP_A
+    /// `DEVICE_LIFE_TIME_A` - Device life time estimate type A
     pub const DEVICE_LIFE_TIME_A: usize = 268;
-    /// DEVICE_LIFE_TIME_EST_TYP_B
+    /// `DEVICE_LIFE_TIME_B` - Device life time estimate type B
     pub const DEVICE_LIFE_TIME_B: usize = 269;
-    /// VENDOR_PROPRIETARY_HEALTH_REPORT
+    /// `VENDOR_HEALTH_REPORT` - Vendor proprietary health report
     pub const VENDOR_HEALTH_REPORT: usize = 270;
-    /// NATIVE_SECTOR_SIZE
+    /// `NATIVE_SECTOR_SIZE` - Native sector size
     pub const NATIVE_SECTOR_SIZE: usize = 63;
-    /// USE_NATIVE_SECTOR
+    /// `USE_NATIVE_SECTOR` - Use native sector size
     pub const USE_NATIVE_SECTOR: usize = 62;
-    /// DATA_SECTOR_SIZE
+    /// `DATA_SECTOR_SIZE` - Data sector size
     pub const DATA_SECTOR_SIZE: usize = 61;
-    /// INI_TIMEOUT_AP
+    /// `INI_TIMEOUT_AP` - Initialization timeout after power-up
     pub const INI_TIMEOUT_AP: usize = 241;
-    /// PWR_CL_DDR_52_360
+    /// `PWR_CL_DDR_52_360` - Power class for DDR at 52MHz 3.6V
     pub const PWR_CL_DDR_52_360: usize = 239;
-    /// PWR_CL_DDR_52_195
+    /// `PWR_CL_DDR_52_195` - Power class for DDR at 52MHz 1.95V
     pub const PWR_CL_DDR_52_195: usize = 238;
-    /// PWR_CL_200_360
+    /// `PWR_CL_200_360` - Power class at 200MHz 3.6V
     pub const PWR_CL_200_360: usize = 237;
-    /// PWR_CL_200_195
+    /// `PWR_CL_200_195` - Power class at 200MHz 1.95V
     pub const PWR_CL_200_195: usize = 236;
-    /// MIN_PERF_DDR_R_8_52
+    /// `MIN_PERF_DDR_R_8_52` - Minimum read performance DDR 8-bit at 52MHz
     pub const MIN_PERF_DDR_R_8_52: usize = 235;
-    /// MIN_PERF_DDR_W_8_52
+    /// `MIN_PERF_DDR_W_8_52` - Minimum write performance DDR 8-bit at 52MHz
     pub const MIN_PERF_DDR_W_8_52: usize = 234;
-    /// SEC_COUNT
+    /// `SEC_COUNT` - Sector count
     pub const SEC_COUNT: usize = 212;
-    /// SLEEP_NOTIFICATION_TIME
+    /// `SLEEP_NOTIFICATION_TIME` - Sleep notification time
     pub const SLEEP_NOTIFICATION_TIME: usize = 216;
-    /// S_A_TIMEOUT
+    /// `S_A_TIMEOUT` - Sleep/awake timeout
     pub const S_A_TIMEOUT: usize = 217;
-    /// PRODUCTION_STATE_AWARENESS_TIMEOUT
+    /// `PRODUCTION_STATE_AWARENESS_TIMEOUT` - Production state awareness timeout
     pub const PRODUCTION_STATE_AWARENESS_TIMEOUT: usize = 218;
-    /// S_C_VCCQ
+    /// `S_C_VCCQ` - Sleep current VCCQ
     pub const S_C_VCCQ: usize = 219;
-    /// S_C_VCC
+    /// `S_C_VCC` - Sleep current VCC
     pub const S_C_VCC: usize = 220;
-    /// HC_WP_GRP_SIZE
+    /// `HC_WP_GRP_SIZE` - High-capacity write protect group size
     pub const HC_WP_GRP_SIZE: usize = 221;
-    /// REL_WR_SEC_C
+    /// `REL_WR_SEC_C` - Reliable write sector count
     pub const REL_WR_SEC_C: usize = 222;
-    /// ERASE_TIMEOUT_MULT
+    /// `ERASE_TIMEOUT_MULT` - Erase timeout multiplier
     pub const ERASE_TIMEOUT_MULT: usize = 223;
-    /// HC_ERASE_GRP_SIZE
+    /// `HC_ERASE_GRP_SIZE` - High-capacity erase group size
     pub const HC_ERASE_GRP_SIZE: usize = 224;
-    /// ACC_SIZE
+    /// `ACC_SIZE` - Access size
     pub const ACC_SIZE: usize = 225;
-    /// BOOT_SIZE_MULT
+    /// `BOOT_SIZE_MULT` - Boot partition size multiplier
     pub const BOOT_SIZE_MULT: usize = 226;
-    /// BOOT_INFO
+    /// `BOOT_INFO` - Boot information
     pub const BOOT_INFO: usize = 228;
-    /// SEC_TRIM_MULT
+    /// `SEC_TRIM_MULT` - Secure trim multiplier
     pub const SEC_TRIM_MULT: usize = 229;
-    /// SEC_ERASE_MULT
+    /// `SEC_ERASE_MULT` - Secure erase multiplier
     pub const SEC_ERASE_MULT: usize = 230;
-    /// SEC_FEATURE_SUPPORT
+    /// `SEC_FEATURE_SUPPORT` - Secure feature support
     pub const SEC_FEATURE_SUPPORT: usize = 231;
-    /// TRIM_MULT
+    /// `TRIM_MULT` - Trim multiplier
     pub const TRIM_MULT: usize = 232;
-    /// MIN_PERF_R_8_52
+    /// `MIN_PERF_R_8_52` - Minimum read performance 8-bit at 52MHz
     pub const MIN_PERF_R_8_52: usize = 206;
-    /// MIN_PERF_W_8_52
+    /// `MIN_PERF_W_8_52` - Minimum write performance 8-bit at 52MHz
     pub const MIN_PERF_W_8_52: usize = 205;
-    /// MIN_PERF_R_8_26_4_52
+    /// `MIN_PERF_R_8_26_4_52` - Minimum read performance 8-bit at 26MHz / 4-bit at 52MHz
     pub const MIN_PERF_R_8_26_4_52: usize = 208;
-    /// MIN_PERF_W_8_26_4_52
+    /// `MIN_PERF_W_8_26_4_52` - Minimum write performance 8-bit at 26MHz / 4-bit at 52MHz
     pub const MIN_PERF_W_8_26_4_52: usize = 207;
-    /// MIN_PERF_R_4_26
+    /// `MIN_PERF_R_4_26` - Minimum read performance 4-bit at 26MHz
     pub const MIN_PERF_R_4_26: usize = 210;
-    /// MIN_PERF_W_4_26
+    /// `MIN_PERF_W_4_26` - Minimum write performance 4-bit at 26MHz
     pub const MIN_PERF_W_4_26: usize = 209;
-    /// DEVICE_TYPE
+    /// `DEVICE_TYPE` - Device type
     pub const DEVICE_TYPE: usize = 196;
-    /// CSD_STRUCTURE
+    /// `CSD_STRUCTURE` - CSD structure version
     pub const CSD_STRUCTURE: usize = 194;
-    /// EXT_CSD_REV
+    /// `EXT_CSD_REV` - Extended CSD revision
     pub const EXT_CSD_REV: usize = 192;
 
     // Modes segment (read/write)
-    /// CMD_SET
+    /// `CMD_SET` - Command set
     pub const CMD_SET: usize = 191;
-    /// CMD_SET_REV
+    /// `CMD_SET_REV` - Command set revision
     pub const CMD_SET_REV: usize = 189;
-    /// POWER_CLASS
+    /// `POWER_CLASS` - Power class
     pub const POWER_CLASS: usize = 187;
-    /// HS_TIMING
+    /// `HS_TIMING` - High-speed interface timing
     pub const HS_TIMING: usize = 185;
-    /// BUS_WIDTH
+    /// `BUS_WIDTH` - Bus width mode
     pub const BUS_WIDTH: usize = 183;
-    /// ERASED_MEM_CONT
+    /// `ERASED_MEM_CONT` - Erased memory content
     pub const ERASED_MEM_CONT: usize = 181;
-    /// PARTITION_CONFIG
+    /// `PARTITION_CONFIG` - Partition configuration
     pub const PARTITION_CONFIG: usize = 179;
-    /// BOOT_CONFIG_PROT
+    /// `BOOT_CONFIG_PROT` - Boot configuration protection
     pub const BOOT_CONFIG_PROT: usize = 178;
-    /// BOOT_BUS_CONDITIONS
+    /// `BOOT_BUS_CONDITIONS` - Boot bus conditions
     pub const BOOT_BUS_CONDITIONS: usize = 177;
-    /// ERASE_GROUP_DEF
+    /// `ERASE_GROUP_DEF` - High-density erase group definition
     pub const ERASE_GROUP_DEF: usize = 175;
-    /// BOOT_WP_STATUS
+    /// `BOOT_WP_STATUS` - Boot area write protection status
     pub const BOOT_WP_STATUS: usize = 174;
-    /// BOOT_WP
+    /// `BOOT_WP` - Boot area write protection
     pub const BOOT_WP: usize = 173;
-    /// USER_WP
+    /// `USER_WP` - User area write protection
     pub const USER_WP: usize = 171;
-    /// FW_CONFIG
+    /// `FW_CONFIG` - Firmware configuration
     pub const FW_CONFIG: usize = 169;
-    /// RPMB_SIZE_MULT
+    /// `RPMB_SIZE_MULT` - RPMB partition size multiplier
     pub const RPMB_SIZE_MULT: usize = 168;
-    /// WR_REL_SET
+    /// `WR_REL_SET` - Write reliability setting
     pub const WR_REL_SET: usize = 167;
-    /// WR_REL_PARAM
+    /// `WR_REL_PARAM` - Write reliability parameter
     pub const WR_REL_PARAM: usize = 166;
-    /// SANITIZE_START
+    /// `SANITIZE_START` - Sanitize start
     pub const SANITIZE_START: usize = 165;
-    /// BKOPS_START
+    /// `BKOPS_START` - Background operations start
     pub const BKOPS_START: usize = 164;
-    /// BKOPS_EN
+    /// `BKOPS_EN` - Background operations enable
     pub const BKOPS_EN: usize = 163;
-    /// RST_N_FUNCTION
+    /// `RST_N_FUNCTION` - Hardware reset function
     pub const RST_N_FUNCTION: usize = 162;
-    /// HPI_MGMT
+    /// `HPI_MGMT` - HPI management
     pub const HPI_MGMT: usize = 161;
-    /// PARTITIONING_SUPPORT
+    /// `PARTITIONING_SUPPORT` - Partitioning support
     pub const PARTITIONING_SUPPORT: usize = 160;
-    /// MAX_ENH_SIZE_MULT
+    /// `MAX_ENH_SIZE_MULT` - Maximum enhanced area size multiplier
     pub const MAX_ENH_SIZE_MULT: usize = 157;
-    /// PARTITIONS_ATTRIBUTE
+    /// `PARTITIONS_ATTRIBUTE` - Partitions attribute
     pub const PARTITIONS_ATTRIBUTE: usize = 156;
-    /// PARTITION_SETTING_COMPLETED
+    /// `PARTITION_SETTING_COMPLETED` - Partition setting completed
     pub const PARTITION_SETTING_COMPLETED: usize = 155;
-    /// GP_SIZE_MULT
+    /// `GP_SIZE_MULT` - General purpose partition size multiplier
     pub const GP_SIZE_MULT: usize = 143;
-    /// ENH_SIZE_MULT
+    /// `ENH_SIZE_MULT` - Enhanced user data area size multiplier
     pub const ENH_SIZE_MULT: usize = 140;
-    /// ENH_START_ADDR
+    /// `ENH_START_ADDR` - Enhanced user data start address
     pub const ENH_START_ADDR: usize = 136;
-    /// SEC_BAD_BLK_MGMNT
+    /// `SEC_BAD_BLK_MGMNT` - Bad block management mode
     pub const SEC_BAD_BLK_MGMNT: usize = 134;
-    /// PRODUCTION_STATE_AWARENESS
+    /// `PRODUCTION_STATE_AWARENESS` - Production state awareness
     pub const PRODUCTION_STATE_AWARENESS: usize = 133;
-    /// TCASE_SUPPORT
+    /// `TCASE_SUPPORT` - Package case temperature support
     pub const TCASE_SUPPORT: usize = 132;
-    /// PERIODIC_WAKEUP
+    /// `PERIODIC_WAKEUP` - Periodic wakeup
     pub const PERIODIC_WAKEUP: usize = 131;
-    /// PROGRAM_CID_CSD_DDR_SUPPORT
+    /// `PROGRAM_CID_CSD_DDR_SUPPORT` - CID/CSD programming in DDR mode support
     pub const PROGRAM_CID_CSD_DDR_SUPPORT: usize = 130;
-    /// VENDOR_SPECIFIC_FIELD
+    /// `VENDOR_SPECIFIC_FIELD` - Vendor specific field
     pub const VENDOR_SPECIFIC_FIELD: usize = 64;
-    /// NATIVE_SECTOR_SIZE2
+    /// `NATIVE_SECTOR_SIZE2` - Native sector size (secondary location)
     pub const NATIVE_SECTOR_SIZE2: usize = 63;
-    /// CORRECTLY_PRG_SECTORS_NUM
+    /// `CORRECTLY_PRG_SECTORS_NUM` - Number of correctly programmed sectors
     pub const CORRECTLY_PRG_SECTORS_NUM: usize = 242;
-    /// BKOPS_STATUS
+    /// `BKOPS_STATUS` - Background operations status
     pub const BKOPS_STATUS: usize = 246;
-    /// POWER_OFF_LONG_TIME
+    /// `POWER_OFF_LONG_TIME` - Power off long time
     pub const POWER_OFF_LONG_TIME: usize = 247;
-    /// GENERIC_CMD6_TIME
+    /// `GENERIC_CMD6_TIME` - Generic CMD6 timeout
     pub const GENERIC_CMD6_TIME: usize = 248;
-    /// CACHE_SIZE
+    /// `CACHE_SIZE` - Cache size
     pub const CACHE_SIZE: usize = 249;
-    /// PWR_CL_DDR_200_360
+    /// `PWR_CL_DDR_200_360` - Power class for DDR at 200MHz 3.6V
     pub const PWR_CL_DDR_200_360: usize = 253;
-    /// CACHE_CTRL
+    /// `CACHE_CTRL` - Cache control
     pub const CACHE_CTRL: usize = 33;
-    /// CACHE_FLUSHING
+    /// `CACHE_FLUSHING` - Cache flushing
     pub const CACHE_FLUSHING: usize = 32;
-    /// BARRIER_CTRL
+    /// `BARRIER_CTRL` - Barrier control
     pub const BARRIER_CTRL: usize = 31;
-    /// MODE_CONFIG
+    /// `MODE_CONFIG` - Mode configuration
     pub const MODE_CONFIG: usize = 30;
-    /// MODE_OPERATION_CODES
+    /// `MODE_OPERATION_CODES` - Mode operation codes
     pub const MODE_OPERATION_CODES: usize = 29;
-    /// FFU_STATUS
+    /// `FFU_STATUS` - FFU status
     pub const FFU_STATUS: usize = 26;
-    /// PRE_LOADING_DATA_SIZE
+    /// `PRE_LOADING_DATA_SIZE` - Pre-loading data size
     pub const PRE_LOADING_DATA_SIZE: usize = 22;
-    /// MAX_PRE_LOADING_DATA_SIZE
+    /// `MAX_PRE_LOADING_DATA_SIZE` - Maximum pre-loading data size
     pub const MAX_PRE_LOADING_DATA_SIZE: usize = 18;
-    /// PRODUCT_STATE_AWARENESS_ENABLEMENT
+    /// `PRODUCT_STATE_AWARENESS_ENABLEMENT` - Product state awareness enablement
     pub const PRODUCT_STATE_AWARENESS_ENABLEMENT: usize = 17;
-    /// SECURE_REMOVAL_TYPE
+    /// `SECURE_REMOVAL_TYPE` - Secure removal type
     pub const SECURE_REMOVAL_TYPE: usize = 16;
-    /// CMDQ_MODE_EN
+    /// `CMDQ_MODE_EN` - Command queue mode enable
     pub const CMDQ_MODE_EN: usize = 15;
 }
 
@@ -1468,7 +1505,7 @@ impl ExtCsd {
 
     /// Get device capacity in bytes
     pub fn capacity_bytes(&self) -> u64 {
-        (self.sector_count() as u64) * 512
+        u64::from(self.sector_count()) * 512
     }
 
     /// Get Extended CSD revision
@@ -1508,12 +1545,12 @@ impl ExtCsd {
 
     /// Get boot partition size in bytes
     pub fn boot_partition_size(&self) -> u32 {
-        (self.raw[ext_csd::BOOT_SIZE_MULT] as u32) * EMMC_BOOT_MULT
+        u32::from(self.raw[ext_csd::BOOT_SIZE_MULT]) * EMMC_BOOT_MULT
     }
 
     /// Get RPMB partition size in bytes
     pub fn rpmb_size(&self) -> u32 {
-        (self.raw[ext_csd::RPMB_SIZE_MULT] as u32) * 128 * 1024
+        u32::from(self.raw[ext_csd::RPMB_SIZE_MULT]) * 128 * 1024
     }
 
     /// Get partition config
@@ -1538,13 +1575,13 @@ impl ExtCsd {
 
     /// Get erase group size in sectors
     pub fn hc_erase_grp_size(&self) -> u32 {
-        (self.raw[ext_csd::HC_ERASE_GRP_SIZE] as u32) * 512 * 1024 / 512
+        u32::from(self.raw[ext_csd::HC_ERASE_GRP_SIZE]) * 512 * 1024 / 512
     }
 
     /// Get write protect group size in sectors
     pub fn hc_wp_grp_size(&self) -> u32 {
         let erase_grp = self.hc_erase_grp_size();
-        let wp_mult = self.raw[ext_csd::HC_WP_GRP_SIZE] as u32;
+        let wp_mult = u32::from(self.raw[ext_csd::HC_WP_GRP_SIZE]);
         erase_grp * wp_mult
     }
 
@@ -1895,11 +1932,11 @@ pub mod normal_int {
     pub const CARD_REMOVAL: u16 = 1 << 7;
     /// Card interrupt
     pub const CARD_INT: u16 = 1 << 8;
-    /// INT_A (for embedded)
+    /// Interrupt A (for embedded)
     pub const INT_A: u16 = 1 << 9;
-    /// INT_B (for embedded)
+    /// Interrupt B (for embedded)
     pub const INT_B: u16 = 1 << 10;
-    /// INT_C (for embedded)
+    /// Interrupt C (for embedded)
     pub const INT_C: u16 = 1 << 11;
     /// Re-tuning event
     pub const RETUNE_EVENT: u16 = 1 << 12;
@@ -2081,7 +2118,7 @@ pub fn crc7(data: &[u8]) -> u8 {
 pub fn crc16(data: &[u8]) -> u16 {
     let mut crc: u16 = 0;
     for byte in data {
-        crc ^= (*byte as u16) << 8;
+        crc ^= u16::from(*byte) << 8;
         for _ in 0..8 {
             if crc & 0x8000 != 0 {
                 crc = (crc << 1) ^ 0x1021; // CCITT polynomial
