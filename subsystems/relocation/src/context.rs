@@ -186,14 +186,14 @@ impl RelocationContext {
     /// Transition to a new state
     pub fn transition_to(&mut self, new_state: KernelState) -> RelocResult<()> {
         // Validate state transitions
-        let valid = match (&self.state, &new_state) {
-            (KernelState::Initial, KernelState::EarlyRelocated) => true,
-            (KernelState::Initial, KernelState::FullyRelocated) => true,
-            (KernelState::EarlyRelocated, KernelState::FullyRelocated) => true,
-            (KernelState::FullyRelocated, KernelState::Finalized) => true,
-            (_, KernelState::Error) => true,
-            _ => false,
-        };
+        let valid = matches!(
+            (&self.state, &new_state),
+            (KernelState::Initial, KernelState::EarlyRelocated)
+                | (KernelState::Initial, KernelState::FullyRelocated)
+                | (KernelState::EarlyRelocated, KernelState::FullyRelocated)
+                | (KernelState::FullyRelocated, KernelState::Finalized)
+                | (_, KernelState::Error)
+        );
 
         if valid {
             self.state = new_state;
