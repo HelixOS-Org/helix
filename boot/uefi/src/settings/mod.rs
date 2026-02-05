@@ -567,7 +567,7 @@ impl FilesystemSupport {
     /// ZFS filesystem flag
     pub const ZFS: u8 = 1 << 6;
 
-    /// Create a new FilesystemSupport with the given flags
+    /// Create a new `FilesystemSupport` with the given flags
     #[must_use]
     pub const fn new(flags: u8) -> Self {
         Self { flags }
@@ -755,13 +755,13 @@ pub struct DebugSettings {
     /// Serial configuration
     pub serial: SerialConfig,
     /// Debug flags bitfield:
-    /// - bit 0: debug_console
-    /// - bit 1: break_on_start
-    /// - bit 2: pause_before_boot
-    /// - bit 3: show_timing
-    /// - bit 4: show_memory_map
-    /// - bit 5: assertions
-    /// - bit 6: stack_canary
+    /// - bit 0: `debug_console`
+    /// - bit 1: `break_on_start`
+    /// - bit 2: `pause_before_boot`
+    /// - bit 3: `show_timing`
+    /// - bit 4: `show_memory_map`
+    /// - bit 5: `assertions`
+    /// - bit 6: `stack_canary`
     flags: u8,
 }
 
@@ -1126,15 +1126,9 @@ impl Settings {
             },
             storage: StorageSettings {
                 scan_mode: StorageScanMode::All,
-                filesystems: FilesystemSupport {
-                    fat: true,
-                    ext: true,
-                    ntfs: false,
-                    iso9660: true,
-                    btrfs: false,
-                    xfs: false,
-                    zfs: false,
-                },
+                filesystems: FilesystemSupport::new(
+                    FilesystemSupport::FAT | FilesystemSupport::EXT | FilesystemSupport::ISO9660
+                ),
                 ahci_enabled: true,
                 nvme_enabled: true,
                 usb_storage: true,
@@ -1146,20 +1140,14 @@ impl Settings {
                 log_level: LogLevel::Warning,
                 log_output: LogOutput::Console,
                 serial: SerialConfig {
-                    port: 0x3F8,
+                    port: 0x03F8,
                     baud: 115_200,
                     data_bits: 8,
                     stop_bits: 1,
                     parity: 0,
                     flow_control: false,
                 },
-                debug_console: false,
-                break_on_start: false,
-                pause_before_boot: false,
-                show_timing: false,
-                show_memory_map: false,
-                assertions: true,
-                stack_canary: true,
+                flags: DebugSettings::ASSERTIONS | DebugSettings::STACK_CANARY,
             },
             power: PowerSettings {
                 behavior: PowerBehavior::Normal,
