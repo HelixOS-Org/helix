@@ -1,4 +1,4 @@
-//! x86_64 Interrupt Descriptor Table (IDT)
+//! `x86_64` Interrupt Descriptor Table (IDT)
 //!
 //! Complete IDT implementation for 64-bit mode.
 
@@ -166,20 +166,20 @@ impl IdtEntry {
     }
 
     /// Create new IDT entry
-    pub const fn new(handler: u64, selector: u16, ist: u8, type_attr: u8) -> Self {
+    pub fn new(handler: u64, selector: u16, ist: u8, type_attr: u8) -> Self {
         Self {
-            offset_low: handler as u16,
+            offset_low: u16::try_from(handler & 0xFFFF).unwrap_or(0),
             selector,
             ist: ist & 0x7, // Only 3 bits for IST
             type_attr,
-            offset_middle: (handler >> 16) as u16,
-            offset_high: (handler >> 32) as u32,
+            offset_middle: u16::try_from((handler >> 16) & 0xFFFF).unwrap_or(0),
+            offset_high: u32::try_from(handler >> 32).unwrap_or(0),
             reserved: 0,
         }
     }
 
     /// Create kernel interrupt gate
-    pub const fn interrupt(handler: u64) -> Self {
+    pub fn interrupt(handler: u64) -> Self {
         Self::new(
             handler,
             selectors::KERNEL_CODE,
@@ -189,7 +189,7 @@ impl IdtEntry {
     }
 
     /// Create kernel interrupt gate with IST
-    pub const fn interrupt_ist(handler: u64, ist: u8) -> Self {
+    pub fn interrupt_ist(handler: u64, ist: u8) -> Self {
         Self::new(
             handler,
             selectors::KERNEL_CODE,
@@ -199,12 +199,12 @@ impl IdtEntry {
     }
 
     /// Create kernel trap gate
-    pub const fn trap(handler: u64) -> Self {
+    pub fn trap(handler: u64) -> Self {
         Self::new(handler, selectors::KERNEL_CODE, 0, gate_attr::KERNEL_TRAP)
     }
 
     /// Create user-callable interrupt gate
-    pub const fn user_interrupt(handler: u64) -> Self {
+    pub fn user_interrupt(handler: u64) -> Self {
         Self::new(
             handler,
             selectors::KERNEL_CODE,
@@ -214,41 +214,41 @@ impl IdtEntry {
     }
 
     /// Get handler offset
-    pub fn offset(&self) -> u64 {
-        (self.offset_low as u64)
-            | ((self.offset_middle as u64) << 16)
-            | ((self.offset_high as u64) << 32)
+    pub const fn offset(&self) -> u64 {
+        u64::from(self.offset_low)
+            | (u64::from(self.offset_middle) << 16)
+            | (u64::from(self.offset_high) << 32)
     }
 
     /// Set handler offset
     pub fn set_offset(&mut self, offset: u64) {
-        self.offset_low = offset as u16;
-        self.offset_middle = (offset >> 16) as u16;
-        self.offset_high = (offset >> 32) as u32;
+        self.offset_low = u16::try_from(offset & 0xFFFF).unwrap_or(0);
+        self.offset_middle = u16::try_from((offset >> 16) & 0xFFFF).unwrap_or(0);
+        self.offset_high = u32::try_from(offset >> 32).unwrap_or(0);
     }
 
     /// Get selector
-    pub fn selector(&self) -> u16 {
+    pub const fn selector(&self) -> u16 {
         self.selector
     }
 
     /// Get IST index
-    pub fn ist(&self) -> u8 {
+    pub const fn ist(&self) -> u8 {
         self.ist & 0x7
     }
 
     /// Check if present
-    pub fn is_present(&self) -> bool {
+    pub const fn is_present(&self) -> bool {
         (self.type_attr & gate_attr::PRESENT) != 0
     }
 
     /// Get DPL
-    pub fn dpl(&self) -> u8 {
+    pub const fn dpl(&self) -> u8 {
         (self.type_attr >> 5) & 3
     }
 
     /// Get gate type
-    pub fn gate_type(&self) -> u8 {
+    pub const fn gate_type(&self) -> u8 {
         self.type_attr & 0xF
     }
 }
@@ -281,13 +281,13 @@ pub struct InterruptStackFrame {
 
 impl InterruptStackFrame {
     /// Check if interrupted from user mode
-    pub fn from_user(&self) -> bool {
+    pub const fn from_user(&self) -> bool {
         (self.cs & 3) == 3
     }
 
     /// Check if interrupted from kernel mode
-    pub fn from_kernel(&self) -> bool {
-        (self.cs & 3) == 0
+    pub const fn from_kernel(&self) -> bool {
+        self.cs.trailing_zeros() >= 2
     }
 }
 
@@ -321,17 +321,17 @@ pub struct InterruptContext {
 
 impl InterruptContext {
     /// Get exception name
-    pub fn exception_name(&self) -> &'static str {
+    pub const fn exception_name(&self) -> &'static str {
         if self.vector < 32 {
-            EXCEPTION_NAMES[self.vector as usize]
+            EXCEPTION_NAMES[usize::try_from(self.vector).unwrap_or(0)]
         } else {
             "Interrupt"
         }
     }
 
     /// Check if has error code
-    pub fn has_error_code(&self) -> bool {
-        has_error_code(self.vector as u8)
+    pub const fn has_error_code(&self) -> bool {
+        has_error_code(u8::try_from(self.vector).unwrap_or(0))
     }
 }
 
@@ -363,19 +363,19 @@ pub mod page_fault {
 pub struct PageFaultError(pub u64);
 
 impl PageFaultError {
-    pub fn present(&self) -> bool {
+    pub const fn present(&self) -> bool {
         (self.0 & page_fault::PROTECTION) != 0
     }
-    pub fn write(&self) -> bool {
+    pub const fn write(&self) -> bool {
         (self.0 & page_fault::WRITE) != 0
     }
-    pub fn user(&self) -> bool {
+    pub const fn user(&self) -> bool {
         (self.0 & page_fault::USER) != 0
     }
-    pub fn reserved(&self) -> bool {
+    pub const fn reserved(&self) -> bool {
         (self.0 & page_fault::RESERVED) != 0
     }
-    pub fn instruction(&self) -> bool {
+    pub const fn instruction(&self) -> bool {
         (self.0 & page_fault::INSTRUCTION) != 0
     }
 
@@ -418,7 +418,7 @@ impl Idt {
     }
 
     /// Get entry
-    pub fn get(&self, vector: u8) -> &IdtEntry {
+    pub const fn get(&self, vector: u8) -> &IdtEntry {
         &self.entries[vector as usize]
     }
 
@@ -445,12 +445,15 @@ impl Idt {
     /// Get IDT pointer
     pub fn pointer(&self) -> IdtPointer {
         IdtPointer {
-            limit: (size_of::<Self>() - 1) as u16,
+            limit: u16::try_from(size_of::<Self>() - 1).unwrap_or(u16::MAX),
             base: self as *const _ as u64,
         }
     }
 
     /// Load this IDT
+    ///
+    /// # Safety
+    /// The caller must ensure this IDT remains valid while loaded.
     pub unsafe fn load(&self) {
         let ptr = self.pointer();
         load_idt(&ptr);
@@ -477,6 +480,9 @@ pub struct IdtPointer {
 }
 
 /// Load IDT
+///
+/// # Safety
+/// The caller must ensure the pointer is valid and points to a well-formed IDT.
 #[inline]
 pub unsafe fn load_idt(idt: &IdtPointer) {
     core::arch::asm!(
