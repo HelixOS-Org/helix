@@ -6,9 +6,6 @@
 //! - Memory fragmentation
 //! - Cache effects
 
-use alloc::string::String;
-use alloc::vec;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 use crate::{benchmark, timing, BenchmarkCategory, BenchmarkDef, BenchmarkId, BenchmarkSuite};
