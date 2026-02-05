@@ -37,13 +37,13 @@ pub const LFN_CHARS_PER_ENTRY: usize = 13;
 pub const DIR_ENTRY_SIZE: usize = 32;
 
 /// End of chain marker
-pub const FAT32_EOC: u32 = 0x0FFFFFF8;
+pub const FAT32_EOC: u32 = 0x0FFF_FFF8;
 
 /// Bad cluster marker
-pub const FAT32_BAD: u32 = 0x0FFFFFF7;
+pub const FAT32_BAD: u32 = 0x0FFF_FFF7;
 
 /// Free cluster marker
-pub const FAT32_FREE: u32 = 0x00000000;
+pub const FAT32_FREE: u32 = 0x0000_0000;
 
 // =============================================================================
 // FAT TYPE
@@ -92,7 +92,7 @@ impl FatType {
         match self {
             FatType::Fat12 => 0x0FF8,
             FatType::Fat16 => 0xFFF8,
-            FatType::Fat32 => 0x0FFFFFF8,
+            FatType::Fat32 => 0x0FFF_FFF8,
             _ => 0,
         }
     }
@@ -102,7 +102,7 @@ impl FatType {
         match self {
             FatType::Fat12 => cluster >= 0x0FF8,
             FatType::Fat16 => cluster >= 0xFFF8,
-            FatType::Fat32 => cluster >= 0x0FFFFFF8,
+            FatType::Fat32 => cluster >= 0x0FFF_FFF8,
             _ => true,
         }
     }
@@ -322,7 +322,7 @@ impl FsInfo {
         let trail_sig = u32::from_le_bytes([data[508], data[509], data[510], data[511]]);
 
         // Validate signatures
-        if lead_sig != 0x41615252 || struct_sig != 0x61417272 || trail_sig != 0xAA550000 {
+        if lead_sig != 0x4161_5252 || struct_sig != 0x6141_7272 || trail_sig != 0xAA55_0000 {
             return None;
         }
 
@@ -337,12 +337,12 @@ impl FsInfo {
 
     /// Check if free count is valid
     pub const fn has_free_count(&self) -> bool {
-        self.free_count != 0xFFFFFFFF
+        self.free_count != 0xFFFF_FFFF
     }
 
     /// Check if next free hint is valid
     pub const fn has_next_free(&self) -> bool {
-        self.next_free != 0xFFFFFFFF && self.next_free >= 2
+        self.next_free != 0xFFFF_FFFF && self.next_free >= 2
     }
 }
 
@@ -831,7 +831,7 @@ impl FatFilesystem {
                     return 0;
                 }
                 u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]])
-                    & 0x0FFFFFFF
+                    & 0x0FFF_FFFF
             },
             _ => 0,
         }
