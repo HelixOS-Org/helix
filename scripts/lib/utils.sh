@@ -58,19 +58,19 @@ cmd_exists() {
 run_cmd() {
     local cmd="$*"
     log_debug "Running: ${cmd}"
-    
+
     local output
     local exit_code
-    
+
     output=$("$@" 2>&1)
     exit_code=$?
-    
+
     if [[ ${exit_code} -ne 0 ]]; then
         log_error "Command failed: ${cmd}"
         log_error "Output: ${output}"
         return ${exit_code}
     fi
-    
+
     log_debug "Output: ${output}"
     return 0
 }
@@ -93,15 +93,15 @@ setup_rustup_env() {
     if command -v rustup &>/dev/null; then
         local rustup_home="${RUSTUP_HOME:-$HOME/.rustup}"
         local cargo_home="${CARGO_HOME:-$HOME/.cargo}"
-        
+
         # Get toolchain
         local toolchain
         toolchain=$(get_toolchain_from_file)
         [[ -z "${toolchain}" ]] && toolchain="nightly"
-        
+
         # Set environment variables
         export RUSTUP_TOOLCHAIN="${toolchain}"
-        
+
         # Prepend cargo bin to PATH to override system rust
         if [[ -d "${cargo_home}/bin" ]]; then
             export PATH="${cargo_home}/bin:${PATH}"
@@ -116,24 +116,24 @@ setup_rustup_env
 # Always use rustup run to guarantee correct toolchain
 get_cargo_cmd() {
     local toolchain="${1:-}"
-    
+
     # Try to get toolchain from rust-toolchain.toml
     if [[ -z "${toolchain}" ]]; then
         toolchain=$(get_toolchain_from_file)
     fi
-    
+
     # If we have rustup and a toolchain, use rustup run
     if command -v rustup &>/dev/null && [[ -n "${toolchain}" ]]; then
         echo "rustup run ${toolchain} cargo"
         return 0
     fi
-    
+
     # Fallback to cargo directly (may not work with system cargo)
     if command -v cargo &>/dev/null; then
         echo "cargo"
         return 0
     fi
-    
+
     log_error "Neither rustup nor cargo found!"
     return 1
 }
@@ -143,7 +143,7 @@ get_cargo_cmd() {
 run_cargo() {
     local cargo_cmd
     cargo_cmd=$(get_cargo_cmd)
-    
+
     log_debug "Running: ${cargo_cmd} $*"
     ${cargo_cmd} "$@"
 }
@@ -153,34 +153,36 @@ run_cargo() {
 cargo_build() {
     local package="$1"
     shift
-    
+
     local cargo_cmd
     cargo_cmd=$(get_cargo_cmd)
-    
+
     local args=("build" "-p" "${package}")
-    
+
     # Add target if HELIX_TARGET is set
     if [[ -n "${HELIX_TARGET:-}" ]]; then
         args+=("--target" "${HELIX_TARGET}")
     fi
-    
+
     # Add release flag if HELIX_PROFILE is release
     if [[ "${HELIX_PROFILE:-debug}" == "release" ]]; then
         args+=("--release")
     fi
-    
+
     # Add any extra arguments
     args+=("$@")
-    
+
     log_debug "Running: ${cargo_cmd} ${args[*]}"
     ${cargo_cmd} "${args[@]}"
 }
 
 # Run cargo test with proper toolchain handling
+# Tests must run on host target (not bare metal) to have access to std/test
 cargo_test() {
     local cargo_cmd
     cargo_cmd=$(get_cargo_cmd)
-    ${cargo_cmd} test "$@"
+    # Override the default bare metal target to run tests on host
+    ${cargo_cmd} test --target x86_64-unknown-linux-gnu "$@"
 }
 
 # Run cargo clippy with proper toolchain handling
@@ -217,7 +219,7 @@ capture_output() {
 version_gte() {
     local v1="$1"
     local v2="$2"
-    
+
     printf '%s\n%s' "${v2}" "${v1}" | sort -V -C
 }
 
@@ -243,7 +245,7 @@ get_timestamp() {
 # Format seconds as human-readable duration
 format_duration() {
     local seconds="$1"
-    
+
     if [[ ${seconds} -lt 60 ]]; then
         echo "${seconds}s"
     elif [[ ${seconds} -lt 3600 ]]; then
@@ -264,7 +266,7 @@ time_cmd() {
     local exit_code=$?
     local end=$(get_timestamp)
     local duration=$((end - start))
-    
+
     echo "${duration}"
     return ${exit_code}
 }
@@ -277,7 +279,7 @@ time_cmd() {
 is_newer() {
     local file1="$1"
     local file2="$2"
-    
+
     [[ ! -f "${file2}" ]] || [[ "${file1}" -nt "${file2}" ]]
 }
 
@@ -292,17 +294,17 @@ needs_rebuild() {
     local source="$1"
     local target="$2"
     local cache_file="${HELIX_CACHE_DIR}/$(basename "${source}").hash"
-    
+
     # Target doesn't exist
     [[ ! -f "${target}" ]] && return 0
-    
+
     # No cache file
     [[ ! -f "${cache_file}" ]] && return 0
-    
+
     # Hash changed
     local current_hash=$(get_file_hash "${source}")
     local cached_hash=$(cat "${cache_file}" 2>/dev/null)
-    
+
     [[ "${current_hash}" != "${cached_hash}" ]]
 }
 
@@ -310,7 +312,7 @@ needs_rebuild() {
 update_rebuild_cache() {
     local source="$1"
     local cache_file="${HELIX_CACHE_DIR}/$(basename "${source}").hash"
-    
+
     mkdir -p "$(dirname "${cache_file}")"
     get_file_hash "${source}" > "${cache_file}"
 }
@@ -338,17 +340,17 @@ is_running() {
 ask_yes_no() {
     local question="$1"
     local default="${2:-n}"
-    
+
     local prompt
     if [[ "${default}" == "y" ]]; then
         prompt="[Y/n]"
     else
         prompt="[y/N]"
     fi
-    
+
     read -p "${question} ${prompt} " answer
     answer="${answer:-${default}}"
-    
+
     [[ "${answer,,}" == "y" || "${answer,,}" == "yes" ]]
 }
 
@@ -357,19 +359,19 @@ select_option() {
     local prompt="$1"
     shift
     local options=("$@")
-    
+
     echo "${prompt}"
     for i in "${!options[@]}"; do
         echo "  $((i+1))) ${options[$i]}"
     done
-    
+
     read -p "Select [1-${#options[@]}]: " choice
-    
+
     if [[ "${choice}" -ge 1 && "${choice}" -le ${#options[@]} ]]; then
         echo "${options[$((choice-1))]}"
         return 0
     fi
-    
+
     return 1
 }
 
@@ -387,7 +389,7 @@ die() {
 assert() {
     local condition="$1"
     local message="${2:-Assertion failed}"
-    
+
     if ! eval "${condition}"; then
         die "${message}"
     fi
@@ -415,7 +417,7 @@ trap run_cleanup EXIT
 acquire_lock() {
     local lockfile="$1"
     local timeout="${2:-60}"
-    
+
     local count=0
     while [[ -f "${lockfile}" ]]; do
         if [[ ${count} -ge ${timeout} ]]; then
@@ -425,7 +427,7 @@ acquire_lock() {
         sleep 1
         count=$((count + 1))
     done
-    
+
     echo $$ > "${lockfile}"
     add_cleanup "rm -f '${lockfile}'"
     return 0
