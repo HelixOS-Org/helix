@@ -4,12 +4,11 @@
 //! They provide memory management, protocol handling, and device management.
 
 use super::memory::{MemoryDescriptor, MemoryType};
-use crate::raw::event_type;
-use crate::raw::TPL_CALLBACK;
 use super::types::{
     AllocateType, Boolean, Char16, Event, Guid, Handle, InterfaceType, LocateSearchType,
     OpenProtocolInformationEntry, PhysicalAddress, Status, TableHeader, TimerDelay, Tpl,
 };
+use crate::raw::{event_type, TPL_CALLBACK};
 
 // =============================================================================
 // BOOT SERVICES TABLE
