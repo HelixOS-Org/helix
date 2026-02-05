@@ -16,7 +16,7 @@ use alloc::vec::Vec;
 /// Random Number Generator protocol
 pub struct Rng {
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// Supported algorithms
     algorithms: Vec<RngAlgorithm>,
     /// Default algorithm
@@ -27,7 +27,7 @@ impl Rng {
     /// Create new RNG accessor
     pub fn new(handle: Handle) -> Self {
         Self {
-            handle,
+            _handle: handle,
             algorithms: Vec::new(),
             default_algorithm: RngAlgorithm::Raw,
         }
