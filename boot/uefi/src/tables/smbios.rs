@@ -56,7 +56,8 @@ pub struct SmbiosParser {
 
 impl SmbiosParser {
     /// Create new SMBIOS parser
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             version: super::SmbiosVersion::new(0, 0),
             table_address: PhysicalAddress(0),
@@ -136,7 +137,7 @@ impl SmbiosParser {
         let end = ptr.add(self.table_length);
 
         while ptr < end {
-            let header = &*(ptr as *const SmbiosHeader);
+            let header = &*(ptr.cast::<SmbiosHeader>());
 
             // End of table marker
             if header.structure_type == 127 {
@@ -145,20 +146,20 @@ impl SmbiosParser {
 
             // Parse based on type
             match header.structure_type {
-                0 => self.parse_bios_info(ptr)?,
-                1 => self.parse_system_info(ptr)?,
-                2 => self.parse_baseboard_info(ptr)?,
-                3 => self.parse_chassis_info(ptr)?,
-                4 => self.parse_processor_info(ptr)?,
-                7 => self.parse_cache_info(ptr)?,
-                8 => self.parse_port_connector(ptr)?,
-                9 => self.parse_system_slot(ptr)?,
-                10 => self.parse_onboard_device(ptr)?,
-                11 => self.parse_oem_strings(ptr)?,
-                12 => self.parse_config_options(ptr)?,
-                16 => self.parse_memory_array(ptr)?,
-                17 => self.parse_memory_device(ptr)?,
-                32 => self.parse_boot_info(ptr)?,
+                0 => self.parse_bios_info(ptr),
+                1 => self.parse_system_info(ptr),
+                2 => self.parse_baseboard_info(ptr),
+                3 => self.parse_chassis_info(ptr),
+                4 => self.parse_processor_info(ptr),
+                7 => self.parse_cache_info(ptr),
+                8 => self.parse_port_connector(ptr),
+                9 => self.parse_system_slot(ptr),
+                10 => self.parse_onboard_device(ptr),
+                11 => self.parse_oem_strings(ptr),
+                12 => self.parse_config_options(ptr),
+                16 => self.parse_memory_array(ptr),
+                17 => self.parse_memory_device(ptr),
+                32 => self.parse_boot_info(ptr),
                 _ => {},
             }
 
@@ -222,16 +223,16 @@ impl SmbiosParser {
     }
 
     /// Parse BIOS information
-    unsafe fn parse_bios_info(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_bios_info(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let vendor_index = *data;
         let version_index = *data.add(1);
-        let starting_segment = ptr::read_unaligned(data.add(2) as *const u16);
+        let starting_segment = ptr::read_unaligned(data.add(2).cast::<u16>());
         let release_date_index = *data.add(4);
         let rom_size = *data.add(5);
-        let characteristics = ptr::read_unaligned(data.add(6) as *const u64);
+        let characteristics = ptr::read_unaligned(data.add(6).cast::<u64>());
 
         let mut ext_characteristics = Vec::new();
         if header.length > 18 {
@@ -259,7 +260,7 @@ impl SmbiosParser {
         };
 
         let extended_rom_size = if header.length >= 26 {
-            Some(ptr::read_unaligned(data.add(22) as *const u16))
+            Some(ptr::read_unaligned(data.add(22).cast::<u16>()))
         } else {
             None
         };
@@ -276,13 +277,11 @@ impl SmbiosParser {
             ec_version,
             extended_rom_size,
         });
-
-        Ok(())
     }
 
     /// Parse system information
-    unsafe fn parse_system_info(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_system_info(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let manufacturer_index = *data;
@@ -326,13 +325,11 @@ impl SmbiosParser {
             sku_number: Self::get_string(ptr, header.length, sku_index),
             family: Self::get_string(ptr, header.length, family_index),
         });
-
-        Ok(())
     }
 
     /// Parse baseboard information
-    unsafe fn parse_baseboard_info(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_baseboard_info(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let manufacturer_index = *data;
@@ -343,7 +340,7 @@ impl SmbiosParser {
         let feature_flags = if header.length >= 10 { *data.add(5) } else { 0 };
         let location_index = if header.length >= 11 { *data.add(6) } else { 0 };
         let chassis_handle = if header.length >= 13 {
-            ptr::read_unaligned(data.add(7) as *const u16)
+            ptr::read_unaligned(data.add(7).cast::<u16>())
         } else {
             0
         };
@@ -364,13 +361,11 @@ impl SmbiosParser {
             chassis_handle,
             board_type,
         });
-
-        Ok(())
     }
 
     /// Parse chassis information
-    unsafe fn parse_chassis_info(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_chassis_info(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let manufacturer_index = *data;
@@ -404,7 +399,7 @@ impl SmbiosParser {
         };
 
         let oem_defined = if header.length >= 17 {
-            ptr::read_unaligned(data.add(9) as *const u32)
+            ptr::read_unaligned(data.add(9).cast::<u32>())
         } else {
             0
         };
@@ -449,40 +444,38 @@ impl SmbiosParser {
             number_of_power_cords: power_cords,
             sku_number: Self::get_string(ptr, header.length, sku_index),
         });
-
-        Ok(())
     }
 
     /// Parse processor information
-    unsafe fn parse_processor_info(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_processor_info(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let socket_index = *data;
         let processor_type = ProcessorType::from(*data.add(1));
         let processor_family = *data.add(2);
         let manufacturer_index = *data.add(3);
-        let processor_id = ptr::read_unaligned(data.add(4) as *const u64);
+        let processor_id = ptr::read_unaligned(data.add(4).cast::<u64>());
         let version_index = *data.add(12);
         let voltage = *data.add(13);
-        let external_clock = ptr::read_unaligned(data.add(14) as *const u16);
-        let max_speed = ptr::read_unaligned(data.add(16) as *const u16);
-        let current_speed = ptr::read_unaligned(data.add(18) as *const u16);
+        let external_clock = ptr::read_unaligned(data.add(14).cast::<u16>());
+        let max_speed = ptr::read_unaligned(data.add(16).cast::<u16>());
+        let current_speed = ptr::read_unaligned(data.add(18).cast::<u16>());
         let status = *data.add(20);
         let processor_upgrade = ProcessorUpgrade::from(*data.add(21));
 
         let l1_cache_handle = if header.length >= 28 {
-            ptr::read_unaligned(data.add(22) as *const u16)
+            ptr::read_unaligned(data.add(22).cast::<u16>())
         } else {
             0xFFFF
         };
         let l2_cache_handle = if header.length >= 30 {
-            ptr::read_unaligned(data.add(24) as *const u16)
+            ptr::read_unaligned(data.add(24).cast::<u16>())
         } else {
             0xFFFF
         };
         let l3_cache_handle = if header.length >= 32 {
-            ptr::read_unaligned(data.add(26) as *const u16)
+            ptr::read_unaligned(data.add(26).cast::<u16>())
         } else {
             0xFFFF
         };
@@ -520,31 +513,31 @@ impl SmbiosParser {
         };
 
         let characteristics = if header.length >= 40 {
-            ptr::read_unaligned(data.add(34) as *const u16)
+            ptr::read_unaligned(data.add(34).cast::<u16>())
         } else {
             0
         };
 
         let processor_family2 = if header.length >= 42 {
-            ptr::read_unaligned(data.add(36) as *const u16)
+            ptr::read_unaligned(data.add(36).cast::<u16>())
         } else {
-            processor_family as u16
+            u16::from(processor_family)
         };
 
         let core_count2 = if header.length >= 44 {
-            ptr::read_unaligned(data.add(38) as *const u16)
+            ptr::read_unaligned(data.add(38).cast::<u16>())
         } else {
-            core_count as u16
+            u16::from(core_count)
         };
         let core_enabled2 = if header.length >= 46 {
-            ptr::read_unaligned(data.add(40) as *const u16)
+            ptr::read_unaligned(data.add(40).cast::<u16>())
         } else {
-            core_enabled as u16
+            u16::from(core_enabled)
         };
         let thread_count2 = if header.length >= 48 {
-            ptr::read_unaligned(data.add(42) as *const u16)
+            ptr::read_unaligned(data.add(42).cast::<u16>())
         } else {
-            thread_count as u16
+            u16::from(thread_count)
         };
 
         self.processor_info.push(ProcessorInformation {
@@ -571,21 +564,19 @@ impl SmbiosParser {
             thread_count: thread_count2,
             characteristics,
         });
-
-        Ok(())
     }
 
     /// Parse cache information
-    unsafe fn parse_cache_info(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_cache_info(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let socket_index = *data;
-        let cache_config = ptr::read_unaligned(data.add(1) as *const u16);
-        let max_size = ptr::read_unaligned(data.add(3) as *const u16);
-        let installed_size = ptr::read_unaligned(data.add(5) as *const u16);
-        let supported_sram_type = ptr::read_unaligned(data.add(7) as *const u16);
-        let current_sram_type = ptr::read_unaligned(data.add(9) as *const u16);
+        let cache_config = ptr::read_unaligned(data.add(1).cast::<u16>());
+        let max_size = ptr::read_unaligned(data.add(3).cast::<u16>());
+        let installed_size = ptr::read_unaligned(data.add(5).cast::<u16>());
+        let supported_sram_type = ptr::read_unaligned(data.add(7).cast::<u16>());
+        let current_sram_type = ptr::read_unaligned(data.add(9).cast::<u16>());
 
         let cache_speed = if header.length >= 16 {
             *data.add(11)
@@ -609,17 +600,17 @@ impl SmbiosParser {
         };
 
         let max_size2 = if header.length >= 23 {
-            ptr::read_unaligned(data.add(15) as *const u32)
+            ptr::read_unaligned(data.add(15).cast::<u32>())
         } else {
-            max_size as u32
+            u32::from(max_size)
         };
         let installed_size2 = if header.length >= 27 {
-            ptr::read_unaligned(data.add(19) as *const u32)
+            ptr::read_unaligned(data.add(19).cast::<u32>())
         } else {
-            installed_size as u32
+            u32::from(installed_size)
         };
 
-        let level = ((cache_config & 0x07) + 1) as u8;
+        let level = u8::try_from((cache_config & 0x07) + 1).unwrap_or(0);
         let enabled = (cache_config & 0x80) != 0;
         let location = CacheLocation::from(((cache_config >> 5) & 0x03) as u8);
         let mode = CacheOperationalMode::from(((cache_config >> 8) & 0x03) as u8);
@@ -639,13 +630,11 @@ impl SmbiosParser {
             system_cache_type,
             associativity,
         });
-
-        Ok(())
     }
 
     /// Parse port connector information
-    unsafe fn parse_port_connector(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_port_connector(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let internal_ref_index = *data;
@@ -661,13 +650,11 @@ impl SmbiosParser {
             external_connector_type,
             port_type,
         });
-
-        Ok(())
     }
 
     /// Parse system slot information
-    unsafe fn parse_system_slot(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_system_slot(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let designation_index = *data;
@@ -675,12 +662,12 @@ impl SmbiosParser {
         let slot_data_bus_width = SlotDataBusWidth::from(*data.add(2));
         let current_usage = SlotUsage::from(*data.add(3));
         let slot_length = SlotLength::from(*data.add(4));
-        let slot_id = ptr::read_unaligned(data.add(5) as *const u16);
+        let slot_id = ptr::read_unaligned(data.add(5).cast::<u16>());
         let characteristics1 = *data.add(7);
         let characteristics2 = if header.length >= 13 { *data.add(8) } else { 0 };
 
         let segment_group = if header.length >= 15 {
-            ptr::read_unaligned(data.add(9) as *const u16)
+            ptr::read_unaligned(data.add(9).cast::<u16>())
         } else {
             0
         };
@@ -708,13 +695,11 @@ impl SmbiosParser {
             bus_number: bus,
             device_function_number: device_function,
         });
-
-        Ok(())
     }
 
     /// Parse on-board device information
-    unsafe fn parse_onboard_device(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_onboard_device(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let device_count = (header.length - 4) / 2;
@@ -732,13 +717,11 @@ impl SmbiosParser {
                 enabled,
             });
         }
-
-        Ok(())
     }
 
     /// Parse OEM strings
-    unsafe fn parse_oem_strings(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_oem_strings(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let count = *data;
@@ -749,13 +732,11 @@ impl SmbiosParser {
                 self.oem_strings.push(s);
             }
         }
-
-        Ok(())
     }
 
     /// Parse system configuration options
-    unsafe fn parse_config_options(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_config_options(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let count = *data;
@@ -766,28 +747,26 @@ impl SmbiosParser {
                 self.config_options.push(s);
             }
         }
-
-        Ok(())
     }
 
     /// Parse physical memory array
-    unsafe fn parse_memory_array(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_memory_array(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
         let location = MemoryArrayLocation::from(*data);
         let use_type = MemoryArrayUse::from(*data.add(1));
         let error_correction = MemoryErrorCorrection::from(*data.add(2));
-        let maximum_capacity = ptr::read_unaligned(data.add(3) as *const u32);
-        let error_handle = ptr::read_unaligned(data.add(7) as *const u16);
-        let number_of_devices = ptr::read_unaligned(data.add(9) as *const u16);
+        let maximum_capacity = ptr::read_unaligned(data.add(3).cast::<u32>());
+        let error_handle = ptr::read_unaligned(data.add(7).cast::<u16>());
+        let number_of_devices = ptr::read_unaligned(data.add(9).cast::<u16>());
 
         let extended_capacity = if header.length >= 19 {
-            ptr::read_unaligned(data.add(11) as *const u64)
+            ptr::read_unaligned(data.add(11).cast::<u64>())
         } else if maximum_capacity == 0x8000_0000 {
             0 // Should use extended field
         } else {
-            maximum_capacity as u64 * 1024 // Convert to bytes
+            u64::from(maximum_capacity) * 1024 // Convert to bytes
         };
 
         self.memory_arrays.push(PhysicalMemoryArrayInformation {
@@ -797,25 +776,23 @@ impl SmbiosParser {
             maximum_capacity_kb: if maximum_capacity == 0x8000_0000 {
                 extended_capacity
             } else {
-                maximum_capacity as u64
+                u64::from(maximum_capacity)
             },
             error_information_handle: error_handle,
             number_of_memory_devices: number_of_devices,
         });
-
-        Ok(())
     }
 
     /// Parse memory device
-    unsafe fn parse_memory_device(&mut self, ptr: *const u8) -> Result<()> {
-        let header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_memory_device(&mut self, ptr: *const u8) {
+        let header = &*(ptr.cast::<SmbiosHeader>());
         let data = ptr.add(4);
 
-        let array_handle = ptr::read_unaligned(data as *const u16);
-        let error_handle = ptr::read_unaligned(data.add(2) as *const u16);
-        let total_width = ptr::read_unaligned(data.add(4) as *const u16);
-        let data_width = ptr::read_unaligned(data.add(6) as *const u16);
-        let size = ptr::read_unaligned(data.add(8) as *const u16);
+        let array_handle = ptr::read_unaligned(data.cast::<u16>());
+        let error_handle = ptr::read_unaligned(data.add(2).cast::<u16>());
+        let total_width = ptr::read_unaligned(data.add(4).cast::<u16>());
+        let data_width = ptr::read_unaligned(data.add(6).cast::<u16>());
+        let size = ptr::read_unaligned(data.add(8).cast::<u16>());
         let form_factor = MemoryFormFactor::from(*data.add(10));
         let device_set = *data.add(11);
         let device_locator_index = *data.add(12);
@@ -932,21 +909,16 @@ impl SmbiosParser {
             memory_technology,
             memory_operating_mode_capability,
         });
-
-        Ok(())
     }
 
     /// Parse system boot information
-    unsafe fn parse_boot_info(&mut self, ptr: *const u8) -> Result<()> {
-        let _header = &*(ptr as *const SmbiosHeader);
+    unsafe fn parse_boot_info(&mut self, ptr: *const u8) {
         let data = ptr.add(4);
 
         // Skip reserved bytes
         let status = BootStatus::from(*data.add(6));
 
         self.boot_info = Some(SystemBootInformation { status });
-
-        Ok(())
     }
 
     // Accessor methods
