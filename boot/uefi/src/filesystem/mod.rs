@@ -356,7 +356,7 @@ impl fmt::Display for EfiTime {
 /// File handle
 pub struct FileHandle {
     /// Handle pointer
-    handle: usize,
+    _handle: usize,
     /// Current position
     position: u64,
     /// File size (cached)
@@ -371,7 +371,7 @@ impl FileHandle {
     /// Create new file handle
     pub fn new(handle: usize) -> Self {
         Self {
-            handle,
+            _handle: handle,
             position: 0,
             size: 0,
             is_directory: false,
@@ -555,7 +555,7 @@ pub enum SeekFrom {
 /// File system handle
 pub struct FileSystem {
     /// Protocol handle
-    handle: usize,
+    _handle: usize,
     /// Root directory handle
     root: Option<FileHandle>,
     /// Volume label
@@ -568,7 +568,7 @@ impl FileSystem {
     /// Create new file system
     pub fn new(handle: usize) -> Self {
         Self {
-            handle,
+            _handle: handle,
             root: None,
             volume_label: [0; 64],
             label_len: 0,
@@ -584,7 +584,7 @@ impl FileSystem {
         // Would call EFI_SIMPLE_FILE_SYSTEM_PROTOCOL.OpenVolume()
 
         self.root = Some(FileHandle {
-            handle: 0, // Would be set by protocol call
+            _handle: 0, // Would be set by protocol call
             position: 0,
             size: 0,
             is_directory: true,
@@ -852,7 +852,7 @@ fn path_to_ucs2(path: &str, buffer: &mut [u16]) -> usize {
 }
 
 /// Convert UCS-2 to path
-fn ucs2_to_path(ucs2: &[u16], buffer: &mut [u8]) -> usize {
+fn _ucs2_to_path(ucs2: &[u16], buffer: &mut [u8]) -> usize {
     let mut pos = 0;
 
     for &c in ucs2 {
