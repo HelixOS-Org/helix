@@ -143,12 +143,14 @@ impl GraphicsModeInfo {
     }
 
     /// Get stride (bytes per row)
-    pub fn stride(&self) -> u32 {
+    #[must_use]
+    pub const fn stride(&self) -> u32 {
         self.pixels_per_scan_line * self.pixel_format.bytes_per_pixel() as u32
     }
 
     /// Get framebuffer size
-    pub fn framebuffer_size(&self) -> usize {
+    #[must_use]
+    pub const fn framebuffer_size(&self) -> usize {
         self.stride() as usize * self.height() as usize
     }
 
@@ -1256,13 +1258,14 @@ impl Rect {
     }
 
     /// Check if point is inside
-    pub fn contains(&self, x: i32, y: i32) -> bool {
+    #[must_use]
+    pub const fn contains(&self, x: i32, y: i32) -> bool {
         x >= self.x && x < self.right() && y >= self.y && y < self.bottom()
     }
 
     /// Check if rectangles intersect
     #[must_use]
-    pub fn intersects(&self, other: &Self) -> bool {
+    pub const fn intersects(&self, other: &Self) -> bool {
         self.x < other.right()
             && self.right() > other.x
             && self.y < other.bottom()
