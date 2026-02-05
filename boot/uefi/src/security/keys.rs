@@ -539,10 +539,7 @@ impl X509Certificate {
         for ext in &self.extensions {
             if ext.oid == BASIC_CONSTRAINTS_OID {
                 // Parse SEQUENCE { BOOLEAN, INTEGER OPTIONAL }
-                if ext.value.len() >= 5
-                    && ext.value[0] == 0x30
-                    && ext.value[2] == 0x01
-                {
+                if ext.value.len() >= 5 && ext.value[0] == 0x30 && ext.value[2] == 0x01 {
                     return ext.value[4] == 0xff;
                 }
             }
