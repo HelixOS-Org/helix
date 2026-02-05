@@ -199,7 +199,7 @@ impl MemoryMap {
                 || mt == MemoryType::MemoryMappedIoPortSpace as u32
             {
                 stats.mmio_pages += desc.number_of_pages;
-            } else if mt == MemoryType::ReservedMemoryType as u32 {
+            } else if mt == MemoryType::ReservedMemory as u32 {
                 stats.reserved_pages += desc.number_of_pages;
             }
         }
