@@ -6,7 +6,7 @@
 use crate::error::{Error, Result};
 use crate::memory::paging::{PageFlags, PageTableManager};
 use crate::memory::regions::{MemoryRegion, RegionType};
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
@@ -17,16 +17,16 @@ use alloc::vec::Vec;
 // VIRTUAL MEMORY CONSTANTS
 // =============================================================================
 
-/// Page size (4 KiB)
+/// Page size (`4 KiB`)
 pub const PAGE_SIZE: u64 = 0x1000;
 
-/// Large page size (2 MiB)
-pub const LARGE_PAGE_SIZE: u64 = 0x200000;
+/// Large page size (`2 MiB`)
+pub const LARGE_PAGE_SIZE: u64 = 0x0020_0000;
 
-/// Huge page size (1 GiB)
-pub const HUGE_PAGE_SIZE: u64 = 0x40000000;
+/// Huge page size (`1 GiB`)
+pub const HUGE_PAGE_SIZE: u64 = 0x4000_0000;
 
-/// Canonical address mask for x86_64
+/// Canonical address mask for `x86_64`
 pub const CANONICAL_MASK: u64 = 0x0000_FFFF_FFFF_FFFF;
 
 /// Higher half start
@@ -95,7 +95,7 @@ impl VirtualAddressSpace {
     }
 
     /// Get address space ID
-    pub fn id(&self) -> u64 {
+    pub const fn id(&self) -> u64 {
         self.id
     }
 
@@ -368,7 +368,7 @@ impl VirtualAddressSpace {
     }
 
     /// Get statistics
-    pub fn stats(&self) -> &VirtualMemoryStats {
+    pub const fn stats(&self) -> &VirtualMemoryStats {
         &self.stats
     }
 
@@ -414,12 +414,12 @@ impl VirtualRegion {
     }
 
     /// Get size in pages
-    pub fn pages(&self) -> u64 {
-        (self.size + PAGE_SIZE - 1) / PAGE_SIZE
+    pub const fn pages(&self) -> u64 {
+        self.size.div_ceil(PAGE_SIZE)
     }
 
     /// Check if mapped
-    pub fn is_mapped(&self) -> bool {
+    pub const fn is_mapped(&self) -> bool {
         self.physical_backing.is_some()
     }
 }
@@ -564,8 +564,8 @@ impl Default for AddressSpaceLimits {
 }
 
 impl AddressSpaceLimits {
-    /// Default x86_64 layout
-    pub fn x86_64_default() -> Self {
+    /// Default `x86_64` layout
+    pub const fn x86_64_default() -> Self {
         Self {
             user_start: VirtualAddress(0x0000_0000_0001_0000),
             user_end: VirtualAddress(0x0000_7FFF_FFFF_FFFF),
@@ -574,8 +574,8 @@ impl AddressSpaceLimits {
         }
     }
 
-    /// AArch64 default layout
-    pub fn aarch64_default() -> Self {
+    /// `AArch64` default layout
+    pub const fn aarch64_default() -> Self {
         Self {
             user_start: VirtualAddress(0x0000_0000_0001_0000),
             user_end: VirtualAddress(0x0000_FFFF_FFFF_FFFF),
@@ -652,10 +652,7 @@ impl IdentityMapper {
     /// Map memory region as identity
     pub fn map_region(&mut self, region: &MemoryRegion) -> Result<()> {
         let flags = match region.region_type {
-            RegionType::Usable => PageFlags::kernel_data(),
-            RegionType::RuntimeServices => PageFlags::kernel_data(),
             RegionType::AcpiReclaimable => PageFlags::kernel_rodata(),
-            RegionType::AcpiNvs => PageFlags::kernel_data(),
             RegionType::Mmio => PageFlags::device(),
             RegionType::Kernel => PageFlags::kernel_code(),
             _ => PageFlags::kernel_data(),
