@@ -102,7 +102,7 @@ impl NetworkInterface {
 }
 
 impl Protocol for NetworkInterface {
-    const GUID: Guid = Guid::new(0xE18541CD, 0xF755, 0x4F73, [
+    const GUID: Guid = Guid::new(0xE185_41CD, 0xF755, 0x4F73, [
         0x92, 0x8D, 0x64, 0x3C, 0x8A, 0x79, 0xB2, 0x29,
     ]);
 
@@ -216,8 +216,15 @@ impl MacAddress {
     pub const BROADCAST: Self = Self([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
 
     /// Create from bytes
-    pub const fn new(a: u8, b: u8, c: u8, d: u8, e: u8, f: u8) -> Self {
-        Self([a, b, c, d, e, f])
+    pub const fn new(
+        octet1: u8,
+        octet2: u8,
+        octet3: u8,
+        octet4: u8,
+        octet5: u8,
+        octet6: u8,
+    ) -> Self {
+        Self([octet1, octet2, octet3, octet4, octet5, octet6])
     }
 
     /// Create from array
