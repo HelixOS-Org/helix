@@ -10,7 +10,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use super::embeddings::{Embedding, EmbeddingId};
+use super::embeddings::EmbeddingId;
 
 // ============================================================================
 // Core Types
@@ -824,10 +824,10 @@ pub fn create_kernel_knowledge_base() -> KnowledgeBase {
     // Define relations
     let owns = kb.add_relation(Relation::new(RelationId::new(0), "owns").with_inverse("owned_by"));
 
-    let runs_on =
+    let _runs_on =
         kb.add_relation(Relation::new(RelationId::new(0), "runs_on").with_inverse("runs"));
 
-    let uses = kb.add_relation(Relation::new(RelationId::new(0), "uses"));
+    let _uses = kb.add_relation(Relation::new(RelationId::new(0), "uses"));
 
     let part_of = kb.add_relation(
         Relation::new(RelationId::new(0), "part_of")
