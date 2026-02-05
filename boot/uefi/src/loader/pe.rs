@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 use crate::loader::{
     ImageFlags, ImageFormat, ImageSection, LoadedImage, MachineType, SectionFlags,
 };
-use crate::raw::types::*;
+use crate::raw::types::VirtualAddress;
 
 extern crate alloc;
 use alloc::string::String;
@@ -72,36 +72,66 @@ pub mod dll_characteristics {
 
 /// Section characteristics
 pub mod section_characteristics {
-    pub const IMAGE_SCN_TYPE_NO_PAD: u32 = 0x00000008;
-    pub const IMAGE_SCN_CNT_CODE: u32 = 0x00000020;
-    pub const IMAGE_SCN_CNT_INITIALIZED_DATA: u32 = 0x00000040;
-    pub const IMAGE_SCN_CNT_UNINITIALIZED_DATA: u32 = 0x00000080;
-    pub const IMAGE_SCN_LNK_INFO: u32 = 0x00000200;
-    pub const IMAGE_SCN_LNK_REMOVE: u32 = 0x00000800;
-    pub const IMAGE_SCN_LNK_COMDAT: u32 = 0x00001000;
-    pub const IMAGE_SCN_GPREL: u32 = 0x00008000;
-    pub const IMAGE_SCN_ALIGN_1BYTES: u32 = 0x00100000;
-    pub const IMAGE_SCN_ALIGN_2BYTES: u32 = 0x00200000;
-    pub const IMAGE_SCN_ALIGN_4BYTES: u32 = 0x00300000;
-    pub const IMAGE_SCN_ALIGN_8BYTES: u32 = 0x00400000;
-    pub const IMAGE_SCN_ALIGN_16BYTES: u32 = 0x00500000;
-    pub const IMAGE_SCN_ALIGN_32BYTES: u32 = 0x00600000;
-    pub const IMAGE_SCN_ALIGN_64BYTES: u32 = 0x00700000;
-    pub const IMAGE_SCN_ALIGN_128BYTES: u32 = 0x00800000;
-    pub const IMAGE_SCN_ALIGN_256BYTES: u32 = 0x00900000;
-    pub const IMAGE_SCN_ALIGN_512BYTES: u32 = 0x00A00000;
-    pub const IMAGE_SCN_ALIGN_1024BYTES: u32 = 0x00B00000;
-    pub const IMAGE_SCN_ALIGN_2048BYTES: u32 = 0x00C00000;
-    pub const IMAGE_SCN_ALIGN_4096BYTES: u32 = 0x00D00000;
-    pub const IMAGE_SCN_ALIGN_8192BYTES: u32 = 0x00E00000;
-    pub const IMAGE_SCN_LNK_NRELOC_OVFL: u32 = 0x01000000;
-    pub const IMAGE_SCN_MEM_DISCARDABLE: u32 = 0x02000000;
-    pub const IMAGE_SCN_MEM_NOT_CACHED: u32 = 0x04000000;
-    pub const IMAGE_SCN_MEM_NOT_PAGED: u32 = 0x08000000;
-    pub const IMAGE_SCN_MEM_SHARED: u32 = 0x10000000;
-    pub const IMAGE_SCN_MEM_EXECUTE: u32 = 0x20000000;
-    pub const IMAGE_SCN_MEM_READ: u32 = 0x40000000;
-    pub const IMAGE_SCN_MEM_WRITE: u32 = 0x80000000;
+    /// Section should not be padded to next boundary
+    pub const IMAGE_SCN_TYPE_NO_PAD: u32 = 0x0000_0008;
+    /// Section contains executable code
+    pub const IMAGE_SCN_CNT_CODE: u32 = 0x0000_0020;
+    /// Section contains initialized data
+    pub const IMAGE_SCN_CNT_INITIALIZED_DATA: u32 = 0x0000_0040;
+    /// Section contains uninitialized data
+    pub const IMAGE_SCN_CNT_UNINITIALIZED_DATA: u32 = 0x0000_0080;
+    /// Section contains comments or info
+    pub const IMAGE_SCN_LNK_INFO: u32 = 0x0000_0200;
+    /// Section will not become part of the image
+    pub const IMAGE_SCN_LNK_REMOVE: u32 = 0x0000_0800;
+    /// Section contains COMDAT data
+    pub const IMAGE_SCN_LNK_COMDAT: u32 = 0x0000_1000;
+    /// Section contains data referenced through GP
+    pub const IMAGE_SCN_GPREL: u32 = 0x0000_8000;
+    /// 1-byte alignment
+    pub const IMAGE_SCN_ALIGN_1BYTES: u32 = 0x0010_0000;
+    /// 2-byte alignment
+    pub const IMAGE_SCN_ALIGN_2BYTES: u32 = 0x0020_0000;
+    /// 4-byte alignment
+    pub const IMAGE_SCN_ALIGN_4BYTES: u32 = 0x0030_0000;
+    /// 8-byte alignment
+    pub const IMAGE_SCN_ALIGN_8BYTES: u32 = 0x0040_0000;
+    /// 16-byte alignment
+    pub const IMAGE_SCN_ALIGN_16BYTES: u32 = 0x0050_0000;
+    /// 32-byte alignment
+    pub const IMAGE_SCN_ALIGN_32BYTES: u32 = 0x0060_0000;
+    /// 64-byte alignment
+    pub const IMAGE_SCN_ALIGN_64BYTES: u32 = 0x0070_0000;
+    /// 128-byte alignment
+    pub const IMAGE_SCN_ALIGN_128BYTES: u32 = 0x0080_0000;
+    /// 256-byte alignment
+    pub const IMAGE_SCN_ALIGN_256BYTES: u32 = 0x0090_0000;
+    /// 512-byte alignment
+    pub const IMAGE_SCN_ALIGN_512BYTES: u32 = 0x00A0_0000;
+    /// 1024-byte alignment
+    pub const IMAGE_SCN_ALIGN_1024BYTES: u32 = 0x00B0_0000;
+    /// 2048-byte alignment
+    pub const IMAGE_SCN_ALIGN_2048BYTES: u32 = 0x00C0_0000;
+    /// 4096-byte alignment
+    pub const IMAGE_SCN_ALIGN_4096BYTES: u32 = 0x00D0_0000;
+    /// 8192-byte alignment
+    pub const IMAGE_SCN_ALIGN_8192BYTES: u32 = 0x00E0_0000;
+    /// Section contains extended relocations
+    pub const IMAGE_SCN_LNK_NRELOC_OVFL: u32 = 0x0100_0000;
+    /// Section can be discarded as needed
+    pub const IMAGE_SCN_MEM_DISCARDABLE: u32 = 0x0200_0000;
+    /// Section cannot be cached
+    pub const IMAGE_SCN_MEM_NOT_CACHED: u32 = 0x0400_0000;
+    /// Section cannot be paged
+    pub const IMAGE_SCN_MEM_NOT_PAGED: u32 = 0x0800_0000;
+    /// Section can be shared in memory
+    pub const IMAGE_SCN_MEM_SHARED: u32 = 0x1000_0000;
+    /// Section is executable
+    pub const IMAGE_SCN_MEM_EXECUTE: u32 = 0x2000_0000;
+    /// Section is readable
+    pub const IMAGE_SCN_MEM_READ: u32 = 0x4000_0000;
+    /// Section is writable
+    pub const IMAGE_SCN_MEM_WRITE: u32 = 0x8000_0000;
 }
 
 /// Data directory indices
@@ -210,7 +240,7 @@ impl DosHeader {
             return Err(Error::InvalidData);
         }
 
-        let header: Self = unsafe { *(data.as_ptr() as *const Self) };
+        let header: Self = unsafe { *(data.as_ptr().cast::<Self>()) };
 
         if header.e_magic != DOS_MAGIC {
             return Err(Error::InvalidMagic);
@@ -220,8 +250,9 @@ impl DosHeader {
     }
 
     /// Get PE header offset
+    #[must_use]
     pub fn pe_offset(&self) -> usize {
-        self.e_lfanew as usize
+        usize::try_from(self.e_lfanew).unwrap_or(0)
     }
 }
 
@@ -262,11 +293,12 @@ impl CoffHeader {
             return Err(Error::InvalidData);
         }
 
-        Ok(unsafe { *(data[header_offset..].as_ptr() as *const Self) })
+        Ok(unsafe { *(data[header_offset..].as_ptr().cast::<Self>()) })
     }
 
     /// Get machine type
-    pub fn machine_type(&self) -> MachineType {
+    #[must_use]
+    pub const fn machine_type(&self) -> MachineType {
         match self.machine {
             machine::IMAGE_FILE_MACHINE_I386 => MachineType::X86,
             machine::IMAGE_FILE_MACHINE_AMD64 => MachineType::X86_64,
@@ -278,17 +310,20 @@ impl CoffHeader {
     }
 
     /// Check if executable
-    pub fn is_executable(&self) -> bool {
+    #[must_use]
+    pub const fn is_executable(&self) -> bool {
         (self.characteristics & characteristics::IMAGE_FILE_EXECUTABLE_IMAGE) != 0
     }
 
     /// Check if DLL
-    pub fn is_dll(&self) -> bool {
+    #[must_use]
+    pub const fn is_dll(&self) -> bool {
         (self.characteristics & characteristics::IMAGE_FILE_DLL) != 0
     }
 
     /// Check if relocations stripped
-    pub fn relocs_stripped(&self) -> bool {
+    #[must_use]
+    pub const fn relocs_stripped(&self) -> bool {
         (self.characteristics & characteristics::IMAGE_FILE_RELOCS_STRIPPED) != 0
     }
 }
@@ -376,7 +411,7 @@ impl OptionalHeader64 {
             return Err(Error::InvalidData);
         }
 
-        let header: Self = unsafe { *(data[offset..].as_ptr() as *const Self) };
+        let header: Self = unsafe { *(data[offset..].as_ptr().cast::<Self>()) };
 
         if header.magic != PE32PLUS_MAGIC {
             return Err(Error::UnsupportedFormat);
@@ -386,7 +421,8 @@ impl OptionalHeader64 {
     }
 
     /// Check if UEFI application
-    pub fn is_uefi(&self) -> bool {
+    #[must_use]
+    pub const fn is_uefi(&self) -> bool {
         matches!(
             self.subsystem,
             subsystem::IMAGE_SUBSYSTEM_EFI_APPLICATION
@@ -397,17 +433,20 @@ impl OptionalHeader64 {
     }
 
     /// Check if NX compatible
-    pub fn is_nx_compat(&self) -> bool {
+    #[must_use]
+    pub const fn is_nx_compat(&self) -> bool {
         (self.dll_characteristics & dll_characteristics::IMAGE_DLLCHARACTERISTICS_NX_COMPAT) != 0
     }
 
     /// Check if dynamic base (ASLR)
-    pub fn is_dynamic_base(&self) -> bool {
+    #[must_use]
+    pub const fn is_dynamic_base(&self) -> bool {
         (self.dll_characteristics & dll_characteristics::IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) != 0
     }
 
     /// Get data directory
-    pub fn data_directory(&self, index: usize) -> Option<&DataDirectory> {
+    #[must_use]
+    pub const fn data_directory(&self, index: usize) -> Option<&DataDirectory> {
         if index < self.number_of_rva_and_sizes as usize && index < 16 {
             Some(&self.data_directories[index])
         } else {
@@ -444,59 +483,69 @@ pub struct PeSectionHeader {
 
 impl PeSectionHeader {
     /// Get section name as string
+    #[must_use]
     pub fn name_str(&self) -> String {
         let end = self.name.iter().position(|&b| b == 0).unwrap_or(8);
         String::from_utf8_lossy(&self.name[..end]).into_owned()
     }
 
     /// Check if contains code
-    pub fn is_code(&self) -> bool {
+    #[must_use]
+    pub const fn is_code(&self) -> bool {
         (self.characteristics & section_characteristics::IMAGE_SCN_CNT_CODE) != 0
     }
 
     /// Check if initialized data
-    pub fn is_initialized_data(&self) -> bool {
+    #[must_use]
+    pub const fn is_initialized_data(&self) -> bool {
         (self.characteristics & section_characteristics::IMAGE_SCN_CNT_INITIALIZED_DATA) != 0
     }
 
     /// Check if uninitialized data
-    pub fn is_uninitialized_data(&self) -> bool {
+    #[must_use]
+    pub const fn is_uninitialized_data(&self) -> bool {
         (self.characteristics & section_characteristics::IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0
     }
 
     /// Check if readable
-    pub fn is_readable(&self) -> bool {
+    #[must_use]
+    pub const fn is_readable(&self) -> bool {
         (self.characteristics & section_characteristics::IMAGE_SCN_MEM_READ) != 0
     }
 
     /// Check if writable
-    pub fn is_writable(&self) -> bool {
+    #[must_use]
+    pub const fn is_writable(&self) -> bool {
         (self.characteristics & section_characteristics::IMAGE_SCN_MEM_WRITE) != 0
     }
 
     /// Check if executable
-    pub fn is_executable(&self) -> bool {
+    #[must_use]
+    pub const fn is_executable(&self) -> bool {
         (self.characteristics & section_characteristics::IMAGE_SCN_MEM_EXECUTE) != 0
     }
 
     /// Check if discardable
-    pub fn is_discardable(&self) -> bool {
+    #[must_use]
+    pub const fn is_discardable(&self) -> bool {
         (self.characteristics & section_characteristics::IMAGE_SCN_MEM_DISCARDABLE) != 0
     }
 
     /// Get alignment
-    pub fn alignment(&self) -> u32 {
-        let align_mask = self.characteristics & 0x00F00000;
+    #[must_use]
+    pub const fn alignment(&self) -> u32 {
+        let align_mask = self.characteristics & 0x00F0_0000;
         if align_mask == 0 {
             return 16; // Default alignment
         }
 
-        let shift = ((align_mask >> 20) - 1) as u32;
+        let shift = (align_mask >> 20) - 1;
         1 << shift
     }
 
     /// Convert to section flags
-    pub fn to_section_flags(&self) -> SectionFlags {
+    #[must_use]
+    pub const fn to_section_flags(&self) -> SectionFlags {
         SectionFlags {
             readable: self.is_readable(),
             writable: self.is_writable(),
@@ -646,10 +695,10 @@ impl PeLoader {
     fn parse_sections(&mut self, data: &[u8], coff: &CoffHeader, opt_offset: usize) -> Result<()> {
         self.section_headers.clear();
 
-        let sections_offset = opt_offset + coff.size_of_optional_header as usize;
+        let sections_offset = opt_offset + usize::from(coff.size_of_optional_header);
         let section_size = core::mem::size_of::<PeSectionHeader>();
 
-        for i in 0..coff.number_of_sections as usize {
+        for i in 0..usize::from(coff.number_of_sections) {
             let offset = sections_offset + i * section_size;
 
             if data.len() < offset + section_size {
@@ -657,7 +706,7 @@ impl PeLoader {
             }
 
             let section: PeSectionHeader =
-                unsafe { *(data[offset..].as_ptr() as *const PeSectionHeader) };
+                unsafe { *(data[offset..].as_ptr().cast::<PeSectionHeader>()) };
 
             self.section_headers.push(section);
         }
@@ -669,17 +718,19 @@ impl PeLoader {
     fn parse_exports(&mut self, data: &[u8]) -> Result<()> {
         self.exports.clear();
 
-        let optional = match &self.optional_header {
-            Some(h) => h,
-            None => return Ok(()),
+        let Some(optional) = &self.optional_header else {
+            return Ok(());
         };
 
-        let export_dir = match optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_EXPORT) {
-            Some(d) if d.virtual_address != 0 && d.size != 0 => d,
-            _ => return Ok(()),
+        let Some(export_dir) = optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_EXPORT) else {
+            return Ok(());
         };
 
-        let export_rva = export_dir.virtual_address as u64;
+        if export_dir.virtual_address == 0 || export_dir.size == 0 {
+            return Ok(());
+        }
+
+        let export_rva = u64::from(export_dir.virtual_address);
         let export_offset = self.rva_to_offset(export_rva)?;
 
         if data.len() < export_offset + core::mem::size_of::<ExportDirectory>() {
@@ -687,12 +738,12 @@ impl PeLoader {
         }
 
         let export_table: ExportDirectory =
-            unsafe { *(data[export_offset..].as_ptr() as *const ExportDirectory) };
+            unsafe { *(data[export_offset..].as_ptr().cast::<ExportDirectory>()) };
 
         // Parse export names
-        let names_offset = self.rva_to_offset(export_table.address_of_names as u64)?;
-        let ordinals_offset = self.rva_to_offset(export_table.address_of_name_ordinals as u64)?;
-        let functions_offset = self.rva_to_offset(export_table.address_of_functions as u64)?;
+        let names_offset = self.rva_to_offset(u64::from(export_table.address_of_names))?;
+        let ordinals_offset = self.rva_to_offset(u64::from(export_table.address_of_name_ordinals))?;
+        let functions_offset = self.rva_to_offset(u64::from(export_table.address_of_functions))?;
 
         for i in 0..export_table.number_of_names as usize {
             // Get name RVA
@@ -708,7 +759,7 @@ impl PeLoader {
             ]);
 
             // Get name
-            let name_offset = self.rva_to_offset(name_rva as u64)?;
+            let name_offset = self.rva_to_offset(u64::from(name_rva))?;
             let name = self.read_string(data, name_offset);
 
             // Get ordinal
@@ -732,8 +783,8 @@ impl PeLoader {
 
             self.exports.push(PeExport {
                 name,
-                ordinal: ordinal + export_table.base as u16,
-                address: func_rva as u64,
+                ordinal: ordinal + u16::try_from(export_table.base).unwrap_or(0),
+                address: u64::from(func_rva),
             });
         }
 
