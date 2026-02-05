@@ -4,8 +4,11 @@
 
 use super::{EnumerableProtocol, Protocol};
 use crate::error::{Error, Result};
-use crate::raw::protocols::gop::*;
-use crate::raw::types::*;
+use crate::raw::protocols::gop::{
+    EfiGraphicsOutputBltOperation, EfiGraphicsOutputBltPixel, EfiGraphicsOutputModeInformation,
+    EfiGraphicsOutputProtocol, EfiGraphicsPixelFormat,
+};
+use crate::raw::types::{guids, Guid, Handle, PhysicalAddress, Status};
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -123,7 +126,7 @@ impl GraphicsOutput {
 
         let best = modes
             .iter()
-            .max_by_key(|m| (m.width as u64) * (m.height as u64))
+            .max_by_key(|m| u64::from(m.width) * u64::from(m.height))
             .cloned()
             .ok_or(Error::NotFound)?;
 
@@ -165,7 +168,7 @@ impl GraphicsOutput {
         let result = unsafe {
             ((*self.protocol).blt)(
                 self.protocol,
-                &blt_pixel as *const _ as *mut _,
+                core::ptr::addr_of!(blt_pixel).cast_mut(),
                 EfiGraphicsOutputBltOperation::BltVideoFill,
                 0,
                 0,
@@ -227,7 +230,8 @@ impl GraphicsOutput {
 
         loop {
             if x >= 0 && y >= 0 {
-                self.draw_pixel(x as u32, y as u32, color)?;
+                // SAFETY: x and y are guaranteed to be non-negative by the check above
+                self.draw_pixel(x.unsigned_abs(), y.unsigned_abs(), color)?;
             }
 
             if x == x1 && y == y1 {
@@ -504,7 +508,7 @@ impl Protocol for GraphicsOutput {
                 &mut protocol,
                 image,
                 Handle(core::ptr::null_mut()),
-                0x00000002, // BY_HANDLE_PROTOCOL
+                0x0000_0002, // BY_HANDLE_PROTOCOL
             )
         };
 
