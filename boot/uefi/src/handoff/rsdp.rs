@@ -12,10 +12,10 @@ use crate::raw::types::*;
 pub const RSDP_SIGNATURE: [u8; 8] = *b"RSD PTR ";
 
 /// RSDP search start (EBDA)
-pub const RSDP_SEARCH_START: u64 = 0x000E0000;
+pub const RSDP_SEARCH_START: u64 = 0x000E_0000;
 
 /// RSDP search end
-pub const RSDP_SEARCH_END: u64 = 0x000FFFFF;
+pub const RSDP_SEARCH_END: u64 = 0x000F_FFFF;
 
 /// RSDP alignment
 pub const RSDP_ALIGNMENT: u64 = 16;
