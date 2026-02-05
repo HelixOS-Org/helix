@@ -981,7 +981,9 @@ pub fn read_tsc() -> u64 {
 }
 
 /// Estimates the TSC frequency (approximate).
-#[cfg(target_arch = "x86_64")]#[must_use]pub fn estimate_tsc_frequency() -> u64 {
+#[cfg(target_arch = "x86_64")]
+#[must_use]
+pub fn estimate_tsc_frequency() -> u64 {
     // Try to get from CPUID if available
     let result = crate::arch::x86_64::cpuid(0x15, 0);
     let tsc_ratio_denom = result.eax;
