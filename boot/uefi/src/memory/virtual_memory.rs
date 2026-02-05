@@ -428,99 +428,157 @@ impl VirtualRegion {
 // VIRTUAL REGION FLAGS
 // =============================================================================
 
+/// Inner flags storage for virtual region
+#[derive(Debug, Clone, Copy, Default)]
+struct VirtualRegionFlagsInner(u8);
+
+impl VirtualRegionFlagsInner {
+    const READ: u8 = 1 << 0;
+    const WRITE: u8 = 1 << 1;
+    const EXECUTE: u8 = 1 << 2;
+    const USER: u8 = 1 << 3;
+    const GLOBAL: u8 = 1 << 4;
+    const CACHED: u8 = 1 << 5;
+    const WRITE_THROUGH: u8 = 1 << 6;
+    const NO_CACHE: u8 = 1 << 7;
+}
+
 /// Virtual region protection flags
 #[derive(Debug, Clone, Copy, Default)]
 pub struct VirtualRegionFlags {
-    /// Readable
-    pub read: bool,
-    /// Writable
-    pub write: bool,
-    /// Executable
-    pub execute: bool,
-    /// User accessible
-    pub user: bool,
-    /// Global (not flushed on CR3 change)
-    pub global: bool,
-    /// Cacheable
-    pub cached: bool,
-    /// Write through
-    pub write_through: bool,
-    /// No cache
-    pub no_cache: bool,
+    inner: VirtualRegionFlagsInner,
 }
 
 impl VirtualRegionFlags {
+    /// Check if readable
+    #[must_use]
+    pub const fn read(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::READ) != 0
+    }
+
+    /// Check if writable
+    #[must_use]
+    pub const fn write(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::WRITE) != 0
+    }
+
+    /// Check if executable
+    #[must_use]
+    pub const fn execute(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::EXECUTE) != 0
+    }
+
+    /// Check if user accessible
+    #[must_use]
+    pub const fn user(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::USER) != 0
+    }
+
+    /// Check if global (not flushed on CR3 change)
+    #[must_use]
+    pub const fn global(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::GLOBAL) != 0
+    }
+
+    /// Check if cacheable
+    #[must_use]
+    pub const fn cached(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::CACHED) != 0
+    }
+
+    /// Check if write-through
+    #[must_use]
+    pub const fn write_through(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::WRITE_THROUGH) != 0
+    }
+
+    /// Check if no-cache
+    #[must_use]
+    pub const fn no_cache(&self) -> bool {
+        (self.inner.0 & VirtualRegionFlagsInner::NO_CACHE) != 0
+    }
+
     /// Read only
-    pub fn read_only() -> Self {
+    #[must_use]
+    pub const fn read_only() -> Self {
         Self {
-            read: true,
-            cached: true,
-            ..Default::default()
+            inner: VirtualRegionFlagsInner(
+                VirtualRegionFlagsInner::READ | VirtualRegionFlagsInner::CACHED,
+            ),
         }
     }
 
     /// Read/write
-    pub fn read_write() -> Self {
+    #[must_use]
+    pub const fn read_write() -> Self {
         Self {
-            read: true,
-            write: true,
-            cached: true,
-            ..Default::default()
+            inner: VirtualRegionFlagsInner(
+                VirtualRegionFlagsInner::READ
+                    | VirtualRegionFlagsInner::WRITE
+                    | VirtualRegionFlagsInner::CACHED,
+            ),
         }
     }
 
     /// Executable read only
-    pub fn exec_read_only() -> Self {
+    #[must_use]
+    pub const fn exec_read_only() -> Self {
         Self {
-            read: true,
-            execute: true,
-            cached: true,
-            ..Default::default()
+            inner: VirtualRegionFlagsInner(
+                VirtualRegionFlagsInner::READ
+                    | VirtualRegionFlagsInner::EXECUTE
+                    | VirtualRegionFlagsInner::CACHED,
+            ),
         }
     }
 
     /// User read/write
-    pub fn user_read_write() -> Self {
+    #[must_use]
+    pub const fn user_read_write() -> Self {
         Self {
-            read: true,
-            write: true,
-            user: true,
-            cached: true,
-            ..Default::default()
+            inner: VirtualRegionFlagsInner(
+                VirtualRegionFlagsInner::READ
+                    | VirtualRegionFlagsInner::WRITE
+                    | VirtualRegionFlagsInner::USER
+                    | VirtualRegionFlagsInner::CACHED,
+            ),
         }
     }
 
     /// Device memory (uncached)
-    pub fn device() -> Self {
+    #[must_use]
+    pub const fn device() -> Self {
         Self {
-            read: true,
-            write: true,
-            no_cache: true,
-            ..Default::default()
+            inner: VirtualRegionFlagsInner(
+                VirtualRegionFlagsInner::READ
+                    | VirtualRegionFlagsInner::WRITE
+                    | VirtualRegionFlagsInner::NO_CACHE,
+            ),
         }
     }
 
     /// Convert to page flags
+    #[must_use]
     pub fn to_page_flags(&self) -> PageFlags {
         let mut flags = PageFlags::empty();
 
-        if self.write {
-            flags.writable = true;
+        if self.write() {
+            flags = flags.with_writable();
         }
-        if self.user {
-            flags.user = true;
+        if self.user() {
+            flags = flags.with_user();
         }
-        if !self.execute {
-            flags.no_execute = true;
+        if !self.execute() {
+            flags = flags.with_no_execute();
         }
-        if self.global {
-            flags.global = true;
+        if self.global() {
+            flags = flags.with_global();
         }
-        if self.write_through {
-            flags.write_through = true;
+        if self.write_through() {
+            flags = flags.with_write_through();
         }
-        if self.no_cache {
-            flags.cache_disable = true;
+        if self.no_cache() {
+            flags = flags.with_cache_disable();
         }
 
         flags
@@ -883,12 +941,10 @@ impl PhysicalMapper {
         let aligned_end = (physical_end.0 + HUGE_PAGE_SIZE - 1) & !(HUGE_PAGE_SIZE - 1);
 
         // Map physical memory with huge pages
-        let flags = PageFlags {
-            writable: true,
-            no_execute: true,
-            global: true,
-            ..Default::default()
-        };
+        let flags = PageFlags::empty()
+            .with_writable()
+            .with_no_execute()
+            .with_global();
 
         // For now just track the intention
         // Actual mapping would use huge pages
@@ -962,7 +1018,9 @@ pub mod tlb {
     pub fn flush_page(addr: VirtualAddress) {
         #[cfg(target_arch = "x86_64")]
         unsafe {
-            core::arch::asm!("invlpg [{}]", in(reg) addr.0 as usize);
+            // On x86_64, usize and u64 are the same size, use the raw u64 address
+            let addr_val = addr.0;
+            core::arch::asm!("invlpg [{}]", in(reg) addr_val);
         }
     }
 
