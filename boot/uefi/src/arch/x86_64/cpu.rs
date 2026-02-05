@@ -341,20 +341,44 @@ pub fn detect_features() -> CpuFeatures {
         let result = cpuid(cpuid_leaf::VERSION_FEATURES, 0);
 
         // ECX features
-        features.sse3 = (result.ecx & feature_ecx::SSE3) != 0;
-        features.sse4_1 = (result.ecx & feature_ecx::SSE4_1) != 0;
-        features.sse4_2 = (result.ecx & feature_ecx::SSE4_2) != 0;
-        features.aes = (result.ecx & feature_ecx::AES) != 0;
-        features.xsave = (result.ecx & feature_ecx::XSAVE) != 0;
-        features.avx = (result.ecx & feature_ecx::AVX) != 0;
-        features.rdrand = (result.ecx & feature_ecx::RDRAND) != 0;
-        features.x2apic = (result.ecx & feature_ecx::X2APIC) != 0;
-        features.pcid = (result.ecx & feature_ecx::PCID) != 0;
+        if (result.ecx & feature_ecx::SSE3) != 0 {
+            features.insert(CpuFeatures::SSE3);
+        }
+        if (result.ecx & feature_ecx::SSE4_1) != 0 {
+            features.insert(CpuFeatures::SSE4_1);
+        }
+        if (result.ecx & feature_ecx::SSE4_2) != 0 {
+            features.insert(CpuFeatures::SSE4_2);
+        }
+        if (result.ecx & feature_ecx::AES) != 0 {
+            features.insert(CpuFeatures::AES);
+        }
+        if (result.ecx & feature_ecx::XSAVE) != 0 {
+            features.insert(CpuFeatures::XSAVE);
+        }
+        if (result.ecx & feature_ecx::AVX) != 0 {
+            features.insert(CpuFeatures::AVX);
+        }
+        if (result.ecx & feature_ecx::RDRAND) != 0 {
+            features.insert(CpuFeatures::RDRAND);
+        }
+        if (result.ecx & feature_ecx::X2APIC) != 0 {
+            features.insert(CpuFeatures::X2APIC);
+        }
+        if (result.ecx & feature_ecx::PCID) != 0 {
+            features.insert(CpuFeatures::PCID);
+        }
 
         // EDX features
-        features.tsc = (result.edx & feature_edx::TSC) != 0;
-        features.sse = (result.edx & feature_edx::SSE) != 0;
-        features.sse2 = (result.edx & feature_edx::SSE2) != 0;
+        if (result.edx & feature_edx::TSC) != 0 {
+            features.insert(CpuFeatures::TSC);
+        }
+        if (result.edx & feature_edx::SSE) != 0 {
+            features.insert(CpuFeatures::SSE);
+        }
+        if (result.edx & feature_edx::SSE2) != 0 {
+            features.insert(CpuFeatures::SSE2);
+        }
     }
 
     // Get CPUID.7 features
@@ -362,35 +386,65 @@ pub fn detect_features() -> CpuFeatures {
         let result = cpuid(cpuid_leaf::EXTENDED_FEATURES, 0);
 
         // EBX features
-        features.fsgsbase = (result.ebx & feature7_ebx::FSGSBASE) != 0;
-        features.avx2 = (result.ebx & feature7_ebx::AVX2) != 0;
-        features.smep = (result.ebx & feature7_ebx::SMEP) != 0;
-        features.smap = (result.ebx & feature7_ebx::SMAP) != 0;
-        features.avx512 = (result.ebx & feature7_ebx::AVX512F) != 0;
-        features.sha = (result.ebx & feature7_ebx::SHA) != 0;
-        features.rdseed = (result.ebx & feature7_ebx::RDSEED) != 0;
-        features.invpcid = (result.ebx & feature7_ebx::INVPCID) != 0;
+        if (result.ebx & feature7_ebx::FSGSBASE) != 0 {
+            features.insert(CpuFeatures::FSGSBASE);
+        }
+        if (result.ebx & feature7_ebx::AVX2) != 0 {
+            features.insert(CpuFeatures::AVX2);
+        }
+        if (result.ebx & feature7_ebx::SMEP) != 0 {
+            features.insert(CpuFeatures::SMEP);
+        }
+        if (result.ebx & feature7_ebx::SMAP) != 0 {
+            features.insert(CpuFeatures::SMAP);
+        }
+        if (result.ebx & feature7_ebx::AVX512F) != 0 {
+            features.insert(CpuFeatures::AVX512);
+        }
+        if (result.ebx & feature7_ebx::SHA) != 0 {
+            features.insert(CpuFeatures::SHA);
+        }
+        if (result.ebx & feature7_ebx::RDSEED) != 0 {
+            features.insert(CpuFeatures::RDSEED);
+        }
+        if (result.ebx & feature7_ebx::INVPCID) != 0 {
+            features.insert(CpuFeatures::INVPCID);
+        }
 
         // ECX features
-        features.umip = (result.ecx & feature7_ecx::UMIP) != 0;
-        features.pku = (result.ecx & feature7_ecx::PKU) != 0;
-        features.la57 = (result.ecx & feature7_ecx::LA57) != 0;
+        if (result.ecx & feature7_ecx::UMIP) != 0 {
+            features.insert(CpuFeatures::UMIP);
+        }
+        if (result.ecx & feature7_ecx::PKU) != 0 {
+            features.insert(CpuFeatures::PKU);
+        }
+        if (result.ecx & feature7_ecx::LA57) != 0 {
+            features.insert(CpuFeatures::LA57);
+        }
 
         // EDX features
-        features.cet = (result.edx & feature7_edx::CET_IBT) != 0;
+        if (result.edx & feature7_edx::CET_IBT) != 0 {
+            features.insert(CpuFeatures::CET);
+        }
     }
 
     // Get extended features
     if max_extended >= cpuid_leaf::EXTENDED_INFO {
         let result = cpuid(cpuid_leaf::EXTENDED_INFO, 0);
-        features.nx = (result.edx & ext_feature_edx::NX) != 0;
-        features.page_1gb = (result.edx & ext_feature_edx::PAGE1GB) != 0;
+        if (result.edx & ext_feature_edx::NX) != 0 {
+            features.insert(CpuFeatures::NX);
+        }
+        if (result.edx & ext_feature_edx::PAGE1GB) != 0 {
+            features.insert(CpuFeatures::PAGE_1GB);
+        }
     }
 
     // Get power management features
     if max_extended >= 0x8000_0007 {
         let result = cpuid(0x8000_0007, 0);
-        features.tsc_invariant = (result.edx & apm_feature_edx::TSC_INVARIANT) != 0;
+        if (result.edx & apm_feature_edx::TSC_INVARIANT) != 0 {
+            features.insert(CpuFeatures::TSC_INVARIANT);
+        }
     }
 
     features
@@ -416,42 +470,42 @@ pub fn enable_features(features: &CpuFeatures) -> Result<()> {
     cr4_value |= cr4::OSFXSR | cr4::OSXMMEXCPT;
 
     // Enable SMEP if supported
-    if features.smep {
+    if features.contains(CpuFeatures::SMEP) {
         cr4_value |= cr4::SMEP;
     }
 
     // Enable SMAP if supported
-    if features.smap {
+    if features.contains(CpuFeatures::SMAP) {
         cr4_value |= cr4::SMAP;
     }
 
     // Enable UMIP if supported
-    if features.umip {
+    if features.contains(CpuFeatures::UMIP) {
         cr4_value |= cr4::UMIP;
     }
 
     // Enable FSGSBASE if supported
-    if features.fsgsbase {
+    if features.contains(CpuFeatures::FSGSBASE) {
         cr4_value |= cr4::FSGSBASE;
     }
 
     // Enable PKE if supported
-    if features.pku {
+    if features.contains(CpuFeatures::PKU) {
         cr4_value |= cr4::PKE;
     }
 
     // Enable PCID if supported
-    if features.pcid {
+    if features.contains(CpuFeatures::PCID) {
         cr4_value |= cr4::PCIDE;
     }
 
     // Enable XSAVE if supported
-    if features.xsave {
+    if features.contains(CpuFeatures::XSAVE) {
         cr4_value |= cr4::OSXSAVE;
     }
 
     // Enable 5-level paging if supported
-    if features.la57 {
+    if features.contains(CpuFeatures::LA57) {
         cr4_value |= cr4::LA57;
     }
 
@@ -461,7 +515,7 @@ pub fn enable_features(features: &CpuFeatures) -> Result<()> {
     }
 
     // Enable NX in EFER if supported
-    if features.nx {
+    if features.contains(CpuFeatures::NX) {
         let mut efer_value = read_efer();
         efer_value |= efer::NXE;
         unsafe {
