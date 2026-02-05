@@ -337,7 +337,7 @@ pub struct GraphicalMenu<'a> {
     /// Menu box position
     box_x: u32,
     box_y: u32,
-    box_width: u32,
+    _box_width: u32,
     box_height: u32,
 }
 
@@ -357,7 +357,7 @@ impl<'a> GraphicalMenu<'a> {
             timeout: config.timeout * 10,
             box_x,
             box_y,
-            box_width,
+            _box_width: box_width,
             box_height,
         }
     }
