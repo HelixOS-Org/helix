@@ -64,11 +64,11 @@ pub enum HashAlgorithm {
     Sha3_512,
     /// SM3 (Chinese standard)
     Sm3,
-    /// BLAKE2b
+    /// `BLAKE2b` hash algorithm (512 bits)
     Blake2b,
-    /// BLAKE2s
+    /// `BLAKE2s` hash algorithm (256 bits)
     Blake2s,
-    /// BLAKE3
+    /// `BLAKE3` hash algorithm
     Blake3,
 }
 
@@ -76,61 +76,40 @@ impl HashAlgorithm {
     /// Get digest size in bytes
     pub const fn digest_size(&self) -> usize {
         match self {
-            HashAlgorithm::Md5 => 16,
-            HashAlgorithm::Sha1 => 20,
-            HashAlgorithm::Sha224 => 28,
-            HashAlgorithm::Sha256 => 32,
-            HashAlgorithm::Sha384 => 48,
-            HashAlgorithm::Sha512 => 64,
-            HashAlgorithm::Sha512_256 => 32,
-            HashAlgorithm::Sha3_256 => 32,
-            HashAlgorithm::Sha3_384 => 48,
-            HashAlgorithm::Sha3_512 => 64,
-            HashAlgorithm::Sm3 => 32,
-            HashAlgorithm::Blake2b => 64,
-            HashAlgorithm::Blake2s => 32,
-            HashAlgorithm::Blake3 => 32,
+            Self::Md5 => 16,
+            Self::Sha1 => 20,
+            Self::Sha224 => 28,
+            Self::Sha256 | Self::Sha512_256 | Self::Sha3_256 | Self::Sm3 | Self::Blake2s | Self::Blake3 => 32,
+            Self::Sha384 | Self::Sha3_384 => 48,
+            Self::Sha512 | Self::Sha3_512 | Self::Blake2b => 64,
         }
     }
 
     /// Get block size in bytes
     pub const fn block_size(&self) -> usize {
         match self {
-            HashAlgorithm::Md5 => 64,
-            HashAlgorithm::Sha1 => 64,
-            HashAlgorithm::Sha224 => 64,
-            HashAlgorithm::Sha256 => 64,
-            HashAlgorithm::Sha384 => 128,
-            HashAlgorithm::Sha512 => 128,
-            HashAlgorithm::Sha512_256 => 128,
-            HashAlgorithm::Sha3_256 => 136,
-            HashAlgorithm::Sha3_384 => 104,
-            HashAlgorithm::Sha3_512 => 72,
-            HashAlgorithm::Sm3 => 64,
-            HashAlgorithm::Blake2b => 128,
-            HashAlgorithm::Blake2s => 64,
-            HashAlgorithm::Blake3 => 64,
+            Self::Md5 | Self::Sha1 | Self::Sha224 | Self::Sha256 | Self::Sm3 | Self::Blake2s | Self::Blake3 => 64,
+            Self::Sha384 | Self::Sha512 | Self::Sha512_256 | Self::Blake2b => 128,
+            Self::Sha3_256 => 136,
+            Self::Sha3_384 => 104,
+            Self::Sha3_512 => 72,
         }
     }
 
     /// Check if algorithm is secure
     pub const fn is_secure(&self) -> bool {
-        match self {
-            HashAlgorithm::Md5 => false,
-            HashAlgorithm::Sha1 => false,
-            _ => true,
-        }
+        !matches!(self, Self::Md5 | Self::Sha1)
     }
 
     /// Get OID for this algorithm
     pub const fn oid(&self) -> &'static [u8] {
         match self {
-            HashAlgorithm::Md5 => &[0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x02, 0x05],
-            HashAlgorithm::Sha1 => &[0x2B, 0x0E, 0x03, 0x02, 0x1A],
-            HashAlgorithm::Sha224 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x04],
-            HashAlgorithm::Sha256 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01],
-            HashAlgorithm::Sha384 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02],
-            HashAlgorithm::Sha512 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03],
+            Self::Md5 => &[0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x02, 0x05],
+            Self::Sha1 => &[0x2B, 0x0E, 0x03, 0x02, 0x1A],
+            Self::Sha224 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x04],
+            Self::Sha256 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01],
+            Self::Sha384 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02],
+            Self::Sha512 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03],
             _ => &[],
         }
     }
@@ -173,7 +152,7 @@ impl fmt::Debug for Digest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Digest(")?;
         for b in &self.bytes[..self.len] {
-            write!(f, "{:02x}", b)?;
+            write!(f, "{b:02x}")?;
         }
         write!(f, ")")
     }
@@ -182,7 +161,7 @@ impl fmt::Debug for Digest {
 impl fmt::Display for Digest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for b in &self.bytes[..self.len] {
-            write!(f, "{:02x}", b)?;
+            write!(f, "{b:02x}")?;
         }
         Ok(())
     }
@@ -194,103 +173,103 @@ impl fmt::Display for Digest {
 
 /// SHA-256 round constants
 pub const SHA256_K: [u32; 64] = [
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+    0x428a_2f98, 0x7137_4491, 0xb5c0_fbcf, 0xe9b5_dba5, 0x3956_c25b, 0x59f1_11f1, 0x923f_82a4, 0xab1c_5ed5,
+    0xd807_aa98, 0x1283_5b01, 0x2431_85be, 0x550c_7dc3, 0x72be_5d74, 0x80de_b1fe, 0x9bdc_06a7, 0xc19b_f174,
+    0xe49b_69c1, 0xefbe_4786, 0x0fc1_9dc6, 0x240c_a1cc, 0x2de9_2c6f, 0x4a74_84aa, 0x5cb0_a9dc, 0x76f9_88da,
+    0x983e_5152, 0xa831_c66d, 0xb003_27c8, 0xbf59_7fc7, 0xc6e0_0bf3, 0xd5a7_9147, 0x06ca_6351, 0x1429_2967,
+    0x27b7_0a85, 0x2e1b_2138, 0x4d2c_6dfc, 0x5338_0d13, 0x650a_7354, 0x766a_0abb, 0x81c2_c92e, 0x9272_2c85,
+    0xa2bf_e8a1, 0xa81a_664b, 0xc24b_8b70, 0xc76c_51a3, 0xd192_e819, 0xd699_0624, 0xf40e_3585, 0x106a_a070,
+    0x19a4_c116, 0x1e37_6c08, 0x2748_774c, 0x34b0_bcb5, 0x391c_0cb3, 0x4ed8_aa4a, 0x5b9c_ca4f, 0x682e_6ff3,
+    0x748f_82ee, 0x78a5_636f, 0x84c8_7814, 0x8cc7_0208, 0x90be_fffa, 0xa450_6ceb, 0xbef9_a3f7, 0xc671_78f2,
 ];
 
 /// SHA-256 initial hash values
 pub const SHA256_H: [u32; 8] = [
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    0x6a09_e667, 0xbb67_ae85, 0x3c6e_f372, 0xa54f_f53a, 0x510e_527f, 0x9b05_688c, 0x1f83_d9ab, 0x5be0_cd19,
 ];
 
 /// SHA-512 round constants
 pub const SHA512_K: [u64; 80] = [
-    0x428a2f98d728ae22,
-    0x7137449123ef65cd,
-    0xb5c0fbcfec4d3b2f,
-    0xe9b5dba58189dbbc,
-    0x3956c25bf348b538,
-    0x59f111f1b605d019,
-    0x923f82a4af194f9b,
-    0xab1c5ed5da6d8118,
-    0xd807aa98a3030242,
-    0x12835b0145706fbe,
-    0x243185be4ee4b28c,
-    0x550c7dc3d5ffb4e2,
-    0x72be5d74f27b896f,
-    0x80deb1fe3b1696b1,
-    0x9bdc06a725c71235,
-    0xc19bf174cf692694,
-    0xe49b69c19ef14ad2,
-    0xefbe4786384f25e3,
-    0x0fc19dc68b8cd5b5,
-    0x240ca1cc77ac9c65,
-    0x2de92c6f592b0275,
-    0x4a7484aa6ea6e483,
-    0x5cb0a9dcbd41fbd4,
-    0x76f988da831153b5,
-    0x983e5152ee66dfab,
-    0xa831c66d2db43210,
-    0xb00327c898fb213f,
-    0xbf597fc7beef0ee4,
-    0xc6e00bf33da88fc2,
-    0xd5a79147930aa725,
-    0x06ca6351e003826f,
-    0x142929670a0e6e70,
-    0x27b70a8546d22ffc,
-    0x2e1b21385c26c926,
-    0x4d2c6dfc5ac42aed,
-    0x53380d139d95b3df,
-    0x650a73548baf63de,
-    0x766a0abb3c77b2a8,
-    0x81c2c92e47edaee6,
-    0x92722c851482353b,
-    0xa2bfe8a14cf10364,
-    0xa81a664bbc423001,
-    0xc24b8b70d0f89791,
-    0xc76c51a30654be30,
-    0xd192e819d6ef5218,
-    0xd69906245565a910,
-    0xf40e35855771202a,
-    0x106aa07032bbd1b8,
-    0x19a4c116b8d2d0c8,
-    0x1e376c085141ab53,
-    0x2748774cdf8eeb99,
-    0x34b0bcb5e19b48a8,
-    0x391c0cb3c5c95a63,
-    0x4ed8aa4ae3418acb,
-    0x5b9cca4f7763e373,
-    0x682e6ff3d6b2b8a3,
-    0x748f82ee5defb2fc,
-    0x78a5636f43172f60,
-    0x84c87814a1f0ab72,
-    0x8cc702081a6439ec,
-    0x90befffa23631e28,
-    0xa4506cebde82bde9,
-    0xbef9a3f7b2c67915,
-    0xc67178f2e372532b,
-    0xca273eceea26619c,
-    0xd186b8c721c0c207,
-    0xeada7dd6cde0eb1e,
-    0xf57d4f7fee6ed178,
-    0x06f067aa72176fba,
-    0x0a637dc5a2c898a6,
-    0x113f9804bef90dae,
-    0x1b710b35131c471b,
-    0x28db77f523047d84,
-    0x32caab7b40c72493,
-    0x3c9ebe0a15c9bebc,
-    0x431d67c49c100d4c,
-    0x4cc5d4becb3e42b6,
-    0x597f299cfc657e2a,
-    0x5fcb6fab3ad6faec,
-    0x6c44198c4a475817,
+    0x428a_2f98_d728_ae22,
+    0x7137_4491_23ef_65cd,
+    0xb5c0_fbcf_ec4d_3b2f,
+    0xe9b5_dba5_8189_dbbc,
+    0x3956_c25b_f348_b538,
+    0x59f1_11f1_b605_d019,
+    0x923f_82a4_af19_4f9b,
+    0xab1c_5ed5_da6d_8118,
+    0xd807_aa98_a303_0242,
+    0x1283_5b01_4570_6fbe,
+    0x2431_85be_4ee4_b28c,
+    0x550c_7dc3_d5ff_b4e2,
+    0x72be_5d74_f27b_896f,
+    0x80de_b1fe_3b16_96b1,
+    0x9bdc_06a7_25c7_1235,
+    0xc19b_f174_cf69_2694,
+    0xe49b_69c1_9ef1_4ad2,
+    0xefbe_4786_384f_25e3,
+    0x0fc1_9dc6_8b8c_d5b5,
+    0x240c_a1cc_77ac_9c65,
+    0x2de9_2c6f_592b_0275,
+    0x4a74_84aa_6ea6_e483,
+    0x5cb0_a9dc_bd41_fbd4,
+    0x76f9_88da_8311_53b5,
+    0x983e_5152_ee66_dfab,
+    0xa831_c66d_2db4_3210,
+    0xb003_27c8_98fb_213f,
+    0xbf59_7fc7_beef_0ee4,
+    0xc6e0_0bf3_3da8_8fc2,
+    0xd5a7_9147_930a_a725,
+    0x06ca_6351_e003_826f,
+    0x1429_2967_0a0e_6e70,
+    0x27b7_0a85_46d2_2ffc,
+    0x2e1b_2138_5c26_c926,
+    0x4d2c_6dfc_5ac4_2aed,
+    0x5338_0d13_9d95_b3df,
+    0x650a_7354_8baf_63de,
+    0x766a_0abb_3c77_b2a8,
+    0x81c2_c92e_47ed_aee6,
+    0x9272_2c85_1482_353b,
+    0xa2bf_e8a1_4cf1_0364,
+    0xa81a_664b_bc42_3001,
+    0xc24b_8b70_d0f8_9791,
+    0xc76c_51a3_0654_be30,
+    0xd192_e819_d6ef_5218,
+    0xd699_0624_5565_a910,
+    0xf40e_3585_5771_202a,
+    0x106a_a070_32bb_d1b8,
+    0x19a4_c116_b8d2_d0c8,
+    0x1e37_6c08_5141_ab53,
+    0x2748_774c_df8e_eb99,
+    0x34b0_bcb5_e19b_48a8,
+    0x391c_0cb3_c5c9_5a63,
+    0x4ed8_aa4a_e341_8acb,
+    0x5b9c_ca4f_7763_e373,
+    0x682e_6ff3_d6b2_b8a3,
+    0x748f_82ee_5def_b2fc,
+    0x78a5_636f_4317_2f60,
+    0x84c8_7814_a1f0_ab72,
+    0x8cc7_0208_1a64_39ec,
+    0x90be_fffa_2363_1e28,
+    0xa450_6ceb_de82_bde9,
+    0xbef9_a3f7_b2c6_7915,
+    0xc671_78f2_e372_532b,
+    0xca27_3ece_ea26_619c,
+    0xd186_b8c7_21c0_c207,
+    0xeada_7dd6_cde0_eb1e,
+    0xf57d_4f7f_ee6e_d178,
+    0x06f0_67aa_7217_6fba,
+    0x0a63_7dc5_a2c8_98a6,
+    0x113f_9804_bef9_0dae,
+    0x1b71_0b35_131c_471b,
+    0x28db_77f5_2304_7d84,
+    0x32ca_ab7b_40c7_2493,
+    0x3c9e_be0a_15c9_bebc,
+    0x431d_67c4_9c10_0d4c,
+    0x4cc5_d4be_cb3e_42b6,
+    0x597f_299c_fc65_7e2a,
+    0x5fcb_6fab_3ad6_faec,
+    0x6c44_198c_4a47_5817,
 ];
 
 // =============================================================================
@@ -322,23 +301,17 @@ impl SignatureAlgorithm {
     /// Get expected signature size in bytes
     pub const fn signature_size(&self) -> usize {
         match self {
-            SignatureAlgorithm::RsaPkcs1v15 => 256, // For 2048-bit key
-            SignatureAlgorithm::RsaPss => 256,
-            SignatureAlgorithm::EcdsaP256 => 64,
-            SignatureAlgorithm::EcdsaP384 => 96,
-            SignatureAlgorithm::EcdsaP521 => 132,
-            SignatureAlgorithm::Ed25519 => 64,
-            SignatureAlgorithm::Ed448 => 114,
-            SignatureAlgorithm::Sm2 => 64,
+            Self::RsaPkcs1v15 | Self::RsaPss => 256, // For 2048-bit key
+            Self::EcdsaP256 | Self::Ed25519 | Self::Sm2 => 64,
+            Self::EcdsaP384 => 96,
+            Self::EcdsaP521 => 132,
+            Self::Ed448 => 114,
         }
     }
 
     /// Check if algorithm is elliptic curve based
     pub const fn is_ecc(&self) -> bool {
-        match self {
-            SignatureAlgorithm::RsaPkcs1v15 | SignatureAlgorithm::RsaPss => false,
-            _ => true,
-        }
+        !matches!(self, Self::RsaPkcs1v15 | Self::RsaPss)
     }
 }
 
@@ -359,10 +332,10 @@ impl RsaKeySize {
     /// Get size in bits
     pub const fn bits(&self) -> usize {
         match self {
-            RsaKeySize::Rsa1024 => 1024,
-            RsaKeySize::Rsa2048 => 2048,
-            RsaKeySize::Rsa3072 => 3072,
-            RsaKeySize::Rsa4096 => 4096,
+            Self::Rsa1024 => 1024,
+            Self::Rsa2048 => 2048,
+            Self::Rsa3072 => 3072,
+            Self::Rsa4096 => 4096,
         }
     }
 
@@ -389,9 +362,9 @@ pub enum EllipticCurve {
     Sm2,
     /// secp256k1 (Bitcoin)
     Secp256k1,
-    /// BrainpoolP256r1
+    /// `BrainpoolP256r1` curve
     BrainpoolP256r1,
-    /// BrainpoolP384r1
+    /// `BrainpoolP384r1` curve
     BrainpoolP384r1,
 }
 
@@ -399,24 +372,20 @@ impl EllipticCurve {
     /// Get curve size in bits
     pub const fn bits(&self) -> usize {
         match self {
-            EllipticCurve::P256 => 256,
-            EllipticCurve::P384 => 384,
-            EllipticCurve::P521 => 521,
-            EllipticCurve::Curve25519 => 255,
-            EllipticCurve::Curve448 => 448,
-            EllipticCurve::Sm2 => 256,
-            EllipticCurve::Secp256k1 => 256,
-            EllipticCurve::BrainpoolP256r1 => 256,
-            EllipticCurve::BrainpoolP384r1 => 384,
+            Self::P256 | Self::Sm2 | Self::Secp256k1 | Self::BrainpoolP256r1 => 256,
+            Self::P384 | Self::BrainpoolP384r1 => 384,
+            Self::P521 => 521,
+            Self::Curve25519 => 255,
+            Self::Curve448 => 448,
         }
     }
 
     /// Get OID
     pub const fn oid(&self) -> &'static [u8] {
         match self {
-            EllipticCurve::P256 => &[0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07],
-            EllipticCurve::P384 => &[0x2B, 0x81, 0x04, 0x00, 0x22],
-            EllipticCurve::P521 => &[0x2B, 0x81, 0x04, 0x00, 0x23],
+            Self::P256 => &[0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07],
+            Self::P384 => &[0x2B, 0x81, 0x04, 0x00, 0x22],
+            Self::P521 => &[0x2B, 0x81, 0x04, 0x00, 0x23],
             _ => &[],
         }
     }
@@ -435,7 +404,7 @@ pub enum SymmetricAlgorithm {
     Aes192,
     /// AES-256
     Aes256,
-    /// ChaCha20
+    /// `ChaCha20` stream cipher
     ChaCha20,
     /// SM4
     Sm4,
@@ -447,24 +416,18 @@ impl SymmetricAlgorithm {
     /// Get key size in bytes
     pub const fn key_size(&self) -> usize {
         match self {
-            SymmetricAlgorithm::Aes128 => 16,
-            SymmetricAlgorithm::Aes192 => 24,
-            SymmetricAlgorithm::Aes256 => 32,
-            SymmetricAlgorithm::ChaCha20 => 32,
-            SymmetricAlgorithm::Sm4 => 16,
-            SymmetricAlgorithm::TripleDes => 24,
+            Self::Aes128 | Self::Sm4 => 16,
+            Self::Aes192 | Self::TripleDes => 24,
+            Self::Aes256 | Self::ChaCha20 => 32,
         }
     }
 
     /// Get block size in bytes
     pub const fn block_size(&self) -> usize {
         match self {
-            SymmetricAlgorithm::Aes128
-            | SymmetricAlgorithm::Aes192
-            | SymmetricAlgorithm::Aes256 => 16,
-            SymmetricAlgorithm::ChaCha20 => 64,
-            SymmetricAlgorithm::Sm4 => 16,
-            SymmetricAlgorithm::TripleDes => 8,
+            Self::Aes128 | Self::Aes192 | Self::Aes256 | Self::Sm4 => 16,
+            Self::ChaCha20 => 64,
+            Self::TripleDes => 8,
         }
     }
 }
@@ -491,18 +454,12 @@ pub enum CipherMode {
 impl CipherMode {
     /// Check if mode provides authentication
     pub const fn is_authenticated(&self) -> bool {
-        match self {
-            CipherMode::Gcm | CipherMode::Ccm | CipherMode::Ocb => true,
-            _ => false,
-        }
+        matches!(self, Self::Gcm | Self::Ccm | Self::Ocb)
     }
 
     /// Check if mode requires IV/nonce
     pub const fn requires_iv(&self) -> bool {
-        match self {
-            CipherMode::Ecb => false,
-            _ => true,
-        }
+        !matches!(self, Self::Ecb)
     }
 }
 
@@ -532,13 +489,21 @@ pub enum KeyType {
 pub struct KeyUsage(u32);
 
 impl KeyUsage {
+    /// No key usage
     pub const NONE: Self = Self(0);
+    /// Key can be used for signing
     pub const SIGN: Self = Self(1 << 0);
+    /// Key can be used for verification
     pub const VERIFY: Self = Self(1 << 1);
+    /// Key can be used for encryption
     pub const ENCRYPT: Self = Self(1 << 2);
+    /// Key can be used for decryption
     pub const DECRYPT: Self = Self(1 << 3);
+    /// Key can be used for key wrapping
     pub const KEY_WRAP: Self = Self(1 << 4);
+    /// Key can be used for key unwrapping
     pub const KEY_UNWRAP: Self = Self(1 << 5);
+    /// Key can be used for key derivation
     pub const DERIVE: Self = Self(1 << 6);
 
     /// Check if usage is allowed
@@ -547,6 +512,7 @@ impl KeyUsage {
     }
 
     /// Combine usages
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
@@ -581,16 +547,26 @@ pub struct BasicConstraints {
 pub struct X509KeyUsage(u16);
 
 impl X509KeyUsage {
+    /// Digital signature usage
     pub const DIGITAL_SIGNATURE: Self = Self(1 << 0);
+    /// Non-repudiation usage
     pub const NON_REPUDIATION: Self = Self(1 << 1);
+    /// Key encipherment usage
     pub const KEY_ENCIPHERMENT: Self = Self(1 << 2);
+    /// Data encipherment usage
     pub const DATA_ENCIPHERMENT: Self = Self(1 << 3);
+    /// Key agreement usage
     pub const KEY_AGREEMENT: Self = Self(1 << 4);
+    /// Key certificate signing usage
     pub const KEY_CERT_SIGN: Self = Self(1 << 5);
+    /// CRL signing usage
     pub const CRL_SIGN: Self = Self(1 << 6);
+    /// Encipher only usage
     pub const ENCIPHER_ONLY: Self = Self(1 << 7);
+    /// Decipher only usage
     pub const DECIPHER_ONLY: Self = Self(1 << 8);
 
+    /// Check if usage contains another
     pub const fn contains(&self, other: Self) -> bool {
         (self.0 & other.0) == other.0
     }
@@ -714,12 +690,12 @@ impl SecureBootDb {
     /// Get variable name
     pub const fn variable_name(&self) -> &'static str {
         match self {
-            SecureBootDb::Pk => "PK",
-            SecureBootDb::Kek => "KEK",
-            SecureBootDb::Db => "db",
-            SecureBootDb::Dbx => "dbx",
-            SecureBootDb::Dbr => "dbr",
-            SecureBootDb::Dbt => "dbt",
+            Self::Pk => "PK",
+            Self::Kek => "KEK",
+            Self::Db => "db",
+            Self::Dbx => "dbx",
+            Self::Dbr => "dbr",
+            Self::Dbt => "dbt",
         }
     }
 }
@@ -757,18 +733,13 @@ impl SignatureType {
     /// Get signature size in bytes
     pub const fn signature_size(&self) -> usize {
         match self {
-            SignatureType::Sha256 => 32,
-            SignatureType::Rsa2048 => 256,
-            SignatureType::Rsa2048Sha256 => 256,
-            SignatureType::Rsa2048Sha1 => 256,
-            SignatureType::X509 => 0, // Variable
-            SignatureType::Sha1 => 20,
-            SignatureType::Sha224 => 28,
-            SignatureType::Sha384 => 48,
-            SignatureType::Sha512 => 64,
-            SignatureType::X509Sha256 => 0,
-            SignatureType::X509Sha384 => 0,
-            SignatureType::X509Sha512 => 0,
+            Self::Sha256 => 32,
+            Self::Rsa2048 | Self::Rsa2048Sha256 | Self::Rsa2048Sha1 => 256,
+            Self::X509 | Self::X509Sha256 | Self::X509Sha384 | Self::X509Sha512 => 0, // Variable
+            Self::Sha1 => 20,
+            Self::Sha224 => 28,
+            Self::Sha384 => 48,
+            Self::Sha512 => 64,
         }
     }
 }
@@ -795,11 +766,11 @@ pub enum RandomSource {
 pub enum RngAlgorithm {
     /// Raw entropy
     Raw,
-    /// SP800-90 Hash_DRBG using SHA-256
+    /// SP800-90 `Hash_DRBG` using SHA-256
     Sp80090HashDrbgSha256,
-    /// SP800-90 HMAC_DRBG using SHA-256
+    /// SP800-90 `HMAC_DRBG` using SHA-256
     Sp80090HmacDrbgSha256,
-    /// SP800-90 CTR_DRBG using AES-256
+    /// SP800-90 `CTR_DRBG` using AES-256
     Sp80090CtrDrbgAes256,
     /// X9.31 using 3DES
     X931Aes256,
@@ -832,13 +803,11 @@ impl MacAlgorithm {
     /// Get MAC output size in bytes
     pub const fn output_size(&self) -> usize {
         match self {
-            MacAlgorithm::HmacSha1 => 20,
-            MacAlgorithm::HmacSha256 => 32,
-            MacAlgorithm::HmacSha384 => 48,
-            MacAlgorithm::HmacSha512 => 64,
-            MacAlgorithm::CmacAes128 => 16,
-            MacAlgorithm::CmacAes256 => 16,
-            MacAlgorithm::Poly1305 => 16,
+            Self::HmacSha1 => 20,
+            Self::HmacSha256 => 32,
+            Self::HmacSha384 => 48,
+            Self::HmacSha512 => 64,
+            Self::CmacAes128 | Self::CmacAes256 | Self::Poly1305 => 16,
         }
     }
 }
@@ -884,7 +853,7 @@ impl Default for Pbkdf2Params {
         Self {
             salt: [0u8; 32],
             salt_len: 16,
-            iterations: 100000,
+            iterations: 100_000,
             key_length: 32,
         }
     }
