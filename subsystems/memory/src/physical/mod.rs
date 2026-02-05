@@ -163,10 +163,10 @@ impl PhysicalMemoryManager {
 
     /// Initialize with all regions
     pub fn init(&self) -> MemResult<()> {
-        let regions = self.regions.read().clone();
+        let _regions = self.regions.read().clone();
         let mut allocator = self.allocator.write();
 
-        if let Some(ref mut alloc) = *allocator {
+        if let Some(ref mut _alloc) = *allocator {
             // Can't mutate through Arc, would need different design
             // For now, just verify it's set
             Ok(())
