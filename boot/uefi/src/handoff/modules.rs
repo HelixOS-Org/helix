@@ -105,7 +105,7 @@ impl ModuleType {
             // FDT magic (device tree)
             [0xD0, 0x0D, 0xFE, 0xED] => ModuleType::DeviceTree,
             // ACPI DSDT/SSDT
-            [b'D', b'S', b'D', b'T'] | [b'S', b'S', b'D', b'T'] => ModuleType::AcpiTable,
+            [b'D' | b'S', b'S', b'D', b'T'] => ModuleType::AcpiTable,
             _ => ModuleType::Unknown,
         }
     }
@@ -509,7 +509,7 @@ pub struct ModuleLoaderConfig {
 impl Default for ModuleLoaderConfig {
     fn default() -> Self {
         Self {
-            base_address: PhysicalAddress(0x10000000), // 256 MB
+            base_address: PhysicalAddress(0x1000_0000), // 256 MB
             alignment: 4096,
             verify_hashes: true,
             decompress: true,
@@ -728,17 +728,17 @@ pub struct CpioEntry {
 impl CpioEntry {
     /// Check if directory
     pub fn is_dir(&self) -> bool {
-        (self.mode & 0o170000) == 0o040000
+        (self.mode & 0o170_000) == 0o040_000
     }
 
     /// Check if regular file
     pub fn is_file(&self) -> bool {
-        (self.mode & 0o170000) == 0o100000
+        (self.mode & 0o170_000) == 0o100_000
     }
 
     /// Check if symlink
     pub fn is_symlink(&self) -> bool {
-        (self.mode & 0o170000) == 0o120000
+        (self.mode & 0o170_000) == 0o120_000
     }
 
     /// Get permissions
