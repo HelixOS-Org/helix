@@ -356,7 +356,10 @@ impl GraphicsOutput {
         let pixel = Self::encode_pixel(color, &mode.info);
 
         unsafe {
-            self.framebuffer.add(offset).cast::<u32>().write_volatile(pixel);
+            self.framebuffer
+                .add(offset)
+                .cast::<u32>()
+                .write_volatile(pixel);
         }
 
         Ok(())
@@ -538,7 +541,10 @@ impl GraphicsOutput {
                 let offset = row_offset + px as usize * bpp;
                 if offset + 4 <= self.framebuffer_size {
                     unsafe {
-                        self.framebuffer.add(offset).cast::<u32>().write_volatile(pixel);
+                        self.framebuffer
+                            .add(offset)
+                            .cast::<u32>()
+                            .write_volatile(pixel);
                     }
                 }
             }
