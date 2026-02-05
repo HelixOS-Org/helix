@@ -4,7 +4,7 @@
 
 use super::Protocol;
 use crate::error::{Error, Result};
-use crate::raw::types::*;
+use crate::raw::types::{Guid, Handle};
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -57,13 +57,14 @@ impl Rng {
     pub fn get_bytes_with(&self, _algorithm: RngAlgorithm, buffer: &mut [u8]) -> Result<()> {
         // TODO: Implement actual RNG call
         // For now, use a simple LFSR-based fallback
-        let mut state = 0xDEADBEEFu64;
+        let mut state = 0xDEAD_BEEFu64;
 
         for byte in buffer.iter_mut() {
             state = state
-                .wrapping_mul(6364136223846793005)
-                .wrapping_add(1442695040888963407);
-            *byte = (state >> 33) as u8;
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            // Intentional truncation: extract high byte from state
+            *byte = (state >> 33).to_le_bytes()[0];
         }
 
         Ok(())
@@ -138,6 +139,24 @@ impl Rng {
         Ok(min + self.range(max - min)?)
     }
 
+    /// Get random value in range [0, max) as usize
+    pub fn range_usize(&self, max: usize) -> Result<usize> {
+        if max == 0 {
+            return Err(Error::InvalidParameter);
+        }
+
+        // Use rejection sampling for unbiased results
+        let bits_needed = usize::BITS - max.leading_zeros();
+        let mask = (1usize << bits_needed) - 1;
+
+        loop {
+            let value = self.usize()? & mask;
+            if value < max {
+                return Ok(value);
+            }
+        }
+    }
+
     /// Get random boolean
     pub fn bool(&self) -> Result<bool> {
         Ok((self.u8()? & 1) != 0)
@@ -152,8 +171,12 @@ impl Rng {
             return Ok(true);
         }
 
-        let threshold = (p * u64::MAX as f64) as u64;
-        Ok(self.u64()? < threshold)
+        // Use integer comparison: scale p to [0, 256) then compare with random byte
+        // p is clamped in (0, 1), so p*256 is in (0, 256)
+        // Using u16 as intermediate avoids truncation warnings
+        let scaled_u16 = ((p * 256.0).clamp(0.0, 255.0) as u16).min(255);
+        let scaled = (scaled_u16 & 0xFF) as u8;
+        Ok(self.u8()? < scaled)
     }
 
     /// Fill buffer with random bytes
@@ -176,7 +199,7 @@ impl Rng {
         }
 
         for i in (1..len).rev() {
-            let j = self.range((i + 1) as u64)? as usize;
+            let j = self.range_usize(i + 1)?;
             slice.swap(i, j);
         }
 
@@ -189,7 +212,7 @@ impl Rng {
             return Ok(None);
         }
 
-        let index = self.range(slice.len() as u64)? as usize;
+        let index = self.range_usize(slice.len())?;
         Ok(Some(&slice[index]))
     }
 
@@ -221,7 +244,7 @@ impl Rng {
 }
 
 impl Protocol for Rng {
-    const GUID: Guid = Guid::new(0x3152BCA5, 0xEADE, 0x433D, [
+    const GUID: Guid = Guid::new(0x3152_BCA5, 0xEADE, 0x433D, [
         0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44,
     ]);
 
@@ -319,38 +342,38 @@ impl RngAlgorithm {
 
 /// RNG algorithm GUIDs
 pub mod rng_algorithms {
-    use super::*;
+    use super::Guid;
 
     /// Raw entropy
-    pub const EFI_RNG_ALGORITHM_RAW: Guid = Guid::new(0xE43176D7, 0xB6E8, 0x4827, [
+    pub const EFI_RNG_ALGORITHM_RAW: Guid = Guid::new(0xE431_76D7, 0xB6E8, 0x4827, [
         0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61,
     ]);
 
     /// SP800-90 Hash DRBG (SHA-256)
     pub const EFI_RNG_ALGORITHM_SP800_90_HASH_256_GUID: Guid =
-        Guid::new(0xA7AF67CB, 0x603B, 0x4D42, [
+        Guid::new(0xA7AF_67CB, 0x603B, 0x4D42, [
             0xBA, 0x21, 0x70, 0xBF, 0xB6, 0x29, 0x3F, 0x96,
         ]);
 
     /// SP800-90 HMAC DRBG (SHA-256)
     pub const EFI_RNG_ALGORITHM_SP800_90_HMAC_256_GUID: Guid =
-        Guid::new(0xC5149B43, 0xAE85, 0x4F53, [
+        Guid::new(0xC514_9B43, 0xAE85, 0x4F53, [
             0x99, 0x82, 0xB9, 0x43, 0x35, 0xD3, 0xA9, 0xE7,
         ]);
 
     /// SP800-90 CTR DRBG (AES-256)
     pub const EFI_RNG_ALGORITHM_SP800_90_CTR_256_GUID: Guid =
-        Guid::new(0x44F0DE6E, 0x4D8C, 0x4045, [
+        Guid::new(0x44F0_DE6E, 0x4D8C, 0x4045, [
             0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E,
         ]);
 
     /// X9.31-3DES (often used for RDRAND)
-    pub const EFI_RNG_ALGORITHM_X9_31_AES_GUID: Guid = Guid::new(0x63C4785A, 0xCA34, 0x4012, [
+    pub const EFI_RNG_ALGORITHM_X9_31_AES_GUID: Guid = Guid::new(0x63C4_785A, 0xCA34, 0x4012, [
         0xA3, 0xC8, 0x0B, 0x6A, 0x32, 0x4F, 0x55, 0x46,
     ]);
 
     /// ARM RNDR
-    pub const EFI_RNG_ALGORITHM_ARM_RNDR_GUID: Guid = Guid::new(0x43D2FDE3, 0x9D4E, 0x4D79, [
+    pub const EFI_RNG_ALGORITHM_ARM_RNDR_GUID: Guid = Guid::new(0x43D2_FDE3, 0x9D4E, 0x4D79, [
         0xB5, 0xEC, 0x48, 0x7F, 0x53, 0x8B, 0x2F, 0x5E,
     ]);
 }
@@ -427,7 +450,7 @@ impl<'a> SeedGenerator<'a> {
         Self { rng }
     }
 
-    /// Generate seed for ChaCha20
+    /// Generate seed for `ChaCha20`
     pub fn chacha20_seed(&self) -> Result<[u8; 32]> {
         let mut seed = [0u8; 32];
         self.rng.get_bytes(&mut seed)?;
@@ -457,7 +480,7 @@ impl<'a> SeedGenerator<'a> {
     /// Generate seed array for MT19937
     pub fn mt19937_seed_array(&self) -> Result<[u32; 624]> {
         let mut seeds = [0u32; 624];
-        for seed in seeds.iter_mut() {
+        for seed in &mut seeds {
             *seed = self.rng.u32()?;
         }
         Ok(seeds)
@@ -477,7 +500,7 @@ impl SimplePrng {
     /// Create new PRNG with seed
     pub const fn new(seed: u64) -> Self {
         Self {
-            state: if seed == 0 { 0xDEADBEEF12345678 } else { seed },
+            state: if seed == 0 { 0xDEAD_BEEF_1234_5678 } else { seed },
         }
     }
 
@@ -564,10 +587,11 @@ impl Pcg32 {
     }
 
     /// Get next u32
+    #[allow(clippy::cast_possible_truncation)]
     pub fn next_u32(&mut self) -> u32 {
         let old_state = self.state;
         self.state = old_state
-            .wrapping_mul(6364136223846793005)
+            .wrapping_mul(6_364_136_223_846_793_005)
             .wrapping_add(self.increment);
 
         let xor_shifted = (((old_state >> 18) ^ old_state) >> 27) as u32;
@@ -578,7 +602,7 @@ impl Pcg32 {
 
     /// Get next u64
     pub fn next_u64(&mut self) -> u64 {
-        ((self.next_u32() as u64) << 32) | (self.next_u32() as u64)
+        (u64::from(self.next_u32()) << 32) | u64::from(self.next_u32())
     }
 
     /// Get next value in range [0, max)
