@@ -115,7 +115,7 @@ impl AddressSpace {
 
     /// Unmap memory
     pub fn munmap(&self, addr: VirtAddr, size: u64) -> MemResult<()> {
-        let region = self.remove_region(addr)?;
+        let _region = self.remove_region(addr)?;
 
         // Unmap pages
         let page_size = PageSize::Size4KiB.size() as u64;
