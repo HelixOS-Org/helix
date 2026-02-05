@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-use super::cell::{CellType, Tissue};
+use super::cell::Tissue;
 use super::types::MorphogenType;
 
 /// Organ types
