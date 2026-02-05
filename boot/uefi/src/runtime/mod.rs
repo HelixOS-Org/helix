@@ -51,7 +51,7 @@ pub struct TableHeader {
 
 impl TableHeader {
     /// Runtime services signature
-    pub const RUNTIME_SERVICES_SIGNATURE: u64 = 0x56524553544E5552; // "RUNTSERV"
+    pub const RUNTIME_SERVICES_SIGNATURE: u64 = 0x5652_4553_544E_5552; // "RUNTSERV"
 }
 
 // =============================================================================
@@ -161,22 +161,25 @@ impl EfiTime {
     /// Day of week (0 = Sunday, 6 = Saturday)
     pub fn day_of_week(&self) -> u8 {
         // Zeller's algorithm
-        let mut y = self.year as i32;
-        let mut m = self.month as i32;
+        let mut year = self.year as i32;
+        let mut month = self.month as i32;
 
-        if m < 3 {
-            m += 12;
-            y -= 1;
+        if month < 3 {
+            month += 12;
+            year -= 1;
         }
 
-        let q = self.day as i32;
-        let k = y % 100;
-        let j = y / 100;
+        let day = self.day as i32;
+        let year_of_century = year % 100;
+        let century = year / 100;
 
-        let h = (q + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
-        let h = if h < 0 { h + 7 } else { h };
+        let zeller =
+            (day + (13 * (month + 1)) / 5 + year_of_century + year_of_century / 4 + century / 4
+                - 2 * century)
+                % 7;
+        let zeller = if zeller < 0 { zeller + 7 } else { zeller };
 
-        ((h + 6) % 7) as u8 // Adjust to Sunday = 0
+        ((zeller + 6) % 7) as u8 // Adjust to Sunday = 0
     }
 
     /// Convert to Unix timestamp (seconds since 1970-01-01 00:00:00 UTC)
@@ -311,21 +314,21 @@ pub struct TimeCapabilities {
 /// Variable attributes
 pub mod var_attrs {
     /// Non-volatile
-    pub const NON_VOLATILE: u32 = 0x00000001;
+    pub const NON_VOLATILE: u32 = 0x0000_0001;
     /// Bootservice access
-    pub const BOOTSERVICE_ACCESS: u32 = 0x00000002;
+    pub const BOOTSERVICE_ACCESS: u32 = 0x0000_0002;
     /// Runtime access
-    pub const RUNTIME_ACCESS: u32 = 0x00000004;
+    pub const RUNTIME_ACCESS: u32 = 0x0000_0004;
     /// Hardware error record
-    pub const HARDWARE_ERROR_RECORD: u32 = 0x00000008;
+    pub const HARDWARE_ERROR_RECORD: u32 = 0x0000_0008;
     /// Authenticated write access (deprecated)
-    pub const AUTHENTICATED_WRITE_ACCESS: u32 = 0x00000010;
+    pub const AUTHENTICATED_WRITE_ACCESS: u32 = 0x0000_0010;
     /// Time based authenticated write access
-    pub const TIME_BASED_AUTHENTICATED_WRITE_ACCESS: u32 = 0x00000020;
+    pub const TIME_BASED_AUTHENTICATED_WRITE_ACCESS: u32 = 0x0000_0020;
     /// Append write
-    pub const APPEND_WRITE: u32 = 0x00000040;
+    pub const APPEND_WRITE: u32 = 0x0000_0040;
     /// Enhanced authenticated access
-    pub const ENHANCED_AUTHENTICATED_ACCESS: u32 = 0x00000080;
+    pub const ENHANCED_AUTHENTICATED_ACCESS: u32 = 0x0000_0080;
 }
 
 /// Common variable names
@@ -476,11 +479,11 @@ pub struct CapsuleHeader {
 /// Capsule flags
 pub mod capsule_flags {
     /// Persist across reset
-    pub const PERSIST_ACROSS_RESET: u32 = 0x00010000;
+    pub const PERSIST_ACROSS_RESET: u32 = 0x0001_0000;
     /// Populate system table
-    pub const POPULATE_SYSTEM_TABLE: u32 = 0x00020000;
+    pub const POPULATE_SYSTEM_TABLE: u32 = 0x0002_0000;
     /// Initiate reset
-    pub const INITIATE_RESET: u32 = 0x00040000;
+    pub const INITIATE_RESET: u32 = 0x0004_0000;
 }
 
 // =============================================================================
