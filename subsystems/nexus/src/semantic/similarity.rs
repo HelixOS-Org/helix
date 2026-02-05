@@ -4,6 +4,9 @@
 //! concepts, and entities.
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::comparison_chain)]
+#![allow(clippy::needless_range_loop)]
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
