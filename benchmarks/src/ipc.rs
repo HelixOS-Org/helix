@@ -6,8 +6,6 @@
 //! - Syscall overhead
 //! - Shared memory operations
 
-use alloc::string::String;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use spin::RwLock;
