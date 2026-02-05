@@ -481,7 +481,7 @@ impl<T> PerCpu<T> {
     /// # Safety
     /// Caller must ensure exclusive access (e.g., via preemption disable)
     #[inline]
-    pub unsafe fn get_mut(&self) -> &mut T {
+    pub unsafe fn get_mut(&mut self) -> &mut T {
         let cpu_id = current_cpu_id() as usize;
         debug_assert!(cpu_id < MAX_CPUS);
         unsafe { &mut *self.data[cpu_id].get() }
@@ -500,7 +500,7 @@ impl<T> PerCpu<T> {
     ///
     /// # Safety
     /// Caller must ensure exclusive access
-    pub unsafe fn get_cpu_mut(&self, cpu_id: usize) -> Option<&mut T> {
+    pub unsafe fn get_cpu_mut(&mut self, cpu_id: usize) -> Option<&mut T> {
         if cpu_id < MAX_CPUS {
             unsafe { Some(&mut *self.data[cpu_id].get()) }
         } else {
