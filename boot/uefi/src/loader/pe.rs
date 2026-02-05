@@ -722,7 +722,8 @@ impl PeLoader {
             return Ok(());
         };
 
-        let Some(export_dir) = optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_EXPORT) else {
+        let Some(export_dir) = optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_EXPORT)
+        else {
             return Ok(());
         };
 
@@ -742,7 +743,8 @@ impl PeLoader {
 
         // Parse export names
         let names_offset = self.rva_to_offset(u64::from(export_table.address_of_names))?;
-        let ordinals_offset = self.rva_to_offset(u64::from(export_table.address_of_name_ordinals))?;
+        let ordinals_offset =
+            self.rva_to_offset(u64::from(export_table.address_of_name_ordinals))?;
         let functions_offset = self.rva_to_offset(u64::from(export_table.address_of_functions))?;
 
         for i in 0..export_table.number_of_names as usize {
@@ -795,17 +797,20 @@ impl PeLoader {
     fn parse_imports(&mut self, data: &[u8]) -> Result<()> {
         self.imports.clear();
 
-        let optional = match &self.optional_header {
-            Some(h) => h,
-            None => return Ok(()),
+        let Some(optional) = &self.optional_header else {
+            return Ok(());
         };
 
-        let import_dir = match optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_IMPORT) {
-            Some(d) if d.virtual_address != 0 && d.size != 0 => d,
-            _ => return Ok(()),
+        let Some(import_dir) = optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_IMPORT)
+        else {
+            return Ok(());
         };
 
-        let mut import_offset = self.rva_to_offset(import_dir.virtual_address as u64)?;
+        if import_dir.virtual_address == 0 || import_dir.size == 0 {
+            return Ok(());
+        }
+
+        let mut import_offset = self.rva_to_offset(u64::from(import_dir.virtual_address))?;
         let import_size = core::mem::size_of::<ImportDirectory>();
 
         loop {
@@ -814,7 +819,7 @@ impl PeLoader {
             }
 
             let import: ImportDirectory =
-                unsafe { *(data[import_offset..].as_ptr() as *const ImportDirectory) };
+                unsafe { *(data[import_offset..].as_ptr().cast::<ImportDirectory>()) };
 
             // Check for terminator
             if import.import_lookup_table_rva == 0 && import.name_rva == 0 {
@@ -822,7 +827,7 @@ impl PeLoader {
             }
 
             // Get DLL name
-            let name_offset = self.rva_to_offset(import.name_rva as u64)?;
+            let name_offset = self.rva_to_offset(u64::from(import.name_rva))?;
             let dll_name = self.read_string(data, name_offset);
 
             self.imports.push(PeImport {
@@ -840,22 +845,25 @@ impl PeLoader {
     fn parse_relocations(&mut self, data: &[u8]) -> Result<()> {
         self.relocations.clear();
 
-        let optional = match &self.optional_header {
-            Some(h) => h,
-            None => return Ok(()),
+        let Some(optional) = &self.optional_header else {
+            return Ok(());
         };
 
-        let reloc_dir = match optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_BASERELOC) {
-            Some(d) if d.virtual_address != 0 && d.size != 0 => d,
-            _ => return Ok(()),
+        let Some(reloc_dir) = optional.data_directory(directory::IMAGE_DIRECTORY_ENTRY_BASERELOC)
+        else {
+            return Ok(());
         };
 
-        let mut offset = self.rva_to_offset(reloc_dir.virtual_address as u64)?;
+        if reloc_dir.virtual_address == 0 || reloc_dir.size == 0 {
+            return Ok(());
+        }
+
+        let mut offset = self.rva_to_offset(u64::from(reloc_dir.virtual_address))?;
         let end = offset + reloc_dir.size as usize;
 
         while offset < end && offset + 8 <= data.len() {
             let block: BaseRelocationBlock =
-                unsafe { *(data[offset..].as_ptr() as *const BaseRelocationBlock) };
+                unsafe { *(data[offset..].as_ptr().cast::<BaseRelocationBlock>()) };
 
             if block.size_of_block == 0 {
                 break;
@@ -876,7 +884,7 @@ impl PeLoader {
 
                 if reloc_type != reloc_type::IMAGE_REL_BASED_ABSOLUTE {
                     self.relocations.push(PeRelocation {
-                        address: page_rva + reloc_offset as u64,
+                        address: page_rva + u64::from(reloc_offset),
                         reloc_type,
                     });
                 }
@@ -891,12 +899,14 @@ impl PeLoader {
     /// Convert RVA to file offset
     fn rva_to_offset(&self, rva: u64) -> Result<usize> {
         for section in &self.section_headers {
-            let section_start = section.virtual_address as u64;
-            let section_end = section_start + section.virtual_size as u64;
+            let section_start = u64::from(section.virtual_address);
+            let section_end = section_start + u64::from(section.virtual_size);
 
             if rva >= section_start && rva < section_end {
                 let offset = rva - section_start;
-                return Ok((section.pointer_to_raw_data as u64 + offset) as usize);
+                return Ok(
+                    usize::try_from(u64::from(section.pointer_to_raw_data) + offset).unwrap_or(0),
+                );
             }
         }
 
@@ -905,10 +915,9 @@ impl PeLoader {
             < self
                 .optional_header
                 .as_ref()
-                .map(|h| h.size_of_headers as u64)
-                .unwrap_or(0x1000)
+                .map_or(0x1000, |h| u64::from(h.size_of_headers))
         {
-            return Ok(rva as usize);
+            return Ok(usize::try_from(rva).unwrap_or(0));
         }
 
         Err(Error::InvalidAddress)
@@ -940,11 +949,13 @@ impl PeLoader {
         for shdr in &self.section_headers {
             sections.push(ImageSection {
                 name: shdr.name_str(),
-                virtual_address: VirtualAddress(optional.image_base + shdr.virtual_address as u64),
-                size: shdr.virtual_size as u64,
-                file_offset: shdr.pointer_to_raw_data as u64,
-                file_size: shdr.size_of_raw_data as u64,
-                alignment: shdr.alignment() as u64,
+                virtual_address: VirtualAddress(
+                    optional.image_base + u64::from(shdr.virtual_address),
+                ),
+                size: u64::from(shdr.virtual_size),
+                file_offset: u64::from(shdr.pointer_to_raw_data),
+                file_size: u64::from(shdr.size_of_raw_data),
+                alignment: u64::from(shdr.alignment()),
                 flags: shdr.to_section_flags(),
             });
         }
@@ -959,9 +970,9 @@ impl PeLoader {
             .map(|s| {
                 (
                     Some(VirtualAddress(
-                        optional.image_base + s.virtual_address as u64,
+                        optional.image_base + u64::from(s.virtual_address),
                     )),
-                    s.virtual_size as u64,
+                    u64::from(s.virtual_size),
                 )
             })
             .unwrap_or((None, 0));
@@ -978,10 +989,10 @@ impl PeLoader {
         Ok(LoadedImage {
             format: ImageFormat::Pe32Plus,
             entry_point: VirtualAddress(
-                optional.image_base + optional.address_of_entry_point as u64,
+                optional.image_base + u64::from(optional.address_of_entry_point),
             ),
             load_address: VirtualAddress(optional.image_base),
-            image_size: optional.size_of_image as u64,
+            image_size: u64::from(optional.size_of_image),
             sections,
             stack_top: None,
             bss_start,
