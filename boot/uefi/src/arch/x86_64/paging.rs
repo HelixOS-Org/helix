@@ -1,23 +1,23 @@
-//! x86_64 Paging
+//! `x86_64` Paging
 //!
 //! 4-level and 5-level page table implementation.
 
 use core::ops::{Index, IndexMut};
 
 use crate::error::{Error, Result};
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 // =============================================================================
 // PAGE TABLE CONSTANTS
 // =============================================================================
 
-/// Page size (4 KiB)
+/// Page size (4 `KiB`)
 pub const PAGE_SIZE: u64 = 4096;
 
-/// Large page size (2 MiB)
+/// Large page size (2 `MiB`)
 pub const LARGE_PAGE_SIZE: u64 = 2 * 1024 * 1024;
 
-/// Huge page size (1 GiB)
+/// Huge page size (1 `GiB`)
 pub const HUGE_PAGE_SIZE: u64 = 1024 * 1024 * 1024;
 
 /// Entries per page table
@@ -212,9 +212,7 @@ impl Default for PageTableEntry {
 
 impl core::fmt::Debug for PageTableEntry {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        if !self.is_present() {
-            write!(f, "PageTableEntry(not present)")
-        } else {
+        if self.is_present() {
             write!(f, "PageTableEntry(addr={:#x}, ", self.address().0)?;
             if self.is_writable() {
                 write!(f, "W")?;
@@ -242,6 +240,8 @@ impl core::fmt::Debug for PageTableEntry {
                 write!(f, "-")?;
             }
             write!(f, ")")
+        } else {
+            write!(f, "PageTableEntry(not present)")
         }
     }
 }
@@ -272,7 +272,7 @@ impl PageTable {
     }
 
     /// Get entry at index
-    pub fn entry(&self, index: usize) -> &PageTableEntry {
+    pub const fn entry(&self, index: usize) -> &PageTableEntry {
         &self.entries[index]
     }
 
@@ -351,7 +351,7 @@ pub struct VirtualAddressComponents {
 
 impl VirtualAddressComponents {
     /// Decompose virtual address
-    pub fn from_address(addr: VirtualAddress) -> Self {
+    pub const fn from_address(addr: VirtualAddress) -> Self {
         let addr = addr.0;
         Self {
             pml4: ((addr >> 39) & 0x1FFu64) as usize,
@@ -363,7 +363,7 @@ impl VirtualAddressComponents {
     }
 
     /// Compose virtual address
-    pub fn to_address(&self) -> VirtualAddress {
+    pub const fn to_address(&self) -> VirtualAddress {
         let mut addr = 0u64;
         addr |= (self.pml4 as u64) << 39;
         addr |= (self.pdpt as u64) << 30;
@@ -399,7 +399,7 @@ pub struct VirtualAddressComponents5 {
 
 impl VirtualAddressComponents5 {
     /// Decompose virtual address
-    pub fn from_address(addr: VirtualAddress) -> Self {
+    pub const fn from_address(addr: VirtualAddress) -> Self {
         let addr = addr.0;
         Self {
             pml5: ((addr >> 48) & 0x1FFu64) as usize,
@@ -426,7 +426,7 @@ pub struct PageTableWalker {
 
 impl PageTableWalker {
     /// Create new walker with physical memory offset
-    pub fn new(phys_offset: u64) -> Self {
+    pub const fn new(phys_offset: u64) -> Self {
         Self {
             phys_offset,
             level5: false,
@@ -434,7 +434,7 @@ impl PageTableWalker {
     }
 
     /// Create walker for 5-level paging
-    pub fn new_level5(phys_offset: u64) -> Self {
+    pub const fn new_level5(phys_offset: u64) -> Self {
         Self {
             phys_offset,
             level5: true,
@@ -562,7 +562,7 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
     }
 
     /// Get root table address
-    pub fn root(&self) -> PhysicalAddress {
+    pub const fn root(&self) -> PhysicalAddress {
         self.root
     }
 
