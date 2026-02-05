@@ -1471,7 +1471,7 @@ impl TpmCommandBuffer {
     /// Build TPM2_SelfTest command
     pub fn build_self_test(&mut self, full_test: bool) {
         self.start_command(TpmCommand::SelfTest, false);
-        self.write_u8(if full_test { 1 } else { 0 });
+        self.write_u8(u8::from(full_test));
         self.finalize();
     }
 
@@ -1817,7 +1817,7 @@ impl fmt::Display for TpmError {
             TpmError::NotInitialized => write!(f, "TPM not initialized"),
             TpmError::CommunicationError => write!(f, "Communication error"),
             TpmError::InvalidResponse => write!(f, "Invalid response"),
-            TpmError::TpmError(code) => write!(f, "TPM error: {}", code),
+            TpmError::TpmError(code) => write!(f, "TPM error: {code}"),
             TpmError::Timeout => write!(f, "Timeout"),
             TpmError::AccessDenied => write!(f, "Access denied"),
             TpmError::InvalidParameter => write!(f, "Invalid parameter"),
