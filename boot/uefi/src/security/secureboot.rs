@@ -475,26 +475,27 @@ impl SignatureDatabase {
         let cert_hash = Sha256::digest(&cert.tbs_certificate);
 
         for list in &self.lists {
-            match list.entry_type {
-                SignatureEntryType::X509 => {
-                    for entry in &list.entries {
-                        if let Ok(db_cert) = entry.as_x509() {
-                            if db_cert.serial_number == cert.serial_number
-                                && db_cert.issuer == cert.issuer
-                            {
-                                return true;
-                            }
-                        }
+            if list.entry_type == SignatureEntryType::X509 {
+                for entry in &list.entries {
+                    let Ok(db_cert) = entry.as_x509() else {
+                        continue;
+                    };
+
+                    if db_cert.serial_number == cert.serial_number
+                        && db_cert.issuer == cert.issuer
+                    {
+                        return true;
                     }
-                },
-                SignatureEntryType::X509Sha256 => {
-                    for entry in &list.entries {
-                        if entry.data.len() >= 32 && &entry.data[..32] == &cert_hash {
-                            return true;
-                        }
+                }
+                continue;
+            }
+
+            if list.entry_type == SignatureEntryType::X509Sha256 {
+                for entry in &list.entries {
+                    if entry.data.len() >= 32 && entry.data[..32] == cert_hash {
+                        return true;
                     }
-                },
-                _ => {},
+                }
             }
         }
 
@@ -504,13 +505,16 @@ impl SignatureDatabase {
     /// Check if database contains hash
     pub fn contains_hash(&self, hash: &[u8; 32]) -> bool {
         for list in &self.lists {
-            if list.entry_type == SignatureEntryType::Sha256 {
-                for entry in &list.entries {
-                    if let Some(entry_hash) = entry.as_sha256() {
-                        if &entry_hash == hash {
-                            return true;
-                        }
-                    }
+            if list.entry_type != SignatureEntryType::Sha256 {
+                continue;
+            }
+
+            for entry in &list.entries {
+                if entry
+                    .as_sha256()
+                    .is_some_and(|entry_hash| entry_hash == *hash)
+                {
+                    return true;
                 }
             }
         }
@@ -613,33 +617,33 @@ impl SecureBootVerifier {
         // Try to verify Authenticode signature
         match self.authenticode.verify_pe(image) {
             Ok(result) => {
-                if result.valid {
-                    // Check if signer is in dbx
-                    if let Some(ref signer) = result.signer {
-                        if self.dbx.contains_certificate(signer) {
-                            return SecureBootResult::Denied {
-                                reason: DenialReason::SignerRevoked,
-                            };
-                        }
-
-                        // Check certificate chain
-                        for cert in &result.chain {
-                            if self.dbx.contains_certificate(cert) {
-                                return SecureBootResult::Denied {
-                                    reason: DenialReason::ChainRevoked,
-                                };
-                            }
-                        }
-                    }
-
-                    SecureBootResult::Allowed {
-                        method: AllowMethod::ValidSignature,
-                        signer: result.signer,
-                    }
-                } else {
-                    SecureBootResult::Denied {
+                if !result.valid {
+                    return SecureBootResult::Denied {
                         reason: DenialReason::InvalidSignature,
+                    };
+                }
+
+                if let Some(signer) = result.signer.as_ref() {
+                    if self.dbx.contains_certificate(signer) {
+                        return SecureBootResult::Denied {
+                            reason: DenialReason::SignerRevoked,
+                        };
                     }
+                }
+
+                if result
+                    .chain
+                    .iter()
+                    .any(|cert| self.dbx.contains_certificate(cert))
+                {
+                    return SecureBootResult::Denied {
+                        reason: DenialReason::ChainRevoked,
+                    };
+                }
+
+                SecureBootResult::Allowed {
+                    method: AllowMethod::ValidSignature,
+                    signer: result.signer,
                 }
             },
             Err(SignatureError::NoSignature) => SecureBootResult::Denied {
