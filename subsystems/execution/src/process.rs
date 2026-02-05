@@ -46,9 +46,9 @@ pub struct Process {
     /// Exit code
     exit_code: RwLock<Option<i32>>,
     /// User ID
-    uid: u32,
+    _uid: u32,
     /// Group ID
-    gid: u32,
+    _gid: u32,
 }
 
 impl Process {
@@ -63,8 +63,8 @@ impl Process {
             threads: RwLock::new(Vec::new()),
             children: RwLock::new(Vec::new()),
             exit_code: RwLock::new(None),
-            uid: 0,
-            gid: 0,
+            _uid: 0,
+            _gid: 0,
         }
     }
 
