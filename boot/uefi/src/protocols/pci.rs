@@ -521,7 +521,7 @@ impl Protocol for PciDevice {
                 &mut protocol,
                 image,
                 Handle(core::ptr::null_mut()),
-                0x00000002,
+                0x0000_0002,
             )
         };
 
