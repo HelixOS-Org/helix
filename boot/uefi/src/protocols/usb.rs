@@ -923,7 +923,7 @@ pub mod descriptor_types {
 /// USB hub
 pub struct UsbHub {
     /// Underlying device
-    device: UsbDevice,
+    _device: UsbDevice,
     /// Hub descriptor
     descriptor: HubDescriptor,
 }
@@ -932,7 +932,7 @@ impl UsbHub {
     /// Create from device
     pub fn new(device: UsbDevice) -> Result<Self> {
         Ok(Self {
-            device,
+            _device: device,
             descriptor: HubDescriptor::default(),
         })
     }
