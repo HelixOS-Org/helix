@@ -191,7 +191,7 @@ fn gcd(a: u32, b: u32) -> u32 {
 /// Graphics output controller
 pub struct GraphicsOutput {
     /// Protocol handle
-    handle: usize,
+    _handle: usize,
     /// Available modes
     modes: [Option<GraphicsMode>; 64],
     /// Mode count
@@ -211,7 +211,7 @@ impl GraphicsOutput {
     /// Create new graphics output
     pub fn new(handle: usize) -> Self {
         Self {
-            handle,
+            _handle: handle,
             modes: core::array::from_fn(|_| None),
             mode_count: 0,
             current_mode: 0,
