@@ -14,15 +14,14 @@
 //! part of the OS that demonstrates hot-reload and self-healing capabilities.
 
 use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use alloc::{format, vec};
 use core::fmt::Write;
 
 use spin::Mutex;
 
-use super::{Environment, UserError, UserResult, STATS};
+use super::{Environment, UserResult, STATS};
 
 /// Maximum command history size
 const MAX_HISTORY: usize = 100;
