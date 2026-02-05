@@ -17,7 +17,7 @@ use alloc::vec::Vec;
 /// High-level network interface abstraction
 pub struct NetworkInterface {
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// MAC address
     mac_address: MacAddress,
     /// Interface state
@@ -30,7 +30,7 @@ impl NetworkInterface {
     /// Create new network interface
     pub fn new(handle: Handle) -> Self {
         Self {
-            handle,
+            _handle: handle,
             mac_address: MacAddress::ZERO,
             state: InterfaceState::Stopped,
             mtu: 1500,
