@@ -975,11 +975,11 @@ impl Scr {
     /// Get full SD specification version
     pub fn sd_version(&self) -> SdVersion {
         let spec = self.sd_spec();
-        let spec3 = self.sd_spec3();
-        let spec4 = self.sd_spec4();
-        let specx = self.sd_specx();
+        let is_spec3 = self.sd_spec3();
+        let is_spec4 = self.sd_spec4();
+        let spec_ext = self.sd_specx();
 
-        match (spec, spec3, spec4, specx) {
+        match (spec, is_spec3, is_spec4, spec_ext) {
             (0, _, _, _) => SdVersion::V1_0,
             (1, _, _, _) => SdVersion::V1_1,
             (2, false, _, _) => SdVersion::V2_0,
