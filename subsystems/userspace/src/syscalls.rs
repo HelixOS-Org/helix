@@ -13,13 +13,12 @@
 //! - Memory management (mmap, munmap, brk)
 //! - IPC (pipe, socket, etc.)
 
-use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use spin::RwLock;
 
-use super::{UserError, UserResult, STATS};
+use super::{UserResult, STATS};
 
 /// Syscall numbers (Linux-compatible subset)
 #[repr(u64)]
