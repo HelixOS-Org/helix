@@ -9,9 +9,7 @@ use alloc::vec::Vec;
 use spin::RwLock;
 
 use crate::loader::LoadedModule;
-use crate::{
-    Module, ModuleError, ModuleFlags, ModuleId, ModuleMetadata, ModuleResult, ModuleState,
-};
+use crate::{ModuleError, ModuleFlags, ModuleId, ModuleMetadata, ModuleResult, ModuleState};
 
 /// Registered module entry
 pub struct RegisteredModule {
