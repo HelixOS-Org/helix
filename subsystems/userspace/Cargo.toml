@@ -6,6 +6,9 @@ authors = ["Helix OS Team"]
 description = "Helix OS Userspace Subsystem - ELF Loader, Shell, Runtime"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 helix-hal = { path = "../../hal" }
