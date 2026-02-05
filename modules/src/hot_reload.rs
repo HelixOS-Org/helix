@@ -170,7 +170,7 @@ impl HotReloadEngine {
         &self,
         registry: &ModuleRegistry,
         id: ModuleId,
-        new_binary: &[u8],
+        _new_binary: &[u8],
         get_module: F,
     ) -> ReloadResult
     where
