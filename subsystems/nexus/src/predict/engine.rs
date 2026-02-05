@@ -4,6 +4,7 @@
 //! feature tracking, decision tree evaluation, and prediction management.
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
