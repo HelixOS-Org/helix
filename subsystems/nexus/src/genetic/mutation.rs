@@ -600,14 +600,23 @@ impl Default for MutationEngine {
 // RANDOM HELPERS
 // ============================================================================
 
-static mut MUTATION_SEED: u64 = 13579;
+use core::sync::atomic::{AtomicU64, Ordering};
+
+static MUTATION_SEED: AtomicU64 = AtomicU64::new(13579);
 
 fn rand_u64() -> u64 {
-    unsafe {
-        MUTATION_SEED = MUTATION_SEED
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1);
-        MUTATION_SEED
+    let mut current = MUTATION_SEED.load(Ordering::Relaxed);
+    loop {
+        let next = current.wrapping_mul(6364136223846793005).wrapping_add(1);
+        match MUTATION_SEED.compare_exchange_weak(
+            current,
+            next,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => return next,
+            Err(x) => current = x,
+        }
     }
 }
 
