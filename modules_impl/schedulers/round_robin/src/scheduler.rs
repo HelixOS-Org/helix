@@ -1,7 +1,6 @@
 //! # Round-Robin Scheduler Implementation
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
