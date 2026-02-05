@@ -39,11 +39,7 @@ pub mod orchestrator;
 pub mod selfheal;
 pub mod syscall;
 
-use alloc::boxed::Box;
-use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU32, Ordering};
-
-use spin::RwLock;
 
 /// Kernel version information
 pub const KERNEL_VERSION: KernelVersion = KernelVersion {
