@@ -15,133 +15,217 @@ pub const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
 
 /// ELF class (32 or 64 bit)
 pub mod class {
+    /// No class specified
     pub const NONE: u8 = 0;
+    /// 32-bit ELF format
     pub const ELF32: u8 = 1;
+    /// 64-bit ELF format
     pub const ELF64: u8 = 2;
 }
 
 /// ELF data encoding
 pub mod encoding {
+    /// No encoding specified
     pub const NONE: u8 = 0;
-    pub const LSB: u8 = 1; // Little endian
-    pub const MSB: u8 = 2; // Big endian
+    /// Little endian encoding
+    pub const LSB: u8 = 1;
+    /// Big endian encoding
+    pub const MSB: u8 = 2;
 }
 
 /// ELF OS/ABI
 pub mod osabi {
+    /// UNIX System V ABI
     pub const SYSV: u8 = 0;
+    /// HP-UX ABI
     pub const HPUX: u8 = 1;
+    /// NetBSD ABI
     pub const NETBSD: u8 = 2;
+    /// Linux ABI
     pub const LINUX: u8 = 3;
+    /// Solaris ABI
     pub const SOLARIS: u8 = 6;
+    /// AIX ABI
     pub const AIX: u8 = 7;
+    /// IRIX ABI
     pub const IRIX: u8 = 8;
+    /// FreeBSD ABI
     pub const FREEBSD: u8 = 9;
+    /// Tru64 UNIX ABI
     pub const TRU64: u8 = 10;
+    /// Novell Modesto ABI
     pub const MODESTO: u8 = 11;
+    /// OpenBSD ABI
     pub const OPENBSD: u8 = 12;
+    /// Standalone (embedded) application
     pub const STANDALONE: u8 = 255;
 }
 
 /// ELF type
 pub mod elf_type {
+    /// No file type
     pub const NONE: u16 = 0;
-    pub const REL: u16 = 1; // Relocatable
-    pub const EXEC: u16 = 2; // Executable
-    pub const DYN: u16 = 3; // Shared object
-    pub const CORE: u16 = 4; // Core dump
+    /// Relocatable file
+    pub const REL: u16 = 1;
+    /// Executable file
+    pub const EXEC: u16 = 2;
+    /// Shared object file
+    pub const DYN: u16 = 3;
+    /// Core dump file
+    pub const CORE: u16 = 4;
 }
 
 /// Machine types
 pub mod machine {
+    /// No machine type
     pub const NONE: u16 = 0;
+    /// Intel x86 architecture
     pub const X86: u16 = 3;
+    /// ARM architecture
     pub const ARM: u16 = 40;
+    /// AMD x86-64 architecture
     pub const X86_64: u16 = 62;
+    /// ARM 64-bit architecture (AArch64)
     pub const AARCH64: u16 = 183;
+    /// RISC-V architecture
     pub const RISCV: u16 = 243;
 }
 
 /// Segment types
 pub mod segment_type {
+    /// Null segment (unused)
     pub const NULL: u32 = 0;
+    /// Loadable segment
     pub const LOAD: u32 = 1;
+    /// Dynamic linking information
     pub const DYNAMIC: u32 = 2;
+    /// Interpreter path
     pub const INTERP: u32 = 3;
+    /// Note segment
     pub const NOTE: u32 = 4;
+    /// Reserved (shared library)
     pub const SHLIB: u32 = 5;
+    /// Program header table
     pub const PHDR: u32 = 6;
+    /// Thread-local storage
     pub const TLS: u32 = 7;
-    pub const GNU_EH_FRAME: u32 = 0x6474e550;
-    pub const GNU_STACK: u32 = 0x6474e551;
-    pub const GNU_RELRO: u32 = 0x6474e552;
+    /// GNU exception handling frame
+    pub const GNU_EH_FRAME: u32 = 0x6474_e550;
+    /// GNU stack permissions
+    pub const GNU_STACK: u32 = 0x6474_e551;
+    /// GNU read-only after relocation
+    pub const GNU_RELRO: u32 = 0x6474_e552;
 }
 
 /// Segment flags
 pub mod segment_flags {
-    pub const X: u32 = 0x1; // Executable
-    pub const W: u32 = 0x2; // Writable
-    pub const R: u32 = 0x4; // Readable
+    /// Executable segment
+    pub const X: u32 = 0x1;
+    /// Writable segment
+    pub const W: u32 = 0x2;
+    /// Readable segment
+    pub const R: u32 = 0x4;
 }
 
 /// Section types
 pub mod section_type {
+    /// Null section (unused)
     pub const NULL: u32 = 0;
+    /// Program data
     pub const PROGBITS: u32 = 1;
+    /// Symbol table
     pub const SYMTAB: u32 = 2;
+    /// String table
     pub const STRTAB: u32 = 3;
+    /// Relocation entries with addends
     pub const RELA: u32 = 4;
+    /// Symbol hash table
     pub const HASH: u32 = 5;
+    /// Dynamic linking information
     pub const DYNAMIC: u32 = 6;
+    /// Notes
     pub const NOTE: u32 = 7;
+    /// No bits (BSS)
     pub const NOBITS: u32 = 8;
+    /// Relocation entries without addends
     pub const REL: u32 = 9;
+    /// Reserved (shared library)
     pub const SHLIB: u32 = 10;
+    /// Dynamic linker symbol table
     pub const DYNSYM: u32 = 11;
+    /// Initialization function pointers
     pub const INIT_ARRAY: u32 = 14;
+    /// Termination function pointers
     pub const FINI_ARRAY: u32 = 15;
+    /// Pre-initialization function pointers
     pub const PREINIT_ARRAY: u32 = 16;
+    /// Section group
     pub const GROUP: u32 = 17;
+    /// Extended section indices
     pub const SYMTAB_SHNDX: u32 = 18;
 }
 
 /// Section flags
 pub mod section_flags {
+    /// Writable section
     pub const WRITE: u64 = 0x1;
+    /// Allocated section
     pub const ALLOC: u64 = 0x2;
+    /// Executable section
     pub const EXECINSTR: u64 = 0x4;
+    /// Might be merged
     pub const MERGE: u64 = 0x10;
+    /// Contains null-terminated strings
     pub const STRINGS: u64 = 0x20;
+    /// `sh_info` contains section header index
     pub const INFO_LINK: u64 = 0x40;
+    /// Preserve order after combining
     pub const LINK_ORDER: u64 = 0x80;
+    /// Non-standard OS-specific handling required
     pub const OS_NONCONFORMING: u64 = 0x100;
+    /// Section is member of a group
     pub const GROUP: u64 = 0x200;
+    /// Section holds thread-local data
     pub const TLS: u64 = 0x400;
 }
 
 /// Symbol types
 pub mod symbol_type {
+    /// No type specified
     pub const NOTYPE: u8 = 0;
+    /// Data object symbol
     pub const OBJECT: u8 = 1;
+    /// Function symbol
     pub const FUNC: u8 = 2;
+    /// Section symbol
     pub const SECTION: u8 = 3;
+    /// File name symbol
     pub const FILE: u8 = 4;
+    /// Common data object
     pub const COMMON: u8 = 5;
+    /// Thread-local storage symbol
     pub const TLS: u8 = 6;
 }
 
 /// Symbol bindings
 pub mod symbol_binding {
+    /// Local symbol
     pub const LOCAL: u8 = 0;
+    /// Global symbol
     pub const GLOBAL: u8 = 1;
+    /// Weak symbol
     pub const WEAK: u8 = 2;
 }
 
 /// Symbol visibility
 pub mod symbol_visibility {
+    /// Default visibility
     pub const DEFAULT: u8 = 0;
+    /// Processor-specific hidden
     pub const INTERNAL: u8 = 1;
+    /// Hidden visibility
     pub const HIDDEN: u8 = 2;
+    /// Protected visibility
     pub const PROTECTED: u8 = 3;
 }
 
@@ -194,7 +278,7 @@ impl Elf64Header {
         }
 
         // Verify magic
-        if &bytes[0..4] != &ELF_MAGIC {
+        if bytes[0..4] != ELF_MAGIC {
             return None;
         }
 
@@ -256,12 +340,12 @@ impl Elf64Header {
         self.e_ident[0..4] == ELF_MAGIC && self.e_ident[4] == class::ELF64 && self.e_version == 1
     }
 
-    /// Is for x86_64
+    /// Is for `x86_64`
     pub fn is_x86_64(&self) -> bool {
         self.e_machine == machine::X86_64
     }
 
-    /// Is for aarch64
+    /// Is for `aarch64`
     pub fn is_aarch64(&self) -> bool {
         self.e_machine == machine::AARCH64
     }
@@ -272,15 +356,15 @@ impl fmt::Debug for Elf64Header {
         let e_type = self.e_type;
         let e_machine = self.e_machine;
         let e_entry = self.e_entry;
-        let e_phnum = self.e_phnum;
-        let e_shnum = self.e_shnum;
+        let program_header_num = self.e_phnum;
+        let section_header_num = self.e_shnum;
         f.debug_struct("Elf64Header")
             .field("type", &e_type)
             .field("machine", &e_machine)
-            .field("entry", &format_args!("0x{:x}", e_entry))
-            .field("phnum", &e_phnum)
-            .field("shnum", &e_shnum)
-            .finish()
+            .field("entry", &format_args!("0x{e_entry:x}"))
+            .field("phnum", &program_header_num)
+            .field("shnum", &section_header_num)
+            .finish_non_exhaustive()
     }
 }
 
@@ -375,10 +459,10 @@ impl fmt::Debug for Elf64ProgramHeader {
         f.debug_struct("ProgramHeader")
             .field("type", &p_type)
             .field("flags", &flags)
-            .field("vaddr", &format_args!("0x{:x}", p_vaddr))
-            .field("memsz", &format_args!("0x{:x}", p_memsz))
-            .field("filesz", &format_args!("0x{:x}", p_filesz))
-            .finish()
+            .field("vaddr", &format_args!("0x{p_vaddr:x}"))
+            .field("memsz", &format_args!("0x{p_memsz:x}"))
+            .field("filesz", &format_args!("0x{p_filesz:x}"))
+            .finish_non_exhaustive()
     }
 }
 
@@ -570,7 +654,7 @@ impl Elf64Rel {
 
     /// Get relocation type
     pub fn relocation_type(&self) -> u32 {
-        (self.r_info & 0xFFFFFFFF) as u32
+        (self.r_info & 0xFFFF_FFFF) as u32
     }
 }
 
@@ -610,30 +694,49 @@ impl Elf64Rela {
 
     /// Get relocation type
     pub fn relocation_type(&self) -> u32 {
-        (self.r_info & 0xFFFFFFFF) as u32
+        (self.r_info & 0xFFFF_FFFF) as u32
     }
 }
 
-/// x86_64 relocation types
+/// `x86_64` relocation types
 pub mod reloc_x86_64 {
+    /// No relocation
     pub const R_NONE: u32 = 0;
+    /// Direct 64-bit
     pub const R_64: u32 = 1;
+    /// PC relative 32-bit signed
     pub const R_PC32: u32 = 2;
+    /// 32-bit GOT entry
     pub const R_GOT32: u32 = 3;
+    /// 32-bit PLT address
     pub const R_PLT32: u32 = 4;
+    /// Copy symbol at runtime
     pub const R_COPY: u32 = 5;
+    /// Create GOT entry
     pub const R_GLOB_DAT: u32 = 6;
+    /// Create PLT entry
     pub const R_JUMP_SLOT: u32 = 7;
+    /// Adjust by program base
     pub const R_RELATIVE: u32 = 8;
+    /// 32-bit GOT PC-relative offset
     pub const R_GOTPCREL: u32 = 9;
+    /// Direct 32-bit zero-extended
     pub const R_32: u32 = 10;
+    /// Direct 32-bit sign-extended
     pub const R_32S: u32 = 11;
+    /// Direct 16-bit zero-extended
     pub const R_16: u32 = 12;
+    /// 16-bit PC relative
     pub const R_PC16: u32 = 13;
+    /// Direct 8-bit sign-extended
     pub const R_8: u32 = 14;
+    /// 8-bit PC relative
     pub const R_PC8: u32 = 15;
+    /// 64-bit PC relative
     pub const R_PC64: u32 = 24;
+    /// 64-bit offset to GOT
     pub const R_GOTOFF64: u32 = 25;
+    /// 32-bit PC relative offset to GOT
     pub const R_GOTPC32: u32 = 26;
 }
 
@@ -771,7 +874,7 @@ impl<'a> ElfFile<'a> {
 
     /// Get loadable segments
     pub fn loadable_segments(&self) -> impl Iterator<Item = Elf64ProgramHeader> + '_ {
-        self.program_headers().filter(|ph| ph.is_load())
+        self.program_headers().filter(Elf64ProgramHeader::is_load)
     }
 
     /// Calculate total memory needed
@@ -849,7 +952,7 @@ pub struct ProgramHeaderIter<'a> {
     index: usize,
 }
 
-impl<'a> Iterator for ProgramHeaderIter<'a> {
+impl Iterator for ProgramHeaderIter<'_> {
     type Item = Elf64ProgramHeader;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -869,7 +972,7 @@ pub struct SectionHeaderIter<'a> {
     index: usize,
 }
 
-impl<'a> Iterator for SectionHeaderIter<'a> {
+impl Iterator for SectionHeaderIter<'_> {
     type Item = Elf64SectionHeader;
 
     fn next(&mut self) -> Option<Self::Item> {
