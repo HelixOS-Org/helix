@@ -219,11 +219,9 @@ impl SmbiosTables {
             let byte = *(ptr.0 as *const u8);
             ptr += 1;
 
-            if byte == 0 {
-                if ptr < end && *(ptr.0 as *const u8) == 0 {
-                    ptr += 1;
-                    break;
-                }
+            if byte == 0 && ptr < end && *(ptr.0 as *const u8) == 0 {
+                ptr += 1;
+                break;
             }
         }
 
@@ -297,7 +295,7 @@ impl SmbiosTables {
 }
 
 impl Protocol for SmbiosTables {
-    const GUID: Guid = Guid::new(0xF2FD1544, 0x9794, 0x4A2C, [
+    const GUID: Guid = Guid::new(0xF2FD_1544, 0x9794, 0x4A2C, [
         0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94,
     ]);
 
@@ -1662,12 +1660,12 @@ pub mod smbios_guids {
     use super::*;
 
     /// SMBIOS table GUID
-    pub const SMBIOS: Guid = Guid::new(0xEB9D2D31, 0x2D88, 0x11D3, [
+    pub const SMBIOS: Guid = Guid::new(0xEB9D_2D31, 0x2D88, 0x11D3, [
         0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
     /// SMBIOS 3.0 table GUID
-    pub const SMBIOS3: Guid = Guid::new(0xF2FD1544, 0x9794, 0x4A2C, [
+    pub const SMBIOS3: Guid = Guid::new(0xF2FD_1544, 0x9794, 0x4A2C, [
         0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94,
     ]);
 }
