@@ -5,9 +5,10 @@ edition = "2024"
 authors = ["Helix OS Team"]
 description = "Industrial-grade kernel relocation subsystem for Helix OS"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/helix-os/helix"
-keywords = ["kernel", "relocation", "elf", "kaslr", "pie"]
-categories = ["no-std", "os", "embedded"]
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 name = "helix_relocation"
