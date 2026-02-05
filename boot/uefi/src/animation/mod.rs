@@ -252,8 +252,12 @@ impl Easing {
                     Self::pow2_approx(10.0 * (t - 1.0))
                 }
             },
-            Self::ExpoOut => {
-                #[expect(clippy::float_cmp, reason = "Exact comparison with 1.0 is intentional for boundary condition")]
+            Self::ExpoOut =>
+            {
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with 1.0 is intentional for boundary condition"
+                )]
                 if t == 1.0 {
                     1.0
                 } else {
@@ -261,11 +265,17 @@ impl Easing {
                 }
             },
             Self::ExpoInOut => {
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -286,11 +296,17 @@ impl Easing {
                 }
             },
             Self::ElasticIn => {
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -298,11 +314,17 @@ impl Easing {
                 -Self::pow2_approx(10.0 * t - 10.0) * Self::sin_approx((t * 10.0 - 10.75) * c4)
             },
             Self::ElasticOut => {
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -310,11 +332,17 @@ impl Easing {
                 Self::pow2_approx(-10.0 * t) * Self::sin_approx((t * 10.0 - 0.75) * c4) + 1.0
             },
             Self::ElasticInOut => {
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
+                #[expect(
+                    clippy::float_cmp,
+                    reason = "Exact comparison with boundary values is intentional"
+                )]
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -402,19 +430,23 @@ impl Easing {
     /// Approximate 2^x for `no_std` environments.
     ///
     /// Uses bit manipulation and polynomial approximation.
+    #[expect(clippy::cast_precision_loss, reason = "Precision loss is acceptable for approximation")]
     fn pow2_approx(x: f32) -> f32 {
         // Simple approximation
-        #[expect(clippy::cast_possible_truncation, reason = "Truncation is intentional for integer part extraction")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "Truncation is intentional for integer part extraction"
+        )]
         let xi = x as i32;
-        let xf = x - f32::from(xi);
+        let xf = x - xi as f32;
         let base = if xi >= 0 {
             #[expect(clippy::cast_sign_loss, reason = "xi is checked to be non-negative")]
             let shift = xi.min(31) as u32;
-            f32::from(1u32 << shift)
+            (1u32 << shift) as f32
         } else {
             #[expect(clippy::cast_sign_loss, reason = "negated value is positive")]
             let shift = (-xi).min(31) as u32;
-            1.0 / f32::from(1u32 << shift)
+            1.0 / (1u32 << shift) as f32
         };
         base * (1.0 + 0.693_147_2 * xf + 0.240_226_5 * xf * xf)
     }
@@ -691,7 +723,10 @@ impl AnimColor {
     #[must_use]
     pub fn lerp(&self, other: &Self, t: f32) -> Self {
         let t = t.clamp(0.0, 1.0);
-        #[expect(clippy::cast_possible_truncation, reason = "Clamped values are within u8 range")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "Clamped values are within u8 range"
+        )]
         #[expect(clippy::cast_sign_loss, reason = "Clamped values are non-negative")]
         Self {
             r: (f32::from(self.r) + (f32::from(other.r) - f32::from(self.r)) * t) as u8,
@@ -753,7 +788,10 @@ impl Sprite {
 
     /// With centered hotspot
     #[must_use]
-    #[expect(clippy::cast_possible_wrap, reason = "Sprite dimensions are small enough to fit in i32")]
+    #[expect(
+        clippy::cast_possible_wrap,
+        reason = "Sprite dimensions are small enough to fit in i32"
+    )]
     pub const fn centered(mut self) -> Self {
         self.hotspot_x = (self.width / 2) as i32;
         self.hotspot_y = (self.height / 2) as i32;
@@ -815,11 +853,12 @@ impl Particle {
 
     /// Get normalized age (0.0 = born, 1.0 = dead)
     #[must_use]
+    #[expect(clippy::cast_precision_loss, reason = "Precision loss is acceptable for age calculation")]
     pub fn age(&self) -> f32 {
         if self.initial_lifetime == 0 {
             return 1.0;
         }
-        1.0 - (f32::from(self.lifetime) / f32::from(self.initial_lifetime))
+        1.0 - (self.lifetime as f32 / self.initial_lifetime as f32)
     }
 }
 
