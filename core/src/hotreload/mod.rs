@@ -32,7 +32,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
-use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU64, Ordering};
 
 use spin::RwLock;
 
@@ -178,7 +178,7 @@ pub enum SlotStatus {
 /// A slot that holds a module
 struct ModuleSlot {
     /// Slot ID
-    id: SlotId,
+    _id: SlotId,
     /// Expected category for this slot
     category: ModuleCategory,
     /// Current module (if any)
@@ -194,7 +194,7 @@ struct ModuleSlot {
 impl ModuleSlot {
     fn new(id: SlotId, category: ModuleCategory) -> Self {
         Self {
-            id,
+            _id: id,
             category,
             module: None,
             status: SlotStatus::Empty,
@@ -463,7 +463,7 @@ impl HotReloadRegistry {
     }
 
     /// Get a reference to a module
-    pub fn get_module<T: 'static>(&self, slot_id: SlotId) -> Option<&T> {
+    pub fn get_module<T: 'static>(&self, _slot_id: SlotId) -> Option<&T> {
         // Note: This returns None because we can't return a reference
         // from inside a RwLock. In practice, you'd use a different pattern.
         None
