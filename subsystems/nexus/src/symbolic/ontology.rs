@@ -15,6 +15,9 @@
 //! - Kernel domain ontology (processes, memory, devices)
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::unwrap_or_default)]
+#![allow(clippy::iter_cloned_collect)]
 
 extern crate alloc;
 
