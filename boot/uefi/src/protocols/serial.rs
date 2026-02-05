@@ -29,7 +29,7 @@ pub struct SerialPort {
     /// Raw protocol pointer
     protocol: *mut EfiSerialIoProtocol,
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// Configuration
     config: SerialConfig,
 }
@@ -63,7 +63,7 @@ impl SerialPort {
 
         Self {
             protocol,
-            handle,
+            _handle: handle,
             config,
         }
     }
@@ -673,7 +673,7 @@ const EFI_SERIAL_INPUT_BUFFER_EMPTY: u32 = 0x0100;
 const EFI_SERIAL_OUTPUT_BUFFER_EMPTY: u32 = 0x0200;
 const EFI_SERIAL_HARDWARE_LOOPBACK_ENABLE: u32 = 0x1000;
 const EFI_SERIAL_SOFTWARE_LOOPBACK_ENABLE: u32 = 0x2000;
-const EFI_SERIAL_HARDWARE_FLOW_CONTROL_ENABLE: u32 = 0x4000;
+const _EFI_SERIAL_HARDWARE_FLOW_CONTROL_ENABLE: u32 = 0x4000;
 
 // =============================================================================
 // DEBUG OUTPUT
