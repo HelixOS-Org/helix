@@ -145,7 +145,6 @@ impl Color256 {
         if idx < 16 {
             // Standard colors
             match idx {
-                0 => (0, 0, 0),
                 1 => (128, 0, 0),
                 2 => (0, 128, 0),
                 3 => (128, 128, 0),
@@ -185,8 +184,11 @@ impl Color256 {
 /// True color (24-bit RGB)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct TrueColor {
+    /// Red component (0-255)
     pub r: u8,
+    /// Green component (0-255)
     pub g: u8,
+    /// Blue component (0-255)
     pub b: u8,
 }
 
@@ -207,9 +209,10 @@ impl TrueColor {
 }
 
 /// Color specification
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TermColor {
     /// Default color
+    #[default]
     Default,
     /// Standard ANSI color
     Ansi(AnsiColor),
@@ -219,15 +222,133 @@ pub enum TermColor {
     Rgb(TrueColor),
 }
 
-impl Default for TermColor {
-    fn default() -> Self {
-        TermColor::Default
-    }
-}
-
 // =============================================================================
 // TEXT ATTRIBUTES
 // =============================================================================
+
+/// Bitflags for text styling options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TextStyleFlags(u16);
+
+impl TextStyleFlags {
+    /// No style flags
+    pub const NONE: Self = Self(0);
+    /// Bold/bright
+    pub const BOLD: Self = Self(1 << 0);
+    /// Dim/faint
+    pub const DIM: Self = Self(1 << 1);
+    /// Italic
+    pub const ITALIC: Self = Self(1 << 2);
+    /// Underline
+    pub const UNDERLINE: Self = Self(1 << 3);
+    /// Slow blink
+    pub const BLINK: Self = Self(1 << 4);
+    /// Rapid blink
+    pub const RAPID_BLINK: Self = Self(1 << 5);
+    /// Reverse video
+    pub const REVERSE: Self = Self(1 << 6);
+    /// Hidden/invisible
+    pub const HIDDEN: Self = Self(1 << 7);
+    /// Strikethrough
+    pub const STRIKETHROUGH: Self = Self(1 << 8);
+    /// Double underline
+    pub const DOUBLE_UNDERLINE: Self = Self(1 << 9);
+    /// Overline
+    pub const OVERLINE: Self = Self(1 << 10);
+
+    /// Check if a flag is set
+    #[inline]
+    pub const fn contains(self, flag: Self) -> bool {
+        (self.0 & flag.0) == flag.0
+    }
+
+    /// Set a flag
+    #[inline]
+    #[must_use]
+    pub const fn with(self, flag: Self) -> Self {
+        Self(self.0 | flag.0)
+    }
+
+    /// Clear a flag
+    #[inline]
+    #[must_use]
+    pub const fn without(self, flag: Self) -> Self {
+        Self(self.0 & !flag.0)
+    }
+
+    /// Toggle a flag
+    #[inline]
+    #[must_use]
+    pub const fn toggle(self, flag: Self) -> Self {
+        Self(self.0 ^ flag.0)
+    }
+
+    /// Check if bold is set
+    #[inline]
+    pub const fn bold(self) -> bool {
+        self.contains(Self::BOLD)
+    }
+
+    /// Check if dim is set
+    #[inline]
+    pub const fn dim(self) -> bool {
+        self.contains(Self::DIM)
+    }
+
+    /// Check if italic is set
+    #[inline]
+    pub const fn italic(self) -> bool {
+        self.contains(Self::ITALIC)
+    }
+
+    /// Check if underline is set
+    #[inline]
+    pub const fn underline(self) -> bool {
+        self.contains(Self::UNDERLINE)
+    }
+
+    /// Check if blink is set
+    #[inline]
+    pub const fn blink(self) -> bool {
+        self.contains(Self::BLINK)
+    }
+
+    /// Check if rapid blink is set
+    #[inline]
+    pub const fn rapid_blink(self) -> bool {
+        self.contains(Self::RAPID_BLINK)
+    }
+
+    /// Check if reverse is set
+    #[inline]
+    pub const fn reverse(self) -> bool {
+        self.contains(Self::REVERSE)
+    }
+
+    /// Check if hidden is set
+    #[inline]
+    pub const fn hidden(self) -> bool {
+        self.contains(Self::HIDDEN)
+    }
+
+    /// Check if strikethrough is set
+    #[inline]
+    pub const fn strikethrough(self) -> bool {
+        self.contains(Self::STRIKETHROUGH)
+    }
+
+    /// Check if double underline is set
+    #[inline]
+    pub const fn double_underline(self) -> bool {
+        self.contains(Self::DOUBLE_UNDERLINE)
+    }
+
+    /// Check if overline is set
+    #[inline]
+    pub const fn overline(self) -> bool {
+        self.contains(Self::OVERLINE)
+    }
+}
 
 /// Text attributes (SGR - Select Graphic Rendition)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -236,28 +357,8 @@ pub struct TextAttributes {
     pub fg: TermColor,
     /// Background color
     pub bg: TermColor,
-    /// Bold/bright
-    pub bold: bool,
-    /// Dim/faint
-    pub dim: bool,
-    /// Italic
-    pub italic: bool,
-    /// Underline
-    pub underline: bool,
-    /// Slow blink
-    pub blink: bool,
-    /// Rapid blink
-    pub rapid_blink: bool,
-    /// Reverse video
-    pub reverse: bool,
-    /// Hidden/invisible
-    pub hidden: bool,
-    /// Strikethrough
-    pub strikethrough: bool,
-    /// Double underline
-    pub double_underline: bool,
-    /// Overline
-    pub overline: bool,
+    /// Style flags (bold, italic, underline, etc.)
+    pub flags: TextStyleFlags,
 }
 
 impl TextAttributes {
@@ -265,17 +366,7 @@ impl TextAttributes {
     pub const DEFAULT: Self = Self {
         fg: TermColor::Default,
         bg: TermColor::Default,
-        bold: false,
-        dim: false,
-        italic: false,
-        underline: false,
-        blink: false,
-        rapid_blink: false,
-        reverse: false,
-        hidden: false,
-        strikethrough: false,
-        double_underline: false,
-        overline: false,
+        flags: TextStyleFlags::NONE,
     };
 
     /// Reset all attributes
@@ -353,20 +444,15 @@ impl CursorPos {
 }
 
 /// Cursor style
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CursorStyle {
     /// Block cursor
+    #[default]
     Block,
     /// Underline cursor
     Underline,
     /// Vertical bar
     Bar,
-}
-
-impl Default for CursorStyle {
-    fn default() -> Self {
-        CursorStyle::Block
-    }
 }
 
 /// Cursor state
@@ -401,7 +487,7 @@ impl Default for CursorState {
 // =============================================================================
 
 /// Terminal emulation mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TerminalMode {
     /// VT100 compatible
     Vt100,
@@ -410,6 +496,7 @@ pub enum TerminalMode {
     /// ANSI compatible
     Ansi,
     /// xterm compatible
+    #[default]
     Xterm,
     /// Linux console
     Linux,
@@ -417,63 +504,191 @@ pub enum TerminalMode {
     Basic,
 }
 
-impl Default for TerminalMode {
-    fn default() -> Self {
-        TerminalMode::Xterm
-    }
-}
-
 /// DEC private modes
 pub mod dec_modes {
-    pub const CURSOR_KEYS: u16 = 1; // Application cursor keys
-    pub const VT52_MODE: u16 = 2; // DECANM
-    pub const COLUMN_132: u16 = 3; // 132 column mode
-    pub const SMOOTH_SCROLL: u16 = 4; // Smooth scrolling
-    pub const REVERSE_VIDEO: u16 = 5; // Reverse video
-    pub const ORIGIN_MODE: u16 = 6; // Origin mode
-    pub const AUTO_WRAP: u16 = 7; // Auto-wrap mode
-    pub const AUTO_REPEAT: u16 = 8; // Auto-repeat keys
-    pub const MOUSE_X10: u16 = 9; // X10 mouse reporting
-    pub const CURSOR_VISIBLE: u16 = 25; // Show cursor
-    pub const MOUSE_VT200: u16 = 1000; // VT200 mouse
-    pub const MOUSE_HILITE: u16 = 1001; // Highlight mouse
-    pub const MOUSE_CELL: u16 = 1002; // Cell motion mouse
-    pub const MOUSE_ALL: u16 = 1003; // All motion mouse
-    pub const MOUSE_UTF8: u16 = 1005; // UTF-8 mouse
-    pub const MOUSE_SGR: u16 = 1006; // SGR mouse
-    pub const ALT_SCREEN: u16 = 1049; // Alternate screen
-    pub const BRACKETED_PASTE: u16 = 2004; // Bracketed paste
+    /// Application cursor keys mode
+    pub const CURSOR_KEYS: u16 = 1;
+    /// VT52 compatibility mode (DECANM)
+    pub const VT52_MODE: u16 = 2;
+    /// 132 column mode
+    pub const COLUMN_132: u16 = 3;
+    /// Smooth scrolling mode
+    pub const SMOOTH_SCROLL: u16 = 4;
+    /// Reverse video mode
+    pub const REVERSE_VIDEO: u16 = 5;
+    /// Origin mode
+    pub const ORIGIN_MODE: u16 = 6;
+    /// Auto-wrap mode
+    pub const AUTO_WRAP: u16 = 7;
+    /// Auto-repeat keys mode
+    pub const AUTO_REPEAT: u16 = 8;
+    /// X10 mouse reporting mode
+    pub const MOUSE_X10: u16 = 9;
+    /// Cursor visibility mode
+    pub const CURSOR_VISIBLE: u16 = 25;
+    /// VT200 mouse tracking mode
+    pub const MOUSE_VT200: u16 = 1000;
+    /// Highlight mouse tracking mode
+    pub const MOUSE_HILITE: u16 = 1001;
+    /// Cell motion mouse tracking mode
+    pub const MOUSE_CELL: u16 = 1002;
+    /// All motion mouse tracking mode
+    pub const MOUSE_ALL: u16 = 1003;
+    /// UTF-8 mouse encoding mode
+    pub const MOUSE_UTF8: u16 = 1005;
+    /// SGR mouse encoding mode
+    pub const MOUSE_SGR: u16 = 1006;
+    /// Alternate screen buffer mode
+    pub const ALT_SCREEN: u16 = 1049;
+    /// Bracketed paste mode
+    pub const BRACKETED_PASTE: u16 = 2004;
+}
+
+/// Bitflags for terminal mode options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TerminalModeFlags(u16);
+
+impl TerminalModeFlags {
+    /// No mode flags
+    pub const NONE: Self = Self(0);
+    /// Application cursor keys
+    pub const APP_CURSOR: Self = Self(1 << 0);
+    /// Application keypad
+    pub const APP_KEYPAD: Self = Self(1 << 1);
+    /// Auto-wrap mode
+    pub const AUTO_WRAP: Self = Self(1 << 2);
+    /// Origin mode
+    pub const ORIGIN_MODE: Self = Self(1 << 3);
+    /// Insert mode
+    pub const INSERT_MODE: Self = Self(1 << 4);
+    /// Line feed mode
+    pub const LINE_FEED_MODE: Self = Self(1 << 5);
+    /// Local echo
+    pub const LOCAL_ECHO: Self = Self(1 << 6);
+    /// Reverse wrap
+    pub const REVERSE_WRAP: Self = Self(1 << 7);
+    /// Alternate screen buffer
+    pub const ALT_SCREEN: Self = Self(1 << 8);
+    /// Bracketed paste mode
+    pub const BRACKETED_PASTE: Self = Self(1 << 9);
+    /// Report focus events
+    pub const FOCUS_EVENTS: Self = Self(1 << 10);
+    /// Mouse tracking enabled
+    pub const MOUSE_TRACKING: Self = Self(1 << 11);
+    /// Save/restore cursor
+    pub const SAVE_CURSOR: Self = Self(1 << 12);
+
+    /// Check if a flag is set
+    #[inline]
+    pub const fn contains(self, flag: Self) -> bool {
+        (self.0 & flag.0) == flag.0
+    }
+
+    /// Set a flag
+    #[inline]
+    #[must_use]
+    pub const fn with(self, flag: Self) -> Self {
+        Self(self.0 | flag.0)
+    }
+
+    /// Clear a flag
+    #[inline]
+    #[must_use]
+    pub const fn without(self, flag: Self) -> Self {
+        Self(self.0 & !flag.0)
+    }
+
+    /// Toggle a flag
+    #[inline]
+    #[must_use]
+    pub const fn toggle(self, flag: Self) -> Self {
+        Self(self.0 ^ flag.0)
+    }
+
+    /// Check if app cursor is set
+    #[inline]
+    pub const fn app_cursor(self) -> bool {
+        self.contains(Self::APP_CURSOR)
+    }
+
+    /// Check if app keypad is set
+    #[inline]
+    pub const fn app_keypad(self) -> bool {
+        self.contains(Self::APP_KEYPAD)
+    }
+
+    /// Check if auto wrap is set
+    #[inline]
+    pub const fn auto_wrap(self) -> bool {
+        self.contains(Self::AUTO_WRAP)
+    }
+
+    /// Check if origin mode is set
+    #[inline]
+    pub const fn origin_mode(self) -> bool {
+        self.contains(Self::ORIGIN_MODE)
+    }
+
+    /// Check if insert mode is set
+    #[inline]
+    pub const fn insert_mode(self) -> bool {
+        self.contains(Self::INSERT_MODE)
+    }
+
+    /// Check if line feed mode is set
+    #[inline]
+    pub const fn line_feed_mode(self) -> bool {
+        self.contains(Self::LINE_FEED_MODE)
+    }
+
+    /// Check if local echo is set
+    #[inline]
+    pub const fn local_echo(self) -> bool {
+        self.contains(Self::LOCAL_ECHO)
+    }
+
+    /// Check if reverse wrap is set
+    #[inline]
+    pub const fn reverse_wrap(self) -> bool {
+        self.contains(Self::REVERSE_WRAP)
+    }
+
+    /// Check if alt screen is set
+    #[inline]
+    pub const fn alt_screen(self) -> bool {
+        self.contains(Self::ALT_SCREEN)
+    }
+
+    /// Check if bracketed paste is set
+    #[inline]
+    pub const fn bracketed_paste(self) -> bool {
+        self.contains(Self::BRACKETED_PASTE)
+    }
+
+    /// Check if focus events is set
+    #[inline]
+    pub const fn focus_events(self) -> bool {
+        self.contains(Self::FOCUS_EVENTS)
+    }
+
+    /// Check if mouse tracking is set
+    #[inline]
+    pub const fn mouse_tracking(self) -> bool {
+        self.contains(Self::MOUSE_TRACKING)
+    }
+
+    /// Check if save cursor is set
+    #[inline]
+    pub const fn save_cursor(self) -> bool {
+        self.contains(Self::SAVE_CURSOR)
+    }
 }
 
 /// Terminal mode flags
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TerminalModes {
-    /// Application cursor keys
-    pub app_cursor: bool,
-    /// Application keypad
-    pub app_keypad: bool,
-    /// Auto-wrap mode
-    pub auto_wrap: bool,
-    /// Origin mode
-    pub origin_mode: bool,
-    /// Insert mode
-    pub insert_mode: bool,
-    /// Line feed mode
-    pub line_feed_mode: bool,
-    /// Local echo
-    pub local_echo: bool,
-    /// Reverse wrap
-    pub reverse_wrap: bool,
-    /// Alternate screen buffer
-    pub alt_screen: bool,
-    /// Bracketed paste mode
-    pub bracketed_paste: bool,
-    /// Report focus events
-    pub focus_events: bool,
-    /// Mouse tracking enabled
-    pub mouse_tracking: bool,
-    /// Save/restore cursor
-    pub save_cursor: bool,
+    /// Mode flags
+    pub flags: TerminalModeFlags,
 }
 
 // =============================================================================
@@ -509,9 +724,10 @@ impl ScrollRegion {
 // =============================================================================
 
 /// Parser state for escape sequences
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ParserState {
     /// Ground state - normal character processing
+    #[default]
     Ground,
     /// Escape received
     Escape,
@@ -533,12 +749,6 @@ pub enum ParserState {
     ApcString,
     /// PM sequence
     PmString,
-}
-
-impl Default for ParserState {
-    fn default() -> Self {
-        ParserState::Ground
-    }
 }
 
 /// Maximum number of CSI parameters
@@ -602,69 +812,126 @@ pub enum CsiCommand {
 
 /// SGR (Select Graphic Rendition) parameter codes
 pub mod sgr {
+    /// Reset all attributes
     pub const RESET: u8 = 0;
+    /// Bold/bright intensity
     pub const BOLD: u8 = 1;
+    /// Dim/faint intensity
     pub const DIM: u8 = 2;
+    /// Italic text
     pub const ITALIC: u8 = 3;
+    /// Underline text
     pub const UNDERLINE: u8 = 4;
+    /// Slow blink
     pub const SLOW_BLINK: u8 = 5;
+    /// Rapid blink
     pub const RAPID_BLINK: u8 = 6;
+    /// Reverse video
     pub const REVERSE: u8 = 7;
+    /// Hidden/invisible text
     pub const HIDDEN: u8 = 8;
+    /// Strikethrough text
     pub const STRIKETHROUGH: u8 = 9;
 
+    /// Default font
     pub const DEFAULT_FONT: u8 = 10;
 
+    /// Double underline
     pub const DOUBLE_UNDERLINE: u8 = 21;
+    /// Normal intensity (not bold/dim)
     pub const NORMAL_INTENSITY: u8 = 22;
+    /// Not italic
     pub const NOT_ITALIC: u8 = 23;
+    /// Not underlined
     pub const NOT_UNDERLINED: u8 = 24;
+    /// Not blinking
     pub const NOT_BLINKING: u8 = 25;
+    /// Not reversed
     pub const NOT_REVERSED: u8 = 27;
+    /// Reveal hidden text
     pub const REVEAL: u8 = 28;
+    /// Not strikethrough
     pub const NOT_STRIKETHROUGH: u8 = 29;
 
+    /// Foreground black
     pub const FG_BLACK: u8 = 30;
+    /// Foreground red
     pub const FG_RED: u8 = 31;
+    /// Foreground green
     pub const FG_GREEN: u8 = 32;
+    /// Foreground yellow
     pub const FG_YELLOW: u8 = 33;
+    /// Foreground blue
     pub const FG_BLUE: u8 = 34;
+    /// Foreground magenta
     pub const FG_MAGENTA: u8 = 35;
+    /// Foreground cyan
     pub const FG_CYAN: u8 = 36;
+    /// Foreground white
     pub const FG_WHITE: u8 = 37;
+    /// Foreground extended color
     pub const FG_EXTENDED: u8 = 38;
+    /// Foreground default color
     pub const FG_DEFAULT: u8 = 39;
 
+    /// Background black
     pub const BG_BLACK: u8 = 40;
+    /// Background red
     pub const BG_RED: u8 = 41;
+    /// Background green
     pub const BG_GREEN: u8 = 42;
+    /// Background yellow
     pub const BG_YELLOW: u8 = 43;
+    /// Background blue
     pub const BG_BLUE: u8 = 44;
+    /// Background magenta
     pub const BG_MAGENTA: u8 = 45;
+    /// Background cyan
     pub const BG_CYAN: u8 = 46;
+    /// Background white
     pub const BG_WHITE: u8 = 47;
+    /// Background extended color
     pub const BG_EXTENDED: u8 = 48;
+    /// Background default color
     pub const BG_DEFAULT: u8 = 49;
 
+    /// Overline text
     pub const OVERLINE: u8 = 53;
+    /// Not overlined
     pub const NOT_OVERLINE: u8 = 55;
 
+    /// Foreground bright black
     pub const FG_BRIGHT_BLACK: u8 = 90;
+    /// Foreground bright red
     pub const FG_BRIGHT_RED: u8 = 91;
+    /// Foreground bright green
     pub const FG_BRIGHT_GREEN: u8 = 92;
+    /// Foreground bright yellow
     pub const FG_BRIGHT_YELLOW: u8 = 93;
+    /// Foreground bright blue
     pub const FG_BRIGHT_BLUE: u8 = 94;
+    /// Foreground bright magenta
     pub const FG_BRIGHT_MAGENTA: u8 = 95;
+    /// Foreground bright cyan
     pub const FG_BRIGHT_CYAN: u8 = 96;
+    /// Foreground bright white
     pub const FG_BRIGHT_WHITE: u8 = 97;
 
+    /// Background bright black
     pub const BG_BRIGHT_BLACK: u8 = 100;
+    /// Background bright red
     pub const BG_BRIGHT_RED: u8 = 101;
+    /// Background bright green
     pub const BG_BRIGHT_GREEN: u8 = 102;
+    /// Background bright yellow
     pub const BG_BRIGHT_YELLOW: u8 = 103;
+    /// Background bright blue
     pub const BG_BRIGHT_BLUE: u8 = 104;
+    /// Background bright magenta
     pub const BG_BRIGHT_MAGENTA: u8 = 105;
+    /// Background bright cyan
     pub const BG_BRIGHT_CYAN: u8 = 106;
+    /// Background bright white
     pub const BG_BRIGHT_WHITE: u8 = 107;
 }
 
@@ -674,51 +941,83 @@ pub mod sgr {
 
 /// Box drawing characters
 pub mod box_chars {
-    // Single lines
+    /// Horizontal line (─)
     pub const HORIZONTAL: char = '─';
+    /// Vertical line (│)
     pub const VERTICAL: char = '│';
+    /// Top-left corner (┌)
     pub const TOP_LEFT: char = '┌';
+    /// Top-right corner (┐)
     pub const TOP_RIGHT: char = '┐';
+    /// Bottom-left corner (└)
     pub const BOTTOM_LEFT: char = '└';
+    /// Bottom-right corner (┘)
     pub const BOTTOM_RIGHT: char = '┘';
+    /// Cross intersection (┼)
     pub const CROSS: char = '┼';
+    /// T-junction pointing down (┬)
     pub const T_DOWN: char = '┬';
+    /// T-junction pointing up (┴)
     pub const T_UP: char = '┴';
+    /// T-junction pointing right (├)
     pub const T_RIGHT: char = '├';
+    /// T-junction pointing left (┤)
     pub const T_LEFT: char = '┤';
 
-    // Double lines
+    /// Double horizontal line (═)
     pub const DOUBLE_HORIZONTAL: char = '═';
+    /// Double vertical line (║)
     pub const DOUBLE_VERTICAL: char = '║';
+    /// Double top-left corner (╔)
     pub const DOUBLE_TOP_LEFT: char = '╔';
+    /// Double top-right corner (╗)
     pub const DOUBLE_TOP_RIGHT: char = '╗';
+    /// Double bottom-left corner (╚)
     pub const DOUBLE_BOTTOM_LEFT: char = '╚';
+    /// Double bottom-right corner (╝)
     pub const DOUBLE_BOTTOM_RIGHT: char = '╝';
+    /// Double cross intersection (╬)
     pub const DOUBLE_CROSS: char = '╬';
+    /// Double T-junction pointing down (╦)
     pub const DOUBLE_T_DOWN: char = '╦';
+    /// Double T-junction pointing up (╩)
     pub const DOUBLE_T_UP: char = '╩';
+    /// Double T-junction pointing right (╠)
     pub const DOUBLE_T_RIGHT: char = '╠';
+    /// Double T-junction pointing left (╣)
     pub const DOUBLE_T_LEFT: char = '╣';
 
-    // Rounded corners
+    /// Rounded top-left corner (╭)
     pub const ROUNDED_TOP_LEFT: char = '╭';
+    /// Rounded top-right corner (╮)
     pub const ROUNDED_TOP_RIGHT: char = '╮';
+    /// Rounded bottom-left corner (╰)
     pub const ROUNDED_BOTTOM_LEFT: char = '╰';
+    /// Rounded bottom-right corner (╯)
     pub const ROUNDED_BOTTOM_RIGHT: char = '╯';
 
-    // Block elements
+    /// Full block (█)
     pub const FULL_BLOCK: char = '█';
+    /// Upper half block (▀)
     pub const UPPER_HALF: char = '▀';
+    /// Lower half block (▄)
     pub const LOWER_HALF: char = '▄';
+    /// Left half block (▌)
     pub const LEFT_HALF: char = '▌';
+    /// Right half block (▐)
     pub const RIGHT_HALF: char = '▐';
+    /// Light shade (░)
     pub const LIGHT_SHADE: char = '░';
+    /// Medium shade (▒)
     pub const MEDIUM_SHADE: char = '▒';
+    /// Dark shade (▓)
     pub const DARK_SHADE: char = '▓';
 
-    // Progress indicators
+    /// Progress bar empty segment (░)
     pub const PROGRESS_EMPTY: char = '░';
+    /// Progress bar partial segment (▓)
     pub const PROGRESS_PARTIAL: char = '▓';
+    /// Progress bar full segment (█)
     pub const PROGRESS_FULL: char = '█';
 }
 
@@ -728,43 +1027,70 @@ pub mod box_chars {
 
 /// Special character mappings
 pub mod special_chars {
-    // Arrows
+    /// Up arrow (↑)
     pub const ARROW_UP: char = '↑';
+    /// Down arrow (↓)
     pub const ARROW_DOWN: char = '↓';
+    /// Left arrow (←)
     pub const ARROW_LEFT: char = '←';
+    /// Right arrow (→)
     pub const ARROW_RIGHT: char = '→';
+    /// Up-down arrow (↕)
     pub const ARROW_UP_DOWN: char = '↕';
+    /// Left-right arrow (↔)
     pub const ARROW_LEFT_RIGHT: char = '↔';
 
-    // Symbols
+    /// Check mark (✓)
     pub const CHECK: char = '✓';
+    /// Cross mark (✗)
     pub const CROSS: char = '✗';
+    /// Bullet point (•)
     pub const BULLET: char = '•';
+    /// Diamond (◆)
     pub const DIAMOND: char = '◆';
+    /// Star (★)
     pub const STAR: char = '★';
+    /// Filled circle (●)
     pub const CIRCLE: char = '●';
+    /// Empty circle (○)
     pub const EMPTY_CIRCLE: char = '○';
+    /// Filled square (■)
     pub const SQUARE: char = '■';
+    /// Empty square (□)
     pub const EMPTY_SQUARE: char = '□';
 
-    // Greek letters (often used)
+    /// Greek letter alpha (α)
     pub const ALPHA: char = 'α';
+    /// Greek letter beta (β)
     pub const BETA: char = 'β';
+    /// Greek letter gamma (γ)
     pub const GAMMA: char = 'γ';
+    /// Greek letter delta (δ)
     pub const DELTA: char = 'δ';
+    /// Greek letter pi (π)
     pub const PI: char = 'π';
+    /// Greek letter sigma (σ)
     pub const SIGMA: char = 'σ';
+    /// Greek letter omega (ω)
     pub const OMEGA: char = 'ω';
 
-    // Math symbols
+    /// Plus-minus sign (±)
     pub const PLUS_MINUS: char = '±';
+    /// Infinity symbol (∞)
     pub const INFINITY: char = '∞';
+    /// Approximately equal (≈)
     pub const APPROX: char = '≈';
+    /// Not equal (≠)
     pub const NOT_EQUAL: char = '≠';
+    /// Less than or equal (≤)
     pub const LESS_EQUAL: char = '≤';
+    /// Greater than or equal (≥)
     pub const GREATER_EQUAL: char = '≥';
+    /// Square root (√)
     pub const SQRT: char = '√';
+    /// Summation (∑)
     pub const SUM: char = '∑';
+    /// Product (∏)
     pub const PRODUCT: char = '∏';
 }
 
@@ -776,21 +1102,37 @@ pub mod special_chars {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum EfiColor {
+    /// Black color (0x00)
     Black        = 0x00,
+    /// Blue color (0x01)
     Blue         = 0x01,
+    /// Green color (0x02)
     Green        = 0x02,
+    /// Cyan color (0x03)
     Cyan         = 0x03,
+    /// Red color (0x04)
     Red          = 0x04,
+    /// Magenta color (0x05)
     Magenta      = 0x05,
+    /// Brown color (0x06)
     Brown        = 0x06,
+    /// Light gray color (0x07)
     LightGray    = 0x07,
+    /// Dark gray color (0x08)
     DarkGray     = 0x08,
+    /// Light blue color (0x09)
     LightBlue    = 0x09,
+    /// Light green color (0x0A)
     LightGreen   = 0x0A,
+    /// Light cyan color (0x0B)
     LightCyan    = 0x0B,
+    /// Light red color (0x0C)
     LightRed     = 0x0C,
+    /// Light magenta color (0x0D)
     LightMagenta = 0x0D,
+    /// Yellow color (0x0E)
     Yellow       = 0x0E,
+    /// White color (0x0F)
     White        = 0x0F,
 }
 
@@ -1093,25 +1435,33 @@ pub struct SerialConfig {
 /// Serial parity
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SerialParity {
+    /// No parity bit
     None,
+    /// Odd parity
     Odd,
+    /// Even parity
     Even,
+    /// Mark parity (always 1)
     Mark,
+    /// Space parity (always 0)
     Space,
 }
 
 /// Flow control
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlowControl {
+    /// No flow control
     None,
+    /// Software flow control (XON/XOFF)
     XonXoff,
+    /// Hardware flow control (RTS/CTS)
     Hardware,
 }
 
 impl SerialConfig {
     /// Standard 115200 8N1
     pub const STANDARD: Self = Self {
-        baud_rate: 115200,
+        baud_rate: 115_200,
         data_bits: 8,
         stop_bits: 1,
         parity: SerialParity::None,
