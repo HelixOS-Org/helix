@@ -221,7 +221,7 @@ pub struct Sha512 {
     buffer: [u8; SHA512_BLOCK_SIZE],
     buffer_len: usize,
     total_len: u128,
-    is_384: bool,
+    _is_384: bool,
 }
 
 impl Sha512 {
@@ -340,7 +340,7 @@ impl Sha512 {
             buffer: [0u8; SHA512_BLOCK_SIZE],
             buffer_len: 0,
             total_len: 0,
-            is_384: false,
+            _is_384: false,
         }
     }
 
@@ -351,7 +351,7 @@ impl Sha512 {
             buffer: [0u8; SHA512_BLOCK_SIZE],
             buffer_len: 0,
             total_len: 0,
-            is_384: true,
+            _is_384: true,
         }
     }
 
@@ -535,7 +535,7 @@ impl Default for Sha512 {
 
 /// HMAC-SHA256
 pub struct HmacSha256 {
-    inner_key: [u8; SHA256_BLOCK_SIZE],
+    _inner_key: [u8; SHA256_BLOCK_SIZE],
     outer_key: [u8; SHA256_BLOCK_SIZE],
     inner_hasher: Sha256,
 }
@@ -567,7 +567,7 @@ impl HmacSha256 {
         inner_hasher.update(&inner_key);
 
         Self {
-            inner_key,
+            _inner_key: inner_key,
             outer_key,
             inner_hasher,
         }
