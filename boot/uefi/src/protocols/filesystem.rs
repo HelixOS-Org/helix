@@ -30,7 +30,7 @@ pub struct FileSystem {
     /// Raw protocol pointer
     protocol: *mut EfiSimpleFileSystemProtocol,
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// Root directory
     root: Option<*mut EfiFileProtocol>,
 }
@@ -46,7 +46,7 @@ impl FileSystem {
         debug_assert!(!protocol.is_null(), "FileSystem protocol pointer is null");
         Self {
             protocol,
-            handle,
+            _handle: handle,
             root: None,
         }
     }
