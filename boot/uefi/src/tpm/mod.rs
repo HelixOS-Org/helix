@@ -37,7 +37,7 @@ use core::fmt;
 // =============================================================================
 
 /// TPM TIS base address (memory-mapped)
-pub const TPM_TIS_BASE: u64 = 0xFED40000;
+pub const TPM_TIS_BASE: u64 = 0xFED4_0000;
 
 /// TPM TIS register size
 pub const TPM_TIS_SIZE: usize = 0x5000;
@@ -460,217 +460,217 @@ impl TpmEccCurve {
 #[repr(u32)]
 pub enum TpmCommand {
     /// NV UndefineSpaceSpecial
-    NvUndefineSpaceSpecial = 0x0000011F,
+    NvUndefineSpaceSpecial = 0x0000_011F,
     /// Evict Control
-    EvictControl        = 0x00000120,
+    EvictControl        = 0x0000_0120,
     /// Hierarchy Control
-    HierarchyControl    = 0x00000121,
+    HierarchyControl    = 0x0000_0121,
     /// NV UndefineSpace
-    NvUndefineSpace     = 0x00000122,
+    NvUndefineSpace     = 0x0000_0122,
     /// Change EPS
-    ChangeEps           = 0x00000124,
+    ChangeEps           = 0x0000_0124,
     /// Change PPS
-    ChangePps           = 0x00000125,
+    ChangePps           = 0x0000_0125,
     /// Clear
-    Clear               = 0x00000126,
+    Clear               = 0x0000_0126,
     /// Clear Control
-    ClearControl        = 0x00000127,
+    ClearControl        = 0x0000_0127,
     /// Clock Set
-    ClockSet            = 0x00000128,
+    ClockSet            = 0x0000_0128,
     /// Hierarchy Change Auth
-    HierarchyChangeAuth = 0x00000129,
+    HierarchyChangeAuth = 0x0000_0129,
     /// NV Define Space
-    NvDefineSpace       = 0x0000012A,
+    NvDefineSpace       = 0x0000_012A,
     /// PCR Allocate
-    PcrAllocate         = 0x0000012B,
+    PcrAllocate         = 0x0000_012B,
     /// PCR Set Auth Policy
-    PcrSetAuthPolicy    = 0x0000012C,
+    PcrSetAuthPolicy    = 0x0000_012C,
     /// PP Commands
-    PpCommands          = 0x0000012D,
+    PpCommands          = 0x0000_012D,
     /// Set Primary Policy
-    SetPrimaryPolicy    = 0x0000012E,
+    SetPrimaryPolicy    = 0x0000_012E,
     /// Field Upgrade Start
-    FieldUpgradeStart   = 0x0000012F,
+    FieldUpgradeStart   = 0x0000_012F,
     /// Clock Rate Adjust
-    ClockRateAdjust     = 0x00000130,
+    ClockRateAdjust     = 0x0000_0130,
     /// Create Primary
-    CreatePrimary       = 0x00000131,
+    CreatePrimary       = 0x0000_0131,
     /// NV Global Write Lock
-    NvGlobalWriteLock   = 0x00000132,
+    NvGlobalWriteLock   = 0x0000_0132,
     /// Get Command Audit Digest
-    GetCommandAuditDigest = 0x00000133,
+    GetCommandAuditDigest = 0x0000_0133,
     /// NV Increment
-    NvIncrement         = 0x00000134,
+    NvIncrement         = 0x0000_0134,
     /// NV Set Bits
-    NvSetBits           = 0x00000135,
+    NvSetBits           = 0x0000_0135,
     /// NV Extend
-    NvExtend            = 0x00000136,
+    NvExtend            = 0x0000_0136,
     /// NV Write
-    NvWrite             = 0x00000137,
+    NvWrite             = 0x0000_0137,
     /// NV Write Lock
-    NvWriteLock         = 0x00000138,
+    NvWriteLock         = 0x0000_0138,
     /// Dictionary Attack Lock Reset
-    DictionaryAttackLockReset = 0x00000139,
+    DictionaryAttackLockReset = 0x0000_0139,
     /// Dictionary Attack Parameters
-    DictionaryAttackParameters = 0x0000013A,
+    DictionaryAttackParameters = 0x0000_013A,
     /// NV Change Auth
-    NvChangeAuth        = 0x0000013B,
+    NvChangeAuth        = 0x0000_013B,
     /// PCR Event
-    PcrEvent            = 0x0000013C,
+    PcrEvent            = 0x0000_013C,
     /// PCR Reset
-    PcrReset            = 0x0000013D,
+    PcrReset            = 0x0000_013D,
     /// Sequence Complete
-    SequenceComplete    = 0x0000013E,
+    SequenceComplete    = 0x0000_013E,
     /// Set Algorithm Set
-    SetAlgorithmSet     = 0x0000013F,
+    SetAlgorithmSet     = 0x0000_013F,
     /// Set Command Code Audit Status
-    SetCommandCodeAuditStatus = 0x00000140,
+    SetCommandCodeAuditStatus = 0x0000_0140,
     /// Field Upgrade Data
-    FieldUpgradeData    = 0x00000141,
+    FieldUpgradeData    = 0x0000_0141,
     /// Incremental Self Test
-    IncrementalSelfTest = 0x00000142,
+    IncrementalSelfTest = 0x0000_0142,
     /// Self Test
-    SelfTest            = 0x00000143,
+    SelfTest            = 0x0000_0143,
     /// Startup
-    Startup             = 0x00000144,
+    Startup             = 0x0000_0144,
     /// Shutdown
-    Shutdown            = 0x00000145,
+    Shutdown            = 0x0000_0145,
     /// Stir Random
-    StirRandom          = 0x00000146,
+    StirRandom          = 0x0000_0146,
     /// Activate Credential
-    ActivateCredential  = 0x00000147,
+    ActivateCredential  = 0x0000_0147,
     /// Certify
-    Certify             = 0x00000148,
+    Certify             = 0x0000_0148,
     /// Policy NV
-    PolicyNv            = 0x00000149,
+    PolicyNv            = 0x0000_0149,
     /// Certify Creation
-    CertifyCreation     = 0x0000014A,
+    CertifyCreation     = 0x0000_014A,
     /// Duplicate
-    Duplicate           = 0x0000014B,
+    Duplicate           = 0x0000_014B,
     /// Get Time
-    GetTime             = 0x0000014C,
+    GetTime             = 0x0000_014C,
     /// Get Session Audit Digest
-    GetSessionAuditDigest = 0x0000014D,
+    GetSessionAuditDigest = 0x0000_014D,
     /// NV Read
-    NvRead              = 0x0000014E,
+    NvRead              = 0x0000_014E,
     /// NV Read Lock
-    NvReadLock          = 0x0000014F,
+    NvReadLock          = 0x0000_014F,
     /// Object Change Auth
-    ObjectChangeAuth    = 0x00000150,
+    ObjectChangeAuth    = 0x0000_0150,
     /// Policy Secret
-    PolicySecret        = 0x00000151,
+    PolicySecret        = 0x0000_0151,
     /// Rewrap
-    Rewrap              = 0x00000152,
+    Rewrap              = 0x0000_0152,
     /// Create
-    Create              = 0x00000153,
+    Create              = 0x0000_0153,
     /// ECDH Key Gen
-    EcdhKeyGen          = 0x00000154,
+    EcdhKeyGen          = 0x0000_0154,
     /// HMAC
-    Hmac                = 0x00000155,
+    Hmac                = 0x0000_0155,
     /// Import
-    Import              = 0x00000156,
+    Import              = 0x0000_0156,
     /// Load
-    Load                = 0x00000157,
+    Load                = 0x0000_0157,
     /// Quote
-    Quote               = 0x00000158,
+    Quote               = 0x0000_0158,
     /// RSA Decrypt
-    RsaDecrypt          = 0x00000159,
+    RsaDecrypt          = 0x0000_0159,
     /// HMAC Start
-    HmacStart           = 0x0000015B,
+    HmacStart           = 0x0000_015B,
     /// Sequence Update
-    SequenceUpdate      = 0x0000015C,
+    SequenceUpdate      = 0x0000_015C,
     /// Sign
-    Sign                = 0x0000015D,
+    Sign                = 0x0000_015D,
     /// Unseal
-    Unseal              = 0x0000015E,
+    Unseal              = 0x0000_015E,
     /// Policy Signed
-    PolicySigned        = 0x00000160,
+    PolicySigned        = 0x0000_0160,
     /// Context Load
-    ContextLoad         = 0x00000161,
+    ContextLoad         = 0x0000_0161,
     /// Context Save
-    ContextSave         = 0x00000162,
+    ContextSave         = 0x0000_0162,
     /// ECDH Z Gen
-    EcdhZGen            = 0x00000163,
+    EcdhZGen            = 0x0000_0163,
     /// Encrypt Decrypt
-    EncryptDecrypt      = 0x00000164,
+    EncryptDecrypt      = 0x0000_0164,
     /// Flush Context
-    FlushContext        = 0x00000165,
+    FlushContext        = 0x0000_0165,
     /// Load External
-    LoadExternal        = 0x00000167,
+    LoadExternal        = 0x0000_0167,
     /// Make Credential
-    MakeCredential      = 0x00000168,
+    MakeCredential      = 0x0000_0168,
     /// NV Read Public
-    NvReadPublic        = 0x00000169,
+    NvReadPublic        = 0x0000_0169,
     /// Policy Authorize
-    PolicyAuthorize     = 0x0000016A,
+    PolicyAuthorize     = 0x0000_016A,
     /// Policy Auth Value
-    PolicyAuthValue     = 0x0000016B,
+    PolicyAuthValue     = 0x0000_016B,
     /// Policy Command Code
-    PolicyCommandCode   = 0x0000016C,
+    PolicyCommandCode   = 0x0000_016C,
     /// Policy Counter Timer
-    PolicyCounterTimer  = 0x0000016D,
+    PolicyCounterTimer  = 0x0000_016D,
     /// Policy CP Hash
-    PolicyCpHash        = 0x0000016E,
+    PolicyCpHash        = 0x0000_016E,
     /// Policy Locality
-    PolicyLocality      = 0x0000016F,
+    PolicyLocality      = 0x0000_016F,
     /// Policy Name Hash
-    PolicyNameHash      = 0x00000170,
+    PolicyNameHash      = 0x0000_0170,
     /// Policy OR
-    PolicyOr            = 0x00000171,
+    PolicyOr            = 0x0000_0171,
     /// Policy Ticket
-    PolicyTicket        = 0x00000172,
+    PolicyTicket        = 0x0000_0172,
     /// Read Public
-    ReadPublic          = 0x00000173,
+    ReadPublic          = 0x0000_0173,
     /// RSA Encrypt
-    RsaEncrypt          = 0x00000174,
+    RsaEncrypt          = 0x0000_0174,
     /// Start Auth Session
-    StartAuthSession    = 0x00000176,
+    StartAuthSession    = 0x0000_0176,
     /// Verify Signature
-    VerifySignature     = 0x00000177,
+    VerifySignature     = 0x0000_0177,
     /// ECC Parameters
-    EccParameters       = 0x00000178,
+    EccParameters       = 0x0000_0178,
     /// Firmware Read
-    FirmwareRead        = 0x00000179,
+    FirmwareRead        = 0x0000_0179,
     /// Get Capability
-    GetCapability       = 0x0000017A,
+    GetCapability       = 0x0000_017A,
     /// Get Random
-    GetRandom           = 0x0000017B,
+    GetRandom           = 0x0000_017B,
     /// Get Test Result
-    GetTestResult       = 0x0000017C,
+    GetTestResult       = 0x0000_017C,
     /// Hash
-    Hash                = 0x0000017D,
+    Hash                = 0x0000_017D,
     /// PCR Read
-    PcrRead             = 0x0000017E,
+    PcrRead             = 0x0000_017E,
     /// Policy PCR
-    PolicyPcr           = 0x0000017F,
+    PolicyPcr           = 0x0000_017F,
     /// Policy Restart
-    PolicyRestart       = 0x00000180,
+    PolicyRestart       = 0x0000_0180,
     /// Read Clock
-    ReadClock           = 0x00000181,
+    ReadClock           = 0x0000_0181,
     /// PCR Extend
-    PcrExtend           = 0x00000182,
+    PcrExtend           = 0x0000_0182,
     /// Policy Get Digest
-    PolicyGetDigest     = 0x00000189,
+    PolicyGetDigest     = 0x0000_0189,
     /// Test Parms
-    TestParms           = 0x0000018A,
+    TestParms           = 0x0000_018A,
     /// Commit
-    Commit              = 0x0000018B,
+    Commit              = 0x0000_018B,
     /// Policy Password
-    PolicyPassword      = 0x0000018C,
+    PolicyPassword      = 0x0000_018C,
     /// Z Gen 2 Phase
-    ZGen2Phase          = 0x0000018D,
+    ZGen2Phase          = 0x0000_018D,
     /// EC Ephemeral
-    EcEphemeral         = 0x0000018E,
+    EcEphemeral         = 0x0000_018E,
     /// Policy NV Written
-    PolicyNvWritten     = 0x0000018F,
+    PolicyNvWritten     = 0x0000_018F,
     /// Policy Template
-    PolicyTemplate      = 0x00000190,
+    PolicyTemplate      = 0x0000_0190,
     /// Create Loaded
-    CreateLoaded        = 0x00000191,
+    CreateLoaded        = 0x0000_0191,
     /// Policy Authorize NV
-    PolicyAuthorizeNv   = 0x00000192,
+    PolicyAuthorizeNv   = 0x0000_0192,
     /// Encrypt Decrypt 2
-    EncryptDecrypt2     = 0x00000193,
+    EncryptDecrypt2     = 0x0000_0193,
 }
 
 // =============================================================================
@@ -678,44 +678,44 @@ pub enum TpmCommand {
 // =============================================================================
 
 /// TPM response code format 0 (TPM 1.2 compatible)
-pub const TPM_RC_SUCCESS: u32 = 0x00000000;
-pub const TPM_RC_BAD_TAG: u32 = 0x0000001E;
+pub const TPM_RC_SUCCESS: u32 = 0x0000_0000;
+pub const TPM_RC_BAD_TAG: u32 = 0x0000_001E;
 
 /// TPM 2.0 response code format 1 (base values)
-pub const TPM_RC_INITIALIZE: u32 = 0x00000100;
-pub const TPM_RC_FAILURE: u32 = 0x00000101;
-pub const TPM_RC_SEQUENCE: u32 = 0x00000103;
-pub const TPM_RC_PRIVATE: u32 = 0x0000010B;
-pub const TPM_RC_HMAC: u32 = 0x00000119;
-pub const TPM_RC_DISABLED: u32 = 0x00000120;
-pub const TPM_RC_EXCLUSIVE: u32 = 0x00000121;
-pub const TPM_RC_AUTH_TYPE: u32 = 0x00000124;
-pub const TPM_RC_AUTH_MISSING: u32 = 0x00000125;
-pub const TPM_RC_POLICY: u32 = 0x00000126;
-pub const TPM_RC_PCR: u32 = 0x00000127;
-pub const TPM_RC_PCR_CHANGED: u32 = 0x00000128;
-pub const TPM_RC_UPGRADE: u32 = 0x0000012D;
-pub const TPM_RC_TOO_MANY_CONTEXTS: u32 = 0x0000012E;
-pub const TPM_RC_AUTH_UNAVAILABLE: u32 = 0x0000012F;
-pub const TPM_RC_REBOOT: u32 = 0x00000130;
-pub const TPM_RC_UNBALANCED: u32 = 0x00000131;
-pub const TPM_RC_COMMAND_SIZE: u32 = 0x00000142;
-pub const TPM_RC_COMMAND_CODE: u32 = 0x00000143;
-pub const TPM_RC_AUTHSIZE: u32 = 0x00000144;
-pub const TPM_RC_AUTH_CONTEXT: u32 = 0x00000145;
-pub const TPM_RC_NV_RANGE: u32 = 0x00000146;
-pub const TPM_RC_NV_SIZE: u32 = 0x00000147;
-pub const TPM_RC_NV_LOCKED: u32 = 0x00000148;
-pub const TPM_RC_NV_AUTHORIZATION: u32 = 0x00000149;
-pub const TPM_RC_NV_UNINITIALIZED: u32 = 0x0000014A;
-pub const TPM_RC_NV_SPACE: u32 = 0x0000014B;
-pub const TPM_RC_NV_DEFINED: u32 = 0x0000014C;
-pub const TPM_RC_BAD_CONTEXT: u32 = 0x00000150;
-pub const TPM_RC_CPHASH: u32 = 0x00000151;
-pub const TPM_RC_PARENT: u32 = 0x00000152;
-pub const TPM_RC_NEEDS_TEST: u32 = 0x00000153;
-pub const TPM_RC_NO_RESULT: u32 = 0x00000154;
-pub const TPM_RC_SENSITIVE: u32 = 0x00000155;
+pub const TPM_RC_INITIALIZE: u32 = 0x0000_0100;
+pub const TPM_RC_FAILURE: u32 = 0x0000_0101;
+pub const TPM_RC_SEQUENCE: u32 = 0x0000_0103;
+pub const TPM_RC_PRIVATE: u32 = 0x0000_010B;
+pub const TPM_RC_HMAC: u32 = 0x0000_0119;
+pub const TPM_RC_DISABLED: u32 = 0x0000_0120;
+pub const TPM_RC_EXCLUSIVE: u32 = 0x0000_0121;
+pub const TPM_RC_AUTH_TYPE: u32 = 0x0000_0124;
+pub const TPM_RC_AUTH_MISSING: u32 = 0x0000_0125;
+pub const TPM_RC_POLICY: u32 = 0x0000_0126;
+pub const TPM_RC_PCR: u32 = 0x0000_0127;
+pub const TPM_RC_PCR_CHANGED: u32 = 0x0000_0128;
+pub const TPM_RC_UPGRADE: u32 = 0x0000_012D;
+pub const TPM_RC_TOO_MANY_CONTEXTS: u32 = 0x0000_012E;
+pub const TPM_RC_AUTH_UNAVAILABLE: u32 = 0x0000_012F;
+pub const TPM_RC_REBOOT: u32 = 0x0000_0130;
+pub const TPM_RC_UNBALANCED: u32 = 0x0000_0131;
+pub const TPM_RC_COMMAND_SIZE: u32 = 0x0000_0142;
+pub const TPM_RC_COMMAND_CODE: u32 = 0x0000_0143;
+pub const TPM_RC_AUTHSIZE: u32 = 0x0000_0144;
+pub const TPM_RC_AUTH_CONTEXT: u32 = 0x0000_0145;
+pub const TPM_RC_NV_RANGE: u32 = 0x0000_0146;
+pub const TPM_RC_NV_SIZE: u32 = 0x0000_0147;
+pub const TPM_RC_NV_LOCKED: u32 = 0x0000_0148;
+pub const TPM_RC_NV_AUTHORIZATION: u32 = 0x0000_0149;
+pub const TPM_RC_NV_UNINITIALIZED: u32 = 0x0000_014A;
+pub const TPM_RC_NV_SPACE: u32 = 0x0000_014B;
+pub const TPM_RC_NV_DEFINED: u32 = 0x0000_014C;
+pub const TPM_RC_BAD_CONTEXT: u32 = 0x0000_0150;
+pub const TPM_RC_CPHASH: u32 = 0x0000_0151;
+pub const TPM_RC_PARENT: u32 = 0x0000_0152;
+pub const TPM_RC_NEEDS_TEST: u32 = 0x0000_0153;
+pub const TPM_RC_NO_RESULT: u32 = 0x0000_0154;
+pub const TPM_RC_SENSITIVE: u32 = 0x0000_0155;
 
 /// TPM response code
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -767,52 +767,52 @@ impl fmt::Display for TpmResponseCode {
 
 /// TPM handle types
 pub mod handle {
-    /// PCR handles (0x00000000 - 0x0000001F)
-    pub const PCR_FIRST: u32 = 0x00000000;
-    pub const PCR_LAST: u32 = 0x0000001F;
+    /// PCR handles (0x0000_0000 - 0x0000_001F)
+    pub const PCR_FIRST: u32 = 0x0000_0000;
+    pub const PCR_LAST: u32 = 0x0000_001F;
 
-    /// NV index handles (0x01000000 - 0x01FFFFFF)
-    pub const NV_INDEX_FIRST: u32 = 0x01000000;
-    pub const NV_INDEX_LAST: u32 = 0x01FFFFFF;
+    /// NV index handles (0x0100_0000 - 0x01FF_FFFF)
+    pub const NV_INDEX_FIRST: u32 = 0x0100_0000;
+    pub const NV_INDEX_LAST: u32 = 0x01FF_FFFF;
 
-    /// HMAC/loaded session handles (0x02000000 - 0x02FFFFFF)
-    pub const HMAC_SESSION_FIRST: u32 = 0x02000000;
-    pub const HMAC_SESSION_LAST: u32 = 0x02FFFFFF;
+    /// HMAC/loaded session handles (0x0200_0000 - 0x02FF_FFFF)
+    pub const HMAC_SESSION_FIRST: u32 = 0x0200_0000;
+    pub const HMAC_SESSION_LAST: u32 = 0x02FF_FFFF;
 
-    /// Loaded session handles (0x02000000 - 0x02FFFFFF)
-    pub const LOADED_SESSION_FIRST: u32 = 0x02000000;
-    pub const LOADED_SESSION_LAST: u32 = 0x02FFFFFF;
+    /// Loaded session handles (0x0200_0000 - 0x02FF_FFFF)
+    pub const LOADED_SESSION_FIRST: u32 = 0x0200_0000;
+    pub const LOADED_SESSION_LAST: u32 = 0x02FF_FFFF;
 
-    /// Policy session handles (0x03000000 - 0x03FFFFFF)
-    pub const POLICY_SESSION_FIRST: u32 = 0x03000000;
-    pub const POLICY_SESSION_LAST: u32 = 0x03FFFFFF;
+    /// Policy session handles (0x0300_0000 - 0x03FF_FFFF)
+    pub const POLICY_SESSION_FIRST: u32 = 0x0300_0000;
+    pub const POLICY_SESSION_LAST: u32 = 0x03FF_FFFF;
 
-    /// Transient object handles (0x80000000 - 0x80FFFFFF)
-    pub const TRANSIENT_FIRST: u32 = 0x80000000;
-    pub const TRANSIENT_LAST: u32 = 0x80FFFFFF;
+    /// Transient object handles (0x8000_0000 - 0x80FF_FFFF)
+    pub const TRANSIENT_FIRST: u32 = 0x8000_0000;
+    pub const TRANSIENT_LAST: u32 = 0x80FF_FFFF;
 
-    /// Persistent object handles (0x81000000 - 0x81FFFFFF)
-    pub const PERSISTENT_FIRST: u32 = 0x81000000;
-    pub const PERSISTENT_LAST: u32 = 0x81FFFFFF;
+    /// Persistent object handles (0x8100_0000 - 0x81FF_FFFF)
+    pub const PERSISTENT_FIRST: u32 = 0x8100_0000;
+    pub const PERSISTENT_LAST: u32 = 0x81FF_FFFF;
 
     /// Permanent handles
-    pub const PERMANENT_FIRST: u32 = 0x40000000;
+    pub const PERMANENT_FIRST: u32 = 0x4000_0000;
 
     /// Owner hierarchy
-    pub const RH_OWNER: u32 = 0x40000001;
+    pub const RH_OWNER: u32 = 0x4000_0001;
     /// Null hierarchy
-    pub const RH_NULL: u32 = 0x40000007;
+    pub const RH_NULL: u32 = 0x4000_0007;
     /// Lockout
-    pub const RH_LOCKOUT: u32 = 0x4000000A;
+    pub const RH_LOCKOUT: u32 = 0x4000_000A;
     /// Endorsement hierarchy
-    pub const RH_ENDORSEMENT: u32 = 0x4000000B;
+    pub const RH_ENDORSEMENT: u32 = 0x4000_000B;
     /// Platform hierarchy
-    pub const RH_PLATFORM: u32 = 0x4000000C;
+    pub const RH_PLATFORM: u32 = 0x4000_000C;
     /// Platform NV
-    pub const RH_PLATFORM_NV: u32 = 0x4000000D;
+    pub const RH_PLATFORM_NV: u32 = 0x4000_000D;
 
     /// Password authorization
-    pub const RS_PW: u32 = 0x40000009;
+    pub const RS_PW: u32 = 0x4000_0009;
 }
 
 // =============================================================================
@@ -927,77 +927,77 @@ impl fmt::Debug for PcrValue {
 #[repr(u32)]
 pub enum EventType {
     /// Pre-boot cert
-    PrebootCert          = 0x00000000,
+    PrebootCert          = 0x0000_0000,
     /// POST code
-    PostCode             = 0x00000001,
+    PostCode             = 0x0000_0001,
     /// Unused
-    Unused               = 0x00000002,
+    Unused               = 0x0000_0002,
     /// No action
-    NoAction             = 0x00000003,
+    NoAction             = 0x0000_0003,
     /// Separator
-    Separator            = 0x00000004,
+    Separator            = 0x0000_0004,
     /// Action
-    Action               = 0x00000005,
+    Action               = 0x0000_0005,
     /// Event tag
-    EventTag             = 0x00000006,
+    EventTag             = 0x0000_0006,
     /// S-CRTM contents
-    SCrtmContents        = 0x00000007,
+    SCrtmContents        = 0x0000_0007,
     /// S-CRTM version
-    SCrtmVersion         = 0x00000008,
+    SCrtmVersion         = 0x0000_0008,
     /// CPU microcode
-    CpuMicrocode         = 0x00000009,
+    CpuMicrocode         = 0x0000_0009,
     /// Platform config flags
-    PlatformConfigFlags  = 0x0000000A,
+    PlatformConfigFlags  = 0x0000_000A,
     /// Table of devices
-    TableOfDevices       = 0x0000000B,
+    TableOfDevices       = 0x0000_000B,
     /// Compact hash
-    CompactHash          = 0x0000000C,
+    CompactHash          = 0x0000_000C,
     /// IPL
-    Ipl                  = 0x0000000D,
+    Ipl                  = 0x0000_000D,
     /// IPL partition data
-    IplPartitionData     = 0x0000000E,
+    IplPartitionData     = 0x0000_000E,
     /// Non-host code
-    NonHostCode          = 0x0000000F,
+    NonHostCode          = 0x0000_000F,
     /// Non-host config
-    NonHostConfig        = 0x00000010,
+    NonHostConfig        = 0x0000_0010,
     /// Non-host info
-    NonHostInfo          = 0x00000011,
+    NonHostInfo          = 0x0000_0011,
     /// Omit boot device events
-    OmitBootDeviceEvents = 0x00000012,
+    OmitBootDeviceEvents = 0x0000_0012,
     /// EFI event base
-    EfiEventBase         = 0x80000000,
+    EfiEventBase         = 0x8000_0000,
     /// EFI variable driver config
-    EfiVariableDriverConfig = 0x80000001,
+    EfiVariableDriverConfig = 0x8000_0001,
     /// EFI variable boot
-    EfiVariableBoot      = 0x80000002,
+    EfiVariableBoot      = 0x8000_0002,
     /// EFI boot services application
-    EfiBootServicesApplication = 0x80000003,
+    EfiBootServicesApplication = 0x8000_0003,
     /// EFI boot services driver
-    EfiBootServicesDriver = 0x80000004,
+    EfiBootServicesDriver = 0x8000_0004,
     /// EFI runtime services driver
-    EfiRuntimeServicesDriver = 0x80000005,
+    EfiRuntimeServicesDriver = 0x8000_0005,
     /// EFI GPT event
-    EfiGptEvent          = 0x80000006,
+    EfiGptEvent          = 0x8000_0006,
     /// EFI action
-    EfiAction            = 0x80000007,
+    EfiAction            = 0x8000_0007,
     /// EFI platform firmware blob
-    EfiPlatformFirmwareBlob = 0x80000008,
+    EfiPlatformFirmwareBlob = 0x8000_0008,
     /// EFI handoff tables
-    EfiHandoffTables     = 0x80000009,
+    EfiHandoffTables     = 0x8000_0009,
     /// EFI platform firmware blob 2
-    EfiPlatformFirmwareBlob2 = 0x8000000A,
+    EfiPlatformFirmwareBlob2 = 0x8000_000A,
     /// EFI handoff tables 2
-    EfiHandoffTables2    = 0x8000000B,
+    EfiHandoffTables2    = 0x8000_000B,
     /// EFI variable boot 2
-    EfiVariableBoot2     = 0x8000000C,
+    EfiVariableBoot2     = 0x8000_000C,
     /// EFI HCR event
-    EfiHcrEvent          = 0x80000010,
+    EfiHcrEvent          = 0x8000_0010,
     /// EFI variable authority
-    EfiVariableAuthority = 0x800000E0,
+    EfiVariableAuthority = 0x8000_00E0,
     /// EFI SPDM firmware blob
-    EfiSpdmFirmwareBlob  = 0x800000E1,
+    EfiSpdmFirmwareBlob  = 0x8000_00E1,
     /// EFI SPDM firmware config
-    EfiSpdmFirmwareConfig = 0x800000E2,
+    EfiSpdmFirmwareConfig = 0x8000_00E2,
 }
 
 /// TCG event log entry header (spec ID 1.0)
@@ -1202,25 +1202,25 @@ impl NvPublic {
 #[repr(u32)]
 pub enum TpmCapability {
     /// Algorithms
-    Algorithms    = 0x00000000,
+    Algorithms    = 0x0000_0000,
     /// Handles
-    Handles       = 0x00000001,
+    Handles       = 0x0000_0001,
     /// Commands
-    Commands      = 0x00000002,
+    Commands      = 0x0000_0002,
     /// PP Commands
-    PpCommands    = 0x00000003,
+    PpCommands    = 0x0000_0003,
     /// Audit Commands
-    AuditCommands = 0x00000004,
+    AuditCommands = 0x0000_0004,
     /// Assigned PCRs
-    Pcrs          = 0x00000005,
+    Pcrs          = 0x0000_0005,
     /// TPM Properties
-    TpmProperties = 0x00000006,
+    TpmProperties = 0x0000_0006,
     /// PCR Properties
-    PcrProperties = 0x00000007,
+    PcrProperties = 0x0000_0007,
     /// ECC Curves
-    EccCurves     = 0x00000008,
+    EccCurves     = 0x0000_0008,
     /// Auth Policies
-    AuthPolicies  = 0x00000009,
+    AuthPolicies  = 0x0000_0009,
 }
 
 /// TPM property tags
@@ -1743,25 +1743,25 @@ impl TpmInfo {
     /// Get manufacturer name
     pub fn manufacturer_name(&self) -> &'static str {
         match self.manufacturer {
-            0x414D4400 => "AMD",
-            0x41544D4C => "Atmel",
-            0x4252434D => "Broadcom",
-            0x48504500 => "HPE",
-            0x49424D00 => "IBM",
-            0x49465800 => "Infineon",
-            0x494E5443 => "Intel",
-            0x4C454E00 => "Lenovo",
-            0x4D534654 => "Microsoft",
-            0x4E534D20 => "National Semiconductor",
-            0x4E545A00 => "Nationz",
-            0x4E544300 => "Nuvoton",
-            0x51434F4D => "Qualcomm",
-            0x534D5343 => "SMSC",
-            0x53544D20 => "ST Microelectronics",
-            0x534D534E => "Samsung",
-            0x534E5300 => "Sinosun",
-            0x54584E00 => "Texas Instruments",
-            0x57454300 => "Winbond",
+            0x414D_4400 => "AMD",
+            0x4154_4D4C => "Atmel",
+            0x4252_434D => "Broadcom",
+            0x4850_4500 => "HPE",
+            0x4942_4D00 => "IBM",
+            0x4946_5800 => "Infineon",
+            0x494E_5443 => "Intel",
+            0x4C45_4E00 => "Lenovo",
+            0x4D53_4654 => "Microsoft",
+            0x4E53_4D20 => "National Semiconductor",
+            0x4E54_5A00 => "Nationz",
+            0x4E54_4300 => "Nuvoton",
+            0x5143_4F4D => "Qualcomm",
+            0x534D_5343 => "SMSC",
+            0x5354_4D20 => "ST Microelectronics",
+            0x534D_534E => "Samsung",
+            0x534E_5300 => "Sinosun",
+            0x5458_4E00 => "Texas Instruments",
+            0x5745_4300 => "Winbond",
             _ => "Unknown",
         }
     }
