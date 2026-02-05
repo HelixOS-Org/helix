@@ -190,9 +190,10 @@ pub enum MmcCommand {
 // =============================================================================
 
 /// Command response types
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ResponseType {
     /// No response
+    #[default]
     None,
     /// R1 - Normal response
     R1,
@@ -213,9 +214,10 @@ pub enum ResponseType {
 }
 
 /// Data transfer direction
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DataDirection {
     /// No data transfer
+    #[default]
     None,
     /// Read from card
     Read,
@@ -242,18 +244,6 @@ pub struct CommandFlags {
     pub check_crc: bool,
     /// Check index
     pub check_index: bool,
-}
-
-impl Default for ResponseType {
-    fn default() -> Self {
-        ResponseType::None
-    }
-}
-
-impl Default for DataDirection {
-    fn default() -> Self {
-        DataDirection::None
-    }
 }
 
 impl CommandFlags {
