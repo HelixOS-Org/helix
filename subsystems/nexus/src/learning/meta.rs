@@ -10,6 +10,8 @@
 //! - Learning rate meta-optimization
 //! - Task embeddings
 
+#![allow(clippy::excessive_nesting)]
+
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
@@ -133,7 +135,7 @@ impl TaskDistribution {
             return self.tasks.values().next();
         }
 
-        let mut rng = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        let rng = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
         let random = (rng >> 32) as f64 / u32::MAX as f64 * total_weight;
 
         let mut cumsum = 0.0;
@@ -513,7 +515,7 @@ impl TaskEmbedding {
                 (0..embed_dim)
                     .map(|e| {
                         let seed = (t * 31 + e * 17) as u64;
-                        let mut rng = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+                        let rng = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
                         (rng >> 32) as f64 / u32::MAX as f64 * 0.2 - 0.1
                     })
                     .collect()
