@@ -328,7 +328,7 @@ impl Default for SecurityConfig {
 
 /// Configuration parser
 struct ConfigParser<'a> {
-    content: &'a str,
+    _content: &'a str,
     lines: core::str::Lines<'a>,
     current_section: Option<String>,
 }
@@ -336,7 +336,7 @@ struct ConfigParser<'a> {
 impl<'a> ConfigParser<'a> {
     fn new(content: &'a str) -> Self {
         Self {
-            content,
+            _content: content,
             lines: content.lines(),
             current_section: None,
         }
