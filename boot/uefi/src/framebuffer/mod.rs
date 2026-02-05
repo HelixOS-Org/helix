@@ -156,10 +156,10 @@ impl PixelBitmask {
     }
 
     /// Standard RGBX 8888 mask
-    pub const RGBX_8888: Self = Self::new(0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+    pub const RGBX_8888: Self = Self::new(0x00FF_0000, 0x0000_FF00, 0x0000_00FF, 0xFF00_0000);
 
     /// Standard BGRX 8888 mask
-    pub const BGRX_8888: Self = Self::new(0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+    pub const BGRX_8888: Self = Self::new(0x0000_00FF, 0x0000_FF00, 0x00FF_0000, 0xFF00_0000);
 
     /// RGB 565 mask
     pub const RGB_565: Self = Self::new(0xF800, 0x07E0, 0x001F, 0x0000);
