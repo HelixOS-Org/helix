@@ -77,7 +77,7 @@ impl BootConfig {
 
             // Key-value pair
             if let Some((key, value)) = parse_key_value(line) {
-                config.apply_setting(&parser.current_section, key, value)?;
+                config.apply_setting(parser.current_section.as_deref(), key, value)?;
             }
         }
 
@@ -87,21 +87,21 @@ impl BootConfig {
     /// Apply a setting
     fn apply_setting(
         &mut self,
-        section: &Option<String>,
+        section: Option<&str>,
         key: &str,
         value: &str,
     ) -> Result<(), ConfigError> {
-        match section.as_deref() {
+        match section {
             None | Some("boot") => match key {
                 "timeout" => self.timeout = parse_u32(value)?,
                 "default" => self.default_entry = parse_usize(value)?,
                 "verbose" => self.verbose = parse_bool(value)?,
                 "debug" => self.debug = parse_bool(value)?,
-                "log_level" | "loglevel" => self.log_level = LogLevel::from_str(value)?,
+                "log_level" | "loglevel" => self.log_level = LogLevel::parse(value)?,
                 _ => {},
             },
             Some("graphics") => match key {
-                "mode" => self.graphics.mode = GraphicsMode::from_str(value)?,
+                "mode" => self.graphics.mode = GraphicsMode::parse(value)?,
                 "width" => self.graphics.width = Some(parse_u32(value)?),
                 "height" => self.graphics.height = Some(parse_u32(value)?),
                 "depth" | "bpp" => self.graphics.depth = Some(parse_u32(value)?),
@@ -220,7 +220,7 @@ pub enum LogLevel {
 
 impl LogLevel {
     /// Parse from string
-    pub fn from_str(s: &str) -> Result<Self, ConfigError> {
+    pub fn parse(s: &str) -> Result<Self, ConfigError> {
         match s.to_lowercase().as_str() {
             "trace" | "0" => Ok(Self::Trace),
             "debug" | "1" => Ok(Self::Debug),
@@ -280,7 +280,7 @@ pub enum GraphicsMode {
 
 impl GraphicsMode {
     /// Parse from string
-    pub fn from_str(s: &str) -> Result<Self, ConfigError> {
+    pub fn parse(s: &str) -> Result<Self, ConfigError> {
         match s.to_lowercase().as_str() {
             "auto" => Ok(Self::Auto),
             "text" => Ok(Self::Text),
@@ -456,8 +456,8 @@ hidden = false
 
     #[test]
     fn test_log_level() {
-        assert_eq!(LogLevel::from_str("debug"), Ok(LogLevel::Debug));
-        assert_eq!(LogLevel::from_str("info"), Ok(LogLevel::Info));
-        assert_eq!(LogLevel::from_str("error"), Ok(LogLevel::Error));
+        assert_eq!(LogLevel::parse("debug"), Ok(LogLevel::Debug));
+        assert_eq!(LogLevel::parse("info"), Ok(LogLevel::Info));
+        assert_eq!(LogLevel::parse("error"), Ok(LogLevel::Error));
     }
 }
