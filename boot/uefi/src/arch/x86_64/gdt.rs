@@ -186,7 +186,7 @@ impl SegmentDescriptor {
         unsafe {
             let limit_low = core::ptr::addr_of!(self.limit_low).read_unaligned() as u32;
             let limit_flags = core::ptr::addr_of!(self.limit_flags).read_unaligned();
-            limit_low | (((limit_flags & 0x0F) as u32) << 16)
+            limit_low | (u32::from(limit_flags & 0x0F) << 16)
         }
     }
 
@@ -194,7 +194,7 @@ impl SegmentDescriptor {
     ///
     /// # Safety
     /// Uses unaligned reads for packed struct field access.
-    pub fn is_present(&self) -> bool {
+    pub const fn is_present(&self) -> bool {
         // SAFETY: Reading from packed struct field using unaligned access
         unsafe {
             let access = core::ptr::addr_of!(self.access).read_unaligned();
@@ -206,7 +206,7 @@ impl SegmentDescriptor {
     ///
     /// # Safety
     /// Uses unaligned reads for packed struct field access.
-    pub fn dpl(&self) -> u8 {
+    pub const fn dpl(&self) -> u8 {
         // SAFETY: Reading from packed struct field using unaligned access
         unsafe {
             let access = core::ptr::addr_of!(self.access).read_unaligned();
@@ -239,7 +239,7 @@ pub mod system_type {
 #[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct TssDescriptor {
-    /// Low 8 bytes (like SegmentDescriptor)
+    /// Low 8 bytes (like `SegmentDescriptor`)
     low: SegmentDescriptor,
     /// Base bits 32-63
     base_upper: u32,
@@ -249,26 +249,26 @@ pub struct TssDescriptor {
 
 impl TssDescriptor {
     /// Create new TSS descriptor
-    pub fn new(base: u64, limit: u32) -> Self {
-        let base32 = base as u32;
+    pub const fn new(base: u64, limit: u32) -> Self {
+        let base32 = u32::try_from(base).unwrap_or(u32::MAX);
 
         Self {
             low: SegmentDescriptor {
-                limit_low: limit as u16,
-                base_low: base32 as u16,
-                base_middle: (base32 >> 16) as u8,
+                limit_low: u16::try_from(limit).unwrap_or(u16::MAX),
+                base_low: u16::try_from(base32).unwrap_or(u16::MAX),
+                base_middle: u8::try_from(base32 >> 16).unwrap_or(0),
                 access: access::PRESENT | system_type::TSS64_AVAILABLE,
-                limit_flags: ((limit >> 16) as u8 & 0x0F),
-                base_high: (base32 >> 24) as u8,
+                limit_flags: u8::try_from(limit >> 16).unwrap_or(0) & 0x0F,
+                base_high: u8::try_from(base32 >> 24).unwrap_or(0),
             },
-            base_upper: (base >> 32) as u32,
+            base_upper: u32::try_from(base >> 32).unwrap_or(0),
             reserved: 0,
         }
     }
 
     /// Get base address
     pub fn base(&self) -> u64 {
-        (self.low.base() as u64) | ((self.base_upper as u64) << 32)
+        u64::from(self.low.base()) | (u64::from(self.base_upper) << 32)
     }
 
     /// Get limit
@@ -314,7 +314,7 @@ impl TaskStateSegment {
             interrupt_stack_table: [0; 7],
             reserved3: 0,
             reserved4: 0,
-            iomap_base: Self::SIZE as u16, // No I/O bitmap
+            iomap_base: u16::try_from(Self::SIZE).unwrap_or(u16::MAX), // No I/O bitmap
         }
     }
 
@@ -324,20 +324,20 @@ impl TaskStateSegment {
     }
 
     /// Get RSP0
-    pub fn rsp0(&self) -> u64 {
+    pub const fn rsp0(&self) -> u64 {
         self.privilege_stack_table[0]
     }
 
     /// Set IST entry (1-7)
     pub fn set_ist(&mut self, index: usize, stack: u64) {
-        if index >= 1 && index <= 7 {
+        if matches!(index, 1..=7) {
             self.interrupt_stack_table[index - 1] = stack;
         }
     }
 
     /// Get IST entry (1-7)
-    pub fn ist(&self, index: usize) -> u64 {
-        if index >= 1 && index <= 7 {
+    pub const fn ist(&self, index: usize) -> u64 {
+        if matches!(index, 1..=7) {
             self.interrupt_stack_table[index - 1]
         } else {
             0
@@ -384,12 +384,15 @@ impl Gdt {
 
     /// Set TSS descriptor
     pub fn set_tss(&mut self, tss_addr: u64) {
-        let tss_desc = TssDescriptor::new(tss_addr, TaskStateSegment::SIZE as u32 - 1);
+        let tss_limit = u32::try_from(TaskStateSegment::SIZE)
+            .unwrap_or(u32::MAX)
+            .saturating_sub(1);
+        let tss_desc = TssDescriptor::new(tss_addr, tss_limit);
 
         // TSS takes 2 entries in 64-bit mode
         // Safety: We're treating two SegmentDescriptors as one TssDescriptor
         unsafe {
-            let ptr = &mut self.entries[6] as *mut SegmentDescriptor as *mut TssDescriptor;
+            let ptr = core::ptr::addr_of_mut!(self.entries[6]).cast::<TssDescriptor>();
             *ptr = tss_desc;
         }
     }
@@ -397,12 +400,15 @@ impl Gdt {
     /// Get pointer to GDT
     pub fn pointer(&self) -> GdtPointer {
         GdtPointer {
-            limit: (size_of::<Self>() - 1) as u16,
+            limit: u16::try_from(size_of::<Self>() - 1).unwrap_or(u16::MAX),
             base: self as *const _ as u64,
         }
     }
 
     /// Load this GDT
+    ///
+    /// # Safety
+    /// The caller must ensure this GDT remains valid while loaded.
     pub unsafe fn load(&self) {
         let ptr = self.pointer();
         load_gdt(&ptr);
@@ -429,6 +435,9 @@ pub struct GdtPointer {
 }
 
 /// Load GDT
+///
+/// # Safety
+/// The caller must ensure the pointer is valid and points to a well-formed GDT.
 #[inline]
 pub unsafe fn load_gdt(gdt: &GdtPointer) {
     core::arch::asm!(
@@ -453,6 +462,9 @@ pub fn store_gdt() -> GdtPointer {
 }
 
 /// Load code segment
+///
+/// # Safety
+/// The caller must ensure `sel` refers to a valid code segment in the loaded GDT.
 #[inline]
 pub unsafe fn load_cs(sel: u16) {
     // Use far return to load CS
@@ -462,45 +474,66 @@ pub unsafe fn load_cs(sel: u16) {
         "push {tmp}",
         "retfq",
         "2:",
-        sel = in(reg) sel as u64,
+        sel = in(reg) u64::from(sel),
         tmp = lateout(reg) _,
         options(preserves_flags),
     );
 }
 
 /// Load data segments
+///
+/// # Safety
+/// The caller must ensure `sel` refers to a valid data segment in the loaded GDT.
 #[inline]
 pub unsafe fn load_ds(sel: u16) {
     core::arch::asm!("mov ds, {0:x}", in(reg) sel, options(nostack, preserves_flags));
 }
 
+///
+/// # Safety
+/// The caller must ensure `sel` refers to a valid data segment in the loaded GDT.
 #[inline]
 pub unsafe fn load_es(sel: u16) {
     core::arch::asm!("mov es, {0:x}", in(reg) sel, options(nostack, preserves_flags));
 }
 
+///
+/// # Safety
+/// The caller must ensure `sel` refers to a valid data segment in the loaded GDT.
 #[inline]
 pub unsafe fn load_fs(sel: u16) {
     core::arch::asm!("mov fs, {0:x}", in(reg) sel, options(nostack, preserves_flags));
 }
 
+///
+/// # Safety
+/// The caller must ensure `sel` refers to a valid data segment in the loaded GDT.
 #[inline]
 pub unsafe fn load_gs(sel: u16) {
     core::arch::asm!("mov gs, {0:x}", in(reg) sel, options(nostack, preserves_flags));
 }
 
+///
+/// # Safety
+/// The caller must ensure `sel` refers to a valid data segment in the loaded GDT.
 #[inline]
 pub unsafe fn load_ss(sel: u16) {
     core::arch::asm!("mov ss, {0:x}", in(reg) sel, options(nostack, preserves_flags));
 }
 
 /// Load TSS
+///
+/// # Safety
+/// The caller must ensure `sel` refers to a valid TSS descriptor.
 #[inline]
 pub unsafe fn load_tss(sel: u16) {
     core::arch::asm!("ltr {0:x}", in(reg) sel, options(nostack, preserves_flags));
 }
 
 /// Reload all segment registers after loading GDT
+///
+/// # Safety
+/// The caller must ensure both selectors refer to valid segments in the loaded GDT.
 pub unsafe fn reload_segments(code_sel: u16, data_sel: u16) {
     load_cs(code_sel);
     load_ds(data_sel);
@@ -541,6 +574,9 @@ static STATIC_GDT: CpuStatic<Gdt> = CpuStatic::new(Gdt::new());
 static STATIC_TSS: CpuStatic<TaskStateSegment> = CpuStatic::new(TaskStateSegment::new());
 
 /// Initialize static GDT and TSS
+///
+/// # Safety
+/// Must be called exactly once during early boot on a single CPU.
 pub unsafe fn init_static() {
     let gdt = unsafe { STATIC_GDT.as_mut() };
     let tss = unsafe { STATIC_TSS.as_mut() };
@@ -560,12 +596,18 @@ pub unsafe fn init_static() {
 }
 
 /// Set kernel stack in TSS
+///
+/// # Safety
+/// Must only be called after `init_static` and with a valid stack pointer.
 pub unsafe fn set_kernel_stack(stack: u64) {
     let tss = unsafe { STATIC_TSS.as_mut() };
     tss.set_rsp0(stack);
 }
 
 /// Set interrupt stack in TSS
+///
+/// # Safety
+/// Must only be called after `init_static` and with a valid stack pointer.
 pub unsafe fn set_interrupt_stack(ist_index: usize, stack: u64) {
     let tss = unsafe { STATIC_TSS.as_mut() };
     tss.set_ist(ist_index, stack);
