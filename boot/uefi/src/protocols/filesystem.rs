@@ -8,18 +8,39 @@
 //! guarantees that protocol pointers obtained via LocateProtocol/HandleProtocol
 //! are valid for the duration of boot services.
 //!
-//! CodeQL may flag pointer dereferences as "access of invalid pointer" but these
+//! `CodeQL` may flag pointer dereferences as "access of invalid pointer" but these
 //! are false positives - the UEFI firmware guarantees pointer validity.
 // codeql[rust/access-invalid-pointer] - UEFI FFI pointers validated by firmware
 
-use super::{DevicePath, EnumerableProtocol, Protocol};
+use super::{DevicePath, EnumerableProtocol, Protocol, ProtocolHandle};
 use crate::error::{Error, Result};
-use crate::raw::protocols::file::*;
-use crate::raw::types::*;
+use crate::raw::protocols::file::{
+    EfiFileInfo, EfiFileProtocol, EfiSimpleFileSystemProtocol, EFI_FILE_INFO_GUID,
+    EFI_FILE_SYSTEM_INFO_GUID, FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_DIRECTORY,
+    FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_READ_ONLY, FILE_ATTRIBUTE_SYSTEM, FILE_MODE_CREATE,
+    FILE_MODE_READ, FILE_MODE_WRITE, SIMPLE_FILE_SYSTEM_PROTOCOL_GUID,
+};
+use crate::raw::types::{Guid, Handle, Status};
 
 extern crate alloc;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+
+// =============================================================================
+// ALIGNED BUFFER FOR FFI
+// =============================================================================
+
+/// Aligned buffer for UEFI FFI calls that require proper alignment
+#[repr(C, align(8))]
+struct AlignedBuffer {
+    data: [u8; 512],
+}
+
+impl AlignedBuffer {
+    fn new() -> Self {
+        Self { data: [0u8; 512] }
+    }
+}
 
 // =============================================================================
 // FILE SYSTEM
@@ -39,9 +60,9 @@ impl FileSystem {
     /// Create from raw protocol
     ///
     /// # Safety
-    /// Protocol pointer must be valid and obtained from UEFI LocateProtocol
-    /// or HandleProtocol calls. The pointer must remain valid for the
-    /// lifetime of this FileSystem instance.
+    /// Protocol pointer must be valid and obtained from UEFI `LocateProtocol`
+    /// or `HandleProtocol` calls. The pointer must remain valid for the
+    /// lifetime of this `FileSystem` instance.
     pub unsafe fn from_raw(protocol: *mut EfiSimpleFileSystemProtocol, handle: Handle) -> Self {
         debug_assert!(!protocol.is_null(), "FileSystem protocol pointer is null");
         Self {
@@ -226,16 +247,16 @@ impl FileSystem {
     pub fn volume_label(&mut self) -> Result<String> {
         let root = self.open_root()?;
 
-        // Query volume info
-        let mut buffer = [0u8; 512];
-        let mut size = buffer.len();
+        // Query volume info - use aligned buffer
+        let mut buffer = AlignedBuffer::new();
+        let mut size = buffer.data.len();
 
         let result = unsafe {
             ((*root).get_info)(
                 root,
                 &EFI_FILE_SYSTEM_INFO_GUID,
                 &mut size,
-                buffer.as_mut_ptr(),
+                buffer.data.as_mut_ptr(),
             )
         };
 
@@ -246,8 +267,8 @@ impl FileSystem {
         // Parse volume label from info
         // The label starts at offset 36 as UCS-2
         if size > 36 {
-            let label_ptr = unsafe { buffer.as_ptr().add(36) as *const u16 };
-            let label = from_ucs2(label_ptr);
+            // Read UCS-2 characters from byte buffer, handling alignment manually
+            let label = read_ucs2_from_bytes(&buffer.data[36..size]);
             Ok(label)
         } else {
             Ok(String::new())
@@ -266,13 +287,13 @@ impl Protocol for FileSystem {
 
         let mut protocol: *mut core::ffi::c_void = core::ptr::null_mut();
         let result = unsafe {
-            ((*bs).open_protocol)(
+            (bs.open_protocol)(
                 handle,
                 &Self::GUID as *const Guid,
                 &mut protocol,
                 image,
                 Handle(core::ptr::null_mut()),
-                0x00000002,
+                0x0000_0002,
             )
         };
 
@@ -280,7 +301,7 @@ impl Protocol for FileSystem {
             return Err(Error::from_status(result));
         }
 
-        Ok(unsafe { Self::from_raw(protocol as *mut EfiSimpleFileSystemProtocol, handle) })
+        Ok(unsafe { Self::from_raw(protocol.cast::<EfiSimpleFileSystemProtocol>(), handle) })
     }
 
     fn close(&mut self) -> Result<()> {
@@ -294,7 +315,7 @@ impl Protocol for FileSystem {
 impl EnumerableProtocol for FileSystem {
     fn enumerate() -> Result<Vec<Self>> {
         super::ProtocolLocator::locate_all::<Self>()
-            .map(|handles| handles.into_iter().map(|h| h.leak()).collect())
+            .map(|handles| handles.into_iter().map(ProtocolHandle::leak).collect())
     }
 }
 
@@ -334,7 +355,7 @@ impl File {
     /// Read entire file
     pub fn read_all(&mut self) -> Result<Vec<u8>> {
         let info = self.info()?;
-        let size = info.size as usize;
+        let size: usize = info.size.try_into().unwrap_or(usize::MAX);
 
         let mut buffer = alloc::vec![0u8; size];
         let mut read_size = size;
@@ -413,21 +434,21 @@ impl File {
 
     /// Seek to end
     pub fn seek_end(&mut self) -> Result<u64> {
-        self.seek(0xFFFFFFFFFFFFFFFF)?;
+        self.seek(0xFFFF_FFFF_FFFF_FFFF)?;
         self.position()
     }
 
     /// Get file info
     pub fn info(&self) -> Result<FileInfo> {
-        let mut buffer = [0u8; 512];
-        let mut size = buffer.len();
+        let mut buffer = AlignedBuffer::new();
+        let mut size = buffer.data.len();
 
         let result = unsafe {
             ((*self.protocol).get_info)(
                 self.protocol,
                 &EFI_FILE_INFO_GUID,
                 &mut size,
-                buffer.as_mut_ptr(),
+                buffer.data.as_mut_ptr(),
             )
         };
 
@@ -435,15 +456,15 @@ impl File {
             return Err(Error::from_status(result));
         }
 
-        // Parse EfiFileInfo
-        let raw = unsafe { &*(buffer.as_ptr() as *const EfiFileInfo) };
+        // Parse EfiFileInfo - use read_unaligned for safety
+        let raw = unsafe { core::ptr::read_unaligned(buffer.data.as_ptr().cast::<EfiFileInfo>()) };
 
         Ok(FileInfo {
             size: raw.file_size,
             physical_size: raw.physical_size,
-            create_time: time_from_raw(&raw.create_time),
-            modify_time: time_from_raw(&raw.last_access_time),
-            access_time: time_from_raw(&raw.modification_time),
+            create_time: time_from_raw(raw.create_time),
+            modify_time: time_from_raw(raw.last_access_time),
+            access_time: time_from_raw(raw.modification_time),
             attributes: FileAttributes(raw.attribute.0),
             name: from_ucs2(raw.file_name.as_ptr()),
         })
@@ -518,11 +539,11 @@ pub struct Directory {
 impl Directory {
     /// Read next entry
     pub fn read_entry(&mut self) -> Result<Option<FileInfo>> {
-        let mut buffer = [0u8; 512];
-        let mut size = buffer.len();
+        let mut buffer = AlignedBuffer::new();
+        let mut size = buffer.data.len();
 
         let result =
-            unsafe { ((*self.protocol).read)(self.protocol, &mut size, buffer.as_mut_ptr()) };
+            unsafe { ((*self.protocol).read)(self.protocol, &mut size, buffer.data.as_mut_ptr()) };
 
         if result != Status::SUCCESS {
             return Err(Error::from_status(result));
@@ -532,15 +553,15 @@ impl Directory {
             return Ok(None);
         }
 
-        // Parse EfiFileInfo
-        let raw = unsafe { &*(buffer.as_ptr() as *const EfiFileInfo) };
+        // Parse EfiFileInfo - use read_unaligned for safety
+        let raw = unsafe { core::ptr::read_unaligned(buffer.data.as_ptr().cast::<EfiFileInfo>()) };
 
         Ok(Some(FileInfo {
             size: raw.file_size,
             physical_size: raw.physical_size,
-            create_time: time_from_raw(&raw.create_time),
-            modify_time: time_from_raw(&raw.last_access_time),
-            access_time: time_from_raw(&raw.modification_time),
+            create_time: time_from_raw(raw.create_time),
+            modify_time: time_from_raw(raw.last_access_time),
+            access_time: time_from_raw(raw.modification_time),
             attributes: FileAttributes(raw.attribute.0),
             name: from_ucs2(raw.file_name.as_ptr()),
         }))
@@ -575,7 +596,7 @@ impl Directory {
     /// Get subdirectories only
     pub fn subdirs(&mut self) -> Result<Vec<FileInfo>> {
         let entries = self.entries()?;
-        Ok(entries.into_iter().filter(|e| e.is_directory()).collect())
+        Ok(entries.into_iter().filter(FileInfo::is_directory).collect())
     }
 
     /// Find file by name
@@ -674,8 +695,7 @@ impl FileInfo {
     pub fn stem(&self) -> &str {
         self.name
             .rfind('.')
-            .map(|i| &self.name[..i])
-            .unwrap_or(&self.name)
+            .map_or(&self.name, |i| &self.name[..i])
     }
 }
 
@@ -686,15 +706,21 @@ impl FileInfo {
 /// File time
 #[derive(Debug, Clone)]
 pub struct Time {
+    /// Year (1900-9999)
     pub year: u16,
+    /// Month (1-12)
     pub month: u8,
+    /// Day (1-31)
     pub day: u8,
+    /// Hour (0-23)
     pub hour: u8,
+    /// Minute (0-59)
     pub minute: u8,
+    /// Second (0-59)
     pub second: u8,
 }
 
-fn time_from_raw(raw: &crate::raw::types::Time) -> Option<Time> {
+fn time_from_raw(raw: crate::raw::types::Time) -> Option<Time> {
     if raw.year == 0 {
         None
     } else {
@@ -743,28 +769,38 @@ impl FileMode {
 pub struct FileAttributes(pub u64);
 
 impl FileAttributes {
+    /// Read-only attribute
     pub const READ_ONLY: Self = Self(FILE_ATTRIBUTE_READ_ONLY);
+    /// Hidden attribute
     pub const HIDDEN: Self = Self(FILE_ATTRIBUTE_HIDDEN);
+    /// System attribute
     pub const SYSTEM: Self = Self(FILE_ATTRIBUTE_SYSTEM);
+    /// Directory attribute
     pub const DIRECTORY: Self = Self(FILE_ATTRIBUTE_DIRECTORY);
+    /// Archive attribute
     pub const ARCHIVE: Self = Self(FILE_ATTRIBUTE_ARCHIVE);
 
+    /// Check if read-only
     pub fn is_readonly(&self) -> bool {
         (self.0 & FILE_ATTRIBUTE_READ_ONLY) != 0
     }
 
+    /// Check if hidden
     pub fn is_hidden(&self) -> bool {
         (self.0 & FILE_ATTRIBUTE_HIDDEN) != 0
     }
 
+    /// Check if system file
     pub fn is_system(&self) -> bool {
         (self.0 & FILE_ATTRIBUTE_SYSTEM) != 0
     }
 
+    /// Check if directory
     pub fn is_directory(&self) -> bool {
         (self.0 & FILE_ATTRIBUTE_DIRECTORY) != 0
     }
 
+    /// Check if archive flag set
     pub fn is_archive(&self) -> bool {
         (self.0 & FILE_ATTRIBUTE_ARCHIVE) != 0
     }
@@ -802,7 +838,59 @@ fn from_ucs2(ptr: *const u16) -> String {
             if c == 0 {
                 break;
             }
-            if let Some(ch) = char::from_u32(c as u32) {
+            if let Some(ch) = char::from_u32(u32::from(c)) {
+                s.push(ch);
+            }
+            i += 1;
+
+            // Safety limit
+            if i > 1024 {
+                break;
+            }
+        }
+    }
+
+    s
+}
+
+/// Read UCS-2 string from byte slice without alignment issues
+fn read_ucs2_from_bytes(bytes: &[u8]) -> String {
+    let mut s = String::new();
+    let mut i = 0;
+
+    while i + 1 < bytes.len() {
+        // Read u16 as little-endian from two bytes
+        let c = u16::from_le_bytes([bytes[i], bytes[i + 1]]);
+        if c == 0 {
+            break;
+        }
+        if let Some(ch) = char::from_u32(u32::from(c)) {
+            s.push(ch);
+        }
+        i += 2;
+
+        // Safety limit
+        if i > 2048 {
+            break;
+        }
+    }
+
+    s
+}
+
+/// Convert UCS-2 to string from aligned buffer pointer
+/// Uses `read_unaligned` for safety when alignment is uncertain
+fn from_ucs2_aligned(ptr: *const u16) -> String {
+    let mut s = String::new();
+    let mut i = 0;
+
+    unsafe {
+        loop {
+            let c = core::ptr::read_unaligned(ptr.add(i));
+            if c == 0 {
+                break;
+            }
+            if let Some(ch) = char::from_u32(u32::from(c)) {
                 s.push(ch);
             }
             i += 1;
@@ -823,13 +911,11 @@ fn matches_pattern(name: &str, pattern: &str) -> bool {
         return true;
     }
 
-    if pattern.starts_with("*.") {
-        let ext = &pattern[2..];
-        return name.ends_with(&alloc::format!(".{}", ext));
+    if let Some(ext) = pattern.strip_prefix("*.") {
+        return name.ends_with(&alloc::format!(".{ext}"));
     }
 
-    if pattern.ends_with("*") {
-        let prefix = &pattern[..pattern.len() - 1];
+    if let Some(prefix) = pattern.strip_suffix('*') {
         return name.starts_with(prefix);
     }
 
@@ -855,9 +941,9 @@ impl Path {
             return name.to_string();
         }
         if base.ends_with('\\') || base.ends_with('/') {
-            alloc::format!("{}{}", base, name)
+            alloc::format!("{base}{name}")
         } else {
-            alloc::format!("{}\\{}", base, name)
+            alloc::format!("{base}\\{name}")
         }
     }
 
