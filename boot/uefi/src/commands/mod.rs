@@ -59,21 +59,21 @@ pub enum CommandCategory {
 
 impl Default for CommandCategory {
     fn default() -> Self {
-        CommandCategory::System
+        Self::System
     }
 }
 
 impl fmt::Display for CommandCategory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CommandCategory::Boot => write!(f, "Boot"),
-            CommandCategory::Menu => write!(f, "Menu"),
-            CommandCategory::Config => write!(f, "Configuration"),
-            CommandCategory::System => write!(f, "System"),
-            CommandCategory::Debug => write!(f, "Debug"),
-            CommandCategory::Network => write!(f, "Network"),
-            CommandCategory::Security => write!(f, "Security"),
-            CommandCategory::Custom => write!(f, "Custom"),
+            Self::Boot => write!(f, "Boot"),
+            Self::Menu => write!(f, "Menu"),
+            Self::Config => write!(f, "Configuration"),
+            Self::System => write!(f, "System"),
+            Self::Debug => write!(f, "Debug"),
+            Self::Network => write!(f, "Network"),
+            Self::Security => write!(f, "Security"),
+            Self::Custom => write!(f, "Custom"),
         }
     }
 }
@@ -109,94 +109,171 @@ pub mod cmd_ids {
     use super::CommandId;
 
     // Boot commands (0x0001-0x00FF)
+    /// Boot the default entry.
     pub const BOOT_DEFAULT: CommandId = CommandId::new(0x0001);
+    /// Boot the currently selected entry.
     pub const BOOT_SELECTED: CommandId = CommandId::new(0x0002);
+    /// Boot a specific entry by index.
     pub const BOOT_ENTRY: CommandId = CommandId::new(0x0003);
+    /// Boot with custom parameters.
     pub const BOOT_CUSTOM: CommandId = CommandId::new(0x0004);
+    /// Boot the last used entry.
     pub const BOOT_LAST: CommandId = CommandId::new(0x0005);
+    /// Boot once without saving preference.
     pub const BOOT_ONCE: CommandId = CommandId::new(0x0006);
+    /// Boot from PXE network.
     pub const BOOT_PXE: CommandId = CommandId::new(0x0010);
+    /// Boot from CD/DVD.
     pub const BOOT_CD: CommandId = CommandId::new(0x0011);
+    /// Boot from USB device.
     pub const BOOT_USB: CommandId = CommandId::new(0x0012);
+    /// Boot into recovery mode.
     pub const BOOT_RECOVERY: CommandId = CommandId::new(0x0020);
+    /// Boot into safe mode.
     pub const BOOT_SAFE: CommandId = CommandId::new(0x0021);
+    /// Cancel pending boot operation.
     pub const CANCEL_BOOT: CommandId = CommandId::new(0x0030);
 
     // Menu commands (0x0100-0x01FF)
+    /// Navigate menu up.
     pub const MENU_UP: CommandId = CommandId::new(0x0100);
+    /// Navigate menu down.
     pub const MENU_DOWN: CommandId = CommandId::new(0x0101);
+    /// Navigate menu left.
     pub const MENU_LEFT: CommandId = CommandId::new(0x0102);
+    /// Navigate menu right.
     pub const MENU_RIGHT: CommandId = CommandId::new(0x0103);
+    /// Select current menu item.
     pub const MENU_SELECT: CommandId = CommandId::new(0x0104);
+    /// Go back in menu.
     pub const MENU_BACK: CommandId = CommandId::new(0x0105);
+    /// Go to menu home.
     pub const MENU_HOME: CommandId = CommandId::new(0x0106);
+    /// Go to menu end.
     pub const MENU_END: CommandId = CommandId::new(0x0107);
+    /// Page up in menu.
     pub const MENU_PAGE_UP: CommandId = CommandId::new(0x0108);
+    /// Page down in menu.
     pub const MENU_PAGE_DOWN: CommandId = CommandId::new(0x0109);
+    /// Refresh menu display.
     pub const MENU_REFRESH: CommandId = CommandId::new(0x0110);
+    /// Search in menu.
     pub const MENU_SEARCH: CommandId = CommandId::new(0x0111);
+    /// Filter menu items.
     pub const MENU_FILTER: CommandId = CommandId::new(0x0112);
+    /// Sort menu items.
     pub const MENU_SORT: CommandId = CommandId::new(0x0113);
+    /// Show help.
     pub const MENU_HELP: CommandId = CommandId::new(0x0120);
+    /// Show about information.
     pub const MENU_ABOUT: CommandId = CommandId::new(0x0121);
 
     // Config commands (0x0200-0x02FF)
+    /// Edit configuration.
     pub const CONFIG_EDIT: CommandId = CommandId::new(0x0200);
+    /// Save configuration.
     pub const CONFIG_SAVE: CommandId = CommandId::new(0x0201);
+    /// Reset configuration to defaults.
     pub const CONFIG_RESET: CommandId = CommandId::new(0x0202);
+    /// Import configuration.
     pub const CONFIG_IMPORT: CommandId = CommandId::new(0x0203);
+    /// Export configuration.
     pub const CONFIG_EXPORT: CommandId = CommandId::new(0x0204);
+    /// Create new boot entry.
     pub const ENTRY_NEW: CommandId = CommandId::new(0x0210);
+    /// Edit boot entry.
     pub const ENTRY_EDIT: CommandId = CommandId::new(0x0211);
+    /// Delete boot entry.
     pub const ENTRY_DELETE: CommandId = CommandId::new(0x0212);
+    /// Copy boot entry.
     pub const ENTRY_COPY: CommandId = CommandId::new(0x0213);
+    /// Move entry up in list.
     pub const ENTRY_MOVE_UP: CommandId = CommandId::new(0x0214);
+    /// Move entry down in list.
     pub const ENTRY_MOVE_DOWN: CommandId = CommandId::new(0x0215);
+    /// Set default boot entry.
     pub const SET_DEFAULT: CommandId = CommandId::new(0x0220);
+    /// Set boot timeout.
     pub const SET_TIMEOUT: CommandId = CommandId::new(0x0221);
+    /// Set UI theme.
     pub const SET_THEME: CommandId = CommandId::new(0x0222);
+    /// Set password protection.
     pub const SET_PASSWORD: CommandId = CommandId::new(0x0230);
+    /// Clear password protection.
     pub const CLEAR_PASSWORD: CommandId = CommandId::new(0x0231);
 
     // System commands (0x0300-0x03FF)
+    /// Reboot system.
     pub const REBOOT: CommandId = CommandId::new(0x0300);
+    /// Shutdown system.
     pub const SHUTDOWN: CommandId = CommandId::new(0x0301);
+    /// Suspend to RAM.
     pub const SUSPEND: CommandId = CommandId::new(0x0302);
+    /// Hibernate to disk.
     pub const HIBERNATE: CommandId = CommandId::new(0x0303);
+    /// Enter UEFI shell.
     pub const UEFI_SHELL: CommandId = CommandId::new(0x0310);
+    /// Enter firmware setup.
     pub const FIRMWARE_SETUP: CommandId = CommandId::new(0x0311);
+    /// Exit bootloader.
     pub const EXIT: CommandId = CommandId::new(0x0320);
+    /// Quit application.
     pub const QUIT: CommandId = CommandId::new(0x0321);
 
     // Debug commands (0x0400-0x04FF)
+    /// Show debug log.
     pub const DEBUG_LOG: CommandId = CommandId::new(0x0400);
+    /// Show debug info.
     pub const DEBUG_INFO: CommandId = CommandId::new(0x0401);
+    /// Show memory information.
     pub const DEBUG_MEMORY: CommandId = CommandId::new(0x0402);
+    /// Show device list.
     pub const DEBUG_DEVICES: CommandId = CommandId::new(0x0403);
+    /// Show UEFI protocols.
     pub const DEBUG_PROTOCOLS: CommandId = CommandId::new(0x0404);
+    /// Show UEFI variables.
     pub const DEBUG_VARIABLES: CommandId = CommandId::new(0x0405);
+    /// Show memory map.
     pub const DEBUG_MEMMAP: CommandId = CommandId::new(0x0406);
+    /// Show ACPI tables.
     pub const DEBUG_ACPI: CommandId = CommandId::new(0x0407);
+    /// Show SMBIOS information.
     pub const DEBUG_SMBIOS: CommandId = CommandId::new(0x0408);
+    /// Open debug console.
     pub const DEBUG_CONSOLE: CommandId = CommandId::new(0x0410);
+    /// Open debug shell.
     pub const DEBUG_SHELL: CommandId = CommandId::new(0x0411);
+    /// Set breakpoint.
     pub const DEBUG_BREAK: CommandId = CommandId::new(0x0420);
+    /// Step debugger.
     pub const DEBUG_STEP: CommandId = CommandId::new(0x0421);
+    /// Continue execution.
     pub const DEBUG_CONTINUE: CommandId = CommandId::new(0x0422);
 
     // Network commands (0x0500-0x05FF)
+    /// Refresh network status.
     pub const NET_REFRESH: CommandId = CommandId::new(0x0500);
+    /// Configure network.
     pub const NET_CONFIG: CommandId = CommandId::new(0x0501);
+    /// Use DHCP configuration.
     pub const NET_DHCP: CommandId = CommandId::new(0x0502);
+    /// Use static IP configuration.
     pub const NET_STATIC: CommandId = CommandId::new(0x0503);
+    /// Test network connectivity.
     pub const NET_TEST: CommandId = CommandId::new(0x0510);
+    /// Ping network host.
     pub const NET_PING: CommandId = CommandId::new(0x0511);
 
     // Security commands (0x0600-0x06FF)
+    /// Unlock secure boot.
     pub const SEC_UNLOCK: CommandId = CommandId::new(0x0600);
+    /// Lock secure boot.
     pub const SEC_LOCK: CommandId = CommandId::new(0x0601);
+    /// Verify signature.
     pub const SEC_VERIFY: CommandId = CommandId::new(0x0610);
+    /// Enroll security key.
     pub const SEC_ENROLL: CommandId = CommandId::new(0x0611);
+    /// Revoke security key.
     pub const SEC_REVOKE: CommandId = CommandId::new(0x0612);
 }
 
@@ -209,6 +286,7 @@ pub mod cmd_ids {
 pub struct KeyCode(pub u16);
 
 impl KeyCode {
+    /// Create a new key code from a raw value.
     pub const fn new(code: u16) -> Self {
         Self(code)
     }
@@ -219,41 +297,69 @@ pub mod keys {
     use super::KeyCode;
 
     // Special keys
+    /// Enter key.
     pub const ENTER: KeyCode = KeyCode::new(0x000D);
+    /// Escape key.
     pub const ESCAPE: KeyCode = KeyCode::new(0x001B);
+    /// Backspace key.
     pub const BACKSPACE: KeyCode = KeyCode::new(0x0008);
+    /// Tab key.
     pub const TAB: KeyCode = KeyCode::new(0x0009);
+    /// Space key.
     pub const SPACE: KeyCode = KeyCode::new(0x0020);
+    /// Delete key.
     pub const DELETE: KeyCode = KeyCode::new(0x007F);
 
     // Arrow keys
+    /// Up arrow key.
     pub const UP: KeyCode = KeyCode::new(0x0001);
+    /// Down arrow key.
     pub const DOWN: KeyCode = KeyCode::new(0x0002);
+    /// Left arrow key.
     pub const LEFT: KeyCode = KeyCode::new(0x0003);
+    /// Right arrow key.
     pub const RIGHT: KeyCode = KeyCode::new(0x0004);
 
     // Navigation
+    /// Home key.
     pub const HOME: KeyCode = KeyCode::new(0x0005);
+    /// End key.
     pub const END: KeyCode = KeyCode::new(0x0006);
+    /// Page up key.
     pub const PAGE_UP: KeyCode = KeyCode::new(0x0007);
+    /// Page down key.
     pub const PAGE_DOWN: KeyCode = KeyCode::new(0x0008);
+    /// Insert key.
     pub const INSERT: KeyCode = KeyCode::new(0x000A);
 
     // Function keys
+    /// F1 function key.
     pub const F1: KeyCode = KeyCode::new(0x0101);
+    /// F2 function key.
     pub const F2: KeyCode = KeyCode::new(0x0102);
+    /// F3 function key.
     pub const F3: KeyCode = KeyCode::new(0x0103);
+    /// F4 function key.
     pub const F4: KeyCode = KeyCode::new(0x0104);
+    /// F5 function key.
     pub const F5: KeyCode = KeyCode::new(0x0105);
+    /// F6 function key.
     pub const F6: KeyCode = KeyCode::new(0x0106);
+    /// F7 function key.
     pub const F7: KeyCode = KeyCode::new(0x0107);
+    /// F8 function key.
     pub const F8: KeyCode = KeyCode::new(0x0108);
+    /// F9 function key.
     pub const F9: KeyCode = KeyCode::new(0x0109);
+    /// F10 function key.
     pub const F10: KeyCode = KeyCode::new(0x010A);
+    /// F11 function key.
     pub const F11: KeyCode = KeyCode::new(0x010B);
+    /// F12 function key.
     pub const F12: KeyCode = KeyCode::new(0x010C);
 
     // Printable characters (use ASCII directly)
+    /// Create key code from printable character.
     pub const fn char(c: char) -> KeyCode {
         KeyCode::new(c as u16)
     }
@@ -264,11 +370,16 @@ pub mod keys {
 pub struct KeyModifiers(u8);
 
 impl KeyModifiers {
-    pub const NONE: KeyModifiers = KeyModifiers(0);
-    pub const SHIFT: KeyModifiers = KeyModifiers(1);
-    pub const CTRL: KeyModifiers = KeyModifiers(2);
-    pub const ALT: KeyModifiers = KeyModifiers(4);
-    pub const LOGO: KeyModifiers = KeyModifiers(8);
+    /// No modifiers.
+    pub const NONE: Self = Self(0);
+    /// Shift modifier.
+    pub const SHIFT: Self = Self(1);
+    /// Ctrl modifier.
+    pub const CTRL: Self = Self(2);
+    /// Alt modifier.
+    pub const ALT: Self = Self(4);
+    /// Logo/Super modifier.
+    pub const LOGO: Self = Self(8);
 
     /// Create from raw value
     pub const fn from_raw(raw: u8) -> Self {
@@ -301,8 +412,9 @@ impl KeyModifiers {
     }
 
     /// Combine modifiers
-    pub const fn with(self, other: KeyModifiers) -> KeyModifiers {
-        KeyModifiers(self.0 | other.0)
+    #[must_use]
+    pub const fn with(self, other: Self) -> Self {
+        Self(self.0 | other.0)
     }
 }
 
@@ -397,7 +509,12 @@ pub enum CommandArg {
     /// Boolean
     Boolean(bool),
     /// String reference (offset + length)
-    String { offset: u16, length: u16 },
+    String {
+        /// Offset into string buffer.
+        offset: u16,
+        /// Length of string.
+        length: u16,
+    },
     /// Entry index
     EntryIndex(u16),
     /// Address
@@ -406,7 +523,7 @@ pub enum CommandArg {
 
 impl Default for CommandArg {
     fn default() -> Self {
-        CommandArg::None
+        Self::None
     }
 }
 
@@ -415,14 +532,22 @@ impl Default for CommandArg {
 pub struct CommandFlags(u16);
 
 impl CommandFlags {
-    pub const NONE: CommandFlags = CommandFlags(0);
-    pub const ASYNC: CommandFlags = CommandFlags(1);
-    pub const CONFIRM: CommandFlags = CommandFlags(2);
-    pub const PRIVILEGED: CommandFlags = CommandFlags(4);
-    pub const UNDOABLE: CommandFlags = CommandFlags(8);
-    pub const REPEATABLE: CommandFlags = CommandFlags(16);
-    pub const HIDDEN: CommandFlags = CommandFlags(32);
-    pub const DISABLED: CommandFlags = CommandFlags(64);
+    /// No flags.
+    pub const NONE: Self = Self(0);
+    /// Command runs asynchronously.
+    pub const ASYNC: Self = Self(1);
+    /// Command requires confirmation.
+    pub const CONFIRM: Self = Self(2);
+    /// Command requires elevated privileges.
+    pub const PRIVILEGED: Self = Self(4);
+    /// Command can be undone.
+    pub const UNDOABLE: Self = Self(8);
+    /// Command can be repeated.
+    pub const REPEATABLE: Self = Self(16);
+    /// Command is hidden from UI.
+    pub const HIDDEN: Self = Self(32);
+    /// Command is disabled.
+    pub const DISABLED: Self = Self(64);
 
     /// Get raw value
     pub const fn raw(&self) -> u16 {
@@ -430,13 +555,14 @@ impl CommandFlags {
     }
 
     /// Check flag
-    pub const fn has(&self, flag: CommandFlags) -> bool {
+    pub const fn has(&self, flag: Self) -> bool {
         self.0 & flag.0 != 0
     }
 
     /// Combine flags
-    pub const fn with(self, other: CommandFlags) -> CommandFlags {
-        CommandFlags(self.0 | other.0)
+    #[must_use]
+    pub const fn with(self, other: Self) -> Self {
+        Self(self.0 | other.0)
     }
 }
 
@@ -534,7 +660,7 @@ pub enum CommandSource {
 
 impl Default for CommandSource {
     fn default() -> Self {
-        CommandSource::Unknown
+        Self::Unknown
     }
 }
 
@@ -606,7 +732,7 @@ impl CommandQueue {
     }
 
     /// Peek next command
-    pub fn peek(&self) -> Option<&Command> {
+    pub const fn peek(&self) -> Option<&Command> {
         if self.count == 0 {
             None
         } else {
@@ -672,22 +798,19 @@ pub enum CommandResult {
 
 impl Default for CommandResult {
     fn default() -> Self {
-        CommandResult::Success
+        Self::Success
     }
 }
 
 impl CommandResult {
     /// Check if successful
     pub const fn is_success(&self) -> bool {
-        matches!(
-            self,
-            CommandResult::Success | CommandResult::SuccessValue(_)
-        )
+        matches!(self, Self::Success | Self::SuccessValue(_))
     }
 
     /// Check if failed
     pub const fn is_error(&self) -> bool {
-        !self.is_success() && !matches!(self, CommandResult::Deferred | CommandResult::InProgress)
+        !self.is_success() && !matches!(self, Self::Deferred | Self::InProgress)
     }
 }
 
@@ -703,7 +826,7 @@ pub type HandlerFn = fn(&Command) -> CommandResult;
 pub struct CommandHandler {
     /// Command ID
     pub command_id: CommandId,
-    /// Handler function (as address for no_std)
+    /// Handler function (as address for `no_std`).
     pub handler_addr: usize,
     /// Handler name
     pub name: [u8; 32],
@@ -799,7 +922,7 @@ impl HandlerRegistry {
 // =============================================================================
 
 /// Boot action details
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct BootAction {
     /// Entry index
     pub entry_index: u16,
@@ -817,21 +940,6 @@ pub struct BootAction {
     pub debug_mode: bool,
     /// Timeout override (0 = immediate)
     pub timeout_ms: u32,
-}
-
-impl Default for BootAction {
-    fn default() -> Self {
-        Self {
-            entry_index: 0,
-            override_args: false,
-            args_offset: 0,
-            args_len: 0,
-            boot_once: false,
-            safe_mode: false,
-            debug_mode: false,
-            timeout_ms: 0,
-        }
-    }
 }
 
 /// Menu action details
@@ -890,7 +998,7 @@ pub enum MenuActionType {
 
 impl Default for MenuActionType {
     fn default() -> Self {
-        MenuActionType::None
+        Self::None
     }
 }
 
@@ -947,7 +1055,7 @@ pub enum SystemActionType {
 
 impl Default for SystemActionType {
     fn default() -> Self {
-        SystemActionType::None
+        Self::None
     }
 }
 
@@ -999,21 +1107,35 @@ impl Default for ConsoleCommand {
 
 /// Standard console commands
 pub mod console_cmds {
-    /// List of command names
+    /// Boot command name.
     pub const BOOT: &str = "boot";
+    /// Help command name.
     pub const HELP: &str = "help";
+    /// Info command name.
     pub const INFO: &str = "info";
+    /// List command name.
     pub const LIST: &str = "list";
+    /// Reboot command name.
     pub const REBOOT: &str = "reboot";
+    /// Shutdown command name.
     pub const SHUTDOWN: &str = "shutdown";
+    /// Exit command name.
     pub const EXIT: &str = "exit";
+    /// Clear command name.
     pub const CLEAR: &str = "clear";
+    /// Echo command name.
     pub const ECHO: &str = "echo";
+    /// Set command name.
     pub const SET: &str = "set";
+    /// Get command name.
     pub const GET: &str = "get";
+    /// Memory command name.
     pub const MEMORY: &str = "memory";
+    /// Devices command name.
     pub const DEVICES: &str = "devices";
+    /// Version command name.
     pub const VERSION: &str = "version";
+    /// Debug command name.
     pub const DEBUG: &str = "debug";
 }
 
@@ -1120,7 +1242,7 @@ impl CommandHistory {
     }
 
     /// Get last entry
-    pub fn last(&self) -> Option<&HistoryEntry> {
+    pub const fn last(&self) -> Option<&HistoryEntry> {
         if self.count == 0 {
             None
         } else {
