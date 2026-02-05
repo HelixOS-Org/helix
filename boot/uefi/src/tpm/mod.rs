@@ -82,9 +82,9 @@ impl TpmVersion {
     /// Get version string
     pub const fn as_str(&self) -> &'static str {
         match self {
-            TpmVersion::Tpm12 => "TPM 1.2",
-            TpmVersion::Tpm20 => "TPM 2.0",
-            TpmVersion::Unknown => "Unknown",
+            Self::Tpm12 => "TPM 1.2",
+            Self::Tpm20 => "TPM 2.0",
+            Self::Unknown => "Unknown",
         }
     }
 }
@@ -314,10 +314,10 @@ impl TpmAlgorithm {
     /// Get digest size for hash algorithms
     pub const fn digest_size(&self) -> Option<usize> {
         match self {
-            TpmAlgorithm::Sha1 => Some(SHA1_DIGEST_SIZE),
-            TpmAlgorithm::Sha256 | TpmAlgorithm::Sm3_256 => Some(SHA256_DIGEST_SIZE),
-            TpmAlgorithm::Sha384 => Some(SHA384_DIGEST_SIZE),
-            TpmAlgorithm::Sha512 => Some(SHA512_DIGEST_SIZE),
+            Self::Sha1 => Some(SHA1_DIGEST_SIZE),
+            Self::Sha256 | Self::Sm3_256 => Some(SHA256_DIGEST_SIZE),
+            Self::Sha384 => Some(SHA384_DIGEST_SIZE),
+            Self::Sha512 => Some(SHA512_DIGEST_SIZE),
             _ => None,
         }
     }
@@ -326,69 +326,69 @@ impl TpmAlgorithm {
     pub const fn is_hash(&self) -> bool {
         matches!(
             self,
-            TpmAlgorithm::Sha1
-                | TpmAlgorithm::Sha256
-                | TpmAlgorithm::Sha384
-                | TpmAlgorithm::Sha512
-                | TpmAlgorithm::Sm3_256
+            Self::Sha1
+                | Self::Sha256
+                | Self::Sha384
+                | Self::Sha512
+                | Self::Sm3_256
         )
     }
 
     /// Check if this is an asymmetric algorithm
     pub const fn is_asymmetric(&self) -> bool {
-        matches!(self, TpmAlgorithm::Rsa | TpmAlgorithm::Ecc)
+        matches!(self, Self::Rsa | Self::Ecc)
     }
 
     /// Check if this is a symmetric algorithm
     pub const fn is_symmetric(&self) -> bool {
         matches!(
             self,
-            TpmAlgorithm::Aes
-                | TpmAlgorithm::TripleDes
-                | TpmAlgorithm::Sm4
-                | TpmAlgorithm::Camellia
+            Self::Aes
+                | Self::TripleDes
+                | Self::Sm4
+                | Self::Camellia
         )
     }
 
     /// Get algorithm name
     pub const fn name(&self) -> &'static str {
         match self {
-            TpmAlgorithm::Error => "Error",
-            TpmAlgorithm::Rsa => "RSA",
-            TpmAlgorithm::TripleDes => "3DES",
-            TpmAlgorithm::Sha1 => "SHA-1",
-            TpmAlgorithm::Hmac => "HMAC",
-            TpmAlgorithm::Aes => "AES",
-            TpmAlgorithm::Mgf1 => "MGF1",
-            TpmAlgorithm::KeyedHash => "Keyed Hash",
-            TpmAlgorithm::Xor => "XOR",
-            TpmAlgorithm::Sha256 => "SHA-256",
-            TpmAlgorithm::Sha384 => "SHA-384",
-            TpmAlgorithm::Sha512 => "SHA-512",
-            TpmAlgorithm::Null => "Null",
-            TpmAlgorithm::Sm3_256 => "SM3-256",
-            TpmAlgorithm::Sm4 => "SM4",
-            TpmAlgorithm::RsaSsa => "RSA-SSA",
-            TpmAlgorithm::RsaEs => "RSA-ES",
-            TpmAlgorithm::RsaPss => "RSA-PSS",
-            TpmAlgorithm::RsaOaep => "RSA-OAEP",
-            TpmAlgorithm::Ecdsa => "ECDSA",
-            TpmAlgorithm::Ecdh => "ECDH",
-            TpmAlgorithm::Ecdaa => "ECDAA",
-            TpmAlgorithm::Sm2 => "SM2",
-            TpmAlgorithm::EcSchnorr => "EC-Schnorr",
-            TpmAlgorithm::Ecmqv => "ECMQV",
-            TpmAlgorithm::Kdf1Sp80056a => "KDF1-SP800-56A",
-            TpmAlgorithm::Kdf2 => "KDF2",
-            TpmAlgorithm::Kdf1Sp800108 => "KDF1-SP800-108",
-            TpmAlgorithm::Ecc => "ECC",
-            TpmAlgorithm::SymCipher => "Symmetric Cipher",
-            TpmAlgorithm::Camellia => "Camellia",
-            TpmAlgorithm::Ctr => "CTR",
-            TpmAlgorithm::Ofb => "OFB",
-            TpmAlgorithm::Cbc => "CBC",
-            TpmAlgorithm::Cfb => "CFB",
-            TpmAlgorithm::Ecb => "ECB",
+            Self::Error => "Error",
+            Self::Rsa => "RSA",
+            Self::TripleDes => "3DES",
+            Self::Sha1 => "SHA-1",
+            Self::Hmac => "HMAC",
+            Self::Aes => "AES",
+            Self::Mgf1 => "MGF1",
+            Self::KeyedHash => "Keyed Hash",
+            Self::Xor => "XOR",
+            Self::Sha256 => "SHA-256",
+            Self::Sha384 => "SHA-384",
+            Self::Sha512 => "SHA-512",
+            Self::Null => "Null",
+            Self::Sm3_256 => "SM3-256",
+            Self::Sm4 => "SM4",
+            Self::RsaSsa => "RSA-SSA",
+            Self::RsaEs => "RSA-ES",
+            Self::RsaPss => "RSA-PSS",
+            Self::RsaOaep => "RSA-OAEP",
+            Self::Ecdsa => "ECDSA",
+            Self::Ecdh => "ECDH",
+            Self::Ecdaa => "ECDAA",
+            Self::Sm2 => "SM2",
+            Self::EcSchnorr => "EC-Schnorr",
+            Self::Ecmqv => "ECMQV",
+            Self::Kdf1Sp80056a => "KDF1-SP800-56A",
+            Self::Kdf2 => "KDF2",
+            Self::Kdf1Sp800108 => "KDF1-SP800-108",
+            Self::Ecc => "ECC",
+            Self::SymCipher => "Symmetric Cipher",
+            Self::Camellia => "Camellia",
+            Self::Ctr => "CTR",
+            Self::Ofb => "OFB",
+            Self::Cbc => "CBC",
+            Self::Cfb => "CFB",
+            Self::Ecb => "ECB",
         }
     }
 }
@@ -425,28 +425,28 @@ impl TpmEccCurve {
     /// Get key size in bits
     pub const fn key_bits(&self) -> u16 {
         match self {
-            TpmEccCurve::None => 0,
-            TpmEccCurve::NistP192 => 192,
-            TpmEccCurve::NistP224 => 224,
-            TpmEccCurve::NistP256 | TpmEccCurve::Bn256 | TpmEccCurve::Sm2P256 => 256,
-            TpmEccCurve::NistP384 => 384,
-            TpmEccCurve::NistP521 => 521,
-            TpmEccCurve::Bn638 => 638,
+            Self::None => 0,
+            Self::NistP192 => 192,
+            Self::NistP224 => 224,
+            Self::NistP256 | Self::Bn256 | Self::Sm2P256 => 256,
+            Self::NistP384 => 384,
+            Self::NistP521 => 521,
+            Self::Bn638 => 638,
         }
     }
 
     /// Get curve name
     pub const fn name(&self) -> &'static str {
         match self {
-            TpmEccCurve::None => "None",
-            TpmEccCurve::NistP192 => "NIST P-192",
-            TpmEccCurve::NistP224 => "NIST P-224",
-            TpmEccCurve::NistP256 => "NIST P-256",
-            TpmEccCurve::NistP384 => "NIST P-384",
-            TpmEccCurve::NistP521 => "NIST P-521",
-            TpmEccCurve::Bn256 => "BN-256",
-            TpmEccCurve::Bn638 => "BN-638",
-            TpmEccCurve::Sm2P256 => "SM2 P-256",
+            Self::None => "None",
+            Self::NistP192 => "NIST P-192",
+            Self::NistP224 => "NIST P-224",
+            Self::NistP256 => "NIST P-256",
+            Self::NistP384 => "NIST P-384",
+            Self::NistP521 => "NIST P-521",
+            Self::Bn256 => "BN-256",
+            Self::Bn638 => "BN-638",
+            Self::Sm2P256 => "SM2 P-256",
         }
     }
 }
@@ -1813,20 +1813,20 @@ pub enum TpmError {
 impl fmt::Display for TpmError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TpmError::NotFound => write!(f, "TPM not found"),
-            TpmError::NotInitialized => write!(f, "TPM not initialized"),
-            TpmError::CommunicationError => write!(f, "Communication error"),
-            TpmError::InvalidResponse => write!(f, "Invalid response"),
-            TpmError::TpmError(code) => write!(f, "TPM error: {code}"),
-            TpmError::Timeout => write!(f, "Timeout"),
-            TpmError::AccessDenied => write!(f, "Access denied"),
-            TpmError::InvalidParameter => write!(f, "Invalid parameter"),
-            TpmError::BufferTooSmall => write!(f, "Buffer too small"),
-            TpmError::NvNotDefined => write!(f, "NV space not defined"),
-            TpmError::NvLocked => write!(f, "NV locked"),
-            TpmError::PcrError => write!(f, "PCR error"),
-            TpmError::AuthorizationFailed => write!(f, "Authorization failed"),
-            TpmError::Unsupported => write!(f, "Unsupported operation"),
+            Self::NotFound => write!(f, "TPM not found"),
+            Self::NotInitialized => write!(f, "TPM not initialized"),
+            Self::CommunicationError => write!(f, "Communication error"),
+            Self::InvalidResponse => write!(f, "Invalid response"),
+            Self::TpmError(code) => write!(f, "TPM error: {code}"),
+            Self::Timeout => write!(f, "Timeout"),
+            Self::AccessDenied => write!(f, "Access denied"),
+            Self::InvalidParameter => write!(f, "Invalid parameter"),
+            Self::BufferTooSmall => write!(f, "Buffer too small"),
+            Self::NvNotDefined => write!(f, "NV space not defined"),
+            Self::NvLocked => write!(f, "NV locked"),
+            Self::PcrError => write!(f, "PCR error"),
+            Self::AuthorizationFailed => write!(f, "Authorization failed"),
+            Self::Unsupported => write!(f, "Unsupported operation"),
         }
     }
 }
