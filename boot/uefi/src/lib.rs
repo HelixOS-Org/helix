@@ -37,7 +37,7 @@
 //! ## Features
 //!
 //! - `x86_64` - x86-64 architecture support (default)
-//! - `aarch64` - AArch64 architecture support
+//! - `aarch64` - `AArch64` architecture support
 //! - `gop` - Graphics Output Protocol
 //! - `filesystem` - File system protocols
 //! - `acpi` - ACPI table parsing
@@ -545,12 +545,13 @@ pub type SystemTable = EfiSystemTable;
 // =============================================================================
 
 /// Prelude module for convenient imports
+///
+/// Common imports for UEFI applications.
+///
+/// ```rust
+/// use helix_uefi::prelude::*;
+/// ```
 pub mod prelude {
-    //! Common imports for UEFI applications
-    //!
-    //! ```rust
-    //! use helix_uefi::prelude::*;
-    //! ```
 
     // ACPI tables
     pub use crate::acpi::SdtHeader;
