@@ -182,70 +182,73 @@ impl Sha256 {
 
     /// Process a single block
     fn process_block(&mut self) {
-        let mut w = [0u32; 64];
+        let mut schedule = [0u32; 64];
 
         // Prepare message schedule
-        for (i, w_item) in w.iter_mut().enumerate().take(16) {
-            *w_item = u32::from_be_bytes([
-                self.buffer[i * 4],
-                self.buffer[i * 4 + 1],
-                self.buffer[i * 4 + 2],
-                self.buffer[i * 4 + 3],
+        for (idx, sched_item) in schedule.iter_mut().enumerate().take(16) {
+            *sched_item = u32::from_be_bytes([
+                self.buffer[idx * 4],
+                self.buffer[idx * 4 + 1],
+                self.buffer[idx * 4 + 2],
+                self.buffer[idx * 4 + 3],
             ]);
         }
 
-        for i in 16..64 {
-            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
-            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
-            w[i] = w[i - 16]
-                .wrapping_add(s0)
-                .wrapping_add(w[i - 7])
-                .wrapping_add(s1);
+        for idx in 16..64 {
+            let sigma0 = schedule[idx - 15].rotate_right(7)
+                ^ schedule[idx - 15].rotate_right(18)
+                ^ (schedule[idx - 15] >> 3);
+            let sigma1 = schedule[idx - 2].rotate_right(17)
+                ^ schedule[idx - 2].rotate_right(19)
+                ^ (schedule[idx - 2] >> 10);
+            schedule[idx] = schedule[idx - 16]
+                .wrapping_add(sigma0)
+                .wrapping_add(schedule[idx - 7])
+                .wrapping_add(sigma1);
         }
 
-        // Working variables
-        let mut a = self.state[0];
-        let mut b = self.state[1];
-        let mut c = self.state[2];
-        let mut d = self.state[3];
-        let mut e = self.state[4];
-        let mut f = self.state[5];
-        let mut g = self.state[6];
-        let mut h = self.state[7];
+        // Working variables (named per NIST FIPS 180-4 specification)
+        let mut wa = self.state[0];
+        let mut wb = self.state[1];
+        let mut wc = self.state[2];
+        let mut wd = self.state[3];
+        let mut we = self.state[4];
+        let mut wf = self.state[5];
+        let mut wg = self.state[6];
+        let mut wh = self.state[7];
 
         // Compression function
-        for (i, (&k_val, &w_val)) in Self::K.iter().zip(w.iter()).enumerate().take(64) {
-            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
-            let ch = (e & f) ^ ((!e) & g);
-            let temp1 = h
-                .wrapping_add(s1)
+        for (&k_val, &w_val) in Self::K.iter().zip(schedule.iter()) {
+            let sum1 = we.rotate_right(6) ^ we.rotate_right(11) ^ we.rotate_right(25);
+            let ch = (we & wf) ^ ((!we) & wg);
+            let temp1 = wh
+                .wrapping_add(sum1)
                 .wrapping_add(ch)
                 .wrapping_add(k_val)
                 .wrapping_add(w_val);
-            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
-            let maj = (a & b) ^ (a & c) ^ (b & c);
-            let temp2 = s0.wrapping_add(maj);
-            let _ = i; // used for iteration count
+            let sum0 = wa.rotate_right(2) ^ wa.rotate_right(13) ^ wa.rotate_right(22);
+            let maj = (wa & wb) ^ (wa & wc) ^ (wb & wc);
+            let temp2 = sum0.wrapping_add(maj);
 
-            h = g;
-            g = f;
-            f = e;
-            e = d.wrapping_add(temp1);
-            d = c;
-            c = b;
-            b = a;
-            a = temp1.wrapping_add(temp2);
+            wh = wg;
+            wg = wf;
+            wf = we;
+            we = wd.wrapping_add(temp1);
+            wd = wc;
+            wc = wb;
+            wb = wa;
+            wa = temp1.wrapping_add(temp2);
         }
 
         // Update state
-        self.state[0] = self.state[0].wrapping_add(a);
-        self.state[1] = self.state[1].wrapping_add(b);
-        self.state[2] = self.state[2].wrapping_add(c);
-        self.state[3] = self.state[3].wrapping_add(d);
-        self.state[4] = self.state[4].wrapping_add(e);
-        self.state[5] = self.state[5].wrapping_add(f);
-        self.state[6] = self.state[6].wrapping_add(g);
-        self.state[7] = self.state[7].wrapping_add(h);
+        self.state[0] = self.state[0].wrapping_add(wa);
+        self.state[1] = self.state[1].wrapping_add(wb);
+        self.state[2] = self.state[2].wrapping_add(wc);
+        self.state[3] = self.state[3].wrapping_add(wd);
+        self.state[4] = self.state[4].wrapping_add(we);
+        self.state[5] = self.state[5].wrapping_add(wf);
+        self.state[6] = self.state[6].wrapping_add(wg);
+        self.state[7] = self.state[7].wrapping_add(wh);
     }
 
     /// Compute SHA-256 hash of data in one shot
@@ -500,74 +503,77 @@ impl Sha512 {
 
     /// Process a single block
     fn process_block(&mut self) {
-        let mut w = [0u64; 80];
+        let mut schedule = [0u64; 80];
 
         // Prepare message schedule
-        for (i, w_item) in w.iter_mut().enumerate().take(16) {
-            *w_item = u64::from_be_bytes([
-                self.buffer[i * 8],
-                self.buffer[i * 8 + 1],
-                self.buffer[i * 8 + 2],
-                self.buffer[i * 8 + 3],
-                self.buffer[i * 8 + 4],
-                self.buffer[i * 8 + 5],
-                self.buffer[i * 8 + 6],
-                self.buffer[i * 8 + 7],
+        for (idx, sched_item) in schedule.iter_mut().enumerate().take(16) {
+            *sched_item = u64::from_be_bytes([
+                self.buffer[idx * 8],
+                self.buffer[idx * 8 + 1],
+                self.buffer[idx * 8 + 2],
+                self.buffer[idx * 8 + 3],
+                self.buffer[idx * 8 + 4],
+                self.buffer[idx * 8 + 5],
+                self.buffer[idx * 8 + 6],
+                self.buffer[idx * 8 + 7],
             ]);
         }
 
-        for i in 16..80 {
-            let s0 = w[i - 15].rotate_right(1) ^ w[i - 15].rotate_right(8) ^ (w[i - 15] >> 7);
-            let s1 = w[i - 2].rotate_right(19) ^ w[i - 2].rotate_right(61) ^ (w[i - 2] >> 6);
-            w[i] = w[i - 16]
-                .wrapping_add(s0)
-                .wrapping_add(w[i - 7])
-                .wrapping_add(s1);
+        for idx in 16..80 {
+            let sigma0 = schedule[idx - 15].rotate_right(1)
+                ^ schedule[idx - 15].rotate_right(8)
+                ^ (schedule[idx - 15] >> 7);
+            let sigma1 = schedule[idx - 2].rotate_right(19)
+                ^ schedule[idx - 2].rotate_right(61)
+                ^ (schedule[idx - 2] >> 6);
+            schedule[idx] = schedule[idx - 16]
+                .wrapping_add(sigma0)
+                .wrapping_add(schedule[idx - 7])
+                .wrapping_add(sigma1);
         }
 
-        // Working variables
-        let mut a = self.state[0];
-        let mut b = self.state[1];
-        let mut c = self.state[2];
-        let mut d = self.state[3];
-        let mut e = self.state[4];
-        let mut f = self.state[5];
-        let mut g = self.state[6];
-        let mut h = self.state[7];
+        // Working variables (named per NIST FIPS 180-4 specification)
+        let mut wa = self.state[0];
+        let mut wb = self.state[1];
+        let mut wc = self.state[2];
+        let mut wd = self.state[3];
+        let mut we = self.state[4];
+        let mut wf = self.state[5];
+        let mut wg = self.state[6];
+        let mut wh = self.state[7];
 
         // Compression function
-        for (i, (&k_val, &w_val)) in Self::K.iter().zip(w.iter()).enumerate().take(80) {
-            let s1 = e.rotate_right(14) ^ e.rotate_right(18) ^ e.rotate_right(41);
-            let ch = (e & f) ^ ((!e) & g);
-            let temp1 = h
-                .wrapping_add(s1)
+        for (&k_val, &w_val) in Self::K.iter().zip(schedule.iter()) {
+            let sum1 = we.rotate_right(14) ^ we.rotate_right(18) ^ we.rotate_right(41);
+            let ch = (we & wf) ^ ((!we) & wg);
+            let temp1 = wh
+                .wrapping_add(sum1)
                 .wrapping_add(ch)
                 .wrapping_add(k_val)
                 .wrapping_add(w_val);
-            let s0 = a.rotate_right(28) ^ a.rotate_right(34) ^ a.rotate_right(39);
-            let maj = (a & b) ^ (a & c) ^ (b & c);
-            let temp2 = s0.wrapping_add(maj);
-            let _ = i; // used for iteration count
+            let sum0 = wa.rotate_right(28) ^ wa.rotate_right(34) ^ wa.rotate_right(39);
+            let maj = (wa & wb) ^ (wa & wc) ^ (wb & wc);
+            let temp2 = sum0.wrapping_add(maj);
 
-            h = g;
-            g = f;
-            f = e;
-            e = d.wrapping_add(temp1);
-            d = c;
-            c = b;
-            b = a;
-            a = temp1.wrapping_add(temp2);
+            wh = wg;
+            wg = wf;
+            wf = we;
+            we = wd.wrapping_add(temp1);
+            wd = wc;
+            wc = wb;
+            wb = wa;
+            wa = temp1.wrapping_add(temp2);
         }
 
         // Update state
-        self.state[0] = self.state[0].wrapping_add(a);
-        self.state[1] = self.state[1].wrapping_add(b);
-        self.state[2] = self.state[2].wrapping_add(c);
-        self.state[3] = self.state[3].wrapping_add(d);
-        self.state[4] = self.state[4].wrapping_add(e);
-        self.state[5] = self.state[5].wrapping_add(f);
-        self.state[6] = self.state[6].wrapping_add(g);
-        self.state[7] = self.state[7].wrapping_add(h);
+        self.state[0] = self.state[0].wrapping_add(wa);
+        self.state[1] = self.state[1].wrapping_add(wb);
+        self.state[2] = self.state[2].wrapping_add(wc);
+        self.state[3] = self.state[3].wrapping_add(wd);
+        self.state[4] = self.state[4].wrapping_add(we);
+        self.state[5] = self.state[5].wrapping_add(wf);
+        self.state[6] = self.state[6].wrapping_add(wg);
+        self.state[7] = self.state[7].wrapping_add(wh);
     }
 
     /// Compute SHA-512 hash of data in one shot
