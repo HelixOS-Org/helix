@@ -530,9 +530,6 @@ impl<T> CpuStatic<T> {
         unsafe { &mut *self.0.get() }
     }
 
-    fn as_ptr(&self) -> *const T {
-        self.0.get()
-    }
 }
 
 // SAFETY: GDT/TSS only mutated during single-CPU init.
