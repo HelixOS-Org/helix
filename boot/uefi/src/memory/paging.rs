@@ -1,9 +1,9 @@
 //! Page Table Management
 //!
-//! x86_64 and aarch64 page table setup for kernel transition.
+//! `x86_64` and `aarch64` page table setup for kernel transition.
 
 use crate::error::Result;
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 extern crate alloc;
 use alloc::boxed::Box;
@@ -14,13 +14,13 @@ use core::ptr;
 // CONSTANTS
 // =============================================================================
 
-/// Page size (4 KiB)
+/// Page size (4 `KiB`)
 pub const PAGE_SIZE: u64 = 0x1000;
 
-/// Large page size (2 MiB)
+/// Large page size (2 `MiB`)
 pub const LARGE_PAGE_SIZE: u64 = 0x20_0000;
 
-/// Huge page size (1 GiB)
+/// Huge page size (1 `GiB`)
 pub const HUGE_PAGE_SIZE: u64 = 0x4000_0000;
 
 /// Number of entries per page table level
@@ -93,9 +93,15 @@ impl PageTableManager {
     }
 
     /// Initialize page tables
+    ///
+    /// # Safety
+    ///
+    /// This function writes to page table memory. The caller must ensure
+    /// that the page table manager is properly initialized and that
+    /// memory allocation is available.
     pub unsafe fn init(&mut self) -> Result<()> {
         // Allocate PML4
-        self.pml4_address = self.allocate_table()?;
+        self.pml4_address = self.allocate_table();
 
         // Zero the table
         let pml4 = self.pml4_address.0 as *mut PageTableEntry;
@@ -107,13 +113,18 @@ impl PageTableManager {
     }
 
     /// Allocate a new page table
-    unsafe fn allocate_table(&mut self) -> Result<PhysicalAddress> {
+    ///
+    /// # Safety
+    ///
+    /// This function allocates memory for a page table. The caller must ensure
+    /// that the memory allocator is properly initialized.
+    unsafe fn allocate_table(&mut self) -> PhysicalAddress {
         // In real implementation, this would use UEFI's AllocatePages
         // For now, we track allocations
         let table = Box::new([PageTableEntry(0); ENTRIES_PER_TABLE]);
         let addr = PhysicalAddress(Box::into_raw(table) as u64);
         self.allocated_tables.push(addr);
-        Ok(addr)
+        addr
     }
 
     /// Get PML4 address
@@ -122,6 +133,11 @@ impl PageTableManager {
     }
 
     /// Map a page
+    ///
+    /// # Safety
+    ///
+    /// This function modifies page tables. The caller must ensure that the
+    /// virtual and physical addresses are valid and properly aligned.
     pub unsafe fn map_page(
         &mut self,
         virt: VirtualAddress,
@@ -132,6 +148,12 @@ impl PageTableManager {
     }
 
     /// Map a page with specific size
+    ///
+    /// # Safety
+    ///
+    /// This function modifies page tables. The caller must ensure that the
+    /// virtual and physical addresses are valid and properly aligned for
+    /// the specified page size.
     pub unsafe fn map_page_with_size(
         &mut self,
         virt: VirtualAddress,
@@ -141,8 +163,8 @@ impl PageTableManager {
     ) -> Result<()> {
         let pml4_idx = (virt >> 39) & 0x1FFu64;
         let pdpt_idx = (virt >> 30) & 0x1FFu64;
-        let pd_idx = (virt >> 21) & 0x1FFu64;
-        let pt_idx = (virt >> 12) & 0x1FFu64;
+        let page_dir_idx = (virt >> 21) & 0x1FFu64;
+        let page_tbl_idx = (virt >> 12) & 0x1FFu64;
 
         let pte_flags = flags.to_pte_flags();
 
@@ -153,16 +175,16 @@ impl PageTableManager {
         let pdpt_addr = if pml4_entry.is_present() {
             pml4_entry.address()
         } else {
-            let new_table = self.allocate_table()?;
+            let new_table = self.allocate_table();
             *pml4_entry = PageTableEntry::new(new_table, PTE_PRESENT | PTE_WRITABLE | PTE_USER);
             new_table
         };
 
         // 1 GiB huge page?
         if size >= HUGE_PAGE_SIZE && self.use_huge_pages {
-            let pdpt = pdpt_addr.0 as *mut PageTableEntry;
-            let pdpt_entry = &mut *pdpt.add(pdpt_idx as usize);
-            *pdpt_entry = PageTableEntry::new(phys, pte_flags | PTE_PAGE_SIZE);
+            let pdpt_table = pdpt_addr.0 as *mut PageTableEntry;
+            let pdpt_entry_mut = &mut *pdpt_table.add(pdpt_idx as usize);
+            *pdpt_entry_mut = PageTableEntry::new(phys, pte_flags | PTE_PAGE_SIZE);
 
             self.mappings.push(PageMapping {
                 virtual_address: virt,
@@ -175,22 +197,22 @@ impl PageTableManager {
         }
 
         // Get or create PD
-        let pdpt = pdpt_addr.0 as *mut PageTableEntry;
-        let pdpt_entry = &mut *pdpt.add(pdpt_idx as usize);
+        let pdpt_table = pdpt_addr.0 as *mut PageTableEntry;
+        let pdpt_entry = &mut *pdpt_table.add(pdpt_idx as usize);
 
         let pd_addr = if pdpt_entry.is_present() && !pdpt_entry.is_page_size() {
             pdpt_entry.address()
         } else {
-            let new_table = self.allocate_table()?;
+            let new_table = self.allocate_table();
             *pdpt_entry = PageTableEntry::new(new_table, PTE_PRESENT | PTE_WRITABLE | PTE_USER);
             new_table
         };
 
         // 2 MiB large page?
         if size >= LARGE_PAGE_SIZE && self.use_large_pages {
-            let pd = pd_addr.0 as *mut PageTableEntry;
-            let pd_entry = &mut *pd.add(pd_idx as usize);
-            *pd_entry = PageTableEntry::new(phys, pte_flags | PTE_PAGE_SIZE);
+            let page_dir_table = pd_addr.0 as *mut PageTableEntry;
+            let page_dir_entry_mut = &mut *page_dir_table.add(page_dir_idx as usize);
+            *page_dir_entry_mut = PageTableEntry::new(phys, pte_flags | PTE_PAGE_SIZE);
 
             self.mappings.push(PageMapping {
                 virtual_address: virt,
@@ -203,21 +225,21 @@ impl PageTableManager {
         }
 
         // Get or create PT
-        let pd = pd_addr.0 as *mut PageTableEntry;
-        let pd_entry = &mut *pd.add(pd_idx as usize);
+        let page_dir_table = pd_addr.0 as *mut PageTableEntry;
+        let page_dir_entry = &mut *page_dir_table.add(page_dir_idx as usize);
 
-        let pt_addr = if pd_entry.is_present() && !pd_entry.is_page_size() {
-            pd_entry.address()
+        let page_tbl_addr = if page_dir_entry.is_present() && !page_dir_entry.is_page_size() {
+            page_dir_entry.address()
         } else {
-            let new_table = self.allocate_table()?;
-            *pd_entry = PageTableEntry::new(new_table, PTE_PRESENT | PTE_WRITABLE | PTE_USER);
+            let new_table = self.allocate_table();
+            *page_dir_entry = PageTableEntry::new(new_table, PTE_PRESENT | PTE_WRITABLE | PTE_USER);
             new_table
         };
 
         // Map 4 KiB page
-        let pt = pt_addr.0 as *mut PageTableEntry;
-        let pt_entry = &mut *pt.add(pt_idx as usize);
-        *pt_entry = PageTableEntry::new(phys, pte_flags);
+        let page_tbl_table = page_tbl_addr.0 as *mut PageTableEntry;
+        let page_tbl_entry = &mut *page_tbl_table.add(page_tbl_idx as usize);
+        *page_tbl_entry = PageTableEntry::new(phys, pte_flags);
 
         self.mappings.push(PageMapping {
             virtual_address: virt,
@@ -230,6 +252,12 @@ impl PageTableManager {
     }
 
     /// Map a range of physical memory
+    ///
+    /// # Safety
+    ///
+    /// This function modifies page tables. The caller must ensure that the
+    /// virtual and physical address ranges are valid and do not overlap
+    /// with existing critical mappings.
     pub unsafe fn map_range(
         &mut self,
         virt_start: VirtualAddress,
@@ -269,6 +297,11 @@ impl PageTableManager {
     }
 
     /// Map identity (physical = virtual)
+    ///
+    /// # Safety
+    ///
+    /// This function modifies page tables to create identity mappings.
+    /// The caller must ensure the physical address range is valid.
     pub unsafe fn map_identity(
         &mut self,
         start: PhysicalAddress,
@@ -279,21 +312,26 @@ impl PageTableManager {
     }
 
     /// Unmap a page
+    ///
+    /// # Safety
+    ///
+    /// This function modifies page tables. The caller must ensure that the
+    /// virtual address is not currently in use by critical code paths.
     pub unsafe fn unmap_page(&mut self, virt: VirtualAddress) -> Result<()> {
         let pml4_idx = (virt >> 39) & 0x1FFu64;
         let pdpt_idx = (virt >> 30) & 0x1FFu64;
-        let pd_idx = (virt >> 21) & 0x1FFu64;
-        let pt_idx = (virt >> 12) & 0x1FFu64;
+        let page_dir_idx = (virt >> 21) & 0x1FFu64;
+        let page_tbl_idx = (virt >> 12) & 0x1FFu64;
 
-        let pml4 = self.pml4_address.0 as *mut PageTableEntry;
-        let pml4_entry = &*pml4.add(pml4_idx as usize);
+        let pml4_table = self.pml4_address.0 as *mut PageTableEntry;
+        let pml4_entry = &*pml4_table.add(pml4_idx as usize);
 
         if !pml4_entry.is_present() {
             return Ok(());
         }
 
-        let pdpt = pml4_entry.address().0 as *mut PageTableEntry;
-        let pdpt_entry = &*pdpt.add(pdpt_idx as usize);
+        let pdpt_table = pml4_entry.address().0 as *mut PageTableEntry;
+        let pdpt_entry = &*pdpt_table.add(pdpt_idx as usize);
 
         if !pdpt_entry.is_present() {
             return Ok(());
@@ -301,28 +339,28 @@ impl PageTableManager {
 
         if pdpt_entry.is_page_size() {
             // Huge page - clear it
-            let pdpt_entry_mut = &mut *pdpt.add(pdpt_idx as usize);
+            let pdpt_entry_mut = &mut *pdpt_table.add(pdpt_idx as usize);
             *pdpt_entry_mut = PageTableEntry(0);
             return Ok(());
         }
 
-        let pd = pdpt_entry.address().0 as *mut PageTableEntry;
-        let pd_entry = &*pd.add(pd_idx as usize);
+        let page_dir_table = pdpt_entry.address().0 as *mut PageTableEntry;
+        let page_dir_entry = &*page_dir_table.add(page_dir_idx as usize);
 
-        if !pd_entry.is_present() {
+        if !page_dir_entry.is_present() {
             return Ok(());
         }
 
-        if pd_entry.is_page_size() {
+        if page_dir_entry.is_page_size() {
             // Large page - clear it
-            let pd_entry_mut = &mut *pd.add(pd_idx as usize);
-            *pd_entry_mut = PageTableEntry(0);
+            let page_dir_entry_mut = &mut *page_dir_table.add(page_dir_idx as usize);
+            *page_dir_entry_mut = PageTableEntry(0);
             return Ok(());
         }
 
-        let pt = pd_entry.address().0 as *mut PageTableEntry;
-        let pt_entry_mut = &mut *pt.add(pt_idx as usize);
-        *pt_entry_mut = PageTableEntry(0);
+        let page_tbl_table = page_dir_entry.address().0 as *mut PageTableEntry;
+        let page_tbl_entry_mut = &mut *page_tbl_table.add(page_tbl_idx as usize);
+        *page_tbl_entry_mut = PageTableEntry(0);
 
         // Remove from tracking
         self.mappings.retain(|m| m.virtual_address != virt);
@@ -331,6 +369,11 @@ impl PageTableManager {
     }
 
     /// Unmap a range of pages
+    ///
+    /// # Safety
+    ///
+    /// This function modifies page tables. The caller must ensure that the
+    /// virtual address range is not currently in use by critical code paths.
     pub unsafe fn unmap_range(&mut self, virt: VirtualAddress, size: u64) -> Result<()> {
         let mut offset = 0u64;
         while offset < size {
@@ -373,22 +416,27 @@ impl PageTableManager {
     }
 
     /// Translate virtual to physical
+    ///
+    /// # Safety
+    ///
+    /// This function reads from page table memory. The caller must ensure
+    /// that the page tables are properly initialized.
     pub unsafe fn translate(&self, virt: VirtualAddress) -> Option<PhysicalAddress> {
         let pml4_idx = (virt >> 39) & 0x1FFu64;
         let pdpt_idx = (virt >> 30) & 0x1FFu64;
-        let pd_idx = (virt >> 21) & 0x1FFu64;
-        let pt_idx = (virt >> 12) & 0x1FFu64;
+        let page_dir_idx = (virt >> 21) & 0x1FFu64;
+        let page_tbl_idx = (virt >> 12) & 0x1FFu64;
         let offset = virt & 0xFFF;
 
-        let pml4 = self.pml4_address.0 as *const PageTableEntry;
-        let pml4_entry = &*pml4.add(pml4_idx as usize);
+        let pml4_table = self.pml4_address.0 as *const PageTableEntry;
+        let pml4_entry = &*pml4_table.add(pml4_idx as usize);
 
         if !pml4_entry.is_present() {
             return None;
         }
 
-        let pdpt = pml4_entry.address().0 as *const PageTableEntry;
-        let pdpt_entry = &*pdpt.add(pdpt_idx as usize);
+        let pdpt_table = pml4_entry.address().0 as *const PageTableEntry;
+        let pdpt_entry = &*pdpt_table.add(pdpt_idx as usize);
 
         if !pdpt_entry.is_present() {
             return None;
@@ -400,27 +448,27 @@ impl PageTableManager {
             return Some(pdpt_entry.address() + offset_1g);
         }
 
-        let pd = pdpt_entry.address().0 as *const PageTableEntry;
-        let pd_entry = &*pd.add(pd_idx as usize);
+        let page_dir_table = pdpt_entry.address().0 as *const PageTableEntry;
+        let page_dir_entry = &*page_dir_table.add(page_dir_idx as usize);
 
-        if !pd_entry.is_present() {
+        if !page_dir_entry.is_present() {
             return None;
         }
 
-        if pd_entry.is_page_size() {
+        if page_dir_entry.is_page_size() {
             // 2 MiB page
             let offset_2m = virt & (LARGE_PAGE_SIZE - 1);
-            return Some(pd_entry.address() + offset_2m);
+            return Some(page_dir_entry.address() + offset_2m);
         }
 
-        let pt = pd_entry.address().0 as *const PageTableEntry;
-        let pt_entry = &*pt.add(pt_idx as usize);
+        let page_tbl_table = page_dir_entry.address().0 as *const PageTableEntry;
+        let page_tbl_entry = &*page_tbl_table.add(page_tbl_idx as usize);
 
-        if !pt_entry.is_present() {
+        if !page_tbl_entry.is_present() {
             return None;
         }
 
-        Some(pt_entry.address() + offset)
+        Some(page_tbl_entry.address() + offset)
     }
 }
 
@@ -500,23 +548,24 @@ impl PageTableEntry {
 // PAGE FLAGS
 // =============================================================================
 
+/// Internal bitflags for page mapping
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct PageFlagsInner(u8);
+
+impl PageFlagsInner {
+    const PRESENT: u8 = 1 << 0;
+    const WRITABLE: u8 = 1 << 1;
+    const USER: u8 = 1 << 2;
+    const WRITE_THROUGH: u8 = 1 << 3;
+    const CACHE_DISABLE: u8 = 1 << 4;
+    const GLOBAL: u8 = 1 << 5;
+    const NO_EXECUTE: u8 = 1 << 6;
+}
+
 /// Page mapping flags
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct PageFlags {
-    /// Present
-    pub present: bool,
-    /// Writable
-    pub writable: bool,
-    /// User accessible
-    pub user: bool,
-    /// Write-through caching
-    pub write_through: bool,
-    /// Cache disabled
-    pub cache_disable: bool,
-    /// Global page
-    pub global: bool,
-    /// No-execute
-    pub no_execute: bool,
+    inner: PageFlagsInner,
 }
 
 impl PageFlags {
@@ -525,106 +574,194 @@ impl PageFlags {
         Self::default()
     }
 
+    /// Check if present flag is set
+    #[must_use]
+    pub const fn present(&self) -> bool {
+        (self.inner.0 & PageFlagsInner::PRESENT) != 0
+    }
+
+    /// Check if writable flag is set
+    #[must_use]
+    pub const fn writable(&self) -> bool {
+        (self.inner.0 & PageFlagsInner::WRITABLE) != 0
+    }
+
+    /// Check if user flag is set
+    #[must_use]
+    pub const fn user(&self) -> bool {
+        (self.inner.0 & PageFlagsInner::USER) != 0
+    }
+
+    /// Check if write-through flag is set
+    #[must_use]
+    pub const fn write_through(&self) -> bool {
+        (self.inner.0 & PageFlagsInner::WRITE_THROUGH) != 0
+    }
+
+    /// Check if cache-disable flag is set
+    #[must_use]
+    pub const fn cache_disable(&self) -> bool {
+        (self.inner.0 & PageFlagsInner::CACHE_DISABLE) != 0
+    }
+
+    /// Check if global flag is set
+    #[must_use]
+    pub const fn global(&self) -> bool {
+        (self.inner.0 & PageFlagsInner::GLOBAL) != 0
+    }
+
+    /// Check if no-execute flag is set
+    #[must_use]
+    pub const fn no_execute(&self) -> bool {
+        (self.inner.0 & PageFlagsInner::NO_EXECUTE) != 0
+    }
+
     /// Create flags for kernel code
-    pub fn kernel_code() -> Self {
+    #[must_use]
+    pub const fn kernel_code() -> Self {
         Self {
-            present: true,
-            writable: false,
-            user: false,
-            write_through: false,
-            cache_disable: false,
-            global: true,
-            no_execute: false,
+            inner: PageFlagsInner(PageFlagsInner::PRESENT | PageFlagsInner::GLOBAL),
         }
     }
 
     /// Create flags for kernel data
-    pub fn kernel_data() -> Self {
+    #[must_use]
+    pub const fn kernel_data() -> Self {
         Self {
-            present: true,
-            writable: true,
-            user: false,
-            write_through: false,
-            cache_disable: false,
-            global: true,
-            no_execute: true,
+            inner: PageFlagsInner(
+                PageFlagsInner::PRESENT
+                    | PageFlagsInner::WRITABLE
+                    | PageFlagsInner::GLOBAL
+                    | PageFlagsInner::NO_EXECUTE,
+            ),
         }
     }
 
     /// Create flags for kernel read-only data
-    pub fn kernel_rodata() -> Self {
+    #[must_use]
+    pub const fn kernel_rodata() -> Self {
         Self {
-            present: true,
-            writable: false,
-            user: false,
-            write_through: false,
-            cache_disable: false,
-            global: true,
-            no_execute: true,
+            inner: PageFlagsInner(
+                PageFlagsInner::PRESENT | PageFlagsInner::GLOBAL | PageFlagsInner::NO_EXECUTE,
+            ),
         }
     }
 
     /// Create flags for device memory (MMIO)
-    pub fn device() -> Self {
+    #[must_use]
+    pub const fn device() -> Self {
         Self {
-            present: true,
-            writable: true,
-            user: false,
-            write_through: true,
-            cache_disable: true,
-            global: true,
-            no_execute: true,
+            inner: PageFlagsInner(
+                PageFlagsInner::PRESENT
+                    | PageFlagsInner::WRITABLE
+                    | PageFlagsInner::WRITE_THROUGH
+                    | PageFlagsInner::CACHE_DISABLE
+                    | PageFlagsInner::GLOBAL
+                    | PageFlagsInner::NO_EXECUTE,
+            ),
         }
     }
 
     /// Create flags for user code
-    pub fn user_code() -> Self {
+    #[must_use]
+    pub const fn user_code() -> Self {
         Self {
-            present: true,
-            writable: false,
-            user: true,
-            write_through: false,
-            cache_disable: false,
-            global: false,
-            no_execute: false,
+            inner: PageFlagsInner(PageFlagsInner::PRESENT | PageFlagsInner::USER),
         }
     }
 
     /// Create flags for user data
-    pub fn user_data() -> Self {
+    #[must_use]
+    pub const fn user_data() -> Self {
         Self {
-            present: true,
-            writable: true,
-            user: true,
-            write_through: false,
-            cache_disable: false,
-            global: false,
-            no_execute: true,
+            inner: PageFlagsInner(
+                PageFlagsInner::PRESENT
+                    | PageFlagsInner::WRITABLE
+                    | PageFlagsInner::USER
+                    | PageFlagsInner::NO_EXECUTE,
+            ),
+        }
+    }
+
+    /// Builder method to set writable flag
+    #[must_use]
+    pub const fn with_writable(self) -> Self {
+        Self {
+            inner: PageFlagsInner(self.inner.0 | PageFlagsInner::WRITABLE),
+        }
+    }
+
+    /// Builder method to set user flag
+    #[must_use]
+    pub const fn with_user(self) -> Self {
+        Self {
+            inner: PageFlagsInner(self.inner.0 | PageFlagsInner::USER),
+        }
+    }
+
+    /// Builder method to set no-execute flag
+    #[must_use]
+    pub const fn with_no_execute(self) -> Self {
+        Self {
+            inner: PageFlagsInner(self.inner.0 | PageFlagsInner::NO_EXECUTE),
+        }
+    }
+
+    /// Builder method to set global flag
+    #[must_use]
+    pub const fn with_global(self) -> Self {
+        Self {
+            inner: PageFlagsInner(self.inner.0 | PageFlagsInner::GLOBAL),
+        }
+    }
+
+    /// Builder method to set write-through flag
+    #[must_use]
+    pub const fn with_write_through(self) -> Self {
+        Self {
+            inner: PageFlagsInner(self.inner.0 | PageFlagsInner::WRITE_THROUGH),
+        }
+    }
+
+    /// Builder method to set cache-disable flag
+    #[must_use]
+    pub const fn with_cache_disable(self) -> Self {
+        Self {
+            inner: PageFlagsInner(self.inner.0 | PageFlagsInner::CACHE_DISABLE),
+        }
+    }
+
+    /// Builder method to set present flag
+    #[must_use]
+    pub const fn with_present(self) -> Self {
+        Self {
+            inner: PageFlagsInner(self.inner.0 | PageFlagsInner::PRESENT),
         }
     }
 
     /// Convert to PTE flags
-    pub fn to_pte_flags(&self) -> u64 {
+    #[must_use]
+    pub const fn to_pte_flags(&self) -> u64 {
         let mut flags = 0u64;
-        if self.present {
+        if self.present() {
             flags |= PTE_PRESENT;
         }
-        if self.writable {
+        if self.writable() {
             flags |= PTE_WRITABLE;
         }
-        if self.user {
+        if self.user() {
             flags |= PTE_USER;
         }
-        if self.write_through {
+        if self.write_through() {
             flags |= PTE_WRITE_THROUGH;
         }
-        if self.cache_disable {
+        if self.cache_disable() {
             flags |= PTE_CACHE_DISABLE;
         }
-        if self.global {
+        if self.global() {
             flags |= PTE_GLOBAL;
         }
-        if self.no_execute {
+        if self.no_execute() {
             flags |= PTE_NO_EXECUTE;
         }
         flags
