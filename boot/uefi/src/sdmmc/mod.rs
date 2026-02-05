@@ -45,7 +45,7 @@ pub const SD_MAX_RETRIES: u32 = 1000;
 pub const SD_CHECK_PATTERN: u8 = 0xAA;
 
 /// OCR voltage window (2.7V - 3.6V)
-pub const OCR_VOLTAGE_WINDOW: u32 = 0x00FF8000;
+pub const OCR_VOLTAGE_WINDOW: u32 = 0x00FF_8000;
 
 /// OCR high capacity bit
 pub const OCR_HCS: u32 = 1 << 30;
@@ -485,7 +485,7 @@ impl CardStatus {
 
     /// Check for any error
     pub const fn has_error(&self) -> bool {
-        (self.0 & 0xFDF98000) != 0
+        (self.0 & 0xFDF9_8000) != 0
     }
 }
 
