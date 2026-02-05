@@ -2,6 +2,8 @@
 //!
 //! Optimizes lock acquisition order to prevent deadlocks.
 
+#![allow(clippy::excessive_nesting)]
+
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
