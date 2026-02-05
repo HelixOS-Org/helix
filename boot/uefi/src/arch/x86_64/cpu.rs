@@ -159,22 +159,22 @@ mod cpuid_leaf {
     pub const VERSION_FEATURES: u32 = 1;
     pub const EXTENDED_FEATURES: u32 = 7;
     pub const EXTENDED_INFO: u32 = 0x80000001;
-    pub const EXTENDED_BRAND_1: u32 = 0x80000002;
-    pub const EXTENDED_BRAND_2: u32 = 0x80000003;
-    pub const EXTENDED_BRAND_3: u32 = 0x80000004;
+    pub const _EXTENDED_BRAND_1: u32 = 0x80000002;
+    pub const _EXTENDED_BRAND_2: u32 = 0x80000003;
+    pub const _EXTENDED_BRAND_3: u32 = 0x80000004;
     pub const EXTENDED_ADDRESS: u32 = 0x80000008;
 }
 
 /// Feature bits in CPUID.1.ECX
 mod feature_ecx {
     pub const SSE3: u32 = 1 << 0;
-    pub const PCLMULQDQ: u32 = 1 << 1;
-    pub const DTES64: u32 = 1 << 2;
-    pub const MONITOR: u32 = 1 << 3;
-    pub const DS_CPL: u32 = 1 << 4;
-    pub const VMX: u32 = 1 << 5;
-    pub const SMX: u32 = 1 << 6;
-    pub const EIST: u32 = 1 << 7;
+    pub const _PCLMULQDQ: u32 = 1 << 1;
+    pub const _DTES64: u32 = 1 << 2;
+    pub const _MONITOR: u32 = 1 << 3;
+    pub const _DS_CPL: u32 = 1 << 4;
+    pub const _VMX: u32 = 1 << 5;
+    pub const _SMX: u32 = 1 << 6;
+    pub const _EIST: u32 = 1 << 7;
     pub const TM2: u32 = 1 << 8;
     pub const SSSE3: u32 = 1 << 9;
     pub const CNXT_ID: u32 = 1 << 10;
