@@ -354,7 +354,9 @@ impl VariableStorage {
 
     /// Get variable
     pub fn get(&self, name: &[u16], vendor_guid: &[u8; 16]) -> Option<&StoredVariable> {
-        self.variables.iter().find(|var| var.matches(name, vendor_guid))
+        self.variables
+            .iter()
+            .find(|var| var.matches(name, vendor_guid))
     }
 
     /// Get variable data
