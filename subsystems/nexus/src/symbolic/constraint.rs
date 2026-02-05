@@ -14,6 +14,9 @@
 //! - Kernel-specific constraints (resources, scheduling, memory)
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
 
 extern crate alloc;
 
