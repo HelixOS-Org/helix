@@ -1,10 +1,15 @@
 //! Raw UEFI Boot Services
 //!
-//! Boot Services are only available before ExitBootServices is called.
+//! Boot Services are only available before `ExitBootServices` is called.
 //! They provide memory management, protocol handling, and device management.
 
 use super::memory::{MemoryDescriptor, MemoryType};
-use super::types::*;
+use crate::raw::event_type;
+use crate::raw::TPL_CALLBACK;
+use super::types::{
+    AllocateType, Boolean, Char16, Event, Guid, Handle, InterfaceType, LocateSearchType,
+    OpenProtocolInformationEntry, PhysicalAddress, Status, TableHeader, TimerDelay, Tpl,
+};
 
 // =============================================================================
 // BOOT SERVICES TABLE
@@ -13,8 +18,9 @@ use super::types::*;
 /// EFI Boot Services Table
 ///
 /// Provides services available during the boot phase before
-/// ExitBootServices is called.
+/// `ExitBootServices` is called.
 #[repr(C)]
+#[derive(Debug)]
 pub struct EfiBootServices {
     /// Table header
     pub hdr: TableHeader,
@@ -349,7 +355,7 @@ impl EfiBootServices {
     /// # Safety
     /// The caller must ensure boot services are available.
     pub unsafe fn restore_tpl(&self, old_tpl: Tpl) {
-        (self.restore_tpl)(old_tpl)
+        (self.restore_tpl)(old_tpl);
     }
 
     // =========================================================================
@@ -390,7 +396,7 @@ impl EfiBootServices {
     /// Free pages of memory
     ///
     /// # Safety
-    /// The caller must ensure the memory was allocated with allocate_pages.
+    /// The caller must ensure the memory was allocated with `allocate_pages`.
     pub unsafe fn free_pages(&self, memory: PhysicalAddress, pages: usize) -> Result<(), Status> {
         let status = (self.free_pages)(memory, pages);
         status.to_status_result()
@@ -431,7 +437,7 @@ impl EfiBootServices {
     /// The caller must ensure boot services are available and buffer is valid.
     pub unsafe fn get_memory_map_full(
         &self,
-        buffer: *mut u8,
+        buffer: *mut MemoryDescriptor,
         buffer_size: usize,
     ) -> Result<(usize, usize, usize, u32), Status> {
         let mut map_size = buffer_size;
@@ -441,7 +447,7 @@ impl EfiBootServices {
 
         let status = (self.get_memory_map)(
             &mut map_size,
-            buffer as *mut MemoryDescriptor,
+            buffer,
             &mut map_key,
             &mut desc_size,
             &mut desc_version,
@@ -467,7 +473,7 @@ impl EfiBootServices {
     /// Free pool memory
     ///
     /// # Safety
-    /// The caller must ensure the buffer was allocated with allocate_pool.
+    /// The caller must ensure the buffer was allocated with `allocate_pool`.
     pub unsafe fn free_pool(&self, buffer: *mut u8) -> Result<(), Status> {
         let status = (self.free_pool)(buffer);
         status.to_status_result()
@@ -537,7 +543,7 @@ impl EfiBootServices {
     pub unsafe fn locate_protocol<T>(&self, guid: &Guid) -> Result<*mut T, Status> {
         let mut interface = core::ptr::null_mut();
         let status = (self.locate_protocol)(guid, core::ptr::null_mut(), &mut interface);
-        status.to_status_result_with(interface as *mut T)
+        status.to_status_result_with(interface.cast::<T>())
     }
 
     /// Handle protocol
@@ -547,7 +553,7 @@ impl EfiBootServices {
     pub unsafe fn handle_protocol<T>(&self, handle: Handle, guid: &Guid) -> Result<*mut T, Status> {
         let mut interface = core::ptr::null_mut();
         let status = (self.handle_protocol)(handle, guid, &mut interface);
-        status.to_status_result_with(interface as *mut T)
+        status.to_status_result_with(interface.cast::<T>())
     }
 
     /// Open protocol
@@ -571,7 +577,7 @@ impl EfiBootServices {
             controller_handle,
             attributes,
         );
-        status.to_status_result_with(interface as *mut T)
+        status.to_status_result_with(interface.cast::<T>())
     }
 
     /// Close protocol
@@ -601,9 +607,7 @@ impl EfiBootServices {
         let mut num_handles = 0;
         let mut buffer = core::ptr::null_mut();
 
-        let protocol_ptr = protocol
-            .map(|g| g as *const Guid)
-            .unwrap_or(core::ptr::null());
+        let protocol_ptr = protocol.map_or(core::ptr::null(), |g| g as *const Guid);
 
         let status = (self.locate_handle_buffer)(
             search_type,
@@ -736,7 +740,7 @@ impl EfiBootServices {
     /// The caller must ensure the memory regions are valid and don't overlap
     /// in a way that would cause undefined behavior.
     pub unsafe fn copy_mem(&self, dest: *mut u8, src: *const u8, len: usize) {
-        (self.copy_mem)(dest, src, len)
+        (self.copy_mem)(dest, src, len);
     }
 
     /// Set memory to a value
@@ -744,15 +748,7 @@ impl EfiBootServices {
     /// # Safety
     /// The caller must ensure the memory region is valid.
     pub unsafe fn set_mem(&self, buffer: *mut u8, size: usize, value: u8) {
-        (self.set_mem)(buffer, size, value)
-    }
-}
-
-impl core::fmt::Debug for EfiBootServices {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("EfiBootServices")
-            .field("hdr", &self.hdr)
-            .finish()
+        (self.set_mem)(buffer, size, value);
     }
 }
 
