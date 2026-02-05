@@ -4,6 +4,11 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Benchmarks for Helix OS Framework"
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 crate-type = ["rlib"]
