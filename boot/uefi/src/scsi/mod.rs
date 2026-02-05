@@ -207,18 +207,18 @@ impl ScsiStatus {
     /// Create from status byte
     pub fn from_byte(byte: u8) -> Self {
         match byte & 0x7E {
-            0x00 => ScsiStatus::Good,
-            0x02 => ScsiStatus::CheckCondition,
-            0x04 => ScsiStatus::ConditionMet,
-            0x08 => ScsiStatus::Busy,
-            0x10 => ScsiStatus::Intermediate,
-            0x14 => ScsiStatus::IntermediateConditionMet,
-            0x18 => ScsiStatus::ReservationConflict,
-            0x22 => ScsiStatus::CommandTerminated,
-            0x28 => ScsiStatus::TaskSetFull,
-            0x30 => ScsiStatus::AcaActive,
-            0x40 => ScsiStatus::TaskAborted,
-            _ => ScsiStatus::CheckCondition, // Unknown treated as check condition
+            0x00 => Self::Good,
+            0x04 => Self::ConditionMet,
+            0x08 => Self::Busy,
+            0x10 => Self::Intermediate,
+            0x14 => Self::IntermediateConditionMet,
+            0x18 => Self::ReservationConflict,
+            0x22 => Self::CommandTerminated,
+            0x28 => Self::TaskSetFull,
+            0x30 => Self::AcaActive,
+            0x40 => Self::TaskAborted,
+            // Unknown treated as check condition (includes 0x02)
+            _ => Self::CheckCondition,
         }
     }
 
@@ -279,23 +279,23 @@ impl SenseKey {
     /// Create from sense key value
     pub fn from_byte(byte: u8) -> Self {
         match byte & 0x0F {
-            0x00 => SenseKey::NoSense,
-            0x01 => SenseKey::RecoveredError,
-            0x02 => SenseKey::NotReady,
-            0x03 => SenseKey::MediumError,
-            0x04 => SenseKey::HardwareError,
-            0x05 => SenseKey::IllegalRequest,
-            0x06 => SenseKey::UnitAttention,
-            0x07 => SenseKey::DataProtect,
-            0x08 => SenseKey::BlankCheck,
-            0x09 => SenseKey::VendorSpecific,
-            0x0A => SenseKey::CopyAborted,
-            0x0B => SenseKey::AbortedCommand,
-            0x0C => SenseKey::Equal,
-            0x0D => SenseKey::VolumeOverflow,
-            0x0E => SenseKey::Miscompare,
-            0x0F => SenseKey::Completed,
-            _ => SenseKey::NoSense,
+            0x01 => Self::RecoveredError,
+            0x02 => Self::NotReady,
+            0x03 => Self::MediumError,
+            0x04 => Self::HardwareError,
+            0x05 => Self::IllegalRequest,
+            0x06 => Self::UnitAttention,
+            0x07 => Self::DataProtect,
+            0x08 => Self::BlankCheck,
+            0x09 => Self::VendorSpecific,
+            0x0A => Self::CopyAborted,
+            0x0B => Self::AbortedCommand,
+            0x0C => Self::Equal,
+            0x0D => Self::VolumeOverflow,
+            0x0E => Self::Miscompare,
+            0x0F => Self::Completed,
+            // 0x00 and any other value default to NoSense
+            _ => Self::NoSense,
         }
     }
 
@@ -740,12 +740,12 @@ impl InquiryData {
         self.response_format & 0x0F
     }
 
-    /// Check HiSup (hierarchical support)
+    /// Check `HiSup` (hierarchical support)
     pub const fn hi_sup(&self) -> bool {
         (self.response_format & 0x10) != 0
     }
 
-    /// Check NormACA (normal ACA supported)
+    /// Check `NormACA` (normal ACA supported)
     pub const fn norm_aca(&self) -> bool {
         (self.response_format & 0x20) != 0
     }
@@ -766,8 +766,7 @@ impl InquiryData {
             .vendor
             .iter()
             .rposition(|&c| c != b' ' && c != 0)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
         &self.vendor[..end]
     }
 
@@ -777,8 +776,7 @@ impl InquiryData {
             .product
             .iter()
             .rposition(|&c| c != b' ' && c != 0)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
         &self.product[..end]
     }
 
@@ -788,8 +786,7 @@ impl InquiryData {
             .revision
             .iter()
             .rposition(|&c| c != b' ' && c != 0)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
         &self.revision[..end]
     }
 }
@@ -889,12 +886,12 @@ impl ReadCapacity10 {
 
     /// Get total capacity in bytes
     pub fn capacity_bytes(&self) -> u64 {
-        (self.last_lba() as u64 + 1) * (self.block_length() as u64)
+        (u64::from(self.last_lba()) + 1) * u64::from(self.block_length())
     }
 
     /// Get total number of blocks
     pub fn total_blocks(&self) -> u64 {
-        self.last_lba() as u64 + 1
+        u64::from(self.last_lba()) + 1
     }
 }
 
@@ -950,7 +947,7 @@ impl ReadCapacity16 {
 
     /// Get total capacity in bytes
     pub fn capacity_bytes(&self) -> u128 {
-        (self.last_lba() as u128 + 1) * (self.block_length() as u128)
+        (u128::from(self.last_lba()) + 1) * u128::from(self.block_length())
     }
 
     /// Get total number of blocks
@@ -1155,10 +1152,11 @@ impl CdbBuilder {
     /// Build INQUIRY command
     pub fn inquiry(&mut self, evpd: bool, page_code: u8, allocation_length: u16) -> &[u8] {
         self.cdb[0] = opcode::INQUIRY;
-        self.cdb[1] = if evpd { 0x01 } else { 0x00 };
+        self.cdb[1] = u8::from(evpd);
         self.cdb[2] = page_code;
-        self.cdb[3] = (allocation_length >> 8) as u8;
-        self.cdb[4] = allocation_length as u8;
+        let alloc_bytes = allocation_length.to_be_bytes();
+        self.cdb[3] = alloc_bytes[0];
+        self.cdb[4] = alloc_bytes[1];
         self.len = 6;
         &self.cdb[..self.len]
     }
@@ -1174,10 +1172,11 @@ impl CdbBuilder {
     pub fn read_capacity_16(&mut self, allocation_length: u32) -> &[u8] {
         self.cdb[0] = opcode::SERVICE_ACTION_IN_16;
         self.cdb[1] = opcode::SA_READ_CAPACITY_16;
-        self.cdb[10] = (allocation_length >> 24) as u8;
-        self.cdb[11] = (allocation_length >> 16) as u8;
-        self.cdb[12] = (allocation_length >> 8) as u8;
-        self.cdb[13] = allocation_length as u8;
+        let alloc_bytes = allocation_length.to_be_bytes();
+        self.cdb[10] = alloc_bytes[0];
+        self.cdb[11] = alloc_bytes[1];
+        self.cdb[12] = alloc_bytes[2];
+        self.cdb[13] = alloc_bytes[3];
         self.len = 16;
         &self.cdb[..self.len]
     }
@@ -1185,12 +1184,14 @@ impl CdbBuilder {
     /// Build READ (10) command
     pub fn read_10(&mut self, lba: u32, transfer_length: u16) -> &[u8] {
         self.cdb[0] = opcode::READ_10;
-        self.cdb[2] = (lba >> 24) as u8;
-        self.cdb[3] = (lba >> 16) as u8;
-        self.cdb[4] = (lba >> 8) as u8;
-        self.cdb[5] = lba as u8;
-        self.cdb[7] = (transfer_length >> 8) as u8;
-        self.cdb[8] = transfer_length as u8;
+        let lba_bytes = lba.to_be_bytes();
+        self.cdb[2] = lba_bytes[0];
+        self.cdb[3] = lba_bytes[1];
+        self.cdb[4] = lba_bytes[2];
+        self.cdb[5] = lba_bytes[3];
+        let transfer_bytes = transfer_length.to_be_bytes();
+        self.cdb[7] = transfer_bytes[0];
+        self.cdb[8] = transfer_bytes[1];
         self.len = 10;
         &self.cdb[..self.len]
     }
@@ -1198,18 +1199,20 @@ impl CdbBuilder {
     /// Build READ (16) command
     pub fn read_16(&mut self, lba: u64, transfer_length: u32) -> &[u8] {
         self.cdb[0] = opcode::READ_16;
-        self.cdb[2] = (lba >> 56) as u8;
-        self.cdb[3] = (lba >> 48) as u8;
-        self.cdb[4] = (lba >> 40) as u8;
-        self.cdb[5] = (lba >> 32) as u8;
-        self.cdb[6] = (lba >> 24) as u8;
-        self.cdb[7] = (lba >> 16) as u8;
-        self.cdb[8] = (lba >> 8) as u8;
-        self.cdb[9] = lba as u8;
-        self.cdb[10] = (transfer_length >> 24) as u8;
-        self.cdb[11] = (transfer_length >> 16) as u8;
-        self.cdb[12] = (transfer_length >> 8) as u8;
-        self.cdb[13] = transfer_length as u8;
+        let lba_bytes = lba.to_be_bytes();
+        self.cdb[2] = lba_bytes[0];
+        self.cdb[3] = lba_bytes[1];
+        self.cdb[4] = lba_bytes[2];
+        self.cdb[5] = lba_bytes[3];
+        self.cdb[6] = lba_bytes[4];
+        self.cdb[7] = lba_bytes[5];
+        self.cdb[8] = lba_bytes[6];
+        self.cdb[9] = lba_bytes[7];
+        let transfer_bytes = transfer_length.to_be_bytes();
+        self.cdb[10] = transfer_bytes[0];
+        self.cdb[11] = transfer_bytes[1];
+        self.cdb[12] = transfer_bytes[2];
+        self.cdb[13] = transfer_bytes[3];
         self.len = 16;
         &self.cdb[..self.len]
     }
@@ -1217,12 +1220,14 @@ impl CdbBuilder {
     /// Build WRITE (10) command
     pub fn write_10(&mut self, lba: u32, transfer_length: u16) -> &[u8] {
         self.cdb[0] = opcode::WRITE_10;
-        self.cdb[2] = (lba >> 24) as u8;
-        self.cdb[3] = (lba >> 16) as u8;
-        self.cdb[4] = (lba >> 8) as u8;
-        self.cdb[5] = lba as u8;
-        self.cdb[7] = (transfer_length >> 8) as u8;
-        self.cdb[8] = transfer_length as u8;
+        let lba_bytes = lba.to_be_bytes();
+        self.cdb[2] = lba_bytes[0];
+        self.cdb[3] = lba_bytes[1];
+        self.cdb[4] = lba_bytes[2];
+        self.cdb[5] = lba_bytes[3];
+        let transfer_bytes = transfer_length.to_be_bytes();
+        self.cdb[7] = transfer_bytes[0];
+        self.cdb[8] = transfer_bytes[1];
         self.len = 10;
         &self.cdb[..self.len]
     }
@@ -1230,18 +1235,20 @@ impl CdbBuilder {
     /// Build WRITE (16) command
     pub fn write_16(&mut self, lba: u64, transfer_length: u32) -> &[u8] {
         self.cdb[0] = opcode::WRITE_16;
-        self.cdb[2] = (lba >> 56) as u8;
-        self.cdb[3] = (lba >> 48) as u8;
-        self.cdb[4] = (lba >> 40) as u8;
-        self.cdb[5] = (lba >> 32) as u8;
-        self.cdb[6] = (lba >> 24) as u8;
-        self.cdb[7] = (lba >> 16) as u8;
-        self.cdb[8] = (lba >> 8) as u8;
-        self.cdb[9] = lba as u8;
-        self.cdb[10] = (transfer_length >> 24) as u8;
-        self.cdb[11] = (transfer_length >> 16) as u8;
-        self.cdb[12] = (transfer_length >> 8) as u8;
-        self.cdb[13] = transfer_length as u8;
+        let lba_bytes = lba.to_be_bytes();
+        self.cdb[2] = lba_bytes[0];
+        self.cdb[3] = lba_bytes[1];
+        self.cdb[4] = lba_bytes[2];
+        self.cdb[5] = lba_bytes[3];
+        self.cdb[6] = lba_bytes[4];
+        self.cdb[7] = lba_bytes[5];
+        self.cdb[8] = lba_bytes[6];
+        self.cdb[9] = lba_bytes[7];
+        let transfer_bytes = transfer_length.to_be_bytes();
+        self.cdb[10] = transfer_bytes[0];
+        self.cdb[11] = transfer_bytes[1];
+        self.cdb[12] = transfer_bytes[2];
+        self.cdb[13] = transfer_bytes[3];
         self.len = 16;
         &self.cdb[..self.len]
     }
@@ -1249,12 +1256,14 @@ impl CdbBuilder {
     /// Build SYNCHRONIZE CACHE (10) command
     pub fn synchronize_cache_10(&mut self, lba: u32, num_blocks: u16) -> &[u8] {
         self.cdb[0] = opcode::SYNCHRONIZE_CACHE_10;
-        self.cdb[2] = (lba >> 24) as u8;
-        self.cdb[3] = (lba >> 16) as u8;
-        self.cdb[4] = (lba >> 8) as u8;
-        self.cdb[5] = lba as u8;
-        self.cdb[7] = (num_blocks >> 8) as u8;
-        self.cdb[8] = num_blocks as u8;
+        let lba_bytes = lba.to_be_bytes();
+        self.cdb[2] = lba_bytes[0];
+        self.cdb[3] = lba_bytes[1];
+        self.cdb[4] = lba_bytes[2];
+        self.cdb[5] = lba_bytes[3];
+        let blocks_bytes = num_blocks.to_be_bytes();
+        self.cdb[7] = blocks_bytes[0];
+        self.cdb[8] = blocks_bytes[1];
         self.len = 10;
         &self.cdb[..self.len]
     }
@@ -1262,10 +1271,11 @@ impl CdbBuilder {
     /// Build UNMAP command
     pub fn unmap(&mut self, anchor: bool, group_number: u8, param_list_length: u16) -> &[u8] {
         self.cdb[0] = opcode::UNMAP;
-        self.cdb[1] = if anchor { 0x01 } else { 0x00 };
+        self.cdb[1] = u8::from(anchor);
         self.cdb[6] = group_number & 0x1F;
-        self.cdb[7] = (param_list_length >> 8) as u8;
-        self.cdb[8] = param_list_length as u8;
+        let param_bytes = param_list_length.to_be_bytes();
+        self.cdb[7] = param_bytes[0];
+        self.cdb[8] = param_bytes[1];
         self.len = 10;
         &self.cdb[..self.len]
     }
@@ -1298,8 +1308,9 @@ impl CdbBuilder {
         }
         self.cdb[1] = byte1;
         self.cdb[2] = page_code;
-        self.cdb[7] = (allocation_length >> 8) as u8;
-        self.cdb[8] = allocation_length as u8;
+        let alloc_bytes = allocation_length.to_be_bytes();
+        self.cdb[7] = alloc_bytes[0];
+        self.cdb[8] = alloc_bytes[1];
         self.len = 10;
         &self.cdb[..self.len]
     }
@@ -1313,7 +1324,7 @@ impl CdbBuilder {
         loej: bool,
     ) -> &[u8] {
         self.cdb[0] = opcode::START_STOP_UNIT;
-        self.cdb[1] = if immed { 0x01 } else { 0x00 };
+        self.cdb[1] = u8::from(immed);
         let mut byte4 = (power_condition & 0x0F) << 4;
         if loej {
             byte4 |= 0x02;
@@ -1330,10 +1341,11 @@ impl CdbBuilder {
     pub fn report_luns(&mut self, select_report: u8, allocation_length: u32) -> &[u8] {
         self.cdb[0] = opcode::REPORT_LUNS;
         self.cdb[2] = select_report;
-        self.cdb[6] = (allocation_length >> 24) as u8;
-        self.cdb[7] = (allocation_length >> 16) as u8;
-        self.cdb[8] = (allocation_length >> 8) as u8;
-        self.cdb[9] = allocation_length as u8;
+        let alloc_bytes = allocation_length.to_be_bytes();
+        self.cdb[6] = alloc_bytes[0];
+        self.cdb[7] = alloc_bytes[1];
+        self.cdb[8] = alloc_bytes[2];
+        self.cdb[9] = alloc_bytes[3];
         self.len = 12;
         &self.cdb[..self.len]
     }
@@ -1417,9 +1429,9 @@ pub struct IscsiBasicHeader {
 impl IscsiBasicHeader {
     /// Get data segment length
     pub fn data_segment_length(&self) -> u32 {
-        ((self.data_segment_len[0] as u32) << 16)
-            | ((self.data_segment_len[1] as u32) << 8)
-            | (self.data_segment_len[2] as u32)
+        (u32::from(self.data_segment_len[0]) << 16)
+            | (u32::from(self.data_segment_len[1]) << 8)
+            | u32::from(self.data_segment_len[2])
     }
 
     /// Set data segment length
@@ -1574,28 +1586,26 @@ pub enum ScsiError {
 impl fmt::Display for ScsiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ScsiError::Timeout => write!(f, "Command timeout"),
-            ScsiError::TransportError => write!(f, "Transport error"),
-            ScsiError::CheckCondition {
+            Self::Timeout => write!(f, "Command timeout"),
+            Self::TransportError => write!(f, "Transport error"),
+            Self::CheckCondition {
                 sense_key,
                 asc,
                 ascq,
             } => {
                 write!(
                     f,
-                    "Check condition: {} (ASC={:#04X}, ASCQ={:#04X})",
-                    sense_key.description(),
-                    asc,
-                    ascq
+                    "Check condition: {} (ASC={asc:#04X}, ASCQ={ascq:#04X})",
+                    sense_key.description()
                 )
             },
-            ScsiError::Busy => write!(f, "Device busy"),
-            ScsiError::ReservationConflict => write!(f, "Reservation conflict"),
-            ScsiError::TaskSetFull => write!(f, "Task set full"),
-            ScsiError::InvalidLun => write!(f, "Invalid LUN"),
-            ScsiError::MediumNotPresent => write!(f, "Medium not present"),
-            ScsiError::WriteProtected => write!(f, "Write protected"),
-            ScsiError::InternalError => write!(f, "Internal error"),
+            Self::Busy => write!(f, "Device busy"),
+            Self::ReservationConflict => write!(f, "Reservation conflict"),
+            Self::TaskSetFull => write!(f, "Task set full"),
+            Self::InvalidLun => write!(f, "Invalid LUN"),
+            Self::MediumNotPresent => write!(f, "Medium not present"),
+            Self::WriteProtected => write!(f, "Write protected"),
+            Self::InternalError => write!(f, "Internal error"),
         }
     }
 }
