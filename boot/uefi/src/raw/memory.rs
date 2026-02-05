@@ -477,15 +477,14 @@ impl fmt::Debug for MemoryDescriptor {
 impl fmt::Display for MemoryDescriptor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let type_name = self.get_type().map_or("Unknown", MemoryType::name);
+        let physical_start = self.physical_start;
+        let physical_end = self.physical_end();
+        let size = self.size();
+        let cache_type = self.attribute.cache_type();
 
         write!(
             f,
-            "{} - {} ({:>12} bytes) [{}] {:?}",
-            self.physical_start,
-            self.physical_end(),
-            self.size(),
-            type_name,
-            self.attribute.cache_type()
+            "{physical_start} - {physical_end} ({size:>12} bytes) [{type_name}] {cache_type:?}"
         )
     }
 }
@@ -540,15 +539,15 @@ impl MemoryMapIter<'_> {
     }
 }
 
-impl<'a> Iterator for MemoryMapIter<'a> {
-    type Item = &'a MemoryDescriptor;
+impl Iterator for MemoryMapIter<'_> {
+    type Item = MemoryDescriptor;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.ptr >= self.end {
             return None;
         }
 
-        let descriptor = unsafe { &*self.ptr.cast::<MemoryDescriptor>() };
+        let descriptor = unsafe { core::ptr::read_unaligned(self.ptr.cast::<MemoryDescriptor>()) };
         self.ptr = unsafe { self.ptr.add(self.descriptor_size) };
 
         Some(descriptor)
@@ -615,17 +614,15 @@ impl MemoryMap {
     }
 
     /// Get an iterator over the memory descriptors
-    pub fn iter(&self) -> MemoryMapIter<'_> {
+    pub const fn iter(&self) -> MemoryMapIter<'_> {
         unsafe { MemoryMapIter::new(self.buffer, self.map_size, self.descriptor_size) }
     }
 
-    /// Get a mutable iterator over the memory descriptors
-    pub fn iter_mut(&mut self) -> MemoryMapIterMut<'_> {
-        unsafe { MemoryMapIterMut::new(self.buffer, self.map_size, self.descriptor_size) }
-    }
-
     /// Find memory descriptors by type
-    pub fn find_by_type(&self, memory_type: MemoryType) -> impl Iterator<Item = &MemoryDescriptor> {
+    pub fn find_by_type(
+        &self,
+        memory_type: MemoryType,
+    ) -> impl Iterator<Item = MemoryDescriptor> + '_ {
         self.iter()
             .filter(move |d| d.get_type() == Some(memory_type))
     }
@@ -633,34 +630,34 @@ impl MemoryMap {
     /// Get total usable memory
     pub fn total_usable_memory(&self) -> u64 {
         self.iter()
-            .filter(|d| d.is_usable())
-            .map(MemoryDescriptor::size)
+            .filter(MemoryDescriptor::is_usable)
+            .map(|d| d.size())
             .sum()
     }
 
     /// Get total conventional memory
     pub fn total_conventional_memory(&self) -> u64 {
         self.iter()
-            .filter(|d| d.is_conventional())
-            .map(MemoryDescriptor::size)
+            .filter(MemoryDescriptor::is_conventional)
+            .map(|d| d.size())
             .sum()
     }
 
     /// Find the largest conventional memory region
-    pub fn largest_conventional_region(&self) -> Option<&MemoryDescriptor> {
+    pub fn largest_conventional_region(&self) -> Option<MemoryDescriptor> {
         self.iter()
-            .filter(|d| d.is_conventional())
-            .max_by_key(|d| d.size())
+            .filter(MemoryDescriptor::is_conventional)
+            .max_by_key(MemoryDescriptor::size)
     }
 
     /// Get memory at or above a specific address
-    pub fn memory_above(&self, addr: PhysicalAddress) -> impl Iterator<Item = &MemoryDescriptor> {
+    pub fn memory_above(&self, addr: PhysicalAddress) -> impl Iterator<Item = MemoryDescriptor> + '_ {
         self.iter()
             .filter(move |d| d.physical_start.as_u64() >= addr.as_u64())
     }
 
     /// Get memory below a specific address
-    pub fn memory_below(&self, addr: PhysicalAddress) -> impl Iterator<Item = &MemoryDescriptor> {
+    pub fn memory_below(&self, addr: PhysicalAddress) -> impl Iterator<Item = MemoryDescriptor> + '_ {
         self.iter()
             .filter(move |d| d.physical_end().as_u64() <= addr.as_u64())
     }
@@ -669,7 +666,7 @@ impl MemoryMap {
     pub fn find_suitable_region(&self, size: u64, alignment: u64) -> Option<PhysicalAddress> {
         let pages_needed = size.div_ceil(MemoryDescriptor::PAGE_SIZE);
 
-        for desc in self.iter() {
+        for desc in self {
             if !desc.is_conventional() {
                 continue;
             }
@@ -691,66 +688,18 @@ impl MemoryMap {
 
     /// Print the memory map for debugging
     pub fn print(&self) {
-        for (i, desc) in self.iter().enumerate() {
+        for (i, desc) in self.into_iter().enumerate() {
             // In real code, this would use a proper logging mechanism
             let _ = (i, desc);
         }
     }
 }
-
-/// Mutable memory map iterator
-pub struct MemoryMapIterMut<'a> {
-    ptr: *mut u8,
-    end: *mut u8,
-    descriptor_size: usize,
-    _marker: core::marker::PhantomData<&'a mut MemoryDescriptor>,
-}
-
-impl MemoryMapIterMut<'_> {
-    /// Create a new mutable memory map iterator
-    ///
-    /// # Safety
-    /// The caller must ensure the pointer and size are valid.
-    pub unsafe fn new(ptr: *mut u8, size: usize, descriptor_size: usize) -> Self {
-        Self {
-            ptr,
-            end: ptr.add(size),
-            descriptor_size,
-            _marker: core::marker::PhantomData,
-        }
-    }
-}
-
-impl<'a> Iterator for MemoryMapIterMut<'a> {
-    type Item = &'a mut MemoryDescriptor;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.ptr >= self.end {
-            return None;
-        }
-
-        let descriptor = unsafe { &mut *self.ptr.cast::<MemoryDescriptor>() };
-        self.ptr = unsafe { self.ptr.add(self.descriptor_size) };
-
-        Some(descriptor)
-    }
-}
-
 impl<'a> IntoIterator for &'a MemoryMap {
-    type Item = &'a MemoryDescriptor;
+    type Item = MemoryDescriptor;
     type IntoIter = MemoryMapIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a mut MemoryMap {
-    type Item = &'a mut MemoryDescriptor;
-    type IntoIter = MemoryMapIterMut<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter_mut()
     }
 }
 
@@ -792,7 +741,7 @@ impl MemoryStats {
         let mut largest_conventional = 0u64;
         let mut highest = 0u64;
 
-        for desc in map.iter() {
+        for desc in map {
             stats.region_count += 1;
 
             let size = desc.size();
@@ -851,17 +800,16 @@ impl MemoryStats {
         let mut buf = [0u8; 16];
         let units = ["B", "KiB", "MiB", "GiB", "TiB"];
 
-        let mut value = size as f64;
+        let mut value = size;
         let mut unit_idx = 0;
 
-        while value >= 1024.0 && unit_idx < units.len() - 1 {
-            value /= 1024.0;
+        while value >= 1024 && unit_idx < units.len() - 1 {
+            value /= 1024;
             unit_idx += 1;
         }
 
         // Simple formatting (no_std compatible)
-        let whole = value as u64;
-        let len = format_u64(whole, &mut buf);
+        let len = format_u64(value, &mut buf);
 
         buf[len] = b' ';
         let unit = units[unit_idx].as_bytes();
