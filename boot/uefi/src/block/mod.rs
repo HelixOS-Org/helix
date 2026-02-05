@@ -57,7 +57,7 @@ pub enum BlockDeviceType {
     Hdd,
     /// Solid state drive
     Ssd,
-    /// NVMe drive
+    /// `NVMe` drive
     Nvme,
     /// USB flash drive
     UsbFlash,
@@ -85,20 +85,20 @@ impl BlockDeviceType {
     /// Get device type name
     pub const fn name(&self) -> &'static str {
         match self {
-            BlockDeviceType::Unknown => "Unknown",
-            BlockDeviceType::Hdd => "Hard Disk",
-            BlockDeviceType::Ssd => "SSD",
-            BlockDeviceType::Nvme => "NVMe",
-            BlockDeviceType::UsbFlash => "USB Flash",
-            BlockDeviceType::UsbHdd => "USB HDD",
-            BlockDeviceType::SdCard => "SD Card",
-            BlockDeviceType::MmcCard => "MMC Card",
-            BlockDeviceType::Emmc => "eMMC",
-            BlockDeviceType::Optical => "Optical",
-            BlockDeviceType::Floppy => "Floppy",
-            BlockDeviceType::RamDisk => "RAM Disk",
-            BlockDeviceType::Network => "Network",
-            BlockDeviceType::Virtual => "Virtual",
+            Self::Unknown => "Unknown",
+            Self::Hdd => "Hard Disk",
+            Self::Ssd => "SSD",
+            Self::Nvme => "NVMe",
+            Self::UsbFlash => "USB Flash",
+            Self::UsbHdd => "USB HDD",
+            Self::SdCard => "SD Card",
+            Self::MmcCard => "MMC Card",
+            Self::Emmc => "eMMC",
+            Self::Optical => "Optical",
+            Self::Floppy => "Floppy",
+            Self::RamDisk => "RAM Disk",
+            Self::Network => "Network",
+            Self::Virtual => "Virtual",
         }
     }
 
@@ -106,12 +106,12 @@ impl BlockDeviceType {
     pub const fn is_removable(&self) -> bool {
         matches!(
             self,
-            BlockDeviceType::UsbFlash
-                | BlockDeviceType::UsbHdd
-                | BlockDeviceType::SdCard
-                | BlockDeviceType::MmcCard
-                | BlockDeviceType::Optical
-                | BlockDeviceType::Floppy
+            Self::UsbFlash
+                | Self::UsbHdd
+                | Self::SdCard
+                | Self::MmcCard
+                | Self::Optical
+                | Self::Floppy
         )
     }
 
@@ -119,7 +119,7 @@ impl BlockDeviceType {
     pub const fn is_rotational(&self) -> bool {
         matches!(
             self,
-            BlockDeviceType::Hdd | BlockDeviceType::UsbHdd | BlockDeviceType::Floppy
+            Self::Hdd | Self::UsbHdd | Self::Floppy
         )
     }
 }
@@ -294,14 +294,14 @@ impl PartitionScheme {
     /// Get scheme name
     pub const fn name(&self) -> &'static str {
         match self {
-            PartitionScheme::None => "None",
-            PartitionScheme::Mbr => "MBR",
-            PartitionScheme::Gpt => "GPT",
-            PartitionScheme::Apm => "Apple Partition Map",
-            PartitionScheme::BsdLabel => "BSD Disklabel",
-            PartitionScheme::Sun => "Sun",
-            PartitionScheme::Lvm => "LVM",
-            PartitionScheme::Raid => "RAID",
+            Self::None => "None",
+            Self::Mbr => "MBR",
+            Self::Gpt => "GPT",
+            Self::Apm => "Apple Partition Map",
+            Self::BsdLabel => "BSD Disklabel",
+            Self::Sun => "Sun",
+            Self::Lvm => "LVM",
+            Self::Raid => "RAID",
         }
     }
 }
@@ -469,7 +469,7 @@ impl GptHeader {
     pub const SIGNATURE: [u8; 8] = *b"EFI PART";
 
     /// GPT revision 1.0
-    pub const REVISION_1_0: u32 = 0x00010000;
+    pub const REVISION_1_0: u32 = 0x0001_0000;
 
     /// Check if valid signature
     pub const fn is_valid_signature(&self) -> bool {
@@ -776,11 +776,11 @@ impl SmartStatus {
     /// Get status description
     pub const fn description(&self) -> &'static str {
         match self {
-            SmartStatus::NotAvailable => "SMART not available",
-            SmartStatus::Healthy => "Drive is healthy",
-            SmartStatus::Warning => "Warning - backup recommended",
-            SmartStatus::Critical => "Critical - failure predicted",
-            SmartStatus::Failed => "Drive failed",
+            Self::NotAvailable => "SMART not available",
+            Self::Healthy => "Drive is healthy",
+            Self::Warning => "Warning - backup recommended",
+            Self::Critical => "Critical - failure predicted",
+            Self::Failed => "Drive failed",
         }
     }
 }
@@ -818,23 +818,41 @@ impl SmartAttribute {
 
 /// Common SMART attribute IDs
 pub mod smart_ids {
+    /// Read error rate attribute ID
     pub const READ_ERROR_RATE: u8 = 1;
+    /// Throughput performance attribute ID
     pub const THROUGHPUT_PERFORMANCE: u8 = 2;
+    /// Spin up time attribute ID
     pub const SPIN_UP_TIME: u8 = 3;
+    /// Start/stop count attribute ID
     pub const START_STOP_COUNT: u8 = 4;
+    /// Reallocated sector count attribute ID
     pub const REALLOCATED_SECTOR_COUNT: u8 = 5;
+    /// Seek error rate attribute ID
     pub const SEEK_ERROR_RATE: u8 = 7;
+    /// Power on hours attribute ID
     pub const POWER_ON_HOURS: u8 = 9;
+    /// Spin retry count attribute ID
     pub const SPIN_RETRY_COUNT: u8 = 10;
+    /// Power cycle count attribute ID
     pub const POWER_CYCLE_COUNT: u8 = 12;
+    /// Soft read error rate attribute ID
     pub const SOFT_READ_ERROR_RATE: u8 = 13;
+    /// Temperature attribute ID
     pub const TEMPERATURE: u8 = 194;
+    /// Reallocated event count attribute ID
     pub const REALLOCATED_EVENT_COUNT: u8 = 196;
+    /// Current pending sector count attribute ID
     pub const CURRENT_PENDING_SECTOR: u8 = 197;
+    /// Offline uncorrectable sector count attribute ID
     pub const OFFLINE_UNCORRECTABLE: u8 = 198;
+    /// UDMA CRC error count attribute ID
     pub const UDMA_CRC_ERROR_COUNT: u8 = 199;
+    /// Write error rate attribute ID
     pub const WRITE_ERROR_RATE: u8 = 200;
+    /// Total LBAs written attribute ID
     pub const TOTAL_LBAS_WRITTEN: u8 = 241;
+    /// Total LBAs read attribute ID
     pub const TOTAL_LBAS_READ: u8 = 242;
 }
 
@@ -920,18 +938,18 @@ pub enum BlockError {
 impl fmt::Display for BlockError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BlockError::DeviceNotFound => write!(f, "Device not found"),
-            BlockError::MediaNotPresent => write!(f, "Media not present"),
-            BlockError::MediaChanged => write!(f, "Media changed"),
-            BlockError::ReadError => write!(f, "Read error"),
-            BlockError::WriteError => write!(f, "Write error"),
-            BlockError::WriteProtected => write!(f, "Write protected"),
-            BlockError::InvalidLba => write!(f, "Invalid LBA"),
-            BlockError::BufferTooSmall => write!(f, "Buffer too small"),
-            BlockError::Timeout => write!(f, "Timeout"),
-            BlockError::IoError => write!(f, "I/O error"),
-            BlockError::InvalidPartitionTable => write!(f, "Invalid partition table"),
-            BlockError::DeviceBusy => write!(f, "Device busy"),
+            Self::DeviceNotFound => write!(f, "Device not found"),
+            Self::MediaNotPresent => write!(f, "Media not present"),
+            Self::MediaChanged => write!(f, "Media changed"),
+            Self::ReadError => write!(f, "Read error"),
+            Self::WriteError => write!(f, "Write error"),
+            Self::WriteProtected => write!(f, "Write protected"),
+            Self::InvalidLba => write!(f, "Invalid LBA"),
+            Self::BufferTooSmall => write!(f, "Buffer too small"),
+            Self::Timeout => write!(f, "Timeout"),
+            Self::IoError => write!(f, "I/O error"),
+            Self::InvalidPartitionTable => write!(f, "Invalid partition table"),
+            Self::DeviceBusy => write!(f, "Device busy"),
         }
     }
 }
