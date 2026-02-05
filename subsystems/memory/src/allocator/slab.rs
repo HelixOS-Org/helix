@@ -98,7 +98,7 @@ impl Slab {
     }
 
     /// Is slab empty?
-    fn is_empty(&self) -> bool {
+    fn _is_empty(&self) -> bool {
         self.allocated == 0
     }
 }
@@ -106,7 +106,7 @@ impl Slab {
 /// Slab cache for a specific size class
 struct SlabCache {
     /// Object size
-    obj_size: usize,
+    _obj_size: usize,
     /// Slabs
     slabs: Vec<Slab>,
     /// Slab size
@@ -117,7 +117,7 @@ impl SlabCache {
     /// Create a new cache
     fn new(obj_size: usize) -> Self {
         Self {
-            obj_size,
+            _obj_size: obj_size,
             slabs: Vec::new(),
             slab_size: 4096, // One page
         }
