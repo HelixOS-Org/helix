@@ -410,7 +410,8 @@ impl Elf64SectionHeader {
     }
 
     /// Convert to section flags
-    pub fn to_section_flags(&self) -> SectionFlags {
+    #[must_use]
+    pub const fn to_section_flags(&self) -> SectionFlags {
         SectionFlags {
             readable: true,
             writable: self.is_writable(),
@@ -616,6 +617,7 @@ pub struct ElfLoader {
 
 impl ElfLoader {
     /// Create new ELF loader
+    #[must_use]
     pub fn new() -> Self {
         Self {
             header: None,
@@ -980,21 +982,25 @@ impl ElfLoader {
     }
 
     /// Get header
-    pub fn header(&self) -> Option<&Elf64Header> {
+    #[must_use]
+    pub const fn header(&self) -> Option<&Elf64Header> {
         self.header.as_ref()
     }
 
     /// Get program headers
+    #[must_use]
     pub fn program_headers(&self) -> &[Elf64ProgramHeader] {
         &self.program_headers
     }
 
     /// Get section headers
+    #[must_use]
     pub fn section_headers(&self) -> &[Elf64SectionHeader] {
         &self.section_headers
     }
 
     /// Get symbols
+    #[must_use]
     pub fn symbols(&self) -> &[ElfSymbol] {
         &self.symbols
     }
@@ -1010,16 +1016,19 @@ impl ElfLoader {
     }
 
     /// Get dynamic entries
+    #[must_use]
     pub fn dynamic(&self) -> &[Elf64Dyn] {
         &self.dynamic
     }
 
     /// Get loaded image
-    pub fn image(&self) -> Option<&LoadedImage> {
+    #[must_use]
+    pub const fn image(&self) -> Option<&LoadedImage> {
         self.image.as_ref()
     }
 
     /// Get loadable segments
+    #[must_use]
     pub fn loadable_segments(&self) -> Vec<&Elf64ProgramHeader> {
         self.program_headers
             .iter()
@@ -1028,6 +1037,7 @@ impl ElfLoader {
     }
 
     /// Get raw data
+    #[must_use]
     pub fn data(&self) -> &[u8] {
         &self.data
     }
@@ -1062,22 +1072,26 @@ pub struct ElfSymbol {
 
 impl ElfSymbol {
     /// Get binding
-    pub fn binding(&self) -> u8 {
+    #[must_use]
+    pub const fn binding(&self) -> u8 {
         self.info >> 4
     }
 
     /// Get type
-    pub fn symbol_type(&self) -> u8 {
+    #[must_use]
+    pub const fn symbol_type(&self) -> u8 {
         self.info & 0xF
     }
 
     /// Check if function
-    pub fn is_function(&self) -> bool {
+    #[must_use]
+    pub const fn is_function(&self) -> bool {
         self.symbol_type() == stt::STT_FUNC
     }
 
     /// Check if global
-    pub fn is_global(&self) -> bool {
+    #[must_use]
+    pub const fn is_global(&self) -> bool {
         self.binding() == stb::STB_GLOBAL
     }
 }
@@ -1100,8 +1114,9 @@ pub struct ElfRelocation {
 }
 
 impl ElfRelocation {
-    /// Get relocation type name for x86_64
-    pub fn type_name(&self) -> &'static str {
+    /// Get relocation type name for `x86_64`
+    #[must_use]
+    pub const fn type_name(&self) -> &'static str {
         match self.reloc_type {
             r_x86_64::R_X86_64_NONE => "R_X86_64_NONE",
             r_x86_64::R_X86_64_64 => "R_X86_64_64",
