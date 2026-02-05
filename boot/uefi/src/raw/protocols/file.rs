@@ -4,7 +4,7 @@
 
 use core::fmt;
 
-use crate::raw::types::{Boolean, Char16, Event, Guid, Status, Time, guids};
+use crate::raw::types::{guids, Boolean, Char16, Event, Guid, Status, Time};
 
 // =============================================================================
 // COMPATIBILITY GUIDS
