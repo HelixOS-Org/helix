@@ -15,34 +15,34 @@ pub struct VariableAttributes(u32);
 
 impl VariableAttributes {
     /// Non-volatile (survives reset)
-    pub const NON_VOLATILE: Self = Self(0x00000001);
+    pub const NON_VOLATILE: Self = Self(0x0000_0001);
 
     /// Bootservice access
-    pub const BOOTSERVICE_ACCESS: Self = Self(0x00000002);
+    pub const BOOTSERVICE_ACCESS: Self = Self(0x0000_0002);
 
     /// Runtime access
-    pub const RUNTIME_ACCESS: Self = Self(0x00000004);
+    pub const RUNTIME_ACCESS: Self = Self(0x0000_0004);
 
     /// Hardware error record
-    pub const HARDWARE_ERROR_RECORD: Self = Self(0x00000008);
+    pub const HARDWARE_ERROR_RECORD: Self = Self(0x0000_0008);
 
     /// Authenticated write access (deprecated)
-    pub const AUTHENTICATED_WRITE_ACCESS: Self = Self(0x00000010);
+    pub const AUTHENTICATED_WRITE_ACCESS: Self = Self(0x0000_0010);
 
     /// Time based authenticated write
-    pub const TIME_BASED_AUTHENTICATED_WRITE_ACCESS: Self = Self(0x00000020);
+    pub const TIME_BASED_AUTHENTICATED_WRITE_ACCESS: Self = Self(0x0000_0020);
 
     /// Append write
-    pub const APPEND_WRITE: Self = Self(0x00000040);
+    pub const APPEND_WRITE: Self = Self(0x0000_0040);
 
     /// Enhanced authenticated access
-    pub const ENHANCED_AUTHENTICATED_ACCESS: Self = Self(0x00000080);
+    pub const ENHANCED_AUTHENTICATED_ACCESS: Self = Self(0x0000_0080);
 
     /// Common attributes for boot variables
-    pub const BOOT_VAR: Self = Self(0x00000007); // NV + BS + RT
+    pub const BOOT_VAR: Self = Self(0x0000_0007); // NV + BS + RT
 
     /// Common attributes for runtime variables
-    pub const RT_VAR: Self = Self(0x00000006); // BS + RT
+    pub const RT_VAR: Self = Self(0x0000_0006); // BS + RT
 
     /// Empty
     pub const NONE: Self = Self(0);
@@ -58,32 +58,38 @@ impl VariableAttributes {
     }
 
     /// Combine attributes
+    #[must_use]
     pub const fn or(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
     /// Check if contains attribute
-    pub fn contains(self, attr: Self) -> bool {
+    #[must_use]
+    pub const fn contains(self, attr: Self) -> bool {
         self.0 & attr.0 == attr.0
     }
 
     /// Is non-volatile
-    pub fn is_non_volatile(self) -> bool {
+    #[must_use]
+    pub const fn is_non_volatile(self) -> bool {
         self.contains(Self::NON_VOLATILE)
     }
 
     /// Has boot service access
-    pub fn is_bootservice_access(self) -> bool {
+    #[must_use]
+    pub const fn is_bootservice_access(self) -> bool {
         self.contains(Self::BOOTSERVICE_ACCESS)
     }
 
     /// Has runtime access
-    pub fn is_runtime_access(self) -> bool {
+    #[must_use]
+    pub const fn is_runtime_access(self) -> bool {
         self.contains(Self::RUNTIME_ACCESS)
     }
 
     /// Is authenticated
-    pub fn is_authenticated(self) -> bool {
+    #[must_use]
+    pub const fn is_authenticated(self) -> bool {
         self.contains(Self::TIME_BASED_AUTHENTICATED_WRITE_ACCESS)
             || self.contains(Self::AUTHENTICATED_WRITE_ACCESS)
     }
@@ -186,8 +192,8 @@ impl VariableInfo {
 /// Maximum variable size
 pub const MAX_VARIABLE_SIZE: usize = 4096;
 
-/// Maximum variable count
-pub const MAX_VARIABLE_COUNT: usize = 64;
+/// Maximum variable count (limited to keep stack usage under 16KB)
+pub const MAX_VARIABLE_COUNT: usize = 3;
 
 /// Maximum variable name length
 pub const MAX_VARIABLE_NAME_LEN: usize = 128;
@@ -270,20 +276,17 @@ impl StoredVariable {
         }
 
         // Compare names (case-insensitive for ASCII)
-        for i in 0..self.name_len {
-            let c1 = self.name[i];
-            let c2 = name[i];
-
+        for (c1, c2) in self.name[..self.name_len].iter().zip(name.iter()) {
             // Case-insensitive compare for ASCII letters
-            let c1_lower = if c1 >= 0x41 && c1 <= 0x5A {
+            let c1_lower = if (0x41..=0x5A).contains(c1) {
                 c1 + 32
             } else {
-                c1
+                *c1
             };
-            let c2_lower = if c2 >= 0x41 && c2 <= 0x5A {
+            let c2_lower = if (0x41..=0x5A).contains(c2) {
                 c2 + 32
             } else {
-                c2
+                *c2
             };
 
             if c1_lower != c2_lower {
@@ -351,12 +354,7 @@ impl VariableStorage {
 
     /// Get variable
     pub fn get(&self, name: &[u16], vendor_guid: &[u8; 16]) -> Option<&StoredVariable> {
-        for var in &self.variables {
-            if var.matches(name, vendor_guid) {
-                return Some(var);
-            }
-        }
-        None
+        self.variables.iter().find(|var| var.matches(name, vendor_guid))
     }
 
     /// Get variable data
@@ -394,9 +392,8 @@ impl VariableStorage {
             if var.matches(name, vendor_guid) {
                 if var.set(name, vendor_guid, attributes, data) {
                     return Ok(());
-                } else {
-                    return Err(VariableError::WriteError);
                 }
+                return Err(VariableError::WriteError);
             }
         }
 
@@ -406,9 +403,8 @@ impl VariableStorage {
                 if var.set(name, vendor_guid, attributes, data) {
                     self.count += 1;
                     return Ok(());
-                } else {
-                    return Err(VariableError::WriteError);
                 }
+                return Err(VariableError::WriteError);
             }
         }
 
@@ -489,6 +485,7 @@ impl VariableStorage {
     }
 
     /// Iterate variables
+    #[must_use]
     pub fn iter(&self) -> VariableIter<'_> {
         VariableIter {
             storage: self,
@@ -503,12 +500,25 @@ impl Default for VariableStorage {
     }
 }
 
+impl<'a> IntoIterator for &'a VariableStorage {
+    type Item = &'a StoredVariable;
+    type IntoIter = VariableIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// Storage statistics
 #[derive(Debug, Clone, Copy)]
 pub struct StorageStats {
+    /// Number of variables stored
     pub variable_count: usize,
+    /// Total size of all variable data in bytes
     pub total_data_size: usize,
+    /// Total size of all variable names in bytes
     pub total_name_size: usize,
+    /// Number of free variable slots
     pub free_slots: usize,
 }
 
@@ -644,7 +654,7 @@ impl fmt::Display for VariableError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NotFound => write!(f, "variable not found"),
-            Self::BufferTooSmall(size) => write!(f, "buffer too small, need {} bytes", size),
+            Self::BufferTooSmall(size) => write!(f, "buffer too small, need {size} bytes"),
             Self::InvalidParameter => write!(f, "invalid parameter"),
             Self::WriteProtected => write!(f, "write protected"),
             Self::OutOfResources => write!(f, "out of resources"),
@@ -683,20 +693,17 @@ pub fn ucs2_eq_ignore_case(a: &[u16], b: &[u16]) -> bool {
         return false;
     }
 
-    for i in 0..a.len() {
-        let c1 = a[i];
-        let c2 = b[i];
-
+    for (c1, c2) in a.iter().zip(b.iter()) {
         // Case-insensitive for ASCII
-        let c1_lower = if c1 >= 0x41 && c1 <= 0x5A {
+        let c1_lower = if (0x41..=0x5A).contains(c1) {
             c1 + 32
         } else {
-            c1
+            *c1
         };
-        let c2_lower = if c2 >= 0x41 && c2 <= 0x5A {
+        let c2_lower = if (0x41..=0x5A).contains(c2) {
             c2 + 32
         } else {
-            c2
+            *c2
         };
 
         if c1_lower != c2_lower {
