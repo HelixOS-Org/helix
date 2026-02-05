@@ -178,9 +178,18 @@ pub struct Ipv6Addr {
 
 impl Ipv6Addr {
     /// Create from segments
-    pub const fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> Self {
+    pub const fn new(
+        seg0: u16,
+        seg1: u16,
+        seg2: u16,
+        seg3: u16,
+        seg4: u16,
+        seg5: u16,
+        seg6: u16,
+        seg7: u16,
+    ) -> Self {
         Self {
-            segments: [a, b, c, d, e, f, g, h],
+            segments: [seg0, seg1, seg2, seg3, seg4, seg5, seg6, seg7],
         }
     }
 
@@ -268,9 +277,16 @@ pub struct MacAddr {
 
 impl MacAddr {
     /// Create from octets
-    pub const fn new(a: u8, b: u8, c: u8, d: u8, e: u8, f: u8) -> Self {
+    pub const fn new(
+        octet0: u8,
+        octet1: u8,
+        octet2: u8,
+        octet3: u8,
+        octet4: u8,
+        octet5: u8,
+    ) -> Self {
         Self {
-            octets: [a, b, c, d, e, f],
+            octets: [octet0, octet1, octet2, octet3, octet4, octet5],
         }
     }
 
