@@ -3,8 +3,6 @@
 //! Runtime Services remain available after ExitBootServices is called.
 //! They provide time, variable storage, and system control services.
 
-#![allow(clippy::unreadable_literal)]
-
 use super::memory::MemoryDescriptor;
 use super::types::*;
 
@@ -435,21 +433,21 @@ unsafe impl Sync for EfiRuntimeServices {}
 /// Variable attributes
 pub mod variable_attributes {
     /// Non-volatile storage
-    pub const NON_VOLATILE: u32 = 0x00000001;
+    pub const NON_VOLATILE: u32 = 0x0000_0001;
     /// Boot service access
-    pub const BOOTSERVICE_ACCESS: u32 = 0x00000002;
+    pub const BOOTSERVICE_ACCESS: u32 = 0x0000_0002;
     /// Runtime access
-    pub const RUNTIME_ACCESS: u32 = 0x00000004;
+    pub const RUNTIME_ACCESS: u32 = 0x0000_0004;
     /// Hardware error record
-    pub const HARDWARE_ERROR_RECORD: u32 = 0x00000008;
+    pub const HARDWARE_ERROR_RECORD: u32 = 0x0000_0008;
     /// Authenticated write access (deprecated)
-    pub const AUTHENTICATED_WRITE_ACCESS: u32 = 0x00000010;
+    pub const AUTHENTICATED_WRITE_ACCESS: u32 = 0x0000_0010;
     /// Time-based authenticated write access
-    pub const TIME_BASED_AUTHENTICATED_WRITE_ACCESS: u32 = 0x00000020;
+    pub const TIME_BASED_AUTHENTICATED_WRITE_ACCESS: u32 = 0x0000_0020;
     /// Append write
-    pub const APPEND_WRITE: u32 = 0x00000040;
+    pub const APPEND_WRITE: u32 = 0x0000_0040;
     /// Enhanced authenticated access
-    pub const ENHANCED_AUTHENTICATED_ACCESS: u32 = 0x00000080;
+    pub const ENHANCED_AUTHENTICATED_ACCESS: u32 = 0x0000_0080;
 
     /// Common attribute combination for persistent runtime variables
     pub const NV_BS_RT: u32 = NON_VOLATILE | BOOTSERVICE_ACCESS | RUNTIME_ACCESS;
