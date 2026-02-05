@@ -473,13 +473,13 @@ pub struct PxeTftpInfo {
 /// PXE boot client
 pub struct PxeClient {
     /// Protocol pointer (opaque)
-    protocol: usize,
+    _protocol: usize,
     /// MAC address
     mac: MacAddress,
     /// Current IP
     ip: Ipv4Address,
     /// Mode data
-    mode: PxeMode,
+    _mode: PxeMode,
     /// DHCP lease
     lease: DhcpLease,
     /// Started
@@ -490,10 +490,10 @@ impl PxeClient {
     /// Create new PXE client
     pub fn new(protocol: usize, mac: MacAddress) -> Self {
         Self {
-            protocol,
+            _protocol: protocol,
             mac,
             ip: Ipv4Address::ZERO,
-            mode: unsafe { core::mem::zeroed() },
+            _mode: unsafe { core::mem::zeroed() },
             lease: DhcpLease::default(),
             started: false,
         }
@@ -711,11 +711,11 @@ pub enum TftpState {
 /// TFTP client
 pub struct TftpClient {
     /// Server IP
-    server: Ipv4Address,
+    _server: Ipv4Address,
     /// Server port (usually 69)
-    port: u16,
+    _port: u16,
     /// Local port
-    local_port: u16,
+    _local_port: u16,
     /// Options
     options: TftpOptions,
     /// State
@@ -735,9 +735,9 @@ impl TftpClient {
     /// Create new TFTP client
     pub fn new(server: Ipv4Address, port: u16) -> Self {
         Self {
-            server,
-            port,
-            local_port: 0,
+            _server: server,
+            _port: port,
+            _local_port: 0,
             options: TftpOptions::default(),
             state: TftpState::Idle,
             block: 0,
@@ -806,7 +806,7 @@ impl TftpClient {
     }
 
     /// Process received packet
-    fn process_packet(&mut self, packet: &[u8], buffer: &mut [u8]) -> Result<bool, NetworkError> {
+    fn _process_packet(&mut self, packet: &[u8], buffer: &mut [u8]) -> Result<bool, NetworkError> {
         if packet.len() < 4 {
             return Err(NetworkError::InvalidPacket);
         }
@@ -887,7 +887,7 @@ pub enum HttpMethod {
 }
 
 impl HttpMethod {
-    fn as_str(&self) -> &'static str {
+    fn _as_str(&self) -> &'static str {
         match self {
             Self::Get => "GET",
             Self::Head => "HEAD",
@@ -1121,35 +1121,35 @@ impl HttpResponse {
 }
 
 // Trait extension for to_ascii_lowercase on str
-trait AsciiLowercaseExt {
-    fn to_ascii_lowercase(&self) -> SmallString;
+trait _AsciiLowercaseExt {
+    fn _to_ascii_lowercase(&self) -> _SmallString;
 }
 
-impl AsciiLowercaseExt for str {
-    fn to_ascii_lowercase(&self) -> SmallString {
-        let mut s = SmallString::new();
+impl _AsciiLowercaseExt for str {
+    fn _to_ascii_lowercase(&self) -> _SmallString {
+        let mut s = _SmallString::_new();
         for c in self.chars() {
-            s.push(c.to_ascii_lowercase());
+            s._push(c.to_ascii_lowercase());
         }
         s
     }
 }
 
 /// Small string buffer
-struct SmallString {
+struct _SmallString {
     buf: [u8; 64],
     len: usize,
 }
 
-impl SmallString {
-    fn new() -> Self {
+impl _SmallString {
+    fn _new() -> Self {
         Self {
             buf: [0; 64],
             len: 0,
         }
     }
 
-    fn push(&mut self, c: char) {
+    fn _push(&mut self, c: char) {
         if self.len < 64 {
             self.buf[self.len] = c as u8;
             self.len += 1;
@@ -1157,8 +1157,8 @@ impl SmallString {
     }
 }
 
-impl PartialEq<SmallString> for SmallString {
-    fn eq(&self, other: &SmallString) -> bool {
+impl PartialEq<_SmallString> for _SmallString {
+    fn eq(&self, other: &_SmallString) -> bool {
         self.len == other.len && self.buf[..self.len] == other.buf[..other.len]
     }
 }
@@ -1166,9 +1166,9 @@ impl PartialEq<SmallString> for SmallString {
 /// HTTP boot client
 pub struct HttpBootClient {
     /// Server address
-    server: IpAddress,
+    _server: IpAddress,
     /// Server port
-    port: u16,
+    _port: u16,
     /// DNS server
     dns: Ipv4Address,
     /// Connected
@@ -1179,8 +1179,8 @@ impl HttpBootClient {
     /// Create new HTTP boot client
     pub fn new(server: IpAddress, port: u16) -> Self {
         Self {
-            server,
-            port,
+            _server: server,
+            _port: port,
             dns: Ipv4Address::ZERO,
             connected: false,
         }
@@ -1302,7 +1302,7 @@ pub struct NetworkStatistics {
 /// Network interface
 pub struct NetworkInterface {
     /// Protocol handle
-    handle: usize,
+    _handle: usize,
     /// MAC address
     mac: MacAddress,
     /// State
@@ -1319,7 +1319,7 @@ impl NetworkInterface {
     /// Create new network interface
     pub fn new(handle: usize, mac: MacAddress) -> Self {
         Self {
-            handle,
+            _handle: handle,
             mac,
             state: NetworkState::Stopped,
             mtu: 1500,
@@ -1478,8 +1478,8 @@ impl UrlScheme {
     }
 }
 
-impl SmallString {
-    fn as_str(&self) -> &str {
+impl _SmallString {
+    fn _as_str(&self) -> &str {
         core::str::from_utf8(&self.buf[..self.len]).unwrap_or("")
     }
 }
