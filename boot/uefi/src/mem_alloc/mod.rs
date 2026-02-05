@@ -396,7 +396,7 @@ struct BlockHeader {
 }
 
 impl BlockHeader {
-    const MAGIC: u32 = 0xDEADBEEF;
+    const MAGIC: u32 = 0xDEAD_BEEF;
 
     /// Header size (aligned to 16 bytes)
     const SIZE: usize = 48;
