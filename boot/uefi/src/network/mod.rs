@@ -129,28 +129,37 @@ impl Ipv6Address {
     /// Zero address (::)
     pub const ZERO: Self = Self([0; 16]);
 
-    /// Loopback address (::1)
+    /// Loopback address (`::1`)
     pub const LOOPBACK: Self = Self([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
 
-    /// Create from parts (8 x u16)
-    pub const fn new(a: u16, b: u16, c: u16, d: u16, e: u16, f: u16, g: u16, h: u16) -> Self {
+    /// Create from parts (8 segments of u16 values)
+    pub const fn new(
+        seg0: u16,
+        seg1: u16,
+        seg2: u16,
+        seg3: u16,
+        seg4: u16,
+        seg5: u16,
+        seg6: u16,
+        seg7: u16,
+    ) -> Self {
         let bytes = [
-            (a >> 8) as u8,
-            a as u8,
-            (b >> 8) as u8,
-            b as u8,
-            (c >> 8) as u8,
-            c as u8,
-            (d >> 8) as u8,
-            d as u8,
-            (e >> 8) as u8,
-            e as u8,
-            (f >> 8) as u8,
-            f as u8,
-            (g >> 8) as u8,
-            g as u8,
-            (h >> 8) as u8,
-            h as u8,
+            ((seg0 >> 8) & 0xFF) as u8,
+            (seg0 & 0xFF) as u8,
+            ((seg1 >> 8) & 0xFF) as u8,
+            (seg1 & 0xFF) as u8,
+            ((seg2 >> 8) & 0xFF) as u8,
+            (seg2 & 0xFF) as u8,
+            ((seg3 >> 8) & 0xFF) as u8,
+            (seg3 & 0xFF) as u8,
+            ((seg4 >> 8) & 0xFF) as u8,
+            (seg4 & 0xFF) as u8,
+            ((seg5 >> 8) & 0xFF) as u8,
+            (seg5 & 0xFF) as u8,
+            ((seg6 >> 8) & 0xFF) as u8,
+            (seg6 & 0xFF) as u8,
+            ((seg7 >> 8) & 0xFF) as u8,
+            (seg7 & 0xFF) as u8,
         ];
         Self(bytes)
     }
@@ -165,12 +174,12 @@ impl Ipv6Address {
         *self == Self::LOOPBACK
     }
 
-    /// Check if link-local (fe80::/10)
+    /// Check if link-local (`fe80::/10`)
     pub fn is_link_local(&self) -> bool {
         self.0[0] == 0xFE && (self.0[1] & 0xC0) == 0x80
     }
 
-    /// Check if multicast (ff00::/8)
+    /// Check if multicast (`ff00::/8`)
     pub fn is_multicast(&self) -> bool {
         self.0[0] == 0xFF
     }
@@ -196,7 +205,9 @@ impl Ipv6Address {
 /// IP address (v4 or v6)
 #[derive(Debug, Clone, Copy)]
 pub enum IpAddress {
+    /// IPv4 address
     V4(Ipv4Address),
+    /// IPv6 address
     V6(Ipv6Address),
 }
 
@@ -218,13 +229,21 @@ impl IpAddress {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum DhcpMessageType {
+    /// DHCP Discover message
     Discover = 1,
+    /// DHCP Offer message
     Offer    = 2,
+    /// DHCP Request message
     Request  = 3,
+    /// DHCP Decline message
     Decline  = 4,
+    /// DHCP Ack message
     Ack      = 5,
+    /// DHCP Nak message
     Nak      = 6,
+    /// DHCP Release message
     Release  = 7,
+    /// DHCP Inform message
     Inform   = 8,
 }
 
@@ -232,24 +251,43 @@ pub enum DhcpMessageType {
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum DhcpOption {
+    /// Padding option
     Pad                  = 0,
+    /// Subnet mask option
     SubnetMask           = 1,
+    /// Router option
     Router               = 3,
+    /// DNS server option
     DnsServer            = 6,
+    /// Host name option
     HostName             = 12,
+    /// Domain name option
     DomainName           = 15,
+    /// Broadcast address option
     BroadcastAddr        = 28,
+    /// Requested IP address option
     RequestedIp          = 50,
+    /// IP address lease time option
     LeaseTime            = 51,
+    /// DHCP message type option
     MessageType          = 53,
+    /// Server identifier option
     ServerIdentifier     = 54,
+    /// Parameter request list option
     ParameterRequestList = 55,
+    /// Maximum DHCP message size option
     MaxMessageSize       = 57,
+    /// Vendor class identifier option
     VendorClassId        = 60,
+    /// Client identifier option
     ClientId             = 61,
+    /// TFTP server name option
     TftpServerName       = 66,
+    /// Boot file name option
     BootFileName         = 67,
+    /// Classless static route option
     ClasslessStaticRoute = 121,
+    /// End option
     End                  = 255,
 }
 
@@ -357,11 +395,17 @@ pub const EFI_PXE_BASE_CODE_PROTOCOL_GUID: [u8; 16] = [
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum PxePacketType {
+    /// DHCP Discover packet
     DhcpDiscover = 1,
+    /// DHCP Ack packet
     DhcpAck      = 2,
+    /// Proxy Offer packet
     ProxyOffer   = 3,
+    /// PXE Discover packet
     PxeDiscover  = 4,
+    /// PXE Offer packet
     PxeOffer     = 5,
+    /// PXE Ack packet
     PxeAck       = 6,
 }
 
@@ -404,7 +448,7 @@ pub struct PxeMode {
     pub make_callbacks: bool,
     /// TTL
     pub ttl: u8,
-    /// ToS
+    /// `ToS` (Type of Service)
     pub tos: u8,
     /// Station IP
     pub station_ip: [u8; 16],
@@ -418,23 +462,23 @@ pub struct PxeMode {
 pub enum PxeServerType {
     /// Bootstrap server
     Bootstrap   = 0,
-    /// Microsoft Windows NT
+    /// Microsoft Windows NT server
     WindowsNt   = 1,
-    /// Intel LCM
+    /// Intel LCM server
     IntelLcm    = 2,
-    /// DOS/UNDI
+    /// DOS/UNDI server
     DosUndi     = 3,
-    /// NEC ESMPRO
+    /// NEC ESMPRO server
     NecEsmpro   = 4,
-    /// IBM WSoD
+    /// IBM `WSoD` server
     IbmWsod     = 5,
-    /// IBM LCCM
+    /// IBM LCCM server
     IbmLccm     = 6,
-    /// CA Unicenter
+    /// CA Unicenter server
     CaUnicenter = 7,
-    /// HP OpenView
+    /// HP `OpenView` server
     HpOpenview  = 8,
-    /// Reserved
+    /// Reserved server type
     Reserved    = 9,
 }
 
@@ -505,7 +549,7 @@ impl PxeClient {
             return Ok(());
         }
 
-        // Would call EFI_PXE_BASE_CODE.Start()
+        // Would call `EFI_PXE_BASE_CODE.Start()`
         self.started = true;
         Ok(())
     }
@@ -516,7 +560,7 @@ impl PxeClient {
             return Ok(());
         }
 
-        // Would call EFI_PXE_BASE_CODE.Stop()
+        // Would call `EFI_PXE_BASE_CODE.Stop()`
         self.started = false;
         Ok(())
     }
@@ -527,7 +571,7 @@ impl PxeClient {
             return Err(NetworkError::NotStarted);
         }
 
-        // Would call EFI_PXE_BASE_CODE.Dhcp()
+        // Would call `EFI_PXE_BASE_CODE.Dhcp()`
         // Parse DHCP response and populate lease
 
         Ok(&self.lease)
@@ -613,17 +657,17 @@ pub enum MtftpOperation {
 #[derive(Debug, Clone, Copy)]
 #[repr(u16)]
 pub enum TftpOpcode {
-    /// Read request
+    /// Read request opcode
     Rrq   = 1,
-    /// Write request
+    /// Write request opcode
     Wrq   = 2,
-    /// Data
+    /// Data packet opcode
     Data  = 3,
-    /// Acknowledgment
+    /// Acknowledgment opcode
     Ack   = 4,
-    /// Error
+    /// Error packet opcode
     Error = 5,
-    /// Option acknowledgment
+    /// Option acknowledgment opcode
     Oack  = 6,
 }
 
@@ -631,23 +675,23 @@ pub enum TftpOpcode {
 #[derive(Debug, Clone, Copy)]
 #[repr(u16)]
 pub enum TftpErrorCode {
-    /// Not defined
+    /// Not defined error
     Undefined       = 0,
-    /// File not found
+    /// File not found error
     FileNotFound    = 1,
-    /// Access violation
+    /// Access violation error
     AccessViolation = 2,
-    /// Disk full
+    /// Disk full error
     DiskFull        = 3,
-    /// Illegal operation
+    /// Illegal operation error
     IllegalOp       = 4,
-    /// Unknown transfer ID
+    /// Unknown transfer ID error
     UnknownTid      = 5,
-    /// File already exists
+    /// File already exists error
     FileExists      = 6,
-    /// No such user
+    /// No such user error
     NoSuchUser      = 7,
-    /// Option negotiation failed
+    /// Option negotiation failed error
     OptionsFailed   = 8,
 }
 
@@ -661,7 +705,7 @@ pub enum TftpMode {
 }
 
 impl TftpMode {
-    fn as_str(&self) -> &'static str {
+    fn as_str(self) -> &'static str {
         match self {
             Self::Octet => "octet",
             Self::NetAscii => "netascii",
@@ -752,11 +796,11 @@ impl TftpClient {
     }
 
     /// Get file size
-    pub fn get_file_size(&mut self, _filename: &str) -> Result<u64, NetworkError> {
+    pub fn get_file_size(_filename: &str) -> u64 {
         // Build RRQ with tsize=0 option
         // Send and wait for OACK
 
-        Ok(0)
+        0
     }
 
     /// Download file
@@ -771,17 +815,17 @@ impl TftpClient {
         self.bytes_transferred = 0;
 
         // Build RRQ packet
-        let _packet = self.build_rrq(filename, mode)?;
+        let _packet = Self::build_rrq(filename, mode);
 
         // Send request and receive data
         // Process blocks until complete
 
         self.state = TftpState::Complete;
-        Ok(self.bytes_transferred as usize)
+        Ok(usize::try_from(self.bytes_transferred).unwrap_or(usize::MAX))
     }
 
     /// Build RRQ packet
-    fn build_rrq(&self, filename: &str, mode: TftpMode) -> Result<[u8; 512], NetworkError> {
+    fn build_rrq(filename: &str, mode: TftpMode) -> [u8; 512] {
         let mut packet = [0u8; 512];
 
         // Opcode
@@ -802,7 +846,7 @@ impl TftpClient {
         pos += mode_bytes.len();
         packet[pos] = 0;
 
-        Ok(packet)
+        packet
     }
 
     /// Process received packet
@@ -875,19 +919,28 @@ impl TftpClient {
 /// HTTP method
 #[derive(Debug, Clone, Copy)]
 pub enum HttpMethod {
+    /// GET method
     Get,
+    /// HEAD method
     Head,
+    /// POST method
     Post,
+    /// PUT method
     Put,
+    /// DELETE method
     Delete,
+    /// OPTIONS method
     Options,
+    /// TRACE method
     Trace,
+    /// CONNECT method
     Connect,
+    /// PATCH method
     Patch,
 }
 
 impl HttpMethod {
-    fn _as_str(&self) -> &'static str {
+    fn _as_str(self) -> &'static str {
         match self {
             Self::Get => "GET",
             Self::Head => "HEAD",
@@ -905,17 +958,24 @@ impl HttpMethod {
 /// HTTP status code categories
 #[derive(Debug, Clone, Copy)]
 pub enum HttpStatusCategory {
-    Informational, // 1xx
-    Success,       // 2xx
-    Redirection,   // 3xx
-    ClientError,   // 4xx
-    ServerError,   // 5xx
+    /// Informational responses (1xx)
+    Informational,
+    /// Success responses (2xx)
+    Success,
+    /// Redirection responses (3xx)
+    Redirection,
+    /// Client error responses (4xx)
+    ClientError,
+    /// Server error responses (5xx)
+    ServerError,
+    /// Unknown status category
     Unknown,
 }
 
 /// HTTP response status
 #[derive(Debug, Clone, Copy)]
 pub struct HttpStatus {
+    /// HTTP status code
     pub code: u16,
 }
 
@@ -952,37 +1012,58 @@ impl HttpStatus {
         self.code >= 400
     }
 
-    // Common status codes
+    /// 200 OK status
     pub const OK: Self = Self::new(200);
+    /// 201 Created status
     pub const CREATED: Self = Self::new(201);
+    /// 202 Accepted status
     pub const ACCEPTED: Self = Self::new(202);
+    /// 204 No Content status
     pub const NO_CONTENT: Self = Self::new(204);
+    /// 301 Moved Permanently status
     pub const MOVED_PERMANENTLY: Self = Self::new(301);
+    /// 302 Found status
     pub const FOUND: Self = Self::new(302);
+    /// 304 Not Modified status
     pub const NOT_MODIFIED: Self = Self::new(304);
+    /// 307 Temporary Redirect status
     pub const TEMPORARY_REDIRECT: Self = Self::new(307);
+    /// 308 Permanent Redirect status
     pub const PERMANENT_REDIRECT: Self = Self::new(308);
+    /// 400 Bad Request status
     pub const BAD_REQUEST: Self = Self::new(400);
+    /// 401 Unauthorized status
     pub const UNAUTHORIZED: Self = Self::new(401);
+    /// 403 Forbidden status
     pub const FORBIDDEN: Self = Self::new(403);
+    /// 404 Not Found status
     pub const NOT_FOUND: Self = Self::new(404);
+    /// 405 Method Not Allowed status
     pub const METHOD_NOT_ALLOWED: Self = Self::new(405);
+    /// 408 Request Timeout status
     pub const REQUEST_TIMEOUT: Self = Self::new(408);
+    /// 500 Internal Server Error status
     pub const INTERNAL_SERVER_ERROR: Self = Self::new(500);
+    /// 501 Not Implemented status
     pub const NOT_IMPLEMENTED: Self = Self::new(501);
+    /// 502 Bad Gateway status
     pub const BAD_GATEWAY: Self = Self::new(502);
+    /// 503 Service Unavailable status
     pub const SERVICE_UNAVAILABLE: Self = Self::new(503);
+    /// 504 Gateway Timeout status
     pub const GATEWAY_TIMEOUT: Self = Self::new(504);
 }
 
 /// HTTP header
 #[derive(Debug, Clone)]
 pub struct HttpHeader {
-    /// Header name
+    /// Header name buffer
     pub name: [u8; 64],
+    /// Header name length
     pub name_len: usize,
-    /// Header value
+    /// Header value buffer
     pub value: [u8; 256],
+    /// Header value length
     pub value_len: usize,
 }
 
@@ -1023,11 +1104,13 @@ impl HttpHeader {
 pub struct HttpRequest {
     /// Method
     pub method: HttpMethod,
-    /// URL
+    /// URL buffer
     pub url: [u8; 512],
+    /// URL length
     pub url_len: usize,
     /// Headers
     pub headers: [HttpHeader; 16],
+    /// Header count
     pub header_count: usize,
     /// Body
     pub body: Option<([u8; 4096], usize)>,
@@ -1080,11 +1163,13 @@ pub struct HttpResponse {
     pub status: HttpStatus,
     /// Headers
     pub headers: [HttpHeader; 16],
+    /// Header count
     pub header_count: usize,
     /// Content length
     pub content_length: Option<u64>,
-    /// Content type
+    /// Content type buffer
     pub content_type: [u8; 64],
+    /// Content type length
     pub content_type_len: usize,
 }
 
@@ -1103,11 +1188,10 @@ impl HttpResponse {
 
     /// Get header value
     pub fn get_header(&self, name: &str) -> Option<&str> {
-        let name_lower = name.to_ascii_lowercase();
         for i in 0..self.header_count {
             let header = &self.headers[i];
             // Case-insensitive comparison
-            if header.name_str().to_ascii_lowercase() == name_lower {
+            if header.name_str().eq_ignore_ascii_case(name) {
                 return Some(header.value_str());
             }
         }
@@ -1117,49 +1201,6 @@ impl HttpResponse {
     /// Get content type as str
     pub fn content_type_str(&self) -> &str {
         core::str::from_utf8(&self.content_type[..self.content_type_len]).unwrap_or("")
-    }
-}
-
-// Trait extension for to_ascii_lowercase on str
-trait _AsciiLowercaseExt {
-    fn _to_ascii_lowercase(&self) -> _SmallString;
-}
-
-impl _AsciiLowercaseExt for str {
-    fn _to_ascii_lowercase(&self) -> _SmallString {
-        let mut s = _SmallString::_new();
-        for c in self.chars() {
-            s._push(c.to_ascii_lowercase());
-        }
-        s
-    }
-}
-
-/// Small string buffer
-struct _SmallString {
-    buf: [u8; 64],
-    len: usize,
-}
-
-impl _SmallString {
-    fn _new() -> Self {
-        Self {
-            buf: [0; 64],
-            len: 0,
-        }
-    }
-
-    fn _push(&mut self, c: char) {
-        if self.len < 64 {
-            self.buf[self.len] = c as u8;
-            self.len += 1;
-        }
-    }
-}
-
-impl PartialEq<_SmallString> for _SmallString {
-    fn eq(&self, other: &_SmallString) -> bool {
-        self.len == other.len && self.buf[..self.len] == other.buf[..other.len]
     }
 }
 
@@ -1247,8 +1288,11 @@ pub const EFI_SIMPLE_NETWORK_PROTOCOL_GUID: [u8; 16] = [
 /// Network interface state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkState {
+    /// Network interface is stopped
     Stopped,
+    /// Network interface is started
     Started,
+    /// Network interface is initialized
     Initialized,
 }
 
@@ -1447,16 +1491,21 @@ impl NetworkInterface {
 /// URL scheme
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UrlScheme {
+    /// HTTP scheme
     Http,
+    /// HTTPS scheme
     Https,
+    /// TFTP scheme
     Tftp,
+    /// FTP scheme
     Ftp,
+    /// Unknown scheme
     Unknown,
 }
 
 impl UrlScheme {
     /// Default port
-    pub fn default_port(&self) -> u16 {
+    pub fn default_port(self) -> u16 {
         match self {
             Self::Http => 80,
             Self::Https => 443,
@@ -1466,21 +1515,19 @@ impl UrlScheme {
         }
     }
 
-    /// Parse from string
-    pub fn from_str(s: &str) -> Self {
-        match s.to_ascii_lowercase().as_str() {
-            "http" => Self::Http,
-            "https" => Self::Https,
-            "tftp" => Self::Tftp,
-            "ftp" => Self::Ftp,
-            _ => Self::Unknown,
+    /// Parse from scheme string
+    pub fn parse_scheme(s: &str) -> Self {
+        if s.eq_ignore_ascii_case("http") {
+            Self::Http
+        } else if s.eq_ignore_ascii_case("https") {
+            Self::Https
+        } else if s.eq_ignore_ascii_case("tftp") {
+            Self::Tftp
+        } else if s.eq_ignore_ascii_case("ftp") {
+            Self::Ftp
+        } else {
+            Self::Unknown
         }
-    }
-}
-
-impl _SmallString {
-    fn _as_str(&self) -> &str {
-        core::str::from_utf8(&self.buf[..self.len]).unwrap_or("")
     }
 }
 
@@ -1489,16 +1536,19 @@ impl _SmallString {
 pub struct Url {
     /// Scheme
     pub scheme: UrlScheme,
-    /// Host
+    /// Host buffer
     pub host: [u8; 256],
+    /// Host length
     pub host_len: usize,
     /// Port
     pub port: u16,
-    /// Path
+    /// Path buffer
     pub path: [u8; 512],
+    /// Path length
     pub path_len: usize,
-    /// Query string
+    /// Query string buffer
     pub query: [u8; 256],
+    /// Query string length
     pub query_len: usize,
 }
 
@@ -1522,15 +1572,13 @@ impl Url {
         // Parse scheme
         if let Some(scheme_end) = find_bytes(url, b"://") {
             let scheme_str = core::str::from_utf8(&url[..scheme_end]).unwrap_or("");
-            result.scheme = UrlScheme::from_str(scheme_str);
+            result.scheme = UrlScheme::parse_scheme(scheme_str);
             result.port = result.scheme.default_port();
             pos = scheme_end + 3;
         }
 
         // Find end of host
-        let host_end = find_byte(&url[pos..], b'/')
-            .map(|i| pos + i)
-            .unwrap_or(url.len());
+        let host_end = find_byte(&url[pos..], b'/').map_or(url.len(), |i| pos + i);
 
         // Check for port
         let host_part = &url[pos..host_end];
@@ -1551,9 +1599,7 @@ impl Url {
 
         // Parse path
         if pos < url.len() {
-            let path_end = find_byte(&url[pos..], b'?')
-                .map(|i| pos + i)
-                .unwrap_or(url.len());
+            let path_end = find_byte(&url[pos..], b'?').map_or(url.len(), |i| pos + i);
 
             result.path_len = (path_end - pos).min(512);
             result.path[..result.path_len].copy_from_slice(&url[pos..pos + result.path_len]);
@@ -1603,13 +1649,7 @@ fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         return None;
     }
 
-    for i in 0..=(haystack.len() - needle.len()) {
-        if &haystack[i..i + needle.len()] == needle {
-            return Some(i);
-        }
-    }
-
-    None
+    (0..=(haystack.len() - needle.len())).find(|&i| haystack[i..i + needle.len()] == *needle)
 }
 
 /// Find byte in byte slice
@@ -1627,7 +1667,9 @@ fn parse_u16(s: &str) -> Option<u16> {
     let mut result: u16 = 0;
     for c in s.chars() {
         if let Some(digit) = c.to_digit(10) {
-            result = result.checked_mul(10)?.checked_add(digit as u16)?;
+            result = result
+                .checked_mul(10)?
+                .checked_add(u16::try_from(digit).ok()?)?;
         } else {
             return None;
         }
@@ -1690,8 +1732,8 @@ impl fmt::Display for NetworkError {
             Self::InvalidPacket => write!(f, "invalid packet"),
             Self::InvalidResponse => write!(f, "invalid response"),
             Self::BufferTooSmall => write!(f, "buffer too small"),
-            Self::TftpError(code) => write!(f, "TFTP error: {}", code),
-            Self::HttpError(code) => write!(f, "HTTP error: {}", code),
+            Self::TftpError(code) => write!(f, "TFTP error: {code}"),
+            Self::HttpError(code) => write!(f, "HTTP error: {code}"),
             Self::ProtocolError => write!(f, "protocol error"),
             Self::Unsupported => write!(f, "unsupported"),
             Self::OutOfResources => write!(f, "out of resources"),
