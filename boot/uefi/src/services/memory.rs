@@ -6,7 +6,7 @@ use core::alloc::{GlobalAlloc, Layout};
 use core::ptr::NonNull;
 
 use crate::raw::memory::{MemoryDescriptor, MemoryMapKey, MemoryType};
-use crate::raw::types::*;
+use crate::raw::types::{AllocateType, PhysicalAddress, Status};
 
 // =============================================================================
 // MEMORY ALLOCATION
@@ -28,7 +28,7 @@ pub unsafe fn allocate_pool(memory_type: MemoryType, size: usize) -> Result<*mut
 /// Free pool memory
 ///
 /// # Safety
-/// Must only be called with pointers returned by allocate_pool.
+/// Must only be called with pointers returned by `allocate_pool`.
 pub unsafe fn free_pool(buffer: *mut u8) -> Result<(), Status> {
     if buffer.is_null() {
         return Ok(());
@@ -57,7 +57,7 @@ pub unsafe fn allocate_pages(
 /// Free pages
 ///
 /// # Safety
-/// Must only be called with addresses returned by allocate_pages.
+/// Must only be called with addresses returned by `allocate_pages`.
 pub unsafe fn free_pages(address: PhysicalAddress, pages: usize) -> Result<(), Status> {
     let bs = super::boot_services();
     let status = (bs.free_pages)(address, pages);
@@ -118,7 +118,7 @@ impl MemoryMap {
         let mut actual_size = buffer_size;
         let status = (bs.get_memory_map)(
             &mut actual_size,
-            buffer as *mut MemoryDescriptor,
+            buffer.cast::<MemoryDescriptor>(),
             &mut key_value,
             &mut descriptor_size,
             &mut descriptor_version,
@@ -140,27 +140,27 @@ impl MemoryMap {
     }
 
     /// Get memory map key
-    pub fn key(&self) -> MemoryMapKey {
+    pub const fn key(&self) -> MemoryMapKey {
         self.key
     }
 
     /// Get descriptor size
-    pub fn descriptor_size(&self) -> usize {
+    pub const fn descriptor_size(&self) -> usize {
         self.descriptor_size
     }
 
     /// Get descriptor version
-    pub fn descriptor_version(&self) -> u32 {
+    pub const fn descriptor_version(&self) -> u32 {
         self.descriptor_version
     }
 
     /// Get number of entries
-    pub fn entry_count(&self) -> usize {
+    pub const fn entry_count(&self) -> usize {
         self.map_size / self.descriptor_size
     }
 
     /// Iterate over memory descriptors
-    pub fn iter(&self) -> MemoryMapIterator<'_> {
+    pub const fn iter(&self) -> MemoryMapIterator<'_> {
         MemoryMapIterator {
             map: self,
             index: 0,
@@ -270,7 +270,7 @@ impl<'a> Iterator for MemoryMapIterator<'a> {
         self.index += 1;
 
         unsafe {
-            let ptr = self.map.buffer.add(offset) as *const MemoryDescriptor;
+            let ptr = self.map.buffer.add(offset).cast::<MemoryDescriptor>();
             Some(&*ptr)
         }
     }
@@ -281,7 +281,7 @@ impl<'a> Iterator for MemoryMapIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for MemoryMapIterator<'a> {}
+impl ExactSizeIterator for MemoryMapIterator<'_> {}
 
 /// Memory statistics
 #[derive(Debug, Clone, Copy, Default)]
@@ -304,23 +304,23 @@ pub struct MemoryStatistics {
     pub mmio_pages: u64,
     /// Reserved pages
     pub reserved_pages: u64,
-    /// Total usable memory (available after ExitBootServices)
+    /// Total usable memory (available after `ExitBootServices`)
     pub usable_memory: u64,
 }
 
 impl MemoryStatistics {
     /// Get total memory in bytes
-    pub fn total_memory(&self) -> u64 {
+    pub const fn total_memory(&self) -> u64 {
         self.total_pages * 4096
     }
 
     /// Get free memory in bytes (conventional only)
-    pub fn free_memory(&self) -> u64 {
+    pub const fn free_memory(&self) -> u64 {
         self.conventional_pages * 4096
     }
 
     /// Get memory that will be available after boot
-    pub fn available_after_boot(&self) -> u64 {
+    pub const fn available_after_boot(&self) -> u64 {
         (self.conventional_pages + self.boot_services_pages + self.loader_pages) * 4096
     }
 }
@@ -332,7 +332,7 @@ impl MemoryStatistics {
 /// Set virtual address map
 ///
 /// # Safety
-/// Must be called only once after ExitBootServices.
+/// Must be called only once after `ExitBootServices`.
 pub unsafe fn set_virtual_address_map(
     memory_map: &mut [MemoryDescriptor],
     descriptor_size: usize,
@@ -353,7 +353,7 @@ pub unsafe fn set_virtual_address_map(
 /// Convert physical address to virtual (for runtime services)
 ///
 /// # Safety
-/// Must be called only after SetVirtualAddressMap.
+/// Must be called only after `SetVirtualAddressMap`.
 pub unsafe fn convert_pointer(
     debug_disposition: usize,
     address: *mut *mut core::ffi::c_void,
@@ -398,7 +398,7 @@ unsafe impl GlobalAlloc for UefiAllocator {
 
             // Store original pointer before aligned address
             if aligned_addr > raw_addr {
-                let header = (aligned as *mut *mut u8).sub(1);
+                let header = aligned.cast::<*mut u8>().sub(1);
                 *header = raw;
             }
 
@@ -416,7 +416,7 @@ unsafe impl GlobalAlloc for UefiAllocator {
             let _ = free_pool(ptr);
         } else {
             // Retrieve original pointer
-            let header = (ptr as *mut *mut u8).sub(1);
+            let header = ptr.cast::<*mut u8>().sub(1);
             let _ = free_pool(*header);
         }
     }
@@ -514,18 +514,15 @@ pub enum MemoryRegionType {
 impl From<MemoryType> for MemoryRegionType {
     fn from(uefi_type: MemoryType) -> Self {
         match uefi_type {
-            MemoryType::ConventionalMemory => MemoryRegionType::Usable,
-            MemoryType::LoaderCode | MemoryType::LoaderData => MemoryRegionType::Bootloader,
-            MemoryType::BootServicesCode | MemoryType::BootServicesData => MemoryRegionType::Usable,
-            MemoryType::RuntimeServicesCode | MemoryType::RuntimeServicesData => {
-                MemoryRegionType::Reserved
-            },
-            MemoryType::AcpiReclaimMemory => MemoryRegionType::AcpiReclaimable,
-            MemoryType::AcpiNvsMemory => MemoryRegionType::AcpiNvs,
-            MemoryType::MemoryMappedIo | MemoryType::MemoryMappedIoPortSpace => {
-                MemoryRegionType::Mmio
-            },
-            _ => MemoryRegionType::Reserved,
+            MemoryType::ConventionalMemory
+            | MemoryType::BootServicesCode
+            | MemoryType::BootServicesData => Self::Usable,
+            MemoryType::LoaderCode | MemoryType::LoaderData => Self::Bootloader,
+            MemoryType::RuntimeServicesCode | MemoryType::RuntimeServicesData => Self::Reserved,
+            MemoryType::AcpiReclaimMemory => Self::AcpiReclaimable,
+            MemoryType::AcpiNvsMemory => Self::AcpiNvs,
+            MemoryType::MemoryMappedIo | MemoryType::MemoryMappedIoPortSpace => Self::Mmio,
+            _ => Self::Reserved,
         }
     }
 }
@@ -592,7 +589,7 @@ impl PageAllocator {
     /// Free pages
     ///
     /// # Safety
-    /// Must only be called with addresses returned by PageAllocator methods.
+    /// Must only be called with addresses returned by `PageAllocator` methods.
     pub unsafe fn free(address: PhysicalAddress, pages: usize) -> Result<(), Status> {
         free_pages(address, pages)
     }
