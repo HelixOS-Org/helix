@@ -2,6 +2,9 @@
 //!
 //! This module provides causal chain construction from cause to effect.
 
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::map_entry)]
+
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
