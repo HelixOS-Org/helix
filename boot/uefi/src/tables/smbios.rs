@@ -192,7 +192,7 @@ impl SmbiosParser {
     }
 
     /// Get string by index from structure
-    unsafe fn get_string(&self, ptr: *const u8, header_len: u8, index: u8) -> String {
+    unsafe fn get_string(ptr: *const u8, header_len: u8, index: u8) -> String {
         if index == 0 {
             return String::new();
         }
@@ -265,10 +265,10 @@ impl SmbiosParser {
         };
 
         self.bios_info = Some(BiosInformation {
-            vendor: self.get_string(ptr, header.length, vendor_index),
-            version: self.get_string(ptr, header.length, version_index),
+            vendor: Self::get_string(ptr, header.length, vendor_index),
+            version: Self::get_string(ptr, header.length, version_index),
             starting_address_segment: starting_segment,
-            release_date: self.get_string(ptr, header.length, release_date_index),
+            release_date: Self::get_string(ptr, header.length, release_date_index),
             rom_size,
             characteristics,
             characteristics_extension: ext_characteristics,
@@ -317,14 +317,14 @@ impl SmbiosParser {
         };
 
         self.system_info = Some(SystemInformation {
-            manufacturer: self.get_string(ptr, header.length, manufacturer_index),
-            product_name: self.get_string(ptr, header.length, product_index),
-            version: self.get_string(ptr, header.length, version_index),
-            serial_number: self.get_string(ptr, header.length, serial_index),
+            manufacturer: Self::get_string(ptr, header.length, manufacturer_index),
+            product_name: Self::get_string(ptr, header.length, product_index),
+            version: Self::get_string(ptr, header.length, version_index),
+            serial_number: Self::get_string(ptr, header.length, serial_index),
             uuid,
             wake_up_type,
-            sku_number: self.get_string(ptr, header.length, sku_index),
-            family: self.get_string(ptr, header.length, family_index),
+            sku_number: Self::get_string(ptr, header.length, sku_index),
+            family: Self::get_string(ptr, header.length, family_index),
         });
 
         Ok(())
@@ -354,13 +354,13 @@ impl SmbiosParser {
         };
 
         self.baseboard_info = Some(BaseboardInformation {
-            manufacturer: self.get_string(ptr, header.length, manufacturer_index),
-            product: self.get_string(ptr, header.length, product_index),
-            version: self.get_string(ptr, header.length, version_index),
-            serial_number: self.get_string(ptr, header.length, serial_index),
-            asset_tag: self.get_string(ptr, header.length, asset_tag_index),
+            manufacturer: Self::get_string(ptr, header.length, manufacturer_index),
+            product: Self::get_string(ptr, header.length, product_index),
+            version: Self::get_string(ptr, header.length, version_index),
+            serial_number: Self::get_string(ptr, header.length, serial_index),
+            asset_tag: Self::get_string(ptr, header.length, asset_tag_index),
             feature_flags,
-            location_in_chassis: self.get_string(ptr, header.length, location_index),
+            location_in_chassis: Self::get_string(ptr, header.length, location_index),
             chassis_handle,
             board_type,
         });
@@ -435,11 +435,11 @@ impl SmbiosParser {
         };
 
         self.chassis_info = Some(ChassisInformation {
-            manufacturer: self.get_string(ptr, header.length, manufacturer_index),
+            manufacturer: Self::get_string(ptr, header.length, manufacturer_index),
             chassis_type: ChassisType::from(chassis_type),
-            version: self.get_string(ptr, header.length, version_index),
-            serial_number: self.get_string(ptr, header.length, serial_index),
-            asset_tag: self.get_string(ptr, header.length, asset_tag_index),
+            version: Self::get_string(ptr, header.length, version_index),
+            serial_number: Self::get_string(ptr, header.length, serial_index),
+            asset_tag: Self::get_string(ptr, header.length, asset_tag_index),
             boot_up_state,
             power_supply_state,
             thermal_state,
@@ -447,7 +447,7 @@ impl SmbiosParser {
             oem_defined,
             height,
             number_of_power_cords: power_cords,
-            sku_number: self.get_string(ptr, header.length, sku_index),
+            sku_number: Self::get_string(ptr, header.length, sku_index),
         });
 
         Ok(())
@@ -548,12 +548,12 @@ impl SmbiosParser {
         };
 
         self.processor_info.push(ProcessorInformation {
-            socket_designation: self.get_string(ptr, header.length, socket_index),
+            socket_designation: Self::get_string(ptr, header.length, socket_index),
             processor_type,
             processor_family: processor_family2,
-            manufacturer: self.get_string(ptr, header.length, manufacturer_index),
+            manufacturer: Self::get_string(ptr, header.length, manufacturer_index),
             processor_id,
-            version: self.get_string(ptr, header.length, version_index),
+            version: Self::get_string(ptr, header.length, version_index),
             voltage,
             external_clock,
             max_speed,
@@ -563,9 +563,9 @@ impl SmbiosParser {
             l1_cache_handle,
             l2_cache_handle,
             l3_cache_handle,
-            serial_number: self.get_string(ptr, header.length, serial_index),
-            asset_tag: self.get_string(ptr, header.length, asset_tag_index),
-            part_number: self.get_string(ptr, header.length, part_number_index),
+            serial_number: Self::get_string(ptr, header.length, serial_index),
+            asset_tag: Self::get_string(ptr, header.length, asset_tag_index),
+            part_number: Self::get_string(ptr, header.length, part_number_index),
             core_count: core_count2,
             core_enabled: core_enabled2,
             thread_count: thread_count2,
@@ -625,7 +625,7 @@ impl SmbiosParser {
         let mode = CacheOperationalMode::from(((cache_config >> 8) & 0x03) as u8);
 
         self.cache_info.push(CacheInformation {
-            socket_designation: self.get_string(ptr, header.length, socket_index),
+            socket_designation: Self::get_string(ptr, header.length, socket_index),
             level,
             enabled,
             location,
@@ -655,9 +655,9 @@ impl SmbiosParser {
         let port_type = PortType::from(*data.add(4));
 
         self.port_connectors.push(PortConnectorInformation {
-            internal_reference_designator: self.get_string(ptr, header.length, internal_ref_index),
+            internal_reference_designator: Self::get_string(ptr, header.length, internal_ref_index),
             internal_connector_type,
-            external_reference_designator: self.get_string(ptr, header.length, external_ref_index),
+            external_reference_designator: Self::get_string(ptr, header.length, external_ref_index),
             external_connector_type,
             port_type,
         });
@@ -696,7 +696,7 @@ impl SmbiosParser {
         };
 
         self.system_slots.push(SystemSlotInformation {
-            slot_designation: self.get_string(ptr, header.length, designation_index),
+            slot_designation: Self::get_string(ptr, header.length, designation_index),
             slot_type,
             slot_data_bus_width,
             current_usage,
@@ -727,7 +727,7 @@ impl SmbiosParser {
             let device_type = OnboardDeviceType::from(type_byte & 0x7F);
 
             self.onboard_devices.push(OnboardDeviceInformation {
-                description: self.get_string(ptr, header.length, description_index),
+                description: Self::get_string(ptr, header.length, description_index),
                 device_type,
                 enabled,
             });
@@ -744,7 +744,7 @@ impl SmbiosParser {
         let count = *data;
 
         for i in 1..=count {
-            let s = self.get_string(ptr, header.length, i);
+            let s = Self::get_string(ptr, header.length, i);
             if !s.is_empty() {
                 self.oem_strings.push(s);
             }
@@ -761,7 +761,7 @@ impl SmbiosParser {
         let count = *data;
 
         for i in 1..=count {
-            let s = self.get_string(ptr, header.length, i);
+            let s = Self::get_string(ptr, header.length, i);
             if !s.is_empty() {
                 self.config_options.push(s);
             }
@@ -915,15 +915,15 @@ impl SmbiosParser {
             size_mb,
             form_factor,
             device_set,
-            device_locator: self.get_string(ptr, header.length, device_locator_index),
-            bank_locator: self.get_string(ptr, header.length, bank_locator_index),
+            device_locator: Self::get_string(ptr, header.length, device_locator_index),
+            bank_locator: Self::get_string(ptr, header.length, bank_locator_index),
             memory_type,
             type_detail,
             speed_mhz: speed,
-            manufacturer: self.get_string(ptr, header.length, manufacturer_index),
-            serial_number: self.get_string(ptr, header.length, serial_index),
-            asset_tag: self.get_string(ptr, header.length, asset_tag_index),
-            part_number: self.get_string(ptr, header.length, part_number_index),
+            manufacturer: Self::get_string(ptr, header.length, manufacturer_index),
+            serial_number: Self::get_string(ptr, header.length, serial_index),
+            asset_tag: Self::get_string(ptr, header.length, asset_tag_index),
+            part_number: Self::get_string(ptr, header.length, part_number_index),
             rank: attributes & 0x0F,
             configured_memory_speed_mhz: configured_speed,
             minimum_voltage_mv: minimum_voltage,
