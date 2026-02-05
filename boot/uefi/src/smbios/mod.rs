@@ -61,7 +61,7 @@ impl Smbios2EntryPoint {
             return None;
         }
 
-        if &bytes[0..4] != &SMBIOS2_ANCHOR {
+        if bytes[0..4] != SMBIOS2_ANCHOR {
             return None;
         }
 
@@ -95,7 +95,8 @@ impl Smbios2EntryPoint {
     }
 
     /// Get version string
-    pub fn version(&self) -> (u8, u8) {
+    #[must_use]
+    pub const fn version(&self) -> (u8, u8) {
         (self.major_version, self.minor_version)
     }
 }
@@ -136,7 +137,7 @@ impl Smbios3EntryPoint {
             return None;
         }
 
-        if &bytes[0..5] != &SMBIOS3_ANCHOR {
+        if bytes[0..5] != SMBIOS3_ANCHOR {
             return None;
         }
 
@@ -166,7 +167,8 @@ impl Smbios3EntryPoint {
     }
 
     /// Get version string
-    pub fn version(&self) -> (u8, u8, u8) {
+    #[must_use]
+    pub const fn version(&self) -> (u8, u8, u8) {
         (self.major_version, self.minor_version, self.docrev)
     }
 }
@@ -211,52 +213,99 @@ impl StructureHeader {
 
 /// SMBIOS structure types
 pub mod structure_type {
+    /// BIOS information (Type 0)
     pub const BIOS_INFORMATION: u8 = 0;
+    /// System information (Type 1)
     pub const SYSTEM_INFORMATION: u8 = 1;
+    /// Baseboard information (Type 2)
     pub const BASEBOARD_INFORMATION: u8 = 2;
+    /// System enclosure (Type 3)
     pub const SYSTEM_ENCLOSURE: u8 = 3;
+    /// Processor information (Type 4)
     pub const PROCESSOR_INFORMATION: u8 = 4;
+    /// Memory controller (Type 5)
     pub const MEMORY_CONTROLLER: u8 = 5;
+    /// Memory module (Type 6)
     pub const MEMORY_MODULE: u8 = 6;
+    /// Cache information (Type 7)
     pub const CACHE_INFORMATION: u8 = 7;
+    /// Port connector (Type 8)
     pub const PORT_CONNECTOR: u8 = 8;
+    /// System slots (Type 9)
     pub const SYSTEM_SLOTS: u8 = 9;
+    /// On-board devices (Type 10)
     pub const ON_BOARD_DEVICES: u8 = 10;
+    /// OEM strings (Type 11)
     pub const OEM_STRINGS: u8 = 11;
+    /// System configuration options (Type 12)
     pub const SYSTEM_CONFIG_OPTIONS: u8 = 12;
+    /// BIOS language (Type 13)
     pub const BIOS_LANGUAGE: u8 = 13;
+    /// Group associations (Type 14)
     pub const GROUP_ASSOCIATIONS: u8 = 14;
+    /// System event log (Type 15)
     pub const SYSTEM_EVENT_LOG: u8 = 15;
+    /// Physical memory array (Type 16)
     pub const PHYSICAL_MEMORY_ARRAY: u8 = 16;
+    /// Memory device (Type 17)
     pub const MEMORY_DEVICE: u8 = 17;
+    /// 32-bit memory error (Type 18)
     pub const MEMORY_ERROR_32BIT: u8 = 18;
+    /// Memory array mapped address (Type 19)
     pub const MEMORY_ARRAY_MAPPED_ADDRESS: u8 = 19;
+    /// Memory device mapped address (Type 20)
     pub const MEMORY_DEVICE_MAPPED_ADDRESS: u8 = 20;
+    /// Built-in pointing device (Type 21)
     pub const BUILT_IN_POINTING_DEVICE: u8 = 21;
+    /// Portable battery (Type 22)
     pub const PORTABLE_BATTERY: u8 = 22;
+    /// System reset (Type 23)
     pub const SYSTEM_RESET: u8 = 23;
+    /// Hardware security (Type 24)
     pub const HARDWARE_SECURITY: u8 = 24;
+    /// System power controls (Type 25)
     pub const SYSTEM_POWER_CONTROLS: u8 = 25;
+    /// Voltage probe (Type 26)
     pub const VOLTAGE_PROBE: u8 = 26;
+    /// Cooling device (Type 27)
     pub const COOLING_DEVICE: u8 = 27;
+    /// Temperature probe (Type 28)
     pub const TEMPERATURE_PROBE: u8 = 28;
+    /// Electrical current probe (Type 29)
     pub const ELECTRICAL_CURRENT_PROBE: u8 = 29;
+    /// Out-of-band remote access (Type 30)
     pub const OUT_OF_BAND_REMOTE_ACCESS: u8 = 30;
+    /// Boot integrity services (Type 31)
     pub const BOOT_INTEGRITY_SERVICES: u8 = 31;
+    /// System boot information (Type 32)
     pub const SYSTEM_BOOT_INFORMATION: u8 = 32;
+    /// 64-bit memory error (Type 33)
     pub const MEMORY_ERROR_64BIT: u8 = 33;
+    /// Management device (Type 34)
     pub const MANAGEMENT_DEVICE: u8 = 34;
+    /// Management device component (Type 35)
     pub const MANAGEMENT_DEVICE_COMPONENT: u8 = 35;
+    /// Management device threshold (Type 36)
     pub const MANAGEMENT_DEVICE_THRESHOLD: u8 = 36;
+    /// Memory channel (Type 37)
     pub const MEMORY_CHANNEL: u8 = 37;
+    /// IPMI device (Type 38)
     pub const IPMI_DEVICE: u8 = 38;
+    /// System power supply (Type 39)
     pub const SYSTEM_POWER_SUPPLY: u8 = 39;
+    /// Additional information (Type 40)
     pub const ADDITIONAL_INFORMATION: u8 = 40;
+    /// Onboard devices extended (Type 41)
     pub const ONBOARD_DEVICES_EXTENDED: u8 = 41;
+    /// Management controller host (Type 42)
     pub const MANAGEMENT_CONTROLLER_HOST: u8 = 42;
+    /// TPM device (Type 43)
     pub const TPM_DEVICE: u8 = 43;
+    /// Processor additional (Type 44)
     pub const PROCESSOR_ADDITIONAL: u8 = 44;
+    /// Inactive structure (Type 126)
     pub const INACTIVE: u8 = 126;
+    /// End of table (Type 127)
     pub const END_OF_TABLE: u8 = 127;
 }
 
@@ -317,7 +366,7 @@ impl<'a> BiosInformation<'a> {
     /// Get ROM size in KB
     pub fn rom_size_kb(&self) -> Option<u32> {
         if self.data.len() > 9 {
-            let size_64k = self.data[9] as u32;
+            let size_64k = u32::from(self.data[9]);
             Some((size_64k + 1) * 64)
         } else {
             None
@@ -486,19 +535,28 @@ impl<'a> SystemInformation<'a> {
 /// Wakeup type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WakeupType {
+    /// Reserved value
     Reserved,
+    /// Other wakeup type
     Other,
+    /// Unknown wakeup type
     Unknown,
+    /// APM timer wakeup
     ApmTimer,
+    /// Modem ring wakeup
     ModemRing,
+    /// LAN remote wakeup
     LanRemote,
+    /// Power switch wakeup
     PowerSwitch,
+    /// PCI PME wakeup
     PciPme,
+    /// AC power restored wakeup
     AcPowerRestored,
 }
 
 impl WakeupType {
-    fn from_u8(value: u8) -> Option<Self> {
+    const fn from_u8(value: u8) -> Option<Self> {
         Some(match value {
             0 => Self::Reserved,
             1 => Self::Other,
@@ -600,7 +658,7 @@ impl<'a> ProcessorInformation<'a> {
         if self.data.len() > 17 {
             let v = self.data[17];
             if v & 0x80 != 0 {
-                Some((v & 0x7F) as f32 / 10.0)
+                Some(f32::from(v & 0x7F) / 10.0)
             } else {
                 // Legacy voltage values
                 match v {
@@ -615,7 +673,7 @@ impl<'a> ProcessorInformation<'a> {
         }
     }
 
-    /// Get external clock in MHz
+    /// Get external clock in `MHz`
     pub fn external_clock(&self) -> Option<u16> {
         if self.data.len() >= 20 {
             Some(u16::from_le_bytes([self.data[18], self.data[19]]))
@@ -624,7 +682,7 @@ impl<'a> ProcessorInformation<'a> {
         }
     }
 
-    /// Get max speed in MHz
+    /// Get max speed in `MHz`
     pub fn max_speed(&self) -> Option<u16> {
         if self.data.len() >= 22 {
             Some(u16::from_le_bytes([self.data[20], self.data[21]]))
@@ -633,7 +691,7 @@ impl<'a> ProcessorInformation<'a> {
         }
     }
 
-    /// Get current speed in MHz
+    /// Get current speed in `MHz`
     pub fn current_speed(&self) -> Option<u16> {
         if self.data.len() >= 24 {
             Some(u16::from_le_bytes([self.data[22], self.data[23]]))
@@ -682,16 +740,22 @@ impl<'a> ProcessorInformation<'a> {
 /// Processor type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProcessorType {
+    /// Other processor type
     Other,
+    /// Unknown processor type
     Unknown,
+    /// Central processor (CPU)
     CentralProcessor,
+    /// Math processor (FPU)
     MathProcessor,
+    /// DSP processor
     DspProcessor,
+    /// Video processor (GPU)
     VideoProcessor,
 }
 
 impl ProcessorType {
-    fn from_u8(value: u8) -> Option<Self> {
+    const fn from_u8(value: u8) -> Option<Self> {
         Some(match value {
             1 => Self::Other,
             2 => Self::Unknown,
@@ -711,19 +775,20 @@ pub struct ProcessorStatus {
 }
 
 impl ProcessorStatus {
-    fn from_u8(value: u8) -> Self {
+    const fn from_u8(value: u8) -> Self {
         Self { value }
     }
 
     /// Is socket populated
-    pub fn is_populated(&self) -> bool {
+    #[must_use]
+    pub const fn is_populated(&self) -> bool {
         self.value & 0x40 != 0
     }
 
     /// Get CPU status
-    pub fn cpu_status(&self) -> CpuStatus {
+    #[must_use]
+    pub const fn cpu_status(&self) -> CpuStatus {
         match self.value & 0x07 {
-            0 => CpuStatus::Unknown,
             1 => CpuStatus::Enabled,
             2 => CpuStatus::DisabledByUser,
             3 => CpuStatus::DisabledByBios,
@@ -737,11 +802,17 @@ impl ProcessorStatus {
 /// CPU status
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CpuStatus {
+    /// Unknown CPU status
     Unknown,
+    /// CPU is enabled
     Enabled,
+    /// CPU is disabled by user
     DisabledByUser,
+    /// CPU is disabled by BIOS
     DisabledByBios,
+    /// CPU is idle
     Idle,
+    /// Other CPU status
     Other,
 }
 
@@ -785,11 +856,7 @@ impl<'a> MemoryDevice<'a> {
     pub fn total_width(&self) -> Option<u16> {
         if self.data.len() >= 10 {
             let width = u16::from_le_bytes([self.data[8], self.data[9]]);
-            if width != 0xFFFF {
-                Some(width)
-            } else {
-                None
-            }
+            (width != 0xFFFF).then_some(width)
         } else {
             None
         }
@@ -799,11 +866,7 @@ impl<'a> MemoryDevice<'a> {
     pub fn data_width(&self) -> Option<u16> {
         if self.data.len() >= 12 {
             let width = u16::from_le_bytes([self.data[10], self.data[11]]);
-            if width != 0xFFFF {
-                Some(width)
-            } else {
-                None
-            }
+            (width != 0xFFFF).then_some(width)
         } else {
             None
         }
@@ -825,10 +888,10 @@ impl<'a> MemoryDevice<'a> {
             }
             if size & 0x8000 != 0 {
                 // Size in KB
-                Some(((size & 0x7FFF) as u32) / 1024)
+                Some(u32::from(size & 0x7FFF) / 1024)
             } else {
                 // Size in MB
-                Some(size as u32)
+                Some(u32::from(size))
             }
         } else {
             None
@@ -916,26 +979,42 @@ impl<'a> MemoryDevice<'a> {
 /// Memory form factor
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MemoryFormFactor {
+    /// Other form factor
     Other,
+    /// Unknown form factor
     Unknown,
+    /// SIMM module
     Simm,
+    /// SIP module
     Sip,
+    /// Chip on board
     Chip,
+    /// DIP package
     Dip,
+    /// ZIP package
     Zip,
+    /// Proprietary card
     ProprietaryCard,
+    /// DIMM module
     Dimm,
+    /// TSOP package
     Tsop,
+    /// Row of chips
     RowOfChips,
+    /// RIMM module
     Rimm,
+    /// SO-DIMM module
     Sodimm,
+    /// SRIMM module
     Srimm,
+    /// FB-DIMM module
     FbDimm,
+    /// Die form factor
     Die,
 }
 
 impl MemoryFormFactor {
-    fn from_u8(value: u8) -> Option<Self> {
+    const fn from_u8(value: u8) -> Option<Self> {
         Some(match value {
             0x01 => Self::Other,
             0x02 => Self::Unknown,
@@ -961,42 +1040,74 @@ impl MemoryFormFactor {
 /// Memory type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MemoryType {
+    /// Other memory type
     Other,
+    /// Unknown memory type
     Unknown,
+    /// Dynamic RAM
     Dram,
+    /// Enhanced DRAM
     Edram,
+    /// Video RAM
     Vram,
+    /// Static RAM
     Sram,
+    /// Random Access Memory
     Ram,
+    /// Read-Only Memory
     Rom,
+    /// Flash memory
     Flash,
+    /// Electrically Erasable PROM
     Eeprom,
+    /// Flash EPROM
     Feprom,
+    /// Erasable PROM
     Eprom,
+    /// Cache DRAM
     Cdram,
+    /// 3D RAM
     Ram3D,
+    /// Synchronous DRAM
     Sdram,
+    /// Synchronous Graphics RAM
     Sgram,
+    /// Rambus DRAM
     Rdram,
+    /// DDR SDRAM
     Ddr,
+    /// DDR2 SDRAM
     Ddr2,
+    /// DDR2 FB-DIMM
     Ddr2FbDimm,
+    /// DDR3 SDRAM
     Ddr3,
+    /// FBD2 memory
     Fbd2,
+    /// DDR4 SDRAM
     Ddr4,
+    /// Low-Power DDR
     LpDdr,
+    /// Low-Power DDR2
     LpDdr2,
+    /// Low-Power DDR3
     LpDdr3,
+    /// Low-Power DDR4
     LpDdr4,
+    /// Logical non-volatile device
     LogicalNonVolatile,
+    /// High Bandwidth Memory
     Hbm,
+    /// High Bandwidth Memory 2
     Hbm2,
+    /// DDR5 SDRAM
     Ddr5,
+    /// Low-Power DDR5
     LpDdr5,
 }
 
 impl MemoryType {
-    fn from_u8(value: u8) -> Option<Self> {
+    const fn from_u8(value: u8) -> Option<Self> {
         Some(match value {
             0x01 => Self::Other,
             0x02 => Self::Unknown,
@@ -1047,7 +1158,8 @@ pub struct StringTable<'a> {
 
 impl<'a> StringTable<'a> {
     /// Create from data following structure
-    pub fn new(data: &'a [u8]) -> Self {
+    #[must_use]
+    pub const fn new(data: &'a [u8]) -> Self {
         Self { data }
     }
 
@@ -1085,11 +1197,21 @@ impl<'a> StringTable<'a> {
     }
 
     /// Iterate all strings
-    pub fn iter(&self) -> StringTableIter<'a> {
+    #[must_use]
+    pub const fn iter(&self) -> StringTableIter<'a> {
         StringTableIter {
             data: self.data,
             pos: 0,
         }
+    }
+}
+
+impl<'a> IntoIterator for &StringTable<'a> {
+    type Item = &'a str;
+    type IntoIter = StringTableIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -1138,17 +1260,20 @@ pub struct SmbiosTable<'a> {
 
 impl<'a> SmbiosTable<'a> {
     /// Create from structure table data
-    pub fn new(data: &'a [u8], version: (u8, u8)) -> Self {
+    #[must_use]
+    pub const fn new(data: &'a [u8], version: (u8, u8)) -> Self {
         Self { data, version }
     }
 
     /// Get version
-    pub fn version(&self) -> (u8, u8) {
+    #[must_use]
+    pub const fn version(&self) -> (u8, u8) {
         self.version
     }
 
     /// Iterate all structures
-    pub fn structures(&self) -> StructureIter<'a> {
+    #[must_use]
+    pub const fn structures(&self) -> StructureIter<'a> {
         StructureIter {
             data: self.data,
             offset: 0,
@@ -1195,15 +1320,18 @@ impl<'a> SmbiosTable<'a> {
     pub fn total_memory_mb(&self) -> u64 {
         self.memory_devices()
             .filter_map(|m| m.size_mb())
-            .map(|s| s as u64)
+            .map(u64::from)
             .sum()
     }
 }
 
 /// Raw structure with string table
 pub struct Structure<'a> {
+    /// Structure header
     pub header: StructureHeader,
+    /// Raw structure data
     pub data: &'a [u8],
+    /// String table for this structure
     pub strings: StringTable<'a>,
 }
 
