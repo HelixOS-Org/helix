@@ -3,6 +3,7 @@
 //! Year 3 EVOLUTION - Q3 - Comprehensive audit trail for all modifications
 
 #![allow(dead_code)]
+#![allow(clippy::collapsible_if)]
 
 extern crate alloc;
 
@@ -136,17 +137,10 @@ pub struct AuditEntry {
 // AUDIT LOG
 // ============================================================================
 
-/// Global audit log
-static mut GLOBAL_LOG: Option<AuditLog> = None;
-static LOG_INIT: AtomicU64 = AtomicU64::new(0);
+use spin::Mutex;
 
-/// Get pointer to the global log
-/// # Safety
-/// Must only be called after LOG_INIT has been set
-#[inline]
-fn global_log_ptr() -> *mut Option<AuditLog> {
-    core::ptr::addr_of_mut!(GLOBAL_LOG)
-}
+/// Global audit log (thread-safe singleton)
+static GLOBAL_LOG: spin::Once<Mutex<AuditLog>> = spin::Once::new();
 
 /// Audit log
 pub struct AuditLog {
@@ -214,17 +208,11 @@ impl AuditLog {
         }
     }
 
-    /// Get global audit log
-    pub fn global() -> &'static mut AuditLog {
-        unsafe {
-            if LOG_INIT
-                .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst)
-                .is_ok()
-            {
-                (*global_log_ptr()) = Some(AuditLog::new(AuditConfig::default()));
-            }
-            (*global_log_ptr()).as_mut().unwrap()
-        }
+    /// Get global audit log (returns a lock guard)
+    pub fn global() -> spin::MutexGuard<'static, AuditLog> {
+        GLOBAL_LOG
+            .call_once(|| Mutex::new(AuditLog::new(AuditConfig::default())))
+            .lock()
     }
 
     /// Record an event
