@@ -481,8 +481,7 @@ impl SignatureDatabase {
                         continue;
                     };
 
-                    if db_cert.serial_number == cert.serial_number
-                        && db_cert.issuer == cert.issuer
+                    if db_cert.serial_number == cert.serial_number && db_cert.issuer == cert.issuer
                     {
                         return true;
                     }
