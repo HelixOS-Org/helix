@@ -368,17 +368,17 @@ pub struct BootOption {
 
 impl BootOption {
     /// Active attribute
-    pub const ACTIVE: u32 = 0x00000001;
+    pub const ACTIVE: u32 = 0x0000_0001;
     /// Force reconnect attribute
-    pub const FORCE_RECONNECT: u32 = 0x00000002;
+    pub const FORCE_RECONNECT: u32 = 0x0000_0002;
     /// Hidden attribute
-    pub const HIDDEN: u32 = 0x00000008;
+    pub const HIDDEN: u32 = 0x0000_0008;
     /// Category mask
-    pub const CATEGORY_MASK: u32 = 0x00001F00;
+    pub const CATEGORY_MASK: u32 = 0x0000_1F00;
     /// Category boot
-    pub const CATEGORY_BOOT: u32 = 0x00000000;
+    pub const CATEGORY_BOOT: u32 = 0x0000_0000;
     /// Category app
-    pub const CATEGORY_APP: u32 = 0x00000100;
+    pub const CATEGORY_APP: u32 = 0x0000_0100;
 
     /// Parse boot option from raw data
     pub fn parse(data: &[u8]) -> Result<Self, Status> {
