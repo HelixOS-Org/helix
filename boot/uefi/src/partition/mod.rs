@@ -24,7 +24,7 @@ pub const SECTOR_SIZE: usize = 512;
 pub const MBR_SIGNATURE: u16 = 0xAA55;
 
 /// GPT signature
-pub const GPT_SIGNATURE: u64 = 0x5452415020494645; // "EFI PART"
+pub const GPT_SIGNATURE: u64 = 0x5452_4150_2049_4645; // "EFI PART"
 
 /// Maximum GPT partitions
 pub const MAX_GPT_PARTITIONS: usize = 128;
@@ -39,13 +39,13 @@ pub const GPT_ENTRY_SIZE: usize = 128;
 /// GUID (Globally Unique Identifier)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Guid {
-    /// Data1 (time_low)
+    /// Data1 (`time_low`)
     pub data1: u32,
-    /// Data2 (time_mid)
+    /// Data2 (`time_mid`)
     pub data2: u16,
-    /// Data3 (time_hi_and_version)
+    /// Data3 (`time_hi_and_version`)
     pub data3: u16,
-    /// Data4 (clock_seq and node)
+    /// Data4 (`clock_seq` and node)
     pub data4: [u8; 8],
 }
 
@@ -135,55 +135,55 @@ pub mod partition_types {
     use super::Guid;
 
     /// Unused entry
-    pub const UNUSED: Guid = Guid::new(0x00000000, 0x0000, 0x0000, [0; 8]);
+    pub const UNUSED: Guid = Guid::new(0x0000_0000, 0x0000, 0x0000, [0; 8]);
 
     /// EFI System Partition
-    pub const EFI_SYSTEM: Guid = Guid::new(0xC12A7328, 0xF81F, 0x11D2, [
+    pub const EFI_SYSTEM: Guid = Guid::new(0xC12A_7328, 0xF81F, 0x11D2, [
         0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B,
     ]);
 
     /// Microsoft Reserved
-    pub const MS_RESERVED: Guid = Guid::new(0xE3C9E316, 0x0B5C, 0x4DB8, [
+    pub const MS_RESERVED: Guid = Guid::new(0xE3C9_E316, 0x0B5C, 0x4DB8, [
         0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE,
     ]);
 
     /// Microsoft Basic Data
-    pub const MS_BASIC_DATA: Guid = Guid::new(0xEBD0A0A2, 0xB9E5, 0x4433, [
+    pub const MS_BASIC_DATA: Guid = Guid::new(0xEBD0_A0A2, 0xB9E5, 0x4433, [
         0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7,
     ]);
 
     /// Linux Filesystem
-    pub const LINUX_FS: Guid = Guid::new(0x0FC63DAF, 0x8483, 0x4772, [
+    pub const LINUX_FS: Guid = Guid::new(0x0FC6_3DAF, 0x8483, 0x4772, [
         0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4,
     ]);
 
     /// Linux Swap
-    pub const LINUX_SWAP: Guid = Guid::new(0x0657FD6D, 0xA4AB, 0x43C4, [
+    pub const LINUX_SWAP: Guid = Guid::new(0x0657_FD6D, 0xA4AB, 0x43C4, [
         0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F,
     ]);
 
     /// Linux Root (x86-64)
-    pub const LINUX_ROOT_X86_64: Guid = Guid::new(0x4F68BCE3, 0xE8CD, 0x4DB1, [
+    pub const LINUX_ROOT_X86_64: Guid = Guid::new(0x4F68_BCE3, 0xE8CD, 0x4DB1, [
         0x96, 0xE7, 0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09,
     ]);
 
     /// Linux /boot
-    pub const LINUX_BOOT: Guid = Guid::new(0xBC13C2FF, 0x59E6, 0x4262, [
+    pub const LINUX_BOOT: Guid = Guid::new(0xBC13_C2FF, 0x59E6, 0x4262, [
         0xA3, 0x52, 0xB2, 0x75, 0xFD, 0x6F, 0x71, 0x72,
     ]);
 
     /// Apple HFS+
-    pub const APPLE_HFS: Guid = Guid::new(0x48465300, 0x0000, 0x11AA, [
+    pub const APPLE_HFS: Guid = Guid::new(0x4846_5300, 0x0000, 0x11AA, [
         0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC,
     ]);
 
     /// Apple APFS
-    pub const APPLE_APFS: Guid = Guid::new(0x7C3457EF, 0x0000, 0x11AA, [
+    pub const APPLE_APFS: Guid = Guid::new(0x7C34_57EF, 0x0000, 0x11AA, [
         0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC,
     ]);
 
     /// BIOS Boot
-    pub const BIOS_BOOT: Guid = Guid::new(0x21686148, 0x6449, 0x6E6F, [
+    pub const BIOS_BOOT: Guid = Guid::new(0x2168_6148, 0x6449, 0x6E6F, [
         0x74, 0x4E, 0x65, 0x65, 0x64, 0x45, 0x46, 0x49,
     ]);
 }
@@ -251,15 +251,12 @@ impl PartitionType {
     /// Identify from MBR type byte
     pub fn from_mbr_type(type_byte: u8) -> Self {
         match type_byte {
-            0x00 => PartitionType::Unknown,
-            0x01 | 0x04 | 0x06 | 0x0B | 0x0C | 0x0E => PartitionType::MsBasicData, // FAT
-            0x07 => PartitionType::MsBasicData,                                    // NTFS
-            0x0F | 0x05 => PartitionType::Other,                                   // Extended
-            0x82 => PartitionType::LinuxSwap,
-            0x83 => PartitionType::LinuxFs,
-            0xEE => PartitionType::Other, // GPT Protective
-            0xEF => PartitionType::EfiSystem,
-            _ => PartitionType::Other,
+            0x00 => Self::Unknown,
+            0x01 | 0x04 | 0x06 | 0x07 | 0x0B | 0x0C | 0x0E => Self::MsBasicData, // FAT/NTFS
+            0x82 => Self::LinuxSwap,
+            0x83 => Self::LinuxFs,
+            0xEF => Self::EfiSystem,
+            _ => Self::Other, // Extended, GPT Protective, etc.
         }
     }
 }
@@ -354,7 +351,7 @@ impl MbrPartition {
 
     /// Get size in bytes
     pub fn size_bytes(&self) -> u64 {
-        self.total_sectors as u64 * SECTOR_SIZE as u64
+        u64::from(self.total_sectors) * SECTOR_SIZE as u64
     }
 }
 
@@ -386,9 +383,9 @@ impl Mbr {
         boot_code.copy_from_slice(&data[0..446]);
 
         let mut partitions = [MbrPartition::default(); 4];
-        for i in 0..4 {
+        for (i, partition) in partitions.iter_mut().enumerate() {
             let offset = 446 + i * 16;
-            partitions[i] = MbrPartition::parse(&data[offset..])?;
+            *partition = MbrPartition::parse(&data[offset..])?;
         }
 
         Some(Self {
@@ -603,6 +600,7 @@ impl GptPartition {
     }
 
     /// Get name as string (truncated to ASCII)
+    #[must_use]
     pub fn name_ascii(&self) -> ([u8; 36], usize) {
         let mut result = [0u8; 36];
         let mut len = 0;
@@ -612,7 +610,8 @@ impl GptPartition {
                 break;
             }
             if c < 128 {
-                result[len] = c as u8;
+                // Safe: c < 128 guarantees it fits in u8
+                result[len] = (c & 0xFF) as u8;
                 len += 1;
             } else {
                 result[len] = b'?';
@@ -689,6 +688,7 @@ pub struct PartitionInfo {
     pub is_esp: bool,
     /// Name (ASCII)
     pub name: [u8; 36],
+    /// Name length
     pub name_len: usize,
 }
 
@@ -786,12 +786,12 @@ impl PartitionTable {
         let is_esp = part_type == PartitionType::EfiSystem;
 
         let info = PartitionInfo {
-            index: self.count as u8,
+            index: u8::try_from(self.count).unwrap_or(u8::MAX),
             partition_type: part_type,
             type_guid: Guid::NULL,
             partition_guid: Guid::NULL,
-            start_lba: mbr_part.start_lba as u64,
-            size_sectors: mbr_part.total_sectors as u64,
+            start_lba: u64::from(mbr_part.start_lba),
+            size_sectors: u64::from(mbr_part.total_sectors),
             bootable: mbr_part.is_bootable(),
             is_esp,
             name: [0; 36],
@@ -819,7 +819,7 @@ impl PartitionTable {
         let (name, name_len) = gpt_part.name_ascii();
 
         let info = PartitionInfo {
-            index: self.count as u8,
+            index: u8::try_from(self.count).unwrap_or(u8::MAX),
             partition_type: part_type,
             type_guid: gpt_part.type_guid,
             partition_guid: gpt_part.partition_guid,
