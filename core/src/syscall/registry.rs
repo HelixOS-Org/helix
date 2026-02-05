@@ -2,7 +2,6 @@
 //!
 //! Manages registration and lookup of syscall handlers.
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
@@ -111,7 +110,7 @@ impl SyscallRegistry {
         &self,
         number: SyscallNumber,
         args: SyscallArgs,
-        context: &SyscallContext,
+        _context: &SyscallContext,
     ) -> SyscallReturn {
         let idx = number as usize;
         if idx >= MAX_SYSCALL {
