@@ -226,11 +226,20 @@ impl fmt::Debug for SdtHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let length = self.length;
         let revision = self.revision;
+        let checksum = self.checksum;
+        let oem_revision = self.oem_revision;
+        let creator_id = self.creator_id;
+        let creator_revision = self.creator_revision;
         f.debug_struct("SdtHeader")
             .field("signature", &self.signature_str())
             .field("length", &length)
             .field("revision", &revision)
+            .field("checksum", &checksum)
             .field("oem_id", &self.oem_id_str())
+            .field("oem_table_id", &self.oem_table_id_str())
+            .field("oem_revision", &oem_revision)
+            .field("creator_id", &creator_id)
+            .field("creator_revision", &creator_revision)
             .finish()
     }
 }
@@ -481,21 +490,37 @@ impl MadtHeader {
 
 /// MADT entry types
 pub mod madt_entry_type {
+    /// Processor Local APIC
     pub const LOCAL_APIC: u8 = 0;
+    /// I/O APIC
     pub const IO_APIC: u8 = 1;
+    /// Interrupt Source Override
     pub const INTERRUPT_SOURCE_OVERRIDE: u8 = 2;
+    /// NMI Source
     pub const NMI_SOURCE: u8 = 3;
+    /// Local APIC NMI
     pub const LOCAL_APIC_NMI: u8 = 4;
+    /// Local APIC Address Override
     pub const LOCAL_APIC_ADDRESS_OVERRIDE: u8 = 5;
+    /// I/O SAPIC
     pub const IO_SAPIC: u8 = 6;
+    /// Local SAPIC
     pub const LOCAL_SAPIC: u8 = 7;
+    /// Platform Interrupt Sources
     pub const PLATFORM_INTERRUPT_SOURCES: u8 = 8;
+    /// Processor Local x2APIC
     pub const LOCAL_X2APIC: u8 = 9;
+    /// Local x2APIC NMI
     pub const LOCAL_X2APIC_NMI: u8 = 10;
+    /// GIC CPU Interface
     pub const GIC_CPU: u8 = 11;
+    /// GIC Distributor
     pub const GIC_DISTRIBUTOR: u8 = 12;
+    /// GIC MSI Frame
     pub const GIC_MSI_FRAME: u8 = 13;
+    /// GIC Redistributor
     pub const GIC_REDISTRIBUTOR: u8 = 14;
+    /// GIC Interrupt Translation Service
     pub const GIC_ITS: u8 = 15;
 }
 
@@ -672,18 +697,26 @@ impl MadtInterruptOverride {
 /// Polarity
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Polarity {
+    /// Conforms to the specifications of the bus
     ConformToSpec,
+    /// Active high
     ActiveHigh,
+    /// Active low
     ActiveLow,
+    /// Reserved value
     Reserved,
 }
 
 /// Trigger mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TriggerMode {
+    /// Conforms to the specifications of the bus
     ConformToSpec,
+    /// Edge-triggered
     EdgeTriggered,
+    /// Level-triggered
     LevelTriggered,
+    /// Reserved value
     Reserved,
 }
 
@@ -837,7 +870,7 @@ impl<'a> Madt<'a> {
 
     /// Count enabled processors
     pub fn processor_count(&self) -> usize {
-        let local_apic_count = self.local_apics().filter(|la| la.is_enabled()).count();
+        let local_apic_count = self.local_apics().filter(MadtLocalApic::is_enabled).count();
 
         let x2apic_count = self
             .entries()
@@ -848,7 +881,7 @@ impl<'a> Madt<'a> {
                     None
                 }
             })
-            .filter(|x2| x2.is_enabled())
+            .filter(MadtLocalX2Apic::is_enabled)
             .count();
 
         local_apic_count + x2apic_count
@@ -857,7 +890,9 @@ impl<'a> Madt<'a> {
 
 /// MADT entry with raw data
 pub struct MadtEntry<'a> {
+    /// Entry header
     pub header: MadtEntryHeader,
+    /// Raw entry data
     pub data: &'a [u8],
 }
 
@@ -907,7 +942,7 @@ pub struct Fadt {
     pub firmware_ctrl: u32,
     /// DSDT address (32-bit)
     pub dsdt: u32,
-    /// Reserved (was INT_MODEL)
+    /// Reserved (was `INT_MODEL`)
     pub reserved1: u8,
     /// Preferred PM profile
     pub preferred_pm_profile: u8,
@@ -923,13 +958,13 @@ pub struct Fadt {
     pub s4bios_req: u8,
     /// PSTATE control
     pub pstate_cnt: u8,
-    /// PM1a event block
+    /// `PM1a` event block
     pub pm1a_evt_blk: u32,
-    /// PM1b event block
+    /// `PM1b` event block
     pub pm1b_evt_blk: u32,
-    /// PM1a control block
+    /// `PM1a` control block
     pub pm1a_cnt_blk: u32,
-    /// PM1b control block
+    /// `PM1b` control block
     pub pm1b_cnt_blk: u32,
     /// PM2 control block
     pub pm2_cnt_blk: u32,
@@ -955,9 +990,9 @@ pub struct Fadt {
     pub gpe1_base: u8,
     /// C-state control
     pub cst_cnt: u8,
-    /// P_LVL2 latency
+    /// `P_LVL2` latency
     pub p_lvl2_lat: u16,
-    /// P_LVL3 latency
+    /// `P_LVL3` latency
     pub p_lvl3_lat: u16,
     /// Flush size
     pub flush_size: u16,
@@ -1067,14 +1102,23 @@ impl Fadt {
 
 /// Preferred PM profile
 pub mod pm_profile {
+    /// Unspecified profile
     pub const UNSPECIFIED: u8 = 0;
+    /// Desktop profile
     pub const DESKTOP: u8 = 1;
+    /// Mobile profile
     pub const MOBILE: u8 = 2;
+    /// Workstation profile
     pub const WORKSTATION: u8 = 3;
+    /// Enterprise server profile
     pub const ENTERPRISE_SERVER: u8 = 4;
+    /// SOHO server profile
     pub const SOHO_SERVER: u8 = 5;
+    /// Appliance PC profile
     pub const APPLIANCE_PC: u8 = 6;
+    /// Performance server profile
     pub const PERFORMANCE_SERVER: u8 = 7;
+    /// Tablet profile
     pub const TABLET: u8 = 8;
 }
 
@@ -1248,9 +1292,9 @@ impl McfgEntry {
             return None;
         }
 
-        let offset = ((bus as u64 - self.start_bus as u64) << 20)
-            | ((device as u64) << 15)
-            | ((function as u64) << 12);
+        let offset = ((u64::from(bus) - u64::from(self.start_bus)) << 20)
+            | (u64::from(device) << 15)
+            | (u64::from(function) << 12);
 
         Some(self.base_address + offset)
     }
@@ -1308,17 +1352,29 @@ impl GenericAddress {
 
 /// Address space IDs
 pub mod address_space {
+    /// System memory address space
     pub const SYSTEM_MEMORY: u8 = 0;
+    /// System I/O address space
     pub const SYSTEM_IO: u8 = 1;
+    /// PCI configuration space
     pub const PCI_CONFIG: u8 = 2;
+    /// Embedded controller
     pub const EMBEDDED_CONTROLLER: u8 = 3;
+    /// SMBus address space
     pub const SMBUS: u8 = 4;
+    /// CMOS address space
     pub const CMOS: u8 = 5;
+    /// PCI BAR target
     pub const PCI_BAR_TARGET: u8 = 6;
+    /// IPMI address space
     pub const IPMI: u8 = 7;
+    /// GPIO address space
     pub const GPIO: u8 = 8;
+    /// Generic serial bus
     pub const GENERIC_SERIAL_BUS: u8 = 9;
+    /// Platform Communications Channel
     pub const PCC: u8 = 10;
+    /// Functional fixed hardware
     pub const FUNCTIONAL_FIXED_HW: u8 = 127;
 }
 
@@ -1382,18 +1438,27 @@ impl<'a> Srat<'a> {
 
 /// SRAT entry types
 pub mod srat_entry_type {
+    /// Processor Local APIC/SAPIC Affinity
     pub const PROCESSOR_LOCAL_APIC_AFFINITY: u8 = 0;
+    /// Memory Affinity
     pub const MEMORY_AFFINITY: u8 = 1;
+    /// Processor Local x2APIC Affinity
     pub const PROCESSOR_LOCAL_X2APIC_AFFINITY: u8 = 2;
+    /// GICC Affinity
     pub const GICC_AFFINITY: u8 = 3;
+    /// GIC ITS Affinity
     pub const GIC_ITS_AFFINITY: u8 = 4;
+    /// Generic Initiator Affinity
     pub const GENERIC_INITIATOR_AFFINITY: u8 = 5;
 }
 
 /// SRAT entry
 pub struct SratEntry<'a> {
+    /// Entry type
     pub entry_type: u8,
+    /// Entry length
     pub length: u8,
+    /// Raw entry data
     pub data: &'a [u8],
 }
 
@@ -1483,12 +1548,12 @@ impl SratMemoryAffinity {
 
     /// Get base address
     pub fn base_address(&self) -> u64 {
-        ((self.base_address_high as u64) << 32) | (self.base_address_low as u64)
+        (u64::from(self.base_address_high) << 32) | u64::from(self.base_address_low)
     }
 
     /// Get length
     pub fn length(&self) -> u64 {
-        ((self.length_high as u64) << 32) | (self.length_low as u64)
+        (u64::from(self.length_high) << 32) | u64::from(self.length_low)
     }
 
     /// Is enabled
@@ -1550,10 +1615,10 @@ impl SratProcessorAffinity {
 
     /// Get full proximity domain
     pub fn proximity_domain(&self) -> u32 {
-        (self.proximity_domain_low as u32)
-            | ((self.proximity_domain_high[0] as u32) << 8)
-            | ((self.proximity_domain_high[1] as u32) << 16)
-            | ((self.proximity_domain_high[2] as u32) << 24)
+        u32::from(self.proximity_domain_low)
+            | (u32::from(self.proximity_domain_high[0]) << 8)
+            | (u32::from(self.proximity_domain_high[1]) << 16)
+            | (u32::from(self.proximity_domain_high[2]) << 24)
     }
 
     /// Is enabled
