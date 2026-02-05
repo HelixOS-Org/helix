@@ -125,7 +125,7 @@ impl MemoryManager {
                 {
                     runtime += size;
                 } else if mt == MemoryType::AcpiReclaimMemory as u32
-                    || mt == MemoryType::AcpiMemoryNvs as u32
+                    || mt == MemoryType::AcpiNvsMemory as u32
                 {
                     acpi += size;
                 } else if mt == MemoryType::MemoryMappedIo as u32
@@ -161,11 +161,11 @@ impl MemoryManager {
                 let mt = desc.memory_type;
                 let region_type = if mt == MemoryType::ConventionalMemory as u32 {
                     regions::RegionType::Usable
-                } else if mt == MemoryType::ReservedMemoryType as u32 {
+                } else if mt == MemoryType::ReservedMemory as u32 {
                     regions::RegionType::Reserved
                 } else if mt == MemoryType::AcpiReclaimMemory as u32 {
                     regions::RegionType::AcpiReclaimable
-                } else if mt == MemoryType::AcpiMemoryNvs as u32 {
+                } else if mt == MemoryType::AcpiNvsMemory as u32 {
                     regions::RegionType::AcpiNvs
                 } else if mt == MemoryType::MemoryMappedIo as u32 {
                     regions::RegionType::Mmio
