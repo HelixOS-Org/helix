@@ -259,7 +259,7 @@ impl MemoryManager {
 
                 if region_size - offset >= size {
                     // Prefer higher memory
-                    if aligned_start >= 0x100000 {
+                    if aligned_start >= 0x0010_0000 {
                         // Above 1MB
                         return Some(PhysicalAddress(aligned_start));
                     }
