@@ -2,11 +2,9 @@
 //!
 //! Provides raw block-level access to storage devices.
 
-#![allow(clippy::unreadable_literal)]
-
 use core::fmt;
 
-use crate::raw::types::*;
+use crate::raw::types::{Boolean, Char16, Event, Guid, Status, guids};
 
 // =============================================================================
 // BLOCK I/O PROTOCOL
@@ -14,6 +12,7 @@ use crate::raw::types::*;
 
 /// Block I/O Protocol
 #[repr(C)]
+#[derive(Debug)]
 pub struct EfiBlockIoProtocol {
     /// Revision of the protocol
     pub revision: u64,
@@ -51,18 +50,18 @@ impl EfiBlockIoProtocol {
     pub const GUID: Guid = guids::BLOCK_IO_PROTOCOL;
 
     /// Protocol revision 1.0
-    pub const REVISION_1: u64 = 0x00010000;
+    pub const REVISION_1: u64 = 0x0001_0000;
     /// Protocol revision 2.0
-    pub const REVISION_2: u64 = 0x00020001;
+    pub const REVISION_2: u64 = 0x0002_0001;
     /// Protocol revision 3.0
-    pub const REVISION_3: u64 = 0x0002001F;
+    pub const REVISION_3: u64 = 0x0002_001F;
 
     /// Reset the device
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer is valid.
     pub unsafe fn reset(&mut self, extended_verification: bool) -> Result<(), Status> {
-        let status = (self.reset)(self, extended_verification as Boolean);
+        let status = (self.reset)(self, Boolean::from(extended_verification));
         status.to_status_result()
     }
 
@@ -129,16 +128,7 @@ impl EfiBlockIoProtocol {
     /// The caller must ensure the protocol pointer is valid.
     pub unsafe fn total_size(&self) -> Option<u64> {
         self.media_info()
-            .map(|m| (m.last_block + 1) * m.block_size as u64)
-    }
-}
-
-impl fmt::Debug for EfiBlockIoProtocol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiBlockIoProtocol")
-            .field("revision", &self.revision)
-            .field("media", &self.media)
-            .finish()
+            .map(|m| (m.last_block + 1) * u64::from(m.block_size))
     }
 }
 
@@ -182,37 +172,37 @@ pub struct EfiBlockIoMedia {
 
 impl EfiBlockIoMedia {
     /// Check if media is present
-    pub fn is_present(&self) -> bool {
+    pub const fn is_present(&self) -> bool {
         self.media_present != 0
     }
 
     /// Check if media is removable
-    pub fn is_removable(&self) -> bool {
+    pub const fn is_removable(&self) -> bool {
         self.removable_media != 0
     }
 
     /// Check if media is read-only
-    pub fn is_read_only(&self) -> bool {
+    pub const fn is_read_only(&self) -> bool {
         self.read_only != 0
     }
 
     /// Check if this is a logical partition
-    pub fn is_partition(&self) -> bool {
+    pub const fn is_partition(&self) -> bool {
         self.logical_partition != 0
     }
 
     /// Check if write caching is enabled
-    pub fn has_write_cache(&self) -> bool {
+    pub const fn has_write_cache(&self) -> bool {
         self.write_caching != 0
     }
 
     /// Get total size in bytes
     pub fn total_size(&self) -> u64 {
-        (self.last_block + 1) * self.block_size as u64
+        (self.last_block + 1) * u64::from(self.block_size)
     }
 
     /// Get total number of blocks
-    pub fn block_count(&self) -> u64 {
+    pub const fn block_count(&self) -> u64 {
         self.last_block + 1
     }
 }
@@ -223,6 +213,7 @@ impl EfiBlockIoMedia {
 
 /// Block I/O 2 Protocol (async operations)
 #[repr(C)]
+#[derive(Debug)]
 pub struct EfiBlockIo2Protocol {
     /// Media information
     pub media: *mut EfiBlockIoMedia,
@@ -260,14 +251,6 @@ impl EfiBlockIo2Protocol {
     pub const GUID: Guid = guids::BLOCK_IO2_PROTOCOL;
 }
 
-impl fmt::Debug for EfiBlockIo2Protocol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiBlockIo2Protocol")
-            .field("media", &self.media)
-            .finish()
-    }
-}
-
 /// Block I/O 2 token for async operations
 #[derive(Debug)]
 #[repr(C)]
@@ -284,6 +267,7 @@ pub struct EfiBlockIo2Token {
 
 /// Disk I/O Protocol
 #[repr(C)]
+#[derive(Debug)]
 pub struct EfiDiskIoProtocol {
     /// Revision of the protocol
     pub revision: u64,
@@ -312,7 +296,7 @@ impl EfiDiskIoProtocol {
     pub const GUID: Guid = guids::DISK_IO_PROTOCOL;
 
     /// Protocol revision 1.0
-    pub const REVISION_1: u64 = 0x00010000;
+    pub const REVISION_1: u64 = 0x0001_0000;
 
     /// Read from disk at byte offset
     ///
@@ -343,20 +327,13 @@ impl EfiDiskIoProtocol {
     }
 }
 
-impl fmt::Debug for EfiDiskIoProtocol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiDiskIoProtocol")
-            .field("revision", &self.revision)
-            .finish()
-    }
-}
-
 // =============================================================================
 // DISK I/O 2 PROTOCOL
 // =============================================================================
 
 /// Disk I/O 2 Protocol (async operations)
 #[repr(C)]
+#[derive(Debug)]
 pub struct EfiDiskIo2Protocol {
     /// Revision of the protocol
     pub revision: u64,
@@ -392,14 +369,6 @@ pub struct EfiDiskIo2Protocol {
 impl EfiDiskIo2Protocol {
     /// Protocol GUID
     pub const GUID: Guid = guids::DISK_IO2_PROTOCOL;
-}
-
-impl fmt::Debug for EfiDiskIo2Protocol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiDiskIo2Protocol")
-            .field("revision", &self.revision)
-            .finish()
-    }
 }
 
 /// Disk I/O 2 token for async operations
@@ -439,7 +408,7 @@ pub struct EfiPartitionInfoProtocol {
     pub system: Boolean,
     /// Reserved
     pub reserved: [u8; 7],
-    /// Partition info union (depends on partition_type)
+    /// Partition info union (depends on `partition_type`)
     pub info: EfiPartitionInfoUnion,
 }
 
@@ -448,7 +417,7 @@ impl EfiPartitionInfoProtocol {
     pub const GUID: Guid = guids::PARTITION_INFO_PROTOCOL;
 
     /// Protocol revision 1.0
-    pub const REVISION_1: u32 = 0x0001000;
+    pub const REVISION_1: u32 = 0x0001_0000;
 
     /// Check if this is a GPT partition
     pub fn is_gpt(&self) -> bool {
@@ -461,7 +430,7 @@ impl EfiPartitionInfoProtocol {
     }
 
     /// Check if this is a system partition
-    pub fn is_system(&self) -> bool {
+    pub const fn is_system(&self) -> bool {
         self.system != 0
     }
 }
@@ -472,7 +441,8 @@ impl fmt::Debug for EfiPartitionInfoProtocol {
             .field("revision", &self.revision)
             .field("partition_type", &self.partition_type)
             .field("system", &(self.system != 0))
-            .finish()
+            .field("reserved", &self.reserved)
+            .finish_non_exhaustive()
     }
 }
 
@@ -513,17 +483,17 @@ pub struct MbrPartitionRecord {
 
 impl MbrPartitionRecord {
     /// Get starting LBA
-    pub fn starting_lba(&self) -> u32 {
+    pub const fn starting_lba(&self) -> u32 {
         u32::from_le_bytes(self.starting_lba)
     }
 
     /// Get size in LBA
-    pub fn size_in_lba(&self) -> u32 {
+    pub const fn size_in_lba(&self) -> u32 {
         u32::from_le_bytes(self.size_in_lba)
     }
 
     /// Check if bootable
-    pub fn is_bootable(&self) -> bool {
+    pub const fn is_bootable(&self) -> bool {
         self.boot_indicator == 0x80
     }
 }
@@ -548,24 +518,24 @@ pub struct GptPartitionEntry {
 
 impl GptPartitionEntry {
     /// GPT partition attribute: Required for platform
-    pub const ATTR_REQUIRED: u64 = 0x0000000000000001;
+    pub const ATTR_REQUIRED: u64 = 0x0000_0000_0000_0001;
     /// GPT partition attribute: No block I/O protocol
-    pub const ATTR_NO_BLOCK_IO: u64 = 0x0000000000000002;
+    pub const ATTR_NO_BLOCK_IO: u64 = 0x0000_0000_0000_0002;
     /// GPT partition attribute: Legacy BIOS bootable
-    pub const ATTR_LEGACY_BIOS_BOOTABLE: u64 = 0x0000000000000004;
+    pub const ATTR_LEGACY_BIOS_BOOTABLE: u64 = 0x0000_0000_0000_0004;
 
     /// Get partition size in blocks
-    pub fn size_in_blocks(&self) -> u64 {
+    pub const fn size_in_blocks(&self) -> u64 {
         self.ending_lba - self.starting_lba + 1
     }
 
     /// Check if this is a required partition
-    pub fn is_required(&self) -> bool {
+    pub const fn is_required(&self) -> bool {
         (self.attributes & Self::ATTR_REQUIRED) != 0
     }
 
     /// Check if this is bootable (legacy BIOS)
-    pub fn is_legacy_bootable(&self) -> bool {
+    pub const fn is_legacy_bootable(&self) -> bool {
         (self.attributes & Self::ATTR_LEGACY_BIOS_BOOTABLE) != 0
     }
 }
@@ -611,7 +581,7 @@ pub mod partition_types {
         0x96, 0xE7, 0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09,
     ]);
 
-    /// Linux Root (AArch64)
+    /// Linux Root (`AArch64`)
     pub const LINUX_ROOT_ARM64: Guid = Guid::new(0xB921B045, 0x1DF0, 0x41C3, [
         0xAF, 0x44, 0x4C, 0x6F, 0x28, 0x0D, 0x3F, 0xAE,
     ]);
