@@ -2,13 +2,10 @@
 //!
 //! Utilities for validating syscall arguments.
 
-use helix_hal::{PhysAddr, VirtAddr};
-
 use super::SyscallError;
-use crate::KernelResult;
 
 /// Validate a user pointer
-pub fn validate_user_ptr(ptr: u64, size: usize, writable: bool) -> Result<(), SyscallError> {
+pub fn validate_user_ptr(ptr: u64, size: usize, _writable: bool) -> Result<(), SyscallError> {
     if ptr == 0 {
         return Err(SyscallError::BadAddress);
     }
@@ -30,7 +27,7 @@ pub fn validate_user_ptr(ptr: u64, size: usize, writable: bool) -> Result<(), Sy
 }
 
 /// Validate a user string (null-terminated)
-pub fn validate_user_string(ptr: u64, max_len: usize) -> Result<usize, SyscallError> {
+pub fn validate_user_string(ptr: u64, _max_len: usize) -> Result<usize, SyscallError> {
     validate_user_ptr(ptr, 1, false)?;
 
     // TODO: Actually scan the string to find its length
