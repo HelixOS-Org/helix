@@ -40,9 +40,21 @@ pub mod relocation;
 pub mod symbols;
 pub mod verify;
 
-pub use elf::*;
+// Explicit re-exports to avoid ambiguity
+// Both elf and pe modules export a `machine` submodule
+// Re-export them as elf_machine and pe_machine to avoid conflict
+pub use elf::{
+    class, data, elf_type, machine as elf_machine, osabi, pf, pt, r_x86_64, shf, sht, stb, stt,
+    Elf64Dyn, Elf64Header, Elf64ProgramHeader, Elf64Rel, Elf64Rela, Elf64SectionHeader,
+    Elf64Symbol, ElfLoader, ElfRelocation, ElfSymbol, ELF_MAGIC,
+};
 pub use image::*;
-pub use pe::*;
+pub use pe::{
+    characteristics, directory, dll_characteristics, machine as pe_machine, reloc_type,
+    section_characteristics, subsystem, BaseRelocationBlock, CoffHeader, DataDirectory,
+    DosHeader, ExportDirectory, ImportDirectory, OptionalHeader64, PeExport, PeImport, PeLoader,
+    PeRelocation, PeSectionHeader, DOS_MAGIC, PE32PLUS_MAGIC, PE32_MAGIC, PE_SIGNATURE,
+};
 pub use relocate::*;
 pub use relocation::{RelocationConfig, RelocationStats};
 pub use symbols::*;
