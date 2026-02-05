@@ -42,7 +42,7 @@ struct TlsEntry {
 /// Per-thread TLS storage
 pub struct ThreadLocalStorage {
     /// Thread ID
-    thread: ThreadId,
+    _thread: ThreadId,
     /// TLS entries
     entries: RwLock<BTreeMap<TlsKey, TlsEntry>>,
 }
@@ -51,7 +51,7 @@ impl ThreadLocalStorage {
     /// Create new TLS for a thread
     pub fn new(thread: ThreadId) -> Self {
         Self {
-            thread,
+            _thread: thread,
             entries: RwLock::new(BTreeMap::new()),
         }
     }
