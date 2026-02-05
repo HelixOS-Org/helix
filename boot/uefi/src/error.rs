@@ -396,7 +396,7 @@ impl Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unknown(code) => write!(f, "UEFI Error: Unknown (0x{:X})", code),
+            Self::Unknown(code) => write!(f, "UEFI Error: Unknown (0x{code:X})"),
             _ => write!(f, "UEFI Error: {}", self.name()),
         }
     }
@@ -405,32 +405,89 @@ impl fmt::Display for Error {
 impl From<Error> for Status {
     fn from(err: Error) -> Self {
         let code = match err {
-            Error::LoadError => 1,
-            Error::InvalidParameter => 2,
-            Error::Unsupported => 3,
+            // Code 1: Load errors
+            Error::LoadError
+            | Error::InvalidElf
+            | Error::InvalidPe
+            | Error::RelocationOverflow
+            | Error::NotLoaded => 1,
+
+            // Code 2: Invalid parameter / data errors
+            Error::InvalidParameter
+            | Error::InvalidSystemTable
+            | Error::InvalidMemoryMap
+            | Error::InvalidAcpi
+            | Error::InvalidSmbios
+            | Error::InvalidPath
+            | Error::ConfigError
+            | Error::MemoryOverlap
+            | Error::ExitBootServicesFailed
+            | Error::InvalidData
+            | Error::InvalidAddress
+            | Error::InvalidMagic
+            | Error::OutOfBounds => 2,
+
+            // Code 3: Unsupported errors
+            Error::Unsupported
+            | Error::UnsupportedArch
+            | Error::UnsupportedFormat
+            | Error::NotSupported
+            | Error::UnsupportedArchitecture
+            | Error::UnsupportedRelocation => 3,
+
             Error::BadBufferSize => 4,
             Error::BufferTooSmall => 5,
             Error::NotReady => 6,
-            Error::DeviceError => 7,
+
+            // Code 7: Device errors
+            Error::DeviceError
+            | Error::TpmError
+            | Error::FileSystemError
+            | Error::GraphicsError
+            | Error::SerialError => 7,
+
             Error::WriteProtected => 8,
-            Error::OutOfResources => 9,
+
+            // Code 9: Resource errors
+            Error::OutOfResources | Error::AllocationFailed | Error::OutOfMemory => 9,
+
             Error::VolumeCorrupted => 10,
             Error::VolumeFull => 11,
             Error::NoMedia => 12,
             Error::MediaChanged => 13,
-            Error::NotFound => 14,
+
+            // Code 14: Not found errors
+            Error::NotFound
+            | Error::ProtocolNotFound
+            | Error::KernelEntryNotFound
+            | Error::AcpiNotFound
+            | Error::SmbiosNotFound
+            | Error::FileNotFound
+            | Error::NoVideoMode => 14,
+
             Error::AccessDenied => 15,
             Error::NoResponse => 16,
             Error::NoMapping => 17,
             Error::Timeout => 18,
-            Error::NotStarted => 19,
-            Error::AlreadyStarted => 20,
+
+            // Code 19: Not started errors
+            Error::NotStarted | Error::BootServicesUnavailable => 19,
+
+            // Code 20: Already started/exists errors
+            Error::AlreadyStarted | Error::AlreadyExists => 20,
+
             Error::Aborted => 21,
             Error::IcmpError => 22,
             Error::TftpError => 23,
             Error::ProtocolError => 24,
             Error::IncompatibleVersion => 25,
-            Error::SecurityViolation => 26,
+
+            // Code 26: Security errors
+            Error::SecurityViolation
+            | Error::SecureBootViolation
+            | Error::SignatureInvalid
+            | Error::InvalidSignature => 26,
+
             Error::CrcError => 27,
             Error::EndOfMedia => 28,
             Error::EndOfFile => 31,
@@ -439,45 +496,6 @@ impl From<Error> for Status {
             Error::IpAddressConflict => 34,
             Error::HttpError => 35,
             Error::Unknown(code) => code,
-            // Map Helix-specific errors to appropriate UEFI codes
-            Error::InvalidSystemTable => 2,
-            Error::BootServicesUnavailable => 19,
-            Error::ProtocolNotFound => 14,
-            Error::InvalidMemoryMap => 2,
-            Error::AllocationFailed => 9,
-            Error::InvalidElf => 1,
-            Error::InvalidPe => 1,
-            Error::KernelEntryNotFound => 14,
-            Error::AcpiNotFound => 14,
-            Error::InvalidAcpi => 2,
-            Error::SmbiosNotFound => 14,
-            Error::InvalidSmbios => 2,
-            Error::SecureBootViolation => 26,
-            Error::SignatureInvalid => 26,
-            Error::TpmError => 7,
-            Error::FileSystemError => 7,
-            Error::FileNotFound => 14,
-            Error::InvalidPath => 2,
-            Error::GraphicsError => 7,
-            Error::NoVideoMode => 14,
-            Error::SerialError => 7,
-            Error::ConfigError => 2,
-            Error::UnsupportedArch => 3,
-            Error::MemoryOverlap => 2,
-            Error::ExitBootServicesFailed => 2,
-            Error::InvalidData => 2,
-            Error::RelocationOverflow => 1,
-            Error::UnsupportedFormat => 3,
-            Error::NotLoaded => 1,
-            Error::AlreadyExists => 20,
-            Error::InvalidAddress => 2,
-            Error::InvalidMagic => 2,
-            Error::InvalidSignature => 26,
-            Error::NotSupported => 3,
-            Error::OutOfBounds => 2,
-            Error::OutOfMemory => 9,
-            Error::UnsupportedArchitecture => 3,
-            Error::UnsupportedRelocation => 3,
         };
 
         // UEFI error codes have the high bit set
