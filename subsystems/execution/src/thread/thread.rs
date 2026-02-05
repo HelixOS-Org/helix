@@ -66,7 +66,7 @@ pub struct Thread {
     /// Exit code
     exit_code: spin::RwLock<Option<i32>>,
     /// Thread-local storage pointer
-    tls: spin::RwLock<Option<VirtAddr>>,
+    _tls: spin::RwLock<Option<VirtAddr>>,
 }
 
 impl Thread {
@@ -92,7 +92,7 @@ impl Thread {
             affinity: spin::RwLock::new(u64::MAX),
             cpu: spin::RwLock::new(None),
             exit_code: spin::RwLock::new(None),
-            tls: spin::RwLock::new(None),
+            _tls: spin::RwLock::new(None),
         })
     }
 
