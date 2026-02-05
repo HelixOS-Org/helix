@@ -430,7 +430,10 @@ impl Easing {
     /// Approximate 2^x for `no_std` environments.
     ///
     /// Uses bit manipulation and polynomial approximation.
-    #[expect(clippy::cast_precision_loss, reason = "Precision loss is acceptable for approximation")]
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "Precision loss is acceptable for approximation"
+    )]
     fn pow2_approx(x: f32) -> f32 {
         // Simple approximation
         #[expect(
@@ -853,7 +856,10 @@ impl Particle {
 
     /// Get normalized age (0.0 = born, 1.0 = dead)
     #[must_use]
-    #[expect(clippy::cast_precision_loss, reason = "Precision loss is acceptable for age calculation")]
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "Precision loss is acceptable for age calculation"
+    )]
     pub fn age(&self) -> f32 {
         if self.initial_lifetime == 0 {
             return 1.0;
