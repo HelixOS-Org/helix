@@ -3,7 +3,7 @@
 //! Environment variable management for userspace programs.
 
 use alloc::collections::BTreeMap;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 
 use spin::RwLock;
 
