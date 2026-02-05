@@ -28,7 +28,7 @@ pub struct PciDevice {
     /// Raw protocol pointer
     protocol: *mut EfiPciIoProtocol,
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// Cached config header
     config: PciConfigHeader,
     /// Location
@@ -90,7 +90,7 @@ impl PciDevice {
 
         Ok(Self {
             protocol,
-            handle,
+            _handle: handle,
             config,
             location,
         })
@@ -834,41 +834,41 @@ impl PciCommand {
 /// Power Management
 const PCI_CAP_PM: u8 = 0x01;
 /// AGP
-const PCI_CAP_AGP: u8 = 0x02;
+const _PCI_CAP_AGP: u8 = 0x02;
 /// VPD
-const PCI_CAP_VPD: u8 = 0x03;
+const _PCI_CAP_VPD: u8 = 0x03;
 /// Slot ID
-const PCI_CAP_SLOTID: u8 = 0x04;
+const _PCI_CAP_SLOTID: u8 = 0x04;
 /// MSI
 const PCI_CAP_MSI: u8 = 0x05;
 /// CompactPCI Hot Swap
-const PCI_CAP_CHSWP: u8 = 0x06;
+const _PCI_CAP_CHSWP: u8 = 0x06;
 /// PCI-X
-const PCI_CAP_PCIX: u8 = 0x07;
+const _PCI_CAP_PCIX: u8 = 0x07;
 /// HyperTransport
-const PCI_CAP_HT: u8 = 0x08;
+const _PCI_CAP_HT: u8 = 0x08;
 /// Vendor Specific
-const PCI_CAP_VNDR: u8 = 0x09;
+const _PCI_CAP_VNDR: u8 = 0x09;
 /// Debug port
-const PCI_CAP_DBG: u8 = 0x0A;
+const _PCI_CAP_DBG: u8 = 0x0A;
 /// CompactPCI Central Resource Control
-const PCI_CAP_CCRC: u8 = 0x0B;
+const _PCI_CAP_CCRC: u8 = 0x0B;
 /// Hot Plug
-const PCI_CAP_HOTPLUG: u8 = 0x0C;
+const _PCI_CAP_HOTPLUG: u8 = 0x0C;
 /// Bridge Subsystem Vendor ID
-const PCI_CAP_SSVID: u8 = 0x0D;
+const _PCI_CAP_SSVID: u8 = 0x0D;
 /// AGP 8x
-const PCI_CAP_AGP3: u8 = 0x0E;
+const _PCI_CAP_AGP3: u8 = 0x0E;
 /// Secure Device
-const PCI_CAP_SECURE: u8 = 0x0F;
+const _PCI_CAP_SECURE: u8 = 0x0F;
 /// PCI Express
 const PCI_CAP_PCIE: u8 = 0x10;
 /// MSI-X
 const PCI_CAP_MSIX: u8 = 0x11;
 /// SATA
-const PCI_CAP_SATA: u8 = 0x12;
+const _PCI_CAP_SATA: u8 = 0x12;
 /// Advanced Features
-const PCI_CAP_AF: u8 = 0x13;
+const _PCI_CAP_AF: u8 = 0x13;
 
 // =============================================================================
 // ENUMERATION HELPERS
