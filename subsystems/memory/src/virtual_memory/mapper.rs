@@ -14,7 +14,7 @@ pub struct PageTableMapper<A: FrameAllocator> {
     /// Root page table physical address
     root: PhysAddr,
     /// Frame allocator for page tables
-    allocator: Mutex<A>,
+    _allocator: Mutex<A>,
 }
 
 impl<A: FrameAllocator> PageTableMapper<A> {
@@ -22,7 +22,7 @@ impl<A: FrameAllocator> PageTableMapper<A> {
     pub fn new(root: PhysAddr, allocator: A) -> Self {
         Self {
             root,
-            allocator: Mutex::new(allocator),
+            _allocator: Mutex::new(allocator),
         }
     }
 
@@ -63,7 +63,7 @@ impl<A: FrameAllocator + Send + Sync> VirtualMapper for PageTableMapper<A> {
         Ok(())
     }
 
-    fn translate(&self, virt: VirtAddr) -> Option<PhysAddr> {
+    fn translate(&self, _virt: VirtAddr) -> Option<PhysAddr> {
         // Walk page tables to find physical address
         // Placeholder
         None
