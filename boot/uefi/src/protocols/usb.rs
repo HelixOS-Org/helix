@@ -770,11 +770,7 @@ impl RequestType {
         request_type: RequestKind,
         recipient: Recipient,
     ) -> Self {
-        Self(
-            ((direction as u8) << 7)
-                | ((request_type as u8) << 5)
-                | (recipient as u8),
-        )
+        Self(((direction as u8) << 7) | ((request_type as u8) << 5) | (recipient as u8))
     }
 
     /// Get direction
