@@ -14,9 +14,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::any::Any;
-use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-
-use spin::Mutex;
+use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::hotreload::{
     HotReloadError, HotReloadableModule, ModuleCategory, ModuleState, ModuleVersion,
