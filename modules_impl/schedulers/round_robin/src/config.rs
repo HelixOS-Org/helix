@@ -1,7 +1,5 @@
 //! # Round-Robin Scheduler Configuration
 
-use core::time::Duration;
-
 /// Configuration for the round-robin scheduler
 #[derive(Debug, Clone)]
 pub struct RoundRobinConfig {
