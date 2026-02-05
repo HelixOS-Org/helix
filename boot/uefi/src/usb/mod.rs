@@ -1123,7 +1123,7 @@ pub struct CommandBlockWrapper {
 
 impl CommandBlockWrapper {
     /// CBW signature
-    pub const SIGNATURE: u32 = 0x43425355;
+    pub const SIGNATURE: u32 = 0x4342_5355;
 
     /// Create a new CBW
     pub const fn new(tag: u32, data_length: u32, direction_in: bool, lun: u8) -> Self {
@@ -1174,7 +1174,7 @@ pub struct CommandStatusWrapper {
 
 impl CommandStatusWrapper {
     /// CSW signature
-    pub const SIGNATURE: u32 = 0x53425355;
+    pub const SIGNATURE: u32 = 0x5342_5355;
 
     /// Command passed
     pub const STATUS_PASSED: u8 = 0x00;
