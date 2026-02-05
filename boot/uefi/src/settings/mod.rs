@@ -1127,7 +1127,7 @@ impl Settings {
             storage: StorageSettings {
                 scan_mode: StorageScanMode::All,
                 filesystems: FilesystemSupport::new(
-                    FilesystemSupport::FAT | FilesystemSupport::EXT | FilesystemSupport::ISO9660
+                    FilesystemSupport::FAT | FilesystemSupport::EXT | FilesystemSupport::ISO9660,
                 ),
                 ahci_enabled: true,
                 nvme_enabled: true,
