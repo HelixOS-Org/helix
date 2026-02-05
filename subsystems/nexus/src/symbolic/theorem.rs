@@ -14,6 +14,9 @@
 //! - Kernel invariant verification
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::useless_format)]
+#![allow(clippy::let_and_return)]
 
 extern crate alloc;
 
