@@ -14,12 +14,12 @@
 //! - Side effect tracking
 
 #![allow(dead_code)]
+#![allow(clippy::derivable_impls)]
+#![allow(clippy::only_used_in_recursion)]
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
-use alloc::string::String;
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -107,18 +107,18 @@ impl AbstractValue {
                 } else {
                     AbstractValue::Interval(*a.min(b), *a.max(b))
                 }
-            }
+            },
 
             // Interval widening
             (AbstractValue::Interval(l1, h1), AbstractValue::Interval(l2, h2)) => {
                 AbstractValue::Interval(*l1.min(l2), *h1.max(h2))
-            }
+            },
 
             // Constant to interval
             (AbstractValue::ConstInt(c), AbstractValue::Interval(l, h))
             | (AbstractValue::Interval(l, h), AbstractValue::ConstInt(c)) => {
                 AbstractValue::Interval(*l.min(c), *h.max(c))
-            }
+            },
 
             // Pointer analysis
             (AbstractValue::NullPtr, AbstractValue::NullPtr) => AbstractValue::NullPtr,
@@ -132,7 +132,7 @@ impl AbstractValue {
                 } else {
                     AbstractValue::NonNullPtr
                 }
-            }
+            },
 
             // Default
             _ => AbstractValue::Top,
@@ -152,7 +152,7 @@ impl AbstractValue {
                 } else {
                     AbstractValue::Bottom
                 }
-            }
+            },
 
             // Interval intersection
             (AbstractValue::Interval(l1, h1), AbstractValue::Interval(l2, h2)) => {
@@ -163,7 +163,7 @@ impl AbstractValue {
                 } else {
                     AbstractValue::Bottom
                 }
-            }
+            },
 
             _ => AbstractValue::Bottom,
         }
@@ -178,7 +178,7 @@ impl AbstractValue {
             (AbstractValue::ConstInt(c), AbstractValue::Interval(l, h)) => *c >= *l && *c <= *h,
             (AbstractValue::Interval(l1, h1), AbstractValue::Interval(l2, h2)) => {
                 *l1 >= *l2 && *h1 <= *h2
-            }
+            },
             _ => false,
         }
     }
@@ -195,7 +195,10 @@ impl AbstractValue {
 
     /// Is this a constant?
     pub fn is_constant(&self) -> bool {
-        matches!(self, AbstractValue::ConstInt(_) | AbstractValue::ConstBool(_))
+        matches!(
+            self,
+            AbstractValue::ConstInt(_) | AbstractValue::ConstBool(_)
+        )
     }
 
     /// Get constant value if known
@@ -425,30 +428,30 @@ impl AbstractInterpreter {
         match stmt {
             AbstractStmt::AssignConst(var, c) => {
                 result.set(*var, AbstractValue::ConstInt(*c));
-            }
+            },
 
             AbstractStmt::AssignVar(dst, src) => {
                 let value = state.get(*src).clone();
                 result.set(*dst, value);
-            }
+            },
 
             AbstractStmt::BinOp(dst, lhs, op, rhs) => {
                 let lhs_val = state.get(*lhs);
                 let rhs_val = state.get(*rhs);
                 let result_val = self.eval_binop(op, lhs_val, rhs_val);
                 result.set(*dst, result_val);
-            }
+            },
 
             AbstractStmt::UnaryOp(dst, op, src) => {
                 let src_val = state.get(*src);
                 let result_val = self.eval_unaryop(op, src_val);
                 result.set(*dst, result_val);
-            }
+            },
 
             AbstractStmt::Call(dst, _func, _args) => {
                 // Conservative: result is unknown
                 result.set(*dst, AbstractValue::Top);
-            }
+            },
 
             AbstractStmt::Assume(var, cmp, constant) => {
                 let current = state.get(*var);
@@ -457,21 +460,16 @@ impl AbstractInterpreter {
                     return AbstractState::unreachable();
                 }
                 result.set(*var, refined);
-            }
+            },
 
-            AbstractStmt::Skip => {}
+            AbstractStmt::Skip => {},
         }
 
         result
     }
 
     /// Evaluate binary operation abstractly
-    fn eval_binop(
-        &self,
-        op: &BinaryOp,
-        lhs: &AbstractValue,
-        rhs: &AbstractValue,
-    ) -> AbstractValue {
+    fn eval_binop(&self, op: &BinaryOp, lhs: &AbstractValue, rhs: &AbstractValue) -> AbstractValue {
         match (lhs, rhs) {
             (AbstractValue::ConstInt(a), AbstractValue::ConstInt(b)) => {
                 let result = match op {
@@ -483,13 +481,13 @@ impl AbstractInterpreter {
                             return AbstractValue::Top;
                         }
                         a.wrapping_div(*b)
-                    }
+                    },
                     BinaryOp::Mod => {
                         if *b == 0 {
                             return AbstractValue::Top;
                         }
                         a.wrapping_rem(*b)
-                    }
+                    },
                     BinaryOp::And => a & b,
                     BinaryOp::Or => a | b,
                     BinaryOp::Xor => a ^ b,
@@ -497,26 +495,26 @@ impl AbstractInterpreter {
                     BinaryOp::Shr => a >> (b & 63),
                 };
                 AbstractValue::ConstInt(result)
-            }
+            },
 
             (AbstractValue::Interval(l1, h1), AbstractValue::Interval(l2, h2)) => {
                 match op {
                     BinaryOp::Add => {
                         AbstractValue::Interval(l1.saturating_add(*l2), h1.saturating_add(*h2))
-                    }
+                    },
                     BinaryOp::Sub => {
                         AbstractValue::Interval(l1.saturating_sub(*h2), h1.saturating_sub(*l2))
-                    }
+                    },
                     BinaryOp::Mul => {
                         // Product of intervals
                         let products = [l1 * l2, l1 * h2, h1 * l2, h1 * h2];
                         let min = *products.iter().min().unwrap();
                         let max = *products.iter().max().unwrap();
                         AbstractValue::Interval(min, max)
-                    }
+                    },
                     _ => AbstractValue::Top,
                 }
-            }
+            },
 
             (AbstractValue::ConstInt(c), AbstractValue::Interval(l, h))
             | (AbstractValue::Interval(l, h), AbstractValue::ConstInt(c)) => {
@@ -524,7 +522,7 @@ impl AbstractInterpreter {
                 let c_int = AbstractValue::Interval(*c, *c);
                 let other_int = AbstractValue::Interval(*l, *h);
                 self.eval_binop(op, &c_int, &other_int)
-            }
+            },
 
             _ => AbstractValue::Top,
         }
@@ -559,7 +557,7 @@ impl AbstractInterpreter {
                     Comparison::Gt => AbstractValue::Interval(constant + 1, i64::MAX),
                     Comparison::Ge => AbstractValue::Interval(constant, i64::MAX),
                 }
-            }
+            },
 
             AbstractValue::Interval(l, h) => {
                 match cmp {
@@ -569,7 +567,7 @@ impl AbstractInterpreter {
                         } else {
                             AbstractValue::Bottom
                         }
-                    }
+                    },
                     Comparison::Ne => {
                         // Narrow slightly if at boundary
                         if *l == constant && *h == constant {
@@ -581,13 +579,13 @@ impl AbstractInterpreter {
                         } else {
                             current.clone()
                         }
-                    }
+                    },
                     Comparison::Lt => AbstractValue::Interval(*l, (constant - 1).min(*h)),
                     Comparison::Le => AbstractValue::Interval(*l, constant.min(*h)),
                     Comparison::Gt => AbstractValue::Interval((constant + 1).max(*l), *h),
                     Comparison::Ge => AbstractValue::Interval(constant.max(*l), *h),
                 }
-            }
+            },
 
             AbstractValue::ConstInt(c) => {
                 let holds = match cmp {
@@ -604,7 +602,7 @@ impl AbstractInterpreter {
                 } else {
                     AbstractValue::Bottom
                 }
-            }
+            },
 
             _ => current.clone(),
         }
@@ -617,7 +615,7 @@ impl AbstractInterpreter {
                 let new_l = if *l2 < *l1 { i64::MIN } else { *l1 };
                 let new_h = if *h2 > *h1 { i64::MAX } else { *h1 };
                 AbstractValue::Interval(new_l, new_h)
-            }
+            },
 
             _ => old.join(new),
         }
@@ -630,7 +628,7 @@ impl AbstractInterpreter {
                 let new_l = if *l1 == i64::MIN { *l2 } else { *l1 };
                 let new_h = if *h1 == i64::MAX { *h2 } else { *h1 };
                 AbstractValue::Interval(new_l, new_h)
-            }
+            },
 
             _ => new.clone(),
         }
@@ -728,7 +726,10 @@ impl ProgramSlicer {
 
     /// Add control dependency
     pub fn add_control_dep(&mut self, stmt: StmtId, controller: StmtId) {
-        self.control_deps.entry(stmt).or_default().insert(controller);
+        self.control_deps
+            .entry(stmt)
+            .or_default()
+            .insert(controller);
     }
 
     /// Add definition
@@ -897,7 +898,9 @@ impl SideEffectSummary {
 
     /// Check if function allocates
     pub fn allocates(&self) -> bool {
-        self.effects.iter().any(|e| matches!(e, SideEffect::Allocates))
+        self.effects
+            .iter()
+            .any(|e| matches!(e, SideEffect::Allocates))
     }
 
     /// Get modified globals
