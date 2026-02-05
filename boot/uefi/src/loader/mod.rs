@@ -51,9 +51,9 @@ pub use elf::{
 pub use image::*;
 pub use pe::{
     characteristics, directory, dll_characteristics, machine as pe_machine, reloc_type,
-    section_characteristics, subsystem, BaseRelocationBlock, CoffHeader, DataDirectory,
-    DosHeader, ExportDirectory, ImportDirectory, OptionalHeader64, PeExport, PeImport, PeLoader,
-    PeRelocation, PeSectionHeader, DOS_MAGIC, PE32PLUS_MAGIC, PE32_MAGIC, PE_SIGNATURE,
+    section_characteristics, subsystem, BaseRelocationBlock, CoffHeader, DataDirectory, DosHeader,
+    ExportDirectory, ImportDirectory, OptionalHeader64, PeExport, PeImport, PeLoader, PeRelocation,
+    PeSectionHeader, DOS_MAGIC, PE32PLUS_MAGIC, PE32_MAGIC, PE_SIGNATURE,
 };
 pub use relocate::*;
 pub use relocation::{RelocationConfig, RelocationStats};
