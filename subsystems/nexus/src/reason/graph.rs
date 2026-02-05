@@ -2,6 +2,8 @@
 //!
 //! This module provides the causal DAG (Directed Acyclic Graph) structure.
 
+#![allow(clippy::excessive_nesting)]
+
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
