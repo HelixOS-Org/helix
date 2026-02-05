@@ -10,7 +10,6 @@
 //! - Dynamic relocation support
 //! - Symbol resolution
 
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::mem;
