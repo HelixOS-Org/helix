@@ -317,10 +317,10 @@ impl From<MemoryType> for RangeType {
     fn from(mt: MemoryType) -> Self {
         match mt {
             MemoryType::ConventionalMemory => Self::Usable,
-            MemoryType::ReservedMemoryType => Self::Reserved,
+            MemoryType::ReservedMemory => Self::Reserved,
             MemoryType::UnusableMemory => Self::BadMemory,
             MemoryType::AcpiReclaimMemory => Self::AcpiReclaimable,
-            MemoryType::AcpiMemoryNvs => Self::AcpiNvs,
+            MemoryType::AcpiNvsMemory => Self::AcpiNvs,
             MemoryType::MemoryMappedIo | MemoryType::MemoryMappedIoPortSpace => Self::Mmio,
             MemoryType::LoaderCode | MemoryType::LoaderData => Self::Loader,
             MemoryType::BootServicesCode | MemoryType::BootServicesData => Self::BootServices,
@@ -481,7 +481,7 @@ impl From<MemoryType> for E820Type {
             MemoryType::BootServicesCode | MemoryType::BootServicesData => Self::Usable,
             MemoryType::RuntimeServicesCode | MemoryType::RuntimeServicesData => Self::Reserved,
             MemoryType::AcpiReclaimMemory => Self::AcpiReclaimable,
-            MemoryType::AcpiMemoryNvs => Self::AcpiNvs,
+            MemoryType::AcpiNvsMemory => Self::AcpiNvs,
             MemoryType::UnusableMemory => Self::BadMemory,
             MemoryType::PersistentMemory => Self::PersistentMemory,
             _ => Self::Reserved,
@@ -602,13 +602,13 @@ pub fn analyze_memory_map(map: &MemoryMapInfo) -> MemoryAnalysis {
             analysis.runtime_entries += 1;
         } else if mt == MemoryType::AcpiReclaimMemory as u32 {
             analysis.acpi_reclaim_memory += size;
-        } else if mt == MemoryType::AcpiMemoryNvs as u32 {
+        } else if mt == MemoryType::AcpiNvsMemory as u32 {
             analysis.acpi_nvs_memory += size;
         } else if mt == MemoryType::MemoryMappedIo as u32
             || mt == MemoryType::MemoryMappedIoPortSpace as u32
         {
             analysis.mmio_memory += size;
-        } else if mt == MemoryType::ReservedMemoryType as u32 {
+        } else if mt == MemoryType::ReservedMemory as u32 {
             analysis.reserved_memory += size;
         } else if mt == MemoryType::UnusableMemory as u32 {
             analysis.unusable_memory += size;
