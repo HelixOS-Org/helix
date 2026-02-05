@@ -59,7 +59,7 @@ pub struct ExecutionDomain {
     /// Processes in this domain
     processes: RwLock<BTreeSet<ProcessId>>,
     /// Parent domain (if any)
-    parent: Option<DomainId>,
+    _parent: Option<DomainId>,
 }
 
 impl ExecutionDomain {
@@ -71,7 +71,7 @@ impl ExecutionDomain {
             domain_type,
             threads: RwLock::new(BTreeSet::new()),
             processes: RwLock::new(BTreeSet::new()),
-            parent,
+            _parent: parent,
         }
     }
 
@@ -83,7 +83,7 @@ impl ExecutionDomain {
             domain_type: DomainType::Kernel,
             threads: RwLock::new(BTreeSet::new()),
             processes: RwLock::new(BTreeSet::new()),
-            parent: None,
+            _parent: None,
         }
     }
 
