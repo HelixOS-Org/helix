@@ -370,130 +370,130 @@ impl NvmeCommand {
 
     /// Create Identify Controller command
     pub fn identify_controller(cid: u16, buffer: u64) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::Identify as u8, cid);
-        cmd.prp1 = buffer;
-        cmd.cdw10 = 1; // Controller
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::Identify as u8, cid);
+        command.prp1 = buffer;
+        command.cdw10 = 1; // Controller
+        command
     }
 
     /// Create Identify Namespace command
     pub fn identify_namespace(cid: u16, nsid: u32, buffer: u64) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::Identify as u8, cid);
-        cmd.nsid = nsid;
-        cmd.prp1 = buffer;
-        cmd.cdw10 = 0; // Namespace
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::Identify as u8, cid);
+        command.nsid = nsid;
+        command.prp1 = buffer;
+        command.cdw10 = 0; // Namespace
+        command
     }
 
     /// Create Identify Active Namespace List command
     pub fn identify_active_ns_list(cid: u16, start_nsid: u32, buffer: u64) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::Identify as u8, cid);
-        cmd.nsid = start_nsid;
-        cmd.prp1 = buffer;
-        cmd.cdw10 = 2; // Active Namespace ID List
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::Identify as u8, cid);
+        command.nsid = start_nsid;
+        command.prp1 = buffer;
+        command.cdw10 = 2; // Active Namespace ID List
+        command
     }
 
     /// Create Create I/O Completion Queue command
     pub fn create_io_cq(cid: u16, qid: u16, size: u16, buffer: u64, iv: u16) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::CreateIoCq as u8, cid);
-        cmd.prp1 = buffer;
-        cmd.cdw10 = ((size - 1) as u32) << 16 | (qid as u32);
-        cmd.cdw11 = 1 | ((iv as u32) << 16); // Physically contiguous, interrupt enabled
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::CreateIoCq as u8, cid);
+        command.prp1 = buffer;
+        command.cdw10 = (((size - 1) as u32) << 16) | (qid as u32);
+        command.cdw11 = 1 | ((iv as u32) << 16); // Physically contiguous, interrupt enabled
+        command
     }
 
     /// Create Create I/O Submission Queue command
-    pub fn create_io_sq(cid: u16, qid: u16, size: u16, buffer: u64, cqid: u16) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::CreateIoSq as u8, cid);
-        cmd.prp1 = buffer;
-        cmd.cdw10 = ((size - 1) as u32) << 16 | (qid as u32);
-        cmd.cdw11 = 1 | ((cqid as u32) << 16); // Physically contiguous
-        cmd
+    pub fn create_io_sq(cid: u16, qid: u16, size: u16, buffer: u64, comp_qid: u16) -> Self {
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::CreateIoSq as u8, cid);
+        command.prp1 = buffer;
+        command.cdw10 = (((size - 1) as u32) << 16) | (qid as u32);
+        command.cdw11 = 1 | ((comp_qid as u32) << 16); // Physically contiguous
+        command
     }
 
     /// Create Delete I/O Submission Queue command
     pub fn delete_io_sq(cid: u16, qid: u16) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::DeleteIoSq as u8, cid);
-        cmd.cdw10 = qid as u32;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::DeleteIoSq as u8, cid);
+        command.cdw10 = qid as u32;
+        command
     }
 
     /// Create Delete I/O Completion Queue command
     pub fn delete_io_cq(cid: u16, qid: u16) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::DeleteIoCq as u8, cid);
-        cmd.cdw10 = qid as u32;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::DeleteIoCq as u8, cid);
+        command.cdw10 = qid as u32;
+        command
     }
 
     /// Create Read command
     pub fn read(cid: u16, nsid: u32, lba: u64, num_blocks: u16, prp1: u64, prp2: u64) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(NvmOpcode::Read as u8, cid);
-        cmd.nsid = nsid;
-        cmd.prp1 = prp1;
-        cmd.prp2 = prp2;
-        cmd.cdw10 = lba as u32;
-        cmd.cdw11 = (lba >> 32) as u32;
-        cmd.cdw12 = (num_blocks - 1) as u32;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(NvmOpcode::Read as u8, cid);
+        command.nsid = nsid;
+        command.prp1 = prp1;
+        command.prp2 = prp2;
+        command.cdw10 = lba as u32;
+        command.cdw11 = (lba >> 32) as u32;
+        command.cdw12 = (num_blocks - 1) as u32;
+        command
     }
 
     /// Create Write command
     pub fn write(cid: u16, nsid: u32, lba: u64, num_blocks: u16, prp1: u64, prp2: u64) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(NvmOpcode::Write as u8, cid);
-        cmd.nsid = nsid;
-        cmd.prp1 = prp1;
-        cmd.prp2 = prp2;
-        cmd.cdw10 = lba as u32;
-        cmd.cdw11 = (lba >> 32) as u32;
-        cmd.cdw12 = (num_blocks - 1) as u32;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(NvmOpcode::Write as u8, cid);
+        command.nsid = nsid;
+        command.prp1 = prp1;
+        command.prp2 = prp2;
+        command.cdw10 = lba as u32;
+        command.cdw11 = (lba >> 32) as u32;
+        command.cdw12 = (num_blocks - 1) as u32;
+        command
     }
 
     /// Create Flush command
     pub fn flush(cid: u16, nsid: u32) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(NvmOpcode::Flush as u8, cid);
-        cmd.nsid = nsid;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(NvmOpcode::Flush as u8, cid);
+        command.nsid = nsid;
+        command
     }
 
     /// Create Get Log Page command
     pub fn get_log_page(cid: u16, lid: u8, buffer: u64, size: u32) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::GetLogPage as u8, cid);
-        cmd.prp1 = buffer;
-        cmd.cdw10 = (lid as u32) | ((size / 4 - 1) << 16);
-        cmd.cdw11 = 0;
-        cmd.cdw12 = 0;
-        cmd.cdw13 = 0;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::GetLogPage as u8, cid);
+        command.prp1 = buffer;
+        command.cdw10 = (lid as u32) | ((size / 4 - 1) << 16);
+        command.cdw11 = 0;
+        command.cdw12 = 0;
+        command.cdw13 = 0;
+        command
     }
 
     /// Create Set Features command
     pub fn set_features(cid: u16, fid: u8, value: u32) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::SetFeatures as u8, cid);
-        cmd.cdw10 = fid as u32;
-        cmd.cdw11 = value;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::SetFeatures as u8, cid);
+        command.cdw10 = fid as u32;
+        command.cdw11 = value;
+        command
     }
 
     /// Create Get Features command
     pub fn get_features(cid: u16, fid: u8) -> Self {
-        let mut cmd = Self::new();
-        cmd.set_opcode(AdminOpcode::GetFeatures as u8, cid);
-        cmd.cdw10 = fid as u32;
-        cmd
+        let mut command = Self::new();
+        command.set_opcode(AdminOpcode::GetFeatures as u8, cid);
+        command.cdw10 = fid as u32;
+        command
     }
 }
 
