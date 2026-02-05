@@ -1,5 +1,8 @@
 //! Central telemetry registry.
 
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::collapsible_if)]
+
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
@@ -191,7 +194,7 @@ impl TelemetryRegistry {
 
         // Clean up old resolved alerts (keep last 100)
         self.active_alerts
-            .retain(|a| a.state != AlertState::Resolved || a.duration() < 3600_000_000_000);
+            .retain(|a| a.state != AlertState::Resolved || a.duration() < 3_600_000_000_000);
 
         if self.active_alerts.len() > 100 {
             // Remove oldest resolved
