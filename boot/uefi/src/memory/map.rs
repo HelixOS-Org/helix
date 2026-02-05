@@ -369,19 +369,19 @@ pub mod layout {
 
     /// System BIOS
     pub const SYSTEM_BIOS_START: PhysicalAddress = PhysicalAddress(0xF0000);
-    pub const SYSTEM_BIOS_END: PhysicalAddress = PhysicalAddress(0x100000);
+    pub const SYSTEM_BIOS_END: PhysicalAddress = PhysicalAddress(0x0010_0000);
 
     /// First megabyte
-    pub const FIRST_MB: PhysicalAddress = PhysicalAddress(0x100000);
+    pub const FIRST_MB: PhysicalAddress = PhysicalAddress(0x0010_0000);
 
     /// ISA memory hole start
-    pub const ISA_HOLE_START: PhysicalAddress = PhysicalAddress(0x00F00000);
+    pub const ISA_HOLE_START: PhysicalAddress = PhysicalAddress(0x00F0_0000);
 
     /// 16MB boundary
-    pub const MB_16: PhysicalAddress = PhysicalAddress(0x01000000);
+    pub const MB_16: PhysicalAddress = PhysicalAddress(0x0100_0000);
 
     /// 4GB boundary
-    pub const GB_4: PhysicalAddress = PhysicalAddress(0x100000000);
+    pub const GB_4: PhysicalAddress = PhysicalAddress(0x0001_0000_0000);
 
     /// Check if address is in low memory (<1MB)
     pub const fn is_low_memory(addr: PhysicalAddress) -> bool {
@@ -623,12 +623,11 @@ pub fn analyze_memory_map(map: &MemoryMapInfo) -> MemoryAnalysis {
         }
 
         // Track lowest usable address
-        if desc.memory_type == MemoryType::ConventionalMemory as u32 {
-            if analysis.lowest_usable_address == 0
-                || desc.physical_start.0 < analysis.lowest_usable_address
-            {
-                analysis.lowest_usable_address = desc.physical_start.0;
-            }
+        if desc.memory_type == MemoryType::ConventionalMemory as u32
+            && (analysis.lowest_usable_address == 0
+                || desc.physical_start.0 < analysis.lowest_usable_address)
+        {
+            analysis.lowest_usable_address = desc.physical_start.0;
         }
     }
 
