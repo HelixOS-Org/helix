@@ -30,7 +30,6 @@ pub mod shell;
 pub mod syscalls;
 
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 // Re-exports
