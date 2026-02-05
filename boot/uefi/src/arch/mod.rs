@@ -8,7 +8,7 @@ pub mod aarch64;
 pub mod x86_64;
 
 use crate::error::Result;
-use crate::raw::types::*;
+use crate::raw::types::VirtualAddress;
 
 // =============================================================================
 // ARCHITECTURE DETECTION
@@ -20,7 +20,7 @@ use crate::raw::types::*;
 pub enum Architecture {
     /// x86-64 (AMD64)
     X86_64  = 0,
-    /// AArch64 (ARM64)
+    /// `AArch64` (ARM64)
     Aarch64 = 1,
     /// RISC-V 64-bit
     RiscV64 = 2,
@@ -55,42 +55,35 @@ impl Architecture {
     }
 
     /// Get architecture name
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
-            Architecture::X86_64 => "x86_64",
-            Architecture::Aarch64 => "aarch64",
-            Architecture::RiscV64 => "riscv64",
-            Architecture::Unknown => "unknown",
+            Self::X86_64 => "x86_64",
+            Self::Aarch64 => "aarch64",
+            Self::RiscV64 => "riscv64",
+            Self::Unknown => "unknown",
         }
     }
 
     /// Get page size
-    pub fn page_size(&self) -> u64 {
+    pub const fn page_size(&self) -> u64 {
         match self {
-            Architecture::X86_64 => 4096,
-            Architecture::Aarch64 => 4096, // Can be 4K, 16K, or 64K
-            Architecture::RiscV64 => 4096,
-            Architecture::Unknown => 4096,
+            Self::X86_64 | Self::Aarch64 | Self::RiscV64 | Self::Unknown => 4096, // Can be 4K, 16K, or 64K
         }
     }
 
     /// Get virtual address bits
-    pub fn virtual_address_bits(&self) -> u8 {
+    pub const fn virtual_address_bits(&self) -> u8 {
         match self {
-            Architecture::X86_64 => 48,  // 57 with 5-level paging
-            Architecture::Aarch64 => 48, // Can be 52 with LVA
-            Architecture::RiscV64 => 48, // Sv48
-            Architecture::Unknown => 48,
+            Self::X86_64 | Self::Aarch64 | Self::RiscV64 | Self::Unknown => 48, // 57 with 5-level paging
         }
     }
 
     /// Get physical address bits
-    pub fn physical_address_bits(&self) -> u8 {
+    pub const fn physical_address_bits(&self) -> u8 {
         match self {
-            Architecture::X86_64 => 52, // MAXPHYADDR varies
-            Architecture::Aarch64 => 48,
-            Architecture::RiscV64 => 56,
-            Architecture::Unknown => 48,
+            Self::X86_64 => 52, // MAXPHYADDR varies
+            Self::RiscV64 => 56,
+            Self::Aarch64 | Self::Unknown => 48,
         }
     }
 }
@@ -228,9 +221,9 @@ impl CpuFeatures {
 pub struct MemoryModel {
     /// Page size (typically 4096)
     pub page_size: u64,
-    /// Large page size (2MB on x86_64)
+    /// Large page size (2MB on `x86_64`)
     pub large_page_size: u64,
-    /// Huge page size (1GB on x86_64)
+    /// Huge page size (1GB on `x86_64`)
     pub huge_page_size: Option<u64>,
     /// Physical address width
     pub physical_address_bits: u8,
@@ -249,7 +242,7 @@ pub struct MemoryModel {
 }
 
 impl MemoryModel {
-    /// x86_64 memory model
+    /// `x86_64` memory model
     pub const X86_64: Self = Self {
         page_size: 4096,
         large_page_size: 2 * 1024 * 1024,
@@ -263,7 +256,7 @@ impl MemoryModel {
         recursive_mapping: Some(VirtualAddress(0xFFFF_FF00_0000_0000)),
     };
 
-    /// AArch64 memory model (4K pages)
+    /// `AArch64` memory model (4K pages)
     pub const AARCH64_4K: Self = Self {
         page_size: 4096,
         large_page_size: 2 * 1024 * 1024,
@@ -278,11 +271,10 @@ impl MemoryModel {
     };
 
     /// Get for current architecture
-    pub fn current() -> Self {
+    pub const fn current() -> Self {
         match Architecture::current() {
-            Architecture::X86_64 => Self::X86_64,
             Architecture::Aarch64 => Self::AARCH64_4K,
-            _ => Self::X86_64,
+            Architecture::X86_64 | Architecture::Unknown | Architecture::RiscV64 => Self::X86_64,
         }
     }
 
@@ -306,7 +298,7 @@ impl MemoryModel {
     }
 
     /// Canonicalize address
-    pub fn canonicalize(&self, addr: VirtualAddress) -> VirtualAddress {
+    pub const fn canonicalize(&self, addr: VirtualAddress) -> VirtualAddress {
         let bits = self.virtual_address_bits;
         let sign_bit = 1u64 << (bits - 1);
 
@@ -318,17 +310,17 @@ impl MemoryModel {
     }
 
     /// Get page count for size
-    pub fn page_count(&self, size: u64) -> u64 {
-        (size + self.page_size - 1) / self.page_size
+    pub const fn page_count(&self, size: u64) -> u64 {
+        size.div_ceil(self.page_size)
     }
 
     /// Align up to page boundary
-    pub fn page_align_up(&self, addr: u64) -> u64 {
+    pub const fn page_align_up(&self, addr: u64) -> u64 {
         (addr + self.page_size - 1) & !(self.page_size - 1)
     }
 
     /// Align down to page boundary
-    pub fn page_align_down(&self, addr: u64) -> u64 {
+    pub const fn page_align_down(&self, addr: u64) -> u64 {
         addr & !(self.page_size - 1)
     }
 }
@@ -349,7 +341,7 @@ pub struct RegisterContext {
     pub sp: u64,
     /// Flags / CPSR
     pub flags: u64,
-    /// Segment selectors (x86_64) or EL (aarch64)
+    /// Segment selectors (`x86_64`) or EL (aarch64)
     pub extra: [u64; 8],
 }
 
@@ -407,17 +399,17 @@ impl PlatformInit {
     }
 
     /// Get current state
-    pub fn state(&self) -> InitState {
+    pub const fn state(&self) -> InitState {
         self.state
     }
 
     /// Get CPU features
-    pub fn features(&self) -> &CpuFeatures {
+    pub const fn features(&self) -> &CpuFeatures {
         &self.features
     }
 
     /// Get memory model
-    pub fn memory_model(&self) -> &MemoryModel {
+    pub const fn memory_model(&self) -> &MemoryModel {
         &self.memory_model
     }
 
