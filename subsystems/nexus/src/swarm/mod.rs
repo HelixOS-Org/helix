@@ -40,6 +40,8 @@
 //! ```
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(unused_variables)]
 
 extern crate alloc;
 
