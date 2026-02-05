@@ -75,22 +75,26 @@ impl PhysicalAddress {
     }
 
     /// Add an offset to the address
+    #[must_use]
     pub const fn add(self, offset: u64) -> Self {
         Self(self.0 + offset)
     }
 
     /// Subtract an offset from the address
+    #[must_use]
     pub const fn sub(self, offset: u64) -> Self {
         Self(self.0 - offset)
     }
 
     /// Align up to the given alignment
+    #[must_use]
     pub const fn align_up(self, align: u64) -> Self {
         let mask = align - 1;
         Self((self.0 + mask) & !mask)
     }
 
     /// Align down to the given alignment
+    #[must_use]
     pub const fn align_down(self, align: u64) -> Self {
         let mask = align - 1;
         Self(self.0 & !mask)
@@ -213,22 +217,26 @@ impl VirtualAddress {
     }
 
     /// Add an offset to the address
+    #[must_use]
     pub const fn add(self, offset: u64) -> Self {
         Self(self.0 + offset)
     }
 
     /// Subtract an offset from the address
+    #[must_use]
     pub const fn sub(self, offset: u64) -> Self {
         Self(self.0 - offset)
     }
 
     /// Align up to the given alignment
+    #[must_use]
     pub const fn align_up(self, align: u64) -> Self {
         let mask = align - 1;
         Self((self.0 + mask) & !mask)
     }
 
     /// Align down to the given alignment
+    #[must_use]
     pub const fn align_down(self, align: u64) -> Self {
         let mask = align - 1;
         Self(self.0 & !mask)
@@ -390,7 +398,7 @@ impl Handle {
         self.0
     }
 
-    /// Convert to NonNull if not null
+    /// Convert to `NonNull` if not null
     pub fn as_non_null(self) -> Option<NonNull<core::ffi::c_void>> {
         NonNull::new(self.0)
     }
@@ -430,11 +438,17 @@ impl Status {
 
     /// Warning: Unknown Glyph
     pub const WARN_UNKNOWN_GLYPH: Self = Self(1);
+    /// Warning: Delete Failure
     pub const WARN_DELETE_FAILURE: Self = Self(2);
+    /// Warning: Write Failure
     pub const WARN_WRITE_FAILURE: Self = Self(3);
+    /// Warning: Buffer Too Small
     pub const WARN_BUFFER_TOO_SMALL: Self = Self(4);
+    /// Warning: Stale Data
     pub const WARN_STALE_DATA: Self = Self(5);
+    /// Warning: File System
     pub const WARN_FILE_SYSTEM: Self = Self(6);
+    /// Warning: Reset Required
     pub const WARN_RESET_REQUIRED: Self = Self(7);
 
     /// Error bit mask
@@ -442,37 +456,69 @@ impl Status {
 
     /// Error: Load Error
     pub const LOAD_ERROR: Self = Self(Self::ERROR_BIT | 1);
+    /// Error: Invalid Parameter
     pub const INVALID_PARAMETER: Self = Self(Self::ERROR_BIT | 2);
+    /// Error: Unsupported
     pub const UNSUPPORTED: Self = Self(Self::ERROR_BIT | 3);
+    /// Error: Bad Buffer Size
     pub const BAD_BUFFER_SIZE: Self = Self(Self::ERROR_BIT | 4);
+    /// Error: Buffer Too Small
     pub const BUFFER_TOO_SMALL: Self = Self(Self::ERROR_BIT | 5);
+    /// Error: Not Ready
     pub const NOT_READY: Self = Self(Self::ERROR_BIT | 6);
+    /// Error: Device Error
     pub const DEVICE_ERROR: Self = Self(Self::ERROR_BIT | 7);
+    /// Error: Write Protected
     pub const WRITE_PROTECTED: Self = Self(Self::ERROR_BIT | 8);
+    /// Error: Out Of Resources
     pub const OUT_OF_RESOURCES: Self = Self(Self::ERROR_BIT | 9);
+    /// Error: Volume Corrupted
     pub const VOLUME_CORRUPTED: Self = Self(Self::ERROR_BIT | 10);
+    /// Error: Volume Full
     pub const VOLUME_FULL: Self = Self(Self::ERROR_BIT | 11);
+    /// Error: No Media
     pub const NO_MEDIA: Self = Self(Self::ERROR_BIT | 12);
+    /// Error: Media Changed
     pub const MEDIA_CHANGED: Self = Self(Self::ERROR_BIT | 13);
+    /// Error: Not Found
     pub const NOT_FOUND: Self = Self(Self::ERROR_BIT | 14);
+    /// Error: Access Denied
     pub const ACCESS_DENIED: Self = Self(Self::ERROR_BIT | 15);
+    /// Error: No Response
     pub const NO_RESPONSE: Self = Self(Self::ERROR_BIT | 16);
+    /// Error: No Mapping
     pub const NO_MAPPING: Self = Self(Self::ERROR_BIT | 17);
+    /// Error: Timeout
     pub const TIMEOUT: Self = Self(Self::ERROR_BIT | 18);
+    /// Error: Not Started
     pub const NOT_STARTED: Self = Self(Self::ERROR_BIT | 19);
+    /// Error: Already Started
     pub const ALREADY_STARTED: Self = Self(Self::ERROR_BIT | 20);
+    /// Error: Aborted
     pub const ABORTED: Self = Self(Self::ERROR_BIT | 21);
+    /// Error: ICMP Error
     pub const ICMP_ERROR: Self = Self(Self::ERROR_BIT | 22);
+    /// Error: TFTP Error
     pub const TFTP_ERROR: Self = Self(Self::ERROR_BIT | 23);
+    /// Error: Protocol Error
     pub const PROTOCOL_ERROR: Self = Self(Self::ERROR_BIT | 24);
+    /// Error: Incompatible Version
     pub const INCOMPATIBLE_VERSION: Self = Self(Self::ERROR_BIT | 25);
+    /// Error: Security Violation
     pub const SECURITY_VIOLATION: Self = Self(Self::ERROR_BIT | 26);
+    /// Error: CRC Error
     pub const CRC_ERROR: Self = Self(Self::ERROR_BIT | 27);
+    /// Error: End Of Media
     pub const END_OF_MEDIA: Self = Self(Self::ERROR_BIT | 28);
+    /// Error: End Of File
     pub const END_OF_FILE: Self = Self(Self::ERROR_BIT | 31);
+    /// Error: Invalid Language
     pub const INVALID_LANGUAGE: Self = Self(Self::ERROR_BIT | 32);
+    /// Error: Compromised Data
     pub const COMPROMISED_DATA: Self = Self(Self::ERROR_BIT | 33);
+    /// Error: IP Address Conflict
     pub const IP_ADDRESS_CONFLICT: Self = Self(Self::ERROR_BIT | 34);
+    /// Error: HTTP Error
     pub const HTTP_ERROR: Self = Self(Self::ERROR_BIT | 35);
 
     /// Create a new status code
@@ -577,7 +623,7 @@ impl fmt::Debug for Status {
             Self::HTTP_ERROR => "HTTP_ERROR",
             _ => return write!(f, "Status(0x{:X})", self.0),
         };
-        write!(f, "Status::{}", name)
+        write!(f, "Status::{name}")
     }
 }
 
@@ -703,7 +749,7 @@ impl Guid {
 
 impl fmt::Debug for Guid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Guid({})", self)
+        write!(f, "Guid({self})")
     }
 }
 
@@ -735,323 +781,323 @@ impl fmt::Display for Guid {
 pub mod guids {
     use super::Guid;
 
-    /// EFI_LOADED_IMAGE_PROTOCOL_GUID
+    /// `EFI_LOADED_IMAGE_PROTOCOL_GUID`
     pub const LOADED_IMAGE_PROTOCOL: Guid = Guid::new(0x5B1B_31A1, 0x9562, 0x11D2, [
         0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL_GUID
+    /// `EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL_GUID`
     pub const LOADED_IMAGE_DEVICE_PATH_PROTOCOL: Guid = Guid::new(0xBC62_157E, 0x3E33, 0x4FEC, [
         0x99, 0x20, 0x2D, 0x3B, 0x36, 0xD7, 0x50, 0xDF,
     ]);
 
-    /// EFI_DEVICE_PATH_PROTOCOL_GUID
+    /// `EFI_DEVICE_PATH_PROTOCOL_GUID`
     pub const DEVICE_PATH_PROTOCOL: Guid = Guid::new(0x0957_6E91, 0x6D3F, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_DEVICE_PATH_UTILITIES_PROTOCOL_GUID
+    /// `EFI_DEVICE_PATH_UTILITIES_PROTOCOL_GUID`
     pub const DEVICE_PATH_UTILITIES_PROTOCOL: Guid = Guid::new(0x0379_BE4E, 0xD706, 0x437D, [
         0xB0, 0x37, 0xED, 0xB8, 0x2F, 0xB7, 0x72, 0xA4,
     ]);
 
-    /// EFI_DEVICE_PATH_TO_TEXT_PROTOCOL_GUID
+    /// `EFI_DEVICE_PATH_TO_TEXT_PROTOCOL_GUID`
     pub const DEVICE_PATH_TO_TEXT_PROTOCOL: Guid = Guid::new(0x8B84_3E20, 0x8132, 0x4852, [
         0x90, 0xCC, 0x55, 0x1A, 0x4E, 0x4A, 0x7F, 0x1C,
     ]);
 
-    /// EFI_DEVICE_PATH_FROM_TEXT_PROTOCOL_GUID
+    /// `EFI_DEVICE_PATH_FROM_TEXT_PROTOCOL_GUID`
     pub const DEVICE_PATH_FROM_TEXT_PROTOCOL: Guid = Guid::new(0x05C9_9A21, 0xC70F, 0x4AD2, [
         0x8A, 0x5F, 0x35, 0xDF, 0x33, 0x43, 0xF5, 0x1E,
     ]);
 
-    /// EFI_HASH_PROTOCOL_GUID
+    /// `EFI_HASH_PROTOCOL_GUID`
     pub const HASH_PROTOCOL: Guid = Guid::new(0xC518_4932, 0xDBA5, 0x46DB, [
         0xA5, 0xBA, 0xCC, 0x0B, 0xDA, 0x9C, 0x14, 0x35,
     ]);
 
-    /// EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID
+    /// `EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID`
     pub const SIMPLE_TEXT_INPUT_PROTOCOL: Guid = Guid::new(0x3874_77C1, 0x69C7, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID
+    /// `EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID`
     pub const SIMPLE_TEXT_INPUT_EX_PROTOCOL: Guid = Guid::new(0xDD9E_7534, 0x7762, 0x4698, [
         0x8C, 0x14, 0xF5, 0x85, 0x17, 0xA6, 0x25, 0xAA,
     ]);
 
-    /// EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID
+    /// `EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID`
     pub const SIMPLE_TEXT_OUTPUT_PROTOCOL: Guid = Guid::new(0x3874_77C2, 0x69C7, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID
+    /// `EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID`
     pub const GRAPHICS_OUTPUT_PROTOCOL: Guid = Guid::new(0x9042_A9DE, 0x23DC, 0x4A38, [
         0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A,
     ]);
 
-    /// EFI_EDID_ACTIVE_PROTOCOL_GUID
+    /// `EFI_EDID_ACTIVE_PROTOCOL_GUID`
     pub const EDID_ACTIVE_PROTOCOL: Guid = Guid::new(0xBD8C_1056, 0x9F36, 0x44EC, [
         0x92, 0xA8, 0xA6, 0x33, 0x7F, 0x81, 0x79, 0x86,
     ]);
 
-    /// EFI_EDID_DISCOVERED_PROTOCOL_GUID
+    /// `EFI_EDID_DISCOVERED_PROTOCOL_GUID`
     pub const EDID_DISCOVERED_PROTOCOL: Guid = Guid::new(0x1C0C_34F6, 0xD380, 0x41FA, [
         0xA0, 0x49, 0x8A, 0xD0, 0x6C, 0x1A, 0x66, 0xAA,
     ]);
 
-    /// EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID
+    /// `EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID`
     pub const SIMPLE_FILE_SYSTEM_PROTOCOL: Guid = Guid::new(0x0_964E_5B22, 0x6459, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_FILE_INFO_ID
+    /// `EFI_FILE_INFO_ID`
     pub const FILE_INFO: Guid = Guid::new(0x0957_6E92, 0x6D3F, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_FILE_SYSTEM_INFO_ID
+    /// `EFI_FILE_SYSTEM_INFO_ID`
     pub const FILE_SYSTEM_INFO: Guid = Guid::new(0x0957_6E93, 0x6D3F, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_FILE_SYSTEM_VOLUME_LABEL_ID
+    /// `EFI_FILE_SYSTEM_VOLUME_LABEL_ID`
     pub const FILE_SYSTEM_VOLUME_LABEL: Guid = Guid::new(0xDB47_D7D3, 0xFE81, 0x11D3, [
         0x9A, 0x35, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_BLOCK_IO_PROTOCOL_GUID
+    /// `EFI_BLOCK_IO_PROTOCOL_GUID`
     pub const BLOCK_IO_PROTOCOL: Guid = Guid::new(0x964E_5B21, 0x6459, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_BLOCK_IO2_PROTOCOL_GUID
+    /// `EFI_BLOCK_IO2_PROTOCOL_GUID`
     pub const BLOCK_IO2_PROTOCOL: Guid = Guid::new(0xA77B_2472, 0xE282, 0x4E9F, [
         0xA2, 0x45, 0xC2, 0xC0, 0xE2, 0x7B, 0xBC, 0xC1,
     ]);
 
-    /// EFI_DISK_IO_PROTOCOL_GUID
+    /// `EFI_DISK_IO_PROTOCOL_GUID`
     pub const DISK_IO_PROTOCOL: Guid = Guid::new(0xCE34_5171, 0xBA0B, 0x11D2, [
         0x8E, 0x4F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
-    /// EFI_DISK_IO2_PROTOCOL_GUID
+    /// `EFI_DISK_IO2_PROTOCOL_GUID`
     pub const DISK_IO2_PROTOCOL: Guid = Guid::new(0x151C_8EAE, 0x7F2C, 0x472C, [
         0x9E, 0x54, 0x98, 0x28, 0x19, 0x4F, 0x6A, 0x88,
     ]);
 
-    /// EFI_PARTITION_INFO_PROTOCOL_GUID
+    /// `EFI_PARTITION_INFO_PROTOCOL_GUID`
     pub const PARTITION_INFO_PROTOCOL: Guid = Guid::new(0x8CF2_F62C, 0xBC9B, 0x4821, [
         0x80, 0x8D, 0xEC, 0x9E, 0xC4, 0x21, 0xA1, 0xA0,
     ]);
 
-    /// EFI_PCI_IO_PROTOCOL_GUID
+    /// `EFI_PCI_IO_PROTOCOL_GUID`
     pub const PCI_IO_PROTOCOL: Guid = Guid::new(0x4CF5_B200, 0x68B8, 0x4CA5, [
         0x9E, 0xEC, 0xB2, 0x3E, 0x3F, 0x50, 0x02, 0x9A,
     ]);
 
-    /// EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_GUID
+    /// `EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_GUID`
     pub const PCI_ROOT_BRIDGE_IO_PROTOCOL: Guid = Guid::new(0x2F70_7EBB, 0x4A1A, 0x11D4, [
         0x9A, 0x38, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_SERIAL_IO_PROTOCOL_GUID
+    /// `EFI_SERIAL_IO_PROTOCOL_GUID`
     pub const SERIAL_IO_PROTOCOL: Guid = Guid::new(0xBB25_CF6F, 0xF1D4, 0x11D2, [
         0x9A, 0x0C, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0xFD,
     ]);
 
-    /// EFI_USB_IO_PROTOCOL_GUID
+    /// `EFI_USB_IO_PROTOCOL_GUID`
     pub const USB_IO_PROTOCOL: Guid = Guid::new(0x2B2F_68D6, 0x0CD2, 0x44CF, [
         0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75,
     ]);
 
-    /// EFI_SIMPLE_NETWORK_PROTOCOL_GUID
+    /// `EFI_SIMPLE_NETWORK_PROTOCOL_GUID`
     pub const SIMPLE_NETWORK_PROTOCOL: Guid = Guid::new(0xA198_32B9, 0xAC25, 0x11D3, [
         0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_MANAGED_NETWORK_SERVICE_BINDING_PROTOCOL_GUID
+    /// `EFI_MANAGED_NETWORK_SERVICE_BINDING_PROTOCOL_GUID`
     pub const MANAGED_NETWORK_SERVICE_BINDING_PROTOCOL: Guid =
         Guid::new(0xF36F_F770, 0xA7E1, 0x42CF, [
             0x9E, 0xD2, 0x56, 0xF0, 0xF2, 0x71, 0xF4, 0x4C,
         ]);
 
-    /// EFI_MANAGED_NETWORK_PROTOCOL_GUID
+    /// `EFI_MANAGED_NETWORK_PROTOCOL_GUID`
     pub const MANAGED_NETWORK_PROTOCOL: Guid = Guid::new(0x7AB3_3A91, 0xACE5, 0x4326, [
         0xB5, 0x72, 0xE7, 0xEE, 0x33, 0xD3, 0x9F, 0x16,
     ]);
 
-    /// EFI_ARP_SERVICE_BINDING_PROTOCOL_GUID
+    /// `EFI_ARP_SERVICE_BINDING_PROTOCOL_GUID`
     pub const ARP_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0xF44C_00EE, 0x1F2C, 0x4A00, [
         0xAA, 0x09, 0x1C, 0x9C, 0x4C, 0x85, 0x85, 0x45,
     ]);
 
-    /// EFI_ARP_PROTOCOL_GUID
+    /// `EFI_ARP_PROTOCOL_GUID`
     pub const ARP_PROTOCOL: Guid = Guid::new(0xF4B4_27BB, 0xBA21, 0x4F16, [
         0xBC, 0x4E, 0x43, 0xE4, 0x16, 0xAB, 0x61, 0x9C,
     ]);
 
-    /// EFI_IP4_SERVICE_BINDING_PROTOCOL_GUID
+    /// `EFI_IP4_SERVICE_BINDING_PROTOCOL_GUID`
     pub const IP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0xC517_11E7, 0xB4BF, 0x404A, [
         0xBF, 0xB8, 0x0A, 0x04, 0x8E, 0xF1, 0xFF, 0xE4,
     ]);
 
-    /// EFI_IP4_PROTOCOL_GUID
+    /// `EFI_IP4_PROTOCOL_GUID`
     pub const IP4_PROTOCOL: Guid = Guid::new(0x41D9_4CD2, 0x35B6, 0x455A, [
         0x82, 0x58, 0xD4, 0xE5, 0x13, 0x34, 0xAA, 0xDD,
     ]);
 
-    /// EFI_IP4_CONFIG_PROTOCOL_GUID
+    /// `EFI_IP4_CONFIG_PROTOCOL_GUID`
     pub const IP4_CONFIG_PROTOCOL: Guid = Guid::new(0x3B95_AA31, 0x3793, 0x434B, [
         0x86, 0x67, 0xC8, 0x07, 0x08, 0x92, 0xE0, 0x5E,
     ]);
 
-    /// EFI_IP4_CONFIG2_PROTOCOL_GUID
+    /// `EFI_IP4_CONFIG2_PROTOCOL_GUID`
     pub const IP4_CONFIG2_PROTOCOL: Guid = Guid::new(0x5B44_6ED1, 0xE30B, 0x4FAA, [
         0x87, 0x1A, 0x36, 0x54, 0xEC, 0xA3, 0x60, 0x80,
     ]);
 
-    /// EFI_UDP4_SERVICE_BINDING_PROTOCOL_GUID
+    /// `EFI_UDP4_SERVICE_BINDING_PROTOCOL_GUID`
     pub const UDP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0x83F0_1464, 0x99BD, 0x45E5, [
         0xB3, 0x83, 0xAF, 0x63, 0x05, 0xD8, 0xE9, 0xE6,
     ]);
 
-    /// EFI_UDP4_PROTOCOL_GUID
+    /// `EFI_UDP4_PROTOCOL_GUID`
     pub const UDP4_PROTOCOL: Guid = Guid::new(0x3AD9_DF29, 0x4501, 0x478D, [
         0xB1, 0xF8, 0x7F, 0x7F, 0xE7, 0x0E, 0x50, 0xF3,
     ]);
 
-    /// EFI_TCP4_SERVICE_BINDING_PROTOCOL_GUID
+    /// `EFI_TCP4_SERVICE_BINDING_PROTOCOL_GUID`
     pub const TCP4_SERVICE_BINDING_PROTOCOL: Guid = Guid::new(0x0072_0665, 0x67EB, 0x4A99, [
         0xBA, 0xF7, 0xD3, 0xC3, 0x3A, 0x1C, 0x7C, 0xC9,
     ]);
 
-    /// EFI_TCP4_PROTOCOL_GUID
+    /// `EFI_TCP4_PROTOCOL_GUID`
     pub const TCP4_PROTOCOL: Guid = Guid::new(0x6553_0BC7, 0xA359, 0x410F, [
         0xB0, 0x10, 0x5A, 0xAD, 0xC7, 0xEC, 0x2B, 0x62,
     ]);
 
-    /// EFI_ACPI_TABLE_GUID (ACPI 1.0)
+    /// `EFI_ACPI_TABLE_GUID` (ACPI 1.0)
     pub const ACPI_TABLE: Guid = Guid::new(0xEB9D_2D30, 0x2D88, 0x11D3, [
         0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_ACPI_20_TABLE_GUID (ACPI 2.0+)
+    /// `EFI_ACPI_20_TABLE_GUID` (ACPI 2.0+)
     pub const ACPI_20_TABLE: Guid = Guid::new(0x8868_E871, 0xE4F1, 0x11D3, [
         0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81,
     ]);
 
-    /// SMBIOS_TABLE_GUID
+    /// `SMBIOS_TABLE_GUID`
     pub const SMBIOS_TABLE: Guid = Guid::new(0xEB9D_2D31, 0x2D88, 0x11D3, [
         0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// SMBIOS3_TABLE_GUID
+    /// `SMBIOS3_TABLE_GUID`
     pub const SMBIOS3_TABLE: Guid = Guid::new(0xF2FD_1544, 0x9794, 0x4A2C, [
         0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94,
     ]);
 
-    /// EFI_MPS_TABLE_GUID
+    /// `EFI_MPS_TABLE_GUID`
     pub const MPS_TABLE: Guid = Guid::new(0xEB9D_2D2F, 0x2D88, 0x11D3, [
         0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_DEVICE_TREE_GUID
+    /// `EFI_DEVICE_TREE_GUID`
     pub const DEVICE_TREE: Guid = Guid::new(0xB1B6_21D5, 0xF19C, 0x41A5, [
         0x83, 0x0B, 0xD9, 0x15, 0x2C, 0x69, 0xAA, 0xE0,
     ]);
 
-    /// EFI_GLOBAL_VARIABLE
+    /// `EFI_GLOBAL_VARIABLE`
     pub const GLOBAL_VARIABLE: Guid = Guid::new(0x8BE4_DF61, 0x93CA, 0x11D2, [
         0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
     ]);
 
-    /// EFI_IMAGE_SECURITY_DATABASE_GUID
+    /// `EFI_IMAGE_SECURITY_DATABASE_GUID`
     pub const IMAGE_SECURITY_DATABASE: Guid = Guid::new(0xD719_B2CB, 0x3D3A, 0x4596, [
         0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F,
     ]);
 
-    /// EFI_CERT_SHA256_GUID
+    /// `EFI_CERT_SHA256_GUID`
     pub const CERT_SHA256: Guid = Guid::new(0xC1C4_1626, 0x504C, 0x4092, [
         0xAC, 0xA9, 0x41, 0xF9, 0x36, 0x93, 0x43, 0x28,
     ]);
 
-    /// EFI_CERT_RSA2048_GUID
+    /// `EFI_CERT_RSA2048_GUID`
     pub const CERT_RSA2048: Guid = Guid::new(0x3C57_66E8, 0x269C, 0x4E34, [
         0xAA, 0x14, 0xED, 0x77, 0x6E, 0x85, 0xB3, 0xB6,
     ]);
 
-    /// EFI_CERT_RSA2048_SHA256_GUID
+    /// `EFI_CERT_RSA2048_SHA256_GUID`
     pub const CERT_RSA2048_SHA256: Guid = Guid::new(0xE2B3_6190, 0x879B, 0x4A3D, [
         0xAD, 0x8D, 0xF2, 0xE7, 0xBB, 0xA3, 0x27, 0x84,
     ]);
 
-    /// EFI_CERT_X509_GUID
+    /// `EFI_CERT_X509_GUID`
     pub const CERT_X509: Guid = Guid::new(0xA5C0_59A1, 0x94E4, 0x4AA7, [
         0x87, 0xB5, 0xAB, 0x15, 0x5C, 0x2B, 0xF0, 0x72,
     ]);
 
-    /// EFI_CERT_X509_SHA256_GUID
+    /// `EFI_CERT_X509_SHA256_GUID`
     pub const CERT_X509_SHA256: Guid = Guid::new(0x3BD2_A492, 0x96C0, 0x4079, [
         0xB4, 0x20, 0xFC, 0xF9, 0x8E, 0xF1, 0x03, 0xED,
     ]);
 
-    /// EFI_CERT_TYPE_PKCS7_GUID
+    /// `EFI_CERT_TYPE_PKCS7_GUID`
     pub const CERT_TYPE_PKCS7: Guid = Guid::new(0x4AAF_D29D, 0x68DF, 0x49EE, [
         0x8A, 0xA9, 0x34, 0x7D, 0x37, 0x56, 0x65, 0xA7,
     ]);
 
-    /// EFI_RNG_PROTOCOL_GUID
+    /// `EFI_RNG_PROTOCOL_GUID`
     pub const RNG_PROTOCOL: Guid = Guid::new(0x3152_BCA5, 0xEADE, 0x433D, [
         0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44,
     ]);
 
-    /// EFI_RNG_ALGORITHM_SP800_90_CTR_256_GUID
+    /// `EFI_RNG_ALGORITHM_SP800_90_CTR_256_GUID`
     pub const RNG_ALGORITHM_SP800_90_CTR_256: Guid = Guid::new(0x44F0_DE6E, 0x4D8C, 0x4045, [
         0xA8, 0xC7, 0x4D, 0xD1, 0x68, 0x85, 0x6B, 0x9E,
     ]);
 
-    /// EFI_RNG_ALGORITHM_RAW
+    /// `EFI_RNG_ALGORITHM_RAW`
     pub const RNG_ALGORITHM_RAW: Guid = Guid::new(0xE431_76D7, 0xB6E8, 0x4827, [
         0xB7, 0x84, 0x7F, 0xFD, 0xC4, 0xB6, 0x85, 0x61,
     ]);
 
-    /// EFI_TCG2_PROTOCOL_GUID
+    /// `EFI_TCG2_PROTOCOL_GUID`
     pub const TCG2_PROTOCOL: Guid = Guid::new(0x607F_766C, 0x7455, 0x42BE, [
         0x93, 0x0B, 0xE4, 0xD7, 0x6D, 0xB2, 0x72, 0x0F,
     ]);
 
-    /// EFI_MEMORY_ATTRIBUTE_TABLE_GUID
+    /// `EFI_MEMORY_ATTRIBUTE_TABLE_GUID`
     pub const MEMORY_ATTRIBUTE_TABLE: Guid = Guid::new(0xDCFA_911D, 0x26EB, 0x469F, [
         0xA2, 0x20, 0x38, 0xB7, 0xDC, 0x46, 0x12, 0x20,
     ]);
 
-    /// EFI_CONSOLE_OUT_DEVICE_GUID
+    /// `EFI_CONSOLE_OUT_DEVICE_GUID`
     pub const CONSOLE_OUT_DEVICE: Guid = Guid::new(0xD3B3_6F2C, 0xD551, 0x11D4, [
         0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_CONSOLE_IN_DEVICE_GUID
+    /// `EFI_CONSOLE_IN_DEVICE_GUID`
     pub const CONSOLE_IN_DEVICE: Guid = Guid::new(0xD3B3_6F2B, 0xD551, 0x11D4, [
         0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_STANDARD_ERROR_DEVICE_GUID
+    /// `EFI_STANDARD_ERROR_DEVICE_GUID`
     pub const STANDARD_ERROR_DEVICE: Guid = Guid::new(0xD3B3_6F2D, 0xD551, 0x11D4, [
         0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_HOB_LIST_GUID (Hand-Off Block List)
+    /// `EFI_HOB_LIST_GUID` (Hand-Off Block List)
     pub const HOB_LIST: Guid = Guid::new(0x7739_F24C, 0x93D7, 0x11D4, [
         0x9A, 0x3A, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
     ]);
 
-    /// EFI_MEMORY_TYPE_INFORMATION_GUID
+    /// `EFI_MEMORY_TYPE_INFORMATION_GUID`
     pub const MEMORY_TYPE_INFORMATION: Guid = Guid::new(0x4C19_049F, 0x4137, 0x4DD3, [
         0x9C, 0x10, 0x8B, 0x97, 0xA8, 0x3F, 0xFD, 0xFA,
     ]);
 
-    /// EFI_DEBUG_IMAGE_INFO_TABLE_GUID
+    /// `EFI_DEBUG_IMAGE_INFO_TABLE_GUID`
     pub const DEBUG_IMAGE_INFO_TABLE: Guid = Guid::new(0x4915_2E77, 0x1ADA, 0x4764, [
         0xB7, 0xA2, 0x7A, 0xFE, 0xFE, 0xD9, 0x5E, 0x8B,
     ]);
@@ -1251,13 +1297,13 @@ pub struct TableHeader {
 }
 
 impl TableHeader {
-    /// EFI_SYSTEM_TABLE_SIGNATURE
+    /// `EFI_SYSTEM_TABLE_SIGNATURE`
     pub const SYSTEM_TABLE_SIGNATURE: u64 = 0x5453_5953_2049_4249; // "IBI SYST"
 
-    /// EFI_BOOT_SERVICES_SIGNATURE
+    /// `EFI_BOOT_SERVICES_SIGNATURE`
     pub const BOOT_SERVICES_SIGNATURE: u64 = 0x5652_4553_544F_4F42; // "BOOTSERV"
 
-    /// EFI_RUNTIME_SERVICES_SIGNATURE
+    /// `EFI_RUNTIME_SERVICES_SIGNATURE`
     pub const RUNTIME_SERVICES_SIGNATURE: u64 = 0x5652_4553_544E_5552; // "RUNTSERV"
 
     /// Create a new table header
