@@ -5,7 +5,7 @@
 use core::fmt;
 
 use super::runtime::runtime_services;
-use crate::raw::types::*;
+use crate::raw::types::{Status, Time, TimeCapabilities};
 
 // =============================================================================
 // DATE TIME
@@ -122,29 +122,36 @@ impl DateTime {
     /// Get day of week (0 = Sunday, 6 = Saturday)
     /// Uses Zeller's congruence
     pub fn day_of_week(&self) -> u8 {
-        let mut y = self.year as i32;
-        let mut m = self.month as i32;
+        let mut year_adjusted = i32::from(self.year);
+        let mut month_adjusted = i32::from(self.month);
 
-        if m < 3 {
-            m += 12;
-            y -= 1;
+        if month_adjusted < 3 {
+            month_adjusted += 12;
+            year_adjusted -= 1;
         }
 
-        let q = self.day as i32;
-        let k = y % 100;
-        let j = y / 100;
+        let day_of_month = i32::from(self.day);
+        let year_of_century = year_adjusted % 100;
+        let zero_based_century = year_adjusted / 100;
 
-        let h = (q + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
-        ((h + 6) % 7) as u8
+        let weekday_index = (day_of_month
+            + (13 * (month_adjusted + 1)) / 5
+            + year_of_century
+            + year_of_century / 4
+            + zero_based_century / 4
+            - 2 * zero_based_century)
+            % 7;
+        // Result is always in range 0-6 after modulo operations
+        u8::try_from((weekday_index + 6) % 7).unwrap_or(0)
     }
 
     /// Get day of year (1-366)
     pub fn day_of_year(&self) -> u16 {
-        let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        let mut day: u16 = self.day as u16;
+        let days_in_month = [0u16, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let mut day: u16 = u16::from(self.day);
 
         for m in 1..self.month {
-            day += days_in_month[m as usize] as u16;
+            day += days_in_month[m as usize];
         }
 
         // Add leap day if applicable
@@ -210,26 +217,26 @@ impl DateTime {
         }
 
         // Months
-        let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let days_in_month: [i64; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         for m in 1..self.month {
-            days += days_in_month[m as usize] as i64;
+            days += days_in_month[m as usize];
         }
         if self.month > 2 && self.is_leap_year() {
             days += 1;
         }
 
         // Days
-        days += (self.day - 1) as i64;
+        days += i64::from(self.day - 1);
 
         // Convert to seconds
         let mut seconds = days * 86400;
-        seconds += self.hour as i64 * 3600;
-        seconds += self.minute as i64 * 60;
-        seconds += self.second as i64;
+        seconds += i64::from(self.hour) * 3600;
+        seconds += i64::from(self.minute) * 60;
+        seconds += i64::from(self.second);
 
         // Adjust for timezone
         if self.timezone != TIMEZONE_UNSPECIFIED {
-            seconds -= self.timezone as i64 * 60;
+            seconds -= i64::from(self.timezone) * 60;
         }
 
         seconds
@@ -273,11 +280,11 @@ impl DateTime {
             month += 1;
         }
 
-        let day = (day_of_year + 1) as u8;
-        let hour = (remaining / 3600) as u8;
+        let day = u8::try_from(day_of_year + 1).unwrap_or(1);
+        let hour = u8::try_from(remaining / 3600).unwrap_or(0);
         remaining %= 3600;
-        let minute = (remaining / 60) as u8;
-        let second = (remaining % 60) as u8;
+        let minute = u8::try_from(remaining / 60).unwrap_or(0);
+        let second = u8::try_from(remaining % 60).unwrap_or(0);
 
         Self {
             year,
@@ -329,7 +336,6 @@ impl DaylightSaving {
     /// Convert from UEFI daylight value
     pub fn from_uefi(value: u8) -> Self {
         match value & 0x03 {
-            0 => Self::None,
             1 => Self::AdjustDaylight,
             2 => Self::InDaylight,
             3 => Self::AdjustDaylightAndInDaylight,
@@ -384,13 +390,13 @@ impl ClockCapabilities {
         if self.resolution == 0 {
             0
         } else {
-            1_000_000_000 / self.resolution as u64
+            1_000_000_000 / u64::from(self.resolution)
         }
     }
 
     /// Get accuracy percentage
-    pub fn accuracy_percent(&self) -> f32 {
-        self.accuracy as f32 / 10_000.0
+    pub fn accuracy_percent(&self) -> f64 {
+        f64::from(self.accuracy) / 10_000.0
     }
 }
 
@@ -523,6 +529,7 @@ impl Duration {
     }
 
     /// Saturating add
+    #[must_use]
     pub const fn saturating_add(self, other: Self) -> Self {
         Self {
             nanos: self.nanos.saturating_add(other.nanos),
@@ -530,6 +537,7 @@ impl Duration {
     }
 
     /// Saturating sub
+    #[must_use]
     pub const fn saturating_sub(self, other: Self) -> Self {
         Self {
             nanos: self.nanos.saturating_sub(other.nanos),
@@ -568,13 +576,15 @@ impl fmt::Display for Duration {
         let nanos = self.subsec_nanos();
 
         if secs > 0 {
-            write!(f, "{}.{:09}s", secs, nanos)
+            write!(f, "{secs}.{nanos:09}s")
         } else if nanos >= 1_000_000 {
-            write!(f, "{}ms", nanos / 1_000_000)
+            let ms = nanos / 1_000_000;
+            write!(f, "{ms}ms")
         } else if nanos >= 1_000 {
-            write!(f, "{}µs", nanos / 1_000)
+            let us = nanos / 1_000;
+            write!(f, "{us}µs")
         } else {
-            write!(f, "{}ns", nanos)
+            write!(f, "{nanos}ns")
         }
     }
 }
@@ -602,7 +612,7 @@ impl Stopwatch {
         let start_ts = self.start.to_unix_timestamp();
         let now_ts = now.to_unix_timestamp();
 
-        let diff_secs = (now_ts - start_ts).max(0) as u64;
+        let diff_secs = u64::try_from((now_ts - start_ts).max(0)).unwrap_or(0);
         Ok(Duration::from_secs(diff_secs))
     }
 
