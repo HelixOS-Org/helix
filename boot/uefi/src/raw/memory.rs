@@ -3,8 +3,6 @@
 //! This module defines the low-level memory structures used by UEFI,
 //! including memory types, descriptors, and attributes.
 
-#![allow(clippy::unreadable_literal)]
-
 extern crate alloc;
 use alloc::vec::Vec;
 use core::fmt;
@@ -27,9 +25,9 @@ pub enum MemoryType {
     LoaderCode          = 1,
     /// Loader data
     LoaderData          = 2,
-    /// Boot services code (reclaimable after ExitBootServices)
+    /// Boot services code (reclaimable after `ExitBootServices`)
     BootServicesCode    = 3,
-    /// Boot services data (reclaimable after ExitBootServices)
+    /// Boot services data (reclaimable after `ExitBootServices`)
     BootServicesData    = 4,
     /// Runtime services code (must be preserved)
     RuntimeServicesCode = 5,
@@ -56,12 +54,12 @@ pub enum MemoryType {
 }
 
 impl MemoryType {
-    /// Alias for ReservedMemory (backwards compatibility)
-    pub const ReservedMemoryType: Self = Self::ReservedMemory;
-    /// Alias for AcpiNvsMemory (backwards compatibility)
-    pub const AcpiMemoryNvs: Self = Self::AcpiNvsMemory;
+    /// Alias for `ReservedMemory` (backwards compatibility)
+    pub const RESERVED_MEMORY_TYPE: Self = Self::ReservedMemory;
+    /// Alias for `AcpiNvsMemory` (backwards compatibility)
+    pub const ACPI_MEMORY_NVS: Self = Self::AcpiNvsMemory;
 
-    /// Check if this memory type is usable after ExitBootServices
+    /// Check if this memory type is usable after `ExitBootServices`
     pub const fn is_usable_after_exit(self) -> bool {
         matches!(
             self,
@@ -233,16 +231,19 @@ impl MemoryAttribute {
     }
 
     /// Combine with another attribute
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
     /// Intersect with another attribute
+    #[must_use]
     pub const fn intersection(self, other: Self) -> Self {
         Self(self.0 & other.0)
     }
 
     /// Remove flags
+    #[must_use]
     pub const fn difference(self, other: Self) -> Self {
         Self(self.0 & !other.0)
     }
@@ -268,7 +269,7 @@ impl MemoryAttribute {
     }
 
     /// Get cache type name
-    pub fn cache_type(&self) -> &'static str {
+    pub const fn cache_type(&self) -> &'static str {
         if self.contains(Self::UC) || self.contains(Self::UCE) {
             "UC"
         } else if self.contains(Self::WC) {
@@ -382,7 +383,7 @@ pub struct MemoryDescriptor {
     pub memory_type: u32,
     /// Physical address of the first byte
     pub physical_start: PhysicalAddress,
-    /// Virtual address of the first byte (after SetVirtualAddressMap)
+    /// Virtual address of the first byte (after `SetVirtualAddressMap`)
     pub virtual_start: VirtualAddress,
     /// Number of 4KB pages in the region
     pub number_of_pages: u64,
@@ -411,7 +412,7 @@ impl MemoryDescriptor {
     }
 
     /// Get the memory type
-    pub fn get_type(&self) -> Option<MemoryType> {
+    pub const fn get_type(&self) -> Option<MemoryType> {
         MemoryType::from_u32(self.memory_type)
     }
 
@@ -437,14 +438,14 @@ impl MemoryDescriptor {
             && other.physical_start.as_u64() < self.physical_end().as_u64()
     }
 
-    /// Check if this memory is usable after ExitBootServices
+    /// Check if this memory is usable after `ExitBootServices`
     pub fn is_usable(&self) -> bool {
-        self.get_type().map_or(false, |t| t.is_usable_after_exit())
+        self.get_type().is_some_and(MemoryType::is_usable_after_exit)
     }
 
     /// Check if this is conventional memory
     pub fn is_conventional(&self) -> bool {
-        self.get_type().map_or(false, |t| t.is_conventional())
+        self.get_type().is_some_and(MemoryType::is_conventional)
     }
 
     /// Check if this memory requires runtime mapping
@@ -455,7 +456,7 @@ impl MemoryDescriptor {
 
 impl fmt::Debug for MemoryDescriptor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let type_name = self.get_type().map(|t| t.name()).unwrap_or("Unknown");
+        let type_name = self.get_type().map_or("Unknown", MemoryType::name);
 
         f.debug_struct("MemoryDescriptor")
             .field("type", &type_name)
@@ -464,13 +465,13 @@ impl fmt::Debug for MemoryDescriptor {
             .field("pages", &self.number_of_pages)
             .field("size", &format_args!("0x{:X}", self.size()))
             .field("attribute", &self.attribute)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl fmt::Display for MemoryDescriptor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let type_name = self.get_type().map(|t| t.name()).unwrap_or("Unknown");
+        let type_name = self.get_type().map_or("Unknown", MemoryType::name);
 
         write!(
             f,
@@ -488,7 +489,7 @@ impl fmt::Display for MemoryDescriptor {
 // MEMORY MAP
 // =============================================================================
 
-/// Memory map key for ExitBootServices
+/// Memory map key for `ExitBootServices`
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct MemoryMapKey(pub usize);
@@ -513,12 +514,12 @@ pub struct MemoryMapIter<'a> {
     _marker: core::marker::PhantomData<&'a MemoryDescriptor>,
 }
 
-impl<'a> MemoryMapIter<'a> {
+impl MemoryMapIter<'_> {
     /// Create a new memory map iterator
     ///
     /// # Safety
     /// The caller must ensure the pointer and size are valid.
-    pub unsafe fn new(ptr: *const u8, size: usize, descriptor_size: usize) -> Self {
+    pub const unsafe fn new(ptr: *const u8, size: usize, descriptor_size: usize) -> Self {
         Self {
             ptr,
             end: ptr.add(size),
@@ -542,7 +543,7 @@ impl<'a> Iterator for MemoryMapIter<'a> {
             return None;
         }
 
-        let descriptor = unsafe { &*(self.ptr as *const MemoryDescriptor) };
+        let descriptor = unsafe { &*self.ptr.cast::<MemoryDescriptor>() };
         self.ptr = unsafe { self.ptr.add(self.descriptor_size) };
 
         Some(descriptor)
@@ -570,7 +571,7 @@ impl MemoryMap {
     ///
     /// # Safety
     /// The buffer must be valid and contain a valid memory map.
-    pub unsafe fn new(
+    pub const unsafe fn new(
         buffer: *mut u8,
         buffer_size: usize,
         map_size: usize,
@@ -589,22 +590,22 @@ impl MemoryMap {
     }
 
     /// Get the memory map key
-    pub fn key(&self) -> MemoryMapKey {
+    pub const fn key(&self) -> MemoryMapKey {
         self.key
     }
 
     /// Get the descriptor size
-    pub fn descriptor_size(&self) -> usize {
+    pub const fn descriptor_size(&self) -> usize {
         self.descriptor_size
     }
 
     /// Get the descriptor version
-    pub fn descriptor_version(&self) -> u32 {
+    pub const fn descriptor_version(&self) -> u32 {
         self.descriptor_version
     }
 
     /// Get the number of entries
-    pub fn entry_count(&self) -> usize {
+    pub const fn entry_count(&self) -> usize {
         self.map_size / self.descriptor_size
     }
 
@@ -628,7 +629,7 @@ impl MemoryMap {
     pub fn total_usable_memory(&self) -> u64 {
         self.iter()
             .filter(|d| d.is_usable())
-            .map(|d| d.size())
+            .map(MemoryDescriptor::size)
             .sum()
     }
 
@@ -636,7 +637,7 @@ impl MemoryMap {
     pub fn total_conventional_memory(&self) -> u64 {
         self.iter()
             .filter(|d| d.is_conventional())
-            .map(|d| d.size())
+            .map(MemoryDescriptor::size)
             .sum()
     }
 
@@ -661,7 +662,7 @@ impl MemoryMap {
 
     /// Find a suitable region for allocation
     pub fn find_suitable_region(&self, size: u64, alignment: u64) -> Option<PhysicalAddress> {
-        let pages_needed = (size + MemoryDescriptor::PAGE_SIZE - 1) / MemoryDescriptor::PAGE_SIZE;
+        let pages_needed = size.div_ceil(MemoryDescriptor::PAGE_SIZE);
 
         for desc in self.iter() {
             if !desc.is_conventional() {
@@ -700,7 +701,7 @@ pub struct MemoryMapIterMut<'a> {
     _marker: core::marker::PhantomData<&'a mut MemoryDescriptor>,
 }
 
-impl<'a> MemoryMapIterMut<'a> {
+impl MemoryMapIterMut<'_> {
     /// Create a new mutable memory map iterator
     ///
     /// # Safety
@@ -723,10 +724,28 @@ impl<'a> Iterator for MemoryMapIterMut<'a> {
             return None;
         }
 
-        let descriptor = unsafe { &mut *(self.ptr as *mut MemoryDescriptor) };
+        let descriptor = unsafe { &mut *self.ptr.cast::<MemoryDescriptor>() };
         self.ptr = unsafe { self.ptr.add(self.descriptor_size) };
 
         Some(descriptor)
+    }
+}
+
+impl<'a> IntoIterator for &'a MemoryMap {
+    type Item = &'a MemoryDescriptor;
+    type IntoIter = MemoryMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut MemoryMap {
+    type Item = &'a mut MemoryDescriptor;
+    type IntoIter = MemoryMapIterMut<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
     }
 }
 
@@ -739,7 +758,7 @@ impl<'a> Iterator for MemoryMapIterMut<'a> {
 pub struct MemoryStats {
     /// Total physical memory
     pub total_physical: u64,
-    /// Total usable memory (after ExitBootServices)
+    /// Total usable memory (after `ExitBootServices`)
     pub total_usable: u64,
     /// Total conventional memory
     pub total_conventional: u64,
