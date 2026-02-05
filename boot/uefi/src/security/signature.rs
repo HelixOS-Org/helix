@@ -874,11 +874,11 @@ fn parse_signer_info(data: &[u8]) -> Result<SignerInfo, SignatureError> {
     offset += consumed;
 
     // Signature
-    let (tag, sig_data, _) = parse_der_element(&data[offset..])?;
+    let (tag, signature_data, _) = parse_der_element(&data[offset..])?;
     if tag != 0x04 {
         return Err(SignatureError::InvalidSignature);
     }
-    let signature = sig_data.to_vec();
+    let signature = signature_data.to_vec();
 
     Ok(SignerInfo {
         version,
