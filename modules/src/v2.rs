@@ -340,7 +340,7 @@ use crate::{Module, ModuleContext, ModuleDependency, ModuleMetadata};
 /// Adapter to use ModuleTrait with the old Module interface
 pub struct ModuleAdapter<T: ModuleTrait> {
     inner: T,
-    metadata_cache: Option<ModuleMetadata>,
+    _metadata_cache: Option<ModuleMetadata>,
 }
 
 impl<T: ModuleTrait> ModuleAdapter<T> {
@@ -348,7 +348,7 @@ impl<T: ModuleTrait> ModuleAdapter<T> {
     pub fn new(module: T) -> Self {
         Self {
             inner: module,
-            metadata_cache: None,
+            _metadata_cache: None,
         }
     }
 
@@ -362,7 +362,7 @@ impl<T: ModuleTrait> ModuleAdapter<T> {
         &mut self.inner
     }
 
-    fn build_metadata(&self) -> ModuleMetadata {
+    fn _build_metadata(&self) -> ModuleMetadata {
         let info = self.inner.info();
         ModuleMetadata {
             id: ModuleId::new(),
