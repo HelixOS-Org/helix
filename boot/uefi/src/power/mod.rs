@@ -846,12 +846,12 @@ impl SratMemoryAffinity {
 
     /// Get base address
     pub const fn base_address(&self) -> u64 {
-        (self.base_address_high as u64) << 32 | self.base_address_low as u64
+        ((self.base_address_high as u64) << 32) | self.base_address_low as u64
     }
 
     /// Get length
     pub const fn length(&self) -> u64 {
-        (self.length_high as u64) << 32 | self.length_low as u64
+        ((self.length_high as u64) << 32) | self.length_low as u64
     }
 
     /// Check if enabled
