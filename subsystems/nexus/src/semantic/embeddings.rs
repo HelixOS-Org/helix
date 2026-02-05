@@ -4,14 +4,14 @@
 //! Supports various encoding strategies and embedding operations.
 
 #![allow(dead_code)]
+#![allow(clippy::needless_range_loop)]
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::math::{F32Ext, F64Ext};
+use crate::math::F32Ext;
 
 // ============================================================================
 // Core Types
