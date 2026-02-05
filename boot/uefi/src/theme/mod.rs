@@ -167,41 +167,63 @@ impl fmt::Display for Color {
 pub mod colors {
     use super::Color;
 
-    // Basic colors
+    /// Black color (0, 0, 0)
     pub const BLACK: Color = Color::new(0, 0, 0);
+    /// White color (255, 255, 255)
     pub const WHITE: Color = Color::new(255, 255, 255);
+    /// Red color (255, 0, 0)
     pub const RED: Color = Color::new(255, 0, 0);
+    /// Green color (0, 255, 0)
     pub const GREEN: Color = Color::new(0, 255, 0);
+    /// Blue color (0, 0, 255)
     pub const BLUE: Color = Color::new(0, 0, 255);
+    /// Yellow color (255, 255, 0)
     pub const YELLOW: Color = Color::new(255, 255, 0);
+    /// Cyan color (0, 255, 255)
     pub const CYAN: Color = Color::new(0, 255, 255);
+    /// Magenta color (255, 0, 255)
     pub const MAGENTA: Color = Color::new(255, 0, 255);
 
-    // Grays
+    /// Gray 900 - darkest gray
     pub const GRAY_900: Color = Color::new(17, 24, 39);
+    /// Gray 800
     pub const GRAY_800: Color = Color::new(31, 41, 55);
+    /// Gray 700
     pub const GRAY_700: Color = Color::new(55, 65, 81);
+    /// Gray 600
     pub const GRAY_600: Color = Color::new(75, 85, 99);
+    /// Gray 500 - medium gray
     pub const GRAY_500: Color = Color::new(107, 114, 128);
+    /// Gray 400
     pub const GRAY_400: Color = Color::new(156, 163, 175);
+    /// Gray 300
     pub const GRAY_300: Color = Color::new(209, 213, 219);
+    /// Gray 200
     pub const GRAY_200: Color = Color::new(229, 231, 235);
+    /// Gray 100
     pub const GRAY_100: Color = Color::new(243, 244, 246);
+    /// Gray 50 - lightest gray
     pub const GRAY_50: Color = Color::new(249, 250, 251);
 
-    // Status colors
+    /// Success status color (green)
     pub const SUCCESS: Color = Color::new(34, 197, 94);
+    /// Warning status color (yellow/amber)
     pub const WARNING: Color = Color::new(234, 179, 8);
+    /// Error status color (red)
     pub const ERROR: Color = Color::new(239, 68, 68);
+    /// Info status color (blue)
     pub const INFO: Color = Color::new(59, 130, 246);
 
-    // Brand colors
+    /// Primary brand color (blue)
     pub const PRIMARY: Color = Color::new(59, 130, 246);
+    /// Secondary brand color (gray)
     pub const SECONDARY: Color = Color::new(107, 114, 128);
+    /// Accent brand color (purple)
     pub const ACCENT: Color = Color::new(139, 92, 246);
 
-    // Transparent
+    /// Fully transparent color
     pub const TRANSPARENT: Color = Color::with_alpha(0, 0, 0, 0);
+    /// Semi-transparent black (50% opacity)
     pub const SEMI_TRANSPARENT: Color = Color::with_alpha(0, 0, 0, 128);
 }
 
