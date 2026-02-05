@@ -173,10 +173,11 @@ impl RegionManager {
             let start = region.base.0.max(min_address.0);
             let aligned_start = (start + alignment - 1) & !(alignment - 1);
 
-            if aligned_start < region_end && region_end - aligned_start >= size {
-                if !self.overlaps_reserved(PhysicalAddress(aligned_start), size) {
-                    return Some(PhysicalAddress(aligned_start));
-                }
+            if aligned_start < region_end
+                && region_end - aligned_start >= size
+                && !self.overlaps_reserved(PhysicalAddress(aligned_start), size)
+            {
+                return Some(PhysicalAddress(aligned_start));
             }
         }
         None
@@ -489,7 +490,7 @@ impl RegionAttributes {
             read_only: (attr & 0x20000) != 0,
             specific_purpose: (attr & 0x40000) != 0,
             crypto: (attr & 0x80000) != 0,
-            runtime: (attr & 0x8000000000000000) != 0,
+            runtime: (attr & 0x8000_0000_0000_0000) != 0,
         }
     }
 
@@ -536,7 +537,7 @@ impl RegionAttributes {
             attr |= 0x80000;
         }
         if self.runtime {
-            attr |= 0x8000000000000000;
+            attr |= 0x8000_0000_0000_0000;
         }
         attr
     }
