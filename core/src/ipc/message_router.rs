@@ -244,7 +244,7 @@ pub type MessageHandler = Box<dyn Fn(&Request) -> Response + Send + Sync>;
 /// Module registration in the router
 struct RegisteredModule {
     /// Module ID
-    id: u64,
+    _id: u64,
     /// Module name
     name: String,
     /// Message handler
@@ -300,7 +300,7 @@ impl MessageRouter {
 
         names.insert(name.clone(), id);
         modules.insert(id, RegisteredModule {
-            id,
+            _id: id,
             name,
             handler,
             mailbox: ModuleMailbox::new(self.default_mailbox_size),
