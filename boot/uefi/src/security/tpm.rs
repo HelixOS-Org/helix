@@ -511,6 +511,7 @@ pub struct TcgPcrEvent2 {
 
 impl TcgPcrEvent2 {
     /// Create new event
+    #[must_use]
     pub fn new(pcr_index: u32, event_type: u32, data: &[u8]) -> Self {
         let mut digests = TpmlDigestValues::new();
 
@@ -528,6 +529,7 @@ impl TcgPcrEvent2 {
     }
 
     /// Create with multiple hash algorithms
+    #[must_use]
     pub fn new_multi_hash(
         pcr_index: u32,
         event_type: u32,
@@ -564,6 +566,7 @@ impl TcgPcrEvent2 {
     }
 
     /// Serialize to bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(&self.pcr_index.to_le_bytes());
@@ -592,6 +595,7 @@ pub struct TcgEfiSpecIdEvent {
 
 impl TcgEfiSpecIdEvent {
     /// Create for TCG2 event log
+    #[must_use]
     pub fn new_tcg2(algorithms: &[(u16, u16)]) -> Self {
         Self {
             signature: *b"Spec ID Event03\0",
@@ -608,6 +612,7 @@ impl TcgEfiSpecIdEvent {
     }
 
     /// Serialize to bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(&self.signature);
@@ -643,6 +648,7 @@ pub struct Tpm2Command {
 
 impl Tpm2Command {
     /// Create new command
+    #[must_use]
     pub fn new(command_code: u32) -> Self {
         Self {
             tag: 0x8001, // TPM_ST_NO_SESSIONS
@@ -652,6 +658,7 @@ impl Tpm2Command {
     }
 
     /// Create command with sessions
+    #[must_use]
     pub fn new_with_sessions(command_code: u32) -> Self {
         Self {
             tag: 0x8002, // TPM_ST_SESSIONS
@@ -692,6 +699,7 @@ impl Tpm2Command {
     }
 
     /// Build command
+    #[must_use]
     pub fn build(&self) -> Vec<u8> {
         let size = 10 + self.data.len() as u32;
 
@@ -722,26 +730,31 @@ impl<'a> Tpm2Response<'a> {
     }
 
     /// Get tag
+    #[must_use]
     pub fn tag(&self) -> u16 {
         u16::from_be_bytes([self.data[0], self.data[1]])
     }
 
     /// Get size
+    #[must_use]
     pub fn size(&self) -> u32 {
         u32::from_be_bytes([self.data[2], self.data[3], self.data[4], self.data[5]])
     }
 
     /// Get response code
+    #[must_use]
     pub fn response_code(&self) -> u32 {
         u32::from_be_bytes([self.data[6], self.data[7], self.data[8], self.data[9]])
     }
 
     /// Check if successful
+    #[must_use]
     pub fn is_success(&self) -> bool {
         self.response_code() == response::TPM_RC_SUCCESS
     }
 
     /// Get payload
+    #[must_use]
     pub fn payload(&self) -> &[u8] {
         &self.data[10..]
     }
@@ -814,6 +827,7 @@ pub struct PcrBank {
 
 impl PcrBank {
     /// Create new bank
+    #[must_use]
     pub fn new(algorithm: u16, num_pcrs: usize) -> Self {
         let digest_size = TpmtHa::digest_size(algorithm);
         let mut values = Vec::with_capacity(num_pcrs);
@@ -850,6 +864,7 @@ impl PcrBank {
     }
 
     /// Get PCR value
+    #[must_use]
     pub fn get(&self, pcr: u32) -> Option<&[u8]> {
         self.values.get(pcr as usize).map(|v| v.as_slice())
     }
@@ -866,6 +881,7 @@ pub struct EventLog {
 
 impl EventLog {
     /// Create new event log
+    #[must_use]
     pub fn new(algorithms: &[(u16, u16)]) -> Self {
         Self {
             events: Vec::new(),
@@ -879,16 +895,19 @@ impl EventLog {
     }
 
     /// Get events
+    #[must_use]
     pub fn events(&self) -> &[TcgPcrEvent2] {
         &self.events
     }
 
     /// Get events for PCR
+    #[must_use]
     pub fn events_for_pcr(&self, pcr: u32) -> Vec<&TcgPcrEvent2> {
         self.events.iter().filter(|e| e.pcr_index == pcr).collect()
     }
 
     /// Serialize header
+    #[must_use]
     pub fn serialize_header(&self) -> Vec<u8> {
         let spec_id = TcgEfiSpecIdEvent::new_tcg2(&self.algorithms);
         let header_data = spec_id.to_bytes();
@@ -905,6 +924,7 @@ impl EventLog {
     }
 
     /// Serialize full log
+    #[must_use]
     pub fn serialize(&self) -> Vec<u8> {
         let mut result = self.serialize_header();
 
@@ -935,6 +955,7 @@ pub struct MeasuredBoot {
 
 impl MeasuredBoot {
     /// Create new measured boot context
+    #[must_use]
     pub fn new(algorithms: &[u16], num_pcrs: usize) -> Self {
         let mut banks = Vec::new();
         let mut alg_sizes = Vec::new();
@@ -955,6 +976,7 @@ impl MeasuredBoot {
     }
 
     /// Create with SHA-256 only
+    #[must_use]
     pub fn new_sha256(num_pcrs: usize) -> Self {
         Self::new(&[algorithm::TPM_ALG_SHA256], num_pcrs)
     }
@@ -1089,6 +1111,7 @@ impl MeasuredBoot {
     }
 
     /// Get PCR value
+    #[must_use]
     pub fn get_pcr(&self, algorithm: u16, pcr: u32) -> Option<&[u8]> {
         for bank in &self.banks {
             if bank.algorithm == algorithm {
@@ -1099,11 +1122,13 @@ impl MeasuredBoot {
     }
 
     /// Get event log
+    #[must_use]
     pub fn event_log(&self) -> &EventLog {
         &self.event_log
     }
 
     /// Get serialized event log
+    #[must_use]
     pub fn get_event_log_bytes(&self) -> Vec<u8> {
         self.event_log.serialize()
     }
@@ -1142,7 +1167,8 @@ pub enum TpmError {
 
 impl TpmError {
     /// Create from response code
-    pub fn from_response_code(code: u32) -> Option<Self> {
+    #[must_use]
+    pub const fn from_response_code(code: u32) -> Option<Self> {
         if code == response::TPM_RC_SUCCESS {
             None
         } else {
