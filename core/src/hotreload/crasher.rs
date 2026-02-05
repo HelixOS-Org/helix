@@ -36,7 +36,7 @@ impl ModuleState for CrasherState {
 /// A module that crashes after a certain number of operations
 pub struct CrasherModule {
     /// Name of this instance
-    name: String,
+    _name: String,
     /// Crash after this many operations
     crash_threshold: u32,
     /// Current operation count
@@ -51,7 +51,7 @@ impl CrasherModule {
     /// Create a new crasher that will crash after `threshold` operations
     pub fn new(threshold: u32) -> Self {
         Self {
-            name: String::from("CrasherModule"),
+            _name: String::from("CrasherModule"),
             crash_threshold: threshold,
             operations: AtomicU32::new(0),
             crashes: AtomicU32::new(0),
