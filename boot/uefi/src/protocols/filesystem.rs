@@ -876,33 +876,6 @@ fn read_ucs2_from_bytes(bytes: &[u8]) -> String {
     s
 }
 
-/// Convert UCS-2 to string from aligned buffer pointer
-/// Uses `read_unaligned` for safety when alignment is uncertain
-fn from_ucs2_aligned(ptr: *const u16) -> String {
-    let mut s = String::new();
-    let mut i = 0;
-
-    unsafe {
-        loop {
-            let c = core::ptr::read_unaligned(ptr.add(i));
-            if c == 0 {
-                break;
-            }
-            if let Some(ch) = char::from_u32(u32::from(c)) {
-                s.push(ch);
-            }
-            i += 1;
-
-            // Safety limit
-            if i > 1024 {
-                break;
-            }
-        }
-    }
-
-    s
-}
-
 /// Simple pattern matching
 fn matches_pattern(name: &str, pattern: &str) -> bool {
     if pattern == "*" {
