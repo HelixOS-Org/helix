@@ -139,7 +139,7 @@ pub enum DisplaySubclass {
     Vga,
     /// XGA
     Xga,
-    /// 3D controller
+    /// `3D` controller
     Controller3d,
     /// Other
     Other,
@@ -172,119 +172,209 @@ pub struct PciDeviceId {
 
 /// Well-known vendor IDs
 pub mod vendor_id {
+    /// Intel vendor ID
     pub const INTEL: u16 = 0x8086;
+    /// AMD vendor ID
     pub const AMD: u16 = 0x1022;
+    /// NVIDIA vendor ID
     pub const NVIDIA: u16 = 0x10DE;
+    /// Qualcomm vendor ID
     pub const QUALCOMM: u16 = 0x17CB;
+    /// Broadcom vendor ID
     pub const BROADCOM: u16 = 0x14E4;
+    /// Realtek vendor ID
     pub const REALTEK: u16 = 0x10EC;
+    /// Marvell vendor ID
     pub const MARVELL: u16 = 0x1B4B;
+    /// Samsung vendor ID
     pub const SAMSUNG: u16 = 0x144D;
+    /// SanDisk vendor ID
     pub const SANDISK: u16 = 0x15B7;
+    /// Western Digital vendor ID
     pub const WESTERN_DIGITAL: u16 = 0x1B96;
+    /// Seagate vendor ID
     pub const SEAGATE: u16 = 0x1BB1;
+    /// Micron vendor ID
     pub const MICRON: u16 = 0x1344;
+    /// Toshiba vendor ID
     pub const TOSHIBA: u16 = 0x1179;
+    /// SK Hynix vendor ID
     pub const SK_HYNIX: u16 = 0x1C5C;
+    /// Dell vendor ID
     pub const DELL: u16 = 0x1028;
+    /// HP vendor ID
     pub const HP: u16 = 0x103C;
+    /// Lenovo vendor ID
     pub const LENOVO: u16 = 0x17AA;
+    /// ASUS vendor ID
     pub const ASUS: u16 = 0x1043;
+    /// MSI vendor ID
     pub const MSI: u16 = 0x1462;
+    /// Gigabyte vendor ID
     pub const GIGABYTE: u16 = 0x1458;
+    /// VMware vendor ID
     pub const VMWARE: u16 = 0x15AD;
+    /// QEMU vendor ID
     pub const QEMU: u16 = 0x1B36;
+    /// VirtIO vendor ID
     pub const VIRTIO: u16 = 0x1AF4;
+    /// Red Hat vendor ID
     pub const RED_HAT: u16 = 0x1B36;
+    /// Amazon vendor ID
     pub const AMAZON: u16 = 0x1D0F;
+    /// Microsoft vendor ID
     pub const MICROSOFT: u16 = 0x1414;
+    /// Apple vendor ID
     pub const APPLE: u16 = 0x106B;
 }
 
 /// PCI class codes
 pub mod pci_class {
+    /// Unclassified device
     pub const UNCLASSIFIED: u8 = 0x00;
+    /// Mass storage controller
     pub const MASS_STORAGE: u8 = 0x01;
+    /// Network controller
     pub const NETWORK: u8 = 0x02;
+    /// Display controller
     pub const DISPLAY: u8 = 0x03;
+    /// Multimedia controller
     pub const MULTIMEDIA: u8 = 0x04;
+    /// Memory controller
     pub const MEMORY: u8 = 0x05;
+    /// Bridge device
     pub const BRIDGE: u8 = 0x06;
+    /// Simple communication controller
     pub const SIMPLE_COMM: u8 = 0x07;
+    /// Base system peripheral
     pub const BASE_PERIPHERAL: u8 = 0x08;
+    /// Input device controller
     pub const INPUT: u8 = 0x09;
+    /// Docking station
     pub const DOCKING: u8 = 0x0A;
+    /// Processor
     pub const PROCESSOR: u8 = 0x0B;
+    /// Serial bus controller
     pub const SERIAL_BUS: u8 = 0x0C;
+    /// Wireless controller
     pub const WIRELESS: u8 = 0x0D;
+    /// Intelligent controller
     pub const INTELLIGENT_IO: u8 = 0x0E;
+    /// Satellite communication controller
     pub const SATELLITE: u8 = 0x0F;
+    /// Encryption controller
     pub const ENCRYPTION: u8 = 0x10;
+    /// Signal processing controller
     pub const SIGNAL_PROCESSING: u8 = 0x11;
+    /// Processing accelerator
     pub const PROCESSING_ACCEL: u8 = 0x12;
+    /// Non-essential instrumentation
     pub const NON_ESSENTIAL: u8 = 0x13;
+    /// Coprocessor
     pub const COPROCESSOR: u8 = 0x40;
+    /// Unassigned class
     pub const UNASSIGNED: u8 = 0xFF;
 }
 
 /// PCI subclass codes for mass storage
 pub mod pci_storage_subclass {
+    /// SCSI bus controller
     pub const SCSI: u8 = 0x00;
+    /// IDE controller
     pub const IDE: u8 = 0x01;
+    /// Floppy disk controller
     pub const FLOPPY: u8 = 0x02;
+    /// IPI bus controller
     pub const IPI: u8 = 0x03;
+    /// RAID controller
     pub const RAID: u8 = 0x04;
+    /// ATA controller
     pub const ATA: u8 = 0x05;
+    /// SATA controller
     pub const SATA: u8 = 0x06;
+    /// SAS controller
     pub const SAS: u8 = 0x07;
+    /// NVMe controller
     pub const NVME: u8 = 0x08;
+    /// UFS controller
     pub const UFS: u8 = 0x09;
+    /// Other mass storage controller
     pub const OTHER: u8 = 0x80;
 }
 
 /// PCI subclass codes for network
 pub mod pci_network_subclass {
+    /// Ethernet controller
     pub const ETHERNET: u8 = 0x00;
+    /// Token Ring controller
     pub const TOKEN_RING: u8 = 0x01;
+    /// FDDI controller
     pub const FDDI: u8 = 0x02;
+    /// ATM controller
     pub const ATM: u8 = 0x03;
+    /// ISDN controller
     pub const ISDN: u8 = 0x04;
+    /// WorldFip controller
     pub const WORLDFIP: u8 = 0x05;
+    /// PICMG controller
     pub const PICMG: u8 = 0x06;
+    /// InfiniBand controller
     pub const INFINIBAND: u8 = 0x07;
+    /// Fabric controller
     pub const FABRIC: u8 = 0x08;
+    /// Other network controller
     pub const OTHER: u8 = 0x80;
 }
 
 /// PCI subclass codes for display
 pub mod pci_display_subclass {
+    /// VGA controller subclass
     pub const VGA: u8 = 0x00;
+    /// XGA controller subclass
     pub const XGA: u8 = 0x01;
+    /// `3D` controller subclass
     pub const CONTROLLER_3D: u8 = 0x02;
+    /// Other display subclass
     pub const OTHER: u8 = 0x80;
 }
 
 /// PCI subclass codes for serial bus
 pub mod pci_serial_subclass {
+    /// FireWire (IEEE 1394) controller
     pub const FIREWIRE: u8 = 0x00;
+    /// ACCESS bus controller
     pub const ACCESS_BUS: u8 = 0x01;
+    /// SSA controller
     pub const SSA: u8 = 0x02;
+    /// USB controller
     pub const USB: u8 = 0x03;
+    /// Fibre Channel controller
     pub const FIBRE_CHANNEL: u8 = 0x04;
+    /// SMBus controller
     pub const SMBUS: u8 = 0x05;
+    /// InfiniBand controller
     pub const INFINIBAND: u8 = 0x06;
+    /// IPMI SMIC interface
     pub const IPMI: u8 = 0x07;
+    /// SERCOS interface
     pub const SERCOS: u8 = 0x08;
+    /// CANbus controller
     pub const CANBUS: u8 = 0x09;
+    /// Other serial bus controller
     pub const OTHER: u8 = 0x80;
 }
 
 /// USB programming interface
 pub mod usb_prog_if {
+    /// UHCI (USB 1.x) interface
     pub const UHCI: u8 = 0x00;
+    /// OHCI (USB 1.x) interface
     pub const OHCI: u8 = 0x10;
+    /// EHCI (USB 2.0) interface
     pub const EHCI: u8 = 0x20;
+    /// xHCI (USB 3.x) interface
     pub const XHCI: u8 = 0x30;
+    /// USB4 host interface
     pub const USB4_HOST: u8 = 0x40;
 }
 
@@ -499,6 +589,7 @@ pub struct DriverDescriptor {
 
 impl DriverDescriptor {
     /// Create new descriptor
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             name: [0u8; 64],
@@ -786,26 +877,47 @@ pub struct UsbDeviceDescriptor {
 
 /// USB device class
 pub mod usb_class {
+    /// Interface-defined class
     pub const INTERFACE: u8 = 0x00;
+    /// Audio device class
     pub const AUDIO: u8 = 0x01;
+    /// Communications and CDC control class
     pub const CDC: u8 = 0x02;
+    /// Human Interface Device class
     pub const HID: u8 = 0x03;
+    /// Physical device class
     pub const PHYSICAL: u8 = 0x05;
+    /// Image device class
     pub const IMAGE: u8 = 0x06;
+    /// Printer device class
     pub const PRINTER: u8 = 0x07;
+    /// Mass storage device class
     pub const MASS_STORAGE: u8 = 0x08;
+    /// Hub device class
     pub const HUB: u8 = 0x09;
+    /// CDC-Data class
     pub const CDC_DATA: u8 = 0x0A;
+    /// Smart Card device class
     pub const SMART_CARD: u8 = 0x0B;
+    /// Video device class
     pub const VIDEO: u8 = 0x0E;
+    /// Personal Healthcare device class
     pub const PERSONAL_HEALTHCARE: u8 = 0x0F;
+    /// Audio/Video device class
     pub const AUDIO_VIDEO: u8 = 0x10;
+    /// Billboard device class
     pub const BILLBOARD: u8 = 0x11;
+    /// USB Type-C Bridge class
     pub const USB_C_BRIDGE: u8 = 0x12;
+    /// Diagnostic device class
     pub const DIAGNOSTIC: u8 = 0xDC;
+    /// Wireless controller class
     pub const WIRELESS: u8 = 0xE0;
+    /// Miscellaneous class
     pub const MISC: u8 = 0xEF;
+    /// Application-specific class
     pub const APPLICATION: u8 = 0xFE;
+    /// Vendor-specific class
     pub const VENDOR: u8 = 0xFF;
 }
 
@@ -945,15 +1057,15 @@ impl MsiCapability {
 /// Device power state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DevicePowerState {
-    /// Full power (D0)
+    /// Full power (`D0`)
     D0,
-    /// Low power, context preserved (D1)
+    /// Low power, context preserved (`D1`)
     D1,
-    /// Low power, partial context (D2)
+    /// Low power, partial context (`D2`)
     D2,
-    /// Off (D3Hot - power present)
+    /// Off (`D3Hot` - power present)
     D3Hot,
-    /// Off (D3Cold - no power)
+    /// Off (`D3Cold` - no power)
     D3Cold,
     /// Unknown
     Unknown,
@@ -967,8 +1079,7 @@ impl DevicePowerState {
             DevicePowerState::D3Hot => 1,
             DevicePowerState::D2 => 2,
             DevicePowerState::D1 => 3,
-            DevicePowerState::D0 => 4,
-            DevicePowerState::Unknown => 4,
+            DevicePowerState::D0 | DevicePowerState::Unknown => 4,
         }
     }
 }
@@ -976,19 +1087,19 @@ impl DevicePowerState {
 /// Power capabilities
 #[derive(Debug, Clone, Copy, Default)]
 pub struct PowerCapabilities {
-    /// Device supports D1
+    /// Device supports `D1`
     pub d1_supported: bool,
-    /// Device supports D2
+    /// Device supports `D2`
     pub d2_supported: bool,
-    /// Device supports PME from D0
+    /// Device supports PME from `D0`
     pub pme_d0: bool,
-    /// Device supports PME from D1
+    /// Device supports PME from `D1`
     pub pme_d1: bool,
-    /// Device supports PME from D2
+    /// Device supports PME from `D2`
     pub pme_d2: bool,
-    /// Device supports PME from D3Hot
+    /// Device supports PME from `D3Hot`
     pub pme_d3hot: bool,
-    /// Device supports PME from D3Cold
+    /// Device supports PME from `D3Cold`
     pub pme_d3cold: bool,
     /// Device supports wake
     pub wake_capable: bool,
