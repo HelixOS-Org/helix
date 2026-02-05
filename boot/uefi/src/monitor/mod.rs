@@ -62,7 +62,7 @@ pub enum BootPhase {
     Tsl = 4,
     /// Runtime
     Rt  = 5,
-    /// After Life (post ExitBootServices)
+    /// After Life (post `ExitBootServices`)
     Al  = 6,
 }
 
@@ -224,18 +224,26 @@ impl Timestamp {
     }
 
     /// Create from microseconds
+    #[must_use]
     pub const fn from_micros(micros: u64) -> Self {
+        // (micros % 1_000_000) is always < 1_000_000
+        // * 1000 gives max 999_999_000 which fits in u32 (max ~4.29 billion)
+        let nanos = (micros % 1_000_000) * 1000;
         Self {
             seconds: micros / 1_000_000,
-            nanoseconds: ((micros % 1_000_000) * 1000) as u32,
+            nanoseconds: (nanos & 0xFFFF_FFFF) as u32,
         }
     }
 
     /// Create from milliseconds
+    #[must_use]
     pub const fn from_millis(millis: u64) -> Self {
+        // (millis % 1000) is always < 1000
+        // * 1_000_000 gives max 999_000_000 which fits in u32
+        let nanos = (millis % 1000) * 1_000_000;
         Self {
             seconds: millis / 1000,
-            nanoseconds: ((millis % 1000) * 1_000_000) as u32,
+            nanoseconds: (nanos & 0xFFFF_FFFF) as u32,
         }
     }
 
@@ -250,14 +258,21 @@ impl Timestamp {
     }
 
     /// Calculate duration from earlier timestamp
+    #[must_use]
     pub fn duration_since(&self, earlier: &Self) -> Duration {
-        let total_nanos = (self.seconds as i128 * 1_000_000_000 + self.nanoseconds as i128)
-            - (earlier.seconds as i128 * 1_000_000_000 + earlier.nanoseconds as i128);
+        let self_nanos = i128::from(self.seconds) * 1_000_000_000 + i128::from(self.nanoseconds);
+        let earlier_nanos =
+            i128::from(earlier.seconds) * 1_000_000_000 + i128::from(earlier.nanoseconds);
+        let total_nanos = self_nanos - earlier_nanos;
 
         if total_nanos < 0 {
             Duration::ZERO
         } else {
-            Duration::from_nanos(total_nanos as u64)
+            // Convert safely: we know total_nanos >= 0 here
+            match u64::try_from(total_nanos) {
+                Ok(nanos) => Duration::from_nanos(nanos),
+                Err(_) => Duration::from_nanos(u64::MAX),
+            }
         }
     }
 }
@@ -336,6 +351,7 @@ impl Duration {
     }
 
     /// Add durations
+    #[must_use]
     pub const fn add(&self, other: &Self) -> Self {
         Self {
             nanos: self.nanos + other.nanos,
@@ -343,6 +359,7 @@ impl Duration {
     }
 
     /// Subtract durations
+    #[must_use]
     pub const fn sub(&self, other: &Self) -> Self {
         Self {
             nanos: self.nanos.saturating_sub(other.nanos),
@@ -477,11 +494,12 @@ impl PerfCounter {
     }
 
     /// Get average
+    #[must_use]
     pub fn average(&self) -> u64 {
         if self.samples == 0 {
             0
         } else {
-            self.sum / self.samples as u64
+            self.sum / u64::from(self.samples)
         }
     }
 
@@ -504,12 +522,11 @@ impl fmt::Display for PerfCounter {
             CounterType::Percentage => "%",
             CounterType::Pages => " pages",
         };
+        write!(f, "{}: {}", self.name, self.value)?;
+        write!(f, "{suffix}")?;
         write!(
             f,
-            "{}: {}{} (min:{}, max:{}, avg:{})",
-            self.name,
-            self.value,
-            suffix,
+            " (min:{}, max:{}, avg:{})",
             self.min,
             self.max,
             self.average()
@@ -571,11 +588,14 @@ pub struct MemoryUsage {
 
 impl MemoryUsage {
     /// Calculate usage percentage
+    #[must_use]
     pub fn usage_percent(&self) -> u8 {
         if self.total_available == 0 {
             0
         } else {
-            ((self.used * 100) / self.total_available) as u8
+            // Result is always 0-100, use min to make clippy happy
+            let percent = (self.used * 100) / self.total_available;
+            percent.min(100) as u8
         }
     }
 
@@ -594,10 +614,10 @@ impl fmt::Display for MemoryUsage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Memory: {} / {} ({:.1}% used, peak: {}, frag: {}%)",
+            "Memory: {} / {} ({}% used, peak: {}, frag: {}%)",
             format_size(self.used),
             format_size(self.total_available),
-            self.usage_percent() as f32,
+            self.usage_percent(),
             format_size(self.peak),
             self.fragmentation
         )
@@ -623,10 +643,11 @@ fn format_size(bytes: u64) -> &'static str {
 // =============================================================================
 
 /// Health status level
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[repr(u8)]
 pub enum HealthLevel {
     /// Everything is working correctly
+    #[default]
     Healthy  = 0,
     /// Minor issues detected
     Degraded = 1,
@@ -656,12 +677,6 @@ impl HealthLevel {
             self,
             HealthLevel::Warning | HealthLevel::Critical | HealthLevel::Failed
         )
-    }
-}
-
-impl Default for HealthLevel {
-    fn default() -> Self {
-        HealthLevel::Healthy
     }
 }
 
@@ -732,7 +747,7 @@ impl HealthCheck {
 // =============================================================================
 
 /// Log level
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[repr(u8)]
 pub enum LogLevel {
     /// Trace (most verbose)
@@ -740,6 +755,7 @@ pub enum LogLevel {
     /// Debug
     Debug    = 1,
     /// Info
+    #[default]
     Info     = 2,
     /// Warning
     Warning  = 3,
@@ -772,12 +788,6 @@ impl LogLevel {
             LogLevel::Error => 'E',
             LogLevel::Critical => 'C',
         }
-    }
-}
-
-impl Default for LogLevel {
-    fn default() -> Self {
-        LogLevel::Info
     }
 }
 
@@ -868,7 +878,7 @@ pub enum PostCode {
     UsbInit          = 0x70,
     /// SATA initialization
     SataInit         = 0x71,
-    /// NVMe initialization
+    /// `NVMe` initialization
     NvmeInit         = 0x72,
     /// Video initialization
     VideoInit        = 0x80,
@@ -992,7 +1002,7 @@ impl Checkpoint {
 
 /// Predefined checkpoints
 pub mod checkpoints {
-    use super::*;
+    use super::Checkpoint;
 
     /// Firmware loaded
     pub const FIRMWARE_LOADED: Checkpoint = Checkpoint::new(1, "Firmware loaded", 500_000);
