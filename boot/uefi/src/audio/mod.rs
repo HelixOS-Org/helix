@@ -590,7 +590,7 @@ impl ToneGenerator {
         let x = self.phase * 2.0 - 1.0; // -1 to 1
         let x2 = x * x;
         // Taylor series approximation
-        x * (3.14159265 - x2 * (5.16771278 - x2 * 2.55016403))
+        x * (3.141_592_65 - x2 * (5.167_712_78 - x2 * 2.550_164_03))
     }
 
     /// Generate square wave sample
