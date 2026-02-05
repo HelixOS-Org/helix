@@ -303,7 +303,7 @@ impl Console {
             let key = self.wait_for_key()?;
 
             match key.unicode_char {
-                Some('\r') | Some('\n') => {
+                Some('\r' | '\n') => {
                     self.writeln("")?;
                     break;
                 },
@@ -343,7 +343,7 @@ impl Console {
             let key = self.wait_for_key()?;
 
             match key.unicode_char {
-                Some('\r') | Some('\n') => {
+                Some('\r' | '\n') => {
                     self.writeln("")?;
                     break;
                 },
@@ -429,11 +429,11 @@ impl Console {
         loop {
             let key = self.wait_for_key()?;
             match key.unicode_char {
-                Some('y') | Some('Y') => {
+                Some('y' | 'Y') => {
                     self.writeln("y")?;
                     return Ok(true);
                 },
-                Some('n') | Some('N') => {
+                Some('n' | 'N') => {
                     self.writeln("n")?;
                     return Ok(false);
                 },
@@ -469,7 +469,7 @@ impl Console {
 }
 
 impl Protocol for Console {
-    const GUID: Guid = Guid::new(0x387477C1, 0x69C7, 0x11D2, [
+    const GUID: Guid = Guid::new(0x3874_77C1, 0x69C7, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
@@ -715,28 +715,28 @@ pub struct KeyModifiers(pub u32);
 
 impl KeyModifiers {
     /// Right Shift pressed
-    pub const RIGHT_SHIFT: Self = Self(0x00000001);
+    pub const RIGHT_SHIFT: Self = Self(0x0000_0001);
     /// Left Shift pressed
-    pub const LEFT_SHIFT: Self = Self(0x00000002);
+    pub const LEFT_SHIFT: Self = Self(0x0000_0002);
     /// Right Control pressed
-    pub const RIGHT_CONTROL: Self = Self(0x00000004);
+    pub const RIGHT_CONTROL: Self = Self(0x0000_0004);
     /// Left Control pressed
-    pub const LEFT_CONTROL: Self = Self(0x00000008);
+    pub const LEFT_CONTROL: Self = Self(0x0000_0008);
     /// Right Alt pressed
-    pub const RIGHT_ALT: Self = Self(0x00000010);
+    pub const RIGHT_ALT: Self = Self(0x0000_0010);
     /// Left Alt pressed
-    pub const LEFT_ALT: Self = Self(0x00000020);
+    pub const LEFT_ALT: Self = Self(0x0000_0020);
     /// Right Logo pressed
-    pub const RIGHT_LOGO: Self = Self(0x00000040);
+    pub const RIGHT_LOGO: Self = Self(0x0000_0040);
     /// Left Logo pressed
-    pub const LEFT_LOGO: Self = Self(0x00000080);
+    pub const LEFT_LOGO: Self = Self(0x0000_0080);
     /// Menu key pressed
-    pub const MENU: Self = Self(0x00000100);
+    pub const MENU: Self = Self(0x0000_0100);
     /// SysReq pressed
-    pub const SYS_REQ: Self = Self(0x00000200);
+    pub const SYS_REQ: Self = Self(0x0000_0200);
 
     /// Shift state valid
-    pub const SHIFT_STATE_VALID: Self = Self(0x80000000);
+    pub const SHIFT_STATE_VALID: Self = Self(0x8000_0000);
 
     /// Check if any shift is pressed
     pub fn shift(&self) -> bool {
