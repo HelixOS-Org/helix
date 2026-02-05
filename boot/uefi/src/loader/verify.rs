@@ -195,48 +195,50 @@ impl ImageVerifier {
                     .wrapping_add(s1);
             }
 
-            // Initialize working variables
-            let mut a = h[0];
-            let mut b = h[1];
-            let mut c = h[2];
-            let mut d = h[3];
-            let mut e = h[4];
-            let mut f = h[5];
-            let mut g = h[6];
-            let mut hh = h[7];
+            // Initialize working variables (SHA-256 spec names: a-h)
+            let mut state_a = h[0];
+            let mut state_b = h[1];
+            let mut state_c = h[2];
+            let mut state_d = h[3];
+            let mut state_e = h[4];
+            let mut state_f = h[5];
+            let mut state_g = h[6];
+            let mut state_h = h[7];
 
             // Main loop
-            for i in 0..64 {
-                let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
-                let ch = (e & f) ^ ((!e) & g);
-                let temp1 = hh
-                    .wrapping_add(s1)
+            for round in 0..64 {
+                let sigma1 =
+                    state_e.rotate_right(6) ^ state_e.rotate_right(11) ^ state_e.rotate_right(25);
+                let ch = (state_e & state_f) ^ ((!state_e) & state_g);
+                let temp1 = state_h
+                    .wrapping_add(sigma1)
                     .wrapping_add(ch)
-                    .wrapping_add(K[i])
-                    .wrapping_add(w[i]);
-                let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
-                let maj = (a & b) ^ (a & c) ^ (b & c);
-                let temp2 = s0.wrapping_add(maj);
+                    .wrapping_add(K[round])
+                    .wrapping_add(w[round]);
+                let sigma0 =
+                    state_a.rotate_right(2) ^ state_a.rotate_right(13) ^ state_a.rotate_right(22);
+                let maj = (state_a & state_b) ^ (state_a & state_c) ^ (state_b & state_c);
+                let temp2 = sigma0.wrapping_add(maj);
 
-                hh = g;
-                g = f;
-                f = e;
-                e = d.wrapping_add(temp1);
-                d = c;
-                c = b;
-                b = a;
-                a = temp1.wrapping_add(temp2);
+                state_h = state_g;
+                state_g = state_f;
+                state_f = state_e;
+                state_e = state_d.wrapping_add(temp1);
+                state_d = state_c;
+                state_c = state_b;
+                state_b = state_a;
+                state_a = temp1.wrapping_add(temp2);
             }
 
             // Add to hash
-            h[0] = h[0].wrapping_add(a);
-            h[1] = h[1].wrapping_add(b);
-            h[2] = h[2].wrapping_add(c);
-            h[3] = h[3].wrapping_add(d);
-            h[4] = h[4].wrapping_add(e);
-            h[5] = h[5].wrapping_add(f);
-            h[6] = h[6].wrapping_add(g);
-            h[7] = h[7].wrapping_add(hh);
+            h[0] = h[0].wrapping_add(state_a);
+            h[1] = h[1].wrapping_add(state_b);
+            h[2] = h[2].wrapping_add(state_c);
+            h[3] = h[3].wrapping_add(state_d);
+            h[4] = h[4].wrapping_add(state_e);
+            h[5] = h[5].wrapping_add(state_f);
+            h[6] = h[6].wrapping_add(state_g);
+            h[7] = h[7].wrapping_add(state_h);
         }
 
         // Produce final hash
