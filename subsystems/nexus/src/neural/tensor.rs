@@ -4,8 +4,8 @@
 //! Pure Rust, no_std compatible.
 
 #![allow(dead_code)]
+#![allow(clippy::needless_range_loop)]
 
-use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
