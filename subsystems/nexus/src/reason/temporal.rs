@@ -6,11 +6,11 @@
 //! Part of Year 2 COGNITION - Q2: Causal Reasoning
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
