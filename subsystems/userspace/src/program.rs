@@ -6,7 +6,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::elf::{LoadedSegment, ParsedElf};
-use super::{UserError, UserResult};
+use super::UserResult;
 
 /// Program information
 #[derive(Debug, Clone)]
