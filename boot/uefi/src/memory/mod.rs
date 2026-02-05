@@ -132,7 +132,7 @@ impl MemoryManager {
                     || mt == MemoryType::MemoryMappedIoPortSpace as u32
                 {
                     mmio += size;
-                } else if mt == MemoryType::ReservedMemoryType as u32
+                } else if mt == MemoryType::ReservedMemory as u32
                     || mt == MemoryType::UnusableMemory as u32
                 {
                     reserved += size;
