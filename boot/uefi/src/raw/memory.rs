@@ -180,33 +180,33 @@ pub struct MemoryAttribute(pub u64);
 
 impl MemoryAttribute {
     /// Memory is uncacheable
-    pub const UC: Self = Self(0x0000000000000001);
+    pub const UC: Self = Self(0x0000_0000_0000_0001);
     /// Memory supports write combining
-    pub const WC: Self = Self(0x0000000000000002);
+    pub const WC: Self = Self(0x0000_0000_0000_0002);
     /// Memory supports write-through caching
-    pub const WT: Self = Self(0x0000000000000004);
+    pub const WT: Self = Self(0x0000_0000_0000_0004);
     /// Memory supports write-back caching
-    pub const WB: Self = Self(0x0000000000000008);
+    pub const WB: Self = Self(0x0000_0000_0000_0008);
     /// Memory is uncacheable and exported (for firmware communication)
-    pub const UCE: Self = Self(0x0000000000000010);
+    pub const UCE: Self = Self(0x0000_0000_0000_0010);
     /// Memory is write-protected
-    pub const WP: Self = Self(0x0000000000001000);
+    pub const WP: Self = Self(0x0000_0000_0000_1000);
     /// Memory is read-protected
-    pub const RP: Self = Self(0x0000000000002000);
+    pub const RP: Self = Self(0x0000_0000_0000_2000);
     /// Memory is not executable
-    pub const XP: Self = Self(0x0000000000004000);
+    pub const XP: Self = Self(0x0000_0000_0000_4000);
     /// Memory supports non-volatile storage
-    pub const NV: Self = Self(0x0000000000008000);
+    pub const NV: Self = Self(0x0000_0000_0000_8000);
     /// Memory is more reliable than other memory
-    pub const MORE_RELIABLE: Self = Self(0x0000000000010000);
+    pub const MORE_RELIABLE: Self = Self(0x0000_0000_0001_0000);
     /// Memory is read-only
-    pub const RO: Self = Self(0x0000000000020000);
+    pub const RO: Self = Self(0x0000_0000_0002_0000);
     /// Memory is a specific purpose memory (SPM)
-    pub const SP: Self = Self(0x0000000000040000);
+    pub const SP: Self = Self(0x0000_0000_0004_0000);
     /// Memory requires CPU-specific instructions to access
-    pub const CPU_CRYPTO: Self = Self(0x0000000000080000);
+    pub const CPU_CRYPTO: Self = Self(0x0000_0000_0008_0000);
     /// Memory needs to be runtime mapped
-    pub const RUNTIME: Self = Self(0x8000000000000000);
+    pub const RUNTIME: Self = Self(0x8000_0000_0000_0000);
 
     /// Empty attribute set
     pub const NONE: Self = Self(0);
