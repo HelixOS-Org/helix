@@ -31,7 +31,7 @@ pub use super::loaded_image::{
     // Messaging paths
     UsbDevicePath,
 };
-use crate::raw::types::{Guid, guids};
+use crate::raw::types::{guids, Guid};
 
 // =============================================================================
 // DEVICE PATH TO TEXT PROTOCOL
@@ -88,7 +88,8 @@ impl EfiDevicePathToTextProtocol {
 
 impl fmt::Debug for EfiDevicePathToTextProtocol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiDevicePathToTextProtocol").finish_non_exhaustive()
+        f.debug_struct("EfiDevicePathToTextProtocol")
+            .finish_non_exhaustive()
     }
 }
 
@@ -133,7 +134,8 @@ impl EfiDevicePathFromTextProtocol {
 
 impl fmt::Debug for EfiDevicePathFromTextProtocol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiDevicePathFromTextProtocol").finish_non_exhaustive()
+        f.debug_struct("EfiDevicePathFromTextProtocol")
+            .finish_non_exhaustive()
     }
 }
 
