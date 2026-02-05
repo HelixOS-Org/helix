@@ -23,9 +23,9 @@ pub trait ConsoleWriter: Send {
 }
 
 /// Null console (discards output)
-struct NullConsole;
+struct _NullConsole;
 
-impl ConsoleWriter for NullConsole {
+impl ConsoleWriter for _NullConsole {
     fn write_byte(&mut self, _byte: u8) {}
 }
 
