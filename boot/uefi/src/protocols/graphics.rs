@@ -22,7 +22,7 @@ pub struct GraphicsOutput {
     /// Raw protocol pointer
     protocol: *mut EfiGraphicsOutputProtocol,
     /// Handle
-    handle: Handle,
+    _handle: Handle,
 }
 
 impl GraphicsOutput {
@@ -31,7 +31,10 @@ impl GraphicsOutput {
     /// # Safety
     /// Protocol pointer must be valid
     pub unsafe fn from_raw(protocol: *mut EfiGraphicsOutputProtocol, handle: Handle) -> Self {
-        Self { protocol, handle }
+        Self {
+            protocol,
+            _handle: handle,
+        }
     }
 
     /// Get current mode info
