@@ -23,7 +23,7 @@ pub struct BlockDevice {
     /// Raw protocol pointer
     protocol: *mut EfiBlockIoProtocol,
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// Cached media info
     media: MediaInfo,
 }
@@ -43,7 +43,7 @@ impl BlockDevice {
 
         Self {
             protocol,
-            handle,
+            _handle: handle,
             media,
         }
     }
