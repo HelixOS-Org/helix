@@ -457,7 +457,7 @@ impl HandoffPlacement {
 // =============================================================================
 
 /// Boot info magic number
-pub const BOOT_INFO_MAGIC: u32 = 0x48454C58; // "HELX"
+pub const BOOT_INFO_MAGIC: u32 = 0x4845_4C58; // "HELX"
 
 /// Boot info version
 pub const BOOT_INFO_VERSION: u32 = 1;
