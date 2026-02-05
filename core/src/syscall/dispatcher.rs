@@ -4,16 +4,14 @@
 
 use alloc::sync::Arc;
 
-use super::{
-    SyscallArgs, SyscallContext, SyscallError, SyscallHandler, SyscallNumber, SyscallReturn,
-};
+use super::{SyscallArgs, SyscallContext, SyscallHandler, SyscallNumber, SyscallReturn};
 
 /// Dispatch a syscall to its handler
 pub fn dispatch_syscall(
-    number: SyscallNumber,
+    _number: SyscallNumber,
     handler: &dyn SyscallHandler,
     args: SyscallArgs,
-    context: &SyscallContext,
+    _context: &SyscallContext,
 ) -> SyscallReturn {
     // Validate arguments
     if let Err(e) = handler.validate(&args) {
@@ -85,9 +83,9 @@ pub trait SyscallHook: Send + Sync {
     /// Return Some(result) to short-circuit the syscall
     fn pre_syscall(
         &self,
-        number: SyscallNumber,
-        args: &SyscallArgs,
-        context: &SyscallContext,
+        _number: SyscallNumber,
+        _args: &SyscallArgs,
+        _context: &SyscallContext,
     ) -> Option<SyscallReturn> {
         None
     }
@@ -95,10 +93,10 @@ pub trait SyscallHook: Send + Sync {
     /// Called after syscall execution
     fn post_syscall(
         &self,
-        number: SyscallNumber,
-        args: &SyscallArgs,
-        context: &SyscallContext,
-        result: &SyscallReturn,
+        _number: SyscallNumber,
+        _args: &SyscallArgs,
+        _context: &SyscallContext,
+        _result: &SyscallReturn,
     ) {
     }
 }
