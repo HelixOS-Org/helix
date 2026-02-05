@@ -182,7 +182,7 @@ pub enum EventState {
 // =============================================================================
 
 /// Maximum number of events
-const MAX_EVENTS: usize = 64;
+const _MAX_EVENTS: usize = 64;
 
 /// Software event for boot loader
 pub struct Event {
