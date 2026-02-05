@@ -58,7 +58,7 @@ pub const DEFAULT_QUEUE_SIZE: u16 = 256;
 pub const MAX_QUEUE_SIZE: u16 = 32768;
 
 /// VirtIO MMIO magic value
-pub const VIRTIO_MMIO_MAGIC: u32 = 0x74726976; // "virt"
+pub const VIRTIO_MMIO_MAGIC: u32 = 0x7472_6976; // "virt"
 
 /// VirtIO version (1.x)
 pub const VIRTIO_VERSION_1: u32 = 1;
