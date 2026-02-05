@@ -231,7 +231,7 @@ impl UsbDevice {
 }
 
 impl Protocol for UsbDevice {
-    const GUID: Guid = Guid::new(0x2B2F68D6, 0x0CD2, 0x44CF, [
+    const GUID: Guid = Guid::new(0x2B2F_68D6, 0x0CD2, 0x44CF, [
         0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75,
     ]);
 
@@ -770,7 +770,11 @@ impl RequestType {
         request_type: RequestKind,
         recipient: Recipient,
     ) -> Self {
-        Self((direction as u8) << 7 | (request_type as u8) << 5 | (recipient as u8))
+        Self(
+            ((direction as u8) << 7)
+                | ((request_type as u8) << 5)
+                | (recipient as u8),
+        )
     }
 
     /// Get direction
