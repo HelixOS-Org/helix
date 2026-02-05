@@ -301,8 +301,18 @@ impl<'a> FramebufferWriter<'a> {
     }
 
     /// Write pixel at coordinates
-    pub fn write_pixel(&mut self, pos_x: u32, pos_y: u32, red: u8, green: u8, blue: u8) -> Result<()> {
-        let offset = self.info.pixel_offset(pos_x, pos_y).ok_or(Error::OutOfBounds)?;
+    pub fn write_pixel(
+        &mut self,
+        pos_x: u32,
+        pos_y: u32,
+        red: u8,
+        green: u8,
+        blue: u8,
+    ) -> Result<()> {
+        let offset = self
+            .info
+            .pixel_offset(pos_x, pos_y)
+            .ok_or(Error::OutOfBounds)?;
 
         let pixel = self.info.encode_pixel(red, green, blue);
         let offset = offset as usize;
@@ -319,7 +329,16 @@ impl<'a> FramebufferWriter<'a> {
     }
 
     /// Fill rectangle
-    pub fn fill_rect(&mut self, pos_x: u32, pos_y: u32, width: u32, height: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+    pub fn fill_rect(
+        &mut self,
+        pos_x: u32,
+        pos_y: u32,
+        width: u32,
+        height: u32,
+        red: u8,
+        green: u8,
+        blue: u8,
+    ) -> Result<()> {
         let pixel = self.info.encode_pixel(red, green, blue);
         let bpp = self.info.bytes_per_pixel() as usize;
         let bytes = pixel.to_le_bytes();
@@ -347,21 +366,60 @@ impl<'a> FramebufferWriter<'a> {
     }
 
     /// Draw horizontal line
-    pub fn draw_hline(&mut self, pos_x: u32, pos_y: u32, line_width: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+    pub fn draw_hline(
+        &mut self,
+        pos_x: u32,
+        pos_y: u32,
+        line_width: u32,
+        red: u8,
+        green: u8,
+        blue: u8,
+    ) -> Result<()> {
         self.fill_rect(pos_x, pos_y, line_width, 1, red, green, blue)
     }
 
     /// Draw vertical line
-    pub fn draw_vline(&mut self, pos_x: u32, pos_y: u32, line_height: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+    pub fn draw_vline(
+        &mut self,
+        pos_x: u32,
+        pos_y: u32,
+        line_height: u32,
+        red: u8,
+        green: u8,
+        blue: u8,
+    ) -> Result<()> {
         self.fill_rect(pos_x, pos_y, 1, line_height, red, green, blue)
     }
 
     /// Draw rectangle outline
-    pub fn draw_rect(&mut self, pos_x: u32, pos_y: u32, width: u32, height: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+    pub fn draw_rect(
+        &mut self,
+        pos_x: u32,
+        pos_y: u32,
+        width: u32,
+        height: u32,
+        red: u8,
+        green: u8,
+        blue: u8,
+    ) -> Result<()> {
         self.draw_hline(pos_x, pos_y, width, red, green, blue)?;
-        self.draw_hline(pos_x, pos_y + height.saturating_sub(1), width, red, green, blue)?;
+        self.draw_hline(
+            pos_x,
+            pos_y + height.saturating_sub(1),
+            width,
+            red,
+            green,
+            blue,
+        )?;
         self.draw_vline(pos_x, pos_y, height, red, green, blue)?;
-        self.draw_vline(pos_x + width.saturating_sub(1), pos_y, height, red, green, blue)?;
+        self.draw_vline(
+            pos_x + width.saturating_sub(1),
+            pos_y,
+            height,
+            red,
+            green,
+            blue,
+        )?;
         Ok(())
     }
 }
