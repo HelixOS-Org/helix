@@ -186,7 +186,7 @@ const LZ_MIN_MATCH: usize = 3;
 
 /// LZ token
 #[derive(Debug, Clone, Copy)]
-enum LzToken {
+enum _LzToken {
     /// Literal byte
     Literal(u8),
     /// Match (offset, length)
@@ -359,37 +359,37 @@ pub fn lz_decode(input: &[u8], output: &mut [u8]) -> Result<usize, CompressionEr
 
 /// Huffman node
 #[derive(Clone, Copy)]
-struct HuffmanNode {
+struct _HuffmanNode {
     /// Symbol (-1 for internal node)
     symbol: i16,
     /// Frequency/weight
-    weight: u32,
+    _weight: u32,
     /// Left child index
-    left: u16,
+    _left: u16,
     /// Right child index
-    right: u16,
+    _right: u16,
 }
 
-impl HuffmanNode {
-    const fn leaf(symbol: u8, weight: u32) -> Self {
+impl _HuffmanNode {
+    const fn _leaf(symbol: u8, weight: u32) -> Self {
         Self {
             symbol: symbol as i16,
-            weight,
-            left: 0,
-            right: 0,
+            _weight: weight,
+            _left: 0,
+            _right: 0,
         }
     }
 
-    const fn internal(weight: u32, left: u16, right: u16) -> Self {
+    const fn _internal(weight: u32, left: u16, right: u16) -> Self {
         Self {
             symbol: -1,
-            weight,
-            left,
-            right,
+            _weight: weight,
+            _left: left,
+            _right: right,
         }
     }
 
-    fn is_leaf(&self) -> bool {
+    fn _is_leaf(&self) -> bool {
         self.symbol >= 0
     }
 }
@@ -480,7 +480,7 @@ impl HuffmanTable {
 pub struct BitReader<'a> {
     data: &'a [u8],
     pos: usize,
-    bit_pos: u8,
+    _bit_pos: u8,
     buffer: u32,
     bits_in_buffer: u8,
 }
@@ -491,7 +491,7 @@ impl<'a> BitReader<'a> {
         Self {
             data,
             pos: 0,
-            bit_pos: 0,
+            _bit_pos: 0,
             buffer: 0,
             bits_in_buffer: 0,
         }
