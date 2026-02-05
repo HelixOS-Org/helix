@@ -7,6 +7,9 @@ license.workspace = true
 description = "Minimal OS example built with Helix Framework"
 
 [dependencies]
+# External dependencies
+spin = "0.9"
+
 # Helix framework crates
 helix-hal = { workspace = true }
 helix-core = { workspace = true }
