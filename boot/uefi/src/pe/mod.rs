@@ -120,7 +120,7 @@ impl DosHeader {
 // =============================================================================
 
 /// PE signature
-pub const PE_SIGNATURE: u32 = 0x00004550; // "PE\0\0"
+pub const PE_SIGNATURE: u32 = 0x0000_4550; // "PE\0\0"
 
 /// COFF file header
 #[repr(C, packed)]
@@ -166,32 +166,55 @@ impl CoffHeader {
 
 /// Machine types
 pub mod machine {
+    /// Unknown machine type
     pub const UNKNOWN: u16 = 0x0;
+    /// Intel 386 (32-bit)
     pub const I386: u16 = 0x14c;
+    /// AMD64 / x86-64
     pub const AMD64: u16 = 0x8664;
+    /// ARM (32-bit)
     pub const ARM: u16 = 0x1c0;
+    /// ARM64 / `AArch64`
     pub const ARM64: u16 = 0xaa64;
+    /// RISC-V (32-bit)
     pub const RISCV32: u16 = 0x5032;
+    /// RISC-V (64-bit)
     pub const RISCV64: u16 = 0x5064;
-    pub const EBC: u16 = 0xebc; // EFI byte code
+    /// EFI byte code
+    pub const EBC: u16 = 0xebc;
 }
 
 /// Characteristics
 pub mod characteristics {
+    /// Relocations stripped
     pub const RELOCS_STRIPPED: u16 = 0x0001;
+    /// Executable image
     pub const EXECUTABLE_IMAGE: u16 = 0x0002;
+    /// Line numbers stripped
     pub const LINE_NUMS_STRIPPED: u16 = 0x0004;
+    /// Local symbols stripped
     pub const LOCAL_SYMS_STRIPPED: u16 = 0x0008;
+    /// Aggressive working set trim
     pub const AGGRESSIVE_WS_TRIM: u16 = 0x0010;
+    /// Large address aware
     pub const LARGE_ADDRESS_AWARE: u16 = 0x0020;
+    /// Bytes reversed low
     pub const BYTES_REVERSED_LO: u16 = 0x0080;
+    /// 32-bit machine
     pub const MACHINE_32BIT: u16 = 0x0100;
+    /// Debug stripped
     pub const DEBUG_STRIPPED: u16 = 0x0200;
+    /// Removable run from swap
     pub const REMOVABLE_RUN_FROM_SWAP: u16 = 0x0400;
+    /// Network run from swap
     pub const NET_RUN_FROM_SWAP: u16 = 0x0800;
+    /// System file
     pub const SYSTEM: u16 = 0x1000;
+    /// DLL file
     pub const DLL: u16 = 0x2000;
+    /// Uniprocessor system only
     pub const UP_SYSTEM_ONLY: u16 = 0x4000;
+    /// Bytes reversed high
     pub const BYTES_REVERSED_HI: u16 = 0x8000;
 }
 
@@ -201,41 +224,69 @@ pub mod characteristics {
 
 /// Optional header magic
 pub mod optional_magic {
+    /// PE32 format
     pub const PE32: u16 = 0x10b;
+    /// PE32+ format (64-bit)
     pub const PE32_PLUS: u16 = 0x20b;
+    /// ROM image
     pub const ROM: u16 = 0x107;
 }
 
 /// Subsystem
 pub mod subsystem {
+    /// Unknown subsystem
     pub const UNKNOWN: u16 = 0;
+    /// Native subsystem
     pub const NATIVE: u16 = 1;
+    /// Windows GUI
     pub const WINDOWS_GUI: u16 = 2;
+    /// Windows console
     pub const WINDOWS_CUI: u16 = 3;
+    /// OS/2 console
     pub const OS2_CUI: u16 = 5;
+    /// POSIX console
     pub const POSIX_CUI: u16 = 7;
+    /// Native Windows
     pub const NATIVE_WINDOWS: u16 = 8;
+    /// Windows CE GUI
     pub const WINDOWS_CE_GUI: u16 = 9;
+    /// EFI application
     pub const EFI_APPLICATION: u16 = 10;
+    /// EFI boot service driver
     pub const EFI_BOOT_SERVICE_DRIVER: u16 = 11;
+    /// EFI runtime driver
     pub const EFI_RUNTIME_DRIVER: u16 = 12;
+    /// EFI ROM
     pub const EFI_ROM: u16 = 13;
+    /// Xbox
     pub const XBOX: u16 = 14;
+    /// Windows boot application
     pub const WINDOWS_BOOT_APPLICATION: u16 = 16;
 }
 
 /// DLL characteristics
 pub mod dll_characteristics {
+    /// High entropy VA
     pub const HIGH_ENTROPY_VA: u16 = 0x0020;
+    /// Dynamic base (ASLR)
     pub const DYNAMIC_BASE: u16 = 0x0040;
+    /// Force integrity
     pub const FORCE_INTEGRITY: u16 = 0x0080;
+    /// NX compatible
     pub const NX_COMPAT: u16 = 0x0100;
+    /// No isolation
     pub const NO_ISOLATION: u16 = 0x0200;
+    /// No structured exception handling
     pub const NO_SEH: u16 = 0x0400;
+    /// No bind
     pub const NO_BIND: u16 = 0x0800;
+    /// App container
     pub const APPCONTAINER: u16 = 0x1000;
+    /// WDM driver
     pub const WDM_DRIVER: u16 = 0x2000;
+    /// Control flow guard
     pub const GUARD_CF: u16 = 0x4000;
+    /// Terminal server aware
     pub const TERMINAL_SERVER_AWARE: u16 = 0x8000;
 }
 
@@ -421,21 +472,37 @@ impl DataDirectory {
 
 /// Data directory indices
 pub mod data_directory_index {
+    /// Export table
     pub const EXPORT: usize = 0;
+    /// Import table
     pub const IMPORT: usize = 1;
+    /// Resource table
     pub const RESOURCE: usize = 2;
+    /// Exception table
     pub const EXCEPTION: usize = 3;
+    /// Certificate table
     pub const CERTIFICATE: usize = 4;
+    /// Base relocation table
     pub const BASE_RELOC: usize = 5;
+    /// Debug data
     pub const DEBUG: usize = 6;
+    /// Architecture data
     pub const ARCHITECTURE: usize = 7;
+    /// Global pointer
     pub const GLOBAL_PTR: usize = 8;
+    /// TLS table
     pub const TLS: usize = 9;
+    /// Load config table
     pub const LOAD_CONFIG: usize = 10;
+    /// Bound import table
     pub const BOUND_IMPORT: usize = 11;
+    /// Import address table
     pub const IAT: usize = 12;
+    /// Delay import descriptor
     pub const DELAY_IMPORT: usize = 13;
+    /// CLR runtime header
     pub const CLR_RUNTIME: usize = 14;
+    /// Reserved
     pub const RESERVED: usize = 15;
 }
 
@@ -550,40 +617,74 @@ impl SectionHeader {
 
 /// Section characteristics
 pub mod section_characteristics {
-    pub const TYPE_NO_PAD: u32 = 0x00000008;
-    pub const CNT_CODE: u32 = 0x00000020;
-    pub const CNT_INITIALIZED_DATA: u32 = 0x00000040;
-    pub const CNT_UNINITIALIZED_DATA: u32 = 0x00000080;
-    pub const LNK_OTHER: u32 = 0x00000100;
-    pub const LNK_INFO: u32 = 0x00000200;
-    pub const LNK_REMOVE: u32 = 0x00000800;
-    pub const LNK_COMDAT: u32 = 0x00001000;
-    pub const GPREL: u32 = 0x00008000;
-    pub const MEM_16BIT: u32 = 0x00020000;
-    pub const MEM_LOCKED: u32 = 0x00040000;
-    pub const MEM_PRELOAD: u32 = 0x00080000;
-    pub const ALIGN_1BYTES: u32 = 0x00100000;
-    pub const ALIGN_2BYTES: u32 = 0x00200000;
-    pub const ALIGN_4BYTES: u32 = 0x00300000;
-    pub const ALIGN_8BYTES: u32 = 0x00400000;
-    pub const ALIGN_16BYTES: u32 = 0x00500000;
-    pub const ALIGN_32BYTES: u32 = 0x00600000;
-    pub const ALIGN_64BYTES: u32 = 0x00700000;
-    pub const ALIGN_128BYTES: u32 = 0x00800000;
-    pub const ALIGN_256BYTES: u32 = 0x00900000;
-    pub const ALIGN_512BYTES: u32 = 0x00A00000;
-    pub const ALIGN_1024BYTES: u32 = 0x00B00000;
-    pub const ALIGN_2048BYTES: u32 = 0x00C00000;
-    pub const ALIGN_4096BYTES: u32 = 0x00D00000;
-    pub const ALIGN_8192BYTES: u32 = 0x00E00000;
-    pub const LNK_NRELOC_OVFL: u32 = 0x01000000;
-    pub const MEM_DISCARDABLE: u32 = 0x02000000;
-    pub const MEM_NOT_CACHED: u32 = 0x04000000;
-    pub const MEM_NOT_PAGED: u32 = 0x08000000;
-    pub const MEM_SHARED: u32 = 0x10000000;
-    pub const MEM_EXECUTE: u32 = 0x20000000;
-    pub const MEM_READ: u32 = 0x40000000;
-    pub const MEM_WRITE: u32 = 0x80000000;
+    /// Type no padding
+    pub const TYPE_NO_PAD: u32 = 0x0000_0008;
+    /// Contains code
+    pub const CNT_CODE: u32 = 0x0000_0020;
+    /// Contains initialized data
+    pub const CNT_INITIALIZED_DATA: u32 = 0x0000_0040;
+    /// Contains uninitialized data
+    pub const CNT_UNINITIALIZED_DATA: u32 = 0x0000_0080;
+    /// Link other
+    pub const LNK_OTHER: u32 = 0x0000_0100;
+    /// Link info
+    pub const LNK_INFO: u32 = 0x0000_0200;
+    /// Link remove
+    pub const LNK_REMOVE: u32 = 0x0000_0800;
+    /// Link COMDAT
+    pub const LNK_COMDAT: u32 = 0x0000_1000;
+    /// Global pointer relative
+    pub const GPREL: u32 = 0x0000_8000;
+    /// 16-bit memory
+    pub const MEM_16BIT: u32 = 0x0002_0000;
+    /// Memory locked
+    pub const MEM_LOCKED: u32 = 0x0004_0000;
+    /// Memory preload
+    pub const MEM_PRELOAD: u32 = 0x0008_0000;
+    /// Align 1 byte
+    pub const ALIGN_1BYTES: u32 = 0x0010_0000;
+    /// Align 2 bytes
+    pub const ALIGN_2BYTES: u32 = 0x0020_0000;
+    /// Align 4 bytes
+    pub const ALIGN_4BYTES: u32 = 0x0030_0000;
+    /// Align 8 bytes
+    pub const ALIGN_8BYTES: u32 = 0x0040_0000;
+    /// Align 16 bytes
+    pub const ALIGN_16BYTES: u32 = 0x0050_0000;
+    /// Align 32 bytes
+    pub const ALIGN_32BYTES: u32 = 0x0060_0000;
+    /// Align 64 bytes
+    pub const ALIGN_64BYTES: u32 = 0x0070_0000;
+    /// Align 128 bytes
+    pub const ALIGN_128BYTES: u32 = 0x0080_0000;
+    /// Align 256 bytes
+    pub const ALIGN_256BYTES: u32 = 0x0090_0000;
+    /// Align 512 bytes
+    pub const ALIGN_512BYTES: u32 = 0x00A0_0000;
+    /// Align 1024 bytes
+    pub const ALIGN_1024BYTES: u32 = 0x00B0_0000;
+    /// Align 2048 bytes
+    pub const ALIGN_2048BYTES: u32 = 0x00C0_0000;
+    /// Align 4096 bytes
+    pub const ALIGN_4096BYTES: u32 = 0x00D0_0000;
+    /// Align 8192 bytes
+    pub const ALIGN_8192BYTES: u32 = 0x00E0_0000;
+    /// Link relocation overflow
+    pub const LNK_NRELOC_OVFL: u32 = 0x0100_0000;
+    /// Memory discardable
+    pub const MEM_DISCARDABLE: u32 = 0x0200_0000;
+    /// Memory not cached
+    pub const MEM_NOT_CACHED: u32 = 0x0400_0000;
+    /// Memory not paged
+    pub const MEM_NOT_PAGED: u32 = 0x0800_0000;
+    /// Memory shared
+    pub const MEM_SHARED: u32 = 0x1000_0000;
+    /// Memory execute
+    pub const MEM_EXECUTE: u32 = 0x2000_0000;
+    /// Memory read
+    pub const MEM_READ: u32 = 0x4000_0000;
+    /// Memory write
+    pub const MEM_WRITE: u32 = 0x8000_0000;
 }
 
 // =============================================================================
@@ -624,11 +725,17 @@ impl BaseRelocationBlock {
 
 /// Relocation types
 pub mod reloc_type {
+    /// Absolute (no relocation)
     pub const ABSOLUTE: u16 = 0;
+    /// High 16 bits
     pub const HIGH: u16 = 1;
+    /// Low 16 bits
     pub const LOW: u16 = 2;
+    /// High and low 16 bits
     pub const HIGHLOW: u16 = 3;
+    /// High adjusted
     pub const HIGHADJ: u16 = 4;
+    /// 64-bit address
     pub const DIR64: u16 = 10;
 }
 
@@ -798,7 +905,7 @@ impl<'a> PeFile<'a> {
         }
 
         // Get PE header offset
-        let pe_offset = dos_header.e_lfanew as usize;
+        let pe_offset = usize::try_from(dos_header.e_lfanew).map_err(|_| PeError::InvalidDosHeader)?;
 
         if pe_offset + 4 > data.len() {
             return Err(PeError::InvalidPeSignature);
@@ -835,11 +942,11 @@ impl<'a> PeFile<'a> {
         let dir_count =
             (optional_header.number_of_rva_and_sizes as usize).min(MAX_DATA_DIRECTORIES);
 
-        for i in 0..dir_count {
+        for (i, data_dir) in data_directories.iter_mut().enumerate().take(dir_count) {
             let offset = dir_offset + i * DataDirectory::SIZE;
             if offset + DataDirectory::SIZE <= data.len() {
                 if let Some(dir) = DataDirectory::from_bytes(&data[offset..]) {
-                    data_directories[i] = dir;
+                    *data_dir = dir;
                 }
             }
         }
@@ -849,10 +956,10 @@ impl<'a> PeFile<'a> {
         let section_count = (coff_header.number_of_sections as usize).min(MAX_SECTIONS);
         let mut sections = [None; MAX_SECTIONS];
 
-        for i in 0..section_count {
+        for (i, section) in sections.iter_mut().enumerate().take(section_count) {
             let offset = section_offset + i * SectionHeader::SIZE;
             if offset + SectionHeader::SIZE <= data.len() {
-                sections[i] = SectionHeader::from_bytes(&data[offset..]);
+                *section = SectionHeader::from_bytes(&data[offset..]);
             }
         }
 
@@ -972,7 +1079,7 @@ impl<'a> PeFile<'a> {
         self.optional_header.is_efi()
     }
 
-    /// Is x86_64
+    /// Is `x86_64`
     pub fn is_x86_64(&self) -> bool {
         self.coff_header.machine == machine::AMD64
     }
@@ -1026,7 +1133,7 @@ impl PeLoader {
         }
 
         // Clear memory
-        for byte in memory[..image_size].iter_mut() {
+        for byte in &mut memory[..image_size] {
             *byte = 0;
         }
 
@@ -1056,7 +1163,7 @@ impl PeLoader {
         }
 
         Ok(LoadedPe {
-            entry_point: base + pe.entry_point() as u64,
+            entry_point: base + u64::from(pe.entry_point()),
             base_address: base,
             size: image_size,
         })
@@ -1094,7 +1201,9 @@ impl PeLoader {
 
             // Process entries
             for i in 0..block.entry_count() {
-                let entry_offset = block_rva + BaseRelocationBlock::SIZE as u32 + (i * 2) as u32;
+                let i_u32 = u32::try_from(i).map_err(|_| PeError::InvalidRelocation)?;
+                let size_u32 = u32::try_from(BaseRelocationBlock::SIZE).map_err(|_| PeError::InvalidRelocation)?;
+                let entry_offset = block_rva + size_u32 + (i_u32 * 2);
                 let entry_data = pe
                     .data_at_rva(entry_offset, 2)
                     .ok_or(PeError::InvalidRelocation)?;
@@ -1106,7 +1215,7 @@ impl PeLoader {
                     continue;
                 }
 
-                let reloc_offset = (block.virtual_address + entry.offset as u32) as usize;
+                let reloc_offset = usize::try_from(block.virtual_address + u32::from(entry.offset)).map_err(|_| PeError::InvalidRelocation)?;
 
                 match entry.reloc_type {
                     reloc_type::DIR64 => {
@@ -1129,7 +1238,10 @@ impl PeLoader {
                         let value = u32::from_le_bytes(
                             memory[reloc_offset..reloc_offset + 4].try_into().unwrap(),
                         );
-                        let new_value = value.wrapping_add(delta as u32);
+                        // HIGHLOW relocations only use the lower 32 bits of delta
+                        // This is intentional per PE/COFF spec - we mask to get lower 32 bits
+                        let delta_u32 = (delta & 0xFFFF_FFFF) as u32;
+                        let new_value = value.wrapping_add(delta_u32);
                         memory[reloc_offset..reloc_offset + 4]
                             .copy_from_slice(&new_value.to_le_bytes());
                     },
