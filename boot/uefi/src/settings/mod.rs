@@ -59,9 +59,10 @@ pub enum SettingType {
 }
 
 /// Setting visibility
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SettingVisibility {
     /// Visible in menu
+    #[default]
     Visible,
     /// Hidden from menu
     Hidden,
@@ -73,18 +74,13 @@ pub enum SettingVisibility {
     Developer,
 }
 
-impl Default for SettingVisibility {
-    fn default() -> Self {
-        SettingVisibility::Visible
-    }
-}
-
 /// Setting persistence
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SettingPersistence {
     /// Volatile (session only)
     Volatile,
     /// Non-volatile (saved)
+    #[default]
     NonVolatile,
     /// Write-once
     WriteOnce,
@@ -92,18 +88,12 @@ pub enum SettingPersistence {
     ReadOnly,
 }
 
-impl Default for SettingPersistence {
-    fn default() -> Self {
-        SettingPersistence::NonVolatile
-    }
-}
-
 // =============================================================================
 // BOOT SETTINGS
 // =============================================================================
 
 /// Boot timeout behavior
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TimeoutBehavior {
     /// Wait indefinitely
     WaitForever,
@@ -112,21 +102,17 @@ pub enum TimeoutBehavior {
     /// Boot last selection after timeout
     BootLast,
     /// Countdown with visual indicator
+    #[default]
     Countdown,
     /// Boot immediately (no menu)
     Immediate,
 }
 
-impl Default for TimeoutBehavior {
-    fn default() -> Self {
-        TimeoutBehavior::Countdown
-    }
-}
-
 /// Boot mode selection
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BootMode {
     /// Normal boot
+    #[default]
     Normal,
     /// Safe mode
     Safe,
@@ -138,12 +124,6 @@ pub enum BootMode {
     Setup,
     /// Firmware update mode
     FirmwareUpdate,
-}
-
-impl Default for BootMode {
-    fn default() -> Self {
-        BootMode::Normal
-    }
 }
 
 impl fmt::Display for BootMode {
@@ -160,9 +140,10 @@ impl fmt::Display for BootMode {
 }
 
 /// Quick boot options
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum QuickBootMode {
     /// Disabled
+    #[default]
     Disabled,
     /// Skip memory test
     SkipMemoryTest,
@@ -172,12 +153,6 @@ pub enum QuickBootMode {
     Minimal,
     /// Ultra-fast (dangerous)
     UltraFast,
-}
-
-impl Default for QuickBootMode {
-    fn default() -> Self {
-        QuickBootMode::Disabled
-    }
 }
 
 /// Boot settings structure
@@ -227,7 +202,7 @@ impl Default for BootSettings {
 // =============================================================================
 
 /// Display theme
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DisplayTheme {
     /// Classic VGA style
     Classic,
@@ -242,15 +217,10 @@ pub enum DisplayTheme {
     /// Custom theme
     Custom,
     /// Helix branded
+    #[default]
     Helix,
     /// Minimal
     Minimal,
-}
-
-impl Default for DisplayTheme {
-    fn default() -> Self {
-        DisplayTheme::Helix
-    }
 }
 
 impl fmt::Display for DisplayTheme {
@@ -269,13 +239,14 @@ impl fmt::Display for DisplayTheme {
 }
 
 /// Font size
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FontSize {
     /// Tiny (8pt equivalent)
     Tiny,
     /// Small (10pt)
     Small,
     /// Normal (12pt)
+    #[default]
     Normal,
     /// Large (14pt)
     Large,
@@ -283,12 +254,6 @@ pub enum FontSize {
     Huge,
     /// Custom pixel height
     Custom(u8),
-}
-
-impl Default for FontSize {
-    fn default() -> Self {
-        FontSize::Normal
-    }
 }
 
 impl FontSize {
@@ -306,43 +271,38 @@ impl FontSize {
 }
 
 /// Resolution preference
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ResolutionPref {
     /// Native/highest available
     Native,
     /// Auto-detect optimal
+    #[default]
     Auto,
     /// Specific resolution
-    Fixed { width: u32, height: u32 },
+    Fixed {
+        /// Width in pixels
+        width: u32,
+        /// Height in pixels
+        height: u32,
+    },
     /// Text mode
     TextMode,
     /// Low resolution (safe)
     Low,
 }
 
-impl Default for ResolutionPref {
-    fn default() -> Self {
-        ResolutionPref::Auto
-    }
-}
-
 /// Animation level
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AnimationLevel {
     /// No animations
     None,
     /// Minimal animations
     Minimal,
     /// Normal animations
+    #[default]
     Normal,
     /// Full animations
     Full,
-}
-
-impl Default for AnimationLevel {
-    fn default() -> Self {
-        AnimationLevel::Normal
-    }
 }
 
 /// Display settings structure
@@ -392,9 +352,10 @@ impl Default for DisplaySettings {
 // =============================================================================
 
 /// Password type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PasswordType {
     /// No password
+    #[default]
     None,
     /// Menu password
     Menu,
@@ -406,16 +367,11 @@ pub enum PasswordType {
     Full,
 }
 
-impl Default for PasswordType {
-    fn default() -> Self {
-        PasswordType::None
-    }
-}
-
 /// Secure Boot mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecureBootMode {
     /// Disabled
+    #[default]
     Disabled,
     /// Standard mode
     Standard,
@@ -425,12 +381,6 @@ pub enum SecureBootMode {
     Deployed,
     /// Audit mode
     Audit,
-}
-
-impl Default for SecureBootMode {
-    fn default() -> Self {
-        SecureBootMode::Disabled
-    }
 }
 
 /// Key database action
@@ -494,11 +444,12 @@ impl Default for SecuritySettings {
 // =============================================================================
 
 /// Network mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NetworkMode {
     /// Disabled
     Disabled,
     /// DHCP
+    #[default]
     Dhcp,
     /// Static IP
     Static,
@@ -508,16 +459,11 @@ pub enum NetworkMode {
     DualStack,
 }
 
-impl Default for NetworkMode {
-    fn default() -> Self {
-        NetworkMode::Dhcp
-    }
-}
-
 /// PXE boot mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PxeMode {
     /// Disabled
+    #[default]
     Disabled,
     /// IPv4 PXE
     Ipv4,
@@ -527,12 +473,6 @@ pub enum PxeMode {
     Both,
     /// HTTP boot
     HttpBoot,
-}
-
-impl Default for PxeMode {
-    fn default() -> Self {
-        PxeMode::Disabled
-    }
 }
 
 /// Network settings structure
@@ -582,9 +522,10 @@ impl Default for NetworkSettings {
 // =============================================================================
 
 /// Storage scan mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StorageScanMode {
     /// Scan all devices
+    #[default]
     All,
     /// Scan internal only
     InternalOnly,
@@ -596,41 +537,89 @@ pub enum StorageScanMode {
     Specified,
 }
 
-impl Default for StorageScanMode {
-    fn default() -> Self {
-        StorageScanMode::All
-    }
-}
-
-/// Filesystem support
+/// Filesystem support flags
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FilesystemSupport {
-    /// FAT12/16/32
-    pub fat: bool,
-    /// ext2/3/4
-    pub ext: bool,
-    /// NTFS
-    pub ntfs: bool,
-    /// ISO9660
-    pub iso9660: bool,
-    /// BTRFS
-    pub btrfs: bool,
-    /// XFS
-    pub xfs: bool,
-    /// ZFS
-    pub zfs: bool,
+    /// Bitfield of supported filesystems:
+    /// - bit 0: FAT12/16/32
+    /// - bit 1: ext2/3/4
+    /// - bit 2: NTFS
+    /// - bit 3: ISO9660
+    /// - bit 4: BTRFS
+    /// - bit 5: XFS
+    /// - bit 6: ZFS
+    flags: u8,
+}
+
+impl FilesystemSupport {
+    /// FAT filesystem flag
+    pub const FAT: u8 = 1 << 0;
+    /// ext2/3/4 filesystem flag
+    pub const EXT: u8 = 1 << 1;
+    /// NTFS filesystem flag
+    pub const NTFS: u8 = 1 << 2;
+    /// ISO9660 filesystem flag
+    pub const ISO9660: u8 = 1 << 3;
+    /// BTRFS filesystem flag
+    pub const BTRFS: u8 = 1 << 4;
+    /// XFS filesystem flag
+    pub const XFS: u8 = 1 << 5;
+    /// ZFS filesystem flag
+    pub const ZFS: u8 = 1 << 6;
+
+    /// Create a new FilesystemSupport with the given flags
+    #[must_use]
+    pub const fn new(flags: u8) -> Self {
+        Self { flags }
+    }
+
+    /// Check if FAT is supported
+    #[must_use]
+    pub const fn fat(&self) -> bool {
+        self.flags & Self::FAT != 0
+    }
+
+    /// Check if ext2/3/4 is supported
+    #[must_use]
+    pub const fn ext(&self) -> bool {
+        self.flags & Self::EXT != 0
+    }
+
+    /// Check if NTFS is supported
+    #[must_use]
+    pub const fn ntfs(&self) -> bool {
+        self.flags & Self::NTFS != 0
+    }
+
+    /// Check if ISO9660 is supported
+    #[must_use]
+    pub const fn iso9660(&self) -> bool {
+        self.flags & Self::ISO9660 != 0
+    }
+
+    /// Check if BTRFS is supported
+    #[must_use]
+    pub const fn btrfs(&self) -> bool {
+        self.flags & Self::BTRFS != 0
+    }
+
+    /// Check if XFS is supported
+    #[must_use]
+    pub const fn xfs(&self) -> bool {
+        self.flags & Self::XFS != 0
+    }
+
+    /// Check if ZFS is supported
+    #[must_use]
+    pub const fn zfs(&self) -> bool {
+        self.flags & Self::ZFS != 0
+    }
 }
 
 impl Default for FilesystemSupport {
     fn default() -> Self {
         Self {
-            fat: true,
-            ext: true,
-            ntfs: false,
-            iso9660: true,
-            btrfs: false,
-            xfs: false,
-            zfs: false,
+            flags: Self::FAT | Self::EXT | Self::ISO9660,
         }
     }
 }
@@ -644,7 +633,7 @@ pub struct StorageSettings {
     pub filesystems: FilesystemSupport,
     /// Enable AHCI
     pub ahci_enabled: bool,
-    /// Enable NVMe
+    /// Enable `NVMe`
     pub nvme_enabled: bool,
     /// Enable USB storage
     pub usb_storage: bool,
@@ -676,13 +665,14 @@ impl Default for StorageSettings {
 // =============================================================================
 
 /// Log level
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum LogLevel {
     /// No logging
     Off,
     /// Error only
     Error,
     /// Warnings and errors
+    #[default]
     Warning,
     /// Info and above
     Info,
@@ -690,12 +680,6 @@ pub enum LogLevel {
     Debug,
     /// Everything
     Trace,
-}
-
-impl Default for LogLevel {
-    fn default() -> Self {
-        LogLevel::Warning
-    }
 }
 
 impl fmt::Display for LogLevel {
@@ -712,11 +696,12 @@ impl fmt::Display for LogLevel {
 }
 
 /// Log output destination
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LogOutput {
     /// No output
     None,
     /// Console (screen)
+    #[default]
     Console,
     /// Serial port
     Serial,
@@ -728,12 +713,6 @@ pub enum LogOutput {
     Memory,
     /// All outputs
     All,
-}
-
-impl Default for LogOutput {
-    fn default() -> Self {
-        LogOutput::Console
-    }
 }
 
 /// Serial port configuration
@@ -757,7 +736,7 @@ impl Default for SerialConfig {
     fn default() -> Self {
         Self {
             port: 0x3F8, // COM1
-            baud: 115200,
+            baud: 115_200,
             data_bits: 8,
             stop_bits: 1,
             parity: 0,
@@ -775,20 +754,74 @@ pub struct DebugSettings {
     pub log_output: LogOutput,
     /// Serial configuration
     pub serial: SerialConfig,
-    /// Enable debug console
-    pub debug_console: bool,
-    /// Break on startup
-    pub break_on_start: bool,
-    /// Pause before boot
-    pub pause_before_boot: bool,
-    /// Show timing info
-    pub show_timing: bool,
-    /// Show memory map
-    pub show_memory_map: bool,
-    /// Enable assertions
-    pub assertions: bool,
-    /// Stack canary enabled
-    pub stack_canary: bool,
+    /// Debug flags bitfield:
+    /// - bit 0: debug_console
+    /// - bit 1: break_on_start
+    /// - bit 2: pause_before_boot
+    /// - bit 3: show_timing
+    /// - bit 4: show_memory_map
+    /// - bit 5: assertions
+    /// - bit 6: stack_canary
+    flags: u8,
+}
+
+impl DebugSettings {
+    /// Debug console flag
+    pub const DEBUG_CONSOLE: u8 = 1 << 0;
+    /// Break on start flag
+    pub const BREAK_ON_START: u8 = 1 << 1;
+    /// Pause before boot flag
+    pub const PAUSE_BEFORE_BOOT: u8 = 1 << 2;
+    /// Show timing flag
+    pub const SHOW_TIMING: u8 = 1 << 3;
+    /// Show memory map flag
+    pub const SHOW_MEMORY_MAP: u8 = 1 << 4;
+    /// Assertions enabled flag
+    pub const ASSERTIONS: u8 = 1 << 5;
+    /// Stack canary enabled flag
+    pub const STACK_CANARY: u8 = 1 << 6;
+
+    /// Check if debug console is enabled
+    #[must_use]
+    pub const fn debug_console(&self) -> bool {
+        self.flags & Self::DEBUG_CONSOLE != 0
+    }
+
+    /// Check if break on start is enabled
+    #[must_use]
+    pub const fn break_on_start(&self) -> bool {
+        self.flags & Self::BREAK_ON_START != 0
+    }
+
+    /// Check if pause before boot is enabled
+    #[must_use]
+    pub const fn pause_before_boot(&self) -> bool {
+        self.flags & Self::PAUSE_BEFORE_BOOT != 0
+    }
+
+    /// Check if show timing is enabled
+    #[must_use]
+    pub const fn show_timing(&self) -> bool {
+        self.flags & Self::SHOW_TIMING != 0
+    }
+
+    /// Check if show memory map is enabled
+    #[must_use]
+    pub const fn show_memory_map(&self) -> bool {
+        self.flags & Self::SHOW_MEMORY_MAP != 0
+    }
+
+    /// Check if assertions are enabled
+    #[must_use]
+    pub const fn assertions(&self) -> bool {
+        self.flags & Self::ASSERTIONS != 0
+    }
+
+    /// Check if stack canary is enabled
+    #[must_use]
+    pub const fn stack_canary(&self) -> bool {
+        self.flags & Self::STACK_CANARY != 0
+    }
 }
 
 impl Default for DebugSettings {
@@ -797,13 +830,7 @@ impl Default for DebugSettings {
             log_level: LogLevel::Warning,
             log_output: LogOutput::Console,
             serial: SerialConfig::default(),
-            debug_console: false,
-            break_on_start: false,
-            pause_before_boot: false,
-            show_timing: false,
-            show_memory_map: false,
-            assertions: true,
-            stack_canary: true,
+            flags: Self::ASSERTIONS | Self::STACK_CANARY,
         }
     }
 }
@@ -813,9 +840,10 @@ impl Default for DebugSettings {
 // =============================================================================
 
 /// Power behavior
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PowerBehavior {
     /// Normal boot
+    #[default]
     Normal,
     /// Wake on LAN
     WakeOnLan,
@@ -825,12 +853,6 @@ pub enum PowerBehavior {
     FastStartup,
     /// Hibernate resume
     HibernateResume,
-}
-
-impl Default for PowerBehavior {
-    fn default() -> Self {
-        PowerBehavior::Normal
-    }
 }
 
 /// Power settings structure
@@ -868,27 +890,35 @@ impl Default for PowerSettings {
 // =============================================================================
 
 /// Language code (ISO 639-1)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LanguageCode {
+    /// English language
+    #[default]
     English,
+    /// French language
     French,
+    /// German language
     German,
+    /// Spanish language
     Spanish,
+    /// Italian language
     Italian,
+    /// Portuguese language
     Portuguese,
+    /// Russian language
     Russian,
+    /// Chinese language
     Chinese,
+    /// Japanese language
     Japanese,
+    /// Korean language
     Korean,
+    /// Arabic language
     Arabic,
+    /// Hebrew language
     Hebrew,
+    /// Custom language code
     Custom([u8; 2]),
-}
-
-impl Default for LanguageCode {
-    fn default() -> Self {
-        LanguageCode::English
-    }
 }
 
 impl LanguageCode {
@@ -913,24 +943,29 @@ impl LanguageCode {
 }
 
 /// Keyboard layout
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum KeyboardLayout {
+    /// US QWERTY layout
+    #[default]
     UsQwerty,
+    /// UK QWERTY layout
     UkQwerty,
+    /// French AZERTY layout
     FrAzerty,
+    /// German QWERTZ layout
     DeQwertz,
+    /// Spanish QWERTY layout
     EsQwerty,
+    /// Italian QWERTY layout
     ItQwerty,
+    /// Portuguese QWERTY layout
     PtQwerty,
+    /// Russian JCUKEN layout
     RuJcuken,
+    /// Japanese JIS layout
     JpJis,
+    /// Korean Sebeolsik layout
     KoSebeolsik,
-}
-
-impl Default for KeyboardLayout {
-    fn default() -> Self {
-        KeyboardLayout::UsQwerty
-    }
 }
 
 /// Locale settings structure
@@ -968,7 +1003,7 @@ impl Default for LocaleSettings {
 pub const SETTINGS_VERSION: u32 = 1;
 
 /// Settings magic number
-pub const SETTINGS_MAGIC: u32 = 0x48454C58; // "HELX"
+pub const SETTINGS_MAGIC: u32 = 0x4845_4C58; // "HELX"
 
 /// Master settings header
 #[derive(Debug, Clone, Copy)]
@@ -1008,7 +1043,7 @@ impl SettingsHeader {
 }
 
 /// Complete settings structure
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Settings {
     /// Header
     pub header: SettingsHeader,
@@ -1028,22 +1063,6 @@ pub struct Settings {
     pub power: PowerSettings,
     /// Locale settings
     pub locale: LocaleSettings,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            header: SettingsHeader::default(),
-            boot: BootSettings::default(),
-            display: DisplaySettings::default(),
-            security: SecuritySettings::default(),
-            network: NetworkSettings::default(),
-            storage: StorageSettings::default(),
-            debug: DebugSettings::default(),
-            power: PowerSettings::default(),
-            locale: LocaleSettings::default(),
-        }
-    }
 }
 
 impl Settings {
@@ -1128,7 +1147,7 @@ impl Settings {
                 log_output: LogOutput::Console,
                 serial: SerialConfig {
                     port: 0x3F8,
-                    baud: 115200,
+                    baud: 115_200,
                     data_bits: 8,
                     stop_bits: 1,
                     parity: 0,
@@ -1191,13 +1210,21 @@ pub struct SettingChange {
 /// Setting category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingCategory {
+    /// Boot-related settings
     Boot,
+    /// Display-related settings
     Display,
+    /// Security-related settings
     Security,
+    /// Network-related settings
     Network,
+    /// Storage-related settings
     Storage,
+    /// Debug-related settings
     Debug,
+    /// Power-related settings
     Power,
+    /// Locale-related settings
     Locale,
 }
 
