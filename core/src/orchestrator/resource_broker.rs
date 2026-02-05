@@ -3,9 +3,7 @@
 //! Manages system resources and their allocation across subsystems.
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use spin::RwLock;
