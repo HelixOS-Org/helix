@@ -905,7 +905,8 @@ impl<'a> PeFile<'a> {
         }
 
         // Get PE header offset
-        let pe_offset = usize::try_from(dos_header.e_lfanew).map_err(|_| PeError::InvalidDosHeader)?;
+        let pe_offset =
+            usize::try_from(dos_header.e_lfanew).map_err(|_| PeError::InvalidDosHeader)?;
 
         if pe_offset + 4 > data.len() {
             return Err(PeError::InvalidPeSignature);
@@ -1202,7 +1203,8 @@ impl PeLoader {
             // Process entries
             for i in 0..block.entry_count() {
                 let i_u32 = u32::try_from(i).map_err(|_| PeError::InvalidRelocation)?;
-                let size_u32 = u32::try_from(BaseRelocationBlock::SIZE).map_err(|_| PeError::InvalidRelocation)?;
+                let size_u32 = u32::try_from(BaseRelocationBlock::SIZE)
+                    .map_err(|_| PeError::InvalidRelocation)?;
                 let entry_offset = block_rva + size_u32 + (i_u32 * 2);
                 let entry_data = pe
                     .data_at_rva(entry_offset, 2)
@@ -1215,7 +1217,8 @@ impl PeLoader {
                     continue;
                 }
 
-                let reloc_offset = usize::try_from(block.virtual_address + u32::from(entry.offset)).map_err(|_| PeError::InvalidRelocation)?;
+                let reloc_offset = usize::try_from(block.virtual_address + u32::from(entry.offset))
+                    .map_err(|_| PeError::InvalidRelocation)?;
 
                 match entry.reloc_type {
                     reloc_type::DIR64 => {
