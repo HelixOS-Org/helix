@@ -17,7 +17,7 @@ use core::ptr;
 /// ACPI table protocol for accessing system ACPI tables
 pub struct AcpiTables {
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// RSDP address
     rsdp_address: PhysicalAddress,
     /// RSDT address (32-bit)
@@ -32,7 +32,7 @@ impl AcpiTables {
     /// Create new ACPI tables accessor
     pub fn new(handle: Handle) -> Self {
         Self {
-            handle,
+            _handle: handle,
             rsdp_address: PhysicalAddress(0),
             rsdt_address: None,
             xsdt_address: None,
