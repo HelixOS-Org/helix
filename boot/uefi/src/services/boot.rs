@@ -247,17 +247,17 @@ pub struct EventType;
 
 impl EventType {
     /// Timer event
-    pub const TIMER: u32 = 0x80000000;
+    pub const TIMER: u32 = 0x8000_0000;
     /// Runtime event
-    pub const RUNTIME: u32 = 0x40000000;
+    pub const RUNTIME: u32 = 0x4000_0000;
     /// Notify wait
-    pub const NOTIFY_WAIT: u32 = 0x00000100;
+    pub const NOTIFY_WAIT: u32 = 0x0000_0100;
     /// Notify signal
-    pub const NOTIFY_SIGNAL: u32 = 0x00000200;
+    pub const NOTIFY_SIGNAL: u32 = 0x0000_0200;
     /// Signal exit boot services
-    pub const SIGNAL_EXIT_BOOT_SERVICES: u32 = 0x00000201;
+    pub const SIGNAL_EXIT_BOOT_SERVICES: u32 = 0x0000_0201;
     /// Signal virtual address change
-    pub const SIGNAL_VIRTUAL_ADDRESS_CHANGE: u32 = 0x60000202;
+    pub const SIGNAL_VIRTUAL_ADDRESS_CHANGE: u32 = 0x6000_0202;
 }
 
 /// Task priority levels
