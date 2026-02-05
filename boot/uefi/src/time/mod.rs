@@ -119,24 +119,24 @@ impl Time {
     /// Day of year (1-366)
     pub fn day_of_year(&self) -> u16 {
         let mut days = 0u16;
-        for m in 1..self.month {
-            days += days_in_month(self.year, m) as u16;
+        for month_num in 1..self.month {
+            days += u16::from(days_in_month(self.year, month_num));
         }
-        days + self.day as u16
+        days + u16::from(self.day)
     }
 
     /// Day of week (0=Sunday, 6=Saturday)
     pub fn day_of_week(&self) -> u8 {
         // Zeller's congruence
-        let mut year_adj = self.year as i32;
-        let mut month_adj = self.month as i32;
+        let mut year_adj = i32::from(self.year);
+        let mut month_adj = i32::from(self.month);
 
         if month_adj < 3 {
             month_adj += 12;
             year_adj -= 1;
         }
 
-        let day_of_month = self.day as i32;
+        let day_of_month = i32::from(self.day);
         let year_of_century = year_adj % 100;
         let century = year_adj / 100;
 
@@ -149,18 +149,24 @@ impl Time {
             % 7;
 
         // Convert from Zeller (Saturday=0) to (Sunday=0)
-        ((zeller_result + 6) % 7) as u8
+        #[expect(clippy::cast_sign_loss, reason = "modulo 7 result is always 0-6")]
+        {
+            ((zeller_result + 6) % 7) as u8
+        }
     }
 
     /// Week of year (ISO 8601)
     pub fn week_of_year(&self) -> u8 {
-        let day_of_year = self.day_of_year() as i32;
-        let day_of_week = self.day_of_week() as i32;
+        let day_of_year = i32::from(self.day_of_year());
+        let day_of_week = i32::from(self.day_of_week());
 
         // Thursday-based week
         let week = (day_of_year - day_of_week + 10) / 7;
 
-        week.max(1).min(53) as u8
+        #[expect(clippy::cast_sign_loss, reason = "clamp ensures value is 1-53")]
+        {
+            week.clamp(1, 53) as u8
+        }
     }
 
     /// Convert to Unix timestamp (seconds since 1970-01-01 00:00:00 UTC)
@@ -168,33 +174,34 @@ impl Time {
         let mut days = 0i64;
 
         // Years
-        for y in 1970..self.year {
-            days += if is_leap_year(y) { 366 } else { 365 };
+        for year_iter in 1970..self.year {
+            days += if is_leap_year(year_iter) { 366 } else { 365 };
         }
 
         // Months
-        for m in 1..self.month {
-            days += days_in_month(self.year, m) as i64;
+        for month_num in 1..self.month {
+            days += i64::from(days_in_month(self.year, month_num));
         }
 
         // Days
-        days += (self.day - 1) as i64;
+        days += i64::from(self.day - 1);
 
         // Convert to seconds
         let mut secs = days * 86400;
-        secs += self.hour as i64 * 3600;
-        secs += self.minute as i64 * 60;
-        secs += self.second as i64;
+        secs += i64::from(self.hour) * 3600;
+        secs += i64::from(self.minute) * 60;
+        secs += i64::from(self.second);
 
         // Adjust for timezone
         if self.timezone != Self::TIMEZONE_UNSPECIFIED {
-            secs -= self.timezone as i64 * 60;
+            secs -= i64::from(self.timezone) * 60;
         }
 
         secs
     }
 
     /// Create from Unix timestamp
+    #[must_use]
     pub fn from_unix_timestamp(timestamp: i64) -> Self {
         let mut remaining = timestamp;
 
@@ -222,7 +229,7 @@ impl Time {
         // Calculate month
         let mut month = 1u8;
         while month <= 12 {
-            let month_secs = days_in_month(year, month) as i64 * 86400;
+            let month_secs = i64::from(days_in_month(year, month)) * 86400;
             if remaining < month_secs {
                 break;
             }
@@ -231,17 +238,21 @@ impl Time {
         }
 
         // Calculate day
+        #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, reason = "value is bounded by days in month")]
         let day = (remaining / 86400) as u8 + 1;
         remaining %= 86400;
 
         // Calculate hour
+        #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, reason = "value is 0-23")]
         let hour = (remaining / 3600) as u8;
         remaining %= 3600;
 
         // Calculate minute
+        #[expect(clippy::cast_sign_loss, reason = "value is 0-59")]
         let minute = (remaining / 60) as u8;
 
         // Calculate second
+        #[expect(clippy::cast_sign_loss, reason = "value is 0-59")]
         let second = (remaining % 60) as u8;
 
         Self::new(year, month, day, hour, minute, second)
@@ -329,6 +340,8 @@ impl Duration {
     }
 
     /// Create from milliseconds
+    #[must_use]
+    #[expect(clippy::cast_possible_truncation, reason = "(millis % 1000) * 1_000_000 is at most 999_000_000 which fits in u32")]
     pub const fn from_millis(millis: u64) -> Self {
         Self {
             secs: millis / 1000,
@@ -337,6 +350,8 @@ impl Duration {
     }
 
     /// Create from microseconds
+    #[must_use]
+    #[expect(clippy::cast_possible_truncation, reason = "(micros % 1_000_000) * 1000 is at most 999_999_000 which fits in u32")]
     pub const fn from_micros(micros: u64) -> Self {
         Self {
             secs: micros / 1_000_000,
@@ -345,6 +360,8 @@ impl Duration {
     }
 
     /// Create from nanoseconds
+    #[must_use]
+    #[expect(clippy::cast_possible_truncation, reason = "modulo NANOS_PER_SEC is always < 1_000_000_000 which fits in u32")]
     pub const fn from_nanos(nanos: u64) -> Self {
         Self {
             secs: nanos / Self::NANOS_PER_SEC as u64,
@@ -419,23 +436,26 @@ impl Duration {
     }
 
     /// Checked multiply
+    #[expect(clippy::cast_possible_truncation, reason = "modulo NANOS_PER_SEC is always < 1_000_000_000 which fits in u32")]
     pub fn checked_mul(self, rhs: u32) -> Option<Duration> {
-        let total_nanos = self.nanos as u64 * rhs as u64;
+        let total_nanos = u64::from(self.nanos) * u64::from(rhs);
         let secs = self
             .secs
-            .checked_mul(rhs as u64)?
-            .checked_add(total_nanos / Self::NANOS_PER_SEC as u64)?;
-        let nanos = (total_nanos % Self::NANOS_PER_SEC as u64) as u32;
+            .checked_mul(u64::from(rhs))?
+            .checked_add(total_nanos / u64::from(Self::NANOS_PER_SEC))?;
+        let nanos = (total_nanos % u64::from(Self::NANOS_PER_SEC)) as u32;
 
         Some(Duration { secs, nanos })
     }
 
     /// Saturating add
+    #[must_use]
     pub fn saturating_add(self, rhs: Duration) -> Duration {
         self.checked_add(rhs).unwrap_or(Self::MAX)
     }
 
     /// Saturating sub
+    #[must_use]
     pub fn saturating_sub(self, rhs: Duration) -> Duration {
         self.checked_sub(rhs).unwrap_or(Self::ZERO)
     }
@@ -487,7 +507,9 @@ impl Instant {
 
         let secs = diff / frequency;
         let remaining = diff % frequency;
-        let nanos = ((remaining as u128 * 1_000_000_000) / frequency as u128) as u32;
+        // Safe: result is always < 1_000_000_000 since remaining < frequency
+        #[expect(clippy::cast_possible_truncation, reason = "nanos is always < 1_000_000_000")]
+        let nanos = ((u128::from(remaining) * 1_000_000_000) / u128::from(frequency)) as u32;
 
         Duration::new(secs, nanos)
     }
@@ -580,7 +602,9 @@ impl Timer {
 
     /// Start with duration
     pub fn start_duration(&mut self, current_tick: u64, duration: Duration, frequency: u64) {
-        let period_ticks = (duration.as_nanos() * frequency as u128 / 1_000_000_000) as u64;
+        // Safe truncation: for reasonable durations and frequencies, the result fits in u64
+        #[expect(clippy::cast_possible_truncation, reason = "timer period fits in u64 for reasonable values")]
+        let period_ticks = (duration.as_nanos() * u128::from(frequency) / 1_000_000_000) as u64;
         self.start(current_tick, period_ticks);
     }
 
@@ -656,8 +680,15 @@ pub struct Stopwatch {
     lap_count: usize,
 }
 
+impl Default for Stopwatch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Stopwatch {
     /// Create new stopwatch
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             start: 0,
@@ -719,7 +750,9 @@ impl Stopwatch {
 
         let secs = ticks / frequency;
         let remaining = ticks % frequency;
-        let nanos = ((remaining as u128 * 1_000_000_000) / frequency as u128) as u32;
+        // Safe: result is always < 1_000_000_000 since remaining < frequency
+        #[expect(clippy::cast_possible_truncation, reason = "nanos is always < 1_000_000_000")]
+        let nanos = ((u128::from(remaining) * 1_000_000_000) / u128::from(frequency)) as u32;
 
         Duration::new(secs, nanos)
     }
@@ -747,8 +780,15 @@ pub struct Countdown {
     active: bool,
 }
 
+impl Default for Countdown {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Countdown {
     /// Create new countdown
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             target: 0,
@@ -764,7 +804,9 @@ impl Countdown {
 
     /// Start with duration
     pub fn start_duration(&mut self, current_tick: u64, duration: Duration, frequency: u64) {
-        let ticks = (duration.as_nanos() * frequency as u128 / 1_000_000_000) as u64;
+        // Safe truncation: for reasonable durations and frequencies, the result fits in u64
+        #[expect(clippy::cast_possible_truncation, reason = "timer period fits in u64 for reasonable values")]
+        let ticks = (duration.as_nanos() * u128::from(frequency) / 1_000_000_000) as u64;
         self.start(current_tick, ticks);
     }
 
@@ -791,7 +833,9 @@ impl Countdown {
 
         let secs = ticks / frequency;
         let remaining = ticks % frequency;
-        let nanos = ((remaining as u128 * 1_000_000_000) / frequency as u128) as u32;
+        // Safe: result is always < 1_000_000_000 since remaining < frequency
+        #[expect(clippy::cast_possible_truncation, reason = "nanos is always < 1_000_000_000")]
+        let nanos = ((u128::from(remaining) * 1_000_000_000) / u128::from(frequency)) as u32;
 
         Duration::new(secs, nanos)
     }
@@ -811,7 +855,7 @@ impl Countdown {
 // TSC (TIME STAMP COUNTER)
 // =============================================================================
 
-/// Read TSC (x86_64)
+/// Read TSC (`x86_64`)
 #[cfg(target_arch = "x86_64")]
 pub fn read_tsc() -> u64 {
     let low: u32;
@@ -824,7 +868,7 @@ pub fn read_tsc() -> u64 {
             options(nostack, nomem)
         );
     }
-    ((high as u64) << 32) | (low as u64)
+    (u64::from(high) << 32) | u64::from(low)
 }
 
 /// Read TSC (aarch64 - use cycle counter)
@@ -847,22 +891,23 @@ pub fn read_tsc() -> u64 {
     0
 }
 
-/// Read TSC with ordering fence (x86_64)
+/// Read TSC with ordering fence (`x86_64`)
 #[cfg(target_arch = "x86_64")]
 pub fn read_tsc_ordered() -> u64 {
     let low: u32;
     let high: u32;
-    let _aux: u32;
+    let aux: u32;
     unsafe {
         core::arch::asm!(
             "rdtscp",
             out("eax") low,
             out("edx") high,
-            out("ecx") _aux,
+            out("ecx") aux,
             options(nostack, nomem)
         );
     }
-    ((high as u64) << 32) | (low as u64)
+    let _ = aux; // Intentionally unused - required by rdtscp instruction
+    (u64::from(high) << 32) | u64::from(low)
 }
 
 #[cfg(not(target_arch = "x86_64"))]
@@ -963,7 +1008,8 @@ pub const fn is_leap_year(year: u16) -> bool {
 /// Days in month
 pub const fn days_in_month(year: u16, month: u8) -> u8 {
     match month {
-        1 => 31,
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
         2 => {
             if is_leap_year(year) {
                 29
@@ -971,16 +1017,6 @@ pub const fn days_in_month(year: u16, month: u8) -> u8 {
                 28
             }
         },
-        3 => 31,
-        4 => 30,
-        5 => 31,
-        6 => 30,
-        7 => 31,
-        8 => 31,
-        9 => 30,
-        10 => 31,
-        11 => 30,
-        12 => 31,
         _ => 0,
     }
 }
@@ -1066,22 +1102,38 @@ pub const fn day_short_name(day: u8) -> &'static str {
 
 /// Common timezone offsets (in minutes from UTC)
 pub mod timezone {
+    /// Coordinated Universal Time (UTC+0)
     pub const UTC: i16 = 0;
+    /// Greenwich Mean Time (UTC+0)
     pub const GMT: i16 = 0;
-    pub const CET: i16 = 60; // Central European Time
-    pub const EET: i16 = 120; // Eastern European Time
-    pub const MSK: i16 = 180; // Moscow Time
-    pub const IST: i16 = 330; // India Standard Time
-    pub const CST: i16 = 480; // China Standard Time
-    pub const JST: i16 = 540; // Japan Standard Time
-    pub const AEST: i16 = 600; // Australian Eastern Standard Time
-    pub const NZST: i16 = 720; // New Zealand Standard Time
-    pub const EST: i16 = -300; // Eastern Standard Time (US)
-    pub const CST_US: i16 = -360; // Central Standard Time (US)
-    pub const MST: i16 = -420; // Mountain Standard Time (US)
-    pub const PST: i16 = -480; // Pacific Standard Time (US)
-    pub const AKST: i16 = -540; // Alaska Standard Time
-    pub const HST: i16 = -600; // Hawaii Standard Time
+    /// Central European Time (UTC+1)
+    pub const CET: i16 = 60;
+    /// Eastern European Time (UTC+2)
+    pub const EET: i16 = 120;
+    /// Moscow Time (UTC+3)
+    pub const MSK: i16 = 180;
+    /// India Standard Time (UTC+5:30)
+    pub const IST: i16 = 330;
+    /// China Standard Time (UTC+8)
+    pub const CST: i16 = 480;
+    /// Japan Standard Time (UTC+9)
+    pub const JST: i16 = 540;
+    /// Australian Eastern Standard Time (UTC+10)
+    pub const AEST: i16 = 600;
+    /// New Zealand Standard Time (UTC+12)
+    pub const NZST: i16 = 720;
+    /// Eastern Standard Time US (UTC-5)
+    pub const EST: i16 = -300;
+    /// Central Standard Time US (UTC-6)
+    pub const CST_US: i16 = -360;
+    /// Mountain Standard Time US (UTC-7)
+    pub const MST: i16 = -420;
+    /// Pacific Standard Time US (UTC-8)
+    pub const PST: i16 = -480;
+    /// Alaska Standard Time (UTC-9)
+    pub const AKST: i16 = -540;
+    /// Hawaii Standard Time (UTC-10)
+    pub const HST: i16 = -600;
 }
 
 // =============================================================================
