@@ -9,7 +9,7 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::activation::{Activation, ActivationType, Identity, ReLU, create_activation};
+use super::activation::{Activation, ActivationType, create_activation};
 use super::tensor::{Tensor, TensorShape};
 
 // ============================================================================
@@ -917,7 +917,7 @@ impl SelfAttention {
         let scale = 1.0 / libm::sqrtf(self.embed_dim as f32);
 
         // Compute attention scores (simplified for 1D input)
-        if let (Some(scores), Some(k_t)) = (q.dot(k), k.clone().transpose()) {
+        if let (Some(scores), Some(_k_t)) = (q.dot(k), k.clone().transpose()) {
             let scaled_score = scores * scale;
             let attention_weight = 1.0 / (1.0 + libm::expf(-scaled_score)); // sigmoid approx
 
