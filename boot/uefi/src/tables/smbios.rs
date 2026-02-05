@@ -3,7 +3,7 @@
 //! Comprehensive SMBIOS parsing for system hardware enumeration.
 
 use crate::error::{Error, Result};
-use crate::raw::types::*;
+use crate::raw::types::PhysicalAddress;
 
 extern crate alloc;
 use alloc::string::String;
@@ -80,6 +80,11 @@ impl SmbiosParser {
     }
 
     /// Initialize from SMBIOS 2.x entry point
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `entry` points to a valid SMBIOS 2.x entry point structure
+    /// in memory and that the memory remains valid for the duration of the parsing operation.
     pub unsafe fn init_from_entry_point(&mut self, entry: PhysicalAddress) -> Result<()> {
         let ep = &*(entry.0 as *const SmbiosEntryPoint);
 
@@ -94,7 +99,7 @@ impl SmbiosParser {
         }
 
         self.version = super::SmbiosVersion::new(ep.major_version, ep.minor_version);
-        self.table_address = PhysicalAddress(ep.structure_table_address as u64);
+        self.table_address = PhysicalAddress(u64::from(ep.structure_table_address));
         self.table_length = ep.structure_table_length as usize;
         self.structure_count = ep.number_of_structures as usize;
 
@@ -103,6 +108,11 @@ impl SmbiosParser {
     }
 
     /// Initialize from SMBIOS 3.x entry point
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `entry` points to a valid SMBIOS 3.x entry point structure
+    /// in memory and that the memory remains valid for the duration of the parsing operation.
     pub unsafe fn init_from_entry_point3(&mut self, entry: PhysicalAddress) -> Result<()> {
         let ep = &*(entry.0 as *const SmbiosEntryPoint3);
 
