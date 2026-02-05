@@ -4,7 +4,7 @@
 
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use super::{SyscallArgs, SyscallContext, SyscallError, SyscallReturn};
+use super::{SyscallArgs, SyscallContext, SyscallReturn};
 
 /// Statistics for syscall handling
 #[derive(Debug, Default)]
