@@ -54,7 +54,7 @@ pub trait ModuleLoader: Send + Sync {
 /// ELF module loader
 pub struct ElfLoader {
     /// Allocate kernel memory
-    allocate: Box<dyn Fn(usize, usize) -> Option<u64> + Send + Sync>,
+    _allocate: Box<dyn Fn(usize, usize) -> Option<u64> + Send + Sync>,
     /// Free kernel memory
     free: Box<dyn Fn(u64, usize) + Send + Sync>,
 }
@@ -66,7 +66,7 @@ impl ElfLoader {
         free: impl Fn(u64, usize) + Send + Sync + 'static,
     ) -> Self {
         Self {
-            allocate: Box::new(allocate),
+            _allocate: Box::new(allocate),
             free: Box::new(free),
         }
     }
