@@ -2,6 +2,8 @@
 //!
 //! This module provides a query language for causal reasoning.
 
+#![allow(clippy::excessive_nesting)]
+
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
