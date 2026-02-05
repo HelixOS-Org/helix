@@ -819,7 +819,7 @@ pub struct MeasuredBoot {
     /// Event log
     event_log: EventLog,
     /// Number of PCRs
-    num_pcrs: usize,
+    _num_pcrs: usize,
 }
 
 impl MeasuredBoot {
@@ -839,7 +839,7 @@ impl MeasuredBoot {
         Self {
             banks,
             event_log: EventLog::new(&alg_sizes),
-            num_pcrs,
+            _num_pcrs: num_pcrs,
         }
     }
 
