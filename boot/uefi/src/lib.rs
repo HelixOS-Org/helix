@@ -860,7 +860,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 // TESTS
 // =============================================================================
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "linux"))]
 mod tests {
     use super::*;
 
@@ -872,9 +872,9 @@ mod tests {
 
     #[test]
     fn test_guid_creation() {
-        let guid = Guid::new(0x12345678, 0x1234, 0x5678, [
+        let guid = raw::types::Guid::new(0x1234_5678, 0x1234, 0x5678, [
             0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0,
         ]);
-        assert_eq!(guid.data1(), 0x12345678);
+        assert_eq!(guid.data1, 0x1234_5678);
     }
 }
