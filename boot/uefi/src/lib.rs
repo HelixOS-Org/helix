@@ -48,7 +48,6 @@
 
 #![no_std]
 #![allow(unsafe_op_in_unsafe_fn)]
-#![warn(missing_docs)]
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
@@ -523,7 +522,9 @@ static ALLOCATOR: mem_alloc::BootAllocator = mem_alloc::BootAllocator::new();
 
 #[alloc_error_handler]
 fn alloc_error(_layout: core::alloc::Layout) -> ! {
-    loop {}
+    loop {
+        core::hint::spin_loop();
+    }
 }
 
 // =============================================================================
@@ -537,7 +538,7 @@ pub use raw::types::{Guid, Handle, PhysicalAddress, Status, VirtualAddress};
 pub use services::boot::BootServices;
 pub use services::runtime::RuntimeServices;
 
-/// Alias for EfiSystemTable for convenience
+/// Alias for `EfiSystemTable` for convenience
 pub type SystemTable = EfiSystemTable;
 
 // =============================================================================
@@ -677,28 +678,28 @@ impl UefiEnv {
         }
 
         // Store global pointers
-        SYSTEM_TABLE.store(system_table as *mut _, Ordering::Release);
-        IMAGE_HANDLE.store(image_handle.as_ptr() as *mut _, Ordering::Release);
+        SYSTEM_TABLE.store(system_table.cast_mut(), Ordering::Release);
+        IMAGE_HANDLE.store(image_handle.as_ptr().cast(), Ordering::Release);
 
         // Validate system table
-        let st = &*(system_table as *const SystemTable);
+        let st = &*system_table.cast::<SystemTable>();
         if !st.validate() {
             return Err(Error::InvalidParameter);
         }
 
         Ok(Self {
             image_handle,
-            system_table: &*(system_table as *const SystemTable),
+            system_table: &*system_table.cast::<SystemTable>(),
         })
     }
 
     /// Get the image handle
-    pub fn image_handle(&self) -> Handle {
+    pub const fn image_handle(&self) -> Handle {
         self.image_handle
     }
 
     /// Get the system table
-    pub fn system_table(&self) -> &SystemTable {
+    pub const fn system_table(&self) -> &SystemTable {
         self.system_table
     }
 
@@ -708,9 +709,10 @@ impl UefiEnv {
     ///
     /// Panics if called after `exit_boot_services()`.
     pub fn boot_services(&self) -> Option<&raw::boot_services::EfiBootServices> {
-        if BOOT_SERVICES_EXITED.load(Ordering::Acquire) {
-            panic!("Boot services have been exited");
-        }
+        assert!(
+            !BOOT_SERVICES_EXITED.load(Ordering::Acquire),
+            "Boot services have been exited"
+        );
         unsafe { self.system_table.boot_services() }
     }
 
@@ -727,14 +729,14 @@ impl UefiEnv {
 
     /// Get graphics output
     #[cfg(feature = "gop")]
-    pub fn graphics(&self) -> Result<protocols::graphics::GraphicsOutput> {
+    pub const fn graphics(&self) -> Result<protocols::graphics::GraphicsOutput> {
         // TODO: Implement properly via boot services protocol location
         Err(Error::Unsupported)
     }
 
     /// Get file system access
     #[cfg(feature = "filesystem")]
-    pub fn filesystem(&self) -> Result<protocols::filesystem::FileSystem> {
+    pub const fn filesystem(&self) -> Result<protocols::filesystem::FileSystem> {
         // TODO: Implement properly via boot services protocol location
         Err(Error::Unsupported)
     }
@@ -826,8 +828,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     let st_ptr = SYSTEM_TABLE.load(Ordering::Acquire);
     if !st_ptr.is_null() {
         unsafe {
-            let st = st_ptr as *mut raw::system_table::EfiSystemTable;
-            let console = protocols::console::Console::new(st);
+            let console = protocols::console::Console::new(st_ptr);
             let _ = console.set_color(
                 protocols::console::Color::RED,
                 protocols::console::Color::BLACK,
@@ -848,11 +849,13 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
         #[cfg(target_arch = "x86_64")]
         unsafe {
             core::arch::asm!("hlt")
+            ;
         };
 
         #[cfg(target_arch = "aarch64")]
         unsafe {
             core::arch::asm!("wfi")
+            ;
         };
     }
 }
