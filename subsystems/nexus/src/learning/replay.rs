@@ -6,12 +6,12 @@
 //! Part of Year 2 COGNITION - Q4: Continuous Learning
 
 #![allow(dead_code)]
+#![allow(clippy::implicit_saturating_sub)]
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::math::F64Ext;
