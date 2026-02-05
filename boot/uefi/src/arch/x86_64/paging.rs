@@ -447,30 +447,50 @@ impl PageTableWalker {
         &*(virt.0 as *const PageTable)
     }
 
-    /// Get page table at physical address (mutable)
-    unsafe fn get_table_mut(&self, phys: PhysicalAddress) -> &'static mut PageTable {
-        let virt = phys + self.phys_offset;
-        &mut *(virt.0 as *mut PageTable)
-    }
-
     /// Translate virtual to physical address
     pub fn translate(
         &self,
         pml4: PhysicalAddress,
         virt: VirtualAddress,
     ) -> Option<PhysicalAddress> {
-        let components = VirtualAddressComponents::from_address(virt);
+        let (pml4_addr, pml4_index, pdpt_index, page_dir_index, page_table_index, offset) =
+            if self.level5 {
+                let components = VirtualAddressComponents5::from_address(virt);
+                let pml5_table = unsafe { self.get_table(pml4) };
+                let pml5_entry = &pml5_table[components.pml5];
+                if !pml5_entry.is_present() {
+                    return None;
+                }
+                (
+                    pml5_entry.address(),
+                    components.pml4,
+                    components.pdpt,
+                    components.pd,
+                    components.pt,
+                    components.offset,
+                )
+            } else {
+                let components = VirtualAddressComponents::from_address(virt);
+                (
+                    pml4,
+                    components.pml4,
+                    components.pdpt,
+                    components.pd,
+                    components.pt,
+                    components.offset,
+                )
+            };
 
         // Walk PML4
-        let pml4_table = unsafe { self.get_table(pml4) };
-        let pml4_entry = &pml4_table[components.pml4];
+        let pml4_table = unsafe { self.get_table(pml4_addr) };
+        let pml4_entry = &pml4_table[pml4_index];
         if !pml4_entry.is_present() {
             return None;
         }
 
         // Walk PDPT
         let pdpt_table = unsafe { self.get_table(pml4_entry.address()) };
-        let pdpt_entry = &pdpt_table[components.pdpt];
+        let pdpt_entry = &pdpt_table[pdpt_index];
         if !pdpt_entry.is_present() {
             return None;
         }
@@ -480,25 +500,25 @@ impl PageTableWalker {
         }
 
         // Walk PD
-        let pd_table = unsafe { self.get_table(pdpt_entry.address()) };
-        let pd_entry = &pd_table[components.pd];
-        if !pd_entry.is_present() {
+        let page_dir_table = unsafe { self.get_table(pdpt_entry.address()) };
+        let page_dir_entry = &page_dir_table[page_dir_index];
+        if !page_dir_entry.is_present() {
             return None;
         }
-        if pd_entry.is_huge() {
+        if page_dir_entry.is_huge() {
             // 2MB page
-            return Some(pd_entry.address() + (virt & (LARGE_PAGE_SIZE - 1)));
+            return Some(page_dir_entry.address() + (virt & (LARGE_PAGE_SIZE - 1)));
         }
 
         // Walk PT
-        let pt_table = unsafe { self.get_table(pd_entry.address()) };
-        let pt_entry = &pt_table[components.pt];
-        if !pt_entry.is_present() {
+        let page_table = unsafe { self.get_table(page_dir_entry.address()) };
+        let page_table_entry = &page_table[page_table_index];
+        if !page_table_entry.is_present() {
             return None;
         }
 
         // 4KB page
-        Some(pt_entry.address() + components.offset as u64)
+        Some(page_table_entry.address() + offset as u64)
     }
 }
 
@@ -523,8 +543,6 @@ pub struct PageTableBuilder<A: PageTableAllocator> {
     phys_offset: u64,
     /// Root table (PML4) address
     root: PhysicalAddress,
-    /// Use 5-level paging
-    level5: bool,
 }
 
 impl<A: PageTableAllocator> PageTableBuilder<A> {
@@ -540,7 +558,6 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
             allocator,
             phys_offset,
             root,
-            level5: false,
         })
     }
 
@@ -587,12 +604,12 @@ impl<A: PageTableAllocator> PageTableBuilder<A> {
         let pdpt_addr = self.ensure_table(&mut pml4[components.pml4])?;
 
         let pdpt = unsafe { self.get_table_mut(pdpt_addr) };
-        let pd_addr = self.ensure_table(&mut pdpt[components.pdpt])?;
+        let page_dir_addr = self.ensure_table(&mut pdpt[components.pdpt])?;
 
-        let pd = unsafe { self.get_table_mut(pd_addr) };
-        let pt_addr = self.ensure_table(&mut pd[components.pd])?;
+        let pd = unsafe { self.get_table_mut(page_dir_addr) };
+        let page_table_addr = self.ensure_table(&mut pd[components.pd])?;
 
-        let pt = unsafe { self.get_table_mut(pt_addr) };
+        let pt = unsafe { self.get_table_mut(page_table_addr) };
         pt[components.pt] = PageTableEntry::page(phys, entry_flags);
 
         Ok(())
