@@ -17,7 +17,7 @@ pub struct Console {
     /// Current log level
     log_level: LogLevel,
     /// Color support
-    color_support: bool,
+    _color_support: bool,
     /// Current foreground color
     fg_color: Color,
     /// Current background color
@@ -31,7 +31,7 @@ impl Console {
             stdout,
             stdin,
             log_level: LogLevel::Info,
-            color_support: true,
+            _color_support: true,
             fg_color: Color::White,
             bg_color: Color::Black,
         }
