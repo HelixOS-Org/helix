@@ -240,7 +240,7 @@ impl BootStateFlags {
     pub const SAFE_MODE: BootStateFlags = BootStateFlags(16384);
     pub const DEBUG_MODE: BootStateFlags = BootStateFlags(32768);
     pub const RECOVERY_MODE: BootStateFlags = BootStateFlags(65536);
-    pub const ERROR_OCCURRED: BootStateFlags = BootStateFlags(131072);
+    pub const ERROR_OCCURRED: BootStateFlags = BootStateFlags(131_072);
 
     /// Get raw value
     pub const fn raw(&self) -> u32 {
