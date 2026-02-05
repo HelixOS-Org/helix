@@ -651,13 +651,19 @@ impl MemoryMap {
     }
 
     /// Get memory at or above a specific address
-    pub fn memory_above(&self, addr: PhysicalAddress) -> impl Iterator<Item = MemoryDescriptor> + '_ {
+    pub fn memory_above(
+        &self,
+        addr: PhysicalAddress,
+    ) -> impl Iterator<Item = MemoryDescriptor> + '_ {
         self.iter()
             .filter(move |d| d.physical_start.as_u64() >= addr.as_u64())
     }
 
     /// Get memory below a specific address
-    pub fn memory_below(&self, addr: PhysicalAddress) -> impl Iterator<Item = MemoryDescriptor> + '_ {
+    pub fn memory_below(
+        &self,
+        addr: PhysicalAddress,
+    ) -> impl Iterator<Item = MemoryDescriptor> + '_ {
         self.iter()
             .filter(move |d| d.physical_end().as_u64() <= addr.as_u64())
     }
