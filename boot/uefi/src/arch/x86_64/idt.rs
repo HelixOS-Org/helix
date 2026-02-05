@@ -554,8 +554,8 @@ pub unsafe fn set_handler(vector: u8, handler: u64) {
 
 /// Set handler with IST in static IDT
 pub unsafe fn set_handler_ist(vector: u8, handler: u64, ist: u8) {
-    let idt = unsafe { STATIC_IDT.as_mut() };
-    idt.set_handler_ist(vector, handler, ist);
+    let table = unsafe { STATIC_IDT.as_mut() };
+    table.set_handler_ist(vector, handler, ist);
 }
 
 /// Get static IDT
