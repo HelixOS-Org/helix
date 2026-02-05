@@ -829,7 +829,8 @@ impl ElfLoader {
                         break;
                     }
 
-                    let rela: Elf64Rela = unsafe { *(data[offset..].as_ptr() as *const Elf64Rela) };
+                    // SAFETY: We've validated the data length above
+                    let rela: Elf64Rela = unsafe { *data[offset..].as_ptr().cast::<Elf64Rela>() };
 
                     self.relocations.push(ElfRelocation {
                         offset: rela.r_offset,
@@ -842,7 +843,8 @@ impl ElfLoader {
                         break;
                     }
 
-                    let rel: Elf64Rel = unsafe { *(data[offset..].as_ptr() as *const Elf64Rel) };
+                    // SAFETY: We've validated the data length above
+                    let rel: Elf64Rel = unsafe { *data[offset..].as_ptr().cast::<Elf64Rel>() };
 
                     self.relocations.push(ElfRelocation {
                         offset: rel.r_offset,
@@ -862,14 +864,12 @@ impl ElfLoader {
         self.dynamic.clear();
 
         // Find PT_DYNAMIC segment
-        let dyn_seg = self
+        let Some(dyn_seg) = self
             .program_headers
             .iter()
-            .find(|p| p.p_type == pt::PT_DYNAMIC);
-
-        let dyn_seg = match dyn_seg {
-            Some(s) => s,
-            None => return Ok(()),
+            .find(|p| p.p_type == pt::PT_DYNAMIC)
+        else {
+            return Ok(());
         };
 
         let start = dyn_seg.p_offset as usize;
@@ -882,7 +882,8 @@ impl ElfLoader {
                 break;
             }
 
-            let dyn_entry: Elf64Dyn = unsafe { *(data[offset..].as_ptr() as *const Elf64Dyn) };
+            // SAFETY: We've validated the data length above
+            let dyn_entry: Elf64Dyn = unsafe { *data[offset..].as_ptr().cast::<Elf64Dyn>() };
 
             if dyn_entry.d_tag == dt::DT_NULL {
                 break;
