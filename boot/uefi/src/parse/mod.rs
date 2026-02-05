@@ -163,7 +163,7 @@ pub fn parse_bool(s: &str) -> ParseResult<bool> {
 /// Helper trait for lowercase without std
 trait AsciiLowercase {
     fn to_ascii_lowercase_owned(&self) -> AsciiString;
-    fn as_str(&self) -> &str;
+    fn _as_str(&self) -> &str;
 }
 
 impl AsciiLowercase for str {
@@ -175,7 +175,7 @@ impl AsciiLowercase for str {
         result
     }
 
-    fn as_str(&self) -> &str {
+    fn _as_str(&self) -> &str {
         self
     }
 }
@@ -311,12 +311,12 @@ pub fn parse_size(s: &str) -> ParseResult<u64> {
 }
 
 /// Helper for uppercase
-trait AsciiUppercase {
-    fn to_ascii_uppercase(&self) -> AsciiString;
+trait _AsciiUppercase {
+    fn _to_ascii_uppercase(&self) -> AsciiString;
 }
 
-impl AsciiUppercase for str {
-    fn to_ascii_uppercase(&self) -> AsciiString {
+impl _AsciiUppercase for str {
+    fn _to_ascii_uppercase(&self) -> AsciiString {
         let mut result = AsciiString::new();
         for b in self.bytes() {
             result.push(b.to_ascii_uppercase());
