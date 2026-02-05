@@ -68,112 +68,111 @@
 extern crate alloc;
 
 // Re-export core types for convenience
-pub use helix_nexus_types as types;
-pub use helix_nexus_core as core;
+pub use {helix_nexus_core as core, helix_nexus_types as types};
 
 // ============================================================================
 // PERCEPTION LAYER
 // ============================================================================
 
-/// Sensory input processing and feature extraction
-pub mod sense {
-    //! Sensor data ingestion and preprocessing
-}
+/// Sensory input processing and feature extraction.
+///
+/// Handles sensor data ingestion and preprocessing.
+pub mod sense {}
 
 // ============================================================================
 // COMPREHENSION LAYER
 // ============================================================================
 
-/// Pattern recognition and anomaly understanding
-pub mod understand {
-    //! Understanding subsystem
-}
+/// Pattern recognition and anomaly understanding.
+///
+/// Understanding subsystem.
+pub mod understand {}
 
-/// Cognitive perception loop
-pub mod cognition {
-    //! Perception and awareness
-}
+/// Cognitive perception loop.
+///
+/// Perception and awareness.
+pub mod cognition {}
 
 // ============================================================================
 // REASONING LAYER
 // ============================================================================
 
-/// Causal and logical reasoning
-pub mod reason {
-    //! Reasoning subsystem
-}
+/// Causal and logical reasoning.
+///
+/// Reasoning subsystem.
+pub mod reason {}
 
-/// Causal graph construction
-pub mod causal {
-    //! Causal analysis
-}
+/// Causal graph construction.
+///
+/// Causal analysis.
+pub mod causal {}
 
 // ============================================================================
 // MEMORY LAYER
 // ============================================================================
 
-/// Long-term memory systems
-pub mod ltm {
-    //! Episodic, semantic, and procedural memory
-}
+/// Long-term memory systems.
+///
+/// Episodic, semantic, and procedural memory.
+pub mod ltm {}
 
-/// Machine learning algorithms
-pub mod learning {
-    //! Reinforcement, meta, online learning
-}
+/// Machine learning algorithms.
+///
+/// Reinforcement, meta, online learning.
+pub mod learning {}
 
 // ============================================================================
 // DECISION LAYER
 // ============================================================================
 
-/// Multi-criteria decision making
-pub mod decide {
-    //! Decision subsystem
-}
+/// Multi-criteria decision making.
+///
+/// Decision subsystem.
+pub mod decide {}
 
-/// Goal-directed planning
-pub mod planning {
-    //! Planning subsystem
-}
+/// Goal-directed planning.
+///
+/// Planning subsystem.
+pub mod planning {}
 
 // ============================================================================
 // ACTION LAYER
 // ============================================================================
 
-/// Action execution and monitoring
-pub mod act {
-    //! Action subsystem
-}
+/// Action execution and monitoring.
+///
+/// Action subsystem.
+pub mod act {}
 
-/// Behavior systems
-pub mod behavior {
-    //! Behavior trees, state machines
-}
+/// Behavior systems.
+///
+/// Behavior trees, state machines.
+pub mod behavior {}
 
 // ============================================================================
 // META-COGNITION LAYER
 // ============================================================================
 
-/// Self-monitoring and strategy selection
-pub mod metacog {
-    //! Metacognitive controller
-}
+/// Self-monitoring and strategy selection.
+///
+/// Metacognitive controller.
+pub mod metacog {}
 
-/// Introspection and self-evaluation
-pub mod reflect {
-    //! Reflection subsystem
-}
+/// Introspection and self-evaluation.
+///
+/// Reflection subsystem.
+pub mod reflect {}
 
 // ============================================================================
 // SEMANTIC LAYER
 // ============================================================================
 
-/// Semantic processing and knowledge representation
-pub mod semantic {
-    //! Embeddings and knowledge bases
-}
+/// Semantic processing and knowledge representation.
+///
+/// Embeddings and knowledge bases.
+pub mod semantic {}
 
-/// Neural network inference
-pub mod neural {
-    //! Tensors, layers, networks
-}
+/// Neural network inference.
+///
+/// Tensors, layers, networks.
+pub mod neural {}
