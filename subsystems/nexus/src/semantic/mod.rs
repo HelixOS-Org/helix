@@ -10,8 +10,6 @@
 //! - `concepts`: Concept spaces and hierarchies
 //! - `knowledge`: Knowledge representation and linking
 
-#![no_std]
-
 extern crate alloc;
 
 pub mod concepts;
