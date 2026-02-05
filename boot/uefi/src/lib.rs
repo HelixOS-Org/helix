@@ -848,14 +848,12 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     loop {
         #[cfg(target_arch = "x86_64")]
         unsafe {
-            core::arch::asm!("hlt")
-            ;
+            core::arch::asm!("hlt");
         };
 
         #[cfg(target_arch = "aarch64")]
         unsafe {
-            core::arch::asm!("wfi")
-            ;
+            core::arch::asm!("wfi");
         };
     }
 }
