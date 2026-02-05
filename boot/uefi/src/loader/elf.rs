@@ -1052,9 +1052,8 @@ impl ElfLoader {
 
             // SAFETY: We've validated the data length above. Using read_unaligned
             // because byte slice may not be aligned.
-            let dyn_entry: Elf64Dyn = unsafe {
-                core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Elf64Dyn>())
-            };
+            let dyn_entry: Elf64Dyn =
+                unsafe { core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Elf64Dyn>()) };
 
             if dyn_entry.d_tag == dt::DT_NULL {
                 break;
@@ -1129,8 +1128,8 @@ impl ElfLoader {
             .iter()
             .find(|s| s.is_bss() && s.is_allocated());
 
-        let (bss_start, bss_size) = bss_section
-            .map_or((None, 0), |s| (Some(VirtualAddress(s.sh_addr)), s.sh_size));
+        let (bss_start, bss_size) =
+            bss_section.map_or((None, 0), |s| (Some(VirtualAddress(s.sh_addr)), s.sh_size));
 
         Ok(LoadedImage {
             format: ImageFormat::Elf64,
