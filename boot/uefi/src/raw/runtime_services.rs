@@ -557,21 +557,21 @@ pub mod variable_names {
 /// OS Indication bits
 pub mod os_indications {
     /// Boot to firmware UI
-    pub const BOOT_TO_FW_UI: u64 = 0x0000000000000001;
+    pub const BOOT_TO_FW_UI: u64 = 0x0000_0000_0000_0001;
     /// Timestamp revocation
-    pub const TIMESTAMP_REVOCATION: u64 = 0x0000000000000002;
+    pub const TIMESTAMP_REVOCATION: u64 = 0x0000_0000_0000_0002;
     /// File capsule delivery supported
-    pub const FILE_CAPSULE_DELIVERY_SUPPORTED: u64 = 0x0000000000000004;
+    pub const FILE_CAPSULE_DELIVERY_SUPPORTED: u64 = 0x0000_0000_0000_0004;
     /// FMP capsule supported
-    pub const FMP_CAPSULE_SUPPORTED: u64 = 0x0000000000000008;
+    pub const FMP_CAPSULE_SUPPORTED: u64 = 0x0000_0000_0000_0008;
     /// Capsule result variable supported
-    pub const CAPSULE_RESULT_VAR_SUPPORTED: u64 = 0x0000000000000010;
+    pub const CAPSULE_RESULT_VAR_SUPPORTED: u64 = 0x0000_0000_0000_0010;
     /// Start OS recovery
-    pub const START_OS_RECOVERY: u64 = 0x0000000000000020;
+    pub const START_OS_RECOVERY: u64 = 0x0000_0000_0000_0020;
     /// Start platform recovery
-    pub const START_PLATFORM_RECOVERY: u64 = 0x0000000000000040;
+    pub const START_PLATFORM_RECOVERY: u64 = 0x0000_0000_0000_0040;
     /// JSON config data refresh
-    pub const JSON_CONFIG_DATA_REFRESH: u64 = 0x0000000000000080;
+    pub const JSON_CONFIG_DATA_REFRESH: u64 = 0x0000_0000_0000_0080;
 }
 
 // =============================================================================
