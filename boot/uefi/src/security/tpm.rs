@@ -370,15 +370,20 @@ impl TpmtHa {
     }
 }
 
-/// TPMS_PCR_SELECTION
+/// TPMS_PCR_SELECTION - PCR selection structure
 #[derive(Debug, Clone)]
 pub struct TpmsPcrSelection {
+    /// Hash algorithm
     pub hash: u16,
+    /// Size of PCR select bitmap
     pub size_of_select: u8,
+    /// PCR selection bitmap
     pub pcr_select: Vec<u8>,
 }
 
 impl TpmsPcrSelection {
+    /// Create a new PCR selection
+    #[must_use]
     pub fn new(hash: u16, pcrs: &[u32]) -> Self {
         let mut pcr_select = vec![0u8; 3]; // Support up to 24 PCRs
 
@@ -395,6 +400,8 @@ impl TpmsPcrSelection {
         }
     }
 
+    /// Serialize to bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(&self.hash.to_be_bytes());
@@ -411,23 +418,37 @@ impl TpmsPcrSelection {
 /// TCG2 boot service capability
 #[derive(Debug, Clone)]
 pub struct Tcg2BootServiceCapability {
+    /// Size of this structure
     pub size: u8,
+    /// Structure version major
     pub structure_version_major: u8,
+    /// Structure version minor
     pub structure_version_minor: u8,
+    /// Protocol version major
     pub protocol_version_major: u8,
+    /// Protocol version minor
     pub protocol_version_minor: u8,
+    /// Hash algorithm bitmap
     pub hash_algorithm_bitmap: u32,
+    /// Supported event logs
     pub supported_event_logs: u32,
+    /// Whether TPM is present
     pub tpm_present: bool,
+    /// Maximum command size
     pub max_command_size: u16,
+    /// Maximum response size
     pub max_response_size: u16,
+    /// Manufacturer ID
     pub manufacturer_id: u32,
+    /// Number of PCR banks
     pub number_of_pcr_banks: u32,
+    /// Active PCR banks
     pub active_pcr_banks: u32,
 }
 
 impl Tcg2BootServiceCapability {
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(data: &[u8]) -> Option<Self> {
         if data.len() < 27 {
             return None;
@@ -460,17 +481,20 @@ impl Tcg2BootServiceCapability {
     }
 
     /// Check if SHA-256 is supported
-    pub fn supports_sha256(&self) -> bool {
+    #[must_use]
+    pub const fn supports_sha256(&self) -> bool {
         self.hash_algorithm_bitmap & (1 << 1) != 0 // SHA256 is bit 1
     }
 
     /// Check if SHA-384 is supported
-    pub fn supports_sha384(&self) -> bool {
+    #[must_use]
+    pub const fn supports_sha384(&self) -> bool {
         self.hash_algorithm_bitmap & (1 << 2) != 0
     }
 
     /// Check if SHA-512 is supported
-    pub fn supports_sha512(&self) -> bool {
+    #[must_use]
+    pub const fn supports_sha512(&self) -> bool {
         self.hash_algorithm_bitmap & (1 << 3) != 0
     }
 }
