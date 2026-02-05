@@ -31,8 +31,6 @@
 //! - SCSI device support
 //! - Interrupt handling
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
