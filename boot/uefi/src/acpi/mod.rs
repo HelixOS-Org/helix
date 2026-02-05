@@ -32,6 +32,7 @@ impl Rsdp {
     pub const SIZE: usize = 20;
 
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < Self::SIZE {
             return None;
@@ -52,6 +53,7 @@ impl Rsdp {
     }
 
     /// Validate checksum
+    #[must_use]
     pub fn validate_checksum(&self, bytes: &[u8]) -> bool {
         if bytes.len() < Self::SIZE {
             return false;
@@ -64,6 +66,7 @@ impl Rsdp {
     }
 
     /// Get OEM ID as string
+    #[must_use]
     pub fn oem_id_str(&self) -> &str {
         core::str::from_utf8(&self.oem_id)
             .unwrap_or("")
@@ -71,7 +74,8 @@ impl Rsdp {
     }
 
     /// Is ACPI 2.0+
-    pub fn is_extended(&self) -> bool {
+    #[must_use]
+    pub const fn is_extended(&self) -> bool {
         self.revision >= 2
     }
 }
@@ -97,6 +101,7 @@ impl RsdpExtended {
     pub const SIZE: usize = 36;
 
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < Self::SIZE {
             return None;
@@ -117,6 +122,7 @@ impl RsdpExtended {
     }
 
     /// Validate extended checksum
+    #[must_use]
     pub fn validate_extended_checksum(&self, bytes: &[u8]) -> bool {
         if bytes.len() < Self::SIZE {
             return false;
@@ -162,6 +168,7 @@ impl SdtHeader {
     pub const SIZE: usize = 36;
 
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < Self::SIZE {
             return None;
@@ -181,11 +188,13 @@ impl SdtHeader {
     }
 
     /// Get signature as string
+    #[must_use]
     pub fn signature_str(&self) -> &str {
         core::str::from_utf8(&self.signature).unwrap_or("")
     }
 
     /// Get OEM ID as string
+    #[must_use]
     pub fn oem_id_str(&self) -> &str {
         core::str::from_utf8(&self.oem_id)
             .unwrap_or("")
@@ -193,6 +202,7 @@ impl SdtHeader {
     }
 
     /// Get OEM table ID as string
+    #[must_use]
     pub fn oem_table_id_str(&self) -> &str {
         core::str::from_utf8(&self.oem_table_id)
             .unwrap_or("")
@@ -200,6 +210,7 @@ impl SdtHeader {
     }
 
     /// Validate checksum
+    #[must_use]
     pub fn validate_checksum(&self, bytes: &[u8]) -> bool {
         let length = self.length as usize;
         if bytes.len() < length {
@@ -290,6 +301,7 @@ pub struct Rsdt<'a> {
 
 impl<'a> Rsdt<'a> {
     /// Parse RSDT
+    #[must_use]
     pub fn parse(data: &'a [u8]) -> Option<Self> {
         let header = SdtHeader::from_bytes(data)?;
 
@@ -312,6 +324,7 @@ impl<'a> Rsdt<'a> {
     }
 
     /// Get entry (table address)
+    #[must_use]
     pub fn entry(&self, index: usize) -> Option<u32> {
         if index >= self.entry_count() {
             return None;
@@ -353,6 +366,7 @@ pub struct Xsdt<'a> {
 
 impl<'a> Xsdt<'a> {
     /// Parse XSDT
+    #[must_use]
     pub fn parse(data: &'a [u8]) -> Option<Self> {
         let header = SdtHeader::from_bytes(data)?;
 
@@ -364,17 +378,20 @@ impl<'a> Xsdt<'a> {
     }
 
     /// Get header
-    pub fn header(&self) -> &SdtHeader {
+    #[must_use]
+    pub const fn header(&self) -> &SdtHeader {
         &self.header
     }
 
     /// Get entry count
+    #[must_use]
     pub fn entry_count(&self) -> usize {
         let entries_size = self.header.length as usize - SdtHeader::SIZE;
         entries_size / 8
     }
 
     /// Get entry (table address)
+    #[must_use]
     pub fn entry(&self, index: usize) -> Option<u64> {
         if index >= self.entry_count() {
             return None;
@@ -429,6 +446,7 @@ impl MadtHeader {
     pub const SIZE: usize = SdtHeader::SIZE + 8;
 
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < Self::SIZE {
             return None;
@@ -455,7 +473,8 @@ impl MadtHeader {
     }
 
     /// Has legacy PICs
-    pub fn has_legacy_pics(&self) -> bool {
+    #[must_use]
+    pub const fn has_legacy_pics(&self) -> bool {
         self.flags & 0x01 != 0
     }
 }
@@ -492,6 +511,7 @@ pub struct MadtEntryHeader {
 
 impl MadtEntryHeader {
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < 2 {
             return None;
@@ -520,6 +540,7 @@ pub struct MadtLocalApic {
 
 impl MadtLocalApic {
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < 8 {
             return None;
@@ -539,12 +560,14 @@ impl MadtLocalApic {
     }
 
     /// Is enabled
-    pub fn is_enabled(&self) -> bool {
+    #[must_use]
+    pub const fn is_enabled(&self) -> bool {
         self.flags & 0x01 != 0
     }
 
     /// Is online capable
-    pub fn is_online_capable(&self) -> bool {
+    #[must_use]
+    pub const fn is_online_capable(&self) -> bool {
         self.flags & 0x02 != 0
     }
 }
@@ -567,6 +590,7 @@ pub struct MadtIoApic {
 
 impl MadtIoApic {
     /// Parse from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < 12 {
             return None;
