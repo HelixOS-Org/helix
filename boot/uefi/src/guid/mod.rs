@@ -330,44 +330,44 @@ fn parse_hex_u8(s: &str) -> Option<u8> {
 // =============================================================================
 
 /// EFI System Table signature
-pub const EFI_SYSTEM_TABLE_SIGNATURE: u64 = 0x5453595320494249; // "IBI SYST"
+pub const EFI_SYSTEM_TABLE_SIGNATURE: u64 = 0x5453_5953_2049_4249; // "IBI SYST"
 
 // =============================================================================
 // WELL-KNOWN GUIDS - CONFIGURATION TABLES
 // =============================================================================
 
 /// ACPI 1.0 RSDP GUID
-pub const ACPI_10_TABLE_GUID: Guid = Guid::new(0xEB9D2D30, 0x2D88, 0x11D3, [
+pub const ACPI_10_TABLE_GUID: Guid = Guid::new(0xEB9D_2D30, 0x2D88, 0x11D3, [
     0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ]);
 
 /// ACPI 2.0+ RSDP GUID
-pub const ACPI_20_TABLE_GUID: Guid = Guid::new(0x8868E871, 0xE4F1, 0x11D3, [
+pub const ACPI_20_TABLE_GUID: Guid = Guid::new(0x8868_E871, 0xE4F1, 0x11D3, [
     0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81,
 ]);
 
 /// SMBIOS Table GUID
-pub const SMBIOS_TABLE_GUID: Guid = Guid::new(0xEB9D2D31, 0x2D88, 0x11D3, [
+pub const SMBIOS_TABLE_GUID: Guid = Guid::new(0xEB9D_2D31, 0x2D88, 0x11D3, [
     0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ]);
 
 /// SMBIOS 3.0 Table GUID
-pub const SMBIOS3_TABLE_GUID: Guid = Guid::new(0xF2FD1544, 0x9794, 0x4A2C, [
+pub const SMBIOS3_TABLE_GUID: Guid = Guid::new(0xF2FD_1544, 0x9794, 0x4A2C, [
     0x99, 0x2E, 0xE5, 0xBB, 0xCF, 0x20, 0xE3, 0x94,
 ]);
 
 /// MPS Table GUID
-pub const MPS_TABLE_GUID: Guid = Guid::new(0xEB9D2D2F, 0x2D88, 0x11D3, [
+pub const MPS_TABLE_GUID: Guid = Guid::new(0xEB9D_2D2F, 0x2D88, 0x11D3, [
     0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ]);
 
 /// SAL System Table GUID
-pub const SAL_SYSTEM_TABLE_GUID: Guid = Guid::new(0xEB9D2D32, 0x2D88, 0x11D3, [
+pub const SAL_SYSTEM_TABLE_GUID: Guid = Guid::new(0xEB9D_2D32, 0x2D88, 0x11D3, [
     0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ]);
 
 /// Device Tree GUID
-pub const DEVICE_TREE_GUID: Guid = Guid::new(0xB1B621D5, 0xF19C, 0x41A5, [
+pub const DEVICE_TREE_GUID: Guid = Guid::new(0xB1B6_21D5, 0xF19C, 0x41A5, [
     0x83, 0x0B, 0xD9, 0x15, 0x2C, 0x69, 0xAA, 0xE0,
 ]);
 
@@ -376,103 +376,103 @@ pub const DEVICE_TREE_GUID: Guid = Guid::new(0xB1B621D5, 0xF19C, 0x41A5, [
 // =============================================================================
 
 /// Loaded Image Protocol GUID
-pub const LOADED_IMAGE_PROTOCOL_GUID: Guid = Guid::new(0x5B1B31A1, 0x9562, 0x11D2, [
+pub const LOADED_IMAGE_PROTOCOL_GUID: Guid = Guid::new(0x5B1B_31A1, 0x9562, 0x11D2, [
     0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// Device Path Protocol GUID
-pub const DEVICE_PATH_PROTOCOL_GUID: Guid = Guid::new(0x09576E91, 0x6D3F, 0x11D2, [
+pub const DEVICE_PATH_PROTOCOL_GUID: Guid = Guid::new(0x0957_6E91, 0x6D3F, 0x11D2, [
     0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// Simple File System Protocol GUID
-pub const SIMPLE_FILE_SYSTEM_PROTOCOL_GUID: Guid = Guid::new(0x0964E5B22, 0x6459, 0x11D2, [
+pub const SIMPLE_FILE_SYSTEM_PROTOCOL_GUID: Guid = Guid::new(0x0_964E_5B22, 0x6459, 0x11D2, [
     0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// File Info GUID
-pub const FILE_INFO_GUID: Guid = Guid::new(0x09576E92, 0x6D3F, 0x11D2, [
+pub const FILE_INFO_GUID: Guid = Guid::new(0x0957_6E92, 0x6D3F, 0x11D2, [
     0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// File System Info GUID
-pub const FILE_SYSTEM_INFO_GUID: Guid = Guid::new(0x09576E93, 0x6D3F, 0x11D2, [
+pub const FILE_SYSTEM_INFO_GUID: Guid = Guid::new(0x0957_6E93, 0x6D3F, 0x11D2, [
     0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// Block I/O Protocol GUID
-pub const BLOCK_IO_PROTOCOL_GUID: Guid = Guid::new(0x964E5B21, 0x6459, 0x11D2, [
+pub const BLOCK_IO_PROTOCOL_GUID: Guid = Guid::new(0x964E_5B21, 0x6459, 0x11D2, [
     0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// Disk I/O Protocol GUID
-pub const DISK_IO_PROTOCOL_GUID: Guid = Guid::new(0xCE345171, 0xBA0B, 0x11D2, [
+pub const DISK_IO_PROTOCOL_GUID: Guid = Guid::new(0xCE34_5171, 0xBA0B, 0x11D2, [
     0x8E, 0x4F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// Simple Text Input Protocol GUID
-pub const SIMPLE_TEXT_INPUT_PROTOCOL_GUID: Guid = Guid::new(0x387477C1, 0x69C7, 0x11D2, [
+pub const SIMPLE_TEXT_INPUT_PROTOCOL_GUID: Guid = Guid::new(0x3874_77C1, 0x69C7, 0x11D2, [
     0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// Simple Text Input Ex Protocol GUID
-pub const SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID: Guid = Guid::new(0xDD9E7534, 0x7762, 0x4698, [
+pub const SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID: Guid = Guid::new(0xDD9E_7534, 0x7762, 0x4698, [
     0x8C, 0x14, 0xF5, 0x85, 0x17, 0xA6, 0x25, 0xAA,
 ]);
 
 /// Simple Text Output Protocol GUID
-pub const SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID: Guid = Guid::new(0x387477C2, 0x69C7, 0x11D2, [
+pub const SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID: Guid = Guid::new(0x3874_77C2, 0x69C7, 0x11D2, [
     0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
 ]);
 
 /// Graphics Output Protocol GUID
-pub const GRAPHICS_OUTPUT_PROTOCOL_GUID: Guid = Guid::new(0x9042A9DE, 0x23DC, 0x4A38, [
+pub const GRAPHICS_OUTPUT_PROTOCOL_GUID: Guid = Guid::new(0x9042_A9DE, 0x23DC, 0x4A38, [
     0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A,
 ]);
 
 /// EDID Active Protocol GUID
-pub const EDID_ACTIVE_PROTOCOL_GUID: Guid = Guid::new(0xBD8C1056, 0x9F36, 0x44EC, [
+pub const EDID_ACTIVE_PROTOCOL_GUID: Guid = Guid::new(0xBD8C_1056, 0x9F36, 0x44EC, [
     0x92, 0xA8, 0xA6, 0x33, 0x7F, 0x81, 0x79, 0x86,
 ]);
 
 /// EDID Discovered Protocol GUID
-pub const EDID_DISCOVERED_PROTOCOL_GUID: Guid = Guid::new(0x1C0C34F6, 0xD380, 0x41FA, [
+pub const EDID_DISCOVERED_PROTOCOL_GUID: Guid = Guid::new(0x1C0C_34F6, 0xD380, 0x41FA, [
     0xA0, 0x49, 0x8A, 0xD0, 0x6C, 0x1A, 0x66, 0xAA,
 ]);
 
 /// Serial I/O Protocol GUID
-pub const SERIAL_IO_PROTOCOL_GUID: Guid = Guid::new(0xBB25CF6F, 0xF1D4, 0x11D2, [
+pub const SERIAL_IO_PROTOCOL_GUID: Guid = Guid::new(0xBB25_CF6F, 0xF1D4, 0x11D2, [
     0x9A, 0x0C, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0xFD,
 ]);
 
 /// PCI I/O Protocol GUID
-pub const PCI_IO_PROTOCOL_GUID: Guid = Guid::new(0x4CF5B200, 0x68B8, 0x4CA5, [
+pub const PCI_IO_PROTOCOL_GUID: Guid = Guid::new(0x4CF5_B200, 0x68B8, 0x4CA5, [
     0x9E, 0xEC, 0xB2, 0x3E, 0x3F, 0x50, 0x02, 0x9A,
 ]);
 
 /// PCI Root Bridge I/O Protocol GUID
-pub const PCI_ROOT_BRIDGE_IO_PROTOCOL_GUID: Guid = Guid::new(0x2F707EBB, 0x4A1A, 0x11D4, [
+pub const PCI_ROOT_BRIDGE_IO_PROTOCOL_GUID: Guid = Guid::new(0x2F70_7EBB, 0x4A1A, 0x11D4, [
     0x9A, 0x38, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ]);
 
 /// USB I/O Protocol GUID
-pub const USB_IO_PROTOCOL_GUID: Guid = Guid::new(0x2B2F68D6, 0x0CD2, 0x44CF, [
+pub const USB_IO_PROTOCOL_GUID: Guid = Guid::new(0x2B2F_68D6, 0x0CD2, 0x44CF, [
     0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75,
 ]);
 
 /// Network Interface Identifier Protocol GUID
 pub const NETWORK_INTERFACE_IDENTIFIER_PROTOCOL_GUID: Guid =
-    Guid::new(0x1ACED566, 0x76ED, 0x4218, [
+    Guid::new(0x1ACE_D566, 0x76ED, 0x4218, [
         0xBC, 0x81, 0x76, 0x7F, 0x1F, 0x97, 0x7A, 0x89,
     ]);
 
 /// Simple Network Protocol GUID
-pub const SIMPLE_NETWORK_PROTOCOL_GUID: Guid = Guid::new(0xA19832B9, 0xAC25, 0x11D3, [
+pub const SIMPLE_NETWORK_PROTOCOL_GUID: Guid = Guid::new(0xA198_32B9, 0xAC25, 0x11D3, [
     0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D,
 ]);
 
 /// Managed Network Protocol GUID
-pub const MANAGED_NETWORK_PROTOCOL_GUID: Guid = Guid::new(0x7AB33A91, 0xACE5, 0x4326, [
+pub const MANAGED_NETWORK_PROTOCOL_GUID: Guid = Guid::new(0x7AB3_3A91, 0xACE5, 0x4326, [
     0xB5, 0x72, 0xE7, 0xEE, 0x33, 0xD3, 0x9F, 0x16,
 ]);
 
@@ -484,37 +484,37 @@ pub const MANAGED_NETWORK_PROTOCOL_GUID: Guid = Guid::new(0x7AB33A91, 0xACE5, 0x
 pub const PARTITION_TYPE_UNUSED: Guid = Guid::null();
 
 /// EFI System Partition
-pub const EFI_SYSTEM_PARTITION_GUID: Guid = Guid::new(0xC12A7328, 0xF81F, 0x11D2, [
+pub const EFI_SYSTEM_PARTITION_GUID: Guid = Guid::new(0xC12A_7328, 0xF81F, 0x11D2, [
     0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B,
 ]);
 
 /// Microsoft Basic Data Partition
-pub const MICROSOFT_BASIC_DATA_GUID: Guid = Guid::new(0xEBD0A0A2, 0xB9E5, 0x4433, [
+pub const MICROSOFT_BASIC_DATA_GUID: Guid = Guid::new(0xEBD0_A0A2, 0xB9E5, 0x4433, [
     0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7,
 ]);
 
 /// Microsoft Reserved Partition
-pub const MICROSOFT_RESERVED_GUID: Guid = Guid::new(0xE3C9E316, 0x0B5C, 0x4DB8, [
+pub const MICROSOFT_RESERVED_GUID: Guid = Guid::new(0xE3C9_E316, 0x0B5C, 0x4DB8, [
     0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE,
 ]);
 
 /// Linux Filesystem Data
-pub const LINUX_FILESYSTEM_DATA_GUID: Guid = Guid::new(0x0FC63DAF, 0x8483, 0x4772, [
+pub const LINUX_FILESYSTEM_DATA_GUID: Guid = Guid::new(0x0FC6_3DAF, 0x8483, 0x4772, [
     0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4,
 ]);
 
 /// Linux Root x86-64
-pub const LINUX_ROOT_X86_64_GUID: Guid = Guid::new(0x4F68BCE3, 0xE8CD, 0x4DB1, [
+pub const LINUX_ROOT_X86_64_GUID: Guid = Guid::new(0x4F68_BCE3, 0xE8CD, 0x4DB1, [
     0x96, 0xE7, 0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09,
 ]);
 
 /// Linux Home
-pub const LINUX_HOME_GUID: Guid = Guid::new(0x933AC7E1, 0x2EB4, 0x4F13, [
+pub const LINUX_HOME_GUID: Guid = Guid::new(0x933A_C7E1, 0x2EB4, 0x4F13, [
     0xB8, 0x44, 0x0E, 0x14, 0xE2, 0xAE, 0xF9, 0x15,
 ]);
 
 /// Linux Swap
-pub const LINUX_SWAP_GUID: Guid = Guid::new(0x0657FD6D, 0xA4AB, 0x43C4, [
+pub const LINUX_SWAP_GUID: Guid = Guid::new(0x0657_FD6D, 0xA4AB, 0x43C4, [
     0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F,
 ]);
 
@@ -523,27 +523,27 @@ pub const LINUX_SWAP_GUID: Guid = Guid::new(0x0657FD6D, 0xA4AB, 0x43C4, [
 // =============================================================================
 
 /// EFI Global Variable GUID
-pub const EFI_GLOBAL_VARIABLE_GUID: Guid = Guid::new(0x8BE4DF61, 0x93CA, 0x11D2, [
+pub const EFI_GLOBAL_VARIABLE_GUID: Guid = Guid::new(0x8BE4_DF61, 0x93CA, 0x11D2, [
     0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C,
 ]);
 
 /// EFI Image Security Database GUID
-pub const EFI_IMAGE_SECURITY_DATABASE_GUID: Guid = Guid::new(0xD719B2CB, 0x3D3A, 0x4596, [
+pub const EFI_IMAGE_SECURITY_DATABASE_GUID: Guid = Guid::new(0xD719_B2CB, 0x3D3A, 0x4596, [
     0xA3, 0xBC, 0xDA, 0xD0, 0x0E, 0x67, 0x65, 0x6F,
 ]);
 
 /// EFI Certificate X509 GUID
-pub const EFI_CERT_X509_GUID: Guid = Guid::new(0xA5C059A1, 0x94E4, 0x4AA7, [
+pub const EFI_CERT_X509_GUID: Guid = Guid::new(0xA5C0_59A1, 0x94E4, 0x4AA7, [
     0x87, 0xB5, 0xAB, 0x15, 0x5C, 0x2B, 0xF0, 0x72,
 ]);
 
 /// EFI Certificate SHA256 GUID
-pub const EFI_CERT_SHA256_GUID: Guid = Guid::new(0xC1C41626, 0x504C, 0x4092, [
+pub const EFI_CERT_SHA256_GUID: Guid = Guid::new(0xC1C4_1626, 0x504C, 0x4092, [
     0xAC, 0xA9, 0x41, 0xF9, 0x36, 0x93, 0x43, 0x28,
 ]);
 
 /// EFI Certificate RSA2048 GUID
-pub const EFI_CERT_RSA2048_GUID: Guid = Guid::new(0x3C5766E8, 0x269C, 0x4E34, [
+pub const EFI_CERT_RSA2048_GUID: Guid = Guid::new(0x3C57_66E8, 0x269C, 0x4E34, [
     0xAA, 0x14, 0xED, 0x77, 0x6E, 0x85, 0xB3, 0xB6,
 ]);
 
@@ -652,10 +652,10 @@ mod tests {
 
     #[test]
     fn test_guid_creation() {
-        let guid = Guid::new(0x12345678, 0xABCD, 0xEF01, [
+        let guid = Guid::new(0x1234_5678, 0xABCD, 0xEF01, [
             0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01,
         ]);
-        assert_eq!(guid.data1, 0x12345678);
+        assert_eq!(guid.data1, 0x1234_5678);
         assert_eq!(guid.data2, 0xABCD);
         assert_eq!(guid.data3, 0xEF01);
     }
@@ -671,7 +671,7 @@ mod tests {
 
     #[test]
     fn test_guid_display() {
-        let guid = Guid::new(0x12345678, 0xABCD, 0xEF01, [
+        let guid = Guid::new(0x1234_5678, 0xABCD, 0xEF01, [
             0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01,
         ]);
         let s = format!("{}", guid);
@@ -682,7 +682,7 @@ mod tests {
     fn test_guid_parse() {
         let s = "12345678-ABCD-EF01-2345-6789ABCDEF01";
         let guid = parse_guid(s).unwrap();
-        assert_eq!(guid.data1, 0x12345678);
+        assert_eq!(guid.data1, 0x1234_5678);
         assert_eq!(guid.data2, 0xABCD);
         assert_eq!(guid.data3, 0xEF01);
     }
@@ -691,7 +691,7 @@ mod tests {
     fn test_guid_parse_braces() {
         let s = "{12345678-ABCD-EF01-2345-6789ABCDEF01}";
         let guid = parse_guid(s).unwrap();
-        assert_eq!(guid.data1, 0x12345678);
+        assert_eq!(guid.data1, 0x1234_5678);
     }
 
     #[test]
