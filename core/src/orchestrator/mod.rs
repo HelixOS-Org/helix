@@ -8,7 +8,6 @@ pub mod lifecycle;
 pub mod panic_handler;
 pub mod resource_broker;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
@@ -17,7 +16,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use spin::RwLock;
 
-use crate::{KernelComponent, KernelError, KernelEvent, KernelResult};
+use crate::{KernelError, KernelEvent, KernelResult};
 
 /// The kernel orchestrator
 ///
