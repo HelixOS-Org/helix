@@ -488,18 +488,7 @@ impl GraphicsOutput {
                 }
 
                 if let Some(buffer) = blt_buffer {
-                    for y in 0..height {
-                        for x in 0..width {
-                            let idx = y * width + x;
-                            if idx < buffer.len() {
-                                self.set_pixel(
-                                    (dst_x + x) as u32,
-                                    (dst_y + y) as u32,
-                                    buffer[idx].to_color(),
-                                )?;
-                            }
-                        }
-                    }
+                    self.blt_buffer_to_video(buffer, dst_x, dst_y, width, height)?;
                 }
             },
             BltOperation::VideoToVideo => {
@@ -515,6 +504,26 @@ impl GraphicsOutput {
             },
         }
 
+        Ok(())
+    }
+
+    /// Helper function to copy buffer to video memory
+    fn blt_buffer_to_video(
+        &mut self,
+        buffer: &[BltPixel],
+        dst_x: usize,
+        dst_y: usize,
+        width: usize,
+        height: usize,
+    ) -> Result<(), GraphicsError> {
+        for y in 0..height {
+            for x in 0..width {
+                let idx = y * width + x;
+                if let Some(pixel) = buffer.get(idx) {
+                    self.set_pixel((dst_x + x) as u32, (dst_y + y) as u32, pixel.to_color())?;
+                }
+            }
+        }
         Ok(())
     }
 
