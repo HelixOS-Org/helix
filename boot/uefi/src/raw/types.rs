@@ -801,7 +801,7 @@ pub mod guids {
     ]);
 
     /// EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID
-    pub const SIMPLE_FILE_SYSTEM_PROTOCOL: Guid = Guid::new(0x0964E5B22, 0x6459, 0x11D2, [
+    pub const SIMPLE_FILE_SYSTEM_PROTOCOL: Guid = Guid::new(0x0_964E_5B22, 0x6459, 0x11D2, [
         0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B,
     ]);
 
@@ -1108,17 +1108,17 @@ unsafe impl Sync for Event {}
 /// Event type flags
 pub mod event_type {
     /// Timer event
-    pub const TIMER: u32 = 0x80000000;
+    pub const TIMER: u32 = 0x8000_0000;
     /// Runtime event
-    pub const RUNTIME: u32 = 0x40000000;
+    pub const RUNTIME: u32 = 0x4000_0000;
     /// Notify wait
-    pub const NOTIFY_WAIT: u32 = 0x00000100;
+    pub const NOTIFY_WAIT: u32 = 0x0000_0100;
     /// Notify signal
-    pub const NOTIFY_SIGNAL: u32 = 0x00000200;
+    pub const NOTIFY_SIGNAL: u32 = 0x0000_0200;
     /// Signal exit boot services
-    pub const SIGNAL_EXIT_BOOT_SERVICES: u32 = 0x00000201;
+    pub const SIGNAL_EXIT_BOOT_SERVICES: u32 = 0x0000_0201;
     /// Signal virtual address change
-    pub const SIGNAL_VIRTUAL_ADDRESS_CHANGE: u32 = 0x60000202;
+    pub const SIGNAL_VIRTUAL_ADDRESS_CHANGE: u32 = 0x6000_0202;
 }
 
 /// Timer delay type
@@ -1252,13 +1252,13 @@ pub struct TableHeader {
 
 impl TableHeader {
     /// EFI_SYSTEM_TABLE_SIGNATURE
-    pub const SYSTEM_TABLE_SIGNATURE: u64 = 0x5453595320494249; // "IBI SYST"
+    pub const SYSTEM_TABLE_SIGNATURE: u64 = 0x5453_5953_2049_4249; // "IBI SYST"
 
     /// EFI_BOOT_SERVICES_SIGNATURE
-    pub const BOOT_SERVICES_SIGNATURE: u64 = 0x56524553544F4F42; // "BOOTSERV"
+    pub const BOOT_SERVICES_SIGNATURE: u64 = 0x5652_4553_544F_4F42; // "BOOTSERV"
 
     /// EFI_RUNTIME_SERVICES_SIGNATURE
-    pub const RUNTIME_SERVICES_SIGNATURE: u64 = 0x56524553544E5552; // "RUNTSERV"
+    pub const RUNTIME_SERVICES_SIGNATURE: u64 = 0x5652_4553_544E_5552; // "RUNTSERV"
 
     /// Create a new table header
     pub const fn new(signature: u64, revision: u32, header_size: u32) -> Self {
@@ -1394,17 +1394,17 @@ pub enum LocateSearchType {
 /// Attributes for opening a protocol
 pub mod open_protocol {
     /// Open by handle protocol
-    pub const BY_HANDLE_PROTOCOL: u32 = 0x00000001;
+    pub const BY_HANDLE_PROTOCOL: u32 = 0x0000_0001;
     /// Get protocol
-    pub const GET_PROTOCOL: u32 = 0x00000002;
+    pub const GET_PROTOCOL: u32 = 0x0000_0002;
     /// Test protocol
-    pub const TEST_PROTOCOL: u32 = 0x00000004;
+    pub const TEST_PROTOCOL: u32 = 0x0000_0004;
     /// By child controller
-    pub const BY_CHILD_CONTROLLER: u32 = 0x00000008;
+    pub const BY_CHILD_CONTROLLER: u32 = 0x0000_0008;
     /// By driver
-    pub const BY_DRIVER: u32 = 0x00000010;
+    pub const BY_DRIVER: u32 = 0x0000_0010;
     /// Exclusive access
-    pub const EXCLUSIVE: u32 = 0x00000020;
+    pub const EXCLUSIVE: u32 = 0x0000_0020;
 }
 
 // =============================================================================
@@ -1505,11 +1505,11 @@ pub struct CapsuleHeader {
 /// Capsule flags
 pub mod capsule_flags {
     /// Persist across reset
-    pub const PERSIST_ACROSS_RESET: u32 = 0x00010000;
+    pub const PERSIST_ACROSS_RESET: u32 = 0x0001_0000;
     /// Populate system table
-    pub const POPULATE_SYSTEM_TABLE: u32 = 0x00020000;
+    pub const POPULATE_SYSTEM_TABLE: u32 = 0x0002_0000;
     /// Initiate reset
-    pub const INITIATE_RESET: u32 = 0x00040000;
+    pub const INITIATE_RESET: u32 = 0x0004_0000;
 }
 
 // =============================================================================
