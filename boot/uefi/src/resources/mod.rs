@@ -560,10 +560,7 @@ impl PixelFormat {
     /// Check if has alpha
     #[must_use]
     pub const fn has_alpha(&self) -> bool {
-        matches!(
-            self,
-            Self::Rgba32 | Self::Bgra32 | Self::Argb32
-        )
+        matches!(self, Self::Rgba32 | Self::Bgra32 | Self::Argb32)
     }
 }
 
