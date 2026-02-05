@@ -38,9 +38,10 @@
 // =============================================================================
 
 /// ISO 639-1 Language Code
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Language {
     /// English
+    #[default]
     En,
     /// French
     Fr,
@@ -208,10 +209,7 @@ impl Language {
 
     /// Check if RTL (right-to-left)
     pub const fn is_rtl(&self) -> bool {
-        match self {
-            Language::Ar | Language::He => true,
-            _ => false,
-        }
+        matches!(self, Self::Ar | Self::He)
     }
 
     /// Get script type
@@ -245,12 +243,6 @@ impl Language {
             Language::Th => Script::Thai,
             Language::Hi => Script::Devanagari,
         }
-    }
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Language::En
     }
 }
 
@@ -635,7 +627,6 @@ impl BootString {
     /// Get translation for language
     pub const fn get(&self, lang: Language) -> &'static str {
         match lang {
-            Language::En => self.en(),
             Language::Fr => self.fr(),
             Language::De => self.de(),
             _ => self.en(), // Fallback to English
@@ -735,13 +726,14 @@ impl Default for NumberFormat {
 // =============================================================================
 
 /// Date format style
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DateFormat {
     /// MM/DD/YYYY (US)
     Mdy,
     /// DD/MM/YYYY (Europe)
     Dmy,
     /// YYYY-MM-DD (ISO 8601)
+    #[default]
     Ymd,
     /// DD.MM.YYYY (German)
     DmyDot,
@@ -763,18 +755,13 @@ impl DateFormat {
     }
 }
 
-impl Default for DateFormat {
-    fn default() -> Self {
-        DateFormat::Ymd
-    }
-}
-
 /// Time format style
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TimeFormat {
     /// 12-hour with AM/PM
     Hour12,
     /// 24-hour
+    #[default]
     Hour24,
 }
 
@@ -785,12 +772,6 @@ impl TimeFormat {
             Language::En => TimeFormat::Hour12,
             _ => TimeFormat::Hour24,
         }
-    }
-}
-
-impl Default for TimeFormat {
-    fn default() -> Self {
-        TimeFormat::Hour24
     }
 }
 
@@ -961,9 +942,10 @@ impl Default for SizeFormat {
 // =============================================================================
 
 /// Keyboard layout identifier
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum KeyboardLayout {
     /// US QWERTY
+    #[default]
     UsQwerty,
     /// UK QWERTY
     UkQwerty,
@@ -997,26 +979,19 @@ impl KeyboardLayout {
     /// Get default layout for locale
     pub const fn for_locale(locale: &Locale) -> Self {
         match (locale.language, locale.country) {
-            (Language::En, Some(Country::Gb)) => KeyboardLayout::UkQwerty,
-            (Language::En, _) => KeyboardLayout::UsQwerty,
-            (Language::De, Some(Country::Ch)) => KeyboardLayout::ChDe,
-            (Language::De, _) => KeyboardLayout::DeQwertz,
-            (Language::Fr, Some(Country::Ca)) => KeyboardLayout::CaFr,
-            (Language::Fr, Some(Country::Ch)) => KeyboardLayout::ChFr,
-            (Language::Fr, _) => KeyboardLayout::FrAzerty,
-            (Language::Es, _) => KeyboardLayout::EsQwerty,
-            (Language::It, _) => KeyboardLayout::ItQwerty,
-            (Language::Ja, _) => KeyboardLayout::Jp,
-            (Language::Ko, _) => KeyboardLayout::Kr,
-            (Language::Ru, _) => KeyboardLayout::Ru,
-            _ => KeyboardLayout::UsQwerty,
+            (Language::En, Some(Country::Gb)) => Self::UkQwerty,
+            (Language::De, Some(Country::Ch)) => Self::ChDe,
+            (Language::De, _) => Self::DeQwertz,
+            (Language::Fr, Some(Country::Ca)) => Self::CaFr,
+            (Language::Fr, Some(Country::Ch)) => Self::ChFr,
+            (Language::Fr, _) => Self::FrAzerty,
+            (Language::Es, _) => Self::EsQwerty,
+            (Language::It, _) => Self::ItQwerty,
+            (Language::Ja, _) => Self::Jp,
+            (Language::Ko, _) => Self::Kr,
+            (Language::Ru, _) => Self::Ru,
+            _ => Self::UsQwerty,
         }
-    }
-}
-
-impl Default for KeyboardLayout {
-    fn default() -> Self {
-        KeyboardLayout::UsQwerty
     }
 }
 
