@@ -77,7 +77,7 @@ impl MemoryConsolidator {
     pub fn new(strategy: ConsolidationStrategy) -> Self {
         Self {
             strategy,
-            interval_ns: 3600_000_000_000, // 1 hour default
+            interval_ns: 3_600_000_000_000, // 1 hour default
             last_consolidation: AtomicU64::new(0),
             total_consolidations: AtomicU64::new(0),
             threshold_count: 500,
