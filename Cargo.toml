@@ -89,6 +89,9 @@ authors = ["Helix OS Contributors"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/helix-os/helix"
+readme = "README.md"
+keywords = ["os", "kernel", "uefi", "no-std", "embedded"]
+categories = ["os", "embedded", "no-std", "hardware-support"]
 
 [workspace.dependencies]
 # Internal crates (existing)
