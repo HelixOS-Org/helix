@@ -13,8 +13,6 @@
 //! - Hardware capability validation
 //! - Security policy validation
 
-#![no_std]
-
 use core::fmt;
 
 // =============================================================================
