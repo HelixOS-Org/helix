@@ -14,6 +14,7 @@
 //! - Uncertainty-aware reasoning
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
