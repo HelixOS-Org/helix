@@ -137,61 +137,73 @@ pub trait ArchOperations {
 
 /// Common CPU feature flags
 #[derive(Debug, Clone, Copy, Default)]
-pub struct CpuFeatures {
+pub struct CpuFeatures(u64);
+
+impl CpuFeatures {
     /// SSE support
-    pub sse: bool,
+    pub const SSE: Self = Self(1 << 0);
     /// SSE2 support
-    pub sse2: bool,
+    pub const SSE2: Self = Self(1 << 1);
     /// SSE3 support
-    pub sse3: bool,
+    pub const SSE3: Self = Self(1 << 2);
     /// SSE4.1 support
-    pub sse4_1: bool,
+    pub const SSE4_1: Self = Self(1 << 3);
     /// SSE4.2 support
-    pub sse4_2: bool,
+    pub const SSE4_2: Self = Self(1 << 4);
     /// AVX support
-    pub avx: bool,
+    pub const AVX: Self = Self(1 << 5);
     /// AVX2 support
-    pub avx2: bool,
+    pub const AVX2: Self = Self(1 << 6);
     /// AVX-512 support
-    pub avx512: bool,
+    pub const AVX512: Self = Self(1 << 7);
     /// AES-NI support
-    pub aes: bool,
+    pub const AES: Self = Self(1 << 8);
     /// RDRAND support
-    pub rdrand: bool,
+    pub const RDRAND: Self = Self(1 << 9);
     /// RDSEED support
-    pub rdseed: bool,
+    pub const RDSEED: Self = Self(1 << 10);
     /// SHA extensions
-    pub sha: bool,
+    pub const SHA: Self = Self(1 << 11);
     /// TSC support
-    pub tsc: bool,
+    pub const TSC: Self = Self(1 << 12);
     /// Invariant TSC
-    pub tsc_invariant: bool,
+    pub const TSC_INVARIANT: Self = Self(1 << 13);
     /// NX/XD bit support
-    pub nx: bool,
+    pub const NX: Self = Self(1 << 14);
     /// 1GB pages
-    pub page_1gb: bool,
+    pub const PAGE_1GB: Self = Self(1 << 15);
     /// 5-level paging
-    pub la57: bool,
+    pub const LA57: Self = Self(1 << 16);
     /// SMEP (Supervisor Mode Execution Prevention)
-    pub smep: bool,
+    pub const SMEP: Self = Self(1 << 17);
     /// SMAP (Supervisor Mode Access Prevention)
-    pub smap: bool,
+    pub const SMAP: Self = Self(1 << 18);
     /// UMIP (User Mode Instruction Prevention)
-    pub umip: bool,
+    pub const UMIP: Self = Self(1 << 19);
     /// PKU (Protection Keys for User pages)
-    pub pku: bool,
+    pub const PKU: Self = Self(1 << 20);
     /// CET (Control-flow Enforcement Technology)
-    pub cet: bool,
+    pub const CET: Self = Self(1 << 21);
     /// XSAVE support
-    pub xsave: bool,
+    pub const XSAVE: Self = Self(1 << 22);
     /// FSGSBASE support
-    pub fsgsbase: bool,
+    pub const FSGSBASE: Self = Self(1 << 23);
     /// x2APIC support
-    pub x2apic: bool,
+    pub const X2APIC: Self = Self(1 << 24);
     /// PCID support
-    pub pcid: bool,
+    pub const PCID: Self = Self(1 << 25);
     /// INVPCID support
-    pub invpcid: bool,
+    pub const INVPCID: Self = Self(1 << 26);
+
+    /// Check if a feature is present
+    pub const fn contains(self, other: Self) -> bool {
+        (self.0 & other.0) == other.0
+    }
+
+    /// Add a feature flag
+    pub fn insert(&mut self, other: Self) {
+        self.0 |= other.0;
+    }
 }
 
 impl CpuFeatures {
