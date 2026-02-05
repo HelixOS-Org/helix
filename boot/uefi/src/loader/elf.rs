@@ -20,153 +20,255 @@ use alloc::vec::Vec;
 /// ELF magic number
 pub const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
 
-/// ELF classes
+/// ELF classes.
 pub mod class {
+    /// 32-bit ELF class.
     pub const ELFCLASS32: u8 = 1;
+    /// 64-bit ELF class.
     pub const ELFCLASS64: u8 = 2;
 }
 
-/// ELF data encoding
+/// ELF data encoding.
 pub mod data {
-    pub const ELFDATA2LSB: u8 = 1; // Little endian
-    pub const ELFDATA2MSB: u8 = 2; // Big endian
+    /// Little endian data encoding.
+    pub const ELFDATA2LSB: u8 = 1;
+    /// Big endian data encoding.
+    pub const ELFDATA2MSB: u8 = 2;
 }
 
-/// ELF OS/ABI
+/// ELF OS/ABI identifiers.
 pub mod osabi {
+    /// No specific OS/ABI.
     pub const ELFOSABI_NONE: u8 = 0;
+    /// Linux OS/ABI.
     pub const ELFOSABI_LINUX: u8 = 3;
+    /// FreeBSD OS/ABI.
     pub const ELFOSABI_FREEBSD: u8 = 9;
+    /// Standalone/embedded OS/ABI.
     pub const ELFOSABI_STANDALONE: u8 = 255;
 }
 
-/// ELF types
+/// ELF object file types.
 pub mod elf_type {
+    /// No file type.
     pub const ET_NONE: u16 = 0;
+    /// Relocatable file.
     pub const ET_REL: u16 = 1;
+    /// Executable file.
     pub const ET_EXEC: u16 = 2;
+    /// Shared object file.
     pub const ET_DYN: u16 = 3;
+    /// Core file.
     pub const ET_CORE: u16 = 4;
 }
 
-/// ELF machine types
+/// ELF machine types.
 pub mod machine {
+    /// No machine type.
     pub const EM_NONE: u16 = 0;
+    /// Intel 80386.
     pub const EM_386: u16 = 3;
+    /// ARM.
     pub const EM_ARM: u16 = 40;
+    /// AMD x86-64 architecture.
     pub const EM_X86_64: u16 = 62;
+    /// ARM 64-bit architecture (`AArch64`).
     pub const EM_AARCH64: u16 = 183;
+    /// RISC-V.
     pub const EM_RISCV: u16 = 243;
 }
 
-/// Program header types
+/// Program header types.
 pub mod pt {
+    /// Null entry (unused).
     pub const PT_NULL: u32 = 0;
+    /// Loadable segment.
     pub const PT_LOAD: u32 = 1;
+    /// Dynamic linking information.
     pub const PT_DYNAMIC: u32 = 2;
+    /// Interpreter path.
     pub const PT_INTERP: u32 = 3;
+    /// Auxiliary information.
     pub const PT_NOTE: u32 = 4;
+    /// Reserved.
     pub const PT_SHLIB: u32 = 5;
+    /// Program header table.
     pub const PT_PHDR: u32 = 6;
+    /// Thread-local storage.
     pub const PT_TLS: u32 = 7;
+    /// GNU exception handling frame.
     pub const PT_GNU_EH_FRAME: u32 = 0x6474_e550;
+    /// GNU stack permissions.
     pub const PT_GNU_STACK: u32 = 0x6474_e551;
+    /// GNU read-only after relocation.
     pub const PT_GNU_RELRO: u32 = 0x6474_e552;
 }
 
-/// Program header flags
+/// Program header flags.
 pub mod pf {
-    pub const PF_X: u32 = 1; // Execute
-    pub const PF_W: u32 = 2; // Write
-    pub const PF_R: u32 = 4; // Read
+    /// Executable permission.
+    pub const PF_X: u32 = 1;
+    /// Write permission.
+    pub const PF_W: u32 = 2;
+    /// Read permission.
+    pub const PF_R: u32 = 4;
 }
 
-/// Section header types
+/// Section header types.
 pub mod sht {
+    /// Null entry (unused).
     pub const SHT_NULL: u32 = 0;
+    /// Program-defined data.
     pub const SHT_PROGBITS: u32 = 1;
+    /// Symbol table.
     pub const SHT_SYMTAB: u32 = 2;
+    /// String table.
     pub const SHT_STRTAB: u32 = 3;
+    /// Relocation entries with addends.
     pub const SHT_RELA: u32 = 4;
+    /// Symbol hash table.
     pub const SHT_HASH: u32 = 5;
+    /// Dynamic linking info.
     pub const SHT_DYNAMIC: u32 = 6;
+    /// Notes.
     pub const SHT_NOTE: u32 = 7;
+    /// BSS (uninitialized data).
     pub const SHT_NOBITS: u32 = 8;
+    /// Relocation entries without addends.
     pub const SHT_REL: u32 = 9;
+    /// Reserved.
     pub const SHT_SHLIB: u32 = 10;
+    /// Dynamic symbol table.
     pub const SHT_DYNSYM: u32 = 11;
+    /// Initialization function array.
     pub const SHT_INIT_ARRAY: u32 = 14;
+    /// Finalization function array.
     pub const SHT_FINI_ARRAY: u32 = 15;
+    /// Pre-initialization function array.
     pub const SHT_PREINIT_ARRAY: u32 = 16;
+    /// Section group.
     pub const SHT_GROUP: u32 = 17;
+    /// Extended section indices.
     pub const SHT_SYMTAB_SHNDX: u32 = 18;
 }
 
-/// Section header flags
+/// Section header flags.
 pub mod shf {
+    /// Writable data.
     pub const SHF_WRITE: u64 = 1;
+    /// Allocated in memory.
     pub const SHF_ALLOC: u64 = 2;
+    /// Executable code.
     pub const SHF_EXECINSTR: u64 = 4;
+    /// Mergeable section.
     pub const SHF_MERGE: u64 = 0x10;
+    /// Contains null-terminated strings.
     pub const SHF_STRINGS: u64 = 0x20;
+    /// `sh_info` contains section index.
     pub const SHF_INFO_LINK: u64 = 0x40;
+    /// Preserve section ordering.
     pub const SHF_LINK_ORDER: u64 = 0x80;
+    /// Thread-local storage.
     pub const SHF_TLS: u64 = 0x400;
 }
 
-/// Symbol binding
+/// Symbol binding types.
 pub mod stb {
+    /// Local symbol.
     pub const STB_LOCAL: u8 = 0;
+    /// Global symbol.
     pub const STB_GLOBAL: u8 = 1;
+    /// Weak symbol.
     pub const STB_WEAK: u8 = 2;
 }
 
-/// Symbol types
+/// Symbol types.
 pub mod stt {
+    /// No type.
     pub const STT_NOTYPE: u8 = 0;
+    /// Data object.
     pub const STT_OBJECT: u8 = 1;
+    /// Function.
     pub const STT_FUNC: u8 = 2;
+    /// Section.
     pub const STT_SECTION: u8 = 3;
+    /// Source file.
     pub const STT_FILE: u8 = 4;
+    /// Common block.
     pub const STT_COMMON: u8 = 5;
+    /// Thread-local storage.
     pub const STT_TLS: u8 = 6;
 }
 
-/// Relocation types for `x86_64`
+/// Relocation types for `x86_64`.
 pub mod r_x86_64 {
+    /// No relocation.
     pub const R_X86_64_NONE: u32 = 0;
+    /// Direct 64-bit.
     pub const R_X86_64_64: u32 = 1;
+    /// PC-relative 32-bit.
     pub const R_X86_64_PC32: u32 = 2;
+    /// 32-bit GOT entry.
     pub const R_X86_64_GOT32: u32 = 3;
+    /// 32-bit PLT address.
     pub const R_X86_64_PLT32: u32 = 4;
+    /// Copy symbol at runtime.
     pub const R_X86_64_COPY: u32 = 5;
+    /// Create GOT entry.
     pub const R_X86_64_GLOB_DAT: u32 = 6;
+    /// Create PLT entry.
     pub const R_X86_64_JUMP_SLOT: u32 = 7;
+    /// Adjust by program base.
     pub const R_X86_64_RELATIVE: u32 = 8;
+    /// 32-bit signed GOT-relative offset.
     pub const R_X86_64_GOTPCREL: u32 = 9;
+    /// Direct 32-bit zero-extended.
     pub const R_X86_64_32: u32 = 10;
+    /// Direct 32-bit sign-extended.
     pub const R_X86_64_32S: u32 = 11;
+    /// Direct 16-bit.
     pub const R_X86_64_16: u32 = 12;
+    /// 16-bit PC-relative.
     pub const R_X86_64_PC16: u32 = 13;
+    /// Direct 8-bit.
     pub const R_X86_64_8: u32 = 14;
+    /// 8-bit PC-relative.
     pub const R_X86_64_PC8: u32 = 15;
+    /// ID of module containing symbol.
     pub const R_X86_64_DTPMOD64: u32 = 16;
+    /// Offset in TLS block.
     pub const R_X86_64_DTPOFF64: u32 = 17;
+    /// Offset in initial TLS block.
     pub const R_X86_64_TPOFF64: u32 = 18;
+    /// 32-bit PC-relative offset to GD GOT entry.
     pub const R_X86_64_TLSGD: u32 = 19;
+    /// 32-bit PC-relative offset to LD GOT entry.
     pub const R_X86_64_TLSLD: u32 = 20;
+    /// Offset in TLS block (32-bit).
     pub const R_X86_64_DTPOFF32: u32 = 21;
+    /// 32-bit PC-relative offset to IE GOT entry.
     pub const R_X86_64_GOTTPOFF: u32 = 22;
+    /// Offset in initial TLS block (32-bit).
     pub const R_X86_64_TPOFF32: u32 = 23;
+    /// 64-bit PC-relative.
     pub const R_X86_64_PC64: u32 = 24;
+    /// 64-bit offset to GOT.
     pub const R_X86_64_GOTOFF64: u32 = 25;
+    /// 32-bit signed PC-relative offset to GOT.
     pub const R_X86_64_GOTPC32: u32 = 26;
+    /// 32-bit symbol size.
     pub const R_X86_64_SIZE32: u32 = 32;
+    /// 64-bit symbol size.
     pub const R_X86_64_SIZE64: u32 = 33;
+    /// 32-bit PC-relative offset to TLS descriptor in GOT.
     pub const R_X86_64_GOTPC32_TLSDESC: u32 = 34;
+    /// Relaxable call through TLS descriptor.
     pub const R_X86_64_TLSDESC_CALL: u32 = 35;
+    /// TLS descriptor.
     pub const R_X86_64_TLSDESC: u32 = 36;
+    /// Indirect relative.
     pub const R_X86_64_IRELATIVE: u32 = 37;
+    /// 64-bit adjust by program base.
     pub const R_X86_64_RELATIVE64: u32 = 38;
 }
 
@@ -230,8 +332,9 @@ impl Elf64Header {
             return Err(Error::UnsupportedFormat);
         }
 
-        // SAFETY: We've validated the data length and magic bytes above
-        Ok(unsafe { *data.as_ptr().cast::<Self>() })
+        // SAFETY: We've validated the data length and magic bytes above.
+        // Using read_unaligned because byte slice may not be aligned.
+        Ok(unsafe { core::ptr::read_unaligned(data.as_ptr().cast::<Self>()) })
     }
 
     /// Validate header
@@ -309,8 +412,9 @@ impl Elf64ProgramHeader {
             return Err(Error::InvalidData);
         }
 
-        // SAFETY: We've validated the data length above
-        Ok(unsafe { *data[offset..].as_ptr().cast::<Self>() })
+        // SAFETY: We've validated the data length above.
+        // Using read_unaligned because byte slice may not be aligned.
+        Ok(unsafe { core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Self>()) })
     }
 
     /// Check if loadable
@@ -381,8 +485,9 @@ impl Elf64SectionHeader {
             return Err(Error::InvalidData);
         }
 
-        // SAFETY: We've validated the data length above
-        Ok(unsafe { *data[offset..].as_ptr().cast::<Self>() })
+        // SAFETY: We've validated the data length above.
+        // Using read_unaligned because byte slice may not be aligned.
+        Ok(unsafe { core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Self>()) })
     }
 
     /// Check if allocated
@@ -546,44 +651,81 @@ pub struct Elf64Dyn {
     pub d_val: u64,
 }
 
-/// Dynamic tags
+/// Dynamic section tags.
 pub mod dt {
+    /// End of dynamic section.
     pub const DT_NULL: i64 = 0;
+    /// Name of needed library.
     pub const DT_NEEDED: i64 = 1;
+    /// Size of PLT relocs.
     pub const DT_PLTRELSZ: i64 = 2;
+    /// Processor-defined value (GOT/PLT).
     pub const DT_PLTGOT: i64 = 3;
+    /// Address of symbol hash table.
     pub const DT_HASH: i64 = 4;
+    /// Address of string table.
     pub const DT_STRTAB: i64 = 5;
+    /// Address of symbol table.
     pub const DT_SYMTAB: i64 = 6;
+    /// Address of RELA relocs.
     pub const DT_RELA: i64 = 7;
+    /// Total size of RELA relocs.
     pub const DT_RELASZ: i64 = 8;
+    /// Size of one RELA reloc.
     pub const DT_RELAENT: i64 = 9;
+    /// Size of string table.
     pub const DT_STRSZ: i64 = 10;
+    /// Size of one symbol table entry.
     pub const DT_SYMENT: i64 = 11;
+    /// Address of init function.
     pub const DT_INIT: i64 = 12;
+    /// Address of fini function.
     pub const DT_FINI: i64 = 13;
+    /// Name of shared object.
     pub const DT_SONAME: i64 = 14;
+    /// Library search path (deprecated).
     pub const DT_RPATH: i64 = 15;
+    /// Start symbol search here.
     pub const DT_SYMBOLIC: i64 = 16;
+    /// Address of REL relocs.
     pub const DT_REL: i64 = 17;
+    /// Total size of REL relocs.
     pub const DT_RELSZ: i64 = 18;
+    /// Size of one REL reloc.
     pub const DT_RELENT: i64 = 19;
+    /// Type of reloc in PLT.
     pub const DT_PLTREL: i64 = 20;
+    /// For debugging (unspecified).
     pub const DT_DEBUG: i64 = 21;
+    /// Reloc might modify text segment.
     pub const DT_TEXTREL: i64 = 22;
+    /// Address of PLT relocs.
     pub const DT_JMPREL: i64 = 23;
+    /// Process relocations of object.
     pub const DT_BIND_NOW: i64 = 24;
+    /// Array with addresses of init functions.
     pub const DT_INIT_ARRAY: i64 = 25;
+    /// Array with addresses of fini functions.
     pub const DT_FINI_ARRAY: i64 = 26;
+    /// Size in bytes of `DT_INIT_ARRAY`.
     pub const DT_INIT_ARRAYSZ: i64 = 27;
+    /// Size in bytes of `DT_FINI_ARRAY`.
     pub const DT_FINI_ARRAYSZ: i64 = 28;
+    /// Library search path.
     pub const DT_RUNPATH: i64 = 29;
+    /// Flags for the object.
     pub const DT_FLAGS: i64 = 30;
+    /// Array with addresses of pre-init functions.
     pub const DT_PREINIT_ARRAY: i64 = 32;
+    /// Size in bytes of `DT_PREINIT_ARRAY`.
     pub const DT_PREINIT_ARRAYSZ: i64 = 33;
+    /// GNU-style hash table.
     pub const DT_GNU_HASH: i64 = 0x6fff_fef5;
+    /// Number of RELA relocs.
     pub const DT_RELACOUNT: i64 = 0x6fff_fff9;
+    /// Number of REL relocs.
     pub const DT_RELCOUNT: i64 = 0x6fff_fffa;
+    /// State flags (GNU extension).
     pub const DT_FLAGS_1: i64 = 0x6fff_fffb;
 }
 
@@ -650,16 +792,16 @@ impl ElfLoader {
         self.parse_section_headers(data, &header)?;
 
         // Load section string table
-        self.load_section_strings(data, &header)?;
+        self.load_section_strings(data, &header);
 
         // Parse symbols
         self.parse_symbols(data)?;
 
         // Parse relocations
-        self.parse_relocations(data)?;
+        self.parse_relocations(data);
 
         // Parse dynamic section
-        self.parse_dynamic(data)?;
+        self.parse_dynamic(data);
 
         // Build loaded image
         let image = self.build_image()?;
@@ -672,9 +814,9 @@ impl ElfLoader {
     fn parse_program_headers(&mut self, data: &[u8], header: &Elf64Header) -> Result<()> {
         self.program_headers.clear();
 
-        let offset = header.e_phoff as usize;
-        let size = header.e_phentsize as usize;
-        let count = header.e_phnum as usize;
+        let offset = usize::try_from(header.e_phoff).map_err(|_| Error::InvalidData)?;
+        let size = usize::from(header.e_phentsize);
+        let count = usize::from(header.e_phnum);
 
         for i in 0..count {
             let phdr = Elf64ProgramHeader::parse(data, offset + i * size)?;
@@ -692,9 +834,9 @@ impl ElfLoader {
             return Ok(());
         }
 
-        let offset = header.e_shoff as usize;
-        let size = header.e_shentsize as usize;
-        let count = header.e_shnum as usize;
+        let offset = usize::try_from(header.e_shoff).map_err(|_| Error::InvalidData)?;
+        let size = usize::from(header.e_shentsize);
+        let count = usize::from(header.e_shnum);
 
         for i in 0..count {
             let shdr = Elf64SectionHeader::parse(data, offset + i * size)?;
@@ -705,25 +847,29 @@ impl ElfLoader {
     }
 
     /// Load section string table
-    fn load_section_strings(&mut self, data: &[u8], header: &Elf64Header) -> Result<()> {
-        if header.e_shstrndx == 0 || header.e_shstrndx as usize >= self.section_headers.len() {
-            return Ok(());
+    fn load_section_strings(&mut self, data: &[u8], header: &Elf64Header) {
+        let shstrndx = usize::from(header.e_shstrndx);
+        if shstrndx == 0 || shstrndx >= self.section_headers.len() {
+            return;
         }
 
-        let shdr = &self.section_headers[header.e_shstrndx as usize];
-        let start = shdr.sh_offset as usize;
-        let end = start + shdr.sh_size as usize;
+        let shdr = &self.section_headers[shstrndx];
+        let Some(start) = usize::try_from(shdr.sh_offset).ok() else {
+            return;
+        };
+        let Some(size) = usize::try_from(shdr.sh_size).ok() else {
+            return;
+        };
+        let end = start.saturating_add(size);
 
         if end <= data.len() {
             self.section_strings = data[start..end].to_vec();
         }
-
-        Ok(())
     }
 
     /// Get section name from string table
     fn section_name(&self, offset: u32) -> String {
-        let start = offset as usize;
+        let start = offset as usize; // u32 to usize is always safe
         if start >= self.section_strings.len() {
             return String::new();
         }
@@ -750,14 +896,15 @@ impl ElfLoader {
         };
 
         // Find associated string table
-        let strtab_idx = symtab.sh_link as usize;
+        let strtab_idx = symtab.sh_link as usize; // u32 to usize is always safe
         if strtab_idx >= self.section_headers.len() {
             return Ok(());
         }
 
         let strtab = &self.section_headers[strtab_idx];
-        let strtab_start = strtab.sh_offset as usize;
-        let strtab_end = strtab_start + strtab.sh_size as usize;
+        let strtab_start = usize::try_from(strtab.sh_offset).map_err(|_| Error::InvalidData)?;
+        let strtab_size = usize::try_from(strtab.sh_size).map_err(|_| Error::InvalidData)?;
+        let strtab_end = strtab_start.saturating_add(strtab_size);
 
         if strtab_end > data.len() {
             return Err(Error::InvalidData);
@@ -766,9 +913,10 @@ impl ElfLoader {
         self.string_table = data[strtab_start..strtab_end].to_vec();
 
         // Parse symbols
-        let start = symtab.sh_offset as usize;
-        let entry_size = symtab.sh_entsize as usize;
-        let count = symtab.sh_size as usize / entry_size;
+        let start = usize::try_from(symtab.sh_offset).map_err(|_| Error::InvalidData)?;
+        let entry_size = usize::try_from(symtab.sh_entsize).map_err(|_| Error::InvalidData)?;
+        let symtab_size = usize::try_from(symtab.sh_size).map_err(|_| Error::InvalidData)?;
+        let count = symtab_size / entry_size;
 
         for i in 0..count {
             let offset = start + i * entry_size;
@@ -776,8 +924,10 @@ impl ElfLoader {
                 break;
             }
 
-            // SAFETY: We've validated the data length above
-            let sym: Elf64Symbol = unsafe { *data[offset..].as_ptr().cast::<Elf64Symbol>() };
+            // SAFETY: We've validated the data length above. Using read_unaligned
+            // because byte slice may not be aligned.
+            let sym: Elf64Symbol =
+                unsafe { core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Elf64Symbol>()) };
 
             let name = self.get_string(sym.st_name);
 
@@ -796,7 +946,7 @@ impl ElfLoader {
 
     /// Get string from string table
     fn get_string(&self, offset: u32) -> String {
-        let start = offset as usize;
+        let start = offset as usize; // u32 to usize is always safe
         if start >= self.string_table.len() {
             return String::new();
         }
@@ -810,7 +960,7 @@ impl ElfLoader {
     }
 
     /// Parse relocations
-    fn parse_relocations(&mut self, data: &[u8]) -> Result<()> {
+    fn parse_relocations(&mut self, data: &[u8]) {
         self.relocations.clear();
 
         for shdr in &self.section_headers {
@@ -818,9 +968,16 @@ impl ElfLoader {
                 continue;
             }
 
-            let start = shdr.sh_offset as usize;
-            let entry_size = shdr.sh_entsize as usize;
-            let count = shdr.sh_size as usize / entry_size;
+            let Some(start) = usize::try_from(shdr.sh_offset).ok() else {
+                continue;
+            };
+            let Some(entry_size) = usize::try_from(shdr.sh_entsize).ok().filter(|&s| s > 0) else {
+                continue;
+            };
+            let Some(shdr_size) = usize::try_from(shdr.sh_size).ok() else {
+                continue;
+            };
+            let count = shdr_size / entry_size;
             let with_addend = shdr.sh_type == sht::SHT_RELA;
 
             for i in 0..count {
@@ -831,8 +988,11 @@ impl ElfLoader {
                         break;
                     }
 
-                    // SAFETY: We've validated the data length above
-                    let rela: Elf64Rela = unsafe { *data[offset..].as_ptr().cast::<Elf64Rela>() };
+                    // SAFETY: We've validated the data length above. Using read_unaligned
+                    // because byte slice may not be aligned.
+                    let rela: Elf64Rela = unsafe {
+                        core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Elf64Rela>())
+                    };
 
                     self.relocations.push(ElfRelocation {
                         offset: rela.r_offset,
@@ -845,8 +1005,11 @@ impl ElfLoader {
                         break;
                     }
 
-                    // SAFETY: We've validated the data length above
-                    let rel: Elf64Rel = unsafe { *data[offset..].as_ptr().cast::<Elf64Rel>() };
+                    // SAFETY: We've validated the data length above. Using read_unaligned
+                    // because byte slice may not be aligned.
+                    let rel: Elf64Rel = unsafe {
+                        core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Elf64Rel>())
+                    };
 
                     self.relocations.push(ElfRelocation {
                         offset: rel.r_offset,
@@ -857,12 +1020,10 @@ impl ElfLoader {
                 }
             }
         }
-
-        Ok(())
     }
 
     /// Parse dynamic section
-    fn parse_dynamic(&mut self, data: &[u8]) -> Result<()> {
+    fn parse_dynamic(&mut self, data: &[u8]) {
         self.dynamic.clear();
 
         // Find PT_DYNAMIC segment
@@ -871,12 +1032,17 @@ impl ElfLoader {
             .iter()
             .find(|p| p.p_type == pt::PT_DYNAMIC)
         else {
-            return Ok(());
+            return;
         };
 
-        let start = dyn_seg.p_offset as usize;
+        let Some(start) = usize::try_from(dyn_seg.p_offset).ok() else {
+            return;
+        };
         let entry_size = core::mem::size_of::<Elf64Dyn>();
-        let count = dyn_seg.p_filesz as usize / entry_size;
+        let Some(filesz) = usize::try_from(dyn_seg.p_filesz).ok() else {
+            return;
+        };
+        let count = filesz / entry_size;
 
         for i in 0..count {
             let offset = start + i * entry_size;
@@ -884,8 +1050,11 @@ impl ElfLoader {
                 break;
             }
 
-            // SAFETY: We've validated the data length above
-            let dyn_entry: Elf64Dyn = unsafe { *data[offset..].as_ptr().cast::<Elf64Dyn>() };
+            // SAFETY: We've validated the data length above. Using read_unaligned
+            // because byte slice may not be aligned.
+            let dyn_entry: Elf64Dyn = unsafe {
+                core::ptr::read_unaligned(data[offset..].as_ptr().cast::<Elf64Dyn>())
+            };
 
             if dyn_entry.d_tag == dt::DT_NULL {
                 break;
@@ -893,8 +1062,6 @@ impl ElfLoader {
 
             self.dynamic.push(dyn_entry);
         }
-
-        Ok(())
     }
 
     /// Build loaded image from parsed ELF
@@ -963,8 +1130,7 @@ impl ElfLoader {
             .find(|s| s.is_bss() && s.is_allocated());
 
         let (bss_start, bss_size) = bss_section
-            .map(|s| (Some(VirtualAddress(s.sh_addr)), s.sh_size))
-            .unwrap_or((None, 0));
+            .map_or((None, 0), |s| (Some(VirtualAddress(s.sh_addr)), s.sh_size));
 
         Ok(LoadedImage {
             format: ImageFormat::Elf64,
