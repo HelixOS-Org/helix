@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/helix-os/helix"
 keywords = ["kernel", "ai", "intelligence", "self-healing", "predictive"]
 categories = ["no-std", "embedded", "os"]
+readme.workspace = true
 
 [lib]
 name = "helix_nexus"
