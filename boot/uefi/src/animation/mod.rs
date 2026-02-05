@@ -366,7 +366,7 @@ impl Easing {
             n1 * t1 * t1 + 0.9375
         } else {
             let t1 = t - 2.625 / d1;
-            n1 * t1 * t1 + 0.984375
+            n1 * t1 * t1 + 0.984_375
         }
     }
 
@@ -395,7 +395,7 @@ impl Easing {
         } else {
             1.0 / (1u32 << (-xi).min(31) as u32) as f32
         };
-        base * (1.0 + 0.6931472 * xf + 0.2402265 * xf * xf)
+        base * (1.0 + 0.693_147_2 * xf + 0.240_226_5 * xf * xf)
     }
 
     /// Approximate square root for no_std
