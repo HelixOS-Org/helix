@@ -1360,7 +1360,7 @@ pub mod address_space {
     pub const PCI_CONFIG: u8 = 2;
     /// Embedded controller
     pub const EMBEDDED_CONTROLLER: u8 = 3;
-    /// SMBus address space
+    /// `SMBus` address space
     pub const SMBUS: u8 = 4;
     /// CMOS address space
     pub const CMOS: u8 = 5;
