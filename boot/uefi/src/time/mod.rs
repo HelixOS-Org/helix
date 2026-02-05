@@ -238,12 +238,20 @@ impl Time {
         }
 
         // Calculate day
-        #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, reason = "value is bounded by days in month")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            reason = "value is bounded by days in month"
+        )]
         let day = (remaining / 86400) as u8 + 1;
         remaining %= 86400;
 
         // Calculate hour
-        #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, reason = "value is 0-23")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            reason = "value is 0-23"
+        )]
         let hour = (remaining / 3600) as u8;
         remaining %= 3600;
 
@@ -341,7 +349,10 @@ impl Duration {
 
     /// Create from milliseconds
     #[must_use]
-    #[expect(clippy::cast_possible_truncation, reason = "(millis % 1000) * 1_000_000 is at most 999_000_000 which fits in u32")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "(millis % 1000) * 1_000_000 is at most 999_000_000 which fits in u32"
+    )]
     pub const fn from_millis(millis: u64) -> Self {
         Self {
             secs: millis / 1000,
@@ -351,7 +362,10 @@ impl Duration {
 
     /// Create from microseconds
     #[must_use]
-    #[expect(clippy::cast_possible_truncation, reason = "(micros % 1_000_000) * 1000 is at most 999_999_000 which fits in u32")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "(micros % 1_000_000) * 1000 is at most 999_999_000 which fits in u32"
+    )]
     pub const fn from_micros(micros: u64) -> Self {
         Self {
             secs: micros / 1_000_000,
@@ -361,7 +375,10 @@ impl Duration {
 
     /// Create from nanoseconds
     #[must_use]
-    #[expect(clippy::cast_possible_truncation, reason = "modulo NANOS_PER_SEC is always < 1_000_000_000 which fits in u32")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "modulo NANOS_PER_SEC is always < 1_000_000_000 which fits in u32"
+    )]
     pub const fn from_nanos(nanos: u64) -> Self {
         Self {
             secs: nanos / Self::NANOS_PER_SEC as u64,
@@ -436,7 +453,10 @@ impl Duration {
     }
 
     /// Checked multiply
-    #[expect(clippy::cast_possible_truncation, reason = "modulo NANOS_PER_SEC is always < 1_000_000_000 which fits in u32")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "modulo NANOS_PER_SEC is always < 1_000_000_000 which fits in u32"
+    )]
     pub fn checked_mul(self, rhs: u32) -> Option<Duration> {
         let total_nanos = u64::from(self.nanos) * u64::from(rhs);
         let secs = self
@@ -508,7 +528,10 @@ impl Instant {
         let secs = diff / frequency;
         let remaining = diff % frequency;
         // Safe: result is always < 1_000_000_000 since remaining < frequency
-        #[expect(clippy::cast_possible_truncation, reason = "nanos is always < 1_000_000_000")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "nanos is always < 1_000_000_000"
+        )]
         let nanos = ((u128::from(remaining) * 1_000_000_000) / u128::from(frequency)) as u32;
 
         Duration::new(secs, nanos)
@@ -603,7 +626,10 @@ impl Timer {
     /// Start with duration
     pub fn start_duration(&mut self, current_tick: u64, duration: Duration, frequency: u64) {
         // Safe truncation: for reasonable durations and frequencies, the result fits in u64
-        #[expect(clippy::cast_possible_truncation, reason = "timer period fits in u64 for reasonable values")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "timer period fits in u64 for reasonable values"
+        )]
         let period_ticks = (duration.as_nanos() * u128::from(frequency) / 1_000_000_000) as u64;
         self.start(current_tick, period_ticks);
     }
@@ -751,7 +777,10 @@ impl Stopwatch {
         let secs = ticks / frequency;
         let remaining = ticks % frequency;
         // Safe: result is always < 1_000_000_000 since remaining < frequency
-        #[expect(clippy::cast_possible_truncation, reason = "nanos is always < 1_000_000_000")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "nanos is always < 1_000_000_000"
+        )]
         let nanos = ((u128::from(remaining) * 1_000_000_000) / u128::from(frequency)) as u32;
 
         Duration::new(secs, nanos)
@@ -805,7 +834,10 @@ impl Countdown {
     /// Start with duration
     pub fn start_duration(&mut self, current_tick: u64, duration: Duration, frequency: u64) {
         // Safe truncation: for reasonable durations and frequencies, the result fits in u64
-        #[expect(clippy::cast_possible_truncation, reason = "timer period fits in u64 for reasonable values")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "timer period fits in u64 for reasonable values"
+        )]
         let ticks = (duration.as_nanos() * u128::from(frequency) / 1_000_000_000) as u64;
         self.start(current_tick, ticks);
     }
@@ -834,7 +866,10 @@ impl Countdown {
         let secs = ticks / frequency;
         let remaining = ticks % frequency;
         // Safe: result is always < 1_000_000_000 since remaining < frequency
-        #[expect(clippy::cast_possible_truncation, reason = "nanos is always < 1_000_000_000")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "nanos is always < 1_000_000_000"
+        )]
         let nanos = ((u128::from(remaining) * 1_000_000_000) / u128::from(frequency)) as u32;
 
         Duration::new(secs, nanos)
