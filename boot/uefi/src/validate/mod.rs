@@ -20,7 +20,7 @@ use core::fmt;
 // =============================================================================
 
 /// Validation status
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ValidationStatus {
     /// Valid/passed
     Valid,
@@ -33,13 +33,8 @@ pub enum ValidationStatus {
     /// Error during validation
     Error,
     /// Not yet validated
+    #[default]
     Pending,
-}
-
-impl Default for ValidationStatus {
-    fn default() -> Self {
-        ValidationStatus::Pending
-    }
 }
 
 impl fmt::Display for ValidationStatus {
@@ -138,11 +133,12 @@ impl ValidationResult {
 // =============================================================================
 
 /// Checksum algorithm
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ChecksumType {
     /// No checksum
     None,
     /// CRC32
+    #[default]
     Crc32,
     /// CRC32C (Castagnoli)
     Crc32c,
@@ -162,16 +158,10 @@ pub enum ChecksumType {
     Sha384,
     /// SHA-512
     Sha512,
-    /// XXHash32
+    /// `XXHash32`
     XxHash32,
-    /// XXHash64
+    /// `XXHash64`
     XxHash64,
-}
-
-impl Default for ChecksumType {
-    fn default() -> Self {
-        ChecksumType::Crc32
-    }
 }
 
 /// Checksum value
@@ -268,16 +258,26 @@ impl Default for ChecksumSpec {
 pub struct FileValidationFlags(u16);
 
 impl FileValidationFlags {
-    pub const NONE: FileValidationFlags = FileValidationFlags(0);
-    pub const CHECK_EXISTS: FileValidationFlags = FileValidationFlags(1);
-    pub const CHECK_READABLE: FileValidationFlags = FileValidationFlags(2);
-    pub const CHECK_SIZE: FileValidationFlags = FileValidationFlags(4);
-    pub const CHECK_CHECKSUM: FileValidationFlags = FileValidationFlags(8);
-    pub const CHECK_SIGNATURE: FileValidationFlags = FileValidationFlags(16);
-    pub const CHECK_MAGIC: FileValidationFlags = FileValidationFlags(32);
-    pub const CHECK_HEADER: FileValidationFlags = FileValidationFlags(64);
-    pub const CHECK_FORMAT: FileValidationFlags = FileValidationFlags(128);
-    pub const ALL: FileValidationFlags = FileValidationFlags(0xFF);
+    /// No validation flags
+    pub const NONE: Self = Self(0);
+    /// Check if file exists
+    pub const CHECK_EXISTS: Self = Self(1);
+    /// Check if file is readable
+    pub const CHECK_READABLE: Self = Self(2);
+    /// Check file size
+    pub const CHECK_SIZE: Self = Self(4);
+    /// Check file checksum
+    pub const CHECK_CHECKSUM: Self = Self(8);
+    /// Check file signature
+    pub const CHECK_SIGNATURE: Self = Self(16);
+    /// Check file magic bytes
+    pub const CHECK_MAGIC: Self = Self(32);
+    /// Check file header
+    pub const CHECK_HEADER: Self = Self(64);
+    /// Check file format
+    pub const CHECK_FORMAT: Self = Self(128);
+    /// All validation flags
+    pub const ALL: Self = Self(0xFF);
 
     /// Get raw value
     pub const fn raw(&self) -> u16 {
@@ -290,8 +290,9 @@ impl FileValidationFlags {
     }
 
     /// Combine flags
-    pub const fn with(self, other: FileValidationFlags) -> FileValidationFlags {
-        FileValidationFlags(self.0 | other.0)
+    #[must_use]
+    pub const fn with(self, other: Self) -> Self {
+        Self(self.0 | other.0)
     }
 }
 
@@ -337,27 +338,54 @@ impl Default for FileValidation {
     }
 }
 
+/// File validation status flags
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct FileValidationStatus(u8);
+
+impl FileValidationStatus {
+    /// File exists
+    pub const EXISTS: Self = Self(1 << 0);
+    /// File is readable
+    pub const READABLE: Self = Self(1 << 1);
+    /// Size is valid
+    pub const SIZE_VALID: Self = Self(1 << 2);
+    /// Checksum is valid
+    pub const CHECKSUM_VALID: Self = Self(1 << 3);
+    /// Signature is valid
+    pub const SIGNATURE_VALID: Self = Self(1 << 4);
+    /// Magic bytes are valid
+    pub const MAGIC_VALID: Self = Self(1 << 5);
+    /// Header is valid
+    pub const HEADER_VALID: Self = Self(1 << 6);
+
+    /// Check if flag is set
+    #[must_use]
+    pub const fn has(self, flag: Self) -> bool {
+        self.0 & flag.0 != 0
+    }
+
+    /// Set a flag
+    #[must_use]
+    pub const fn with(self, flag: Self) -> Self {
+        Self(self.0 | flag.0)
+    }
+
+    /// Get raw value
+    #[must_use]
+    pub const fn raw(self) -> u8 {
+        self.0
+    }
+}
+
 /// File validation result
 #[derive(Debug, Clone, Copy, Default)]
 pub struct FileValidationResult {
     /// Overall result
     pub result: ValidationResult,
-    /// File exists
-    pub exists: bool,
-    /// File readable
-    pub readable: bool,
+    /// Validation status flags
+    pub status: FileValidationStatus,
     /// Actual file size
     pub actual_size: u64,
-    /// Size valid
-    pub size_valid: bool,
-    /// Checksum valid
-    pub checksum_valid: bool,
-    /// Signature valid
-    pub signature_valid: bool,
-    /// Magic valid
-    pub magic_valid: bool,
-    /// Header valid
-    pub header_valid: bool,
 }
 
 // =============================================================================
@@ -365,9 +393,10 @@ pub struct FileValidationResult {
 // =============================================================================
 
 /// Memory validation type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MemoryValidationType {
     /// Range is valid (non-null, aligned, in bounds)
+    #[default]
     Range,
     /// Memory is readable
     Readable,
@@ -383,12 +412,6 @@ pub enum MemoryValidationType {
     Pattern,
     /// Memory is zeroed
     Zeroed,
-}
-
-impl Default for MemoryValidationType {
-    fn default() -> Self {
-        MemoryValidationType::Range
-    }
 }
 
 /// Memory validation request
@@ -473,15 +496,24 @@ pub struct MemoryValidationResult {
 pub struct EntryValidationFlags(u16);
 
 impl EntryValidationFlags {
-    pub const NONE: EntryValidationFlags = EntryValidationFlags(0);
-    pub const CHECK_PATH: EntryValidationFlags = EntryValidationFlags(1);
-    pub const CHECK_KERNEL: EntryValidationFlags = EntryValidationFlags(2);
-    pub const CHECK_INITRD: EntryValidationFlags = EntryValidationFlags(4);
-    pub const CHECK_ARGS: EntryValidationFlags = EntryValidationFlags(8);
-    pub const CHECK_DEVICE: EntryValidationFlags = EntryValidationFlags(16);
-    pub const CHECK_SIGNATURE: EntryValidationFlags = EntryValidationFlags(32);
-    pub const CHECK_BOOTABLE: EntryValidationFlags = EntryValidationFlags(64);
-    pub const ALL: EntryValidationFlags = EntryValidationFlags(0x7F);
+    /// No validation flags
+    pub const NONE: Self = Self(0);
+    /// Check entry path
+    pub const CHECK_PATH: Self = Self(1);
+    /// Check kernel file
+    pub const CHECK_KERNEL: Self = Self(2);
+    /// Check initrd file
+    pub const CHECK_INITRD: Self = Self(4);
+    /// Check boot arguments
+    pub const CHECK_ARGS: Self = Self(8);
+    /// Check boot device
+    pub const CHECK_DEVICE: Self = Self(16);
+    /// Check signature
+    pub const CHECK_SIGNATURE: Self = Self(32);
+    /// Check if entry is bootable
+    pub const CHECK_BOOTABLE: Self = Self(64);
+    /// All validation flags
+    pub const ALL: Self = Self(0x7F);
 
     /// Get raw value
     pub const fn raw(&self) -> u16 {
@@ -494,8 +526,52 @@ impl EntryValidationFlags {
     }
 
     /// Combine flags
-    pub const fn with(self, other: EntryValidationFlags) -> EntryValidationFlags {
-        EntryValidationFlags(self.0 | other.0)
+    #[must_use]
+    pub const fn with(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+}
+
+/// Entry validation status flags
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct EntryValidationStatus(u16);
+
+impl EntryValidationStatus {
+    /// Path is valid
+    pub const PATH_VALID: Self = Self(1 << 0);
+    /// Kernel exists
+    pub const KERNEL_EXISTS: Self = Self(1 << 1);
+    /// Kernel is valid
+    pub const KERNEL_VALID: Self = Self(1 << 2);
+    /// Initrd exists
+    pub const INITRD_EXISTS: Self = Self(1 << 3);
+    /// Initrd is valid
+    pub const INITRD_VALID: Self = Self(1 << 4);
+    /// Args are valid
+    pub const ARGS_VALID: Self = Self(1 << 5);
+    /// Device is accessible
+    pub const DEVICE_OK: Self = Self(1 << 6);
+    /// Signature is valid
+    pub const SIGNATURE_OK: Self = Self(1 << 7);
+    /// Entry is bootable
+    pub const BOOTABLE: Self = Self(1 << 8);
+
+    /// Check if flag is set
+    #[must_use]
+    pub const fn has(self, flag: Self) -> bool {
+        self.0 & flag.0 != 0
+    }
+
+    /// Set a flag
+    #[must_use]
+    pub const fn with(self, flag: Self) -> Self {
+        Self(self.0 | flag.0)
+    }
+
+    /// Get raw value
+    #[must_use]
+    pub const fn raw(self) -> u16 {
+        self.0
     }
 }
 
@@ -506,24 +582,8 @@ pub struct EntryValidationResult {
     pub result: ValidationResult,
     /// Entry index
     pub entry_index: u16,
-    /// Path valid
-    pub path_valid: bool,
-    /// Kernel exists
-    pub kernel_exists: bool,
-    /// Kernel valid
-    pub kernel_valid: bool,
-    /// Initrd exists
-    pub initrd_exists: bool,
-    /// Initrd valid
-    pub initrd_valid: bool,
-    /// Args valid
-    pub args_valid: bool,
-    /// Device accessible
-    pub device_ok: bool,
-    /// Signature valid
-    pub signature_ok: bool,
-    /// Entry is bootable
-    pub bootable: bool,
+    /// Validation status flags
+    pub status: EntryValidationStatus,
 }
 
 // =============================================================================
@@ -531,7 +591,7 @@ pub struct EntryValidationResult {
 // =============================================================================
 
 /// Configuration validation
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ConfigValidationType {
     /// Syntax check
     Syntax,
@@ -546,13 +606,8 @@ pub enum ConfigValidationType {
     /// Security check
     Security,
     /// Full validation
+    #[default]
     Full,
-}
-
-impl Default for ConfigValidationType {
-    fn default() -> Self {
-        ConfigValidationType::Full
-    }
 }
 
 /// Config validation error
@@ -580,9 +635,10 @@ impl Default for ConfigError {
 }
 
 /// Config error type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ConfigErrorType {
     /// Unknown error
+    #[default]
     Unknown,
     /// Syntax error
     Syntax,
@@ -602,12 +658,6 @@ pub enum ConfigErrorType {
     Incompatible,
     /// Security issue
     Security,
-}
-
-impl Default for ConfigErrorType {
-    fn default() -> Self {
-        ConfigErrorType::Unknown
-    }
 }
 
 /// Maximum config errors to track
@@ -660,9 +710,10 @@ impl ConfigValidationResult {
 // =============================================================================
 
 /// Pre-boot check type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PreBootCheck {
     /// Memory sufficient
+    #[default]
     Memory,
     /// CPU capabilities
     Cpu,
@@ -682,12 +733,6 @@ pub enum PreBootCheck {
     Dependencies,
     /// Custom check
     Custom(u16),
-}
-
-impl Default for PreBootCheck {
-    fn default() -> Self {
-        PreBootCheck::Memory
-    }
 }
 
 /// Pre-boot check result
@@ -817,9 +862,10 @@ impl PreBootValidation {
 // =============================================================================
 
 /// Required CPU feature
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CpuFeature {
     /// Long mode (64-bit)
+    #[default]
     LongMode,
     /// PAE
     Pae,
@@ -867,9 +913,38 @@ pub enum CpuFeature {
     X2apic,
 }
 
-impl Default for CpuFeature {
-    fn default() -> Self {
-        CpuFeature::LongMode
+/// Hardware requirement flags
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct HardwareRequirementFlags(u8);
+
+impl HardwareRequirementFlags {
+    /// Graphics is required
+    pub const GRAPHICS_REQUIRED: Self = Self(1 << 0);
+    /// Framebuffer is required
+    pub const FRAMEBUFFER_REQUIRED: Self = Self(1 << 1);
+    /// Network is required
+    pub const NETWORK_REQUIRED: Self = Self(1 << 2);
+    /// TPM is required
+    pub const TPM_REQUIRED: Self = Self(1 << 3);
+    /// Secure boot is required
+    pub const SECURE_BOOT_REQUIRED: Self = Self(1 << 4);
+
+    /// Check if flag is set
+    #[must_use]
+    pub const fn has(self, flag: Self) -> bool {
+        self.0 & flag.0 != 0
+    }
+
+    /// Set a flag
+    #[must_use]
+    pub const fn with(self, flag: Self) -> Self {
+        Self(self.0 | flag.0)
+    }
+
+    /// Get raw value
+    #[must_use]
+    pub const fn raw(self) -> u8 {
+        self.0
     }
 }
 
@@ -886,22 +961,14 @@ pub struct HardwareRequirements {
     pub recommended_memory: u64,
     /// Minimum CPU cores
     pub min_cores: u8,
-    /// Graphics required
-    pub graphics_required: bool,
-    /// Framebuffer required
-    pub framebuffer_required: bool,
+    /// Requirement flags
+    pub flags: HardwareRequirementFlags,
     /// Minimum resolution width
     pub min_width: u16,
     /// Minimum resolution height
     pub min_height: u16,
-    /// Network required
-    pub network_required: bool,
     /// Storage required (bytes)
     pub storage_required: u64,
-    /// TPM required
-    pub tpm_required: bool,
-    /// Secure boot required
-    pub secure_boot_required: bool,
 }
 
 impl Default for HardwareRequirements {
@@ -912,15 +979,52 @@ impl Default for HardwareRequirements {
             min_memory: 64 * 1024 * 1024,          // 64 MB
             recommended_memory: 256 * 1024 * 1024, // 256 MB
             min_cores: 1,
-            graphics_required: false,
-            framebuffer_required: false,
+            flags: HardwareRequirementFlags::default(),
             min_width: 640,
             min_height: 480,
-            network_required: false,
             storage_required: 0,
-            tpm_required: false,
-            secure_boot_required: false,
         }
+    }
+}
+
+/// Hardware validation status flags
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct HardwareValidationStatus(u8);
+
+impl HardwareValidationStatus {
+    /// CPU features are met
+    pub const CPU_OK: Self = Self(1 << 0);
+    /// Memory is sufficient
+    pub const MEMORY_OK: Self = Self(1 << 1);
+    /// Core count is met
+    pub const CORES_OK: Self = Self(1 << 2);
+    /// Graphics requirements met
+    pub const GRAPHICS_OK: Self = Self(1 << 3);
+    /// Network requirements met
+    pub const NETWORK_OK: Self = Self(1 << 4);
+    /// Storage requirements met
+    pub const STORAGE_OK: Self = Self(1 << 5);
+    /// TPM requirements met
+    pub const TPM_OK: Self = Self(1 << 6);
+    /// Secure boot requirements met
+    pub const SECURE_BOOT_OK: Self = Self(1 << 7);
+
+    /// Check if flag is set
+    #[must_use]
+    pub const fn has(self, flag: Self) -> bool {
+        self.0 & flag.0 != 0
+    }
+
+    /// Set a flag
+    #[must_use]
+    pub const fn with(self, flag: Self) -> Self {
+        Self(self.0 | flag.0)
+    }
+
+    /// Get raw value
+    #[must_use]
+    pub const fn raw(self) -> u8 {
+        self.0
     }
 }
 
@@ -929,30 +1033,16 @@ impl Default for HardwareRequirements {
 pub struct HardwareValidationResult {
     /// Overall result
     pub result: ValidationResult,
-    /// CPU features met
-    pub cpu_ok: bool,
+    /// Validation status flags
+    pub status: HardwareValidationStatus,
     /// Missing features
     pub missing_features: [CpuFeature; 8],
     /// Missing feature count
     pub missing_count: usize,
-    /// Memory sufficient
-    pub memory_ok: bool,
     /// Actual memory (bytes)
     pub actual_memory: u64,
-    /// Core count met
-    pub cores_ok: bool,
     /// Actual cores
     pub actual_cores: u8,
-    /// Graphics met
-    pub graphics_ok: bool,
-    /// Network met
-    pub network_ok: bool,
-    /// Storage met
-    pub storage_ok: bool,
-    /// TPM met
-    pub tpm_ok: bool,
-    /// Secure boot met
-    pub secure_boot_ok: bool,
 }
 
 // =============================================================================
@@ -1025,7 +1115,7 @@ impl ValidationSuite {
             ValidationStatus::Valid => self.passed_checks += 1,
             ValidationStatus::Warning => {
                 self.passed_checks += 1;
-                self.warning_count += result.warnings as u32;
+                self.warning_count += u32::from(result.warnings);
             },
             ValidationStatus::Invalid | ValidationStatus::Error => {
                 self.failed_checks += 1;
@@ -1048,11 +1138,12 @@ impl ValidationSuite {
     }
 
     /// Get success rate (percent)
+    #[must_use]
     pub fn success_rate(&self) -> u8 {
         if self.total_checks == 0 {
             return 0;
         }
-        ((self.passed_checks * 100) / self.total_checks) as u8
+        ((self.passed_checks * 100) / self.total_checks).min(100) as u8
     }
 }
 
@@ -1126,8 +1217,7 @@ mod tests {
         suite.add_entry_result(EntryValidationResult {
             result: ValidationResult::valid(),
             entry_index: 0,
-            bootable: true,
-            ..Default::default()
+            status: EntryValidationStatus::BOOTABLE,
         });
 
         suite.finalize();
