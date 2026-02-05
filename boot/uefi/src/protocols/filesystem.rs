@@ -693,9 +693,7 @@ impl FileInfo {
 
     /// Get name without extension
     pub fn stem(&self) -> &str {
-        self.name
-            .rfind('.')
-            .map_or(&self.name, |i| &self.name[..i])
+        self.name.rfind('.').map_or(&self.name, |i| &self.name[..i])
     }
 }
 
