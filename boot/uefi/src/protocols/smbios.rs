@@ -18,7 +18,7 @@ use core::ptr;
 /// SMBIOS table accessor
 pub struct SmbiosTables {
     /// Handle
-    handle: Handle,
+    _handle: Handle,
     /// Entry point address
     entry_point_address: PhysicalAddress,
     /// SMBIOS version
@@ -37,7 +37,7 @@ impl SmbiosTables {
     /// Create new SMBIOS tables accessor
     pub fn new(handle: Handle) -> Self {
         Self {
-            handle,
+            _handle: handle,
             entry_point_address: PhysicalAddress(0),
             version: SmbiosVersion::new(0, 0),
             table_address: PhysicalAddress(0),
