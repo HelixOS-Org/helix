@@ -31,7 +31,7 @@ pub use super::loaded_image::{
     // Messaging paths
     UsbDevicePath,
 };
-use crate::raw::types::*;
+use crate::raw::types::{Guid, guids};
 
 // =============================================================================
 // DEVICE PATH TO TEXT PROTOCOL
@@ -63,7 +63,7 @@ impl EfiDevicePathToTextProtocol {
     ///
     /// # Safety
     /// The caller must ensure all pointers are valid and the returned
-    /// string is freed with FreePool.
+    /// string is freed with `FreePool`.
     pub unsafe fn device_path_to_text(
         &self,
         path: *const EfiDevicePathProtocol,
@@ -76,7 +76,7 @@ impl EfiDevicePathToTextProtocol {
     ///
     /// # Safety
     /// The caller must ensure all pointers are valid and the returned
-    /// string is freed with FreePool.
+    /// string is freed with `FreePool`.
     pub unsafe fn device_node_to_text(
         &self,
         node: *const EfiDevicePathProtocol,
@@ -88,7 +88,7 @@ impl EfiDevicePathToTextProtocol {
 
 impl fmt::Debug for EfiDevicePathToTextProtocol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiDevicePathToTextProtocol").finish()
+        f.debug_struct("EfiDevicePathToTextProtocol").finish_non_exhaustive()
     }
 }
 
@@ -116,7 +116,7 @@ impl EfiDevicePathFromTextProtocol {
     ///
     /// # Safety
     /// The caller must ensure the text pointer is valid and the returned
-    /// path is freed with FreePool.
+    /// path is freed with `FreePool`.
     pub unsafe fn text_to_device_path(&self, text: *const u16) -> *mut EfiDevicePathProtocol {
         (self.convert_text_to_device_path)(text)
     }
@@ -125,7 +125,7 @@ impl EfiDevicePathFromTextProtocol {
     ///
     /// # Safety
     /// The caller must ensure the text pointer is valid and the returned
-    /// node is freed with FreePool.
+    /// node is freed with `FreePool`.
     pub unsafe fn text_to_device_node(&self, text: *const u16) -> *mut EfiDevicePathProtocol {
         (self.convert_text_to_device_node)(text)
     }
@@ -133,7 +133,7 @@ impl EfiDevicePathFromTextProtocol {
 
 impl fmt::Debug for EfiDevicePathFromTextProtocol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiDevicePathFromTextProtocol").finish()
+        f.debug_struct("EfiDevicePathFromTextProtocol").finish_non_exhaustive()
     }
 }
 
@@ -158,7 +158,7 @@ impl VendorDevicePath {
     /// The caller must ensure the device path is valid.
     pub unsafe fn vendor_data(&self) -> &[u8] {
         let data_len = self.header.len() - 4 - 16; // header + guid
-        let ptr = (self as *const Self as *const u8).add(4 + 16);
+        let ptr = (self as *const Self).cast::<u8>().add(4 + 16);
         core::slice::from_raw_parts(ptr, data_len)
     }
 }
@@ -169,7 +169,7 @@ impl fmt::Debug for VendorDevicePath {
         let vendor_guid = self.vendor_guid;
         f.debug_struct("VendorDevicePath")
             .field("vendor_guid", &vendor_guid)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -223,7 +223,7 @@ impl fmt::Debug for ExpandedAcpiDevicePath {
             .field("hid", &hid)
             .field("uid", &uid)
             .field("cid", &cid)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -259,7 +259,7 @@ impl fmt::Debug for AcpiAdrDevicePath {
         let adr = self.adr;
         f.debug_struct("AcpiAdrDevicePath")
             .field("adr", &adr)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -360,7 +360,7 @@ impl fmt::Debug for UsbWwidDevicePath {
             .field("interface_number", &interface_number)
             .field("vendor_id", &vendor_id)
             .field("product_id", &product_id)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -399,7 +399,7 @@ impl fmt::Debug for InfinibandDevicePath {
         f.debug_struct("InfinibandDevicePath")
             .field("resource_flags", &resource_flags)
             .field("service_id", &service_id)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -450,7 +450,7 @@ impl fmt::Debug for Ipv4DevicePath {
             )
             .field("local_port", &local_port)
             .field("remote_port", &remote_port)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -487,7 +487,7 @@ impl fmt::Debug for Ipv6DevicePath {
             .field("local_port", &local_port)
             .field("remote_port", &remote_port)
             .field("prefix_length", &prefix_length)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -532,7 +532,7 @@ impl fmt::Debug for IscsiDevicePath {
         f.debug_struct("IscsiDevicePath")
             .field("protocol", &protocol)
             .field("lun", &lun)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -569,7 +569,7 @@ impl fmt::Debug for SasExDevicePath {
         f.debug_struct("SasExDevicePath")
             .field("sas_address", &sas_address)
             .field("lun", &lun)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -588,14 +588,14 @@ impl UriDevicePath {
     /// The caller must ensure the device path is valid.
     pub unsafe fn uri(&self) -> &[u8] {
         let len = self.header.len() - 4;
-        let ptr = (self as *const Self as *const u8).add(4);
+        let ptr = (self as *const Self).cast::<u8>().add(4);
         core::slice::from_raw_parts(ptr, len)
     }
 }
 
 impl fmt::Debug for UriDevicePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("UriDevicePath").finish()
+        f.debug_struct("UriDevicePath").finish_non_exhaustive()
     }
 }
 
@@ -656,7 +656,7 @@ impl fmt::Debug for BluetoothDevicePath {
                     self.device_address[5]
                 ),
             )
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -671,7 +671,7 @@ pub struct WifiDevicePath {
 
 impl fmt::Debug for WifiDevicePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WifiDevicePath").finish()
+        f.debug_struct("WifiDevicePath").finish_non_exhaustive()
     }
 }
 
@@ -732,13 +732,13 @@ impl fmt::Debug for RamDiskDevicePath {
             .field("starting_address", &starting_address)
             .field("ending_address", &ending_address)
             .field("disk_type_guid", &disk_type_guid)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 /// RAM disk type GUIDs
 pub mod ram_disk_type {
-    use super::*;
+    use super::Guid;
 
     /// Virtual disk
     pub const VIRTUAL_DISK: Guid = Guid::new(0x77AB535A, 0x45FC, 0x624B, [
@@ -784,7 +784,7 @@ impl BbsDevicePath {
     /// The caller must ensure the device path is valid.
     pub unsafe fn description(&self) -> &[u8] {
         let len = self.header.len() - 8;
-        let ptr = (self as *const Self as *const u8).add(8);
+        let ptr = (self as *const Self).cast::<u8>().add(8);
         core::slice::from_raw_parts(ptr, len)
     }
 }
@@ -796,7 +796,7 @@ impl fmt::Debug for BbsDevicePath {
         f.debug_struct("BbsDevicePath")
             .field("device_type", &device_type)
             .field("status_flag", &status_flag)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
