@@ -52,22 +52,22 @@ pub struct EventType(u32);
 
 impl EventType {
     /// Timer event
-    pub const TIMER: Self = Self(0x80000000);
+    pub const TIMER: Self = Self(0x8000_0000);
 
     /// Runtime event (called at runtime services)
-    pub const RUNTIME: Self = Self(0x40000000);
+    pub const RUNTIME: Self = Self(0x4000_0000);
 
     /// Notify wait (level triggered)
-    pub const NOTIFY_WAIT: Self = Self(0x00000100);
+    pub const NOTIFY_WAIT: Self = Self(0x0000_0100);
 
     /// Notify signal (edge triggered)
-    pub const NOTIFY_SIGNAL: Self = Self(0x00000200);
+    pub const NOTIFY_SIGNAL: Self = Self(0x0000_0200);
 
     /// Signal exit boot services
-    pub const SIGNAL_EXIT_BOOT_SERVICES: Self = Self(0x00000201);
+    pub const SIGNAL_EXIT_BOOT_SERVICES: Self = Self(0x0000_0201);
 
     /// Signal virtual address map
-    pub const SIGNAL_VIRTUAL_ADDRESS_MAP: Self = Self(0x00060202);
+    pub const SIGNAL_VIRTUAL_ADDRESS_MAP: Self = Self(0x0006_0202);
 
     /// Create from raw value
     pub const fn from_raw(value: u32) -> Self {
@@ -96,12 +96,12 @@ impl EventType {
 
     /// Check if notify wait
     pub fn is_notify_wait(self) -> bool {
-        self.0 & 0x00000300 == Self::NOTIFY_WAIT.0
+        self.0 & 0x0000_0300 == Self::NOTIFY_WAIT.0
     }
 
     /// Check if notify signal
     pub fn is_notify_signal(self) -> bool {
-        self.0 & 0x00000300 == Self::NOTIFY_SIGNAL.0
+        self.0 & 0x0000_0300 == Self::NOTIFY_SIGNAL.0
     }
 }
 
@@ -441,8 +441,8 @@ impl Semaphore {
         loop {
             let current = self.count.load(Ordering::Acquire);
 
-            if current > 0 {
-                if self
+            if current > 0
+                && self
                     .count
                     .compare_exchange_weak(
                         current,
@@ -451,9 +451,8 @@ impl Semaphore {
                         Ordering::Relaxed,
                     )
                     .is_ok()
-                {
-                    return;
-                }
+            {
+                return;
             }
 
             core::hint::spin_loop();
@@ -588,14 +587,13 @@ impl RwLock {
         loop {
             let state = self.state.load(Ordering::Acquire);
 
-            if state != Self::WRITE_LOCKED {
-                if self
+            if state != Self::WRITE_LOCKED
+                && self
                     .state
                     .compare_exchange_weak(state, state + 1, Ordering::AcqRel, Ordering::Relaxed)
                     .is_ok()
-                {
-                    return;
-                }
+            {
+                return;
             }
 
             core::hint::spin_loop();
