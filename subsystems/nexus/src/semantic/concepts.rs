@@ -4,13 +4,15 @@
 //! and conceptual reasoning.
 
 #![allow(dead_code)]
+#![allow(clippy::unwrap_or_default)]
+#![allow(clippy::manual_find)]
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use super::embeddings::{Embedding, EmbeddingId, EmbeddingSpace};
+use super::embeddings::{EmbeddingId, EmbeddingSpace};
 use super::similarity::{CosineSimilarity, SimilarityMetric};
 
 // ============================================================================
