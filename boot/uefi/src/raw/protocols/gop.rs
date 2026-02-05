@@ -1,22 +1,22 @@
-//! Graphics Output Protocol (GOP)
+//! Graphics Output Protocol (`GOP`)
 //!
 //! The GOP protocol provides access to the graphics frame buffer
 //! and allows setting video modes.
 //!
 //! # Safety
-//! This module interfaces with UEFI firmware via FFI. All protocol pointers
+//! This module interfaces with `UEFI` firmware via `FFI`. All protocol pointers
 //! are provided by the firmware and validated before use.
 // codeql[rust/access-invalid-pointer] - UEFI FFI pointers validated by firmware
 
 use core::fmt;
 
-use crate::raw::types::*;
+use crate::raw::types::{guids, Guid, PhysicalAddress, Status};
 
 // =============================================================================
 // GRAPHICS OUTPUT PROTOCOL
 // =============================================================================
 
-/// EFI Graphics Output Protocol
+/// `EFI` Graphics Output Protocol
 #[repr(C)]
 pub struct EfiGraphicsOutputProtocol {
     /// Query mode information
@@ -56,7 +56,7 @@ impl EfiGraphicsOutputProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer is valid and obtained
-    /// from UEFI LocateProtocol or HandleProtocol calls.
+    /// from `UEFI` `LocateProtocol` or `HandleProtocol` calls.
     ///
     /// # Errors
     /// Returns status error if the mode cannot be queried.
@@ -81,7 +81,7 @@ impl EfiGraphicsOutputProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer is valid and obtained
-    /// from UEFI LocateProtocol or HandleProtocol calls.
+    /// from `UEFI` `LocateProtocol` or `HandleProtocol` calls.
     pub unsafe fn set_mode(&mut self, mode_number: u32) -> Result<(), Status> {
         let status = (self.set_mode)(self, mode_number);
         status.to_status_result()
@@ -272,13 +272,13 @@ impl EfiGraphicsOutputProtocolMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum EfiGraphicsPixelFormat {
-    /// RGBX 8-bit per color
+    /// `RGBX` 8-bit per color
     PixelRedGreenBlueReserved8BitPerColor = 0,
-    /// BGRX 8-bit per color
+    /// `BGRX` 8-bit per color
     PixelBlueGreenRedReserved8BitPerColor = 1,
     /// Custom bit mask
     PixelBitMask = 2,
-    /// BLT only (no direct frame buffer access)
+    /// `BLT` only (no direct frame buffer access)
     PixelBltOnly = 3,
 }
 
@@ -314,7 +314,7 @@ pub struct EfiPixelBitmask {
 }
 
 impl EfiPixelBitmask {
-    /// Standard RGB888 mask
+    /// Standard `RGB888` mask
     pub const RGB888: Self = Self {
         red_mask: 0x00FF0000,
         green_mask: 0x0000FF00,
@@ -322,7 +322,7 @@ impl EfiPixelBitmask {
         reserved_mask: 0xFF000000,
     };
 
-    /// Standard BGR888 mask
+    /// Standard `BGR888` mask
     pub const BGR888: Self = Self {
         red_mask: 0x000000FF,
         green_mask: 0x0000FF00,
@@ -330,7 +330,7 @@ impl EfiPixelBitmask {
         reserved_mask: 0xFF000000,
     };
 
-    /// RGB565 mask
+    /// `RGB565` mask
     pub const RGB565: Self = Self {
         red_mask: 0xF800,
         green_mask: 0x07E0,
@@ -409,7 +409,7 @@ impl EfiGraphicsOutputBltPixel {
         }
     }
 
-    /// Create from a 32-bit ARGB value
+    /// Create from a 32-bit `ARGB` value
     pub const fn from_argb(argb: u32) -> Self {
         Self {
             red: ((argb >> 16) & 0xFF) as u8,
@@ -419,7 +419,7 @@ impl EfiGraphicsOutputBltPixel {
         }
     }
 
-    /// Convert to 32-bit ARGB value
+    /// Convert to 32-bit `ARGB` value
     pub const fn to_argb(self) -> u32 {
         ((self.reserved as u32) << 24)
             | ((self.red as u32) << 16)
@@ -427,7 +427,7 @@ impl EfiGraphicsOutputBltPixel {
             | (self.blue as u32)
     }
 
-    /// Convert to 32-bit ABGR value (for BGR formats)
+    /// Convert to 32-bit `ABGR` value (for BGR formats)
     pub const fn to_abgr(self) -> u32 {
         ((self.reserved as u32) << 24)
             | ((self.blue as u32) << 16)
@@ -453,12 +453,12 @@ impl EfiGraphicsOutputBltPixel {
 // EDID PROTOCOLS
 // =============================================================================
 
-/// EDID Discovered Protocol
+/// `EDID` Discovered Protocol
 #[repr(C)]
 pub struct EfiEdidDiscoveredProtocol {
-    /// Size of EDID data
+    /// Size of `EDID` data
     pub size_of_edid: u32,
-    /// Pointer to EDID data
+    /// Pointer to `EDID` data
     pub edid: *mut u8,
 }
 
@@ -466,7 +466,7 @@ impl EfiEdidDiscoveredProtocol {
     /// Protocol GUID
     pub const GUID: Guid = guids::EDID_DISCOVERED_PROTOCOL;
 
-    /// Get EDID data
+    /// Get `EDID` data
     ///
     /// # Safety
     /// The caller must ensure the pointer is valid.
@@ -482,12 +482,12 @@ impl EfiEdidDiscoveredProtocol {
     }
 }
 
-/// EDID Active Protocol
+/// `EDID` Active Protocol
 #[repr(C)]
 pub struct EfiEdidActiveProtocol {
-    /// Size of EDID data
+    /// Size of `EDID` data
     pub size_of_edid: u32,
-    /// Pointer to EDID data
+    /// Pointer to `EDID` data
     pub edid: *mut u8,
 }
 
@@ -495,7 +495,7 @@ impl EfiEdidActiveProtocol {
     /// Protocol GUID
     pub const GUID: Guid = guids::EDID_ACTIVE_PROTOCOL;
 
-    /// Get EDID data
+    /// Get `EDID` data
     ///
     /// # Safety
     /// The caller must ensure the pointer is valid.
