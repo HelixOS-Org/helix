@@ -500,7 +500,11 @@ impl SimplePrng {
     /// Create new PRNG with seed
     pub const fn new(seed: u64) -> Self {
         Self {
-            state: if seed == 0 { 0xDEAD_BEEF_1234_5678 } else { seed },
+            state: if seed == 0 {
+                0xDEAD_BEEF_1234_5678
+            } else {
+                seed
+            },
         }
     }
 
