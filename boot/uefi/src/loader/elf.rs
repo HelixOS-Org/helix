@@ -404,7 +404,8 @@ impl Elf64SectionHeader {
     }
 
     /// Check if BSS
-    pub fn is_bss(&self) -> bool {
+    #[must_use]
+    pub const fn is_bss(&self) -> bool {
         self.sh_type == sht::SHT_NOBITS
     }
 
@@ -442,37 +443,44 @@ pub struct Elf64Symbol {
 
 impl Elf64Symbol {
     /// Get symbol binding
-    pub fn binding(&self) -> u8 {
+    #[must_use]
+    pub const fn binding(&self) -> u8 {
         self.st_info >> 4
     }
 
     /// Get symbol type
-    pub fn symbol_type(&self) -> u8 {
+    #[must_use]
+    pub const fn symbol_type(&self) -> u8 {
         self.st_info & 0xF
     }
 
     /// Check if function
-    pub fn is_function(&self) -> bool {
+    #[must_use]
+    pub const fn is_function(&self) -> bool {
         self.symbol_type() == stt::STT_FUNC
     }
 
     /// Check if object
-    pub fn is_object(&self) -> bool {
+    #[must_use]
+    pub const fn is_object(&self) -> bool {
         self.symbol_type() == stt::STT_OBJECT
     }
 
     /// Check if global
-    pub fn is_global(&self) -> bool {
+    #[must_use]
+    pub const fn is_global(&self) -> bool {
         self.binding() == stb::STB_GLOBAL
     }
 
     /// Check if local
-    pub fn is_local(&self) -> bool {
+    #[must_use]
+    pub const fn is_local(&self) -> bool {
         self.binding() == stb::STB_LOCAL
     }
 
     /// Check if weak
-    pub fn is_weak(&self) -> bool {
+    #[must_use]
+    pub const fn is_weak(&self) -> bool {
         self.binding() == stb::STB_WEAK
     }
 }
@@ -491,12 +499,14 @@ pub struct Elf64Rela {
 
 impl Elf64Rela {
     /// Get relocation type
-    pub fn reloc_type(&self) -> u32 {
-        (self.r_info & 0xFFFFFFFF) as u32
+    #[must_use]
+    pub const fn reloc_type(&self) -> u32 {
+        (self.r_info & 0xFFFF_FFFF) as u32
     }
 
     /// Get symbol index
-    pub fn symbol_index(&self) -> u32 {
+    #[must_use]
+    pub const fn symbol_index(&self) -> u32 {
         (self.r_info >> 32) as u32
     }
 }
