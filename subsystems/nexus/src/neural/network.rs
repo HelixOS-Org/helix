@@ -4,6 +4,7 @@
 //! Pure Rust, no_std compatible.
 
 #![allow(dead_code)]
+#![allow(unused_variables)]
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
