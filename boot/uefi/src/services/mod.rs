@@ -33,12 +33,17 @@ pub mod watchdog;
 
 use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 
-pub use boot::*;
+// Explicit re-exports to avoid ambiguity
+// boot.rs exports TPL_* constants that conflict with tpl.rs Tpl struct
+// We prefer tpl.rs's Tpl struct over the raw constants
+pub use boot::{BootServices, EventNotify, EventType, HandleBuffer, MemoryMapInfo, ProtocolBuffer};
 pub use capsule::*;
 pub use events::*;
 pub use memory::*;
 pub use protocols::*;
-pub use runtime::*;
+// runtime.rs exports VariableStorageInfo that conflicts with variables.rs
+// We prefer variables.rs's version which has additional methods
+pub use runtime::{CapsuleCapabilities, RuntimeServices};
 pub use time::*;
 pub use tpl::*;
 pub use variables::*;
