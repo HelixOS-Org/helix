@@ -8,7 +8,6 @@
 //! - Non-blocking send/receive
 //! - Channel statistics
 
-use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -76,11 +75,11 @@ impl<T> RingBuffer<T> {
         self.count
     }
 
-    fn is_empty(&self) -> bool {
+    fn _is_empty(&self) -> bool {
         self.count == 0
     }
 
-    fn is_full(&self) -> bool {
+    fn _is_full(&self) -> bool {
         self.count >= self.capacity
     }
 
