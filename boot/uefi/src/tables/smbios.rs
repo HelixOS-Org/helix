@@ -1051,37 +1051,52 @@ struct SmbiosHeader {
 // PARSED STRUCTURES
 // =============================================================================
 
-/// BIOS Version
+/// BIOS Version information
 #[derive(Debug, Clone, Copy)]
 pub struct BiosVersion {
+    /// Major version number
     pub major: u8,
+    /// Minor version number
     pub minor: u8,
 }
 
-/// EC Version
+/// Embedded Controller (EC) Version information
 #[derive(Debug, Clone, Copy)]
 pub struct EcVersion {
+    /// Major version number
     pub major: u8,
+    /// Minor version number
     pub minor: u8,
 }
 
-/// BIOS Information
+/// BIOS Information structure from SMBIOS Type 0
 #[derive(Debug, Clone)]
 pub struct BiosInformation {
+    /// BIOS vendor name
     pub vendor: String,
+    /// BIOS version string
     pub version: String,
+    /// Segment address for BIOS starting address
     pub starting_address_segment: u16,
+    /// BIOS release date string
     pub release_date: String,
+    /// BIOS ROM size in 64KB units minus 1
     pub rom_size: u8,
+    /// BIOS characteristics flags
     pub characteristics: u64,
+    /// Extended BIOS characteristics bytes
     pub characteristics_extension: Vec<u8>,
+    /// System BIOS version (major.minor)
     pub bios_version: Option<BiosVersion>,
+    /// Embedded Controller firmware version
     pub ec_version: Option<EcVersion>,
+    /// Extended BIOS ROM size
     pub extended_rom_size: Option<u16>,
 }
 
 impl BiosInformation {
     /// Get ROM size in KB
+    #[must_use]
     pub fn rom_size_kb(&self) -> usize {
         if let Some(ext) = self.extended_rom_size {
             let unit = (ext >> 14) & 0x03;
@@ -1096,54 +1111,83 @@ impl BiosInformation {
         }
     }
 
+    /// Check if BIOS supports ISA bus
+    #[must_use]
     pub fn supports_isa(&self) -> bool {
         (self.characteristics & (1 << 4)) != 0
     }
+    /// Check if BIOS supports PCI bus
+    #[must_use]
     pub fn supports_pci(&self) -> bool {
         (self.characteristics & (1 << 7)) != 0
     }
+    /// Check if BIOS supports Plug and Play
+    #[must_use]
     pub fn supports_pnp(&self) -> bool {
         (self.characteristics & (1 << 9)) != 0
     }
+    /// Check if BIOS supports APM
+    #[must_use]
     pub fn supports_apm(&self) -> bool {
         (self.characteristics & (1 << 10)) != 0
     }
+    /// Check if BIOS is upgradeable
+    #[must_use]
     pub fn upgradeable(&self) -> bool {
         (self.characteristics & (1 << 11)) != 0
     }
+    /// Check if BIOS supports shadowing
+    #[must_use]
     pub fn shadowing(&self) -> bool {
         (self.characteristics & (1 << 12)) != 0
     }
+    /// Check if BIOS supports ESCD
+    #[must_use]
     pub fn escd_support(&self) -> bool {
         (self.characteristics & (1 << 14)) != 0
     }
+    /// Check if BIOS supports boot from CD
+    #[must_use]
     pub fn boot_from_cd(&self) -> bool {
         (self.characteristics & (1 << 15)) != 0
     }
+    /// Check if BIOS supports selectable boot
+    #[must_use]
     pub fn selectable_boot(&self) -> bool {
         (self.characteristics & (1 << 16)) != 0
     }
+    /// Check if BIOS is UEFI compatible
+    #[must_use]
     pub fn uefi(&self) -> bool {
         !self.characteristics_extension.is_empty()
             && (self.characteristics_extension[0] & (1 << 3)) != 0
     }
 }
 
-/// System Information
+/// System Information structure from SMBIOS Type 1
 #[derive(Debug, Clone)]
 pub struct SystemInformation {
+    /// System manufacturer name
     pub manufacturer: String,
+    /// Product name
     pub product_name: String,
+    /// System version string
     pub version: String,
+    /// System serial number
     pub serial_number: String,
+    /// Universal Unique ID (UUID)
     pub uuid: Option<[u8; 16]>,
+    /// Wake-up type for the system
     pub wake_up_type: Option<WakeUpType>,
+    /// SKU number
     pub sku_number: String,
+    /// System family name
     pub family: String,
 }
 
 impl SystemInformation {
-    /// Get UUID as string
+    /// Get UUID as a formatted string
+    #[must_use]
     pub fn uuid_string(&self) -> Option<String> {
         self.uuid.map(|u| {
             alloc::format!(
@@ -1155,17 +1199,26 @@ impl SystemInformation {
     }
 }
 
-/// Wake-up type
+/// Wake-up type enumeration for system
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WakeUpType {
+    /// Reserved value
     Reserved,
+    /// Other wake-up type
     Other,
+    /// Unknown wake-up type
     Unknown,
+    /// APM timer triggered wake
     ApmTimer,
+    /// Modem ring triggered wake
     ModemRing,
+    /// LAN remote triggered wake
     LanRemote,
+    /// Power switch triggered wake
     PowerSwitch,
+    /// PCI PME triggered wake
     PciPme,
+    /// AC power restored triggered wake
     AcPowerRestored,
 }
 
@@ -1185,60 +1238,91 @@ impl From<u8> for WakeUpType {
     }
 }
 
-/// Baseboard Information
+/// Baseboard (Motherboard) Information from SMBIOS Type 2
 #[derive(Debug, Clone)]
 pub struct BaseboardInformation {
+    /// Baseboard manufacturer name
     pub manufacturer: String,
+    /// Product name
     pub product: String,
+    /// Version string
     pub version: String,
+    /// Serial number
     pub serial_number: String,
+    /// Asset tag
     pub asset_tag: String,
+    /// Feature flags bitmap
     pub feature_flags: u8,
+    /// Location within chassis
     pub location_in_chassis: String,
+    /// Handle of the chassis
     pub chassis_handle: u16,
+    /// Type of board
     pub board_type: BoardType,
 }
 
 impl BaseboardInformation {
+    /// Check if this is a hosting board
+    #[must_use]
     pub fn is_hosting_board(&self) -> bool {
         (self.feature_flags & 0x01) != 0
     }
+    /// Check if board requires daughter board
+    #[must_use]
     pub fn requires_daughter_board(&self) -> bool {
         (self.feature_flags & 0x02) != 0
     }
+    /// Check if board is removable
+    #[must_use]
     pub fn is_removable(&self) -> bool {
         (self.feature_flags & 0x04) != 0
     }
+    /// Check if board is replaceable
+    #[must_use]
     pub fn is_replaceable(&self) -> bool {
         (self.feature_flags & 0x08) != 0
     }
+    /// Check if board is hot-swappable
+    #[must_use]
     pub fn is_hot_swappable(&self) -> bool {
         (self.feature_flags & 0x10) != 0
     }
 }
 
-/// Board type
+/// Board type enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoardType {
+    /// Unknown board type
     Unknown,
+    /// Other board type
     Other,
+    /// Server blade
     ServerBlade,
+    /// Connectivity switch
     ConnectivitySwitch,
+    /// System management module
     SystemManagement,
+    /// Processor module
     ProcessorModule,
+    /// I/O module
     IOModule,
+    /// Memory module
     MemoryModule,
+    /// Daughter board
     DaughterBoard,
+    /// Motherboard
     Motherboard,
+    /// Processor/memory module
     ProcessorMemoryModule,
+    /// Processor/I/O module
     ProcessorIOModule,
+    /// Interconnect board
     InterconnectBoard,
 }
 
 impl From<u8> for BoardType {
     fn from(value: u8) -> Self {
         match value {
-            0x01 => Self::Unknown,
             0x02 => Self::Other,
             0x03 => Self::ServerBlade,
             0x04 => Self::ConnectivitySwitch,
@@ -1256,62 +1340,111 @@ impl From<u8> for BoardType {
     }
 }
 
-/// Chassis Information
+/// Chassis Information from SMBIOS Type 3
 #[derive(Debug, Clone)]
 pub struct ChassisInformation {
+    /// Chassis manufacturer name
     pub manufacturer: String,
+    /// Type of chassis
     pub chassis_type: ChassisType,
+    /// Version string
     pub version: String,
+    /// Serial number
     pub serial_number: String,
+    /// Asset tag
     pub asset_tag: String,
+    /// Boot-up state of the chassis
     pub boot_up_state: ChassisState,
+    /// Power supply state
     pub power_supply_state: ChassisState,
+    /// Thermal state
     pub thermal_state: ChassisState,
+    /// Security status
     pub security_status: SecurityStatus,
+    /// OEM-defined value
     pub oem_defined: u32,
+    /// Height in 'U' units (0 = unspecified)
     pub height: u8,
+    /// Number of power cords
     pub number_of_power_cords: u8,
+    /// SKU number
     pub sku_number: String,
 }
 
-/// Chassis type
+/// Chassis type enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChassisType {
+    /// Other chassis type
     Other,
+    /// Unknown chassis type
     Unknown,
+    /// Desktop chassis
     Desktop,
+    /// Low profile desktop
     LowProfileDesktop,
+    /// Pizza box form factor
     PizzaBox,
+    /// Mini tower
     MiniTower,
+    /// Tower
     Tower,
+    /// Portable
     Portable,
+    /// Laptop
     Laptop,
+    /// Notebook
     Notebook,
+    /// Hand-held device
     HandHeld,
+    /// Docking station
     DockingStation,
+    /// All-in-one
     AllInOne,
+    /// Sub-notebook
     SubNotebook,
+    /// Space-saving chassis
     SpaceSaving,
+    /// Lunch box form factor
     LunchBox,
+    /// Main server chassis
     MainServerChassis,
+    /// Expansion chassis
     ExpansionChassis,
+    /// Sub-chassis
     SubChassis,
+    /// Bus expansion chassis
     BusExpansionChassis,
+    /// Peripheral chassis
     PeripheralChassis,
+    /// RAID chassis
     RAIDChassis,
+    /// Rack mount chassis
     RackMountChassis,
+    /// Sealed-case PC
     SealedCasePC,
+    /// Multi-system chassis
     MultiSystemChassis,
+    /// Compact PCI
     CompactPCI,
+    /// Advanced TCA
     AdvancedTCA,
+    /// Blade chassis
     Blade,
+    /// Blade enclosure
     BladeEnclosure,
+    /// Tablet
     Tablet,
+    /// Convertible
     Convertible,
+    /// Detachable
     Detachable,
+    /// IoT Gateway
     IoTGateway,
+    /// Embedded PC
     EmbeddedPC,
+    /// Mini PC
     MiniPC,
+    /// Stick PC
     StickPC,
 }
 
