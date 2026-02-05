@@ -38,7 +38,7 @@ impl LoadPredictor {
             history: Vec::new(),
             hourly_patterns: [0.5; 24],
             trend: 0.0,
-            horizon: 3600_000_000_000,
+            horizon: 3_600_000_000_000,
         }
     }
 
