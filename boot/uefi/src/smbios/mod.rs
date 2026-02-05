@@ -267,7 +267,7 @@ pub mod structure_type {
 /// BIOS Information (Type 0)
 #[derive(Clone)]
 pub struct BiosInformation<'a> {
-    header: StructureHeader,
+    _header: StructureHeader,
     data: &'a [u8],
     strings: StringTable<'a>,
 }
@@ -281,7 +281,7 @@ impl<'a> BiosInformation<'a> {
         }
 
         Some(Self {
-            header,
+            _header: header,
             data,
             strings,
         })
@@ -390,7 +390,7 @@ pub mod bios_characteristics {
 /// System Information (Type 1)
 #[derive(Clone)]
 pub struct SystemInformation<'a> {
-    header: StructureHeader,
+    _header: StructureHeader,
     data: &'a [u8],
     strings: StringTable<'a>,
 }
@@ -404,7 +404,7 @@ impl<'a> SystemInformation<'a> {
         }
 
         Some(Self {
-            header,
+            _header: header,
             data,
             strings,
         })
@@ -521,7 +521,7 @@ impl WakeupType {
 /// Processor Information (Type 4)
 #[derive(Clone)]
 pub struct ProcessorInformation<'a> {
-    header: StructureHeader,
+    _header: StructureHeader,
     data: &'a [u8],
     strings: StringTable<'a>,
 }
@@ -535,7 +535,7 @@ impl<'a> ProcessorInformation<'a> {
         }
 
         Some(Self {
-            header,
+            _header: header,
             data,
             strings,
         })
@@ -752,7 +752,7 @@ pub enum CpuStatus {
 /// Memory Device (Type 17)
 #[derive(Clone)]
 pub struct MemoryDevice<'a> {
-    header: StructureHeader,
+    _header: StructureHeader,
     data: &'a [u8],
     strings: StringTable<'a>,
 }
@@ -766,7 +766,7 @@ impl<'a> MemoryDevice<'a> {
         }
 
         Some(Self {
-            header,
+            _header: header,
             data,
             strings,
         })
