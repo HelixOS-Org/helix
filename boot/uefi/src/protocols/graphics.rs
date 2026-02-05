@@ -20,7 +20,10 @@ const GOP_GUID: Guid = guids::GRAPHICS_OUTPUT_PROTOCOL;
 // GRAPHICS OUTPUT
 // =============================================================================
 
-/// High-level graphics output abstraction
+/// High-level graphics output abstraction for UEFI framebuffer operations.
+///
+/// This struct provides a safe wrapper around the UEFI Graphics Output Protocol,
+/// enabling drawing operations, mode switching, and framebuffer access.
 pub struct GraphicsOutput {
     /// Raw protocol pointer
     protocol: *mut EfiGraphicsOutputProtocol,
@@ -33,6 +36,7 @@ impl GraphicsOutput {
     ///
     /// # Safety
     /// Protocol pointer must be valid
+    #[must_use]
     pub unsafe fn from_raw(protocol: *mut EfiGraphicsOutputProtocol, handle: Handle) -> Self {
         Self {
             protocol,
@@ -41,6 +45,7 @@ impl GraphicsOutput {
     }
 
     /// Get current mode info
+    #[must_use]
     pub fn mode_info(&self) -> Result<ModeInfo> {
         let mode = unsafe { &*(*self.protocol).mode };
         let info = unsafe { &*mode.info };
@@ -56,6 +61,7 @@ impl GraphicsOutput {
     }
 
     /// Get framebuffer
+    #[must_use]
     pub fn framebuffer(&self) -> Result<Framebuffer> {
         let mode = unsafe { &*(*self.protocol).mode };
         let info = unsafe { &*mode.info };
@@ -71,6 +77,7 @@ impl GraphicsOutput {
     }
 
     /// Query specific mode
+    #[must_use]
     pub fn query_mode(&self, mode: u32) -> Result<ModeInfo> {
         let mut size = 0usize;
         let mut info: *mut EfiGraphicsOutputModeInformation = core::ptr::null_mut();
@@ -95,6 +102,7 @@ impl GraphicsOutput {
     }
 
     /// Get all available modes
+    #[must_use]
     pub fn available_modes(&self) -> Result<Vec<ModeInfo>> {
         let mode = unsafe { &*(*self.protocol).mode };
         let max = mode.max_mode;
@@ -121,6 +129,7 @@ impl GraphicsOutput {
     }
 
     /// Set best mode (highest resolution)
+    #[must_use]
     pub fn set_best_mode(&self) -> Result<ModeInfo> {
         let modes = self.available_modes()?;
 
@@ -135,6 +144,7 @@ impl GraphicsOutput {
     }
 
     /// Find mode by resolution
+    #[must_use]
     pub fn find_mode(&self, width: u32, height: u32) -> Result<u32> {
         let modes = self.available_modes()?;
 
@@ -485,6 +495,7 @@ impl GraphicsOutput {
     }
 
     /// Take screenshot
+    #[must_use]
     pub fn screenshot(&self) -> Result<Vec<Pixel>> {
         let mode = self.mode_info()?;
         self.capture_region(0, 0, mode.width, mode.height)
@@ -508,7 +519,7 @@ impl Protocol for GraphicsOutput {
                 &mut protocol,
                 image,
                 Handle(core::ptr::null_mut()),
-                0x0000_0002, // BY_HANDLE_PROTOCOL
+                0x0000_0002_u32, // BY_HANDLE_PROTOCOL
             )
         };
 
@@ -550,6 +561,7 @@ pub struct ModeInfo {
 
 impl ModeInfo {
     /// Get resolution as tuple
+    #[must_use]
     pub fn resolution(&self) -> Resolution {
         Resolution {
             width: self.width,
@@ -558,11 +570,13 @@ impl ModeInfo {
     }
 
     /// Get aspect ratio
+    #[must_use]
     pub fn aspect_ratio(&self) -> f32 {
-        self.width as f32 / self.height as f32
+        (self.width as f32) / (self.height as f32)
     }
 
     /// Calculate bytes per pixel
+    #[must_use]
     pub fn bytes_per_pixel(&self) -> usize {
         match self.pixel_format {
             PixelFormat::Rgb | PixelFormat::Bgr | PixelFormat::Bitmask => 4,
@@ -571,13 +585,15 @@ impl ModeInfo {
     }
 
     /// Calculate bytes per scan line
+    #[must_use]
     pub fn bytes_per_scan_line(&self) -> usize {
-        self.pixels_per_scan_line as usize * self.bytes_per_pixel()
+        (self.pixels_per_scan_line as usize) * self.bytes_per_pixel()
     }
 
     /// Calculate total framebuffer size
+    #[must_use]
     pub fn framebuffer_size(&self) -> usize {
-        self.bytes_per_scan_line() * self.height as usize
+        self.bytes_per_scan_line() * (self.height as usize)
     }
 }
 
@@ -595,67 +611,80 @@ pub struct Resolution {
 }
 
 impl Resolution {
-    /// Common resolutions
+    /// VGA resolution (640x480)
     pub const VGA: Self = Self {
         width: 640,
         height: 480,
     };
+    /// SVGA resolution (800x600)
     pub const SVGA: Self = Self {
         width: 800,
         height: 600,
     };
+    /// XGA resolution (1024x768)
     pub const XGA: Self = Self {
         width: 1024,
         height: 768,
     };
+    /// HD resolution (1280x720)
     pub const HD: Self = Self {
         width: 1280,
         height: 720,
     };
+    /// WXGA resolution (1366x768)
     pub const WXGA: Self = Self {
         width: 1366,
         height: 768,
     };
+    /// SXGA resolution (1280x1024)
     pub const SXGA: Self = Self {
         width: 1280,
         height: 1024,
     };
+    /// Full HD resolution (1920x1080)
     pub const FULL_HD: Self = Self {
         width: 1920,
         height: 1080,
     };
+    /// QHD resolution (2560x1440)
     pub const QHD: Self = Self {
         width: 2560,
         height: 1440,
     };
+    /// UHD/4K resolution (3840x2160)
     pub const UHD: Self = Self {
         width: 3840,
         height: 2160,
     };
 
     /// Get pixel count
+    #[must_use]
     pub fn pixels(&self) -> u64 {
-        self.width as u64 * self.height as u64
+        u64::from(self.width) * u64::from(self.height)
     }
 
     /// Get aspect ratio
+    #[must_use]
     pub fn aspect_ratio(&self) -> f32 {
-        self.width as f32 / self.height as f32
+        (self.width as f32) / (self.height as f32)
     }
 
     /// Check if 16:9
+    #[must_use]
     pub fn is_16_9(&self) -> bool {
         let ratio = self.aspect_ratio();
         (ratio - 16.0 / 9.0).abs() < 0.01
     }
 
     /// Check if 16:10
+    #[must_use]
     pub fn is_16_10(&self) -> bool {
         let ratio = self.aspect_ratio();
         (ratio - 16.0 / 10.0).abs() < 0.01
     }
 
     /// Check if 4:3
+    #[must_use]
     pub fn is_4_3(&self) -> bool {
         let ratio = self.aspect_ratio();
         (ratio - 4.0 / 3.0).abs() < 0.01
@@ -687,6 +716,7 @@ pub enum PixelFormat {
 
 impl PixelFormat {
     /// Create from raw UEFI pixel format
+    #[must_use]
     pub fn from_raw(raw: EfiGraphicsPixelFormat) -> Self {
         match raw {
             EfiGraphicsPixelFormat::PixelRedGreenBlueReserved8BitPerColor => Self::Rgb,
@@ -697,6 +727,7 @@ impl PixelFormat {
     }
 
     /// Get bytes per pixel
+    #[must_use]
     pub fn bytes_per_pixel(&self) -> usize {
         match self {
             Self::Rgb | Self::Bgr | Self::Bitmask => 4,
@@ -705,6 +736,7 @@ impl PixelFormat {
     }
 
     /// Check if framebuffer is accessible
+    #[must_use]
     pub fn has_framebuffer(&self) -> bool {
         !matches!(self, Self::BltOnly)
     }
@@ -730,16 +762,19 @@ pub struct Pixel {
 
 impl Pixel {
     /// Create from RGB values
+    #[must_use]
     pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b, a: 0 }
     }
 
     /// Create from RGBA values
+    #[must_use]
     pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
 
     /// Create from 32-bit ARGB value
+    #[must_use]
     pub const fn from_argb32(argb: u32) -> Self {
         Self {
             a: ((argb >> 24) & 0xFF) as u8,
@@ -750,67 +785,94 @@ impl Pixel {
     }
 
     /// Convert to 32-bit ARGB
+    #[must_use]
     pub const fn to_argb32(&self) -> u32 {
         ((self.a as u32) << 24) | ((self.r as u32) << 16) | ((self.g as u32) << 8) | (self.b as u32)
     }
 
     /// Create grayscale
+    #[must_use]
     pub const fn gray(value: u8) -> Self {
         Self::rgb(value, value, value)
     }
 
-    // Common colors
+    /// Black color (0, 0, 0)
+    #[must_use]
     pub const fn black() -> Self {
         Self::rgb(0, 0, 0)
     }
+    /// White color (255, 255, 255)
+    #[must_use]
     pub const fn white() -> Self {
         Self::rgb(255, 255, 255)
     }
+    /// Red color (255, 0, 0)
+    #[must_use]
     pub const fn red() -> Self {
         Self::rgb(255, 0, 0)
     }
+    /// Green color (0, 255, 0)
+    #[must_use]
     pub const fn green() -> Self {
         Self::rgb(0, 255, 0)
     }
+    /// Blue color (0, 0, 255)
+    #[must_use]
     pub const fn blue() -> Self {
         Self::rgb(0, 0, 255)
     }
+    /// Cyan color (0, 255, 255)
+    #[must_use]
     pub const fn cyan() -> Self {
         Self::rgb(0, 255, 255)
     }
+    /// Magenta color (255, 0, 255)
+    #[must_use]
     pub const fn magenta() -> Self {
         Self::rgb(255, 0, 255)
     }
+    /// Yellow color (255, 255, 0)
+    #[must_use]
     pub const fn yellow() -> Self {
         Self::rgb(255, 255, 0)
     }
+    /// Orange color (255, 165, 0)
+    #[must_use]
     pub const fn orange() -> Self {
         Self::rgb(255, 165, 0)
     }
+    /// Pink color (255, 192, 203)
+    #[must_use]
     pub const fn pink() -> Self {
         Self::rgb(255, 192, 203)
     }
+    /// Purple color (128, 0, 128)
+    #[must_use]
     pub const fn purple() -> Self {
         Self::rgb(128, 0, 128)
     }
+    /// Brown color (139, 69, 19)
+    #[must_use]
     pub const fn brown() -> Self {
         Self::rgb(139, 69, 19)
     }
 
     /// Blend two pixels
+    #[must_use]
     pub fn blend(&self, other: &Self, alpha: u8) -> Self {
-        let a = alpha as u16;
+        let a = u16::from(alpha);
         let inv_a = 255 - a;
 
         Self {
-            r: ((self.r as u16 * inv_a + other.r as u16 * a) / 255) as u8,
-            g: ((self.g as u16 * inv_a + other.g as u16 * a) / 255) as u8,
-            b: ((self.b as u16 * inv_a + other.b as u16 * a) / 255) as u8,
-            a: ((self.a as u16 * inv_a + other.a as u16 * a) / 255) as u8,
+            r: ((u16::from(self.r) * inv_a + u16::from(other.r) * a) / 255) as u8,
+            g: ((u16::from(self.g) * inv_a + u16::from(other.g) * a) / 255) as u8,
+            b: ((u16::from(self.b) * inv_a + u16::from(other.b) * a) / 255) as u8,
+            a: ((u16::from(self.a) * inv_a + u16::from(other.a) * a) / 255) as u8,
         }
     }
 
     /// Lighten color
+    #[must_use]
     pub fn lighten(&self, amount: u8) -> Self {
         Self {
             r: self.r.saturating_add(amount),
@@ -821,6 +883,7 @@ impl Pixel {
     }
 
     /// Darken color
+    #[must_use]
     pub fn darken(&self, amount: u8) -> Self {
         Self {
             r: self.r.saturating_sub(amount),
@@ -831,6 +894,7 @@ impl Pixel {
     }
 
     /// Invert color
+    #[must_use]
     pub fn invert(&self) -> Self {
         Self {
             r: 255 - self.r,
@@ -841,8 +905,9 @@ impl Pixel {
     }
 
     /// Convert to grayscale
+    #[must_use]
     pub fn to_grayscale(&self) -> Self {
-        let gray = (self.r as u16 * 30 + self.g as u16 * 59 + self.b as u16 * 11) / 100;
+        let gray = (u16::from(self.r) * 30 + u16::from(self.g) * 59 + u16::from(self.b) * 11) / 100;
         Self::gray(gray as u8)
     }
 }
@@ -873,6 +938,7 @@ impl Framebuffer {
     ///
     /// # Safety
     /// Returned pointer must only be used while framebuffer is valid
+    #[must_use]
     pub unsafe fn as_ptr(&self) -> *mut u8 {
         self.base.0 as *mut u8
     }
@@ -881,6 +947,7 @@ impl Framebuffer {
     ///
     /// # Safety
     /// Must ensure exclusive access
+    #[must_use]
     pub unsafe fn as_mut_slice(&self) -> &mut [u8] {
         core::slice::from_raw_parts_mut(self.as_ptr(), self.size)
     }
@@ -889,6 +956,7 @@ impl Framebuffer {
     ///
     /// # Safety
     /// Must ensure exclusive access
+    #[must_use]
     pub unsafe fn pixels_mut(&self) -> &mut [Pixel] {
         core::slice::from_raw_parts_mut(
             self.as_ptr() as *mut Pixel,
@@ -897,6 +965,7 @@ impl Framebuffer {
     }
 
     /// Calculate offset for pixel coordinates
+    #[must_use]
     pub fn pixel_offset(&self, x: u32, y: u32) -> usize {
         ((y * self.stride + x) as usize) * self.format.bytes_per_pixel()
     }
@@ -922,6 +991,7 @@ impl Framebuffer {
     }
 
     /// Read pixel
+    #[must_use]
     pub fn read_pixel(&self, x: u32, y: u32) -> Option<Pixel> {
         if x < self.width && y < self.height {
             let offset = self.pixel_offset(x, y);
@@ -954,6 +1024,7 @@ impl Framebuffer {
     }
 
     /// Get resolution
+    #[must_use]
     pub fn resolution(&self) -> Resolution {
         Resolution {
             width: self.width,
@@ -962,13 +1033,15 @@ impl Framebuffer {
     }
 
     /// Get bytes per pixel
+    #[must_use]
     pub fn bytes_per_pixel(&self) -> usize {
         self.format.bytes_per_pixel()
     }
 
     /// Get bytes per row
+    #[must_use]
     pub fn bytes_per_row(&self) -> usize {
-        self.stride as usize * self.bytes_per_pixel()
+        (self.stride as usize) * self.bytes_per_pixel()
     }
 }
 
