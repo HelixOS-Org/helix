@@ -38,13 +38,13 @@ pub fn init_cpu(features: &CpuFeatures) -> Result<()> {
 }
 
 /// Initialize memory subsystem
-pub fn init_memory(_model: &MemoryModel) -> Result<()> {
+pub const fn init_memory(_model: &MemoryModel) -> Result<()> {
     // Memory initialization is handled by the paging module
     Ok(())
 }
 
 /// Initialize interrupts
-pub fn init_interrupts() -> Result<()> {
+pub const fn init_interrupts() -> Result<()> {
     // IDT setup is handled by the idt module
     Ok(())
 }
@@ -92,22 +92,22 @@ pub struct CpuidResult {
 
 impl CpuidResult {
     /// Check if bit is set in EAX
-    pub fn eax_bit(&self, bit: u32) -> bool {
+    pub const fn eax_bit(&self, bit: u32) -> bool {
         (self.eax & (1 << bit)) != 0
     }
 
     /// Check if bit is set in EBX
-    pub fn ebx_bit(&self, bit: u32) -> bool {
+    pub const fn ebx_bit(&self, bit: u32) -> bool {
         (self.ebx & (1 << bit)) != 0
     }
 
     /// Check if bit is set in ECX
-    pub fn ecx_bit(&self, bit: u32) -> bool {
+    pub const fn ecx_bit(&self, bit: u32) -> bool {
         (self.ecx & (1 << bit)) != 0
     }
 
     /// Check if bit is set in EDX
-    pub fn edx_bit(&self, bit: u32) -> bool {
+    pub const fn edx_bit(&self, bit: u32) -> bool {
         (self.edx & (1 << bit)) != 0
     }
 }
