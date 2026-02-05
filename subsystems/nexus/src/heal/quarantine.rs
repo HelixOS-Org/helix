@@ -4,6 +4,7 @@
 //! failing components to prevent cascade failures.
 
 #![allow(dead_code)]
+#![allow(clippy::for_kv_map)]
 
 extern crate alloc;
 
