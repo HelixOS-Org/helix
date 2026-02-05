@@ -169,7 +169,7 @@ impl AllocationRegion {
     }
 
     /// Allocate from region
-    fn allocate(&mut self, pages: u64) -> Option<PhysicalAddress> {
+    fn _allocate(&mut self, pages: u64) -> Option<PhysicalAddress> {
         self.allocate_aligned(pages, PAGE_SIZE)
     }
 
