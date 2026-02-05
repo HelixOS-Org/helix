@@ -1,4 +1,4 @@
-//! x86_64 CPU Detection and Features
+//! `x86_64` CPU Detection and Features
 //!
 //! CPU feature detection using CPUID.
 
@@ -15,8 +15,11 @@ use crate::error::Result;
 /// CPU vendor
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CpuVendor {
+    /// Intel processor
     Intel,
+    /// AMD processor
     Amd,
+    /// Unknown vendor
     Unknown,
 }
 
@@ -119,10 +122,10 @@ impl CpuModel {
         };
 
         // Get brand string if available
-        let max_extended = cpuid(0x80000000, 0).eax;
-        if max_extended >= 0x80000004 {
+        let max_extended = cpuid(0x8000_0000, 0).eax;
+        if max_extended >= 0x8000_0004 {
             for i in 0..3 {
-                let result = cpuid(0x80000002 + i, 0);
+                let result = cpuid(0x8000_0002 + i, 0);
                 let offset = (i * 16) as usize;
 
                 cpu_model.brand_string[offset..offset + 4]
@@ -158,11 +161,11 @@ mod cpuid_leaf {
     pub const BASIC: u32 = 0;
     pub const VERSION_FEATURES: u32 = 1;
     pub const EXTENDED_FEATURES: u32 = 7;
-    pub const EXTENDED_INFO: u32 = 0x80000001;
-    pub const _EXTENDED_BRAND_1: u32 = 0x80000002;
-    pub const _EXTENDED_BRAND_2: u32 = 0x80000003;
-    pub const _EXTENDED_BRAND_3: u32 = 0x80000004;
-    pub const EXTENDED_ADDRESS: u32 = 0x80000008;
+    pub const EXTENDED_INFO: u32 = 0x8000_0001;
+    pub const _EXTENDED_BRAND_1: u32 = 0x8000_0002;
+    pub const _EXTENDED_BRAND_2: u32 = 0x8000_0003;
+    pub const _EXTENDED_BRAND_3: u32 = 0x8000_0004;
+    pub const EXTENDED_ADDRESS: u32 = 0x8000_0008;
 }
 
 /// Feature bits in CPUID.1.ECX
@@ -175,149 +178,149 @@ mod feature_ecx {
     pub const _VMX: u32 = 1 << 5;
     pub const _SMX: u32 = 1 << 6;
     pub const _EIST: u32 = 1 << 7;
-    pub const TM2: u32 = 1 << 8;
-    pub const SSSE3: u32 = 1 << 9;
-    pub const CNXT_ID: u32 = 1 << 10;
-    pub const SDBG: u32 = 1 << 11;
-    pub const FMA: u32 = 1 << 12;
-    pub const CMPXCHG16B: u32 = 1 << 13;
-    pub const XTPR: u32 = 1 << 14;
-    pub const PDCM: u32 = 1 << 15;
+    pub const _TM2: u32 = 1 << 8;
+    pub const _SSSE3: u32 = 1 << 9;
+    pub const _CNXT_ID: u32 = 1 << 10;
+    pub const _SDBG: u32 = 1 << 11;
+    pub const _FMA: u32 = 1 << 12;
+    pub const _CMPXCHG16B: u32 = 1 << 13;
+    pub const _XTPR: u32 = 1 << 14;
+    pub const _PDCM: u32 = 1 << 15;
     pub const PCID: u32 = 1 << 17;
-    pub const DCA: u32 = 1 << 18;
+    pub const _DCA: u32 = 1 << 18;
     pub const SSE4_1: u32 = 1 << 19;
     pub const SSE4_2: u32 = 1 << 20;
     pub const X2APIC: u32 = 1 << 21;
-    pub const MOVBE: u32 = 1 << 22;
-    pub const POPCNT: u32 = 1 << 23;
-    pub const TSC_DEADLINE: u32 = 1 << 24;
+    pub const _MOVBE: u32 = 1 << 22;
+    pub const _POPCNT: u32 = 1 << 23;
+    pub const _TSC_DEADLINE: u32 = 1 << 24;
     pub const AES: u32 = 1 << 25;
     pub const XSAVE: u32 = 1 << 26;
-    pub const OSXSAVE: u32 = 1 << 27;
+    pub const _OSXSAVE: u32 = 1 << 27;
     pub const AVX: u32 = 1 << 28;
-    pub const F16C: u32 = 1 << 29;
+    pub const _F16C: u32 = 1 << 29;
     pub const RDRAND: u32 = 1 << 30;
-    pub const HYPERVISOR: u32 = 1 << 31;
+    pub const _HYPERVISOR: u32 = 1 << 31;
 }
 
 /// Feature bits in CPUID.1.EDX
 mod feature_edx {
-    pub const FPU: u32 = 1 << 0;
-    pub const VME: u32 = 1 << 1;
-    pub const DE: u32 = 1 << 2;
-    pub const PSE: u32 = 1 << 3;
+    pub const _FPU: u32 = 1 << 0;
+    pub const _VME: u32 = 1 << 1;
+    pub const _DE: u32 = 1 << 2;
+    pub const _PSE: u32 = 1 << 3;
     pub const TSC: u32 = 1 << 4;
-    pub const MSR: u32 = 1 << 5;
-    pub const PAE: u32 = 1 << 6;
-    pub const MCE: u32 = 1 << 7;
-    pub const CX8: u32 = 1 << 8;
-    pub const APIC: u32 = 1 << 9;
-    pub const SEP: u32 = 1 << 11;
-    pub const MTRR: u32 = 1 << 12;
-    pub const PGE: u32 = 1 << 13;
-    pub const MCA: u32 = 1 << 14;
-    pub const CMOV: u32 = 1 << 15;
-    pub const PAT: u32 = 1 << 16;
-    pub const PSE36: u32 = 1 << 17;
-    pub const PSN: u32 = 1 << 18;
-    pub const CLFSH: u32 = 1 << 19;
-    pub const DS: u32 = 1 << 21;
-    pub const ACPI: u32 = 1 << 22;
-    pub const MMX: u32 = 1 << 23;
-    pub const FXSR: u32 = 1 << 24;
+    pub const _MSR: u32 = 1 << 5;
+    pub const _PAE: u32 = 1 << 6;
+    pub const _MCE: u32 = 1 << 7;
+    pub const _CX8: u32 = 1 << 8;
+    pub const _APIC: u32 = 1 << 9;
+    pub const _SEP: u32 = 1 << 11;
+    pub const _MTRR: u32 = 1 << 12;
+    pub const _PGE: u32 = 1 << 13;
+    pub const _MCA: u32 = 1 << 14;
+    pub const _CMOV: u32 = 1 << 15;
+    pub const _PAT: u32 = 1 << 16;
+    pub const _PSE36: u32 = 1 << 17;
+    pub const _PSN: u32 = 1 << 18;
+    pub const _CLFSH: u32 = 1 << 19;
+    pub const _DS: u32 = 1 << 21;
+    pub const _ACPI: u32 = 1 << 22;
+    pub const _MMX: u32 = 1 << 23;
+    pub const _FXSR: u32 = 1 << 24;
     pub const SSE: u32 = 1 << 25;
     pub const SSE2: u32 = 1 << 26;
-    pub const SS: u32 = 1 << 27;
-    pub const HTT: u32 = 1 << 28;
-    pub const TM: u32 = 1 << 29;
-    pub const IA64: u32 = 1 << 30;
-    pub const PBE: u32 = 1 << 31;
+    pub const _SS: u32 = 1 << 27;
+    pub const _HTT: u32 = 1 << 28;
+    pub const _TM: u32 = 1 << 29;
+    pub const _IA64: u32 = 1 << 30;
+    pub const _PBE: u32 = 1 << 31;
 }
 
 /// Feature bits in CPUID.7.0.EBX
 mod feature7_ebx {
     pub const FSGSBASE: u32 = 1 << 0;
-    pub const TSC_ADJUST: u32 = 1 << 1;
-    pub const SGX: u32 = 1 << 2;
-    pub const BMI1: u32 = 1 << 3;
-    pub const HLE: u32 = 1 << 4;
+    pub const _TSC_ADJUST: u32 = 1 << 1;
+    pub const _SGX: u32 = 1 << 2;
+    pub const _BMI1: u32 = 1 << 3;
+    pub const _HLE: u32 = 1 << 4;
     pub const AVX2: u32 = 1 << 5;
     pub const SMEP: u32 = 1 << 7;
-    pub const BMI2: u32 = 1 << 8;
-    pub const ERMS: u32 = 1 << 9;
+    pub const _BMI2: u32 = 1 << 8;
+    pub const _ERMS: u32 = 1 << 9;
     pub const INVPCID: u32 = 1 << 10;
-    pub const RTM: u32 = 1 << 11;
-    pub const PQM: u32 = 1 << 12;
-    pub const MPX: u32 = 1 << 14;
-    pub const PQE: u32 = 1 << 15;
+    pub const _RTM: u32 = 1 << 11;
+    pub const _PQM: u32 = 1 << 12;
+    pub const _MPX: u32 = 1 << 14;
+    pub const _PQE: u32 = 1 << 15;
     pub const AVX512F: u32 = 1 << 16;
-    pub const AVX512DQ: u32 = 1 << 17;
+    pub const _AVX512DQ: u32 = 1 << 17;
     pub const RDSEED: u32 = 1 << 18;
-    pub const ADX: u32 = 1 << 19;
+    pub const _ADX: u32 = 1 << 19;
     pub const SMAP: u32 = 1 << 20;
-    pub const AVX512IFMA: u32 = 1 << 21;
-    pub const CLFLUSHOPT: u32 = 1 << 23;
-    pub const CLWB: u32 = 1 << 24;
-    pub const AVX512PF: u32 = 1 << 26;
-    pub const AVX512ER: u32 = 1 << 27;
-    pub const AVX512CD: u32 = 1 << 28;
+    pub const _AVX512IFMA: u32 = 1 << 21;
+    pub const _CLFLUSHOPT: u32 = 1 << 23;
+    pub const _CLWB: u32 = 1 << 24;
+    pub const _AVX512PF: u32 = 1 << 26;
+    pub const _AVX512ER: u32 = 1 << 27;
+    pub const _AVX512CD: u32 = 1 << 28;
     pub const SHA: u32 = 1 << 29;
-    pub const AVX512BW: u32 = 1 << 30;
-    pub const AVX512VL: u32 = 1 << 31;
+    pub const _AVX512BW: u32 = 1 << 30;
+    pub const _AVX512VL: u32 = 1 << 31;
 }
 
 /// Feature bits in CPUID.7.0.ECX
 mod feature7_ecx {
-    pub const PREFETCHWT1: u32 = 1 << 0;
-    pub const AVX512VBMI: u32 = 1 << 1;
+    pub const _PREFETCHWT1: u32 = 1 << 0;
+    pub const _AVX512VBMI: u32 = 1 << 1;
     pub const UMIP: u32 = 1 << 2;
     pub const PKU: u32 = 1 << 3;
-    pub const OSPKE: u32 = 1 << 4;
-    pub const AVX512VBMI2: u32 = 1 << 6;
-    pub const CET_SS: u32 = 1 << 7;
-    pub const GFNI: u32 = 1 << 8;
-    pub const VAES: u32 = 1 << 9;
-    pub const VPCLMULQDQ: u32 = 1 << 10;
-    pub const AVX512VNNI: u32 = 1 << 11;
-    pub const AVX512BITALG: u32 = 1 << 12;
-    pub const AVX512VPOPCNTDQ: u32 = 1 << 14;
+    pub const _OSPKE: u32 = 1 << 4;
+    pub const _AVX512VBMI2: u32 = 1 << 6;
+    pub const _CET_SS: u32 = 1 << 7;
+    pub const _GFNI: u32 = 1 << 8;
+    pub const _VAES: u32 = 1 << 9;
+    pub const _VPCLMULQDQ: u32 = 1 << 10;
+    pub const _AVX512VNNI: u32 = 1 << 11;
+    pub const _AVX512BITALG: u32 = 1 << 12;
+    pub const _AVX512VPOPCNTDQ: u32 = 1 << 14;
     pub const LA57: u32 = 1 << 16;
-    pub const RDPID: u32 = 1 << 22;
-    pub const CLDEMOTE: u32 = 1 << 25;
-    pub const MOVDIRI: u32 = 1 << 27;
-    pub const MOVDIR64B: u32 = 1 << 28;
+    pub const _RDPID: u32 = 1 << 22;
+    pub const _CLDEMOTE: u32 = 1 << 25;
+    pub const _MOVDIRI: u32 = 1 << 27;
+    pub const _MOVDIR64B: u32 = 1 << 28;
 }
 
 /// Feature bits in CPUID.7.0.EDX
 mod feature7_edx {
-    pub const AVX5124VNNIW: u32 = 1 << 2;
-    pub const AVX5124FMAPS: u32 = 1 << 3;
-    pub const FSRM: u32 = 1 << 4;
-    pub const AVX512VP2INTERSECT: u32 = 1 << 8;
-    pub const MD_CLEAR: u32 = 1 << 10;
-    pub const SERIALIZE: u32 = 1 << 14;
-    pub const HYBRID: u32 = 1 << 15;
-    pub const TSXLDTRK: u32 = 1 << 16;
-    pub const PCONFIG: u32 = 1 << 18;
+    pub const _AVX5124VNNIW: u32 = 1 << 2;
+    pub const _AVX5124FMAPS: u32 = 1 << 3;
+    pub const _FSRM: u32 = 1 << 4;
+    pub const _AVX512VP2INTERSECT: u32 = 1 << 8;
+    pub const _MD_CLEAR: u32 = 1 << 10;
+    pub const _SERIALIZE: u32 = 1 << 14;
+    pub const _HYBRID: u32 = 1 << 15;
+    pub const _TSXLDTRK: u32 = 1 << 16;
+    pub const _PCONFIG: u32 = 1 << 18;
     pub const CET_IBT: u32 = 1 << 20;
-    pub const AMX_BF16: u32 = 1 << 22;
-    pub const AMX_TILE: u32 = 1 << 24;
-    pub const AMX_INT8: u32 = 1 << 25;
-    pub const SPEC_CTRL: u32 = 1 << 26;
-    pub const STIBP: u32 = 1 << 27;
-    pub const FLUSH_CMD: u32 = 1 << 28;
-    pub const ARCH_CAPABILITIES: u32 = 1 << 29;
-    pub const CORE_CAPABILITIES: u32 = 1 << 30;
-    pub const SSBD: u32 = 1 << 31;
+    pub const _AMX_BF16: u32 = 1 << 22;
+    pub const _AMX_TILE: u32 = 1 << 24;
+    pub const _AMX_INT8: u32 = 1 << 25;
+    pub const _SPEC_CTRL: u32 = 1 << 26;
+    pub const _STIBP: u32 = 1 << 27;
+    pub const _FLUSH_CMD: u32 = 1 << 28;
+    pub const _ARCH_CAPABILITIES: u32 = 1 << 29;
+    pub const _CORE_CAPABILITIES: u32 = 1 << 30;
+    pub const _SSBD: u32 = 1 << 31;
 }
 
 /// Feature bits in CPUID.0x80000001.EDX
 mod ext_feature_edx {
-    pub const SYSCALL: u32 = 1 << 11;
+    pub const _SYSCALL: u32 = 1 << 11;
     pub const NX: u32 = 1 << 20;
     pub const PAGE1GB: u32 = 1 << 26;
-    pub const RDTSCP: u32 = 1 << 27;
-    pub const LM: u32 = 1 << 29;
+    pub const _RDTSCP: u32 = 1 << 27;
+    pub const _LM: u32 = 1 << 29;
 }
 
 /// Feature bits in CPUID.0x80000007.EDX (Advanced Power Management)
@@ -331,7 +334,7 @@ pub fn detect_features() -> CpuFeatures {
 
     // Check max CPUID level
     let max_basic = cpuid(cpuid_leaf::BASIC, 0).eax;
-    let max_extended = cpuid(0x80000000, 0).eax;
+    let max_extended = cpuid(0x8000_0000, 0).eax;
 
     // Get CPUID.1 features
     if max_basic >= cpuid_leaf::VERSION_FEATURES {
@@ -385,8 +388,8 @@ pub fn detect_features() -> CpuFeatures {
     }
 
     // Get power management features
-    if max_extended >= 0x80000007 {
-        let result = cpuid(0x80000007, 0);
+    if max_extended >= 0x8000_0007 {
+        let result = cpuid(0x8000_0007, 0);
         features.tsc_invariant = (result.edx & apm_feature_edx::TSC_INVARIANT) != 0;
     }
 
@@ -475,7 +478,7 @@ pub fn enable_features(features: &CpuFeatures) -> Result<()> {
 
 /// Get physical and virtual address widths
 pub fn get_address_widths() -> (u8, u8) {
-    let max_extended = cpuid(0x80000000, 0).eax;
+    let max_extended = cpuid(0x8000_0000, 0).eax;
 
     if max_extended >= cpuid_leaf::EXTENDED_ADDRESS {
         let result = cpuid(cpuid_leaf::EXTENDED_ADDRESS, 0);
@@ -495,9 +498,13 @@ pub fn get_address_widths() -> (u8, u8) {
 /// Cache type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheType {
+    /// No cache
     None,
+    /// Data cache
     Data,
+    /// Instruction cache
     Instruction,
+    /// Unified cache (data and instruction)
     Unified,
 }
 
