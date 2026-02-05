@@ -4,6 +4,7 @@
 //! for analyzing thermal subsystem health and providing recommendations.
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
