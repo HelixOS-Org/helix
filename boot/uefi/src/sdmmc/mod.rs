@@ -256,13 +256,17 @@ impl CommandOptionFlags {
     /// Create flags with CRC and index check enabled
     #[must_use]
     pub const fn with_crc_and_index() -> Self {
-        Self { bits: Self::CHECK_CRC | Self::CHECK_INDEX }
+        Self {
+            bits: Self::CHECK_CRC | Self::CHECK_INDEX,
+        }
     }
 
     /// Create flags with only CRC check enabled
     #[must_use]
     pub const fn with_crc_only() -> Self {
-        Self { bits: Self::CHECK_CRC }
+        Self {
+            bits: Self::CHECK_CRC,
+        }
     }
 
     /// Check if multi-block transfer is enabled
