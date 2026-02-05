@@ -8,6 +8,7 @@ description = "HelixFS - Revolutionary Copy-on-Write Filesystem for Helix OS"
 repository = "https://github.com/helix-os/helix"
 keywords = ["filesystem", "kernel", "no_std", "cow", "embedded"]
 categories = ["no-std", "filesystem", "embedded"]
+readme.workspace = true
 
 [lib]
 name = "helixfs"
