@@ -81,7 +81,7 @@ impl PciAddress {
 
     /// Calculate legacy config address for I/O access
     pub const fn config_address(self, offset: u8) -> u32 {
-        0x80000000
+        0x8000_0000
             | ((self.bus as u32) << 16)
             | ((self.device as u32) << 11)
             | ((self.function as u32) << 8)
@@ -460,8 +460,8 @@ impl Bar {
         let is_io = value & 0x01 != 0;
 
         if is_io {
-            let address = (value & 0xFFFFFFFC) as u64;
-            let size = (!((size_value & 0xFFFFFFFC) | 0x03) + 1) as u64;
+            let address = (value & 0xFFFF_FFFC) as u64;
+            let size = (!((size_value & 0xFFFF_FFFC) | 0x03) + 1) as u64;
 
             if size == 0 {
                 return None;
@@ -481,8 +481,8 @@ impl Bar {
             match memory_type {
                 0 => {
                     // 32-bit memory
-                    let address = (value & 0xFFFFFFF0) as u64;
-                    let size = (!((size_value & 0xFFFFFFF0) | 0x0F) + 1) as u64;
+                    let address = (value & 0xFFFF_FFF0) as u64;
+                    let size = (!((size_value & 0xFFFF_FFF0) | 0x0F) + 1) as u64;
 
                     if size == 0 {
                         return None;
@@ -499,10 +499,10 @@ impl Bar {
                 2 => {
                     // 64-bit memory
                     let next = next_value?;
-                    let address = ((value & 0xFFFFFFF0) as u64) | ((next as u64) << 32);
+                    let address = ((value & 0xFFFF_FFF0) as u64) | ((next as u64) << 32);
 
                     // Size calculation for 64-bit BAR
-                    let size_low = size_value & 0xFFFFFFF0;
+                    let size_low = size_value & 0xFFFF_FFF0;
                     let size = if size_low == 0 {
                         0 // 64-bit size not supported in this simple implementation
                     } else {
