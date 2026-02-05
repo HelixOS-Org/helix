@@ -6,7 +6,6 @@ pub mod exceptions;
 pub mod handlers;
 pub mod router;
 
-use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
