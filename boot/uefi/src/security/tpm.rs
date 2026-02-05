@@ -45,30 +45,50 @@ pub mod algorithm {
 
 /// TPM2 command codes
 pub mod command {
-    pub const TPM_CC_STARTUP: u32 = 0x00000144;
-    pub const TPM_CC_SHUTDOWN: u32 = 0x00000145;
-    pub const TPM_CC_SELF_TEST: u32 = 0x00000143;
-    pub const TPM_CC_PCR_EXTEND: u32 = 0x00000182;
-    pub const TPM_CC_PCR_READ: u32 = 0x0000017E;
-    pub const TPM_CC_PCR_RESET: u32 = 0x0000013D;
-    pub const TPM_CC_GET_CAPABILITY: u32 = 0x0000017A;
-    pub const TPM_CC_GET_RANDOM: u32 = 0x0000017B;
-    pub const TPM_CC_HASH: u32 = 0x0000017D;
-    pub const TPM_CC_CREATE: u32 = 0x00000153;
-    pub const TPM_CC_LOAD: u32 = 0x00000157;
-    pub const TPM_CC_UNSEAL: u32 = 0x0000015E;
-    pub const TPM_CC_QUOTE: u32 = 0x00000158;
-    pub const TPM_CC_NV_READ: u32 = 0x0000014E;
-    pub const TPM_CC_NV_WRITE: u32 = 0x00000137;
+    /// TPM2 startup command
+    pub const TPM_CC_STARTUP: u32 = 0x0000_0144;
+    /// TPM2 shutdown command
+    pub const TPM_CC_SHUTDOWN: u32 = 0x0000_0145;
+    /// TPM2 self-test command
+    pub const TPM_CC_SELF_TEST: u32 = 0x0000_0143;
+    /// TPM2 PCR extend command
+    pub const TPM_CC_PCR_EXTEND: u32 = 0x0000_0182;
+    /// TPM2 PCR read command
+    pub const TPM_CC_PCR_READ: u32 = 0x0000_017E;
+    /// TPM2 PCR reset command
+    pub const TPM_CC_PCR_RESET: u32 = 0x0000_013D;
+    /// TPM2 get capability command
+    pub const TPM_CC_GET_CAPABILITY: u32 = 0x0000_017A;
+    /// TPM2 get random command
+    pub const TPM_CC_GET_RANDOM: u32 = 0x0000_017B;
+    /// TPM2 hash command
+    pub const TPM_CC_HASH: u32 = 0x0000_017D;
+    /// TPM2 create command
+    pub const TPM_CC_CREATE: u32 = 0x0000_0153;
+    /// TPM2 load command
+    pub const TPM_CC_LOAD: u32 = 0x0000_0157;
+    /// TPM2 unseal command
+    pub const TPM_CC_UNSEAL: u32 = 0x0000_015E;
+    /// TPM2 quote command
+    pub const TPM_CC_QUOTE: u32 = 0x0000_0158;
+    /// TPM2 NV read command
+    pub const TPM_CC_NV_READ: u32 = 0x0000_014E;
+    /// TPM2 NV write command
+    pub const TPM_CC_NV_WRITE: u32 = 0x0000_0137;
 }
 
 /// TPM2 response codes
 pub mod response {
-    pub const TPM_RC_SUCCESS: u32 = 0x00000000;
-    pub const TPM_RC_FAILURE: u32 = 0x00000101;
-    pub const TPM_RC_LOCALITY: u32 = 0x0000007F;
-    pub const TPM_RC_RETRY: u32 = 0x00000922;
-    pub const TPM_RC_NV_UNAVAILABLE: u32 = 0x00000923;
+    /// TPM2 success response
+    pub const TPM_RC_SUCCESS: u32 = 0x0000_0000;
+    /// TPM2 failure response
+    pub const TPM_RC_FAILURE: u32 = 0x0000_0101;
+    /// TPM2 locality error
+    pub const TPM_RC_LOCALITY: u32 = 0x0000_007F;
+    /// TPM2 retry response
+    pub const TPM_RC_RETRY: u32 = 0x0000_0922;
+    /// TPM2 NV unavailable response
+    pub const TPM_RC_NV_UNAVAILABLE: u32 = 0x0000_0923;
 }
 
 /// TPM2 startup types
@@ -79,21 +99,32 @@ pub mod startup_type {
 
 /// TPM2 capabilities
 pub mod capability {
-    pub const TPM_CAP_TPM_PROPERTIES: u32 = 0x00000006;
-    pub const TPM_CAP_PCRS: u32 = 0x00000005;
-    pub const TPM_CAP_ALGS: u32 = 0x00000000;
+    /// TPM properties capability
+    pub const TPM_CAP_TPM_PROPERTIES: u32 = 0x0000_0006;
+    /// PCRs capability
+    pub const TPM_CAP_PCRS: u32 = 0x0000_0005;
+    /// Algorithms capability
+    pub const TPM_CAP_ALGS: u32 = 0x0000_0000;
 }
 
 /// TPM2 properties
 pub mod property {
-    pub const TPM_PT_FAMILY_INDICATOR: u32 = 0x00000100;
-    pub const TPM_PT_LEVEL: u32 = 0x00000101;
-    pub const TPM_PT_REVISION: u32 = 0x00000102;
-    pub const TPM_PT_MANUFACTURER: u32 = 0x00000105;
-    pub const TPM_PT_FIRMWARE_VERSION_1: u32 = 0x0000010B;
-    pub const TPM_PT_FIRMWARE_VERSION_2: u32 = 0x0000010C;
-    pub const TPM_PT_PCR_COUNT: u32 = 0x00000112;
-    pub const TPM_PT_MAX_DIGEST: u32 = 0x00000119;
+    /// TPM family indicator property
+    pub const TPM_PT_FAMILY_INDICATOR: u32 = 0x0000_0100;
+    /// TPM level property
+    pub const TPM_PT_LEVEL: u32 = 0x0000_0101;
+    /// TPM revision property
+    pub const TPM_PT_REVISION: u32 = 0x0000_0102;
+    /// TPM manufacturer property
+    pub const TPM_PT_MANUFACTURER: u32 = 0x0000_0105;
+    /// TPM firmware version 1 property
+    pub const TPM_PT_FIRMWARE_VERSION_1: u32 = 0x0000_010B;
+    /// TPM firmware version 2 property
+    pub const TPM_PT_FIRMWARE_VERSION_2: u32 = 0x0000_010C;
+    /// TPM PCR count property
+    pub const TPM_PT_PCR_COUNT: u32 = 0x0000_0112;
+    /// TPM max digest property
+    pub const TPM_PT_MAX_DIGEST: u32 = 0x0000_0119;
 }
 
 /// PCR indices
@@ -128,42 +159,76 @@ pub mod pcr {
 
 /// TCG2 event types
 pub mod event_type {
-    pub const EV_PREBOOT_CERT: u32 = 0x00000000;
-    pub const EV_POST_CODE: u32 = 0x00000001;
-    pub const EV_UNUSED: u32 = 0x00000002;
-    pub const EV_NO_ACTION: u32 = 0x00000003;
-    pub const EV_SEPARATOR: u32 = 0x00000004;
-    pub const EV_ACTION: u32 = 0x00000005;
-    pub const EV_EVENT_TAG: u32 = 0x00000006;
-    pub const EV_S_CRTM_CONTENTS: u32 = 0x00000007;
-    pub const EV_S_CRTM_VERSION: u32 = 0x00000008;
-    pub const EV_CPU_MICROCODE: u32 = 0x00000009;
-    pub const EV_PLATFORM_CONFIG_FLAGS: u32 = 0x0000000A;
-    pub const EV_TABLE_OF_DEVICES: u32 = 0x0000000B;
-    pub const EV_COMPACT_HASH: u32 = 0x0000000C;
-    pub const EV_IPL: u32 = 0x0000000D;
-    pub const EV_IPL_PARTITION_DATA: u32 = 0x0000000E;
-    pub const EV_NONHOST_CODE: u32 = 0x0000000F;
-    pub const EV_NONHOST_CONFIG: u32 = 0x00000010;
-    pub const EV_NONHOST_INFO: u32 = 0x00000011;
-    pub const EV_OMIT_BOOT_DEVICE_EVENTS: u32 = 0x00000012;
+    /// Pre-boot certificate event
+    pub const EV_PREBOOT_CERT: u32 = 0x0000_0000;
+    /// Post code event
+    pub const EV_POST_CODE: u32 = 0x0000_0001;
+    /// Unused event type
+    pub const EV_UNUSED: u32 = 0x0000_0002;
+    /// No action event
+    pub const EV_NO_ACTION: u32 = 0x0000_0003;
+    /// Separator event
+    pub const EV_SEPARATOR: u32 = 0x0000_0004;
+    /// Action event
+    pub const EV_ACTION: u32 = 0x0000_0005;
+    /// Event tag
+    pub const EV_EVENT_TAG: u32 = 0x0000_0006;
+    /// S-CRTM contents event
+    pub const EV_S_CRTM_CONTENTS: u32 = 0x0000_0007;
+    /// S-CRTM version event
+    pub const EV_S_CRTM_VERSION: u32 = 0x0000_0008;
+    /// CPU microcode event
+    pub const EV_CPU_MICROCODE: u32 = 0x0000_0009;
+    /// Platform config flags event
+    pub const EV_PLATFORM_CONFIG_FLAGS: u32 = 0x0000_000A;
+    /// Table of devices event
+    pub const EV_TABLE_OF_DEVICES: u32 = 0x0000_000B;
+    /// Compact hash event
+    pub const EV_COMPACT_HASH: u32 = 0x0000_000C;
+    /// IPL event
+    pub const EV_IPL: u32 = 0x0000_000D;
+    /// IPL partition data event
+    pub const EV_IPL_PARTITION_DATA: u32 = 0x0000_000E;
+    /// Non-host code event
+    pub const EV_NONHOST_CODE: u32 = 0x0000_000F;
+    /// Non-host config event
+    pub const EV_NONHOST_CONFIG: u32 = 0x0000_0010;
+    /// Non-host info event
+    pub const EV_NONHOST_INFO: u32 = 0x0000_0011;
+    /// Omit boot device events
+    pub const EV_OMIT_BOOT_DEVICE_EVENTS: u32 = 0x0000_0012;
 
     // EFI-specific events
-    pub const EV_EFI_EVENT_BASE: u32 = 0x80000000;
-    pub const EV_EFI_VARIABLE_DRIVER_CONFIG: u32 = 0x80000001;
-    pub const EV_EFI_VARIABLE_BOOT: u32 = 0x80000002;
-    pub const EV_EFI_BOOT_SERVICES_APPLICATION: u32 = 0x80000003;
-    pub const EV_EFI_BOOT_SERVICES_DRIVER: u32 = 0x80000004;
-    pub const EV_EFI_RUNTIME_SERVICES_DRIVER: u32 = 0x80000005;
-    pub const EV_EFI_GPT_EVENT: u32 = 0x80000006;
-    pub const EV_EFI_ACTION: u32 = 0x80000007;
-    pub const EV_EFI_PLATFORM_FIRMWARE_BLOB: u32 = 0x80000008;
-    pub const EV_EFI_HANDOFF_TABLES: u32 = 0x80000009;
-    pub const EV_EFI_PLATFORM_FIRMWARE_BLOB2: u32 = 0x8000000A;
-    pub const EV_EFI_HANDOFF_TABLES2: u32 = 0x8000000B;
-    pub const EV_EFI_VARIABLE_AUTHORITY: u32 = 0x800000E0;
-    pub const EV_EFI_SPDM_FIRMWARE_BLOB: u32 = 0x800000E1;
-    pub const EV_EFI_SPDM_FIRMWARE_CONFIG: u32 = 0x800000E2;
+    /// EFI event base
+    pub const EV_EFI_EVENT_BASE: u32 = 0x8000_0000;
+    /// EFI variable driver config event
+    pub const EV_EFI_VARIABLE_DRIVER_CONFIG: u32 = 0x8000_0001;
+    /// EFI variable boot event
+    pub const EV_EFI_VARIABLE_BOOT: u32 = 0x8000_0002;
+    /// EFI boot services application event
+    pub const EV_EFI_BOOT_SERVICES_APPLICATION: u32 = 0x8000_0003;
+    /// EFI boot services driver event
+    pub const EV_EFI_BOOT_SERVICES_DRIVER: u32 = 0x8000_0004;
+    /// EFI runtime services driver event
+    pub const EV_EFI_RUNTIME_SERVICES_DRIVER: u32 = 0x8000_0005;
+    /// EFI GPT event
+    pub const EV_EFI_GPT_EVENT: u32 = 0x8000_0006;
+    /// EFI action event
+    pub const EV_EFI_ACTION: u32 = 0x8000_0007;
+    /// EFI platform firmware blob event
+    pub const EV_EFI_PLATFORM_FIRMWARE_BLOB: u32 = 0x8000_0008;
+    /// EFI handoff tables event
+    pub const EV_EFI_HANDOFF_TABLES: u32 = 0x8000_0009;
+    /// EFI platform firmware blob 2 event
+    pub const EV_EFI_PLATFORM_FIRMWARE_BLOB2: u32 = 0x8000_000A;
+    /// EFI handoff tables 2 event
+    pub const EV_EFI_HANDOFF_TABLES2: u32 = 0x8000_000B;
+    /// EFI variable authority event
+    pub const EV_EFI_VARIABLE_AUTHORITY: u32 = 0x8000_00E0;
+    /// EFI SPDM firmware blob event
+    pub const EV_EFI_SPDM_FIRMWARE_BLOB: u32 = 0x8000_00E1;
+    /// EFI SPDM firmware config event
+    pub const EV_EFI_SPDM_FIRMWARE_CONFIG: u32 = 0x8000_00E2;
 }
 
 // =============================================================================
