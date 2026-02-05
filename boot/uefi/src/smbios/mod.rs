@@ -385,50 +385,95 @@ impl<'a> BiosInformation<'a> {
 
 /// BIOS characteristics
 pub mod bios_characteristics {
+    /// Reserved bit 0
     pub const RESERVED: u64 = 1 << 0;
+    /// Reserved bit 1
     pub const RESERVED2: u64 = 1 << 1;
+    /// Unknown characteristics
     pub const UNKNOWN: u64 = 1 << 2;
+    /// BIOS characteristics not supported
     pub const NOT_SUPPORTED: u64 = 1 << 3;
+    /// ISA is supported
     pub const ISA_SUPPORTED: u64 = 1 << 4;
+    /// MCA is supported
     pub const MCA_SUPPORTED: u64 = 1 << 5;
+    /// EISA is supported
     pub const EISA_SUPPORTED: u64 = 1 << 6;
+    /// PCI is supported
     pub const PCI_SUPPORTED: u64 = 1 << 7;
+    /// PC Card (PCMCIA) is supported
     pub const PCMCIA_SUPPORTED: u64 = 1 << 8;
+    /// Plug and Play is supported
     pub const PNP_SUPPORTED: u64 = 1 << 9;
+    /// APM is supported
     pub const APM_SUPPORTED: u64 = 1 << 10;
+    /// BIOS is upgradeable
     pub const UPGRADEABLE: u64 = 1 << 11;
+    /// BIOS shadowing is supported
     pub const SHADOWING_SUPPORTED: u64 = 1 << 12;
+    /// VL-VESA is supported
     pub const VL_VESA_SUPPORTED: u64 = 1 << 13;
+    /// ESCD support is available
     pub const ESCD_SUPPORTED: u64 = 1 << 14;
+    /// Boot from CD is supported
     pub const CD_BOOT_SUPPORTED: u64 = 1 << 15;
+    /// Selectable boot is supported
     pub const SELECTABLE_BOOT: u64 = 1 << 16;
+    /// BIOS ROM is socketed
     pub const ROM_SOCKETED: u64 = 1 << 17;
+    /// Boot from PC Card is supported
     pub const PCMCIA_BOOT: u64 = 1 << 18;
+    /// EDD specification is supported
     pub const EDD_SUPPORTED: u64 = 1 << 19;
+    /// NEC 9800 Japanese floppy is supported
     pub const JAPANESE_FLOPPY_NEC: u64 = 1 << 20;
+    /// Toshiba Japanese floppy is supported
     pub const JAPANESE_FLOPPY_TOSHIBA: u64 = 1 << 21;
+    /// 360 KB floppy is supported
     pub const FLOPPY_360K: u64 = 1 << 22;
+    /// 1.2 MB floppy is supported
     pub const FLOPPY_1_2M: u64 = 1 << 23;
+    /// 720 KB floppy is supported
     pub const FLOPPY_720K: u64 = 1 << 24;
+    /// 2.88 MB floppy is supported
     pub const FLOPPY_2_88M: u64 = 1 << 25;
+    /// Print screen service is supported
     pub const PRINT_SCREEN: u64 = 1 << 26;
+    /// 8042 keyboard services are supported
     pub const KEYBOARD_8042: u64 = 1 << 27;
+    /// Serial services are supported
     pub const SERIAL_SERVICES: u64 = 1 << 28;
+    /// Printer services are supported
     pub const PRINTER_SERVICES: u64 = 1 << 29;
+    /// CGA/Mono video services are supported
     pub const CGA_MONO_VIDEO: u64 = 1 << 30;
+    /// NEC PC-98 is supported
     pub const NEC_PC98: u64 = 1 << 31;
+    /// ACPI is supported
     pub const ACPI: u64 = 1 << 32;
+    /// USB Legacy is supported
     pub const USB_LEGACY: u64 = 1 << 33;
+    /// AGP is supported
     pub const AGP: u64 = 1 << 34;
+    /// I2O boot is supported
     pub const I20_BOOT: u64 = 1 << 35;
+    /// LS-120 `SuperDisk` boot is supported
     pub const LS120_BOOT: u64 = 1 << 36;
+    /// ATAPI ZIP drive boot is supported
     pub const ATAPI_ZIP_BOOT: u64 = 1 << 37;
+    /// IEEE 1394 boot is supported
     pub const IEEE_1394_BOOT: u64 = 1 << 38;
+    /// Smart battery is supported
     pub const SMART_BATTERY: u64 = 1 << 39;
+    /// BIOS Boot Specification is supported
     pub const BIOS_BOOT_SPEC: u64 = 1 << 40;
+    /// Function key-initiated network boot is supported
     pub const FUNCTION_KEY_NETWORK_BOOT: u64 = 1 << 41;
+    /// Targeted content distribution is supported
     pub const TARGETED_CONTENT_DIST: u64 = 1 << 42;
+    /// UEFI is supported
     pub const UEFI_SUPPORTED: u64 = 1 << 43;
+    /// System is a virtual machine
     pub const VIRTUAL_MACHINE: u64 = 1 << 44;
 }
 
