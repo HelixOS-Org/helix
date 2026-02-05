@@ -617,7 +617,7 @@ impl Default for TextProps {
             overflow: TextOverflow::Clip,
             font_id: 0,
             font_size: 0,
-            color: 0xFFFFFFFF, // White
+            color: 0xFFFF_FFFF, // White
             line_height: 0,
             letter_spacing: 0,
             max_lines: 0,
