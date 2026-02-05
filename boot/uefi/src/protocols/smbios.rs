@@ -4,7 +4,7 @@
 
 use super::Protocol;
 use crate::error::{Error, Result};
-use crate::raw::types::*;
+use crate::raw::types::{Guid, Handle, PhysicalAddress};
 
 extern crate alloc;
 use alloc::string::String;
@@ -35,6 +35,7 @@ pub struct SmbiosTables {
 
 impl SmbiosTables {
     /// Create new SMBIOS tables accessor
+    #[must_use]
     pub fn new(handle: Handle) -> Self {
         Self {
             _handle: handle,
@@ -48,26 +49,35 @@ impl SmbiosTables {
     }
 
     /// Get SMBIOS version
+    #[must_use]
     pub fn version(&self) -> SmbiosVersion {
         self.version
     }
 
     /// Get table address
+    #[must_use]
     pub fn table_address(&self) -> PhysicalAddress {
         self.table_address
     }
 
     /// Get table length
+    #[must_use]
     pub fn table_length(&self) -> u32 {
         self.table_length
     }
 
     /// Get structure count
+    #[must_use]
     pub fn structure_count(&self) -> u16 {
         self.structure_count
     }
 
     /// Initialize from SMBIOS entry point (32-bit)
+    ///
+    /// # Safety
+    ///
+    /// The `entry` pointer must be valid and point to a properly initialized
+    /// `SmbiosEntryPoint` structure in memory.
     pub unsafe fn init_from_entry_point(&mut self, entry: *const SmbiosEntryPoint) -> Result<()> {
         if entry.is_null() {
             return Err(Error::InvalidParameter);
@@ -87,8 +97,8 @@ impl SmbiosTables {
 
         self.entry_point_address = PhysicalAddress(entry as u64);
         self.version = SmbiosVersion::new(entry_ref.major_version, entry_ref.minor_version);
-        self.table_address = PhysicalAddress(entry_ref.table_address as u64);
-        self.table_length = entry_ref.table_length as u32;
+        self.table_address = PhysicalAddress(u64::from(entry_ref.table_address));
+        self.table_length = u32::from(entry_ref.table_length);
         self.structure_count = entry_ref.structure_count;
 
         // Parse structures
@@ -98,6 +108,11 @@ impl SmbiosTables {
     }
 
     /// Initialize from SMBIOS 3.0 entry point (64-bit)
+    ///
+    /// # Safety
+    ///
+    /// The `entry` pointer must be valid and point to a properly initialized
+    /// `SmbiosEntryPoint3` structure in memory.
     pub unsafe fn init_from_entry_point3(&mut self, entry: *const SmbiosEntryPoint3) -> Result<()> {
         if entry.is_null() {
             return Err(Error::InvalidParameter);
@@ -127,13 +142,17 @@ impl SmbiosTables {
         Ok(())
     }
 
-    /// Parse structures from table
+    /// Parse structures from table.
+    ///
+    /// # Safety
+    ///
+    /// The table memory must be valid and readable.
     unsafe fn parse_structures(&mut self) -> Result<()> {
-        let end = PhysicalAddress(self.table_address.0 + self.table_length as u64);
+        let end = PhysicalAddress(self.table_address.0 + u64::from(self.table_length));
         let mut ptr = self.table_address;
 
         while ptr < end {
-            let header = &*(ptr.0 as *const SmbiosHeader);
+            let header = &*ptr.0.cast::<SmbiosHeader>();
 
             // End of table marker
             if header.structure_type == 127 {
@@ -149,9 +168,9 @@ impl SmbiosTables {
             }
 
             // Find strings section (after header.length bytes)
-            let strings_start = ptr + header.length as u64;
-            let strings = self.parse_strings(strings_start, end)?;
-            let strings_len = self.calculate_strings_length(strings_start, end);
+            let strings_start = ptr + u64::from(header.length);
+            let strings = Self::parse_strings(strings_start, end);
+            let strings_len = Self::calculate_strings_length(strings_start, end);
 
             self.structures.push(SmbiosStructure {
                 structure_type: header.structure_type,
@@ -168,22 +187,25 @@ impl SmbiosTables {
         Ok(())
     }
 
-    /// Parse strings from structure
+    /// Parse strings from structure.
+    ///
+    /// # Safety
+    ///
+    /// The memory range from `start` to `end` must be valid and readable.
     unsafe fn parse_strings(
-        &self,
         start: PhysicalAddress,
         end: PhysicalAddress,
-    ) -> Result<Vec<String>> {
+    ) -> Vec<String> {
         let mut strings = Vec::new();
         let mut ptr = start;
 
         while ptr < end {
-            let byte = *(ptr.0 as *const u8);
+            let byte = *ptr.0.cast::<u8>();
 
             if byte == 0 {
                 ptr += 1;
                 // Double null = end of strings
-                if ptr < end && *(ptr.0 as *const u8) == 0 {
+                if ptr < end && *ptr.0.cast::<u8>() == 0 {
                     break;
                 }
                 continue;
@@ -191,12 +213,12 @@ impl SmbiosTables {
 
             // Find end of string
             let mut str_end = ptr;
-            while str_end < end && *(str_end.0 as *const u8) != 0 {
+            while str_end < end && *str_end.0.cast::<u8>() != 0 {
                 str_end += 1;
             }
 
             let len = (str_end - ptr) as usize;
-            let slice = core::slice::from_raw_parts(ptr.0 as *const u8, len);
+            let slice = core::slice::from_raw_parts(ptr.0.cast::<u8>(), len);
             if let Ok(s) = core::str::from_utf8(slice) {
                 strings.push(String::from(s));
             }
@@ -204,22 +226,25 @@ impl SmbiosTables {
             ptr = str_end;
         }
 
-        Ok(strings)
+        strings
     }
 
-    /// Calculate strings section length
+    /// Calculate strings section length.
+    ///
+    /// # Safety
+    ///
+    /// The memory range from `start` to `end` must be valid and readable.
     unsafe fn calculate_strings_length(
-        &self,
         start: PhysicalAddress,
         end: PhysicalAddress,
     ) -> usize {
         let mut ptr = start;
 
         while ptr < end {
-            let byte = *(ptr.0 as *const u8);
+            let byte = *ptr.0.cast::<u8>();
             ptr += 1;
 
-            if byte == 0 && ptr < end && *(ptr.0 as *const u8) == 0 {
+            if byte == 0 && ptr < end && *ptr.0.cast::<u8>() == 0 {
                 ptr += 1;
                 break;
             }
@@ -229,11 +254,13 @@ impl SmbiosTables {
     }
 
     /// Get all structures
+    #[must_use]
     pub fn structures(&self) -> &[SmbiosStructure] {
         &self.structures
     }
 
     /// Find structures by type
+    #[must_use]
     pub fn find_structures(&self, structure_type: u8) -> Vec<&SmbiosStructure> {
         self.structures
             .iter()
@@ -242,6 +269,7 @@ impl SmbiosTables {
     }
 
     /// Find first structure by type
+    #[must_use]
     pub fn find_structure(&self, structure_type: u8) -> Option<&SmbiosStructure> {
         self.structures
             .iter()
@@ -249,30 +277,35 @@ impl SmbiosTables {
     }
 
     /// Get BIOS information (Type 0)
+    #[must_use]
     pub fn bios_info(&self) -> Option<BiosInfo> {
         self.find_structure(0)
             .map(|s| unsafe { BiosInfo::from_structure(s) })
     }
 
     /// Get system information (Type 1)
+    #[must_use]
     pub fn system_info(&self) -> Option<SystemInfo> {
         self.find_structure(1)
             .map(|s| unsafe { SystemInfo::from_structure(s) })
     }
 
     /// Get baseboard information (Type 2)
+    #[must_use]
     pub fn baseboard_info(&self) -> Option<BaseboardInfo> {
         self.find_structure(2)
             .map(|s| unsafe { BaseboardInfo::from_structure(s) })
     }
 
     /// Get chassis information (Type 3)
+    #[must_use]
     pub fn chassis_info(&self) -> Option<ChassisInfo> {
         self.find_structure(3)
             .map(|s| unsafe { ChassisInfo::from_structure(s) })
     }
 
     /// Get processor information (Type 4)
+    #[must_use]
     pub fn processor_info(&self) -> Vec<ProcessorInfo> {
         self.find_structures(4)
             .iter()
@@ -281,6 +314,7 @@ impl SmbiosTables {
     }
 
     /// Get memory device information (Type 17)
+    #[must_use]
     pub fn memory_devices(&self) -> Vec<MemoryDeviceInfo> {
         self.find_structures(17)
             .iter()
@@ -289,6 +323,7 @@ impl SmbiosTables {
     }
 
     /// Get total installed memory in bytes
+    #[must_use]
     pub fn total_memory(&self) -> u64 {
         self.memory_devices().iter().filter_map(|d| d.size).sum()
     }
@@ -319,6 +354,7 @@ pub struct SmbiosVersion {
 
 impl SmbiosVersion {
     /// Create new version
+    #[must_use]
     pub const fn new(major: u8, minor: u8) -> Self {
         Self { major, minor }
     }
@@ -384,6 +420,7 @@ pub struct SmbiosEntryPoint {
 
 impl SmbiosEntryPoint {
     /// Validate checksum
+    #[must_use]
     pub fn validate_checksum(&self) -> bool {
         let bytes = unsafe {
             core::slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
@@ -420,6 +457,7 @@ pub struct SmbiosEntryPoint3 {
 
 impl SmbiosEntryPoint3 {
     /// Validate checksum
+    #[must_use]
     pub fn validate_checksum(&self) -> bool {
         let bytes = unsafe {
             core::slice::from_raw_parts(self as *const _ as *const u8, self.length as usize)
@@ -465,6 +503,7 @@ pub struct SmbiosStructure {
 
 impl SmbiosStructure {
     /// Get structure type name
+    #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self.structure_type {
             0 => "BIOS Information",
@@ -521,19 +560,21 @@ impl SmbiosStructure {
     }
 
     /// Get string by index (1-based)
+    #[must_use]
     pub fn get_string(&self, index: u8) -> Option<&str> {
         if index == 0 {
             None
         } else {
-            self.strings.get(index as usize - 1).map(|s| s.as_str())
+            self.strings.get(usize::from(index) - 1).map(|s| s.as_str())
         }
     }
 
     /// Get raw data
+    #[must_use]
     pub unsafe fn data(&self) -> &[u8] {
         core::slice::from_raw_parts(
             (self.address.0 + core::mem::size_of::<SmbiosHeader>() as u64) as *const u8,
-            self.length as usize - core::mem::size_of::<SmbiosHeader>(),
+            usize::from(self.length) - core::mem::size_of::<SmbiosHeader>(),
         )
     }
 }
@@ -608,17 +649,18 @@ impl BiosInfo {
     }
 
     /// Get ROM size in bytes
+    #[must_use]
     pub fn rom_size_bytes(&self) -> u64 {
         if let Some(ext) = self.extended_rom_size {
             if (ext & 0xC000) == 0 {
-                (ext as u64) * 1024 * 1024 // MB
+                u64::from(ext) * 1024 * 1024 // MB
             } else {
-                (ext as u64 & 0x3FFF) * 1024 * 1024 * 1024 // GB
+                (u64::from(ext) & 0x3FFF) * 1024 * 1024 * 1024 // GB
             }
         } else if self.rom_size == 0xFF {
             0 // Use extended size
         } else {
-            ((self.rom_size as u64) + 1) * 64 * 1024
+            (u64::from(self.rom_size) + 1) * 64 * 1024
         }
     }
 }
@@ -690,6 +732,7 @@ impl SystemInfo {
     }
 
     /// Get UUID as string
+    #[must_use]
     pub fn uuid_string(&self) -> Option<String> {
         self.uuid.map(|u| {
             alloc::format!(
@@ -729,6 +772,7 @@ pub enum WakeupType {
 
 impl WakeupType {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value {
             0 => Self::Reserved,
@@ -801,26 +845,31 @@ impl BaseboardInfo {
     }
 
     /// Check if hosting board
+    #[must_use]
     pub fn is_hosting_board(&self) -> bool {
         (self.feature_flags & 0x01) != 0
     }
 
     /// Check if requires daughterboard
+    #[must_use]
     pub fn requires_daughterboard(&self) -> bool {
         (self.feature_flags & 0x02) != 0
     }
 
     /// Check if removable
+    #[must_use]
     pub fn is_removable(&self) -> bool {
         (self.feature_flags & 0x04) != 0
     }
 
     /// Check if replaceable
+    #[must_use]
     pub fn is_replaceable(&self) -> bool {
         (self.feature_flags & 0x08) != 0
     }
 
     /// Check if hot-swappable
+    #[must_use]
     pub fn is_hot_swappable(&self) -> bool {
         (self.feature_flags & 0x10) != 0
     }
@@ -859,6 +908,7 @@ pub enum BoardType {
 
 impl BoardType {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value {
             1 => Self::Unknown,
@@ -1014,6 +1064,7 @@ pub enum ChassisType {
 
 impl ChassisType {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value & 0x7F {
             1 => Self::Other,
@@ -1076,6 +1127,7 @@ pub enum ChassisState {
 
 impl ChassisState {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value {
             1 => Self::Other,
@@ -1106,6 +1158,7 @@ pub enum ChassisSecurityStatus {
 
 impl ChassisSecurityStatus {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value {
             1 => Self::Other,
@@ -1178,7 +1231,7 @@ impl ProcessorInfo {
         let processor_family = if family == 0xFE && s.length >= 0x2A {
             ptr::read_unaligned(data.add(38) as *const u16)
         } else {
-            family as u16
+            u16::from(family)
         };
 
         let mut core_count = None;
@@ -1195,9 +1248,9 @@ impl ProcessorInfo {
                 core_enabled = Some(ptr::read_unaligned(data.add(40) as *const u16));
                 thread_count = Some(ptr::read_unaligned(data.add(42) as *const u16));
             } else {
-                core_count = Some(cc as u16);
-                core_enabled = Some(ce as u16);
-                thread_count = Some(tc as u16);
+                core_count = Some(u16::from(cc));
+                core_enabled = Some(u16::from(ce));
+                thread_count = Some(u16::from(tc));
             }
         }
 
@@ -1221,11 +1274,13 @@ impl ProcessorInfo {
     }
 
     /// Check if CPU is populated
+    #[must_use]
     pub fn is_populated(&self) -> bool {
         (self.status & 0x40) != 0
     }
 
     /// Get CPU status
+    #[must_use]
     pub fn cpu_status(&self) -> CpuStatus {
         match self.status & 0x07 {
             0 => CpuStatus::Unknown,
@@ -1258,6 +1313,7 @@ pub enum ProcessorType {
 
 impl ProcessorType {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value {
             1 => Self::Other,
@@ -1376,7 +1432,7 @@ impl MemoryDeviceInfo {
             // Extended size field (SMBIOS 2.7+)
             if s.length >= 0x20 {
                 let ext_size = ptr::read_unaligned(data.add(24) as *const u32);
-                Some((ext_size as u64) * 1024 * 1024) // MB
+                Some(u64::from(ext_size) * 1024 * 1024) // MB
             } else {
                 None
             }
@@ -1386,7 +1442,7 @@ impl MemoryDeviceInfo {
             } else {
                 1024 * 1024
             };
-            Some(((size_raw & 0x7FFF) as u64) * granularity)
+            Some(u64::from(size_raw & 0x7FFF) * granularity)
         };
 
         Self {
@@ -1419,6 +1475,7 @@ impl MemoryDeviceInfo {
     }
 
     /// Get size in human-readable format
+    #[must_use]
     pub fn size_string(&self) -> String {
         match self.size {
             None => String::from("No Module Installed"),
@@ -1476,6 +1533,7 @@ pub enum MemoryFormFactor {
 
 impl MemoryFormFactor {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value {
             1 => Self::Other,
@@ -1572,6 +1630,7 @@ pub enum MemoryType {
 
 impl MemoryType {
     /// Create from byte
+    #[must_use]
     pub fn from_byte(value: u8) -> Self {
         match value {
             1 => Self::Other,
@@ -1612,6 +1671,7 @@ impl MemoryType {
     }
 
     /// Get name
+    #[must_use]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Other => "Other",
@@ -1655,7 +1715,7 @@ impl MemoryType {
 // SMBIOS GUIDS
 // =============================================================================
 
-/// SMBIOS GUIDs
+/// SMBIOS related GUID constants for table identification.
 pub mod smbios_guids {
     use super::*;
 
