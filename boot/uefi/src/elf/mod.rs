@@ -1099,14 +1099,17 @@ impl ElfLoader {
                     let rtype = rela.relocation_type();
 
                     // Handle R_X86_64_RELATIVE
-                    if rtype == reloc_x86_64::R_RELATIVE {
-                        let offset = (rela.r_offset - link_base) as usize;
-
-                        if offset + 8 <= memory.len() {
-                            let value = (rela.r_addend + delta) as u64;
-                            memory[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
-                        }
+                    if rtype != reloc_x86_64::R_RELATIVE {
+                        continue;
                     }
+
+                    let offset = (rela.r_offset - link_base) as usize;
+                    if offset + 8 > memory.len() {
+                        continue;
+                    }
+
+                    let value = (rela.r_addend + delta) as u64;
+                    memory[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
                 }
             }
         }
