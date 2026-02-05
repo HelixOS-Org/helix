@@ -162,25 +162,25 @@ impl UsbIntelligence {
                 }
 
                 // Check for speed degradation on storage devices
-                if device.class.is_storage() {
-                    if matches!(device.speed, UsbSpeed::Full | UsbSpeed::Low) {
-                        performance_score -= 20.0;
-                        issues.push(UsbIssue {
-                            issue_type: UsbIssueType::SpeedDegraded,
-                            severity: 7,
-                            description: format!(
-                                "Storage device {} running at {}",
-                                device.id.to_string(),
-                                device.speed.name()
-                            ),
-                            device: Some(device.id),
-                        });
-                        recommendations.push(UsbRecommendation {
-                            action: UsbAction::UseFasterPort,
-                            expected_improvement: 15.0,
-                            reason: String::from("Connect to USB 3.x port for better performance"),
-                        });
-                    }
+                if device.class.is_storage()
+                    && matches!(device.speed, UsbSpeed::Full | UsbSpeed::Low)
+                {
+                    performance_score -= 20.0;
+                    issues.push(UsbIssue {
+                        issue_type: UsbIssueType::SpeedDegraded,
+                        severity: 7,
+                        description: format!(
+                            "Storage device {} running at {}",
+                            device.id.to_string(),
+                            device.speed.name()
+                        ),
+                        device: Some(device.id),
+                    });
+                    recommendations.push(UsbRecommendation {
+                        action: UsbAction::UseFasterPort,
+                        expected_improvement: 15.0,
+                        reason: String::from("Connect to USB 3.x port for better performance"),
+                    });
                 }
 
                 // Check suspended state
