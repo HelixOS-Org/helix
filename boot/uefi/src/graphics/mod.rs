@@ -32,7 +32,8 @@ pub enum PixelFormat {
 
 impl PixelFormat {
     /// From raw value
-    pub fn from_u32(v: u32) -> Option<Self> {
+    #[must_use]
+    pub const fn from_u32(v: u32) -> Option<Self> {
         match v {
             0 => Some(Self::RedGreenBlueReserved8BitPerColor),
             1 => Some(Self::BlueGreenRedReserved8BitPerColor),
@@ -43,22 +44,25 @@ impl PixelFormat {
     }
 
     /// Bytes per pixel
-    pub fn bytes_per_pixel(&self) -> usize {
+    #[must_use]
+    pub const fn bytes_per_pixel(&self) -> usize {
         match self {
-            Self::RedGreenBlueReserved8BitPerColor => 4,
-            Self::BlueGreenRedReserved8BitPerColor => 4,
-            Self::BitMask => 4, // Typically
+            Self::RedGreenBlueReserved8BitPerColor
+            | Self::BlueGreenRedReserved8BitPerColor
+            | Self::BitMask => 4,
             Self::BltOnly | Self::Max => 0,
         }
     }
 
     /// Is RGB (not BGR)
-    pub fn is_rgb(&self) -> bool {
+    #[must_use]
+    pub const fn is_rgb(&self) -> bool {
         matches!(self, Self::RedGreenBlueReserved8BitPerColor)
     }
 
     /// Is BGR
-    pub fn is_bgr(&self) -> bool {
+    #[must_use]
+    pub const fn is_bgr(&self) -> bool {
         matches!(self, Self::BlueGreenRedReserved8BitPerColor)
     }
 }
@@ -67,31 +71,36 @@ impl PixelFormat {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct PixelBitmask {
+    /// Red channel bitmask
     pub red_mask: u32,
+    /// Green channel bitmask
     pub green_mask: u32,
+    /// Blue channel bitmask
     pub blue_mask: u32,
+    /// Reserved channel bitmask
     pub reserved_mask: u32,
 }
 
 impl PixelBitmask {
     /// Standard RGB mask
     pub const RGB: Self = Self {
-        red_mask: 0x00FF0000,
-        green_mask: 0x0000FF00,
-        blue_mask: 0x000000FF,
-        reserved_mask: 0xFF000000,
+        red_mask: 0x00FF_0000,
+        green_mask: 0x0000_FF00,
+        blue_mask: 0x0000_00FF,
+        reserved_mask: 0xFF00_0000,
     };
 
     /// Standard BGR mask
     pub const BGR: Self = Self {
-        red_mask: 0x000000FF,
-        green_mask: 0x0000FF00,
-        blue_mask: 0x00FF0000,
-        reserved_mask: 0xFF000000,
+        red_mask: 0x0000_00FF,
+        green_mask: 0x0000_FF00,
+        blue_mask: 0x00FF_0000,
+        reserved_mask: 0xFF00_0000,
     };
 
     /// Get shift and size for a channel
-    pub fn channel_info(&self, mask: u32) -> (u8, u8) {
+    #[must_use]
+    pub const fn channel_info(&self, mask: u32) -> (u8, u8) {
         if mask == 0 {
             return (0, 0);
         }
@@ -122,12 +131,14 @@ pub struct GraphicsModeInfo {
 
 impl GraphicsModeInfo {
     /// Get screen width
-    pub fn width(&self) -> u32 {
+    #[must_use]
+    pub const fn width(&self) -> u32 {
         self.horizontal_resolution
     }
 
     /// Get screen height
-    pub fn height(&self) -> u32 {
+    #[must_use]
+    pub const fn height(&self) -> u32 {
         self.vertical_resolution
     }
 
@@ -142,7 +153,8 @@ impl GraphicsModeInfo {
     }
 
     /// Total pixels
-    pub fn total_pixels(&self) -> u32 {
+    #[must_use]
+    pub const fn total_pixels(&self) -> u32 {
         self.horizontal_resolution * self.vertical_resolution
     }
 }
@@ -228,7 +240,8 @@ impl GraphicsOutput {
     }
 
     /// Get mode count
-    pub fn mode_count(&self) -> usize {
+    #[must_use]
+    pub const fn mode_count(&self) -> usize {
         self.mode_count
     }
 
@@ -320,8 +333,8 @@ impl GraphicsOutput {
         }
 
         unsafe {
-            let pixel = (self.framebuffer.add(offset) as *const u32).read_volatile();
-            Some(self.decode_pixel(pixel, &mode.info))
+            let pixel = self.framebuffer.add(offset).cast::<u32>().read_volatile();
+            Some(Self::decode_pixel(pixel, &mode.info))
         }
     }
 
@@ -340,29 +353,29 @@ impl GraphicsOutput {
             return Err(GraphicsError::OutOfBounds);
         }
 
-        let pixel = self.encode_pixel(color, &mode.info);
+        let pixel = Self::encode_pixel(color, &mode.info);
 
         unsafe {
-            (self.framebuffer.add(offset) as *mut u32).write_volatile(pixel);
+            self.framebuffer.add(offset).cast::<u32>().write_volatile(pixel);
         }
 
         Ok(())
     }
 
     /// Encode color to pixel value
-    fn encode_pixel(&self, color: Color32, info: &GraphicsModeInfo) -> u32 {
+    fn encode_pixel(color: Color32, info: &GraphicsModeInfo) -> u32 {
         match info.pixel_format {
             PixelFormat::RedGreenBlueReserved8BitPerColor => {
-                ((color.r as u32) << 16)
-                    | ((color.g as u32) << 8)
-                    | (color.b as u32)
-                    | ((color.a as u32) << 24)
+                (u32::from(color.r) << 16)
+                    | (u32::from(color.g) << 8)
+                    | u32::from(color.b)
+                    | (u32::from(color.a) << 24)
             },
             PixelFormat::BlueGreenRedReserved8BitPerColor => {
-                (color.b as u32)
-                    | ((color.g as u32) << 8)
-                    | ((color.r as u32) << 16)
-                    | ((color.a as u32) << 24)
+                u32::from(color.b)
+                    | (u32::from(color.g) << 8)
+                    | (u32::from(color.r) << 16)
+                    | (u32::from(color.a) << 24)
             },
             PixelFormat::BitMask => {
                 let (r_shift, _) = info
@@ -375,16 +388,16 @@ impl GraphicsOutput {
                     .pixel_information
                     .channel_info(info.pixel_information.blue_mask);
 
-                ((color.r as u32) << r_shift)
-                    | ((color.g as u32) << g_shift)
-                    | ((color.b as u32) << b_shift)
+                (u32::from(color.r) << r_shift)
+                    | (u32::from(color.g) << g_shift)
+                    | (u32::from(color.b) << b_shift)
             },
             _ => 0,
         }
     }
 
     /// Decode pixel value to color
-    fn decode_pixel(&self, pixel: u32, info: &GraphicsModeInfo) -> Color32 {
+    fn decode_pixel(pixel: u32, info: &GraphicsModeInfo) -> Color32 {
         match info.pixel_format {
             PixelFormat::RedGreenBlueReserved8BitPerColor => Color32 {
                 r: ((pixel >> 16) & 0xFF) as u8,
@@ -515,7 +528,7 @@ impl GraphicsOutput {
         let end_x = (x + width).min(info.width());
         let end_y = (y + height).min(info.height());
 
-        let pixel = self.encode_pixel(color, &info);
+        let pixel = Self::encode_pixel(color, &info);
         let bpp = info.pixel_format.bytes_per_pixel();
         let stride = info.stride() as usize;
 
@@ -525,7 +538,7 @@ impl GraphicsOutput {
                 let offset = row_offset + px as usize * bpp;
                 if offset + 4 <= self.framebuffer_size {
                     unsafe {
-                        (self.framebuffer.add(offset) as *mut u32).write_volatile(pixel);
+                        self.framebuffer.add(offset).cast::<u32>().write_volatile(pixel);
                     }
                 }
             }
@@ -548,9 +561,13 @@ impl GraphicsOutput {
 /// 32-bit color (RGBA)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color32 {
+    /// Red channel
     pub r: u8,
+    /// Green channel
     pub g: u8,
+    /// Blue channel
     pub b: u8,
+    /// Alpha channel
     pub a: u8,
 }
 
@@ -596,7 +613,8 @@ impl Color32 {
     }
 
     /// Blend with another color
-    pub fn blend(&self, other: Color32, t: u8) -> Self {
+    #[must_use]
+    pub const fn blend(&self, other: Self, t: u8) -> Self {
         let inv_t = 255 - t;
         Self {
             r: ((self.r as u16 * inv_t as u16 + other.r as u16 * t as u16) / 255) as u8,
@@ -607,7 +625,8 @@ impl Color32 {
     }
 
     /// Alpha blend over another color
-    pub fn over(&self, background: Color32) -> Self {
+    #[must_use]
+    pub const fn over(&self, background: Self) -> Self {
         if self.a == 255 {
             return *self;
         }
@@ -627,26 +646,41 @@ impl Color32 {
     }
 
     /// Grayscale value
-    pub fn grayscale(&self) -> u8 {
+    #[must_use]
+    pub const fn grayscale(&self) -> u8 {
         // ITU-R BT.601 weights
         ((self.r as u16 * 299 + self.g as u16 * 587 + self.b as u16 * 114) / 1000) as u8
     }
 
-    // Standard colors
+    /// Black color constant
     pub const BLACK: Self = Self::rgb(0, 0, 0);
+    /// White color constant
     pub const WHITE: Self = Self::rgb(255, 255, 255);
+    /// Red color constant
     pub const RED: Self = Self::rgb(255, 0, 0);
+    /// Green color constant
     pub const GREEN: Self = Self::rgb(0, 255, 0);
+    /// Blue color constant
     pub const BLUE: Self = Self::rgb(0, 0, 255);
+    /// Cyan color constant
     pub const CYAN: Self = Self::rgb(0, 255, 255);
+    /// Magenta color constant
     pub const MAGENTA: Self = Self::rgb(255, 0, 255);
+    /// Yellow color constant
     pub const YELLOW: Self = Self::rgb(255, 255, 0);
+    /// Orange color constant
     pub const ORANGE: Self = Self::rgb(255, 165, 0);
+    /// Purple color constant
     pub const PURPLE: Self = Self::rgb(128, 0, 128);
+    /// Pink color constant
     pub const PINK: Self = Self::rgb(255, 192, 203);
+    /// Gray color constant
     pub const GRAY: Self = Self::rgb(128, 128, 128);
+    /// Light gray color constant
     pub const LIGHT_GRAY: Self = Self::rgb(192, 192, 192);
+    /// Dark gray color constant
     pub const DARK_GRAY: Self = Self::rgb(64, 64, 64);
+    /// Transparent color constant
     pub const TRANSPARENT: Self = Self::rgba(0, 0, 0, 0);
 }
 
@@ -666,15 +700,20 @@ impl fmt::Display for Color32 {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct BltPixel {
+    /// Blue channel
     pub blue: u8,
+    /// Green channel
     pub green: u8,
+    /// Red channel
     pub red: u8,
+    /// Reserved byte
     pub reserved: u8,
 }
 
 impl BltPixel {
     /// Create from color
-    pub fn from_color(color: Color32) -> Self {
+    #[must_use]
+    pub const fn from_color(color: Color32) -> Self {
         Self {
             red: color.r,
             green: color.g,
@@ -684,7 +723,8 @@ impl BltPixel {
     }
 
     /// Convert to color
-    pub fn to_color(&self) -> Color32 {
+    #[must_use]
+    pub const fn to_color(&self) -> Color32 {
         Color32::rgb(self.red, self.green, self.blue)
     }
 }
@@ -1119,8 +1159,8 @@ impl<'a> DrawingContext<'a> {
     }
 }
 
-/// Approximate sine (for no_std)
-fn sin_approx(x: f32) -> f32 {
+/// Approximate sine (for `no_std`)
+const fn sin_approx(x: f32) -> f32 {
     // Taylor series approximation
     let x = x % (2.0 * core::f32::consts::PI);
     let x3 = x * x * x;
@@ -1129,8 +1169,8 @@ fn sin_approx(x: f32) -> f32 {
     x - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0
 }
 
-/// Approximate cosine (for no_std)
-fn cos_approx(x: f32) -> f32 {
+/// Approximate cosine (for `no_std`)
+const fn cos_approx(x: f32) -> f32 {
     sin_approx(x + core::f32::consts::PI / 2.0)
 }
 
@@ -1141,9 +1181,13 @@ fn cos_approx(x: f32) -> f32 {
 /// Rectangle
 #[derive(Debug, Clone, Copy)]
 pub struct Rect {
+    /// X coordinate
     pub x: i32,
+    /// Y coordinate
     pub y: i32,
+    /// Width
     pub width: u32,
+    /// Height
     pub height: u32,
 }
 
@@ -1159,7 +1203,8 @@ impl Rect {
     }
 
     /// Create from corners
-    pub fn from_corners(x1: i32, y1: i32, x2: i32, y2: i32) -> Self {
+    #[must_use]
+    pub const fn from_corners(x1: i32, y1: i32, x2: i32, y2: i32) -> Self {
         let (x, width) = if x1 <= x2 {
             (x1, (x2 - x1) as u32)
         } else {
@@ -1181,22 +1226,26 @@ impl Rect {
     }
 
     /// Right edge
-    pub fn right(&self) -> i32 {
+    #[must_use]
+    pub const fn right(&self) -> i32 {
         self.x + self.width as i32
     }
 
     /// Bottom edge
-    pub fn bottom(&self) -> i32 {
+    #[must_use]
+    pub const fn bottom(&self) -> i32 {
         self.y + self.height as i32
     }
 
     /// Center X
-    pub fn center_x(&self) -> i32 {
+    #[must_use]
+    pub const fn center_x(&self) -> i32 {
         self.x + (self.width as i32) / 2
     }
 
     /// Center Y
-    pub fn center_y(&self) -> i32 {
+    #[must_use]
+    pub const fn center_y(&self) -> i32 {
         self.y + (self.height as i32) / 2
     }
 
@@ -1206,7 +1255,8 @@ impl Rect {
     }
 
     /// Check if rectangles intersect
-    pub fn intersects(&self, other: &Rect) -> bool {
+    #[must_use]
+    pub fn intersects(&self, other: &Self) -> bool {
         self.x < other.right()
             && self.right() > other.x
             && self.y < other.bottom()
@@ -1214,7 +1264,8 @@ impl Rect {
     }
 
     /// Get intersection
-    pub fn intersection(&self, other: &Rect) -> Option<Rect> {
+    #[must_use]
+    pub fn intersection(&self, other: &Self) -> Option<Self> {
         if !self.intersects(other) {
             return None;
         }
@@ -1224,22 +1275,24 @@ impl Rect {
         let right = self.right().min(other.right());
         let bottom = self.bottom().min(other.bottom());
 
-        Some(Rect::from_corners(x, y, right, bottom))
+        Some(Self::from_corners(x, y, right, bottom))
     }
 
     /// Get union (bounding box)
-    pub fn union(&self, other: &Rect) -> Rect {
+    #[must_use]
+    pub fn union(&self, other: &Self) -> Self {
         let x = self.x.min(other.x);
         let y = self.y.min(other.y);
         let right = self.right().max(other.right());
         let bottom = self.bottom().max(other.bottom());
 
-        Rect::from_corners(x, y, right, bottom)
+        Self::from_corners(x, y, right, bottom)
     }
 
     /// Inset rectangle
-    pub fn inset(&self, amount: i32) -> Rect {
-        Rect {
+    #[must_use]
+    pub const fn inset(&self, amount: i32) -> Self {
+        Self {
             x: self.x + amount,
             y: self.y + amount,
             width: self.width.saturating_sub((amount * 2) as u32),
@@ -1248,11 +1301,13 @@ impl Rect {
     }
 
     /// Offset rectangle
-    pub fn offset(&self, dx: i32, dy: i32) -> Rect {
-        Rect {
+    #[must_use]
+    pub const fn offset(&self, dx: i32, dy: i32) -> Self {
+        Self {
             x: self.x + dx,
             y: self.y + dy,
-            ..*self
+            width: self.width,
+            height: self.height,
         }
     }
 }
@@ -1260,30 +1315,40 @@ impl Rect {
 /// Point
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
+    /// X coordinate
     pub x: i32,
+    /// Y coordinate
     pub y: i32,
 }
 
 impl Point {
+    /// Create a new point
+    #[must_use]
     pub const fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
 
+    /// Zero point constant
     pub const ZERO: Self = Self::new(0, 0);
 }
 
 /// Size
 #[derive(Debug, Clone, Copy)]
 pub struct Size {
+    /// Width
     pub width: u32,
+    /// Height
     pub height: u32,
 }
 
 impl Size {
+    /// Create a new size
+    #[must_use]
     pub const fn new(width: u32, height: u32) -> Self {
         Self { width, height }
     }
 
+    /// Zero size constant
     pub const ZERO: Self = Self::new(0, 0);
 }
 
