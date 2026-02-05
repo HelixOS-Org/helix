@@ -4,6 +4,7 @@
 //! including lexical analysis, semantic modeling, invariant mining,
 //! control/data flow analysis, and program analysis.
 
+pub mod analysis;
 mod ast;
 mod controlflow;
 mod dataflow;
@@ -12,7 +13,6 @@ mod invariant;
 mod lexer;
 mod semantic;
 mod token;
-pub mod analysis;
 
 // Re-export token types
 // Re-export AST types
