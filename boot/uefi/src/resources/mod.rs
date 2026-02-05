@@ -130,10 +130,8 @@ impl Default for ResourceState {
 /// Resource ID type
 pub type ResourceId = u32;
 
-/// Resource ID namespace
+/// Resource ID namespace with standard resource IDs
 pub mod resource_ids {
-    //! Standard resource IDs
-
     // Fonts (0x1000 - 0x1FFF)
     pub const FONT_DEFAULT: u32 = 0x1000;
     pub const FONT_MONO: u32 = 0x1001;
