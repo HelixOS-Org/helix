@@ -345,7 +345,7 @@ impl Protocol for BlockDevice {
                 &mut protocol,
                 image,
                 Handle(core::ptr::null_mut()),
-                0x00000002,
+                0x0000_0002,
             )
         };
 
@@ -593,27 +593,27 @@ impl PartitionType {
 }
 
 // Well-known GPT partition type GUIDs
-const GPT_PARTITION_TYPE_EFI_SYSTEM: Guid = Guid::new(0xC12A7328, 0xF81F, 0x11D2, [
+const GPT_PARTITION_TYPE_EFI_SYSTEM: Guid = Guid::new(0xC12A_7328, 0xF81F, 0x11D2, [
     0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B,
 ]);
 
-const GPT_PARTITION_TYPE_BASIC_DATA: Guid = Guid::new(0xEBD0A0A2, 0xB9E5, 0x4433, [
+const GPT_PARTITION_TYPE_BASIC_DATA: Guid = Guid::new(0xEBD0_A0A2, 0xB9E5, 0x4433, [
     0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7,
 ]);
 
-const GPT_PARTITION_TYPE_LINUX_FILESYSTEM: Guid = Guid::new(0x0FC63DAF, 0x8483, 0x4772, [
+const GPT_PARTITION_TYPE_LINUX_FILESYSTEM: Guid = Guid::new(0x0FC6_3DAF, 0x8483, 0x4772, [
     0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4,
 ]);
 
-const GPT_PARTITION_TYPE_LINUX_SWAP: Guid = Guid::new(0x0657FD6D, 0xA4AB, 0x43C4, [
+const GPT_PARTITION_TYPE_LINUX_SWAP: Guid = Guid::new(0x0657_FD6D, 0xA4AB, 0x43C4, [
     0x84, 0xE5, 0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F,
 ]);
 
-const GPT_PARTITION_TYPE_LINUX_LVM: Guid = Guid::new(0xE6D6D379, 0xF507, 0x44C2, [
+const GPT_PARTITION_TYPE_LINUX_LVM: Guid = Guid::new(0xE6D6_D379, 0xF507, 0x44C2, [
     0xA2, 0x3C, 0x23, 0x8F, 0x2A, 0x3D, 0xF9, 0x28,
 ]);
 
-const GPT_PARTITION_TYPE_MICROSOFT_RESERVED: Guid = Guid::new(0xE3C9E316, 0x0B5C, 0x4DB8, [
+const GPT_PARTITION_TYPE_MICROSOFT_RESERVED: Guid = Guid::new(0xE3C9_E316, 0x0B5C, 0x4DB8, [
     0x81, 0x7D, 0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE,
 ]);
 
@@ -729,7 +729,7 @@ pub struct GptHeader {
 
 impl GptHeader {
     /// GPT signature
-    const SIGNATURE: u64 = 0x5452415020494645; // "EFI PART"
+    const SIGNATURE: u64 = 0x5452_4150_2049_4645; // "EFI PART"
 
     /// Parse GPT header from sector data
     pub fn parse(data: &[u8]) -> Result<Self> {
