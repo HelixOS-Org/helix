@@ -78,25 +78,25 @@ pub struct PixelBitmask {
 impl PixelBitmask {
     /// Standard RGB32 bitmask
     pub const RGB32: Self = Self {
-        red_mask: 0x000000FF,
-        green_mask: 0x0000FF00,
-        blue_mask: 0x00FF0000,
-        alpha_mask: 0xFF000000,
+        red_mask: 0x0000_00FF,
+        green_mask: 0x0000_FF00,
+        blue_mask: 0x00FF_0000,
+        alpha_mask: 0xFF00_0000,
     };
 
     /// Standard BGR32 bitmask
     pub const BGR32: Self = Self {
-        red_mask: 0x00FF0000,
-        green_mask: 0x0000FF00,
-        blue_mask: 0x000000FF,
-        alpha_mask: 0xFF000000,
+        red_mask: 0x00FF_0000,
+        green_mask: 0x0000_FF00,
+        blue_mask: 0x0000_00FF,
+        alpha_mask: 0xFF00_0000,
     };
 
     /// RGB565 bitmask
     pub const RGB565: Self = Self {
-        red_mask: 0x0000F800,
-        green_mask: 0x000007E0,
-        blue_mask: 0x0000001F,
+        red_mask: 0x0000_F800,
+        green_mask: 0x0000_07E0,
+        blue_mask: 0x0000_001F,
         alpha_mask: 0,
     };
 
@@ -301,10 +301,10 @@ impl<'a> FramebufferWriter<'a> {
     }
 
     /// Write pixel at coordinates
-    pub fn write_pixel(&mut self, x: u32, y: u32, r: u8, g: u8, b: u8) -> Result<()> {
-        let offset = self.info.pixel_offset(x, y).ok_or(Error::OutOfBounds)?;
+    pub fn write_pixel(&mut self, pos_x: u32, pos_y: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+        let offset = self.info.pixel_offset(pos_x, pos_y).ok_or(Error::OutOfBounds)?;
 
-        let pixel = self.info.encode_pixel(r, g, b);
+        let pixel = self.info.encode_pixel(red, green, blue);
         let offset = offset as usize;
         let bpp = self.info.bytes_per_pixel() as usize;
 
@@ -319,15 +319,15 @@ impl<'a> FramebufferWriter<'a> {
     }
 
     /// Fill rectangle
-    pub fn fill_rect(&mut self, x: u32, y: u32, w: u32, h: u32, r: u8, g: u8, b: u8) -> Result<()> {
-        let pixel = self.info.encode_pixel(r, g, b);
+    pub fn fill_rect(&mut self, pos_x: u32, pos_y: u32, width: u32, height: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+        let pixel = self.info.encode_pixel(red, green, blue);
         let bpp = self.info.bytes_per_pixel() as usize;
         let bytes = pixel.to_le_bytes();
 
-        for dy in 0..h {
-            for dx in 0..w {
-                let px = x + dx;
-                let py = y + dy;
+        for dy in 0..height {
+            for dx in 0..width {
+                let px = pos_x + dx;
+                let py = pos_y + dy;
 
                 if let Some(offset) = self.info.pixel_offset(px, py) {
                     let offset = offset as usize;
@@ -347,21 +347,21 @@ impl<'a> FramebufferWriter<'a> {
     }
 
     /// Draw horizontal line
-    pub fn draw_hline(&mut self, x: u32, y: u32, width: u32, r: u8, g: u8, b: u8) -> Result<()> {
-        self.fill_rect(x, y, width, 1, r, g, b)
+    pub fn draw_hline(&mut self, pos_x: u32, pos_y: u32, line_width: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+        self.fill_rect(pos_x, pos_y, line_width, 1, red, green, blue)
     }
 
     /// Draw vertical line
-    pub fn draw_vline(&mut self, x: u32, y: u32, height: u32, r: u8, g: u8, b: u8) -> Result<()> {
-        self.fill_rect(x, y, 1, height, r, g, b)
+    pub fn draw_vline(&mut self, pos_x: u32, pos_y: u32, line_height: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+        self.fill_rect(pos_x, pos_y, 1, line_height, red, green, blue)
     }
 
     /// Draw rectangle outline
-    pub fn draw_rect(&mut self, x: u32, y: u32, w: u32, h: u32, r: u8, g: u8, b: u8) -> Result<()> {
-        self.draw_hline(x, y, w, r, g, b)?;
-        self.draw_hline(x, y + h.saturating_sub(1), w, r, g, b)?;
-        self.draw_vline(x, y, h, r, g, b)?;
-        self.draw_vline(x + w.saturating_sub(1), y, h, r, g, b)?;
+    pub fn draw_rect(&mut self, pos_x: u32, pos_y: u32, width: u32, height: u32, red: u8, green: u8, blue: u8) -> Result<()> {
+        self.draw_hline(pos_x, pos_y, width, red, green, blue)?;
+        self.draw_hline(pos_x, pos_y + height.saturating_sub(1), width, red, green, blue)?;
+        self.draw_vline(pos_x, pos_y, height, red, green, blue)?;
+        self.draw_vline(pos_x + width.saturating_sub(1), pos_y, height, red, green, blue)?;
         Ok(())
     }
 }
