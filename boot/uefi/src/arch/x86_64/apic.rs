@@ -525,7 +525,7 @@ pub struct ApicVersion {
 // =============================================================================
 
 /// I/O APIC register select
-const IOREGSEL: u32 = 0x00;
+const _IOREGSEL: u32 = 0x00;
 /// I/O APIC register data
 const IOWIN: u32 = 0x10;
 
