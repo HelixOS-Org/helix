@@ -140,7 +140,10 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
 ///
 /// The caller must ensure the MSR address is valid and the value is appropriate.
 #[inline]
-#[expect(clippy::cast_possible_truncation, reason = "intentional truncation to split 64-bit value into two 32-bit halves")]
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "intentional truncation to split 64-bit value into two 32-bit halves"
+)]
 pub unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;
