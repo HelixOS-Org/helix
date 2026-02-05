@@ -523,12 +523,14 @@ pub struct Elf64Rel {
 
 impl Elf64Rel {
     /// Get relocation type
-    pub fn reloc_type(&self) -> u32 {
-        (self.r_info & 0xFFFFFFFF) as u32
+    #[must_use]
+    pub const fn reloc_type(&self) -> u32 {
+        (self.r_info & 0xFFFF_FFFF) as u32
     }
 
     /// Get symbol index
-    pub fn symbol_index(&self) -> u32 {
+    #[must_use]
+    pub const fn symbol_index(&self) -> u32 {
         (self.r_info >> 32) as u32
     }
 }
@@ -578,10 +580,10 @@ pub mod dt {
     pub const DT_FLAGS: i64 = 30;
     pub const DT_PREINIT_ARRAY: i64 = 32;
     pub const DT_PREINIT_ARRAYSZ: i64 = 33;
-    pub const DT_GNU_HASH: i64 = 0x6ffffef5;
-    pub const DT_RELACOUNT: i64 = 0x6ffffff9;
-    pub const DT_RELCOUNT: i64 = 0x6ffffffa;
-    pub const DT_FLAGS_1: i64 = 0x6ffffffb;
+    pub const DT_GNU_HASH: i64 = 0x6fff_fef5;
+    pub const DT_RELACOUNT: i64 = 0x6fff_fff9;
+    pub const DT_RELCOUNT: i64 = 0x6fff_fffa;
+    pub const DT_FLAGS_1: i64 = 0x6fff_fffb;
 }
 
 // =============================================================================
@@ -727,8 +729,7 @@ impl ElfLoader {
         let end = self.section_strings[start..]
             .iter()
             .position(|&b| b == 0)
-            .map(|p| start + p)
-            .unwrap_or(self.section_strings.len());
+            .map_or(self.section_strings.len(), |p| start + p);
 
         String::from_utf8_lossy(&self.section_strings[start..end]).into_owned()
     }
@@ -738,14 +739,12 @@ impl ElfLoader {
         self.symbols.clear();
 
         // Find symbol table section
-        let symtab = self
+        let Some(symtab) = self
             .section_headers
             .iter()
-            .find(|s| s.sh_type == sht::SHT_SYMTAB);
-
-        let symtab = match symtab {
-            Some(s) => s,
-            None => return Ok(()),
+            .find(|s| s.sh_type == sht::SHT_SYMTAB)
+        else {
+            return Ok(());
         };
 
         // Find associated string table
@@ -775,7 +774,8 @@ impl ElfLoader {
                 break;
             }
 
-            let sym: Elf64Symbol = unsafe { *(data[offset..].as_ptr() as *const Elf64Symbol) };
+            // SAFETY: We've validated the data length above
+            let sym: Elf64Symbol = unsafe { *data[offset..].as_ptr().cast::<Elf64Symbol>() };
 
             let name = self.get_string(sym.st_name);
 
@@ -802,8 +802,7 @@ impl ElfLoader {
         let end = self.string_table[start..]
             .iter()
             .position(|&b| b == 0)
-            .map(|p| start + p)
-            .unwrap_or(self.string_table.len());
+            .map_or(self.string_table.len(), |p| start + p);
 
         String::from_utf8_lossy(&self.string_table[start..end]).into_owned()
     }
