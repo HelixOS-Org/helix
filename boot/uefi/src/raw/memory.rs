@@ -55,8 +55,12 @@ pub enum MemoryType {
 
 impl MemoryType {
     /// Alias for `ReservedMemory` (backwards compatibility)
+    #[doc(hidden)]
+    #[deprecated(note = "Use MemoryType::ReservedMemory instead")]
     pub const RESERVED_MEMORY_TYPE: Self = Self::ReservedMemory;
     /// Alias for `AcpiNvsMemory` (backwards compatibility)
+    #[doc(hidden)]
+    #[deprecated(note = "Use MemoryType::AcpiNvsMemory instead")]
     pub const ACPI_MEMORY_NVS: Self = Self::AcpiNvsMemory;
 
     /// Check if this memory type is usable after `ExitBootServices`
