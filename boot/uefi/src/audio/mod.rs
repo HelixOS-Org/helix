@@ -546,7 +546,7 @@ impl ToneGenerator {
         Self {
             sample_rate,
             phase: 0.0,
-            noise_state: 0xDEADBEEF,
+            noise_state: 0xDEAD_BEEF,
         }
     }
 
