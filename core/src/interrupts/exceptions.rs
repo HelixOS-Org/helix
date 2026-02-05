@@ -2,7 +2,6 @@
 //!
 //! CPU exception handling framework.
 
-use alloc::boxed::Box;
 use alloc::sync::Arc;
 
 use helix_hal::interrupts::{Exception, PageFaultInfo};
