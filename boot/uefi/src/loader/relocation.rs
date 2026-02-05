@@ -38,6 +38,7 @@ use crate::handoff::BootInfo;
 
 /// Configuration for kernel relocation
 #[derive(Debug, Clone)]
+#[must_use]
 pub struct RelocationConfig {
     /// Enable KASLR randomization
     pub kaslr_enabled: bool,
@@ -67,7 +68,10 @@ impl Default for RelocationConfig {
 }
 
 impl RelocationConfig {
-    /// Create config with KASLR disabled
+    /// Create config with KASLR disabled.
+    ///
+    /// Returns a `RelocationConfig` with `kaslr_enabled` set to `false`.
+    #[must_use]
     pub fn no_kaslr() -> Self {
         Self {
             kaslr_enabled: false,
@@ -75,7 +79,10 @@ impl RelocationConfig {
         }
     }
 
-    /// Create config from kernel command line
+    /// Create config from kernel command line.
+    ///
+    /// Parses command line options like `nokaslr` and `kaslr_strict`.
+    #[must_use]
     pub fn from_cmdline(cmdline: &str) -> Self {
         let mut config = Self::default();
 
@@ -97,6 +104,7 @@ impl RelocationConfig {
 
 /// Statistics about the relocation process
 #[derive(Debug, Clone, Default)]
+#[must_use]
 pub struct RelocationStats {
     /// Total relocation entries processed
     pub total_entries: usize,
@@ -272,14 +280,19 @@ mod reloc_types {
 #[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct Elf64Rela {
+    /// Location to apply the relocation.
     pub r_offset: u64,
+    /// Symbol index and relocation type.
     pub r_info: u64,
+    /// Addend for the relocation.
     pub r_addend: i64,
 }
 
 impl Elf64Rela {
+    /// Returns the relocation type from the `r_info` field.
+    #[must_use]
     pub fn r_type(&self) -> u32 {
-        (self.r_info & 0xFFFFFFFF) as u32
+        (self.r_info & 0xFFFF_FFFF) as u32
     }
 }
 
@@ -376,37 +389,66 @@ pub unsafe fn apply_relocations(
 // ELF PARSING HELPERS
 // ============================================================================
 
-/// ELF64 header
+/// ELF64 header structure.
+///
+/// Contains the main ELF file header fields used for parsing.
 #[repr(C, packed)]
 pub struct Elf64Header {
+    /// ELF identification bytes (magic number and class).
     pub e_ident: [u8; 16],
+    /// Object file type.
+    /// Object file type.
     pub e_type: u16,
+    /// Target architecture.
     pub e_machine: u16,
+    /// ELF version.
     pub e_version: u32,
+    /// Entry point virtual address.
     pub e_entry: u64,
+    /// Program header table offset.
     pub e_phoff: u64,
+    /// Section header table offset.
     pub e_shoff: u64,
+    /// Processor-specific flags.
     pub e_flags: u32,
+    /// ELF header size.
     pub e_ehsize: u16,
+    /// Program header entry size.
     pub e_phentsize: u16,
+    /// Number of program headers.
     pub e_phnum: u16,
+    /// Section header entry size.
     pub e_shentsize: u16,
+    /// Number of section headers.
     pub e_shnum: u16,
+    /// Section name string table index.
     pub e_shstrndx: u16,
 }
 
-/// ELF64 section header
+/// ELF64 section header structure.
+///
+/// Contains section metadata for locating relocation tables.
 #[repr(C, packed)]
 pub struct Elf64SectionHeader {
+    /// Section name (index into string table).
     pub sh_name: u32,
+    /// Section type.
     pub sh_type: u32,
+    /// Section flags.
     pub sh_flags: u64,
+    /// Virtual address in memory.
     pub sh_addr: u64,
+    /// Offset in file.
     pub sh_offset: u64,
+    /// Size of section.
     pub sh_size: u64,
+    /// Link to another section.
     pub sh_link: u32,
+    /// Additional section info.
     pub sh_info: u32,
+    /// Section alignment.
     pub sh_addralign: u64,
+    /// Entry size if section holds table.
     pub sh_entsize: u64,
 }
 
