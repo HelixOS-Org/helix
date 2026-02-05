@@ -6,6 +6,8 @@
 //! Part of Year 2 COGNITION - Q4: Continuous Learning Engine
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
+#![allow(clippy::for_kv_map)]
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
@@ -350,10 +352,7 @@ impl GeneralizationEngine {
         };
 
         self.patterns.insert(id, pattern);
-        self.by_type
-            .entry(pattern_type)
-            .or_insert_with(Vec::new)
-            .push(id);
+        self.by_type.entry(pattern_type).or_default().push(id);
         self.stats.patterns_created += 1;
 
         Some(id)
@@ -367,7 +366,7 @@ impl GeneralizationEngine {
         let first = examples[0];
         let mut common = Vec::new();
 
-        for (name, value) in &first.features {
+        for (name, _value) in &first.features {
             // Check if all examples have this feature
             let all_have = examples.iter().all(|e| e.has(name));
 
