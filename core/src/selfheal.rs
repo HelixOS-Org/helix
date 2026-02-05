@@ -40,11 +40,11 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use spin::RwLock;
 
-use crate::hotreload::{HotReloadError, HotReloadableModule, ModuleCategory, SlotId};
+use crate::hotreload::{HotReloadableModule, SlotId};
 
 /// Health status of a module
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -349,7 +349,7 @@ impl SelfHealingManager {
         ));
 
         // Get factory and saved state
-        let (factory, saved_state) = {
+        let (factory, _saved_state) = {
             let modules = self.modules.read();
             let module = modules.get(&slot_id).unwrap();
             (module.factory.unwrap(), module.last_known_state.clone())
