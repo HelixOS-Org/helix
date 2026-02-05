@@ -7,15 +7,7 @@ pub mod gateway;
 pub mod registry;
 pub mod validation;
 
-use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::sync::Arc;
-use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
-
-use spin::RwLock;
-
-use crate::{KernelError, KernelResult};
+use crate::KernelError;
 
 /// System call number type
 pub type SyscallNumber = u64;
