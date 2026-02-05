@@ -630,7 +630,7 @@ impl UriDevicePath {
             header: DevicePathNodeHeader::new(
                 DevicePathType::Messaging as u8,
                 MessagingSubtype::Uri as u8,
-                (4 + uri_len) as u16,
+                u16::try_from(4 + uri_len).unwrap_or(252),
             ),
             uri: uri_buf,
             uri_len,
@@ -646,12 +646,19 @@ impl UriDevicePath {
 /// Hard drive device path node
 #[repr(C, packed)]
 pub struct HardDriveDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// Partition number (1-based)
     pub partition_number: u32,
+    /// Starting LBA of the partition
     pub partition_start: u64,
+    /// Size of the partition in blocks
     pub partition_size: u64,
+    /// Partition signature (GUID or MBR signature)
     pub partition_signature: [u8; 16],
+    /// Partition format (MBR or GPT)
     pub partition_format: u8,
+    /// Signature type (None, MBR, or GUID)
     pub signature_type: u8,
 }
 
@@ -728,8 +735,11 @@ impl HardDriveDevicePath {
 
 /// File path device path node
 pub struct FilePathDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// File path in UCS-2 encoding
     pub path: [u16; 128],
+    /// Length of the path in characters (excluding null terminator)
     pub path_len: usize,
 }
 
@@ -753,7 +763,7 @@ impl FilePathDevicePath {
             header: DevicePathNodeHeader::new(
                 DevicePathType::Media as u8,
                 MediaSubtype::FilePath as u8,
-                (4 + (len + 1) * 2) as u16,
+                u16::try_from(4 + (len + 1) * 2).unwrap_or(260),
             ),
             path: path_buf,
             path_len: len,
@@ -767,7 +777,7 @@ impl FilePathDevicePath {
             if pos >= buffer.len() {
                 break;
             }
-            buffer[pos] = self.path[i] as u8;
+            buffer[pos] = u8::try_from(self.path[i]).unwrap_or(b'?');
             pos += 1;
         }
         pos
@@ -777,10 +787,15 @@ impl FilePathDevicePath {
 /// RAM disk device path node
 #[repr(C, packed)]
 pub struct RamDiskDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// Starting address of the RAM disk
     pub starting_address: u64,
+    /// Ending address of the RAM disk
     pub ending_address: u64,
+    /// RAM disk type GUID
     pub disk_type: [u8; 16],
+    /// RAM disk instance number
     pub disk_instance: u16,
 }
 
@@ -993,6 +1008,7 @@ impl DevicePathBuilder {
     }
 
     /// Add PCI node
+    #[must_use]
     pub fn pci(mut self, device: u8, function: u8) -> Self {
         let node = DevicePathNode {
             header: DevicePathNodeHeader::new(
@@ -1013,6 +1029,7 @@ impl DevicePathBuilder {
     }
 
     /// Add ACPI node
+    #[must_use]
     pub fn acpi(mut self, hid: u32, uid: u32) -> Self {
         let node = DevicePathNode {
             header: DevicePathNodeHeader::new(
@@ -1033,6 +1050,7 @@ impl DevicePathBuilder {
     }
 
     /// Add USB node
+    #[must_use]
     pub fn usb(mut self, parent_port: u8, interface: u8) -> Self {
         let node = DevicePathNode {
             header: DevicePathNodeHeader::new(
@@ -1053,6 +1071,7 @@ impl DevicePathBuilder {
     }
 
     /// Add SATA node
+    #[must_use]
     pub fn sata(mut self, hba_port: u16, port_multiplier: u16, lun: u16) -> Self {
         let node = DevicePathNode {
             header: DevicePathNodeHeader::new(
@@ -1073,7 +1092,8 @@ impl DevicePathBuilder {
         self
     }
 
-    /// Add NVMe node
+    /// Add `NVMe` node
+    #[must_use]
     pub fn nvme(mut self, namespace_id: u32, eui64: [u8; 8]) -> Self {
         let node = DevicePathNode {
             header: DevicePathNodeHeader::new(
@@ -1094,6 +1114,7 @@ impl DevicePathBuilder {
     }
 
     /// Add hard drive partition node (GPT)
+    #[must_use]
     pub fn gpt_partition(
         mut self,
         partition_number: u32,
@@ -1124,6 +1145,7 @@ impl DevicePathBuilder {
     }
 
     /// Add file path node
+    #[must_use]
     pub fn file_path(mut self, path: &str) -> Self {
         let mut data = [0u8; 252];
         let mut pos = 0;
@@ -1146,7 +1168,7 @@ impl DevicePathBuilder {
             header: DevicePathNodeHeader::new(
                 DevicePathType::Media as u8,
                 MediaSubtype::FilePath as u8,
-                (4 + pos) as u16,
+                u16::try_from(4 + pos).unwrap_or(256),
             ),
             data,
             data_len: pos,
@@ -1156,6 +1178,7 @@ impl DevicePathBuilder {
     }
 
     /// Add URI node
+    #[must_use]
     pub fn uri(mut self, uri: &str) -> Self {
         let uri_bytes = uri.as_bytes();
         let uri_len = uri_bytes.len().min(248);
@@ -1167,7 +1190,7 @@ impl DevicePathBuilder {
             header: DevicePathNodeHeader::new(
                 DevicePathType::Messaging as u8,
                 MessagingSubtype::Uri as u8,
-                (4 + uri_len) as u16,
+                u16::try_from(4 + uri_len).unwrap_or(252),
             ),
             data,
             data_len: uri_len,
@@ -1275,8 +1298,8 @@ impl DevicePathToText {
                     if c == 0 {
                         break;
                     }
-                    if c < 128 {
-                        buffer[pos] = c as u8;
+                    if let Ok(byte) = u8::try_from(c) {
+                        buffer[pos] = byte;
                         pos += 1;
                     }
                     i += 2;
@@ -1360,7 +1383,6 @@ impl TextToDevicePath {
         let paren = text.find('(')?;
         let name = &text[..paren];
         let end = text.rfind(')')?;
-        let _args = &text[paren + 1..end];
 
         match name {
             "Pci" => {
