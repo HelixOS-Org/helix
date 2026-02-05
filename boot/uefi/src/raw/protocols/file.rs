@@ -4,19 +4,19 @@
 
 use core::fmt;
 
-use crate::raw::types::*;
+use crate::raw::types::{Boolean, Char16, Event, Guid, Status, Time, guids};
 
 // =============================================================================
 // COMPATIBILITY GUIDS
 // =============================================================================
 
-/// EFI_FILE_INFO_GUID (compatibility alias)
+/// `EFI_FILE_INFO_GUID` (compatibility alias)
 pub const EFI_FILE_INFO_GUID: Guid = guids::FILE_INFO;
 
-/// EFI_FILE_SYSTEM_INFO_GUID (compatibility alias)
+/// `EFI_FILE_SYSTEM_INFO_GUID` (compatibility alias)
 pub const EFI_FILE_SYSTEM_INFO_GUID: Guid = guids::FILE_SYSTEM_INFO;
 
-/// SIMPLE_FILE_SYSTEM_PROTOCOL_GUID (compatibility alias)
+/// `SIMPLE_FILE_SYSTEM_PROTOCOL_GUID` (compatibility alias)
 pub const SIMPLE_FILE_SYSTEM_PROTOCOL_GUID: Guid = guids::SIMPLE_FILE_SYSTEM_PROTOCOL;
 
 // =============================================================================
@@ -25,6 +25,7 @@ pub const SIMPLE_FILE_SYSTEM_PROTOCOL_GUID: Guid = guids::SIMPLE_FILE_SYSTEM_PRO
 
 /// Simple File System Protocol
 #[repr(C)]
+#[derive(Debug)]
 pub struct EfiSimpleFileSystemProtocol {
     /// Revision of the protocol
     pub revision: u64,
@@ -39,7 +40,7 @@ impl EfiSimpleFileSystemProtocol {
     pub const GUID: Guid = guids::SIMPLE_FILE_SYSTEM_PROTOCOL;
 
     /// Protocol revision 1.0
-    pub const REVISION_1: u64 = 0x00010000;
+    pub const REVISION_1: u64 = 0x0001_0000;
 
     /// Open the root directory
     ///
@@ -52,20 +53,13 @@ impl EfiSimpleFileSystemProtocol {
     }
 }
 
-impl fmt::Debug for EfiSimpleFileSystemProtocol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiSimpleFileSystemProtocol")
-            .field("revision", &self.revision)
-            .finish()
-    }
-}
-
 // =============================================================================
 // FILE PROTOCOL
 // =============================================================================
 
 /// File Protocol
 #[repr(C)]
+#[derive(Debug)]
 pub struct EfiFileProtocol {
     /// Revision of the protocol
     pub revision: u64,
@@ -272,9 +266,7 @@ impl EfiFileProtocol {
         let mut size = 0;
         let status = (self.get_info)(self, info_type, &mut size, core::ptr::null_mut());
 
-        if status == Status::BUFFER_TOO_SMALL {
-            Ok(size)
-        } else if status.is_success() {
+        if status == Status::BUFFER_TOO_SMALL || status.is_success() {
             Ok(size)
         } else {
             Err(status)
@@ -288,14 +280,6 @@ impl EfiFileProtocol {
     pub unsafe fn flush(&mut self) -> Result<(), Status> {
         let status = (self.flush)(self);
         status.to_status_result()
-    }
-}
-
-impl fmt::Debug for EfiFileProtocol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("EfiFileProtocol")
-            .field("revision", &self.revision)
-            .finish()
     }
 }
 
@@ -331,6 +315,7 @@ impl FileMode {
     pub const CREATE_READ_WRITE: Self = Self(Self::READ.0 | Self::WRITE.0 | Self::CREATE.0);
 
     /// Combine modes
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
@@ -403,6 +388,7 @@ impl FileAttribute {
     }
 
     /// Combine attributes
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
@@ -453,9 +439,10 @@ impl EfiFileInfo {
     /// The caller must ensure the structure is valid and properly sized.
     pub unsafe fn file_name(&self) -> &[Char16] {
         let name_offset = core::mem::offset_of!(Self, file_name);
-        let name_len = (self.size as usize - name_offset) / 2;
+        let size = usize::try_from(self.size).unwrap_or(0);
+        let name_len = size.saturating_sub(name_offset) / 2;
 
-        let ptr = &self.file_name[0] as *const Char16;
+        let ptr = core::ptr::addr_of!(self.file_name[0]);
         let slice = core::slice::from_raw_parts(ptr, name_len);
 
         // Find null terminator
@@ -482,7 +469,7 @@ impl fmt::Debug for EfiFileInfo {
             .field("file_size", &self.file_size)
             .field("physical_size", &self.physical_size)
             .field("attribute", &self.attribute)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -514,9 +501,10 @@ impl EfiFileSystemInfo {
     /// The caller must ensure the structure is valid and properly sized.
     pub unsafe fn volume_label(&self) -> &[Char16] {
         let label_offset = core::mem::offset_of!(Self, volume_label);
-        let label_len = (self.size as usize - label_offset) / 2;
+        let size = usize::try_from(self.size).unwrap_or(0);
+        let label_len = size.saturating_sub(label_offset) / 2;
 
-        let ptr = &self.volume_label[0] as *const Char16;
+        let ptr = core::ptr::addr_of!(self.volume_label[0]);
         let slice = core::slice::from_raw_parts(ptr, label_len);
 
         // Find null terminator
@@ -539,7 +527,7 @@ impl fmt::Debug for EfiFileSystemInfo {
             .field("volume_size", &self.volume_size)
             .field("free_space", &self.free_space)
             .field("block_size", &self.block_size)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
