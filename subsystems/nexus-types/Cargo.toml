@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/helix-os/helix"
 keywords = ["kernel", "os", "types", "cognitive", "ai"]
 categories = ["no-std", "data-structures"]
+readme.workspace = true
 
 [lib]
 name = "helix_nexus_types"
