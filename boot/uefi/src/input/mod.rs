@@ -589,6 +589,7 @@ pub struct KeyModifiers {
 
 impl KeyModifiers {
     /// Create new empty modifiers
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             shift: false,
@@ -602,16 +603,19 @@ impl KeyModifiers {
     }
 
     /// Check if any modifier is pressed
+    #[must_use]
     pub const fn any(&self) -> bool {
         self.shift || self.control || self.alt || self.logo
     }
 
     /// Check if Ctrl+Alt combination
+    #[must_use]
     pub const fn ctrl_alt(&self) -> bool {
         self.control && self.alt
     }
 
     /// Check if Ctrl+Shift combination
+    #[must_use]
     pub const fn ctrl_shift(&self) -> bool {
         self.control && self.shift
     }
@@ -645,6 +649,7 @@ pub struct KeyEvent {
 
 impl KeyEvent {
     /// Create new key event
+    #[must_use]
     pub const fn new(scancode: u16, unicode: u16) -> Self {
         Self {
             scancode,
@@ -656,6 +661,7 @@ impl KeyEvent {
     }
 
     /// Create press event
+    #[must_use]
     pub const fn press(scancode: u16, unicode: u16, modifiers: KeyModifiers) -> Self {
         Self {
             scancode,
@@ -667,16 +673,19 @@ impl KeyEvent {
     }
 
     /// Check if this is a printable character
+    #[must_use]
     pub const fn is_printable(&self) -> bool {
         self.unicode >= 0x20 && self.unicode < 0x7F
     }
 
     /// Check if this is a function key
+    #[must_use]
     pub const fn is_function_key(&self) -> bool {
         self.scancode >= scancode::F1 && self.scancode <= scancode::F24
     }
 
     /// Check if this is a navigation key
+    #[must_use]
     pub const fn is_navigation_key(&self) -> bool {
         matches!(
             self.scancode,
@@ -692,26 +701,31 @@ impl KeyEvent {
     }
 
     /// Check if Enter key
+    #[must_use]
     pub const fn is_enter(&self) -> bool {
         self.unicode == 0x0D || self.unicode == 0x0A
     }
 
     /// Check if Escape key
+    #[must_use]
     pub const fn is_escape(&self) -> bool {
         self.scancode == scancode::ESCAPE
     }
 
     /// Check if Backspace key
+    #[must_use]
     pub const fn is_backspace(&self) -> bool {
         self.unicode == 0x08
     }
 
     /// Check if Tab key
+    #[must_use]
     pub const fn is_tab(&self) -> bool {
         self.unicode == 0x09
     }
 
     /// Get character as ASCII
+    #[must_use]
     pub const fn as_char(&self) -> Option<char> {
         if self.unicode > 0 && self.unicode < 0x80 {
             Some(self.unicode as u8 as char)
@@ -751,17 +765,15 @@ pub enum BootMenuKey {
 impl From<&KeyEvent> for BootMenuKey {
     fn from(key: &KeyEvent) -> Self {
         match key.scancode {
-            scancode::UP => BootMenuKey::Up,
-            scancode::DOWN => BootMenuKey::Down,
-            scancode::ESCAPE => BootMenuKey::Exit,
-            scancode::F1 => BootMenuKey::Setup,
-            scancode::F2 => BootMenuKey::BootDevice,
-            scancode::F10 => BootMenuKey::Setup,
-            scancode::F11 => BootMenuKey::BootDevice,
-            scancode::F12 => BootMenuKey::NetworkBoot,
-            scancode::RECOVERY => BootMenuKey::Recovery,
-            _ if key.is_enter() => BootMenuKey::Select,
-            _ => BootMenuKey::Unknown,
+            scancode::UP => Self::Up,
+            scancode::DOWN => Self::Down,
+            scancode::ESCAPE => Self::Exit,
+            scancode::F1 | scancode::F10 => Self::Setup,
+            scancode::F2 | scancode::F11 => Self::BootDevice,
+            scancode::F12 => Self::NetworkBoot,
+            scancode::RECOVERY => Self::Recovery,
+            _ if key.is_enter() => Self::Select,
+            _ => Self::Unknown,
         }
     }
 }
@@ -787,6 +799,7 @@ pub struct MouseButtons {
 
 impl MouseButtons {
     /// Create new empty state
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             left: false,
@@ -798,11 +811,13 @@ impl MouseButtons {
     }
 
     /// Check if any button is pressed
+    #[must_use]
     pub const fn any(&self) -> bool {
         self.left || self.right || self.middle || self.button4 || self.button5
     }
 
     /// Create from button mask
+    #[must_use]
     pub const fn from_mask(mask: u8) -> Self {
         Self {
             left: (mask & 0x01) != 0,
@@ -814,6 +829,7 @@ impl MouseButtons {
     }
 
     /// Convert to button mask
+    #[must_use]
     pub const fn to_mask(&self) -> u8 {
         let mut mask = 0u8;
         if self.left {
@@ -871,6 +887,7 @@ pub struct MouseEvent {
 
 impl MouseEvent {
     /// Create new relative move event
+    #[must_use]
     pub const fn relative_move(dx: i32, dy: i32, buttons: MouseButtons) -> Self {
         Self {
             x: dx,
@@ -885,6 +902,7 @@ impl MouseEvent {
     }
 
     /// Create new absolute position event
+    #[must_use]
     pub const fn absolute_move(x: i32, y: i32, buttons: MouseButtons) -> Self {
         Self {
             x,
@@ -899,6 +917,7 @@ impl MouseEvent {
     }
 
     /// Create scroll event
+    #[must_use]
     pub const fn scroll(scroll_y: i16, scroll_x: i16) -> Self {
         Self {
             x: 0,
