@@ -19,9 +19,13 @@
 /// RGBA color
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Color {
+    /// Red component (0-255)
     pub r: u8,
+    /// Green component (0-255)
     pub g: u8,
+    /// Blue component (0-255)
     pub b: u8,
+    /// Alpha component (0-255, 255 = fully opaque)
     pub a: u8,
 }
 
@@ -67,35 +71,38 @@ impl Color {
     }
 
     /// Blend with another color
-    pub fn blend(&self, other: Color, alpha: u8) -> Color {
-        let a = alpha as u16;
+    #[must_use]
+    pub fn blend(&self, other: Self, alpha: u8) -> Self {
+        let a = u16::from(alpha);
         let inv_a = 255 - a;
-        Color {
-            r: ((self.r as u16 * inv_a + other.r as u16 * a) / 255) as u8,
-            g: ((self.g as u16 * inv_a + other.g as u16 * a) / 255) as u8,
-            b: ((self.b as u16 * inv_a + other.b as u16 * a) / 255) as u8,
-            a: ((self.a as u16 * inv_a + other.a as u16 * a) / 255) as u8,
+        Self {
+            r: ((u16::from(self.r) * inv_a + u16::from(other.r) * a) / 255) as u8,
+            g: ((u16::from(self.g) * inv_a + u16::from(other.g) * a) / 255) as u8,
+            b: ((u16::from(self.b) * inv_a + u16::from(other.b) * a) / 255) as u8,
+            a: ((u16::from(self.a) * inv_a + u16::from(other.a) * a) / 255) as u8,
         }
     }
 
     /// Darken by percentage (0-100)
-    pub fn darken(&self, percent: u8) -> Color {
-        let factor = (100 - percent.min(100)) as u16;
-        Color {
-            r: ((self.r as u16 * factor) / 100) as u8,
-            g: ((self.g as u16 * factor) / 100) as u8,
-            b: ((self.b as u16 * factor) / 100) as u8,
+    #[must_use]
+    pub fn darken(&self, percent: u8) -> Self {
+        let factor = u16::from(100 - percent.min(100));
+        Self {
+            r: ((u16::from(self.r) * factor) / 100) as u8,
+            g: ((u16::from(self.g) * factor) / 100) as u8,
+            b: ((u16::from(self.b) * factor) / 100) as u8,
             a: self.a,
         }
     }
 
     /// Lighten by percentage (0-100)
-    pub fn lighten(&self, percent: u8) -> Color {
-        let factor = percent.min(100) as u16;
-        Color {
-            r: (self.r as u16 + ((255 - self.r as u16) * factor) / 100) as u8,
-            g: (self.g as u16 + ((255 - self.g as u16) * factor) / 100) as u8,
-            b: (self.b as u16 + ((255 - self.b as u16) * factor) / 100) as u8,
+    #[must_use]
+    pub fn lighten(&self, percent: u8) -> Self {
+        let factor = u16::from(percent.min(100));
+        Self {
+            r: (u16::from(self.r) + ((255 - u16::from(self.r)) * factor) / 100) as u8,
+            g: (u16::from(self.g) + ((255 - u16::from(self.g)) * factor) / 100) as u8,
+            b: (u16::from(self.b) + ((255 - u16::from(self.b)) * factor) / 100) as u8,
             a: self.a,
         }
     }
@@ -143,7 +150,9 @@ pub mod brand {
 /// 2D point
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Point {
+    /// X coordinate
     pub x: i32,
+    /// Y coordinate
     pub y: i32,
 }
 
@@ -159,8 +168,9 @@ impl Point {
     }
 
     /// Add offset
-    pub fn offset(&self, dx: i32, dy: i32) -> Point {
-        Point {
+    #[must_use]
+    pub fn offset(&self, dx: i32, dy: i32) -> Self {
+        Self {
             x: self.x + dx,
             y: self.y + dy,
         }
@@ -170,7 +180,9 @@ impl Point {
 /// 2D size
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Size {
+    /// Width in pixels
     pub width: u32,
+    /// Height in pixels
     pub height: u32,
 }
 
@@ -197,9 +209,13 @@ impl Size {
 /// Rectangle
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Rect {
+    /// X coordinate of top-left corner
     pub x: i32,
+    /// Y coordinate of top-left corner
     pub y: i32,
+    /// Width in pixels
     pub width: u32,
+    /// Height in pixels
     pub height: u32,
 }
 
@@ -241,20 +257,23 @@ impl Rect {
     }
 
     /// Right edge
+    #[must_use]
     pub const fn right(&self) -> i32 {
-        self.x + self.width as i32
+        self.x.saturating_add(self.width as i32)
     }
 
     /// Bottom edge
+    #[must_use]
     pub const fn bottom(&self) -> i32 {
-        self.y + self.height as i32
+        self.y.saturating_add(self.height as i32)
     }
 
     /// Center point
+    #[must_use]
     pub const fn center(&self) -> Point {
         Point {
-            x: self.x + (self.width / 2) as i32,
-            y: self.y + (self.height / 2) as i32,
+            x: self.x.saturating_add((self.width / 2) as i32),
+            y: self.y.saturating_add((self.height / 2) as i32),
         }
     }
 
@@ -264,24 +283,33 @@ impl Rect {
     }
 
     /// Intersect with another rectangle
-    pub fn intersect(&self, other: &Rect) -> Option<Rect> {
+    #[must_use]
+    pub fn intersect(&self, other: &Self) -> Option<Self> {
         let x = self.x.max(other.x);
         let y = self.y.max(other.y);
         let right = self.right().min(other.right());
         let bottom = self.bottom().min(other.bottom());
 
         if right > x && bottom > y {
-            Some(Rect::new(x, y, (right - x) as u32, (bottom - y) as u32))
+            Some(Self::new(
+                x,
+                y,
+                (right - x).unsigned_abs(),
+                (bottom - y).unsigned_abs(),
+            ))
         } else {
             None
         }
     }
 
     /// Center within another rectangle
-    pub fn center_in(&self, container: &Rect) -> Rect {
-        let x = container.x + ((container.width as i32 - self.width as i32) / 2);
-        let y = container.y + ((container.height as i32 - self.height as i32) / 2);
-        Rect::new(x, y, self.width, self.height)
+    #[must_use]
+    pub fn center_in(&self, container: &Self) -> Self {
+        let w_diff = i64::from(container.width) - i64::from(self.width);
+        let h_diff = i64::from(container.height) - i64::from(self.height);
+        let x = i64::from(container.x) + (w_diff / 2);
+        let y = i64::from(container.y) + (h_diff / 2);
+        Self::new(x as i32, y as i32, self.width, self.height)
     }
 }
 
@@ -309,33 +337,35 @@ pub enum PixelFormat {
 
 impl PixelFormat {
     /// Bytes per pixel
+    #[must_use]
     pub const fn bytes_per_pixel(&self) -> u8 {
         match self {
-            PixelFormat::Bgra32 | PixelFormat::Rgba32 => 4,
-            PixelFormat::Bgr24 | PixelFormat::Rgb24 => 3,
-            PixelFormat::Rgb565 => 2,
-            PixelFormat::Indexed8 => 1,
+            Self::Bgra32 | Self::Rgba32 => 4,
+            Self::Bgr24 | Self::Rgb24 => 3,
+            Self::Rgb565 => 2,
+            Self::Indexed8 => 1,
         }
     }
 
     /// Convert color to raw pixel value
+    #[must_use]
     pub fn color_to_pixel(&self, color: Color) -> u32 {
         match self {
-            PixelFormat::Bgra32 => {
-                ((color.a as u32) << 24)
-                    | ((color.r as u32) << 16)
-                    | ((color.g as u32) << 8)
-                    | (color.b as u32)
+            Self::Bgra32 => {
+                (u32::from(color.a) << 24)
+                    | (u32::from(color.r) << 16)
+                    | (u32::from(color.g) << 8)
+                    | u32::from(color.b)
             },
-            PixelFormat::Rgba32 => color.to_argb32(),
-            PixelFormat::Bgr24 | PixelFormat::Rgb24 => color.to_rgb32(),
-            PixelFormat::Rgb565 => {
-                let r = ((color.r as u32) >> 3) & 0x1F;
-                let g = ((color.g as u32) >> 2) & 0x3F;
-                let b = ((color.b as u32) >> 3) & 0x1F;
+            Self::Rgba32 => color.to_argb32(),
+            Self::Bgr24 | Self::Rgb24 => color.to_rgb32(),
+            Self::Rgb565 => {
+                let r = (u32::from(color.r) >> 3) & 0x1F;
+                let g = (u32::from(color.g) >> 2) & 0x3F;
+                let b = (u32::from(color.b) >> 3) & 0x1F;
                 (r << 11) | (g << 5) | b
             },
-            PixelFormat::Indexed8 => color.r as u32, // Grayscale
+            Self::Indexed8 => u32::from(color.r), // Grayscale
         }
     }
 }
@@ -540,7 +570,7 @@ impl SplashState {
         self.total_phases = total;
         // Calculate progress from phase
         if total > 0 {
-            self.progress = ((phase as u16 * 100) / total as u16) as u8;
+            self.progress = ((u16::from(phase) * 100) / u16::from(total)) as u8;
         }
     }
 }
@@ -647,7 +677,7 @@ impl SplashScreen {
 
         // Advance animation frame based on speed
         if self.state.animating && self.config.animation_speed_ms > 0 {
-            let frames_per_ms = delta_ms / self.config.animation_speed_ms as u64;
+            let frames_per_ms = delta_ms / u64::from(self.config.animation_speed_ms);
             for _ in 0..frames_per_ms {
                 self.state.advance_frame();
             }
@@ -666,6 +696,7 @@ impl SplashScreen {
     }
 
     /// Get logo rectangle
+    #[must_use]
     pub fn logo_rect(&self) -> Rect {
         let logo = Rect::new(0, 0, self.logo_size.width, self.logo_size.height);
         let screen = Rect::new(0, 0, self.screen_size.width, self.screen_size.height);
@@ -675,8 +706,8 @@ impl SplashScreen {
                 let x = (self.screen_size.width - self.logo_size.width) / 2;
                 let y = self.screen_size.height / 8;
                 Rect::new(
-                    x as i32,
-                    y as i32,
+                    i32::try_from(x).unwrap_or(i32::MAX),
+                    i32::try_from(y).unwrap_or(i32::MAX),
                     self.logo_size.width,
                     self.logo_size.height,
                 )
@@ -686,8 +717,8 @@ impl SplashScreen {
                 let x = (self.screen_size.width - self.logo_size.width) / 2;
                 let y = (self.screen_size.height * 3) / 4;
                 Rect::new(
-                    x as i32,
-                    y as i32,
+                    i32::try_from(x).unwrap_or(i32::MAX),
+                    i32::try_from(y).unwrap_or(i32::MAX),
                     self.logo_size.width,
                     self.logo_size.height,
                 )
@@ -699,16 +730,23 @@ impl SplashScreen {
     }
 
     /// Get progress bar rectangle
+    #[must_use]
     pub fn progress_rect(&self) -> Rect {
         let bar_width = (self.screen_size.width * 2) / 5; // 40% of screen
         let bar_height = 8;
         let x = (self.screen_size.width - bar_width) / 2;
         let y = (self.screen_size.height * 3) / 4; // 75% down
 
-        Rect::new(x as i32, y as i32, bar_width, bar_height)
+        Rect::new(
+            i32::try_from(x).unwrap_or(i32::MAX),
+            i32::try_from(y).unwrap_or(i32::MAX),
+            bar_width,
+            bar_height,
+        )
     }
 
     /// Get status text position
+    #[must_use]
     pub fn status_position(&self) -> Point {
         let progress_rect = self.progress_rect();
         Point::new(progress_rect.x, progress_rect.bottom() + 16)
@@ -772,33 +810,34 @@ pub enum Easing {
 
 impl Easing {
     /// Apply easing to normalized time (0.0 to 1.0 as fixed point)
+    #[must_use]
     pub fn apply(&self, t: u16) -> u16 {
         // t is in fixed point: 0 = 0.0, 1000 = 1.0
-        let t_squared = ((t as u32) * (t as u32)) / 1000;
+        let t_squared = (u32::from(t) * u32::from(t)) / 1000;
 
         match self {
-            Easing::Linear => t,
-            Easing::EaseIn => t_squared as u16,
-            Easing::EaseOut => {
+            Self::Linear => t,
+            Self::EaseIn => t_squared as u16,
+            Self::EaseOut => {
                 let inv_t = 1000 - t;
-                let inv_sq = (inv_t as u32 * inv_t as u32) / 1000;
+                let inv_sq = (u32::from(inv_t) * u32::from(inv_t)) / 1000;
                 1000 - inv_sq as u16
             },
-            Easing::EaseInOut => {
+            Self::EaseInOut => {
                 if t < 500 {
                     ((t_squared * 2) / 1000) as u16
                 } else {
                     let inv_t = 1000 - t;
-                    let inv_sq = (inv_t as u32 * inv_t as u32) / 1000;
+                    let inv_sq = (u32::from(inv_t) * u32::from(inv_t)) / 1000;
                     (1000 - (inv_sq * 2 / 1000)) as u16
                 }
             },
-            Easing::Bounce => {
+            Self::Bounce => {
                 // Simplified bounce
-                let base = Easing::EaseOut.apply(t);
+                let base = Self::EaseOut.apply(t);
                 if t > 800 {
-                    let bounce = ((t - 800) as u32 * 200) / 200;
-                    (base as u32 + bounce / 4) as u16
+                    let bounce = (u32::from(t - 800) * 200) / 200;
+                    (u32::from(base) + bounce / 4) as u16
                 } else {
                     base
                 }
