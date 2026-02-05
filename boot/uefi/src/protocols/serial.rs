@@ -365,7 +365,7 @@ impl Protocol for SerialPort {
                 &mut protocol,
                 image,
                 Handle(core::ptr::null_mut()),
-                0x00000002,
+                0x0000_0002,
             )
         };
 
@@ -415,7 +415,7 @@ impl SerialConfig {
     /// Create default configuration (115200 8N1)
     pub fn default_115200() -> Self {
         Self {
-            baud_rate: 115200,
+            baud_rate: 115_200,
             data_bits: 8,
             parity: Parity::None,
             stop_bits: StopBits::One,
@@ -427,7 +427,7 @@ impl SerialConfig {
     /// Create configuration for 9600 baud
     pub fn baud_9600() -> Self {
         Self {
-            baud_rate: 9600,
+            baud_rate: 9_600,
             data_bits: 8,
             parity: Parity::None,
             stop_bits: StopBits::One,
@@ -439,7 +439,7 @@ impl SerialConfig {
     /// Create configuration for 38400 baud
     pub fn baud_38400() -> Self {
         Self {
-            baud_rate: 38400,
+            baud_rate: 38_400,
             data_bits: 8,
             parity: Parity::None,
             stop_bits: StopBits::One,
@@ -451,7 +451,7 @@ impl SerialConfig {
     /// Create configuration for 57600 baud
     pub fn baud_57600() -> Self {
         Self {
-            baud_rate: 57600,
+            baud_rate: 57_600,
             data_bits: 8,
             parity: Parity::None,
             stop_bits: StopBits::One,
@@ -793,7 +793,7 @@ mod tests {
     #[test]
     fn test_serial_config() {
         let config = SerialConfig::default_115200();
-        assert_eq!(config.baud_rate, 115200);
+        assert_eq!(config.baud_rate, 115_200);
         assert_eq!(config.data_bits, 8);
         assert_eq!(config.parity, Parity::None);
         assert_eq!(config.stop_bits, StopBits::One);
@@ -802,10 +802,10 @@ mod tests {
     #[test]
     fn test_config_builder() {
         let config = SerialConfig::default_115200()
-            .with_baud_rate(9600)
+            .with_baud_rate(9_600)
             .with_parity(Parity::Even);
 
-        assert_eq!(config.baud_rate, 9600);
+        assert_eq!(config.baud_rate, 9_600);
         assert_eq!(config.parity, Parity::Even);
     }
 }
