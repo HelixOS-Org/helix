@@ -52,7 +52,7 @@ pub enum AnimationState {
 
 impl Default for AnimationState {
     fn default() -> Self {
-        AnimationState::Stopped
+        Self::Stopped
     }
 }
 
@@ -71,7 +71,7 @@ pub enum LoopMode {
 
 impl Default for LoopMode {
     fn default() -> Self {
-        LoopMode::Once
+        Self::Once
     }
 }
 
@@ -90,7 +90,7 @@ pub enum AnimationDirection {
 
 impl Default for AnimationDirection {
     fn default() -> Self {
-        AnimationDirection::Forward
+        Self::Forward
     }
 }
 
@@ -173,53 +173,54 @@ pub enum Easing {
 
 impl Default for Easing {
     fn default() -> Self {
-        Easing::Linear
+        Self::Linear
     }
 }
 
 impl Easing {
     /// Apply easing function to value t (0.0 to 1.0)
     /// Returns value in range 0.0 to 1.0 (may exceed for elastic/back)
+    #[must_use]
     pub fn apply(&self, t: f32) -> f32 {
         match self {
-            Easing::Linear => t,
-            Easing::EaseIn => t * t,
-            Easing::EaseOut => t * (2.0 - t),
-            Easing::EaseInOut => {
+            Self::Linear => t,
+            Self::EaseIn => t * t,
+            Self::EaseOut => t * (2.0 - t),
+            Self::EaseInOut => {
                 if t < 0.5 {
                     2.0 * t * t
                 } else {
                     -1.0 + (4.0 - 2.0 * t) * t
                 }
             },
-            Easing::QuadIn => t * t,
-            Easing::QuadOut => t * (2.0 - t),
-            Easing::QuadInOut => {
+            Self::QuadIn => t * t,
+            Self::QuadOut => t * (2.0 - t),
+            Self::QuadInOut => {
                 if t < 0.5 {
                     2.0 * t * t
                 } else {
                     -1.0 + (4.0 - 2.0 * t) * t
                 }
             },
-            Easing::CubicIn => t * t * t,
-            Easing::CubicOut => {
+            Self::CubicIn => t * t * t,
+            Self::CubicOut => {
                 let t1 = t - 1.0;
                 t1 * t1 * t1 + 1.0
             },
-            Easing::CubicInOut => {
+            Self::CubicInOut => {
                 if t < 0.5 {
-                    4.0 * t * t * t
+                    4.0 * t * t * t * t
                 } else {
                     let t1 = 2.0 * t - 2.0;
                     (t1 * t1 * t1 + 2.0) / 2.0
                 }
             },
-            Easing::QuartIn => t * t * t * t,
-            Easing::QuartOut => {
+            Self::QuartIn => t * t * t * t,
+            Self::QuartOut => {
                 let t1 = t - 1.0;
                 1.0 - t1 * t1 * t1 * t1
             },
-            Easing::QuartInOut => {
+            Self::QuartInOut => {
                 if t < 0.5 {
                     8.0 * t * t * t * t
                 } else {
@@ -227,12 +228,12 @@ impl Easing {
                     1.0 - 8.0 * t1 * t1 * t1 * t1
                 }
             },
-            Easing::QuintIn => t * t * t * t * t,
-            Easing::QuintOut => {
+            Self::QuintIn => t * t * t * t * t,
+            Self::QuintOut => {
                 let t1 = t - 1.0;
                 1.0 + t1 * t1 * t1 * t1 * t1
             },
-            Easing::QuintInOut => {
+            Self::QuintInOut => {
                 if t < 0.5 {
                     16.0 * t * t * t * t * t
                 } else {
@@ -241,27 +242,30 @@ impl Easing {
                 }
             },
             // Approximations for trig-based easing (no libm)
-            Easing::SineIn => 1.0 - Self::cos_approx(t * core::f32::consts::FRAC_PI_2),
-            Easing::SineOut => Self::sin_approx(t * core::f32::consts::FRAC_PI_2),
-            Easing::SineInOut => -(Self::cos_approx(core::f32::consts::PI * t) - 1.0) / 2.0,
-            Easing::ExpoIn => {
+            Self::SineIn => 1.0 - Self::cos_approx(t * core::f32::consts::FRAC_PI_2),
+            Self::SineOut => Self::sin_approx(t * core::f32::consts::FRAC_PI_2),
+            Self::SineInOut => -(Self::cos_approx(core::f32::consts::PI * t) - 1.0) / 2.0,
+            Self::ExpoIn => {
                 if t == 0.0 {
                     0.0
                 } else {
                     Self::pow2_approx(10.0 * (t - 1.0))
                 }
             },
-            Easing::ExpoOut => {
+            Self::ExpoOut => {
+                #[expect(clippy::float_cmp, reason = "Exact comparison with 1.0 is intentional for boundary condition")]
                 if t == 1.0 {
                     1.0
                 } else {
                     1.0 - Self::pow2_approx(-10.0 * t)
                 }
             },
-            Easing::ExpoInOut => {
+            Self::ExpoInOut => {
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 0.0 {
                     return 0.0;
                 }
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -271,9 +275,9 @@ impl Easing {
                     (2.0 - Self::pow2_approx(-20.0 * t + 10.0)) / 2.0
                 }
             },
-            Easing::CircIn => 1.0 - Self::sqrt_approx(1.0 - t * t),
-            Easing::CircOut => Self::sqrt_approx(1.0 - (t - 1.0) * (t - 1.0)),
-            Easing::CircInOut => {
+            Self::CircIn => 1.0 - Self::sqrt_approx(1.0 - t * t),
+            Self::CircOut => Self::sqrt_approx(1.0 - (t - 1.0) * (t - 1.0)),
+            Self::CircInOut => {
                 if t < 0.5 {
                     (1.0 - Self::sqrt_approx(1.0 - 4.0 * t * t)) / 2.0
                 } else {
@@ -281,30 +285,36 @@ impl Easing {
                     (Self::sqrt_approx(1.0 - t1 * t1) + 1.0) / 2.0
                 }
             },
-            Easing::ElasticIn => {
+            Self::ElasticIn => {
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 0.0 {
                     return 0.0;
                 }
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 1.0 {
                     return 1.0;
                 }
                 let c4 = 2.0 * core::f32::consts::PI / 3.0;
                 -Self::pow2_approx(10.0 * t - 10.0) * Self::sin_approx((t * 10.0 - 10.75) * c4)
             },
-            Easing::ElasticOut => {
+            Self::ElasticOut => {
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 0.0 {
                     return 0.0;
                 }
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 1.0 {
                     return 1.0;
                 }
                 let c4 = 2.0 * core::f32::consts::PI / 3.0;
                 Self::pow2_approx(-10.0 * t) * Self::sin_approx((t * 10.0 - 0.75) * c4) + 1.0
             },
-            Easing::ElasticInOut => {
+            Self::ElasticInOut => {
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 0.0 {
                     return 0.0;
                 }
+                #[expect(clippy::float_cmp, reason = "Exact comparison with boundary values is intentional")]
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -319,18 +329,18 @@ impl Easing {
                         + 1.0
                 }
             },
-            Easing::BackIn => {
+            Self::BackIn => {
                 let c1 = 1.70158;
                 let c3 = c1 + 1.0;
                 c3 * t * t * t - c1 * t * t
             },
-            Easing::BackOut => {
+            Self::BackOut => {
                 let c1 = 1.70158;
                 let c3 = c1 + 1.0;
                 let t1 = t - 1.0;
                 1.0 + c3 * t1 * t1 * t1 + c1 * t1 * t1
             },
-            Easing::BackInOut => {
+            Self::BackInOut => {
                 let c1 = 1.70158;
                 let c2 = c1 * 1.525;
                 if t < 0.5 {
@@ -340,9 +350,9 @@ impl Easing {
                     (t1 * t1 * ((c2 + 1.0) * t1 + c2) + 2.0) / 2.0
                 }
             },
-            Easing::BounceIn => 1.0 - Self::bounce_out(1.0 - t),
-            Easing::BounceOut => Self::bounce_out(t),
-            Easing::BounceInOut => {
+            Self::BounceIn => 1.0 - Self::bounce_out(1.0 - t),
+            Self::BounceOut => Self::bounce_out(t),
+            Self::BounceInOut => {
                 if t < 0.5 {
                     (1.0 - Self::bounce_out(1.0 - 2.0 * t)) / 2.0
                 } else {
@@ -370,7 +380,9 @@ impl Easing {
         }
     }
 
-    /// Approximate sine for no_std
+    /// Approximate sine for `no_std` environments.
+    ///
+    /// Uses Taylor series approximation.
     fn sin_approx(x: f32) -> f32 {
         // Taylor series approximation
         let x = x % (2.0 * core::f32::consts::PI);
@@ -380,25 +392,36 @@ impl Easing {
         x - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0
     }
 
-    /// Approximate cosine for no_std
+    /// Approximate cosine for `no_std` environments.
+    ///
+    /// Uses sine approximation with phase shift.
     fn cos_approx(x: f32) -> f32 {
         Self::sin_approx(x + core::f32::consts::FRAC_PI_2)
     }
 
-    /// Approximate 2^x for no_std
+    /// Approximate 2^x for `no_std` environments.
+    ///
+    /// Uses bit manipulation and polynomial approximation.
     fn pow2_approx(x: f32) -> f32 {
         // Simple approximation
+        #[expect(clippy::cast_possible_truncation, reason = "Truncation is intentional for integer part extraction")]
         let xi = x as i32;
-        let xf = x - xi as f32;
+        let xf = x - f32::from(xi);
         let base = if xi >= 0 {
-            (1u32 << xi.min(31) as u32) as f32
+            #[expect(clippy::cast_sign_loss, reason = "xi is checked to be non-negative")]
+            let shift = xi.min(31) as u32;
+            f32::from(1u32 << shift)
         } else {
-            1.0 / (1u32 << (-xi).min(31) as u32) as f32
+            #[expect(clippy::cast_sign_loss, reason = "negated value is positive")]
+            let shift = (-xi).min(31) as u32;
+            1.0 / f32::from(1u32 << shift)
         };
         base * (1.0 + 0.693_147_2 * xf + 0.240_226_5 * xf * xf)
     }
 
-    /// Approximate square root for no_std
+    /// Approximate square root for `no_std` environments.
+    ///
+    /// Uses Newton-Raphson iteration.
     fn sqrt_approx(x: f32) -> f32 {
         if x <= 0.0 {
             return 0.0;
@@ -473,12 +496,14 @@ impl Timeline {
     }
 
     /// With loop mode
+    #[must_use]
     pub const fn with_loop(mut self, mode: LoopMode) -> Self {
         self.loop_mode = mode;
         self
     }
 
     /// With delay
+    #[must_use]
     pub const fn with_delay(mut self, delay_ms: u32) -> Self {
         self.delay_ms = delay_ms;
         self
@@ -498,13 +523,18 @@ impl Default for Timeline {
 /// 2D Point
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Point2D {
+    /// X coordinate
     pub x: f32,
+    /// Y coordinate
     pub y: f32,
 }
 
 impl Point2D {
+    /// Zero point (origin)
     pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
 
+    /// Create a new point
+    #[must_use]
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
@@ -513,11 +543,15 @@ impl Point2D {
 /// 2D Size
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Size2D {
+    /// Width
     pub width: f32,
+    /// Height
     pub height: f32,
 }
 
 impl Size2D {
+    /// Create a new size
+    #[must_use]
     pub const fn new(width: f32, height: f32) -> Self {
         Self { width, height }
     }
@@ -573,6 +607,7 @@ impl Transform2D {
     }
 
     /// Interpolate between two transforms
+    #[must_use]
     pub fn lerp(&self, other: &Self, t: f32) -> Self {
         Self {
             translation: Point2D::new(
@@ -609,25 +644,32 @@ impl Default for Transform2D {
 /// RGBA Color for animation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct AnimColor {
+    /// Red component
     pub r: u8,
+    /// Green component
     pub g: u8,
+    /// Blue component
     pub b: u8,
+    /// Alpha component
     pub a: u8,
 }
 
 impl AnimColor {
+    /// Transparent color
     pub const TRANSPARENT: Self = Self {
         r: 0,
         g: 0,
         b: 0,
         a: 0,
     };
+    /// Black color
     pub const BLACK: Self = Self {
         r: 0,
         g: 0,
         b: 0,
         a: 255,
     };
+    /// White color
     pub const WHITE: Self = Self {
         r: 255,
         g: 255,
@@ -646,17 +688,21 @@ impl AnimColor {
     }
 
     /// Interpolate between two colors
+    #[must_use]
     pub fn lerp(&self, other: &Self, t: f32) -> Self {
         let t = t.clamp(0.0, 1.0);
+        #[expect(clippy::cast_possible_truncation, reason = "Clamped values are within u8 range")]
+        #[expect(clippy::cast_sign_loss, reason = "Clamped values are non-negative")]
         Self {
-            r: (self.r as f32 + (other.r as f32 - self.r as f32) * t) as u8,
-            g: (self.g as f32 + (other.g as f32 - self.g as f32) * t) as u8,
-            b: (self.b as f32 + (other.b as f32 - self.b as f32) * t) as u8,
-            a: (self.a as f32 + (other.a as f32 - self.a as f32) * t) as u8,
+            r: (f32::from(self.r) + (f32::from(other.r) - f32::from(self.r)) * t) as u8,
+            g: (f32::from(self.g) + (f32::from(other.g) - f32::from(self.g)) * t) as u8,
+            b: (f32::from(self.b) + (f32::from(other.b) - f32::from(self.b)) * t) as u8,
+            a: (f32::from(self.a) + (f32::from(other.a) - f32::from(self.a)) * t) as u8,
         }
     }
 
     /// With alpha
+    #[must_use]
     pub const fn with_alpha(mut self, alpha: u8) -> Self {
         self.a = alpha;
         self
@@ -698,6 +744,7 @@ impl Sprite {
     }
 
     /// With hotspot (pivot point)
+    #[must_use]
     pub const fn with_hotspot(mut self, x: i32, y: i32) -> Self {
         self.hotspot_x = x;
         self.hotspot_y = y;
@@ -705,6 +752,8 @@ impl Sprite {
     }
 
     /// With centered hotspot
+    #[must_use]
+    #[expect(clippy::cast_possible_wrap, reason = "Sprite dimensions are small enough to fit in i32")]
     pub const fn centered(mut self) -> Self {
         self.hotspot_x = (self.width / 2) as i32;
         self.hotspot_y = (self.height / 2) as i32;
@@ -765,11 +814,12 @@ impl Particle {
     }
 
     /// Get normalized age (0.0 = born, 1.0 = dead)
+    #[must_use]
     pub fn age(&self) -> f32 {
         if self.initial_lifetime == 0 {
             return 1.0;
         }
-        1.0 - (self.lifetime as f32 / self.initial_lifetime as f32)
+        1.0 - (f32::from(self.lifetime) / f32::from(self.initial_lifetime))
     }
 }
 
@@ -790,7 +840,7 @@ pub enum EmitterShape {
 
 impl Default for EmitterShape {
     fn default() -> Self {
-        EmitterShape::Point
+        Self::Point
     }
 }
 
@@ -803,16 +853,19 @@ pub struct ParticleEmitterConfig {
     pub shape_size: Size2D,
     /// Emission rate (particles per second)
     pub emission_rate: f32,
-    /// Particle lifetime (ms)
+    /// Particle minimum lifetime (ms)
     pub lifetime_min: u32,
+    /// Particle maximum lifetime (ms)
     pub lifetime_max: u32,
-    /// Initial velocity
+    /// Initial velocity minimum
     pub velocity_min: Point2D,
+    /// Initial velocity maximum
     pub velocity_max: Point2D,
     /// Acceleration (gravity)
     pub acceleration: Point2D,
-    /// Initial size
+    /// Initial size minimum
     pub size_min: f32,
+    /// Initial size maximum
     pub size_max: f32,
     /// Size over lifetime multiplier
     pub size_end: f32,
@@ -874,22 +927,26 @@ pub enum TransitionEffect {
 
 impl Default for TransitionEffect {
     fn default() -> Self {
-        TransitionEffect::Fade
+        Self::Fade
     }
 }
 
 /// Transition direction
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransitionDirection {
+    /// Upward direction
     Up,
+    /// Downward direction
     Down,
+    /// Leftward direction
     Left,
+    /// Rightward direction
     Right,
 }
 
 impl Default for TransitionDirection {
     fn default() -> Self {
-        TransitionDirection::Left
+        Self::Left
     }
 }
 
@@ -918,12 +975,14 @@ impl Transition {
     }
 
     /// With direction
+    #[must_use]
     pub const fn with_direction(mut self, direction: TransitionDirection) -> Self {
         self.direction = direction;
         self
     }
 
     /// With easing
+    #[must_use]
     pub const fn with_easing(mut self, easing: Easing) -> Self {
         self.easing = easing;
         self
@@ -963,7 +1022,7 @@ pub enum ProgressStyle {
 
 impl Default for ProgressStyle {
     fn default() -> Self {
-        ProgressStyle::Solid
+        Self::Solid
     }
 }
 
@@ -1031,7 +1090,7 @@ pub enum SpinnerStyle {
 
 impl Default for SpinnerStyle {
     fn default() -> Self {
-        SpinnerStyle::Arc
+        Self::Arc
     }
 }
 
@@ -1089,7 +1148,7 @@ pub enum SplashLayout {
 
 impl Default for SplashLayout {
     fn default() -> Self {
-        SplashLayout::LogoProgress
+        Self::LogoProgress
     }
 }
 
@@ -1157,7 +1216,7 @@ pub enum BlendMode {
 
 impl Default for BlendMode {
     fn default() -> Self {
-        BlendMode::Normal
+        Self::Normal
     }
 }
 
