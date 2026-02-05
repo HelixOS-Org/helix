@@ -35,29 +35,29 @@ pub const EFI_FILE_SYSTEM_VOLUME_LABEL_GUID: [u8; 16] = [
 /// File attributes
 pub mod attrs {
     /// Read-only
-    pub const READ_ONLY: u64 = 0x0000000000000001;
+    pub const READ_ONLY: u64 = 0x0000_0000_0000_0001;
     /// Hidden
-    pub const HIDDEN: u64 = 0x0000000000000002;
+    pub const HIDDEN: u64 = 0x0000_0000_0000_0002;
     /// System file
-    pub const SYSTEM: u64 = 0x0000000000000004;
+    pub const SYSTEM: u64 = 0x0000_0000_0000_0004;
     /// Reserved
-    pub const RESERVED: u64 = 0x0000000000000008;
+    pub const RESERVED: u64 = 0x0000_0000_0000_0008;
     /// Directory
-    pub const DIRECTORY: u64 = 0x0000000000000010;
+    pub const DIRECTORY: u64 = 0x0000_0000_0000_0010;
     /// Archive
-    pub const ARCHIVE: u64 = 0x0000000000000020;
+    pub const ARCHIVE: u64 = 0x0000_0000_0000_0020;
     /// Valid attributes mask
-    pub const VALID_ATTR: u64 = 0x0000000000000037;
+    pub const VALID_ATTR: u64 = 0x0000_0000_0000_0037;
 }
 
 /// File open modes
 pub mod modes {
     /// Read mode
-    pub const READ: u64 = 0x0000000000000001;
+    pub const READ: u64 = 0x0000_0000_0000_0001;
     /// Write mode
-    pub const WRITE: u64 = 0x0000000000000002;
+    pub const WRITE: u64 = 0x0000_0000_0000_0002;
     /// Create mode
-    pub const CREATE: u64 = 0x8000000000000000;
+    pub const CREATE: u64 = 0x8000_0000_0000_0000;
 }
 
 // =============================================================================
@@ -157,22 +157,26 @@ impl FileInfo {
     }
 
     /// Is directory
-    pub fn is_directory(&self) -> bool {
+    #[must_use]
+    pub const fn is_directory(&self) -> bool {
         self.attribute & attrs::DIRECTORY != 0
     }
 
     /// Is read-only
-    pub fn is_read_only(&self) -> bool {
+    #[must_use]
+    pub const fn is_read_only(&self) -> bool {
         self.attribute & attrs::READ_ONLY != 0
     }
 
     /// Is hidden
-    pub fn is_hidden(&self) -> bool {
+    #[must_use]
+    pub const fn is_hidden(&self) -> bool {
         self.attribute & attrs::HIDDEN != 0
     }
 
     /// Is system file
-    pub fn is_system(&self) -> bool {
+    #[must_use]
+    pub const fn is_system(&self) -> bool {
         self.attribute & attrs::SYSTEM != 0
     }
 
@@ -187,13 +191,13 @@ impl FileInfo {
 
             let c = self.filename[i];
             if c < 128 {
-                buffer[pos] = c as u8;
+                buffer[pos] = (c & 0xFF) as u8;
                 pos += 1;
             } else {
                 // UTF-8 encode
                 if c < 0x800 && pos + 1 < buffer.len() {
-                    buffer[pos] = 0xC0 | ((c >> 6) as u8);
-                    buffer[pos + 1] = 0x80 | ((c & 0x3F) as u8);
+                    buffer[pos] = 0xC0 | ((c >> 6) & 0x1F) as u8;
+                    buffer[pos + 1] = 0x80 | (c & 0x3F) as u8;
                     pos += 2;
                 }
             }
@@ -229,7 +233,8 @@ pub struct FileSystemInfo {
 
 impl FileSystemInfo {
     /// Create empty
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             size: 0,
             read_only: false,
@@ -251,7 +256,7 @@ impl FileSystemInfo {
             }
             let c = self.volume_label[i];
             if c < 128 {
-                buffer[pos] = c as u8;
+                buffer[pos] = (c & 0xFF) as u8;
                 pos += 1;
             }
         }
@@ -270,16 +275,27 @@ impl Default for FileSystemInfo {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct EfiTime {
+    /// Year (1900-9999)
     pub year: u16,
+    /// Month (1-12)
     pub month: u8,
+    /// Day (1-31)
     pub day: u8,
+    /// Hour (0-23)
     pub hour: u8,
+    /// Minute (0-59)
     pub minute: u8,
+    /// Second (0-59)
     pub second: u8,
+    /// Padding byte 1
     pub pad1: u8,
+    /// Nanoseconds (0-999999999)
     pub nanosecond: u32,
+    /// Timezone (-1440 to 1440 or 2047 for unspecified)
     pub timezone: i16,
+    /// Daylight saving flags
     pub daylight: u8,
+    /// Padding byte 2
     pub pad2: u8,
 }
 
@@ -326,7 +342,8 @@ impl EfiTime {
     }
 
     /// Is valid
-    pub fn is_valid(&self) -> bool {
+    #[must_use]
+    pub const fn is_valid(&self) -> bool {
         self.year >= 1900
             && self.year <= 9999
             && self.month >= 1
@@ -369,7 +386,8 @@ pub struct FileHandle {
 
 impl FileHandle {
     /// Create new file handle
-    pub fn new(handle: usize) -> Self {
+    #[must_use]
+    pub const fn new(handle: usize) -> Self {
         Self {
             _handle: handle,
             position: 0,
@@ -420,16 +438,16 @@ impl FileHandle {
             SeekFrom::Start(pos) => pos,
             SeekFrom::Current(offset) => {
                 if offset >= 0 {
-                    self.position.saturating_add(offset as u64)
+                    self.position.saturating_add(offset.unsigned_abs())
                 } else {
-                    self.position.saturating_sub((-offset) as u64)
+                    self.position.saturating_sub(offset.unsigned_abs())
                 }
             },
             SeekFrom::End(offset) => {
                 if offset >= 0 {
-                    self.size.saturating_add(offset as u64)
+                    self.size.saturating_add(offset.unsigned_abs())
                 } else {
-                    self.size.saturating_sub((-offset) as u64)
+                    self.size.saturating_sub(offset.unsigned_abs())
                 }
             },
         };
@@ -442,12 +460,14 @@ impl FileHandle {
     }
 
     /// Get current position
-    pub fn position(&self) -> u64 {
+    #[must_use]
+    pub const fn position(&self) -> u64 {
         self.position
     }
 
     /// Get file size
-    pub fn size(&self) -> u64 {
+    #[must_use]
+    pub const fn size(&self) -> u64 {
         self.size
     }
 
@@ -566,7 +586,8 @@ pub struct FileSystem {
 
 impl FileSystem {
     /// Create new file system
-    pub fn new(handle: usize) -> Self {
+    #[must_use]
+    pub const fn new(handle: usize) -> Self {
         Self {
             _handle: handle,
             root: None,
@@ -631,7 +652,7 @@ impl FileSystem {
     /// Read entire file
     pub fn read_file(&mut self, path: &str, buffer: &mut [u8]) -> Result<usize, FileError> {
         let mut file = self.open_read(path)?;
-        let size = file.size() as usize;
+        let size = usize::try_from(file.size()).unwrap_or(usize::MAX);
 
         if size > buffer.len() {
             return Err(FileError::BufferTooSmall);
@@ -715,13 +736,10 @@ pub struct PathComponents<'a> {
 
 impl<'a> PathComponents<'a> {
     /// Create new iterator
+    #[must_use]
     pub fn new(path: &'a str) -> Self {
         // Skip leading separator
-        let start = if path.starts_with('\\') || path.starts_with('/') {
-            1
-        } else {
-            0
-        };
+        let start = usize::from(path.starts_with('\\') || path.starts_with('/'));
         Self { path, pos: start }
     }
 }
@@ -737,9 +755,7 @@ impl<'a> Iterator for PathComponents<'a> {
         let remaining = &self.path[self.pos..];
 
         // Find next separator
-        let end = remaining
-            .find(|c| c == '\\' || c == '/')
-            .unwrap_or(remaining.len());
+        let end = remaining.find(['\\', '/']).unwrap_or(remaining.len());
 
         if end == 0 {
             self.pos += 1;
@@ -761,7 +777,8 @@ pub struct PathBuilder {
 
 impl PathBuilder {
     /// Create new path builder
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             buffer: [0; 512],
             len: 0,
@@ -769,20 +786,21 @@ impl PathBuilder {
     }
 
     /// Start from root
-    pub fn root() -> Self {
-        let mut pb = Self::new();
-        pb.buffer[0] = b'\\';
-        pb.len = 1;
-        pb
+    #[must_use]
+    pub const fn root() -> Self {
+        let mut s = Self {
+            buffer: [0; 512],
+            len: 1,
+        };
+        s.buffer[0] = b'\\';
+        s
     }
 
     /// Push component
     pub fn push(&mut self, component: &str) -> &mut Self {
-        if self.len > 0 && self.buffer[self.len - 1] != b'\\' {
-            if self.len < self.buffer.len() {
-                self.buffer[self.len] = b'\\';
-                self.len += 1;
-            }
+        if self.len > 0 && self.buffer[self.len - 1] != b'\\' && self.len < self.buffer.len() {
+            self.buffer[self.len] = b'\\';
+            self.len += 1;
         }
 
         let bytes = component.as_bytes();
@@ -815,12 +833,14 @@ impl PathBuilder {
     }
 
     /// Get path length
-    pub fn len(&self) -> usize {
+    #[must_use]
+    pub const fn len(&self) -> usize {
         self.len
     }
 
     /// Is empty
-    pub fn is_empty(&self) -> bool {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
         self.len == 0
     }
 }
@@ -861,7 +881,7 @@ fn _ucs2_to_path(ucs2: &[u16], buffer: &mut [u8]) -> usize {
         }
 
         if c < 128 {
-            buffer[pos] = c as u8;
+            buffer[pos] = (c & 0xFF) as u8;
             pos += 1;
         }
     }
@@ -880,14 +900,15 @@ pub struct KernelLoader<'a> {
 
 impl<'a> KernelLoader<'a> {
     /// Create new kernel loader
-    pub fn new(fs: &'a mut FileSystem) -> Self {
+    #[must_use]
+    pub const fn new(fs: &'a mut FileSystem) -> Self {
         Self { fs }
     }
 
     /// Load kernel file
     pub fn load_kernel(&mut self, path: &str, buffer: &mut [u8]) -> Result<KernelInfo, FileError> {
         let mut file = self.fs.open_read(path)?;
-        let size = file.size() as usize;
+        let size = usize::try_from(file.size()).unwrap_or(usize::MAX);
 
         if size > buffer.len() {
             return Err(FileError::BufferTooSmall);
@@ -896,7 +917,7 @@ impl<'a> KernelLoader<'a> {
         let bytes_read = file.read(&mut buffer[..size])?;
 
         // Detect kernel type
-        let kernel_type = self.detect_kernel_type(&buffer[..bytes_read])?;
+        let kernel_type = Self::detect_kernel_type(&buffer[..bytes_read])?;
 
         Ok(KernelInfo {
             size: bytes_read,
@@ -907,7 +928,7 @@ impl<'a> KernelLoader<'a> {
     }
 
     /// Detect kernel type from magic
-    fn detect_kernel_type(&self, data: &[u8]) -> Result<KernelType, FileError> {
+    fn detect_kernel_type(data: &[u8]) -> Result<KernelType, FileError> {
         if data.len() < 4 {
             return Err(FileError::InvalidFormat);
         }
@@ -932,7 +953,7 @@ impl<'a> KernelLoader<'a> {
         }
 
         // Linux boot protocol
-        if data.len() >= 512 && &data[510..512] == &[0x55, 0xAA] {
+        if data.len() >= 512 && data[510..512] == [0x55, 0xAA] {
             return Ok(KernelType::LinuxBoot);
         }
 
@@ -940,10 +961,10 @@ impl<'a> KernelLoader<'a> {
         if data.len() >= 8192 {
             for i in (0..8188).step_by(4) {
                 let magic = u32::from_le_bytes(data[i..i + 4].try_into().unwrap_or([0; 4]));
-                if magic == 0x1BADB002 {
+                if magic == 0x1BAD_B002 {
                     return Ok(KernelType::Multiboot);
                 }
-                if magic == 0xE85250D6 {
+                if magic == 0xE852_50D6 {
                     return Ok(KernelType::Multiboot2);
                 }
             }
