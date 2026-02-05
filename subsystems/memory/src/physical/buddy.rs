@@ -25,7 +25,7 @@ pub struct BuddyAllocator {
     /// Page size
     page_size: usize,
     /// Statistics
-    stats: AllocatorStats,
+    _stats: AllocatorStats,
     /// Allocation count
     alloc_count: AtomicU64,
     /// Deallocation count
@@ -40,7 +40,7 @@ impl BuddyAllocator {
             base: PhysAddr::new(0),
             total_size: 0,
             page_size: PageSize::Size4KiB.size() as usize,
-            stats: AllocatorStats::default(),
+            _stats: AllocatorStats::default(),
             alloc_count: AtomicU64::new(0),
             dealloc_count: AtomicU64::new(0),
         }
@@ -63,7 +63,7 @@ impl BuddyAllocator {
     }
 
     /// Split a block into two buddies
-    fn split(&self, lists: &mut [BTreeSet<u64>; MAX_ORDER], addr: u64, order: usize) {
+    fn _split(&self, lists: &mut [BTreeSet<u64>; MAX_ORDER], addr: u64, order: usize) {
         if order == 0 {
             return;
         }
