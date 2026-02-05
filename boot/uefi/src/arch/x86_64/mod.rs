@@ -1,4 +1,4 @@
-//! x86_64 Architecture Support
+//! `x86_64` Architecture Support
 //!
 //! Platform-specific code for AMD64/Intel 64.
 
@@ -10,7 +10,7 @@ pub mod paging;
 
 use crate::arch::{ArchOperations, CpuFeatures, MemoryModel};
 use crate::error::Result;
-use crate::raw::types::*;
+use crate::raw::types::VirtualAddress;
 
 // =============================================================================
 // EARLY INITIALIZATION
@@ -80,9 +80,13 @@ pub fn cpuid(leaf: u32, subleaf: u32) -> CpuidResult {
 /// CPUID result
 #[derive(Debug, Clone, Copy, Default)]
 pub struct CpuidResult {
+    /// EAX register output
     pub eax: u32,
+    /// EBX register output
     pub ebx: u32,
+    /// ECX register output
     pub ecx: u32,
+    /// EDX register output
     pub edx: u32,
 }
 
@@ -113,6 +117,10 @@ impl CpuidResult {
 // =============================================================================
 
 /// Read MSR (Model Specific Register)
+///
+/// # Safety
+///
+/// The caller must ensure the MSR address is valid and readable.
 #[inline]
 pub unsafe fn rdmsr(msr: u32) -> u64 {
     let (low, high): (u32, u32);
@@ -123,11 +131,16 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
         out("edx") high,
         options(nomem, nostack, preserves_flags),
     );
-    ((high as u64) << 32) | (low as u64)
+    (u64::from(high) << 32) | u64::from(low)
 }
 
 /// Write MSR (Model Specific Register)
+///
+/// # Safety
+///
+/// The caller must ensure the MSR address is valid and the value is appropriate.
 #[inline]
+#[expect(clippy::cast_possible_truncation, reason = "intentional truncation to split 64-bit value into two 32-bit halves")]
 pub unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;
@@ -142,36 +155,36 @@ pub unsafe fn wrmsr(msr: u32, value: u64) {
 
 /// Common MSR addresses
 pub mod msr {
-    /// IA32_APIC_BASE
+    /// `IA32_APIC_BASE` MSR address
     pub const IA32_APIC_BASE: u32 = 0x1B;
-    /// IA32_FEATURE_CONTROL
+    /// `IA32_FEATURE_CONTROL` MSR address
     pub const IA32_FEATURE_CONTROL: u32 = 0x3A;
-    /// IA32_SYSENTER_CS
+    /// `IA32_SYSENTER_CS` MSR address
     pub const IA32_SYSENTER_CS: u32 = 0x174;
-    /// IA32_SYSENTER_ESP
+    /// `IA32_SYSENTER_ESP` MSR address
     pub const IA32_SYSENTER_ESP: u32 = 0x175;
-    /// IA32_SYSENTER_EIP
+    /// `IA32_SYSENTER_EIP` MSR address
     pub const IA32_SYSENTER_EIP: u32 = 0x176;
-    /// IA32_PAT
+    /// `IA32_PAT` MSR address
     pub const IA32_PAT: u32 = 0x277;
-    /// IA32_EFER
-    pub const IA32_EFER: u32 = 0xC0000080;
-    /// IA32_STAR
-    pub const IA32_STAR: u32 = 0xC0000081;
-    /// IA32_LSTAR
-    pub const IA32_LSTAR: u32 = 0xC0000082;
-    /// IA32_CSTAR
-    pub const IA32_CSTAR: u32 = 0xC0000083;
-    /// IA32_FMASK
-    pub const IA32_FMASK: u32 = 0xC0000084;
-    /// IA32_FS_BASE
-    pub const IA32_FS_BASE: u32 = 0xC0000100;
-    /// IA32_GS_BASE
-    pub const IA32_GS_BASE: u32 = 0xC0000101;
-    /// IA32_KERNEL_GS_BASE
-    pub const IA32_KERNEL_GS_BASE: u32 = 0xC0000102;
-    /// IA32_TSC_AUX
-    pub const IA32_TSC_AUX: u32 = 0xC0000103;
+    /// `IA32_EFER` MSR address
+    pub const IA32_EFER: u32 = 0xC000_0080;
+    /// `IA32_STAR` MSR address
+    pub const IA32_STAR: u32 = 0xC000_0081;
+    /// `IA32_LSTAR` MSR address
+    pub const IA32_LSTAR: u32 = 0xC000_0082;
+    /// `IA32_CSTAR` MSR address
+    pub const IA32_CSTAR: u32 = 0xC000_0083;
+    /// `IA32_FMASK` MSR address
+    pub const IA32_FMASK: u32 = 0xC000_0084;
+    /// `IA32_FS_BASE` MSR address
+    pub const IA32_FS_BASE: u32 = 0xC000_0100;
+    /// `IA32_GS_BASE` MSR address
+    pub const IA32_GS_BASE: u32 = 0xC000_0101;
+    /// `IA32_KERNEL_GS_BASE` MSR address
+    pub const IA32_KERNEL_GS_BASE: u32 = 0xC000_0102;
+    /// `IA32_TSC_AUX` MSR address
+    pub const IA32_TSC_AUX: u32 = 0xC000_0103;
 }
 
 // =============================================================================
@@ -189,6 +202,10 @@ pub fn read_cr0() -> u64 {
 }
 
 /// Write CR0
+///
+/// # Safety
+///
+/// The caller must ensure the CR0 value does not cause undefined behavior.
 #[inline]
 pub unsafe fn write_cr0(value: u64) {
     core::arch::asm!("mov cr0, {}", in(reg) value, options(nomem, nostack, preserves_flags));
@@ -215,6 +232,10 @@ pub fn read_cr3() -> u64 {
 }
 
 /// Write CR3 (page table base)
+///
+/// # Safety
+///
+/// The caller must ensure the value points to a valid page table structure.
 #[inline]
 pub unsafe fn write_cr3(value: u64) {
     core::arch::asm!("mov cr3, {}", in(reg) value, options(nomem, nostack, preserves_flags));
@@ -231,6 +252,10 @@ pub fn read_cr4() -> u64 {
 }
 
 /// Write CR4
+///
+/// # Safety
+///
+/// The caller must ensure the CR4 value does not cause undefined behavior.
 #[inline]
 pub unsafe fn write_cr4(value: u64) {
     core::arch::asm!("mov cr4, {}", in(reg) value, options(nomem, nostack, preserves_flags));
@@ -238,45 +263,80 @@ pub unsafe fn write_cr4(value: u64) {
 
 /// CR0 bits
 pub mod cr0 {
-    pub const PE: u64 = 1 << 0; // Protected Mode Enable
-    pub const MP: u64 = 1 << 1; // Monitor Co-Processor
-    pub const EM: u64 = 1 << 2; // Emulation
-    pub const TS: u64 = 1 << 3; // Task Switched
-    pub const ET: u64 = 1 << 4; // Extension Type
-    pub const NE: u64 = 1 << 5; // Numeric Error
-    pub const WP: u64 = 1 << 16; // Write Protect
-    pub const AM: u64 = 1 << 18; // Alignment Mask
-    pub const NW: u64 = 1 << 29; // Not Write-Through
-    pub const CD: u64 = 1 << 30; // Cache Disable
-    pub const PG: u64 = 1 << 31; // Paging
+    /// Protected Mode Enable
+    pub const PE: u64 = 1 << 0;
+    /// Monitor Co-Processor
+    pub const MP: u64 = 1 << 1;
+    /// Emulation
+    pub const EM: u64 = 1 << 2;
+    /// Task Switched
+    pub const TS: u64 = 1 << 3;
+    /// Extension Type
+    pub const ET: u64 = 1 << 4;
+    /// Numeric Error
+    pub const NE: u64 = 1 << 5;
+    /// Write Protect
+    pub const WP: u64 = 1 << 16;
+    /// Alignment Mask
+    pub const AM: u64 = 1 << 18;
+    /// Not Write-Through
+    pub const NW: u64 = 1 << 29;
+    /// Cache Disable
+    pub const CD: u64 = 1 << 30;
+    /// Paging
+    pub const PG: u64 = 1 << 31;
 }
 
 /// CR4 bits
 pub mod cr4 {
-    pub const VME: u64 = 1 << 0; // Virtual 8086 Mode Extensions
-    pub const PVI: u64 = 1 << 1; // Protected-mode Virtual Interrupts
-    pub const TSD: u64 = 1 << 2; // Time Stamp Disable
-    pub const DE: u64 = 1 << 3; // Debugging Extensions
-    pub const PSE: u64 = 1 << 4; // Page Size Extension
-    pub const PAE: u64 = 1 << 5; // Physical Address Extension
-    pub const MCE: u64 = 1 << 6; // Machine Check Exception
-    pub const PGE: u64 = 1 << 7; // Page Global Enable
-    pub const PCE: u64 = 1 << 8; // Performance-Monitoring Counter Enable
-    pub const OSFXSR: u64 = 1 << 9; // FXSAVE/FXRSTOR Support
-    pub const OSXMMEXCPT: u64 = 1 << 10; // Unmasked SIMD Exceptions
-    pub const UMIP: u64 = 1 << 11; // User-Mode Instruction Prevention
-    pub const LA57: u64 = 1 << 12; // 5-Level Paging
-    pub const VMXE: u64 = 1 << 13; // Virtual Machine Extensions Enable
-    pub const SMXE: u64 = 1 << 14; // Safer Mode Extensions Enable
-    pub const FSGSBASE: u64 = 1 << 16; // FSGSBASE Instructions Enable
-    pub const PCIDE: u64 = 1 << 17; // PCID Enable
-    pub const OSXSAVE: u64 = 1 << 18; // XSAVE Enable
-    pub const KL: u64 = 1 << 19; // Key Locker Enable
-    pub const SMEP: u64 = 1 << 20; // SMEP Enable
-    pub const SMAP: u64 = 1 << 21; // SMAP Enable
-    pub const PKE: u64 = 1 << 22; // PKU Enable
-    pub const CET: u64 = 1 << 23; // Control-flow Enforcement
-    pub const PKS: u64 = 1 << 24; // Protection Keys for Supervisor
+    /// Virtual 8086 Mode Extensions
+    pub const VME: u64 = 1 << 0;
+    /// Protected-mode Virtual Interrupts
+    pub const PVI: u64 = 1 << 1;
+    /// Time Stamp Disable
+    pub const TSD: u64 = 1 << 2;
+    /// Debugging Extensions
+    pub const DE: u64 = 1 << 3;
+    /// Page Size Extension
+    pub const PSE: u64 = 1 << 4;
+    /// Physical Address Extension
+    pub const PAE: u64 = 1 << 5;
+    /// Machine Check Exception
+    pub const MCE: u64 = 1 << 6;
+    /// Page Global Enable
+    pub const PGE: u64 = 1 << 7;
+    /// Performance-Monitoring Counter Enable
+    pub const PCE: u64 = 1 << 8;
+    /// FXSAVE/FXRSTOR Support
+    pub const OSFXSR: u64 = 1 << 9;
+    /// Unmasked SIMD Exceptions
+    pub const OSXMMEXCPT: u64 = 1 << 10;
+    /// User-Mode Instruction Prevention
+    pub const UMIP: u64 = 1 << 11;
+    /// 5-Level Paging
+    pub const LA57: u64 = 1 << 12;
+    /// Virtual Machine Extensions Enable
+    pub const VMXE: u64 = 1 << 13;
+    /// Safer Mode Extensions Enable
+    pub const SMXE: u64 = 1 << 14;
+    /// FSGSBASE Instructions Enable
+    pub const FSGSBASE: u64 = 1 << 16;
+    /// PCID Enable
+    pub const PCIDE: u64 = 1 << 17;
+    /// XSAVE Enable
+    pub const OSXSAVE: u64 = 1 << 18;
+    /// Key Locker Enable
+    pub const KL: u64 = 1 << 19;
+    /// SMEP Enable
+    pub const SMEP: u64 = 1 << 20;
+    /// SMAP Enable
+    pub const SMAP: u64 = 1 << 21;
+    /// PKU Enable
+    pub const PKE: u64 = 1 << 22;
+    /// Control-flow Enforcement
+    pub const CET: u64 = 1 << 23;
+    /// Protection Keys for Supervisor
+    pub const PKS: u64 = 1 << 24;
 }
 
 // =============================================================================
@@ -310,6 +370,10 @@ pub fn read_efer() -> u64 {
 }
 
 /// Write EFER
+///
+/// # Safety
+///
+/// The caller must ensure the EFER value is valid and does not cause undefined behavior.
 #[inline]
 pub unsafe fn write_efer(value: u64) {
     wrmsr(msr::IA32_EFER, value);
@@ -372,7 +436,7 @@ where
 #[inline]
 pub fn invlpg(addr: VirtualAddress) {
     unsafe {
-        core::arch::asm!("invlpg [{}]", in(reg) addr.0 as usize, options(nostack, preserves_flags));
+        core::arch::asm!("invlpg [{}]", in(reg) addr.0, options(nostack, preserves_flags));
     }
 }
 
@@ -385,6 +449,10 @@ pub fn flush_tlb() {
 }
 
 /// Flush TLB with PCID
+///
+/// # Safety
+///
+/// The caller must ensure the CPU supports INVPCID and the PCID is valid.
 #[inline]
 pub unsafe fn flush_tlb_pcid(pcid: u16, all: bool) {
     let descriptor: u128;
@@ -397,7 +465,7 @@ pub unsafe fn flush_tlb_pcid(pcid: u16, all: bool) {
     } else {
         // Type 1: Invalidate single PCID
         invpcid_type = 1;
-        descriptor = pcid as u128;
+        descriptor = u128::from(pcid);
     }
 
     core::arch::asm!(
@@ -427,7 +495,7 @@ pub fn rdtsc() -> u64 {
         );
     }
 
-    ((high as u64) << 32) | (low as u64)
+    (u64::from(high) << 32) | u64::from(low)
 }
 
 /// Read timestamp counter with processor ID (RDTSCP)
@@ -447,7 +515,7 @@ pub fn rdtscp() -> (u64, u32) {
         );
     }
 
-    (((high as u64) << 32) | (low as u64), aux)
+    ((u64::from(high) << 32) | u64::from(low), aux)
 }
 
 // =============================================================================
@@ -524,7 +592,12 @@ pub fn breakpoint() {
 }
 
 /// Software interrupt
+///
 /// Note: Only supports fixed vector values due to inline asm constraints
+///
+/// # Safety
+///
+/// The caller must ensure an appropriate interrupt handler is installed.
 #[inline]
 pub unsafe fn software_interrupt(_vector: u8) {
     // Cannot use runtime value in const - use fixed interrupts instead
@@ -585,6 +658,10 @@ pub fn rdseed() -> Option<u64> {
 // =============================================================================
 
 /// Read byte from port
+///
+/// # Safety
+///
+/// The caller must ensure the port is valid and reading from it is safe.
 #[inline]
 pub unsafe fn inb(port: u16) -> u8 {
     let value: u8;
@@ -598,6 +675,10 @@ pub unsafe fn inb(port: u16) -> u8 {
 }
 
 /// Write byte to port
+///
+/// # Safety
+///
+/// The caller must ensure the port is valid and writing to it is safe.
 #[inline]
 pub unsafe fn outb(port: u16, value: u8) {
     core::arch::asm!(
@@ -609,6 +690,10 @@ pub unsafe fn outb(port: u16, value: u8) {
 }
 
 /// Read word from port
+///
+/// # Safety
+///
+/// The caller must ensure the port is valid and reading from it is safe.
 #[inline]
 pub unsafe fn inw(port: u16) -> u16 {
     let value: u16;
@@ -622,6 +707,10 @@ pub unsafe fn inw(port: u16) -> u16 {
 }
 
 /// Write word to port
+///
+/// # Safety
+///
+/// The caller must ensure the port is valid and writing to it is safe.
 #[inline]
 pub unsafe fn outw(port: u16, value: u16) {
     core::arch::asm!(
@@ -633,6 +722,10 @@ pub unsafe fn outw(port: u16, value: u16) {
 }
 
 /// Read dword from port
+///
+/// # Safety
+///
+/// The caller must ensure the port is valid and reading from it is safe.
 #[inline]
 pub unsafe fn inl(port: u16) -> u32 {
     let value: u32;
@@ -646,6 +739,10 @@ pub unsafe fn inl(port: u16) -> u32 {
 }
 
 /// Write dword to port
+///
+/// # Safety
+///
+/// The caller must ensure the port is valid and writing to it is safe.
 #[inline]
 pub unsafe fn outl(port: u16, value: u32) {
     core::arch::asm!(
@@ -668,7 +765,7 @@ pub fn io_wait() {
 // ARCH OPERATIONS IMPLEMENTATION
 // =============================================================================
 
-/// x86_64 architecture operations
+/// `x86_64` architecture operations
 pub struct X86_64Ops;
 
 impl ArchOperations for X86_64Ops {
@@ -687,11 +784,11 @@ impl ArchOperations for X86_64Ops {
     }
 
     fn enable_interrupts() {
-        enable_interrupts()
+        enable_interrupts();
     }
 
     fn disable_interrupts() {
-        disable_interrupts()
+        disable_interrupts();
     }
 
     fn interrupts_enabled() -> bool {
@@ -703,23 +800,23 @@ impl ArchOperations for X86_64Ops {
     }
 
     fn invalidate_tlb_entry(addr: VirtualAddress) {
-        invlpg(addr)
+        invlpg(addr);
     }
 
     fn invalidate_tlb_all() {
-        flush_tlb()
+        flush_tlb();
     }
 
     fn memory_barrier() {
-        mfence()
+        mfence();
     }
 
     fn read_barrier() {
-        lfence()
+        lfence();
     }
 
     fn write_barrier() {
-        sfence()
+        sfence();
     }
 }
 
