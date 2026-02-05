@@ -10,14 +10,11 @@
 //! - Non-blocking event dispatch
 
 use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use spin::RwLock;
-
-use super::{IpcError, IpcResult};
 
 // =============================================================================
 // Event Topics
