@@ -69,15 +69,13 @@ pub fn parse_u64(s: &str) -> ParseResult<u64> {
     let bytes = s.as_bytes();
 
     // Detect base from prefix
-    if bytes.len() >= 2 {
-        if bytes[0] == b'0' {
-            match bytes[1] {
-                b'x' | b'X' => return parse_u64_radix(&s[2..], 16),
-                b'b' | b'B' => return parse_u64_radix(&s[2..], 2),
-                b'o' | b'O' => return parse_u64_radix(&s[2..], 8),
-                _ if bytes[1].is_ascii_digit() => return parse_u64_radix(s, 10),
-                _ => return Err(ParseError::InvalidFormat),
-            }
+    if bytes.len() >= 2 && bytes[0] == b'0' {
+        match bytes[1] {
+            b'x' | b'X' => return parse_u64_radix(&s[2..], 16),
+            b'b' | b'B' => return parse_u64_radix(&s[2..], 2),
+            b'o' | b'O' => return parse_u64_radix(&s[2..], 8),
+            _ if bytes[1].is_ascii_digit() => return parse_u64_radix(s, 10),
+            _ => return Err(ParseError::InvalidFormat),
         }
     }
 
@@ -620,11 +618,14 @@ impl Path {
         if result.len > 0 && !other.is_empty() {
             let last = result.data[result.len - 1];
             let first_other = other.as_bytes()[0];
-            if last != b'/' && last != b'\\' && first_other != b'/' && first_other != b'\\' {
-                if result.len < MAX_PATH_LEN {
-                    result.data[result.len] = b'/';
-                    result.len += 1;
-                }
+            if last != b'/'
+                && last != b'\\'
+                && first_other != b'/'
+                && first_other != b'\\'
+                && result.len < MAX_PATH_LEN
+            {
+                result.data[result.len] = b'/';
+                result.len += 1;
             }
         }
 
@@ -646,7 +647,7 @@ impl Path {
 
         for part in s.split(|c| c == '/' || c == '\\') {
             match part {
-                "" | "." => continue,
+                "" | "." => {},
                 ".." => {
                     if comp_count > 0 {
                         comp_count -= 1;
