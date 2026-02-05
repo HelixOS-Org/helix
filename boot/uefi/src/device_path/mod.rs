@@ -81,13 +81,13 @@ pub enum MessagingSubtype {
     Scsi              = 0x02,
     /// Fibre Channel
     FibreChannel      = 0x03,
-    /// 1394 (FireWire)
+    /// 1394 (`FireWire`)
     FireWire          = 0x04,
     /// USB
     Usb               = 0x05,
     /// I2O
     I2o               = 0x06,
-    /// InfiniBand
+    /// `InfiniBand`
     InfiniBand        = 0x09,
     /// Vendor defined
     Vendor            = 0x0A,
@@ -115,7 +115,7 @@ pub enum MessagingSubtype {
     FibreChannelEx    = 0x15,
     /// SAS Ex
     SasEx             = 0x16,
-    /// NVMe namespace
+    /// `NVMe` namespace
     NvmeNamespace     = 0x17,
     /// URI
     Uri               = 0x18,
@@ -125,7 +125,7 @@ pub enum MessagingSubtype {
     Sd                = 0x1A,
     /// Bluetooth
     Bluetooth         = 0x1B,
-    /// WiFi
+    /// `WiFi`
     Wifi              = 0x1C,
     /// eMMC
     Emmc              = 0x1D,
@@ -133,7 +133,7 @@ pub enum MessagingSubtype {
     BluetoothLe       = 0x1E,
     /// DNS
     Dns               = 0x1F,
-    /// NVMe over Fabric
+    /// `NVMe` over Fabric
     NvmeOfNs          = 0x20,
     /// REST Service
     RestService       = 0x21,
@@ -223,6 +223,7 @@ pub struct DevicePathNode {
     pub header: DevicePathNodeHeader,
     /// Data (excluding header)
     pub data: [u8; 252], // Max node size is 256, minus 4 byte header
+    /// Length of valid data in the data buffer
     pub data_len: usize,
 }
 
@@ -328,8 +329,11 @@ impl DevicePathNode {
 /// PCI device path node
 #[repr(C, packed)]
 pub struct PciDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// PCI function number
     pub function: u8,
+    /// PCI device number
     pub device: u8,
 }
 
@@ -367,8 +371,11 @@ impl PciDevicePath {
 /// ACPI device path node
 #[repr(C, packed)]
 pub struct AcpiDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// Hardware ID (HID)
     pub hid: u32,
+    /// Unique ID (UID)
     pub uid: u32,
 }
 
@@ -406,20 +413,24 @@ impl AcpiDevicePath {
     }
 
     /// Encode EISA ID
+    #[must_use]
     pub fn eisa_id(vendor: &[u8; 3], product: u16) -> u32 {
-        let v1 = ((vendor[0] as u32 - 0x40) & 0x1F) << 10;
-        let v2 = ((vendor[1] as u32 - 0x40) & 0x1F) << 5;
-        let v3 = (vendor[2] as u32 - 0x40) & 0x1F;
+        let v1 = ((u32::from(vendor[0]) - 0x40) & 0x1F) << 10;
+        let v2 = ((u32::from(vendor[1]) - 0x40) & 0x1F) << 5;
+        let v3 = (u32::from(vendor[2]) - 0x40) & 0x1F;
         let vid = v1 | v2 | v3;
-        (vid << 16) | (product as u32)
+        (vid << 16) | u32::from(product)
     }
 }
 
 /// USB device path node
 #[repr(C, packed)]
 pub struct UsbDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// Parent port number
     pub parent_port: u8,
+    /// Interface number
     pub interface: u8,
 }
 
@@ -441,9 +452,13 @@ impl UsbDevicePath {
 /// SATA device path node
 #[repr(C, packed)]
 pub struct SataDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// HBA port number
     pub hba_port: u16,
+    /// Port multiplier port number
     pub port_multiplier: u16,
+    /// Logical unit number
     pub lun: u16,
 }
 
@@ -463,16 +478,20 @@ impl SataDevicePath {
     }
 }
 
-/// NVMe namespace device path node
+/// `NVMe` namespace device path node
 #[repr(C, packed)]
 pub struct NvmeNamespacePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// Namespace identifier
     pub namespace_id: u32,
+    /// IEEE Extended Unique Identifier
     pub eui64: [u8; 8],
 }
 
 impl NvmeNamespacePath {
-    /// Create NVMe namespace path
+    /// Create `NVMe` namespace path
+    #[must_use]
     pub fn new(namespace_id: u32, eui64: [u8; 8]) -> Self {
         Self {
             header: DevicePathNodeHeader::new(
@@ -489,8 +508,11 @@ impl NvmeNamespacePath {
 /// MAC address device path node
 #[repr(C, packed)]
 pub struct MacAddressPath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// MAC address (padded to 32 bytes)
     pub mac_address: [u8; 32],
+    /// Network interface type
     pub if_type: u8,
 }
 
@@ -515,14 +537,23 @@ impl MacAddressPath {
 /// IPv4 device path node
 #[repr(C, packed)]
 pub struct Ipv4DevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// Local IPv4 address
     pub local_ip: [u8; 4],
+    /// Remote IPv4 address
     pub remote_ip: [u8; 4],
+    /// Local port number
     pub local_port: u16,
+    /// Remote port number
     pub remote_port: u16,
+    /// Protocol (TCP/UDP)
     pub protocol: u16,
+    /// Static IP address flag
     pub static_ip: u8,
+    /// Gateway IPv4 address
     pub gateway: [u8; 4],
+    /// Subnet mask
     pub subnet_mask: [u8; 4],
 }
 
@@ -547,7 +578,7 @@ impl Ipv4DevicePath {
             local_port,
             remote_port,
             protocol,
-            static_ip: static_ip as u8,
+            static_ip: u8::from(static_ip),
             gateway: [0; 4],
             subnet_mask: [255, 255, 255, 0],
         }
@@ -557,21 +588,33 @@ impl Ipv4DevicePath {
 /// IPv6 device path node
 #[repr(C, packed)]
 pub struct Ipv6DevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// Local IPv6 address
     pub local_ip: [u8; 16],
+    /// Remote IPv6 address
     pub remote_ip: [u8; 16],
+    /// Local port number
     pub local_port: u16,
+    /// Remote port number
     pub remote_port: u16,
+    /// Protocol (TCP/UDP)
     pub protocol: u16,
+    /// IP address origin
     pub ip_address_origin: u8,
+    /// Prefix length
     pub prefix_length: u8,
+    /// Gateway IPv6 address
     pub gateway: [u8; 16],
 }
 
 /// URI device path node
 pub struct UriDevicePath {
+    /// Device path node header
     pub header: DevicePathNodeHeader,
+    /// URI string buffer
     pub uri: [u8; 248],
+    /// Length of the URI string
     pub uri_len: usize,
 }
 
