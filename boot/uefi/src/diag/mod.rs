@@ -125,24 +125,24 @@ impl CpuDiagnostics {
     #[cfg(target_arch = "x86_64")]
     pub fn get_vendor() -> CpuVendor {
         let result = crate::arch::x86_64::cpuid(0, 0);
-        let ebx = result.ebx;
-        let ecx = result.ecx;
-        let edx = result.edx;
+        let part1 = result.ebx;
+        let part3 = result.ecx;
+        let part2 = result.edx;
 
-        // Combine vendor string
+        // Combine vendor string (ebx + edx + ecx order)
         let vendor_bytes: [u8; 12] = [
-            ebx as u8,
-            (ebx >> 8) as u8,
-            (ebx >> 16) as u8,
-            (ebx >> 24) as u8,
-            edx as u8,
-            (edx >> 8) as u8,
-            (edx >> 16) as u8,
-            (edx >> 24) as u8,
-            ecx as u8,
-            (ecx >> 8) as u8,
-            (ecx >> 16) as u8,
-            (ecx >> 24) as u8,
+            part1 as u8,
+            (part1 >> 8) as u8,
+            (part1 >> 16) as u8,
+            (part1 >> 24) as u8,
+            part2 as u8,
+            (part2 >> 8) as u8,
+            (part2 >> 16) as u8,
+            (part2 >> 24) as u8,
+            part3 as u8,
+            (part3 >> 8) as u8,
+            (part3 >> 16) as u8,
+            (part3 >> 24) as u8,
         ];
         if &vendor_bytes == b"GenuineIntel" {
             CpuVendor::Intel
@@ -212,50 +212,50 @@ impl CpuDiagnostics {
     #[cfg(target_arch = "x86_64")]
     pub fn detect_features() -> CpuFeatures {
         let result1 = crate::arch::x86_64::cpuid(1, 0);
-        let ecx = result1.ecx;
-        let edx = result1.edx;
+        let basic_ecx = result1.ecx;
+        let standard_edx = result1.edx;
 
         let result7 = crate::arch::x86_64::cpuid(7, 0);
-        let ebx7 = result7.ebx;
-        let ecx7 = result7.ecx;
+        let extended_ebx = result7.ebx;
+        let structured_ecx = result7.ecx;
 
-        let result_ext = crate::arch::x86_64::cpuid(0x80000001, 0);
-        let edx_ext = result_ext.edx;
+        let result_ext = crate::arch::x86_64::cpuid(0x8000_0001, 0);
+        let amd_ext_caps = result_ext.edx;
 
         CpuFeatures {
             // EDX features (CPUID 1)
-            fpu: edx & (1 << 0) != 0,
-            pae: edx & (1 << 6) != 0,
-            msr: edx & (1 << 5) != 0,
-            apic: edx & (1 << 9) != 0,
-            mmx: edx & (1 << 23) != 0,
-            sse: edx & (1 << 25) != 0,
-            sse2: edx & (1 << 26) != 0,
+            fpu: standard_edx & (1 << 0) != 0,
+            pae: standard_edx & (1 << 6) != 0,
+            msr: standard_edx & (1 << 5) != 0,
+            apic: standard_edx & (1 << 9) != 0,
+            mmx: standard_edx & (1 << 23) != 0,
+            sse: standard_edx & (1 << 25) != 0,
+            sse2: standard_edx & (1 << 26) != 0,
 
             // ECX features (CPUID 1)
-            sse3: ecx & (1 << 0) != 0,
-            ssse3: ecx & (1 << 9) != 0,
-            sse4_1: ecx & (1 << 19) != 0,
-            sse4_2: ecx & (1 << 20) != 0,
-            popcnt: ecx & (1 << 23) != 0,
-            aes: ecx & (1 << 25) != 0,
-            avx: ecx & (1 << 28) != 0,
-            x2apic: ecx & (1 << 21) != 0,
-            xsave: ecx & (1 << 26) != 0,
+            sse3: basic_ecx & (1 << 0) != 0,
+            ssse3: basic_ecx & (1 << 9) != 0,
+            sse4_1: basic_ecx & (1 << 19) != 0,
+            sse4_2: basic_ecx & (1 << 20) != 0,
+            popcnt: basic_ecx & (1 << 23) != 0,
+            aes: basic_ecx & (1 << 25) != 0,
+            avx: basic_ecx & (1 << 28) != 0,
+            x2apic: basic_ecx & (1 << 21) != 0,
+            xsave: basic_ecx & (1 << 26) != 0,
 
             // EBX features (CPUID 7)
-            avx2: ebx7 & (1 << 5) != 0,
-            smep: ebx7 & (1 << 7) != 0,
-            smap: ebx7 & (1 << 20) != 0,
-            sha: ebx7 & (1 << 29) != 0,
+            avx2: extended_ebx & (1 << 5) != 0,
+            smep: extended_ebx & (1 << 7) != 0,
+            smap: extended_ebx & (1 << 20) != 0,
+            sha: extended_ebx & (1 << 29) != 0,
 
             // ECX features (CPUID 7)
-            umip: ecx7 & (1 << 2) != 0,
+            umip: structured_ecx & (1 << 2) != 0,
 
             // Extended features (CPUID 0x80000001)
-            nx: edx_ext & (1 << 20) != 0,
-            long_mode: edx_ext & (1 << 29) != 0,
-            gbyte_pages: edx_ext & (1 << 26) != 0,
+            nx: amd_ext_caps & (1 << 20) != 0,
+            long_mode: amd_ext_caps & (1 << 29) != 0,
+            gbyte_pages: amd_ext_caps & (1 << 26) != 0,
         }
     }
 
@@ -268,42 +268,42 @@ impl CpuDiagnostics {
     #[cfg(target_arch = "x86_64")]
     pub fn get_cache_info() -> CacheInfo {
         // Try to get cache info from CPUID 4
-        let mut l1d_size = 0u32;
-        let mut l1i_size = 0u32;
+        let mut data_cache_size = 0u32;
+        let mut inst_cache_size = 0u32;
         let mut l2_size = 0u32;
         let mut l3_size = 0u32;
 
         for i in 0..16 {
             let result = crate::arch::x86_64::cpuid(4, i);
-            let eax = result.eax;
-            let ebx = result.ebx;
-            let ecx = result.ecx;
+            let reg_a = result.eax;
+            let reg_b = result.ebx;
+            let reg_c = result.ecx;
 
-            let cache_type = eax & 0x1F;
+            let cache_type = reg_a & 0x1F;
             if cache_type == 0 {
                 break;
             }
 
-            let level = (eax >> 5) & 0x7;
-            let ways = ((ebx >> 22) & 0x3FF) + 1;
-            let partitions = ((ebx >> 12) & 0x3FF) + 1;
-            let line_size = (ebx & 0xFFF) + 1;
-            let sets = ecx + 1;
+            let level = (reg_a >> 5) & 0x7;
+            let ways = ((reg_b >> 22) & 0x3FF) + 1;
+            let partitions = ((reg_b >> 12) & 0x3FF) + 1;
+            let line_size = (reg_b & 0xFFF) + 1;
+            let sets = reg_c + 1;
 
             let size = ways * partitions * line_size * sets;
 
             match (level, cache_type) {
-                (1, 1) => l1d_size = size, // L1 Data
-                (1, 2) => l1i_size = size, // L1 Instruction
-                (2, 3) => l2_size = size,  // L2 Unified
-                (3, 3) => l3_size = size,  // L3 Unified
+                (1, 1) => data_cache_size = size, // L1 Data
+                (1, 2) => inst_cache_size = size, // L1 Instruction
+                (2, 3) => l2_size = size,         // L2 Unified
+                (3, 3) => l3_size = size,         // L3 Unified
                 _ => {},
             }
         }
 
         CacheInfo {
-            l1_data_kb: l1d_size / 1024,
-            l1_inst_kb: l1i_size / 1024,
+            l1_data_kb: data_cache_size / 1024,
+            l1_inst_kb: inst_cache_size / 1024,
             l2_kb: l2_size / 1024,
             l3_kb: l3_size / 1024,
         }
@@ -433,10 +433,10 @@ pub struct CacheInfo {
 
 /// Memory test patterns
 pub mod test_pattern {
-    pub const ALL_ZEROS: u64 = 0x0000000000000000;
-    pub const ALL_ONES: u64 = 0xFFFFFFFFFFFFFFFF;
-    pub const ALTERNATING_A: u64 = 0xAAAAAAAAAAAAAAAA;
-    pub const ALTERNATING_5: u64 = 0x5555555555555555;
+    pub const ALL_ZEROS: u64 = 0x0000_0000_0000_0000;
+    pub const ALL_ONES: u64 = 0xFFFF_FFFF_FFFF_FFFF;
+    pub const ALTERNATING_A: u64 = 0xAAAA_AAAA_AAAA_AAAA;
+    pub const ALTERNATING_5: u64 = 0x5555_5555_5555_5555;
     pub const WALKING_ONE: [u64; 64] = {
         let mut arr = [0u64; 64];
         let mut i = 0;
@@ -564,7 +564,7 @@ impl MemoryTest {
         result.walking = Self::test_walking_ones(start, count);
 
         // Random
-        result.random = Self::test_random(start, count, 0x12345678DEADBEEF);
+        result.random = Self::test_random(start, count, 0x1234_5678_DEAD_BEEF);
 
         result
     }
@@ -584,8 +584,8 @@ impl SimpleRng {
         // LCG parameters from Numerical Recipes
         self.state = self
             .state
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         self.state
     }
 }
@@ -814,7 +814,7 @@ pub fn crc32(data: &[u8]) -> u32 {
             let mut j = 0;
             while j < 8 {
                 if c & 1 != 0 {
-                    c = 0xEDB88320 ^ (c >> 1);
+                    c = 0xEDB8_8320 ^ (c >> 1);
                 } else {
                     c >>= 1;
                 }
@@ -826,7 +826,7 @@ pub fn crc32(data: &[u8]) -> u32 {
         table
     };
 
-    let mut crc = 0xFFFFFFFFu32;
+    let mut crc = 0xFFFF_FFFF_u32;
 
     for &byte in data {
         let index = ((crc ^ byte as u32) & 0xFF) as usize;
@@ -891,14 +891,14 @@ pub fn read_tsc() -> u64 {
 pub fn estimate_tsc_frequency() -> u64 {
     // Try to get from CPUID if available
     let result = crate::arch::x86_64::cpuid(0x15, 0);
-    let eax = result.eax;
-    let ebx = result.ebx;
-    let ecx = result.ecx;
+    let tsc_ratio_denom = result.eax;
+    let tsc_ratio_numer = result.ebx;
+    let crystal_freq = result.ecx;
 
-    if eax != 0 && ebx != 0 {
+    if tsc_ratio_denom != 0 && tsc_ratio_numer != 0 {
         // TSC frequency = (core crystal clock * ebx) / eax
-        if ecx != 0 {
-            return (ecx as u64 * ebx as u64) / eax as u64;
+        if crystal_freq != 0 {
+            return (crystal_freq as u64 * tsc_ratio_numer as u64) / tsc_ratio_denom as u64;
         }
     }
 
