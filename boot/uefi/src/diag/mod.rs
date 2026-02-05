@@ -27,12 +27,14 @@ pub enum TestResult {
 }
 
 impl TestResult {
-    /// Is success
+    /// Returns `true` if the test result indicates success.
+    #[must_use]
     pub fn is_success(&self) -> bool {
         matches!(self, Self::Pass | Self::Skip | Self::NotSupported)
     }
 
-    /// Is failure
+    /// Returns `true` if the test result indicates failure.
+    #[must_use]
     pub fn is_failure(&self) -> bool {
         matches!(self, Self::Fail | Self::Error | Self::Timeout)
     }
@@ -67,7 +69,8 @@ pub struct DiagnosticReport {
 }
 
 impl DiagnosticReport {
-    /// Create passed report
+    /// Creates a diagnostic report indicating a passed test.
+    #[must_use]
     pub fn pass(name: &'static str, duration_us: u64) -> Self {
         Self {
             name,
@@ -78,7 +81,8 @@ impl DiagnosticReport {
         }
     }
 
-    /// Create failed report
+    /// Creates a diagnostic report indicating a failed test.
+    #[must_use]
     pub fn fail(name: &'static str, details: &'static str) -> Self {
         Self {
             name,
@@ -89,7 +93,8 @@ impl DiagnosticReport {
         }
     }
 
-    /// Create skipped report
+    /// Creates a diagnostic report indicating a skipped test.
+    #[must_use]
     pub fn skip(name: &'static str, reason: &'static str) -> Self {
         Self {
             name,
@@ -105,11 +110,12 @@ impl DiagnosticReport {
 // CPU DIAGNOSTICS
 // =============================================================================
 
-/// CPU features to test
+/// CPU diagnostic utilities for testing CPU features and capabilities.
 pub struct CpuDiagnostics;
 
 impl CpuDiagnostics {
-    /// Run all CPU tests
+    /// Runs all CPU diagnostic tests and returns the results.
+    #[must_use]
     pub fn run_all() -> CpuTestResults {
         CpuTestResults {
             vendor: Self::get_vendor(),
@@ -121,8 +127,9 @@ impl CpuDiagnostics {
         }
     }
 
-    /// Get CPU vendor
+    /// Gets the CPU vendor identification.
     #[cfg(target_arch = "x86_64")]
+    #[must_use]
     pub fn get_vendor() -> CpuVendor {
         let result = crate::arch::x86_64::cpuid(0, 0);
         let part1 = result.ebx;
@@ -153,13 +160,16 @@ impl CpuDiagnostics {
         }
     }
 
+    /// Gets the CPU vendor identification.
     #[cfg(not(target_arch = "x86_64"))]
+    #[must_use]
     pub fn get_vendor() -> CpuVendor {
         CpuVendor::Unknown
     }
 
-    /// Get CPU family
+    /// Gets the CPU family number.
     #[cfg(target_arch = "x86_64")]
+    #[must_use]
     pub fn get_family() -> u8 {
         let result = crate::arch::x86_64::cpuid(1, 0);
         let eax = result.eax;
@@ -174,13 +184,16 @@ impl CpuDiagnostics {
         }
     }
 
+    /// Gets the CPU family number.
     #[cfg(not(target_arch = "x86_64"))]
+    #[must_use]
     pub fn get_family() -> u8 {
         0
     }
 
-    /// Get CPU model
+    /// Gets the CPU model number.
     #[cfg(target_arch = "x86_64")]
+    #[must_use]
     pub fn get_model() -> u8 {
         let result = crate::arch::x86_64::cpuid(1, 0);
         let eax = result.eax;
@@ -191,25 +204,31 @@ impl CpuDiagnostics {
         (ext_model << 4) | base_model
     }
 
+    /// Gets the CPU model number.
     #[cfg(not(target_arch = "x86_64"))]
+    #[must_use]
     pub fn get_model() -> u8 {
         0
     }
 
-    /// Get CPU stepping
+    /// Gets the CPU stepping revision.
     #[cfg(target_arch = "x86_64")]
+    #[must_use]
     pub fn get_stepping() -> u8 {
         let result = crate::arch::x86_64::cpuid(1, 0);
         (result.eax & 0xF) as u8
     }
 
+    /// Gets the CPU stepping revision.
     #[cfg(not(target_arch = "x86_64"))]
+    #[must_use]
     pub fn get_stepping() -> u8 {
         0
     }
 
-    /// Detect CPU features
+    /// Detects available CPU features.
     #[cfg(target_arch = "x86_64")]
+    #[must_use]
     pub fn detect_features() -> CpuFeatures {
         let result1 = crate::arch::x86_64::cpuid(1, 0);
         let basic_ecx = result1.ecx;
@@ -259,13 +278,16 @@ impl CpuDiagnostics {
         }
     }
 
+    /// Detects available CPU features.
     #[cfg(not(target_arch = "x86_64"))]
+    #[must_use]
     pub fn detect_features() -> CpuFeatures {
         CpuFeatures::default()
     }
 
-    /// Get cache information
+    /// Gets CPU cache information.
     #[cfg(target_arch = "x86_64")]
+    #[must_use]
     pub fn get_cache_info() -> CacheInfo {
         // Try to get cache info from CPUID 4
         let mut data_cache_size = 0u32;
@@ -309,12 +331,15 @@ impl CpuDiagnostics {
         }
     }
 
+    /// Gets CPU cache information.
     #[cfg(not(target_arch = "x86_64"))]
+    #[must_use]
     pub fn get_cache_info() -> CacheInfo {
         CacheInfo::default()
     }
 
-    /// Test CPUID instruction
+    /// Tests the CPUID instruction availability.
+    #[must_use]
     pub fn test_cpuid() -> DiagnosticReport {
         #[cfg(target_arch = "x86_64")]
         {
@@ -331,7 +356,8 @@ impl CpuDiagnostics {
         DiagnosticReport::skip("CPUID", "Not x86_64")
     }
 
-    /// Test long mode support
+    /// Tests long mode (64-bit) support.
+    #[must_use]
     pub fn test_long_mode() -> DiagnosticReport {
         let features = Self::detect_features();
 
@@ -342,7 +368,8 @@ impl CpuDiagnostics {
         }
     }
 
-    /// Test NX bit support
+    /// Tests NX (No-Execute) bit support.
+    #[must_use]
     pub fn test_nx_bit() -> DiagnosticReport {
         let features = Self::detect_features();
 
@@ -354,11 +381,14 @@ impl CpuDiagnostics {
     }
 }
 
-/// CPU vendor
+/// CPU vendor identification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CpuVendor {
+    /// Intel Corporation.
     Intel,
+    /// Advanced Micro Devices.
     Amd,
+    /// Unknown or unsupported vendor.
     Unknown,
 }
 
@@ -372,58 +402,88 @@ impl fmt::Display for CpuVendor {
     }
 }
 
-/// CPU test results
+/// Results from CPU diagnostic tests.
 pub struct CpuTestResults {
+    /// CPU vendor identification.
     pub vendor: CpuVendor,
+    /// CPU family number.
     pub family: u8,
+    /// CPU model number.
     pub model: u8,
+    /// CPU stepping revision.
     pub stepping: u8,
+    /// Detected CPU features.
     pub features: CpuFeatures,
+    /// CPU cache information.
     pub cache_info: CacheInfo,
 }
 
-/// CPU features
+/// Detected CPU feature flags.
 #[derive(Default)]
 pub struct CpuFeatures {
-    // Basic features
+    /// Floating Point Unit on-chip.
     pub fpu: bool,
+    /// Physical Address Extension.
     pub pae: bool,
+    /// Model Specific Registers.
     pub msr: bool,
+    /// Advanced Programmable Interrupt Controller.
     pub apic: bool,
+    /// MMX instruction set.
     pub mmx: bool,
+    /// Streaming SIMD Extensions.
     pub sse: bool,
+    /// Streaming SIMD Extensions 2.
     pub sse2: bool,
 
-    // Extended features
+    /// Streaming SIMD Extensions 3.
     pub sse3: bool,
+    /// Supplemental Streaming SIMD Extensions 3.
     pub ssse3: bool,
+    /// Streaming SIMD Extensions 4.1.
     pub sse4_1: bool,
+    /// Streaming SIMD Extensions 4.2.
     pub sse4_2: bool,
+    /// Population count instruction.
     pub popcnt: bool,
+    /// AES instruction set.
     pub aes: bool,
+    /// Advanced Vector Extensions.
     pub avx: bool,
+    /// Advanced Vector Extensions 2.
     pub avx2: bool,
+    /// x2APIC support.
     pub x2apic: bool,
+    /// XSAVE/XRSTOR feature.
     pub xsave: bool,
 
-    // Security features
+    /// Supervisor Mode Execution Prevention.
     pub smep: bool,
+    /// Supervisor Mode Access Prevention.
     pub smap: bool,
+    /// SHA instruction extensions.
     pub sha: bool,
+    /// User-Mode Instruction Prevention.
     pub umip: bool,
 
-    // 64-bit features
+    /// No-Execute bit support.
     pub nx: bool,
+    /// Long mode (64-bit) support.
     pub long_mode: bool,
+    /// 1 GiB page support.
     pub gbyte_pages: bool,
 }
 
-/// Cache information
+/// CPU cache size information.
 #[derive(Default)]
 pub struct CacheInfo {
+    /// L1 data cache size in kilobytes.
     pub l1_data_kb: u32,
+    /// L1 instruction cache size in kilobytes.
     pub l1_inst_kb: u32,
+    /// L2 cache size in kilobytes.
     pub l2_kb: u32,
+    /// L3 cache size in kilobytes.
     pub l3_kb: u32,
 }
 
@@ -431,12 +491,17 @@ pub struct CacheInfo {
 // MEMORY DIAGNOSTICS
 // =============================================================================
 
-/// Memory test patterns
+/// Memory test patterns for memory diagnostics.
 pub mod test_pattern {
+    /// All bits set to zero.
     pub const ALL_ZEROS: u64 = 0x0000_0000_0000_0000;
+    /// All bits set to one.
     pub const ALL_ONES: u64 = 0xFFFF_FFFF_FFFF_FFFF;
+    /// Alternating bits pattern (0xAA...).
     pub const ALTERNATING_A: u64 = 0xAAAA_AAAA_AAAA_AAAA;
+    /// Alternating bits pattern (0x55...).
     pub const ALTERNATING_5: u64 = 0x5555_5555_5555_5555;
+    /// Walking ones pattern array.
     pub const WALKING_ONE: [u64; 64] = {
         let mut arr = [0u64; 64];
         let mut i = 0;
@@ -448,11 +513,12 @@ pub mod test_pattern {
     };
 }
 
-/// Memory test
+/// Memory testing utilities for verifying memory integrity.
 pub struct MemoryTest;
 
 impl MemoryTest {
-    /// Test memory range with pattern
+    /// Tests a memory range by writing and verifying a pattern.
+    #[must_use]
     pub fn test_pattern(start: *mut u64, count: usize, pattern: u64) -> TestResult {
         // Write pattern
         for i in 0..count {
@@ -475,7 +541,8 @@ impl MemoryTest {
         TestResult::Pass
     }
 
-    /// Walking ones test
+    /// Performs a walking ones test on the memory range.
+    #[must_use]
     pub fn test_walking_ones(start: *mut u64, count: usize) -> TestResult {
         for &pattern in &test_pattern::WALKING_ONE {
             if Self::test_pattern(start, count.min(1024), pattern) != TestResult::Pass {
@@ -485,7 +552,8 @@ impl MemoryTest {
         TestResult::Pass
     }
 
-    /// Address test (checks for addressing issues)
+    /// Performs an address test to check for addressing issues.
+    #[must_use]
     pub fn test_address(start: *mut u64, count: usize) -> TestResult {
         // Write addresses
         for i in 0..count {
@@ -509,7 +577,8 @@ impl MemoryTest {
         TestResult::Pass
     }
 
-    /// Random pattern test (using simple LCG)
+    /// Performs a random pattern test using a linear congruential generator.
+    #[must_use]
     pub fn test_random(start: *mut u64, count: usize, seed: u64) -> TestResult {
         let mut rng = SimpleRng::new(seed);
 
@@ -535,7 +604,8 @@ impl MemoryTest {
         TestResult::Pass
     }
 
-    /// Quick memory test (fast, covers main patterns)
+    /// Performs a quick memory test covering the main patterns.
+    #[must_use]
     pub fn quick_test(start: *mut u64, size_bytes: usize) -> MemoryTestResult {
         let count = size_bytes / 8;
         let mut result = MemoryTestResult::new();
@@ -555,7 +625,8 @@ impl MemoryTest {
         result
     }
 
-    /// Full memory test (thorough, slower)
+    /// Performs a thorough memory test including all patterns.
+    #[must_use]
     pub fn full_test(start: *mut u64, size_bytes: usize) -> MemoryTestResult {
         let count = size_bytes / 8;
         let mut result = Self::quick_test(start, size_bytes);
@@ -570,8 +641,9 @@ impl MemoryTest {
     }
 }
 
-/// Simple RNG for testing (LCG)
+/// Simple random number generator using Linear Congruential Generator.
 struct SimpleRng {
+    /// Current state of the generator.
     state: u64,
 }
 
@@ -590,14 +662,20 @@ impl SimpleRng {
     }
 }
 
-/// Memory test result
+/// Results from memory diagnostic tests.
 #[derive(Default)]
 pub struct MemoryTestResult {
+    /// Result of the all-zeros pattern test.
     pub zeros: TestResult,
+    /// Result of the all-ones pattern test.
     pub ones: TestResult,
+    /// Result of the alternating bits pattern test.
     pub alternating: TestResult,
+    /// Result of the address verification test.
     pub address: TestResult,
+    /// Result of the walking ones test.
     pub walking: TestResult,
+    /// Result of the random pattern test.
     pub random: TestResult,
 }
 
@@ -613,7 +691,8 @@ impl MemoryTestResult {
         }
     }
 
-    /// All tests passed
+    /// Returns `true` if all tests passed.
+    #[must_use]
     pub fn all_passed(&self) -> bool {
         self.zeros.is_success()
             && self.ones.is_success()
@@ -623,7 +702,8 @@ impl MemoryTestResult {
             && self.random.is_success()
     }
 
-    /// Count failures
+    /// Counts the number of failed tests.
+    #[must_use]
     pub fn failure_count(&self) -> usize {
         let mut count = 0;
         if self.zeros.is_failure() {
@@ -652,35 +732,36 @@ impl MemoryTestResult {
 // BOOT DIAGNOSTICS
 // =============================================================================
 
-/// Boot stage for tracking progress
+/// Boot stage enumeration for tracking boot progress.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BootStage {
-    /// Entry point reached
+    /// Entry point reached.
     Entry            = 0,
-    /// UEFI services initialized
+    /// UEFI services initialized.
     UefiInit         = 1,
-    /// Console initialized
+    /// Console initialized.
     Console          = 2,
-    /// Memory map obtained
+    /// Memory map obtained.
     MemoryMap        = 3,
-    /// Graphics initialized
+    /// Graphics initialized.
     Graphics         = 4,
-    /// Configuration loaded
+    /// Configuration loaded.
     Config           = 5,
-    /// Kernel found
+    /// Kernel found.
     KernelFound      = 6,
-    /// Kernel loaded
+    /// Kernel loaded.
     KernelLoaded     = 7,
-    /// Kernel verified
+    /// Kernel verified.
     KernelVerified   = 8,
-    /// Exit boot services
+    /// Exit boot services.
     ExitBootServices = 9,
-    /// Jumping to kernel
+    /// Jumping to kernel.
     JumpToKernel     = 10,
 }
 
 impl BootStage {
-    /// Get stage name
+    /// Returns the human-readable name of this boot stage.
+    #[must_use]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Entry => "Entry",
@@ -697,7 +778,8 @@ impl BootStage {
         }
     }
 
-    /// Get progress percentage
+    /// Returns the progress percentage for this boot stage.
+    #[must_use]
     pub fn progress(&self) -> u8 {
         match self {
             Self::Entry => 0,
@@ -715,20 +797,21 @@ impl BootStage {
     }
 }
 
-/// Boot progress tracker
+/// Tracks boot progress through various stages.
 pub struct BootProgress {
-    /// Current stage
+    /// Current boot stage.
     current_stage: BootStage,
-    /// Stage timestamps (if available)
+    /// Timestamps for each stage (if available).
     stage_times: [u64; 11],
-    /// Errors encountered
+    /// Errors encountered during boot.
     errors: [Option<BootError>; 16],
-    /// Error count
+    /// Number of errors recorded.
     error_count: usize,
 }
 
 impl BootProgress {
-    /// Create new tracker
+    /// Creates a new boot progress tracker.
+    #[must_use]
     pub const fn new() -> Self {
         const NONE_ERROR: Option<BootError> = None;
 
@@ -740,13 +823,13 @@ impl BootProgress {
         }
     }
 
-    /// Advance to stage
+    /// Advances to the specified boot stage.
     pub fn advance(&mut self, stage: BootStage, timestamp: u64) {
         self.current_stage = stage;
         self.stage_times[stage as usize] = timestamp;
     }
 
-    /// Record error
+    /// Records an error that occurred during boot.
     pub fn record_error(&mut self, error: BootError) {
         if self.error_count < 16 {
             self.errors[self.error_count] = Some(error);
@@ -754,42 +837,46 @@ impl BootProgress {
         }
     }
 
-    /// Get current stage
+    /// Returns the current boot stage.
+    #[must_use]
     pub fn current_stage(&self) -> BootStage {
         self.current_stage
     }
 
-    /// Get progress percentage
+    /// Returns the current progress percentage.
+    #[must_use]
     pub fn progress(&self) -> u8 {
         self.current_stage.progress()
     }
 
-    /// Has errors
+    /// Returns `true` if any errors have been recorded.
+    #[must_use]
     pub fn has_errors(&self) -> bool {
         self.error_count > 0
     }
 
-    /// Get errors
+    /// Returns an iterator over the recorded errors.
     pub fn errors(&self) -> impl Iterator<Item = &BootError> {
         self.errors.iter().filter_map(|e| e.as_ref())
     }
 }
 
-/// Boot error
+/// Represents an error that occurred during boot.
 #[derive(Debug, Clone)]
 pub struct BootError {
-    /// Error stage
+    /// The boot stage where the error occurred.
     pub stage: BootStage,
-    /// Error code
+    /// Numeric error code.
     pub code: u32,
-    /// Error message
+    /// Human-readable error message.
     pub message: &'static str,
-    /// Is fatal
+    /// Whether this error is fatal.
     pub fatal: bool,
 }
 
 impl BootError {
-    /// Create new error
+    /// Creates a new boot error.
+    #[must_use]
     pub fn new(stage: BootStage, code: u32, message: &'static str, fatal: bool) -> Self {
         Self {
             stage,
@@ -804,7 +891,8 @@ impl BootError {
 // CHECKSUM UTILITIES
 // =============================================================================
 
-/// Calculate CRC32
+/// Calculates the CRC32 checksum of the given data.
+#[must_use]
 pub fn crc32(data: &[u8]) -> u32 {
     const CRC32_TABLE: [u32; 256] = {
         let mut table = [0u32; 256];
@@ -836,7 +924,8 @@ pub fn crc32(data: &[u8]) -> u32 {
     !crc
 }
 
-/// Calculate Adler-32
+/// Calculates the Adler-32 checksum of the given data.
+#[must_use]
 pub fn adler32(data: &[u8]) -> u32 {
     const MOD_ADLER: u32 = 65521;
 
@@ -851,12 +940,14 @@ pub fn adler32(data: &[u8]) -> u32 {
     (b << 16) | a
 }
 
-/// Simple checksum (XOR all bytes)
+/// Calculates a simple XOR checksum of all bytes.
+#[must_use]
 pub fn simple_checksum(data: &[u8]) -> u8 {
     data.iter().fold(0u8, |acc, &b| acc ^ b)
 }
 
-/// Sum-based checksum
+/// Calculates a sum-based checksum (two's complement).
+#[must_use]
 pub fn sum_checksum(data: &[u8]) -> u8 {
     let sum: u8 = data.iter().fold(0u8, |acc, &b| acc.wrapping_add(b));
     (!sum).wrapping_add(1)
@@ -866,8 +957,9 @@ pub fn sum_checksum(data: &[u8]) -> u8 {
 // TIMING UTILITIES
 // =============================================================================
 
-/// Read TSC (Time Stamp Counter)
+/// Reads the Time Stamp Counter.
 #[cfg(target_arch = "x86_64")]
+#[must_use]
 pub fn read_tsc() -> u64 {
     let (low, high): (u32, u32);
     unsafe {
@@ -881,14 +973,15 @@ pub fn read_tsc() -> u64 {
     ((high as u64) << 32) | (low as u64)
 }
 
+/// Reads the Time Stamp Counter.
 #[cfg(not(target_arch = "x86_64"))]
+#[must_use]
 pub fn read_tsc() -> u64 {
     0
 }
 
-/// Estimate TSC frequency (approximate)
-#[cfg(target_arch = "x86_64")]
-pub fn estimate_tsc_frequency() -> u64 {
+/// Estimates the TSC frequency (approximate).
+#[cfg(target_arch = "x86_64")]#[must_use]pub fn estimate_tsc_frequency() -> u64 {
     // Try to get from CPUID if available
     let result = crate::arch::x86_64::cpuid(0x15, 0);
     let tsc_ratio_denom = result.eax;
@@ -906,12 +999,14 @@ pub fn estimate_tsc_frequency() -> u64 {
     2_500_000_000
 }
 
+/// Estimates the TSC frequency (approximate).
 #[cfg(not(target_arch = "x86_64"))]
+#[must_use]
 pub fn estimate_tsc_frequency() -> u64 {
     1_000_000_000 // 1 GHz default
 }
 
-/// Simple delay using TSC
+/// Performs a simple delay using the TSC.
 pub fn tsc_delay(cycles: u64) {
     let start = read_tsc();
     while read_tsc() - start < cycles {
