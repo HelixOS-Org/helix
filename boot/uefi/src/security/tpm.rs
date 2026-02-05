@@ -238,25 +238,33 @@ pub mod event_type {
 /// TPM2B structure (size + data)
 #[derive(Debug, Clone)]
 pub struct Tpm2bDigest {
+    /// Size of the buffer in bytes
     pub size: u16,
+    /// Data buffer
     pub buffer: Vec<u8>,
 }
 
 impl Tpm2bDigest {
+    /// Create a new TPM2B digest from data
+    #[must_use]
     pub fn new(data: &[u8]) -> Self {
         Self {
-            size: data.len() as u16,
+            size: u16::try_from(data.len()).unwrap_or(u16::MAX),
             buffer: data.to_vec(),
         }
     }
 
-    pub fn empty() -> Self {
+    /// Create an empty TPM2B digest
+    #[must_use]
+    pub const fn empty() -> Self {
         Self {
             size: 0,
             buffer: Vec::new(),
         }
     }
 
+    /// Serialize to bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(&self.size.to_be_bytes());
@@ -264,6 +272,8 @@ impl Tpm2bDigest {
         result
     }
 
+    /// Parse from bytes, returns the digest and number of bytes consumed
+    #[must_use]
     pub fn from_bytes(data: &[u8]) -> Option<(Self, usize)> {
         if data.len() < 2 {
             return None;
@@ -274,7 +284,7 @@ impl Tpm2bDigest {
         }
         Some((
             Self {
-                size: size as u16,
+                size: u16::try_from(size).unwrap_or(u16::MAX),
                 buffer: data[2..2 + size].to_vec(),
             },
             2 + size,
@@ -282,29 +292,36 @@ impl Tpm2bDigest {
     }
 }
 
-/// TPML_DIGEST_VALUES
+/// TPML_DIGEST_VALUES - list of digest values
 #[derive(Debug, Clone)]
 pub struct TpmlDigestValues {
+    /// Number of digests
     pub count: u32,
+    /// Digest values
     pub digests: Vec<TpmtHa>,
 }
 
 impl TpmlDigestValues {
-    pub fn new() -> Self {
+    /// Create a new empty digest list
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             count: 0,
             digests: Vec::new(),
         }
     }
 
+    /// Add a digest to the list
     pub fn add(&mut self, alg: u16, digest: &[u8]) {
         self.digests.push(TpmtHa {
             hash_alg: alg,
             digest: digest.to_vec(),
         });
-        self.count = self.digests.len() as u32;
+        self.count = u32::try_from(self.digests.len()).unwrap_or(u32::MAX);
     }
 
+    /// Serialize to bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(&self.count.to_be_bytes());
@@ -321,14 +338,18 @@ impl Default for TpmlDigestValues {
     }
 }
 
-/// TPMT_HA
+/// TPMT_HA - hash algorithm and digest
 #[derive(Debug, Clone)]
 pub struct TpmtHa {
+    /// Hash algorithm ID
     pub hash_alg: u16,
+    /// Digest value
     pub digest: Vec<u8>,
 }
 
 impl TpmtHa {
+    /// Serialize to bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(&self.hash_alg.to_be_bytes());
@@ -336,13 +357,14 @@ impl TpmtHa {
         result
     }
 
-    pub fn digest_size(alg: u16) -> usize {
+    /// Get the digest size for an algorithm
+    #[must_use]
+    pub const fn digest_size(alg: u16) -> usize {
         match alg {
             algorithm::TPM_ALG_SHA1 => 20,
-            algorithm::TPM_ALG_SHA256 => 32,
+            algorithm::TPM_ALG_SHA256 | algorithm::TPM_ALG_SM3_256 => 32,
             algorithm::TPM_ALG_SHA384 => 48,
             algorithm::TPM_ALG_SHA512 => 64,
-            algorithm::TPM_ALG_SM3_256 => 32,
             _ => 0,
         }
     }
