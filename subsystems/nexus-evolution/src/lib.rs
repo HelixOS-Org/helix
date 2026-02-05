@@ -82,98 +82,94 @@ pub use {
 // GENETIC OPTIMIZATION (Low Risk)
 // ============================================================================
 
-/// Genetic and evolutionary algorithms
-pub mod genetic {
-    //! Evolutionary optimization of kernel parameters
-}
+/// Genetic and evolutionary algorithms.
+///
+/// Evolutionary optimization of kernel parameters.
+pub mod genetic {}
 
-/// Swarm intelligence algorithms
-pub mod swarm {
-    //! Particle swarm, ant colony optimization
-}
+/// Swarm intelligence algorithms.
+///
+/// Particle swarm, ant colony optimization.
+pub mod swarm {}
 
-/// Game theoretic optimization
-pub mod game_theory {
-    //! Nash equilibrium, mechanism design
-}
+/// Game theoretic optimization.
+///
+/// Nash equilibrium, mechanism design.
+pub mod game_theory {}
 
 // ============================================================================
 // CODE GENERATION (High Risk - requires sandbox)
 // ============================================================================
 
-/// Runtime code generation
+/// Runtime code generation.
+///
+/// JIT compilation, bytecode synthesis.
 #[cfg(feature = "dangerous")]
-pub mod codegen {
-    //! JIT compilation, bytecode synthesis
-}
+pub mod codegen {}
 
-/// Neural Architecture Search
+/// Neural Architecture Search.
+///
+/// Automatic neural network design.
 #[cfg(feature = "dangerous")]
-pub mod nas {
-    //! Automatic neural network design
-}
+pub mod nas {}
 
 // ============================================================================
 // SELF-MODIFICATION (Extreme Risk - requires sandbox + audit)
 // ============================================================================
 
-/// Self-modification capabilities
+/// Self-modification capabilities.
+///
+/// Runtime kernel code modification.
 #[cfg(feature = "dangerous")]
-pub mod selfmod {
-    //! Runtime kernel code modification
-}
+pub mod selfmod {}
 
-/// Kernel morphology adaptation
+/// Kernel morphology adaptation.
+///
+/// Structure and architecture evolution.
 #[cfg(feature = "dangerous")]
-pub mod morpho {
-    //! Structure and architecture evolution
-}
+pub mod morpho {}
 
 // ============================================================================
 // DISTRIBUTED EVOLUTION
 // ============================================================================
 
-/// Distributed/federated learning
-pub mod distributed {
-    //! Cross-node evolution coordination
-}
+/// Distributed/federated learning.
+///
+/// Cross-node evolution coordination.
+pub mod distributed {}
 
-/// Quantum-inspired optimization
-pub mod quantum {
-    //! QAOA, quantum annealing simulation
-}
+/// Quantum-inspired optimization.
+///
+/// QAOA, quantum annealing simulation.
+pub mod quantum {}
 
 // ============================================================================
 // FORMAL METHODS
 // ============================================================================
 
-/// Formal verification
-pub mod formal {
-    //! Proof checking, invariant verification
-}
+/// Formal verification.
+///
+/// Proof checking, invariant verification.
+pub mod formal {}
 
-/// Symbolic AI
-pub mod symbolic {
-    //! Logic programming, unification
-}
+/// Symbolic AI.
+///
+/// Logic programming, unification.
+pub mod symbolic {}
 
-/// Zero-shot learning
-pub mod zeroshot {
-    //! Generalization without examples
-}
+/// Zero-shot learning.
+///
+/// Generalization without examples.
+pub mod zeroshot {}
 
 // ============================================================================
 // SANDBOX (Always Available)
 // ============================================================================
 
-/// Sandbox for dangerous operations
+/// Sandbox for dangerous operations.
+///
+/// Permission guards and audit logging.
 pub mod sandbox {
-    //! Permission guards and audit logging
-
-    extern crate alloc;
-
-    use alloc::string::String;
-    use alloc::vec::Vec;
     use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
     /// Sandbox capability
@@ -195,14 +191,19 @@ pub mod sandbox {
 
     /// Global sandbox state
     static ENABLED: AtomicBool = AtomicBool::new(false);
-    static OP_COUNT: AtomicU64 = AtomicU64::new(0);
+    static _OP_COUNT: AtomicU64 = AtomicU64::new(0);
 
     /// Check if sandbox is enabled
     pub fn is_enabled() -> bool {
         ENABLED.load(Ordering::SeqCst)
     }
 
-    /// Enable sandbox (unsafe)
+    /// Enable sandbox.
+    ///
+    /// # Safety
+    ///
+    /// Enabling the sandbox must be done in a controlled context.
+    /// The caller must ensure that sandbox capabilities are properly managed.
     pub unsafe fn enable() {
         ENABLED.store(true, Ordering::SeqCst);
     }
