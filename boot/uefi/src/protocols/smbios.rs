@@ -152,7 +152,7 @@ impl SmbiosTables {
         let mut ptr = self.table_address;
 
         while ptr < end {
-            let header = &*ptr.0.cast::<SmbiosHeader>();
+            let header = &*(ptr.0 as *const SmbiosHeader);
 
             // End of table marker
             if header.structure_type == 127 {
@@ -192,20 +192,17 @@ impl SmbiosTables {
     /// # Safety
     ///
     /// The memory range from `start` to `end` must be valid and readable.
-    unsafe fn parse_strings(
-        start: PhysicalAddress,
-        end: PhysicalAddress,
-    ) -> Vec<String> {
+    unsafe fn parse_strings(start: PhysicalAddress, end: PhysicalAddress) -> Vec<String> {
         let mut strings = Vec::new();
         let mut ptr = start;
 
         while ptr < end {
-            let byte = *ptr.0.cast::<u8>();
+            let byte = *(ptr.0 as *const u8);
 
             if byte == 0 {
                 ptr += 1;
                 // Double null = end of strings
-                if ptr < end && *ptr.0.cast::<u8>() == 0 {
+                if ptr < end && *(ptr.0 as *const u8) == 0 {
                     break;
                 }
                 continue;
@@ -213,12 +210,12 @@ impl SmbiosTables {
 
             // Find end of string
             let mut str_end = ptr;
-            while str_end < end && *str_end.0.cast::<u8>() != 0 {
+            while str_end < end && *(str_end.0 as *const u8) != 0 {
                 str_end += 1;
             }
 
             let len = (str_end - ptr) as usize;
-            let slice = core::slice::from_raw_parts(ptr.0.cast::<u8>(), len);
+            let slice = core::slice::from_raw_parts(ptr.0 as *const u8, len);
             if let Ok(s) = core::str::from_utf8(slice) {
                 strings.push(String::from(s));
             }
@@ -234,17 +231,14 @@ impl SmbiosTables {
     /// # Safety
     ///
     /// The memory range from `start` to `end` must be valid and readable.
-    unsafe fn calculate_strings_length(
-        start: PhysicalAddress,
-        end: PhysicalAddress,
-    ) -> usize {
+    unsafe fn calculate_strings_length(start: PhysicalAddress, end: PhysicalAddress) -> usize {
         let mut ptr = start;
 
         while ptr < end {
-            let byte = *ptr.0.cast::<u8>();
+            let byte = *(ptr.0 as *const u8);
             ptr += 1;
 
-            if byte == 0 && ptr < end && *ptr.0.cast::<u8>() == 0 {
+            if byte == 0 && ptr < end && *(ptr.0 as *const u8) == 0 {
                 ptr += 1;
                 break;
             }
