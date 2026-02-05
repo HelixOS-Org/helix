@@ -12,6 +12,7 @@
 //! - **Quantum Parallel Tempering**: Multi-replica exchange
 
 #![allow(dead_code)]
+#![allow(clippy::excessive_nesting)]
 
 extern crate alloc;
 
