@@ -21,11 +21,13 @@ pub struct Capsule {
 
 impl Capsule {
     /// Create a new capsule
+    #[must_use]
     pub fn new(guid: Guid, flags: CapsuleFlags, data: alloc::vec::Vec<u8>) -> Self {
         Self { guid, flags, data }
     }
 
     /// Create a firmware update capsule
+    #[must_use]
     pub fn firmware_update(data: alloc::vec::Vec<u8>) -> Self {
         Self::new(
             CAPSULE_GUID_FIRMWARE_UPDATE,
@@ -35,11 +37,13 @@ impl Capsule {
     }
 
     /// Get capsule size (header + data)
+    #[must_use]
     pub fn size(&self) -> usize {
         core::mem::size_of::<CapsuleHeader>() + self.data.len()
     }
 
     /// Build capsule header
+    #[must_use]
     pub fn build_header(&self) -> CapsuleHeader {
         CapsuleHeader {
             capsule_guid: self.guid,
@@ -60,7 +64,8 @@ impl Capsule {
     }
 
     /// Check if capsule will require reset
-    pub fn requires_reset(&self) -> bool {
+    #[must_use]
+    pub const fn requires_reset(&self) -> bool {
         self.flags.contains(CapsuleFlags::INITIATE_RESET)
     }
 }
@@ -75,30 +80,34 @@ pub struct CapsuleFlags(u32);
 
 impl CapsuleFlags {
     /// Persist capsule across reset
-    pub const PERSIST_ACROSS_RESET: Self = Self(0x00010000);
+    pub const PERSIST_ACROSS_RESET: Self = Self(0x0001_0000);
 
     /// Populate system table with capsule on reset
-    pub const POPULATE_SYSTEM_TABLE: Self = Self(0x00020000);
+    pub const POPULATE_SYSTEM_TABLE: Self = Self(0x0002_0000);
 
     /// Initiate reset after processing
-    pub const INITIATE_RESET: Self = Self(0x00040000);
+    pub const INITIATE_RESET: Self = Self(0x0004_0000);
 
     /// Empty flags
+    #[must_use]
     pub const fn empty() -> Self {
         Self(0)
     }
 
     /// Create from raw bits
+    #[must_use]
     pub const fn from_bits(bits: u32) -> Self {
         Self(bits)
     }
 
     /// Get raw bits
+    #[must_use]
     pub const fn bits(&self) -> u32 {
         self.0
     }
 
     /// Check if contains flag
+    #[must_use]
     pub const fn contains(&self, other: Self) -> bool {
         (self.0 & other.0) == other.0
     }
@@ -131,22 +140,22 @@ pub use super::runtime::CapsuleCapabilities;
 // =============================================================================
 
 /// Firmware management capsule GUID
-pub const CAPSULE_GUID_FIRMWARE_UPDATE: Guid = Guid::new(0x6DCBD5ED, 0xE82D, 0x4C44, [
+pub const CAPSULE_GUID_FIRMWARE_UPDATE: Guid = Guid::new(0x6DCB_D5ED, 0xE82D, 0x4C44, [
     0xBD, 0xA1, 0x71, 0x94, 0x19, 0x9A, 0xD9, 0x2A,
 ]);
 
 /// Windows UX capsule GUID
-pub const CAPSULE_GUID_WINDOWS_UX: Guid = Guid::new(0x3B8C8162, 0x188C, 0x46A4, [
+pub const CAPSULE_GUID_WINDOWS_UX: Guid = Guid::new(0x3B8C_8162, 0x188C, 0x46A4, [
     0xAE, 0xC9, 0xBE, 0x43, 0xF1, 0xD6, 0x56, 0x97,
 ]);
 
 /// ESRT capsule GUID
-pub const CAPSULE_GUID_ESRT: Guid = Guid::new(0xB122A263, 0x3661, 0x4F68, [
+pub const CAPSULE_GUID_ESRT: Guid = Guid::new(0xB122_A263, 0x3661, 0x4F68, [
     0x99, 0x29, 0x78, 0xF8, 0xB0, 0xD6, 0x21, 0x80,
 ]);
 
 /// JSON capsule GUID
-pub const CAPSULE_GUID_JSON: Guid = Guid::new(0x67D6F4CD, 0xD6B1, 0x4D16, [
+pub const CAPSULE_GUID_JSON: Guid = Guid::new(0x67D6_F4CD, 0xD6B1, 0x4D16, [
     0x92, 0x01, 0x50, 0x3F, 0x5C, 0xF8, 0x42, 0x70,
 ]);
 
@@ -286,18 +295,19 @@ impl EsrtEntry {
     pub const STATUS_UNSATISFIED_DEPENDENCIES: u32 = 8;
 
     /// Get firmware type name
-    pub fn firmware_type_name(&self) -> &'static str {
+    #[must_use]
+    pub const fn firmware_type_name(&self) -> &'static str {
         match self.firmware_type {
-            Self::TYPE_UNKNOWN => "Unknown",
             Self::TYPE_SYSTEM => "System",
             Self::TYPE_DEVICE => "Device",
             Self::TYPE_UEFI_DRIVER => "UEFI Driver",
-            _ => "Unknown",
+            Self::TYPE_UNKNOWN | _ => "Unknown",
         }
     }
 
     /// Get last attempt status name
-    pub fn last_attempt_status_name(&self) -> &'static str {
+    #[must_use]
+    pub const fn last_attempt_status_name(&self) -> &'static str {
         match self.last_attempt_status {
             Self::STATUS_SUCCESS => "Success",
             Self::STATUS_ERROR => "Error",
@@ -328,7 +338,7 @@ pub struct EsrtTable {
 
 impl EsrtTable {
     /// ESRT GUID
-    pub const GUID: Guid = Guid::new(0xB122A263, 0x3661, 0x4F68, [
+    pub const GUID: Guid = Guid::new(0xB122_A263, 0x3661, 0x4F68, [
         0x99, 0x29, 0x78, 0xF8, 0xB0, 0xD6, 0x21, 0x80,
     ]);
 
