@@ -547,24 +547,36 @@ unsafe impl<T: Sync> Sync for CpuStatic<T> {}
 static STATIC_IDT: CpuStatic<Idt> = CpuStatic::new(Idt::new());
 
 /// Initialize static IDT
+///
+/// # Safety
+/// Must be called exactly once during early boot on a single CPU.
 pub unsafe fn init_static() {
     let idt = unsafe { STATIC_IDT.as_mut() };
     idt.load();
 }
 
 /// Set handler in static IDT
+///
+/// # Safety
+/// Must only be called after `init_static` and with a valid handler address.
 pub unsafe fn set_handler(vector: u8, handler: u64) {
     let idt = unsafe { STATIC_IDT.as_mut() };
     idt.set_handler(vector, handler);
 }
 
 /// Set handler with IST in static IDT
+///
+/// # Safety
+/// Must only be called after `init_static` and with valid handler/IST values.
 pub unsafe fn set_handler_ist(vector: u8, handler: u64, ist: u8) {
     let table = unsafe { STATIC_IDT.as_mut() };
     table.set_handler_ist(vector, handler, ist);
 }
 
 /// Get static IDT
+///
+/// # Safety
+/// Returns a mutable reference to a global static; callers must ensure no aliasing.
 pub unsafe fn get_static_idt() -> &'static mut Idt {
     unsafe { STATIC_IDT.as_mut() }
 }
