@@ -326,11 +326,7 @@ impl TpmAlgorithm {
     pub const fn is_hash(&self) -> bool {
         matches!(
             self,
-            Self::Sha1
-                | Self::Sha256
-                | Self::Sha384
-                | Self::Sha512
-                | Self::Sm3_256
+            Self::Sha1 | Self::Sha256 | Self::Sha384 | Self::Sha512 | Self::Sm3_256
         )
     }
 
@@ -343,10 +339,7 @@ impl TpmAlgorithm {
     pub const fn is_symmetric(&self) -> bool {
         matches!(
             self,
-            Self::Aes
-                | Self::TripleDes
-                | Self::Sm4
-                | Self::Camellia
+            Self::Aes | Self::TripleDes | Self::Sm4 | Self::Camellia
         )
     }
 
