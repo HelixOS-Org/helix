@@ -440,7 +440,8 @@ impl MemoryDescriptor {
 
     /// Check if this memory is usable after `ExitBootServices`
     pub fn is_usable(&self) -> bool {
-        self.get_type().is_some_and(MemoryType::is_usable_after_exit)
+        self.get_type()
+            .is_some_and(MemoryType::is_usable_after_exit)
     }
 
     /// Check if this is conventional memory
