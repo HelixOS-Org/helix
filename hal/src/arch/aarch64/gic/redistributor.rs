@@ -285,36 +285,60 @@ impl Redistributor {
 
     /// Read GICR_CTLR
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the GIC distributor/redistributor base address is valid.
     pub unsafe fn read_ctlr(&self) -> u32 {
         self.read_rd_reg(GICR_CTLR)
     }
 
     /// Write GICR_CTLR
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_ctlr(&self, value: u32) {
         self.write_rd_reg(GICR_CTLR, value);
     }
 
     /// Read GICR_TYPER
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the GIC distributor/redistributor base address is valid.
     pub unsafe fn read_typer(&self) -> u64 {
         self.read_rd_reg64(GICR_TYPER)
     }
 
     /// Read GICR_WAKER
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the redistributor is properly initialized.
     pub unsafe fn read_waker(&self) -> u32 {
         self.read_rd_reg(GICR_WAKER)
     }
 
     /// Write GICR_WAKER
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_waker(&self, value: u32) {
         self.write_rd_reg(GICR_WAKER, value);
     }
 
     /// Wait for register write to complete
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware will eventually signal completion.
     pub unsafe fn wait_for_rwp(&self) {
         while (self.read_ctlr() & GICR_CTLR_RWP) != 0 {
             core::hint::spin_loop();
@@ -326,6 +350,10 @@ impl Redistributor {
     // ========================================================================
 
     /// Wake up the Redistributor (clear ProcessorSleep)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the redistributor is in sleep state.
     pub unsafe fn wake(&self) {
         let mut waker = self.read_waker();
         waker &= !GICR_WAKER_PROCESSOR_SLEEP;
@@ -338,6 +366,10 @@ impl Redistributor {
     }
 
     /// Put the Redistributor to sleep
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure no interrupts need to be processed.
     pub unsafe fn sleep(&self) {
         let mut waker = self.read_waker();
         waker |= GICR_WAKER_PROCESSOR_SLEEP;
@@ -350,26 +382,46 @@ impl Redistributor {
     }
 
     /// Check if this is the last Redistributor
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the redistributor chain is valid.
     pub unsafe fn is_last(&self) -> bool {
         (self.read_typer() & GICR_TYPER_LAST) != 0
     }
 
     /// Get the processor number
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the redistributor is properly initialized.
     pub unsafe fn processor_number(&self) -> u16 {
         ((self.read_typer() & GICR_TYPER_PRCNUM_MASK) >> 8) as u16
     }
 
     /// Get the affinity value
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn affinity(&self) -> u32 {
         ((self.read_typer() & GICR_TYPER_AFFINITY_MASK) >> 32) as u32
     }
 
     /// Check if LPIs are supported
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized.
     pub unsafe fn supports_lpis(&self) -> bool {
         (self.read_typer() & GICR_TYPER_PLPIS) != 0
     }
 
     /// Check if virtual LPIs are supported
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized.
     pub unsafe fn supports_vlpis(&self) -> bool {
         (self.read_typer() & GICR_TYPER_VLPIS) != 0
     }
@@ -380,6 +432,10 @@ impl Redistributor {
 
     /// Enable an SGI or PPI (intid 0-31)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid and a handler is registered.
     pub unsafe fn enable_interrupt(&self, intid: u32) {
         debug_assert!(intid < 32);
         self.write_sgi_reg(GICR_ISENABLER0, 1 << intid);
@@ -387,6 +443,10 @@ impl Redistributor {
 
     /// Disable an SGI or PPI (intid 0-31)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn disable_interrupt(&self, intid: u32) {
         debug_assert!(intid < 32);
         self.write_sgi_reg(GICR_ICENABLER0, 1 << intid);
@@ -394,6 +454,10 @@ impl Redistributor {
 
     /// Check if an SGI or PPI is enabled
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the system is ready for this feature to be enabled.
     pub unsafe fn is_enabled(&self, intid: u32) -> bool {
         debug_assert!(intid < 32);
         (self.read_sgi_reg(GICR_ISENABLER0) & (1 << intid)) != 0
@@ -405,6 +469,10 @@ impl Redistributor {
 
     /// Set an SGI or PPI pending
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the memory address is valid and properly aligned.
     pub unsafe fn set_pending(&self, intid: u32) {
         debug_assert!(intid < 32);
         self.write_sgi_reg(GICR_ISPENDR0, 1 << intid);
@@ -412,6 +480,10 @@ impl Redistributor {
 
     /// Clear an SGI or PPI pending state
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn clear_pending(&self, intid: u32) {
         debug_assert!(intid < 32);
         self.write_sgi_reg(GICR_ICPENDR0, 1 << intid);
@@ -419,6 +491,10 @@ impl Redistributor {
 
     /// Check if an SGI or PPI is pending
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn is_pending(&self, intid: u32) -> bool {
         debug_assert!(intid < 32);
         (self.read_sgi_reg(GICR_ISPENDR0) & (1 << intid)) != 0
@@ -430,6 +506,10 @@ impl Redistributor {
 
     /// Set an SGI or PPI active
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn set_active(&self, intid: u32) {
         debug_assert!(intid < 32);
         self.write_sgi_reg(GICR_ISACTIVER0, 1 << intid);
@@ -437,6 +517,10 @@ impl Redistributor {
 
     /// Clear an SGI or PPI active state
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn clear_active(&self, intid: u32) {
         debug_assert!(intid < 32);
         self.write_sgi_reg(GICR_ICACTIVER0, 1 << intid);
@@ -444,6 +528,10 @@ impl Redistributor {
 
     /// Check if an SGI or PPI is active
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn is_active(&self, intid: u32) -> bool {
         debug_assert!(intid < 32);
         (self.read_sgi_reg(GICR_ISACTIVER0) & (1 << intid)) != 0
@@ -454,6 +542,10 @@ impl Redistributor {
     // ========================================================================
 
     /// Set the priority of an SGI or PPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for this GIC implementation.
     pub unsafe fn set_priority(&self, intid: u32, priority: Priority) {
         debug_assert!(intid < 32);
         let addr = self.sgi_base.add(GICR_IPRIORITYR + intid as usize);
@@ -461,6 +553,10 @@ impl Redistributor {
     }
 
     /// Get the priority of an SGI or PPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn get_priority(&self, intid: u32) -> Priority {
         debug_assert!(intid < 32);
         let addr = self.sgi_base.add(GICR_IPRIORITYR + intid as usize) as *const u8;
@@ -468,6 +564,10 @@ impl Redistributor {
     }
 
     /// Set all SGI/PPI priorities to a default value
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn set_all_priorities(&self, priority: Priority) {
         let value = (priority.value() as u32) * 0x01010101;
         for i in 0..8 {
@@ -480,6 +580,10 @@ impl Redistributor {
     // ========================================================================
 
     /// Set the trigger mode of a PPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid and the mode is supported.
     pub unsafe fn set_ppi_trigger_mode(&self, ppi: u32, mode: TriggerMode) {
         debug_assert!(ppi >= PPI_BASE && ppi < 32);
         let bit_offset = (ppi - PPI_BASE) * 2;
@@ -499,6 +603,10 @@ impl Redistributor {
 
     /// Set an SGI or PPI to Group 0
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for group configuration.
     pub unsafe fn set_group0(&self, intid: u32) {
         debug_assert!(intid < 32);
         let mut group = self.read_sgi_reg(GICR_IGROUPR0);
@@ -508,6 +616,10 @@ impl Redistributor {
 
     /// Set an SGI or PPI to Group 1
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for group configuration.
     pub unsafe fn set_group1(&self, intid: u32) {
         debug_assert!(intid < 32);
         let mut group = self.read_sgi_reg(GICR_IGROUPR0);
@@ -516,6 +628,10 @@ impl Redistributor {
     }
 
     /// Set all SGIs and PPIs to Group 1
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for group configuration.
     pub unsafe fn set_all_group1(&self) {
         self.write_sgi_reg(GICR_IGROUPR0, 0xFFFF_FFFF);
     }
@@ -525,6 +641,10 @@ impl Redistributor {
     // ========================================================================
 
     /// Enable LPIs
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure LPI tables are properly configured.
     pub unsafe fn enable_lpis(&self) {
         let mut ctlr = self.read_ctlr();
         ctlr |= GICR_CTLR_ENABLE_LPIS;
@@ -532,6 +652,10 @@ impl Redistributor {
     }
 
     /// Disable LPIs
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure disabling this feature won't cause system instability.
     pub unsafe fn disable_lpis(&self) {
         let mut ctlr = self.read_ctlr();
         ctlr &= !GICR_CTLR_ENABLE_LPIS;
@@ -540,6 +664,10 @@ impl Redistributor {
     }
 
     /// Configure LPI property table base
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the memory address is valid and properly aligned.
     pub unsafe fn set_propbase(&self, base: u64, id_bits: u8) {
         // PROPBASER format:
         // [4:0] = ID bits (number of LPIs = 2^(IDbits+1))
@@ -556,6 +684,10 @@ impl Redistributor {
     }
 
     /// Configure LPI pending table base
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the memory address is valid and properly aligned.
     pub unsafe fn set_pendbase(&self, base: u64) {
         // PENDBASER format:
         // [9:7] = InnerCache (Write-Back, Write-Allocate = 7)
@@ -571,16 +703,28 @@ impl Redistributor {
     }
 
     /// Invalidate an LPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the LPI ID is valid.
     pub unsafe fn invalidate_lpi(&self, intid: u32) {
         self.write_rd_reg64(GICR_INVLPIR, intid as u64);
     }
 
     /// Invalidate all LPIs
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the LPI ID is valid.
     pub unsafe fn invalidate_all_lpis(&self) {
         self.write_rd_reg64(GICR_INVALLR, 0);
     }
 
     /// Wait for sync operation to complete
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the operation to sync is valid.
     pub unsafe fn sync(&self) {
         // Write to SYNCR triggers sync
         self.write_rd_reg(GICR_SYNCR, 0);
@@ -595,6 +739,10 @@ impl Redistributor {
     // ========================================================================
 
     /// Initialize the Redistributor for this CPU
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self) {
         // Wake up the Redistributor
         self.wake();
