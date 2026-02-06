@@ -18,13 +18,21 @@ use super::{is_5level_paging, phys_to_virt};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TranslationError {
     /// Entry at the given level is not present
-    NotPresent { level: PageTableLevel, index: u16 },
+    NotPresent {
+        /// Page table level where the entry was not present (PML5, PML4, PDPT, PD, or PT)
+        level: PageTableLevel,
+        /// Index within the page table at which the entry was not present
+        index: u16,
+    },
 
     /// Address is not canonical
     NonCanonical,
 
     /// Huge page at unexpected level
-    UnexpectedHugePage { level: PageTableLevel },
+    UnexpectedHugePage {
+        /// Page table level where the unexpected huge page was encountered
+        level: PageTableLevel,
+    },
 
     /// Table is null
     NullTable,
