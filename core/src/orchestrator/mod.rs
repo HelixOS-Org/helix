@@ -126,6 +126,7 @@ impl KernelOrchestrator {
         Ok(result)
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn visit_subsystem(
         &self,
         name: &str,
