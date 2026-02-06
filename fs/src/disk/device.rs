@@ -523,7 +523,7 @@ impl BlockWrite for MemoryBlockDevice {
         unsafe {
             core::ptr::copy_nonoverlapping(
                 buffer.as_ptr(),
-                (self.buffer as *mut u8).add(offset),
+                self.buffer.add(offset),
                 bytes,
             );
         }
@@ -680,6 +680,12 @@ pub struct BlockQueue {
     head: AtomicU32,
     /// Tail index (for enqueue)
     tail: AtomicU32,
+}
+
+impl Default for BlockQueue {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BlockQueue {
