@@ -490,12 +490,7 @@ impl XattrTable {
 
     /// Find entry by name
     pub fn find(&self, name: &[u8]) -> Option<usize> {
-        for i in 0..MAX_XATTRS_PER_INODE {
-            if self.entries[i].matches(name) {
-                return Some(i);
-            }
-        }
-        None
+        (0..MAX_XATTRS_PER_INODE).find(|&i| self.entries[i].matches(name))
     }
 
     /// Get entry
