@@ -155,6 +155,12 @@ pub struct ProcessRegistry {
     processes: RwLock<BTreeMap<ProcessId, Arc<Process>>>,
 }
 
+impl Default for ProcessRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProcessRegistry {
     /// Create a new registry
     pub const fn new() -> Self {
