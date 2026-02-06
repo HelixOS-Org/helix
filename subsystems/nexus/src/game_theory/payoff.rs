@@ -91,7 +91,7 @@ impl PayoffFunction {
     ) -> Vec<Utility> {
         match calc.calc_type {
             PayoffType::LinearResource => {
-                let total = calc.params.get(0).copied().unwrap_or(100.0);
+                let total = calc.params.first().copied().unwrap_or(100.0);
                 let requests: Vec<f64> = strategies
                     .iter()
                     .zip(all_strategies.iter())
@@ -119,7 +119,7 @@ impl PayoffFunction {
             PayoffType::CongestionDelay => {
                 // Higher congestion = lower utility
                 let n = strategies.len() as f64;
-                let base_utility = calc.params.get(0).copied().unwrap_or(10.0);
+                let base_utility = calc.params.first().copied().unwrap_or(10.0);
                 alloc::vec![base_utility / n; strategies.len()]
             },
             _ => alloc::vec![0.0; strategies.len()],
