@@ -42,20 +42,20 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoResponse(name) => write!(f, "No response for request: {}", name),
+            Self::NoResponse(name) => write!(f, "No response for request: {name}"),
             Self::InvalidResponse { request, reason } => {
-                write!(f, "Invalid response for {}: {}", request, reason)
+                write!(f, "Invalid response for {request}: {reason}")
             },
-            Self::NotSupported(feature) => write!(f, "Feature not supported: {}", feature),
+            Self::NotSupported(feature) => write!(f, "Feature not supported: {feature}"),
             Self::InvalidParameter { param, reason } => {
-                write!(f, "Invalid parameter '{}': {}", param, reason)
+                write!(f, "Invalid parameter '{param}': {reason}")
             },
-            Self::Memory(e) => write!(f, "Memory error: {}", e),
-            Self::Smp(e) => write!(f, "SMP error: {}", e),
-            Self::Framebuffer(e) => write!(f, "Framebuffer error: {}", e),
-            Self::Firmware(e) => write!(f, "Firmware error: {}", e),
-            Self::BootInfo(e) => write!(f, "Boot info error: {}", e),
-            Self::Validation(e) => write!(f, "Validation error: {}", e),
+            Self::Memory(e) => write!(f, "Memory error: {e}"),
+            Self::Smp(e) => write!(f, "SMP error: {e}"),
+            Self::Framebuffer(e) => write!(f, "Framebuffer error: {e}"),
+            Self::Firmware(e) => write!(f, "Firmware error: {e}"),
+            Self::BootInfo(e) => write!(f, "Boot info error: {e}"),
+            Self::Validation(e) => write!(f, "Validation error: {e}"),
         }
     }
 }
