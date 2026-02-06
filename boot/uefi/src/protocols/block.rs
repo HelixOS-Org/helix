@@ -35,10 +35,10 @@ impl BlockDevice {
     /// Protocol pointer must be valid
     pub unsafe fn from_raw(protocol: *mut EfiBlockIoProtocol, handle: Handle) -> Self {
         let media_ptr = (*protocol).media;
-        let media = if !media_ptr.is_null() {
-            MediaInfo::from_raw(&*media_ptr)
-        } else {
+        let media = if media_ptr.is_null() {
             MediaInfo::default()
+        } else {
+            MediaInfo::from_raw(&*media_ptr)
         };
 
         Self {
@@ -193,7 +193,7 @@ impl BlockDevice {
 
         // Complex case: unaligned or multi-block read
         let end = offset + buffer.len() as u64;
-        let end_lba = (end + block_size - 1) / block_size;
+        let end_lba = end.div_ceil(block_size);
         let blocks_needed = (end_lba - start_lba) as usize;
 
         let mut temp = alloc::vec![0u8; blocks_needed * block_size as usize];
@@ -217,7 +217,7 @@ impl BlockDevice {
 
         // Complex case: need read-modify-write
         let end = offset + data.len() as u64;
-        let end_lba = (end + block_size - 1) / block_size;
+        let end_lba = end.div_ceil(block_size);
         let blocks_needed = (end_lba - start_lba) as usize;
 
         // Read existing data
@@ -271,8 +271,7 @@ impl BlockDevice {
     /// Read GPT partitions
     fn read_gpt_partitions(&self, header: &GptHeader) -> Result<Vec<Partition>> {
         let entries_per_block = self.block_size() as usize / header.entry_size as usize;
-        let blocks_needed =
-            (header.entry_count as usize + entries_per_block - 1) / entries_per_block;
+        let blocks_needed = (header.entry_count as usize).div_ceil(entries_per_block);
 
         let mut data = alloc::vec![0u8; blocks_needed * self.block_size() as usize];
         self.read_blocks(header.partition_entry_lba, &mut data)?;
@@ -654,9 +653,9 @@ impl Mbr {
         let signature = read_u32(data, 440);
 
         let mut partitions = [MbrPartition::default(); 4];
-        for i in 0..4 {
+        for (i, partition) in partitions.iter_mut().enumerate() {
             let offset = 446 + i * 16;
-            partitions[i] = MbrPartition::parse(&data[offset..offset + 16]);
+            *partition = MbrPartition::parse(&data[offset..offset + 16]);
         }
 
         Ok(Self {
