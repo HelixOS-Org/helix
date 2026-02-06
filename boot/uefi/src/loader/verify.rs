@@ -99,6 +99,7 @@ impl ImageVerifier {
         ];
 
         // Round constants
+        #[allow(clippy::items_after_statements)]
         const K: [u32; 64] = [
             0x428a_2f98,
             0x7137_4491,
