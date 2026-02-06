@@ -99,12 +99,12 @@ impl BitmapAllocator {
 
     /// Get frame index from address
     fn frame_index(&self, addr: PhysAddr) -> usize {
-        ((addr.as_u64() - self.base.as_u64()) / PageSize::Size4KiB.size() as u64) as usize
+        ((addr.as_u64() - self.base.as_u64()) / PageSize::Size4KiB.size()) as usize
     }
 
     /// Get address from frame index
     fn frame_address(&self, idx: usize) -> PhysAddr {
-        PhysAddr::new(self.base.as_u64() + (idx as u64 * PageSize::Size4KiB.size() as u64))
+        PhysAddr::new(self.base.as_u64() + (idx as u64 * PageSize::Size4KiB.size()))
     }
 }
 
@@ -136,7 +136,7 @@ impl PhysicalAllocator for BitmapAllocator {
         }
 
         // Calculate bitmap size
-        let page_size = PageSize::Size4KiB.size() as u64;
+        let page_size = PageSize::Size4KiB.size();
         let total_frames = ((max_addr - min_addr) / page_size) as usize;
         let bitmap_words = (total_frames + 63) / 64;
 
@@ -247,8 +247,8 @@ impl PhysicalAllocator for BitmapAllocator {
             deallocations,
             current_allocations: allocations - deallocations,
             peak_allocations: allocations, // Not tracked accurately
-            bytes_allocated: allocations * PageSize::Size4KiB.size() as u64,
-            bytes_freed: deallocations * PageSize::Size4KiB.size() as u64,
+            bytes_allocated: allocations * PageSize::Size4KiB.size(),
+            bytes_freed: deallocations * PageSize::Size4KiB.size(),
             fragmentation: 0, // Would need more complex tracking
         }
     }
