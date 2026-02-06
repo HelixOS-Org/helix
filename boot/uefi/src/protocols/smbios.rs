@@ -559,7 +559,7 @@ impl SmbiosStructure {
         if index == 0 {
             None
         } else {
-            self.strings.get(usize::from(index) - 1).map(|s| s.as_str())
+            self.strings.get(usize::from(index) - 1).map(String::as_str)
         }
     }
 
