@@ -861,11 +861,7 @@ impl BootManager {
 
     /// Select and boot entry
     pub fn boot_selected(&mut self) -> TransitionResult {
-        if self
-            .entries
-            .selected()
-            .is_some_and(BootEntry::is_bootable)
-        {
+        if self.entries.selected().is_some_and(BootEntry::is_bootable) {
             self.state = BootState::EntrySelected;
             TransitionResult::Ok
         } else {
@@ -916,10 +912,7 @@ impl BootManager {
     /// Check if ready to boot
     pub fn ready_to_boot(&self) -> bool {
         self.state == BootState::EntrySelected
-            && self
-                .entries
-                .selected()
-                .is_some_and(BootEntry::is_bootable)
+            && self.entries.selected().is_some_and(BootEntry::is_bootable)
     }
 
     /// Get progress percentage (0-100)
