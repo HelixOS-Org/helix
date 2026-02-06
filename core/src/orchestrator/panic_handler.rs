@@ -84,7 +84,10 @@ pub fn kernel_panic_handler(info: &PanicInfo) -> ! {
     }
 
     // Print the panic message
-    log::error!("Message: {}", info.message());
+    #[allow(clippy::incompatible_msrv)] // message() is stable in our target version
+    {
+        log::error!("Message: {}", info.message());
+    }
 
     // Print stack trace if possible
     print_stack_trace();
