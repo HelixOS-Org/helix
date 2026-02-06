@@ -294,16 +294,12 @@ impl SelfHealingManager {
 
     /// Attempt to recover a crashed module
     pub fn attempt_recovery(&self, slot_id: SlotId) -> bool {
-        log_healing(&alloc::format!(
-            "\n╔══════════════════════════════════════════════╗"
-        ));
+        log_healing("\n╔══════════════════════════════════════════════╗");
         log_healing(&alloc::format!(
             "║  SELF-HEALING: Recovering slot {}             ",
             slot_id
         ));
-        log_healing(&alloc::format!(
-            "╚══════════════════════════════════════════════╝\n"
-        ));
+        log_healing("╚══════════════════════════════════════════════╝\n");
 
         let (module_name, can_recover, has_factory) = {
             let modules = self.modules.read();
