@@ -180,9 +180,9 @@ fn bench_context_flood() -> u64 {
     for _ in 0..10 {
         // Save context
         let mut regs = [0u64; 16];
-        for i in 0..16 {
+        for (i, reg) in regs.iter_mut().enumerate() {
             unsafe {
-                core::ptr::write_volatile(&mut regs[i], i as u64);
+                core::ptr::write_volatile(reg, i as u64);
             }
         }
 
@@ -192,8 +192,8 @@ fn bench_context_flood() -> u64 {
 
         // Restore context
         let mut sum = 0u64;
-        for i in 0..16 {
-            sum += unsafe { core::ptr::read_volatile(&regs[i]) };
+        for reg in &regs {
+            sum += unsafe { core::ptr::read_volatile(reg) };
         }
         core::hint::black_box(sum);
     }
@@ -245,9 +245,9 @@ fn bench_memory_fragmentation() -> u64 {
     static ALLOC_PTR: AtomicU64 = AtomicU64::new(0x2_0000_0000);
 
     // Allocate all blocks
-    for i in 0..32 {
+    for (i, block) in BLOCKS.iter().enumerate() {
         let ptr = ALLOC_PTR.fetch_add(128, Ordering::SeqCst);
-        BLOCKS[i].store(ptr, Ordering::Release);
+        block.store(ptr, Ordering::Release);
     }
 
     // Free odd blocks (creates fragmentation)
@@ -577,9 +577,9 @@ fn bench_nested_irq_deep() -> u64 {
 
         // Save state
         let mut regs = [0u64; 8];
-        for i in 0..8 {
+        for (i, reg) in regs.iter_mut().enumerate() {
             unsafe {
-                core::ptr::write_volatile(&mut regs[i], depth as u64 + i as u64);
+                core::ptr::write_volatile(reg, depth as u64 + i as u64);
             }
         }
 
@@ -588,8 +588,8 @@ fn bench_nested_irq_deep() -> u64 {
 
         // Restore state
         let mut sum = 0u64;
-        for i in 0..8 {
-            sum += unsafe { core::ptr::read_volatile(&regs[i]) };
+        for reg in &regs {
+            sum += unsafe { core::ptr::read_volatile(reg) };
         }
         core::hint::black_box(sum);
 
@@ -720,8 +720,8 @@ fn bench_worst_case() -> u64 {
                 const INIT: AtomicU64 = AtomicU64::new(0);
                 [INIT; 64]
             };
-            for j in 0..64 {
-                MEM[j].fetch_add(1, Ordering::Relaxed);
+            for mem in &MEM {
+                mem.fetch_add(1, Ordering::Relaxed);
             }
 
             // IPC flood
