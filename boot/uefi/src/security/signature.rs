@@ -741,7 +741,7 @@ fn parse_der_element(data: &[u8]) -> Result<(u8, &[u8], usize), SignatureError> 
             }
 
             (length, 1 + num_octets)
-        }
+        },
     };
 
     let header_size = 1 + len_size;
