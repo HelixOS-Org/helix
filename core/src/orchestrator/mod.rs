@@ -36,6 +36,12 @@ pub struct KernelOrchestrator {
     initialized: AtomicBool,
 }
 
+impl Default for KernelOrchestrator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KernelOrchestrator {
     /// Create a new kernel orchestrator
     pub const fn new() -> Self {
