@@ -374,9 +374,9 @@ impl StreamingClassifier {
         let probs = self.probabilities(features);
 
         // Softmax cross-entropy gradient
-        for c in 0..self.num_classes {
+        for (c, &prob) in probs.iter().enumerate().take(self.num_classes) {
             let target = if c == label { 1.0 } else { 0.0 };
-            let gradient = probs[c] - target;
+            let gradient = prob - target;
 
             for (i, &f) in features.iter().enumerate() {
                 if i < self.feature_dim {
