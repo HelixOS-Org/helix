@@ -150,12 +150,12 @@ impl AuthenticodeVerifier {
         }
 
         // Verify signature
-        if !self.verify_signer_signature(signer_info, &signer_cert)? {
+        if !self.verify_signer_signature(signer_info, signer_cert)? {
             return Ok(SignatureVerificationResult::failure());
         }
 
         // Build and verify certificate chain
-        let chain = self.build_chain(&signer_cert, &pkcs7.certificates)?;
+        let chain = self.build_chain(signer_cert, &pkcs7.certificates)?;
 
         if chain.is_empty() {
             return Ok(SignatureVerificationResult::failure());
@@ -182,6 +182,7 @@ impl AuthenticodeVerifier {
     }
 
     /// Compute PE hash for Authenticode
+    #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
     fn compute_pe_hash(&self, pe: &PeFile, data: &[u8]) -> Result<Vec<u8>, SignatureError> {
         // Authenticode hash excludes:
         // 1. Checksum field in optional header
@@ -214,6 +215,7 @@ impl AuthenticodeVerifier {
     }
 
     /// Find signer certificate
+    #[allow(clippy::unused_self)]
     fn find_signer_cert<'a>(
         &self,
         pkcs7: &'a Pkcs7,
@@ -230,6 +232,7 @@ impl AuthenticodeVerifier {
     }
 
     /// Verify content hash in signer info
+    #[allow(clippy::unused_self)]
     fn verify_content_hash(
         &self,
         signer_info: &SignerInfo,
@@ -273,6 +276,7 @@ impl AuthenticodeVerifier {
     }
 
     /// Hash signed attributes
+    #[allow(clippy::unused_self)]
     fn hash_signed_attributes(&self, signer_info: &SignerInfo) -> Result<Vec<u8>, SignatureError> {
         // Re-encode signed attributes as SET
         let attrs_der = encode_signed_attributes(&signer_info.signed_attributes)?;
@@ -349,6 +353,7 @@ impl AuthenticodeVerifier {
     }
 
     /// Verify certificate chain
+    #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
     fn verify_chain(&self, chain: &[X509Certificate]) -> Result<bool, SignatureError> {
         for i in 0..chain.len().saturating_sub(1) {
             let cert = &chain[i];
@@ -620,10 +625,10 @@ impl Pkcs7 {
         if tag != 0x02 {
             return Err(SignatureError::InvalidSignature);
         }
-        let version = if !ver_data.is_empty() {
-            ver_data[0] as u32
-        } else {
+        let version = if ver_data.is_empty() {
             0
+        } else {
+            ver_data[0] as u32
         };
         offset += consumed;
 
@@ -721,22 +726,22 @@ fn parse_der_element(data: &[u8]) -> Result<(u8, &[u8], usize), SignatureError> 
         return Err(SignatureError::InvalidSignature);
     }
 
-    let (length, len_size) = if data[1] < 0x80 {
-        (data[1] as usize, 1)
-    } else if data[1] == 0x80 {
-        return Err(SignatureError::InvalidSignature);
-    } else {
-        let num_octets = (data[1] & 0x7f) as usize;
-        if data.len() < 2 + num_octets {
-            return Err(SignatureError::InvalidSignature);
-        }
+    let (length, len_size) = match data[1].cmp(&0x80) {
+        core::cmp::Ordering::Less => (data[1] as usize, 1),
+        core::cmp::Ordering::Equal => return Err(SignatureError::InvalidSignature),
+        core::cmp::Ordering::Greater => {
+            let num_octets = (data[1] & 0x7f) as usize;
+            if data.len() < 2 + num_octets {
+                return Err(SignatureError::InvalidSignature);
+            }
 
-        let mut length = 0usize;
-        for i in 0..num_octets {
-            length = (length << 8) | (data[2 + i] as usize);
-        }
+            let mut length = 0usize;
+            for i in 0..num_octets {
+                length = (length << 8) | (data[2 + i] as usize);
+            }
 
-        (length, 1 + num_octets)
+            (length, 1 + num_octets)
+        }
     };
 
     let header_size = 1 + len_size;
@@ -817,10 +822,10 @@ fn parse_signer_info(data: &[u8]) -> Result<SignerInfo, SignatureError> {
     if tag != 0x02 {
         return Err(SignatureError::InvalidSignature);
     }
-    let version = if !ver_data.is_empty() {
-        ver_data[0] as u32
-    } else {
+    let version = if ver_data.is_empty() {
         0
+    } else {
+        ver_data[0] as u32
     };
     offset += consumed;
 
@@ -893,17 +898,17 @@ fn parse_signer_info(data: &[u8]) -> Result<SignerInfo, SignatureError> {
 
 /// Parse hash algorithm from AlgorithmIdentifier
 fn parse_hash_algorithm(data: &[u8]) -> Result<HashAlgorithm, SignatureError> {
-    let (tag, oid, _) = parse_der_element(data)?;
-    if tag != 0x06 {
-        return Err(SignatureError::InvalidSignature);
-    }
-
     // SHA-256: 2.16.840.1.101.3.4.2.1
     const SHA256_OID: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01];
     // SHA-384: 2.16.840.1.101.3.4.2.2
     const SHA384_OID: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02];
     // SHA-512: 2.16.840.1.101.3.4.2.3
     const SHA512_OID: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03];
+
+    let (tag, oid, _) = parse_der_element(data)?;
+    if tag != 0x06 {
+        return Err(SignatureError::InvalidSignature);
+    }
 
     if oid == SHA256_OID {
         Ok(HashAlgorithm::Sha256)
@@ -943,11 +948,11 @@ fn parse_attributes(data: &[u8]) -> Result<Vec<Attribute>, SignatureError> {
             }
 
             // Get first value
-            let value = if !values.is_empty() {
+            let value = if values.is_empty() {
+                Vec::new()
+            } else {
                 let (_, val, _) = parse_der_element(values)?;
                 val.to_vec()
-            } else {
-                Vec::new()
             };
 
             attrs.push(Attribute {
@@ -963,6 +968,7 @@ fn parse_attributes(data: &[u8]) -> Result<Vec<Attribute>, SignatureError> {
 }
 
 /// Encode signed attributes as SET
+#[allow(clippy::unnecessary_wraps)]
 fn encode_signed_attributes(attrs: &[Attribute]) -> Result<Vec<u8>, SignatureError> {
     // This would re-encode attributes with SET tag instead of CONTEXT [0]
     // Simplified: just return empty for now
