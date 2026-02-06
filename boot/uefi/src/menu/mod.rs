@@ -179,7 +179,7 @@ impl<'a> BootMenu<'a> {
 
         // Copy current entry's cmdline to buffer
         if let Some(entry) = self.config.entries.get(self.selected) {
-            let cmdline = entry.cmdline.as_str().as_bytes();
+            let cmdline = entry.cmdline.as_bytes();
             let len = cmdline.len().min(self.cmdline_buffer.len() - 1);
             self.cmdline_buffer[..len].copy_from_slice(&cmdline[..len]);
             self.cmdline_len = len;
@@ -284,7 +284,7 @@ impl<'a> BootMenu<'a> {
         self.console.println("");
         self.console.print("  Booting in ");
         self.console
-            .print_colored(&format_number(seconds), Color::Yellow);
+            .print_colored(format_number(seconds), Color::Yellow);
         self.console.println(" seconds...");
     }
 
@@ -307,7 +307,7 @@ impl<'a> BootMenu<'a> {
     pub fn selected_entry(&self) -> Option<&BootEntry> {
         let visible: Vec<_> = self.config.entries.iter().filter(|e| !e.hidden).collect();
 
-        visible.get(self.selected).map(|e| *e)
+        visible.get(self.selected).copied()
     }
 
     /// Get edited command line
@@ -430,7 +430,7 @@ impl<'a> GraphicalMenu<'a> {
             self.fb.set_cursor(self.box_x / 8 + 2, y + 1);
             self.fb.print("Auto-boot in ");
             let seconds = self.timeout / 10;
-            self.fb.print(&format_number(seconds));
+            self.fb.print(format_number(seconds));
             self.fb.print("s");
         }
     }
@@ -504,7 +504,7 @@ impl<'a> ProgressBar<'a> {
         }
 
         self.console.print("] ");
-        self.console.print(&format_number(percent));
+        self.console.print(format_number(percent));
         self.console.print("%  ");
     }
 
@@ -543,7 +543,7 @@ impl<'a> Spinner<'a> {
     fn draw(&self) {
         self.console.print("\r  ");
         self.console
-            .print_colored(&char_to_str(Self::FRAMES[self.frame]), Color::Cyan);
+            .print_colored(char_to_str(Self::FRAMES[self.frame]), Color::Cyan);
         self.console.print(" ");
         self.console.print(self.message);
     }
