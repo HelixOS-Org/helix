@@ -35,13 +35,14 @@ use core::fmt;
 // =============================================================================
 
 /// Unit type for dimensions
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Unit {
     /// Pixels
     Px(i32),
     /// Percentage of parent
     Percent(u8),
     /// Auto-calculated
+    #[default]
     Auto,
     /// Flex fraction
     Fr(u8),
@@ -55,12 +56,6 @@ pub enum Unit {
     Min,
     /// Maximum of two dimensions
     Max,
-}
-
-impl Default for Unit {
-    fn default() -> Self {
-        Unit::Auto
-    }
 }
 
 impl Unit {
@@ -225,24 +220,20 @@ impl Spacing {
 // =============================================================================
 
 /// Layout direction
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Direction {
     /// Horizontal (row)
     Horizontal,
     /// Vertical (column)
+    #[default]
     Vertical,
 }
 
-impl Default for Direction {
-    fn default() -> Self {
-        Direction::Vertical
-    }
-}
-
 /// Alignment
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Align {
     /// Start (left/top)
+    #[default]
     Start,
     /// Center
     Center,
@@ -258,16 +249,11 @@ pub enum Align {
     SpaceEvenly,
 }
 
-impl Default for Align {
-    fn default() -> Self {
-        Align::Start
-    }
-}
-
 /// Content justify
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Justify {
     /// Start
+    #[default]
     Start,
     /// Center
     Center,
@@ -281,18 +267,13 @@ pub enum Justify {
     SpaceEvenly,
 }
 
-impl Default for Justify {
-    fn default() -> Self {
-        Justify::Start
-    }
-}
-
 /// Overflow behavior
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Overflow {
     /// Visible (no clipping)
     Visible,
     /// Hidden (clip)
+    #[default]
     Hidden,
     /// Scroll
     Scroll,
@@ -300,16 +281,11 @@ pub enum Overflow {
     Auto,
 }
 
-impl Default for Overflow {
-    fn default() -> Self {
-        Overflow::Hidden
-    }
-}
-
 /// Position type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Position {
     /// Relative to flow
+    #[default]
     Relative,
     /// Absolute positioning
     Absolute,
@@ -317,12 +293,6 @@ pub enum Position {
     Fixed,
     /// Sticky
     Sticky,
-}
-
-impl Default for Position {
-    fn default() -> Self {
-        Position::Relative
-    }
 }
 
 // =============================================================================
