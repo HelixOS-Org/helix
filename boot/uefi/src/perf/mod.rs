@@ -39,12 +39,12 @@ pub enum TimeSource {
 impl fmt::Display for TimeSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TimeSource::Unknown => write!(f, "Unknown"),
-            TimeSource::Tsc => write!(f, "TSC"),
-            TimeSource::UefiTimer => write!(f, "UEFI Timer"),
-            TimeSource::AcpiPmTimer => write!(f, "ACPI PM Timer"),
-            TimeSource::Hpet => write!(f, "HPET"),
-            TimeSource::GenericTimer => write!(f, "Generic Timer"),
+            Self::Unknown => write!(f, "Unknown"),
+            Self::Tsc => write!(f, "TSC"),
+            Self::UefiTimer => write!(f, "UEFI Timer"),
+            Self::AcpiPmTimer => write!(f, "ACPI PM Timer"),
+            Self::Hpet => write!(f, "HPET"),
+            Self::GenericTimer => write!(f, "Generic Timer"),
         }
     }
 }
@@ -83,12 +83,12 @@ impl Timestamp {
     }
 
     /// Get elapsed since start (raw counts)
-    pub fn elapsed_raw(&self, now: Timestamp) -> u64 {
+    pub const fn elapsed_raw(&self, now: Self) -> u64 {
         now.raw.saturating_sub(self.raw)
     }
 
     /// Get elapsed in nanoseconds
-    pub fn elapsed_ns(&self, now: Timestamp, frequency: u64) -> u64 {
+    pub fn elapsed_ns(&self, now: Self, frequency: u64) -> u64 {
         if frequency == 0 {
             return 0;
         }
@@ -101,7 +101,7 @@ impl Timestamp {
     }
 
     /// Get elapsed in microseconds
-    pub fn elapsed_us(&self, now: Timestamp, frequency: u64) -> u64 {
+    pub fn elapsed_us(&self, now: Self, frequency: u64) -> u64 {
         if frequency == 0 {
             return 0;
         }
@@ -110,7 +110,7 @@ impl Timestamp {
     }
 
     /// Get elapsed in milliseconds
-    pub fn elapsed_ms(&self, now: Timestamp, frequency: u64) -> u64 {
+    pub fn elapsed_ms(&self, now: Self, frequency: u64) -> u64 {
         if frequency == 0 {
             return 0;
         }
@@ -179,15 +179,17 @@ impl Duration {
     }
 
     /// Add duration
-    pub fn add(&self, other: Duration) -> Duration {
-        Duration {
+    #[must_use]
+    pub const fn add(&self, other: Self) -> Self {
+        Self {
             nanos: self.nanos.saturating_add(other.nanos),
         }
     }
 
     /// Subtract duration
-    pub fn sub(&self, other: Duration) -> Duration {
-        Duration {
+    #[must_use]
+    pub const fn sub(&self, other: Self) -> Self {
+        Self {
             nanos: self.nanos.saturating_sub(other.nanos),
         }
     }
@@ -197,7 +199,7 @@ impl fmt::Display for Duration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let nanos = self.nanos;
         if nanos < 1000 {
-            write!(f, "{}ns", nanos)
+            write!(f, "{nanos}ns")
         } else if nanos < 1_000_000 {
             write!(f, "{}.{:02}µs", nanos / 1000, (nanos % 1000) / 10)
         } else if nanos < 1_000_000_000 {
@@ -328,11 +330,11 @@ impl Statistics {
         if value > self.max {
             self.max = value;
         }
-        self.sum_sq += (value as u128) * (value as u128);
+        self.sum_sq += u128::from(value) * u128::from(value);
     }
 
     /// Get average
-    pub fn average(&self) -> u64 {
+    pub const fn average(&self) -> u64 {
         if self.count == 0 {
             0
         } else {
@@ -345,11 +347,11 @@ impl Statistics {
         if self.count < 2 {
             return 0;
         }
-        let mean = self.average() as u128;
+        let mean = u128::from(self.average());
         let mean_sq = mean * mean;
-        let avg_sq = self.sum_sq / self.count as u128;
+        let avg_sq = self.sum_sq / u128::from(self.count);
         if avg_sq > mean_sq {
-            (avg_sq - mean_sq) as u64
+            u64::try_from(avg_sq - mean_sq).unwrap_or(u64::MAX)
         } else {
             0
         }
@@ -374,7 +376,7 @@ impl Statistics {
     }
 
     /// Merge with another statistics
-    pub fn merge(&mut self, other: &Statistics) {
+    pub fn merge(&mut self, other: &Self) {
         if other.count == 0 {
             return;
         }
@@ -448,7 +450,7 @@ impl PhaseEntry {
     }
 
     /// Get duration
-    pub fn duration(&self) -> Duration {
+    pub const fn duration(&self) -> Duration {
         Duration::from_nanos(self.duration_ns)
     }
 }
@@ -567,7 +569,7 @@ impl PhaseTimer {
     }
 
     /// Get total boot time
-    pub fn total_time(&self) -> Duration {
+    pub const fn total_time(&self) -> Duration {
         Duration::from_nanos(self.total_ns)
     }
 
@@ -870,7 +872,7 @@ impl IoPerf {
     }
 
     /// Get average read throughput (bytes/sec)
-    pub fn avg_read_throughput(&self) -> u64 {
+    pub const fn avg_read_throughput(&self) -> u64 {
         if self.total_read_time_ns == 0 {
             return 0;
         }
@@ -878,7 +880,7 @@ impl IoPerf {
     }
 
     /// Get average write throughput (bytes/sec)
-    pub fn avg_write_throughput(&self) -> u64 {
+    pub const fn avg_write_throughput(&self) -> u64 {
         if self.total_write_time_ns == 0 {
             return 0;
         }
@@ -921,7 +923,7 @@ impl Default for PerfReport {
 
 impl PerfReport {
     /// Create new report
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             phases: PhaseTimer::new(),
             memory: MemoryPerf::new(),
@@ -939,17 +941,15 @@ impl PerfReport {
     pub fn summary(&self) -> PerfSummary {
         PerfSummary {
             total_boot_time_ns: self.phases.total_ns,
-            phase_count: self.phases.len() as u8,
+            phase_count: u8::try_from(self.phases.len()).unwrap_or(u8::MAX),
             slowest_phase: self
                 .phases
                 .slowest_phase()
-                .map(|p| p.phase)
-                .unwrap_or(PhaseId::Unknown),
+                .map_or(PhaseId::Unknown, |p| p.phase),
             slowest_phase_time_ns: self
                 .phases
                 .slowest_phase()
-                .map(|p| p.duration_ns)
-                .unwrap_or(0),
+                .map_or(0, |p| p.duration_ns),
             total_mem_allocated: self.memory.total_allocated,
             peak_mem_usage: self.memory.peak_usage,
             total_io_read: self.io.total_read,
