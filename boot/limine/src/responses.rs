@@ -66,7 +66,7 @@ pub struct ResponseIterator<'a, R: IterableResponse<T>, T> {
     _marker: PhantomData<T>,
 }
 
-impl<'a, R: IterableResponse<T>, T> Iterator for ResponseIterator<'a, R, T> {
+impl<R: IterableResponse<T>, T> Iterator for ResponseIterator<'_, R, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -81,7 +81,7 @@ impl<'a, R: IterableResponse<T>, T> Iterator for ResponseIterator<'a, R, T> {
     }
 }
 
-impl<'a, R: IterableResponse<T>, T> ExactSizeIterator for ResponseIterator<'a, R, T> {}
+impl<R: IterableResponse<T>, T> ExactSizeIterator for ResponseIterator<'_, R, T> {}
 
 // =============================================================================
 // Bootloader Info Response
@@ -219,14 +219,14 @@ impl MemoryMap {
     /// Get total usable memory
     pub fn total_usable(&self) -> u64 {
         self.iter()
-            .filter(MemoryRegion::is_usable)
-            .map(MemoryRegion::size)
+            .filter(|r| r.is_usable())
+            .map(|r| r.size())
             .sum()
     }
 
     /// Get total memory
     pub fn total(&self) -> u64 {
-        self.iter().map(MemoryRegion::size).sum()
+        self.iter().map(|r| r.size()).sum()
     }
 
     /// Find region containing address
