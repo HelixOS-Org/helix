@@ -229,6 +229,7 @@ impl<'a> BootValidator<'a> {
     }
 
     /// Enables strict validation mode which checks optional components
+    #[must_use]
     pub fn strict(mut self) -> Self {
         self.strict = true;
         self
