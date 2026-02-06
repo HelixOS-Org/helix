@@ -37,7 +37,7 @@ impl<'a> SpanGuard<'a> {
     }
 }
 
-impl<'a> Drop for SpanGuard<'a> {
+impl Drop for SpanGuard<'_> {
     fn drop(&mut self) {
         self.span.end();
         self.tracer.end_span(&self.span);
