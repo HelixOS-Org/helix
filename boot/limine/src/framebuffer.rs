@@ -37,7 +37,7 @@ static FONT_DATA: &[u8] = include_bytes!("font8x16.bin");
 /// Get font glyph for a character
 fn get_glyph(c: char) -> Option<&'static [u8]> {
     let code = c as usize;
-    if code >= 32 && code < 128 {
+    if (32..128).contains(&code) {
         let offset = (code - 32) * FONT_HEIGHT;
         if offset + FONT_HEIGHT <= FONT_DATA.len() {
             return Some(&FONT_DATA[offset..offset + FONT_HEIGHT]);
@@ -205,9 +205,8 @@ impl<'a, 'b> Console<'a, 'b> {
 
     /// Draw a character at the given position
     fn draw_char(&self, c: char, col: usize, row: usize) {
-        let glyph = match get_glyph(c) {
-            Some(g) => g,
-            None => return,
+        let Some(glyph) = get_glyph(c) else {
+            return;
         };
 
         let base_x = col * FONT_WIDTH;
