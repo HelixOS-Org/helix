@@ -79,6 +79,10 @@ unsafe fn plic_write(offset: u64, value: u32) {
 // =============================================================================
 
 /// Set interrupt priority (0 = disabled, 1-7 = priority)
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt ID is valid for this GIC implementation.
 pub unsafe fn set_priority(source: u32, priority: u8) {
     if source as usize >= MAX_SOURCES {
         return;
@@ -88,6 +92,10 @@ pub unsafe fn set_priority(source: u32, priority: u8) {
 }
 
 /// Get interrupt priority
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt ID is valid.
 pub unsafe fn get_priority(source: u32) -> u8 {
     if source as usize >= MAX_SOURCES {
         return 0;
@@ -101,6 +109,10 @@ pub unsafe fn get_priority(source: u32) -> u8 {
 // =============================================================================
 
 /// Check if interrupt is pending
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt ID is valid.
 pub unsafe fn is_pending(source: u32) -> bool {
     if source as usize >= MAX_SOURCES {
         return false;
@@ -112,6 +124,10 @@ pub unsafe fn is_pending(source: u32) -> bool {
 }
 
 /// Get all pending interrupts as bitmap
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt ID is valid.
 pub unsafe fn get_pending_bitmap(start_reg: u32) -> u32 {
     let offset = PLIC_PENDING_BASE + (start_reg as u64 * 4);
     plic_read(offset)
@@ -131,6 +147,10 @@ pub fn get_context(hartid: u64, supervisor: bool) -> u32 {
 }
 
 /// Enable interrupt for context
+///
+/// # Safety
+///
+/// The caller must ensure the system is ready for this feature to be enabled.
 pub unsafe fn enable(source: u32, context: u32) {
     if source as usize >= MAX_SOURCES {
         return;
@@ -143,6 +163,10 @@ pub unsafe fn enable(source: u32, context: u32) {
 }
 
 /// Disable interrupt for context
+///
+/// # Safety
+///
+/// The caller must ensure disabling this feature won't cause system instability.
 pub unsafe fn disable(source: u32, context: u32) {
     if source as usize >= MAX_SOURCES {
         return;
@@ -155,6 +179,10 @@ pub unsafe fn disable(source: u32, context: u32) {
 }
 
 /// Check if interrupt is enabled for context
+///
+/// # Safety
+///
+/// The caller must ensure the system is ready for this feature to be enabled.
 pub unsafe fn is_enabled(source: u32, context: u32) -> bool {
     if source as usize >= MAX_SOURCES {
         return false;
@@ -166,6 +194,10 @@ pub unsafe fn is_enabled(source: u32, context: u32) -> bool {
 }
 
 /// Enable all sources for context
+///
+/// # Safety
+///
+/// The caller must ensure the system is ready for this feature to be enabled.
 pub unsafe fn enable_all(context: u32, num_sources: u32) {
     let num_regs = (num_sources + 31) / 32;
     for reg in 0..num_regs {
@@ -175,6 +207,10 @@ pub unsafe fn enable_all(context: u32, num_sources: u32) {
 }
 
 /// Disable all sources for context
+///
+/// # Safety
+///
+/// The caller must ensure disabling this feature won't cause system instability.
 pub unsafe fn disable_all(context: u32, num_sources: u32) {
     let num_regs = (num_sources + 31) / 32;
     for reg in 0..num_regs {
@@ -189,12 +225,20 @@ pub unsafe fn disable_all(context: u32, num_sources: u32) {
 
 /// Set priority threshold for context
 /// Interrupts with priority <= threshold are masked
+///
+/// # Safety
+///
+/// The caller must ensure the context ID is valid.
 pub unsafe fn set_threshold(context: u32, threshold: u8) {
     let offset = PLIC_CONTEXT_BASE + (context as u64 * PLIC_CONTEXT_STRIDE) + PLIC_THRESHOLD_OFFSET;
     plic_write(offset, threshold as u32);
 }
 
 /// Get priority threshold for context
+///
+/// # Safety
+///
+/// The caller must ensure the context ID is valid.
 pub unsafe fn get_threshold(context: u32) -> u8 {
     let offset = PLIC_CONTEXT_BASE + (context as u64 * PLIC_CONTEXT_STRIDE) + PLIC_THRESHOLD_OFFSET;
     plic_read(offset) as u8
@@ -206,12 +250,20 @@ pub unsafe fn get_threshold(context: u32) -> u8 {
 
 /// Claim highest priority pending interrupt
 /// Returns 0 if no interrupt pending
+///
+/// # Safety
+///
+/// The caller must ensure an interrupt is pending for this context.
 pub unsafe fn claim(context: u32) -> u32 {
     let offset = PLIC_CONTEXT_BASE + (context as u64 * PLIC_CONTEXT_STRIDE) + PLIC_CLAIM_OFFSET;
     plic_read(offset)
 }
 
 /// Complete interrupt handling
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt was properly handled.
 pub unsafe fn complete(context: u32, source: u32) {
     let offset = PLIC_CONTEXT_BASE + (context as u64 * PLIC_CONTEXT_STRIDE) + PLIC_CLAIM_OFFSET;
     plic_write(offset, source);
@@ -239,6 +291,10 @@ impl Plic {
     }
 
     /// Initialize PLIC for a hart
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_hart(&self, hartid: u64) {
         // Get S-mode context for this hart
         let context = get_context(hartid, true);
@@ -251,6 +307,10 @@ impl Plic {
     }
 
     /// Configure and enable an interrupt source
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware supports this configuration.
     pub unsafe fn configure_source(&self, source: u32, priority: u8, hartid: u64) {
         if source >= self.num_sources {
             return;
@@ -265,6 +325,10 @@ impl Plic {
     }
 
     /// Handle interrupt (claim, return source)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure an interrupt is pending and this context is safe for handling.
     pub unsafe fn handle_interrupt(&self, hartid: u64) -> Option<u32> {
         let context = get_context(hartid, true);
         let source = claim(context);
@@ -276,6 +340,10 @@ impl Plic {
     }
 
     /// Complete interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt was properly handled.
     pub unsafe fn complete_interrupt(&self, hartid: u64, source: u32) {
         let context = get_context(hartid, true);
         complete(context, source);
@@ -303,6 +371,10 @@ pub fn virtio_irq(index: u32) -> u32 {
 // =============================================================================
 
 /// Initialize PLIC
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Get PLIC base from device tree or use default
     let base = if let Some(ref dt_info) = ctx.boot_info.device_tree {
@@ -346,6 +418,10 @@ pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Initialize PLIC for secondary hart
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_secondary(hartid: u64) {
     let num_sources = NUM_SOURCES.load(Ordering::SeqCst) as u32;
     let context = get_context(hartid, true);
@@ -362,6 +438,10 @@ pub unsafe fn init_secondary(hartid: u64) {
 // =============================================================================
 
 /// External interrupt handler (call from trap handler)
+///
+/// # Safety
+///
+/// The caller must ensure an interrupt is pending and this context is safe for handling.
 pub unsafe fn handle_external_interrupt(hartid: u64) -> u32 {
     let context = get_context(hartid, true);
     let source = claim(context);
