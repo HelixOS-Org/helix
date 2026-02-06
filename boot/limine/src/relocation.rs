@@ -266,7 +266,7 @@ pub fn dynamic_section() -> (*const u8, usize) {
 
 /// Apply relocations at kernel entry
 ///
-/// This macro should be called at the very beginning of kernel_main
+/// This macro should be called at the very beginning of `kernel_main`
 /// if manual relocation is needed (typically not required with Limine).
 #[macro_export]
 macro_rules! apply_limine_relocations {
