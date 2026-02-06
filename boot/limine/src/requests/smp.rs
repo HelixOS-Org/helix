@@ -148,6 +148,7 @@ impl SmpResponse {
     }
 
     /// Get the number of CPUs
+    #[allow(clippy::cast_possible_truncation)] // cpu_count is always small enough to fit in usize
     pub fn cpu_count(&self) -> usize {
         self.cpu_count as usize
     }
