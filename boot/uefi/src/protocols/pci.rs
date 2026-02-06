@@ -536,7 +536,10 @@ impl Protocol for PciDevice {
 impl EnumerableProtocol for PciDevice {
     fn enumerate() -> Result<Vec<Self>> {
         let handles = super::ProtocolLocator::locate_all::<Self>()?;
-        Ok(handles.into_iter().map(super::ProtocolHandle::leak).collect())
+        Ok(handles
+            .into_iter()
+            .map(super::ProtocolHandle::leak)
+            .collect())
     }
 }
 
@@ -898,9 +901,7 @@ pub fn find_by_id(vendor_id: u16, device_id: Option<u16>) -> Result<Vec<PciDevic
 
     Ok(devices
         .into_iter()
-        .filter(|d| {
-            d.vendor_id() == vendor_id && device_id.map_or(true, |id| d.device_id() == id)
-        })
+        .filter(|d| d.vendor_id() == vendor_id && device_id.map_or(true, |id| d.device_id() == id))
         .collect())
 }
 
