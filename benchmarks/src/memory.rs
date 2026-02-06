@@ -457,7 +457,7 @@ fn bench_page_fault_handler() -> u64 {
     let start = timing::read_tsc();
 
     // Simulate page fault handling
-    let fault_addr = 0x1000_1234u64;
+    let _fault_addr = 0x1000_1234u64;
     let error_code = 0x0002u64; // Write fault
 
     // 1. Lookup VMA
