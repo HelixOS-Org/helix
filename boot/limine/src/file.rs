@@ -78,6 +78,7 @@ impl File {
     }
 
     /// Get file contents as byte slice
+    #[allow(clippy::cast_possible_truncation)] // size fits in usize on 64-bit systems
     pub fn as_bytes(&self) -> &[u8] {
         unsafe { slice::from_raw_parts(self.address as *const u8, self.size as usize) }
     }
@@ -154,6 +155,7 @@ impl File {
     }
 
     /// Get TFTP server IP
+    #[allow(clippy::cast_possible_truncation)] // extracting individual bytes from u32 IP address
     pub fn tftp_ip(&self) -> Option<[u8; 4]> {
         if !self.is_network_boot() {
             return None;
@@ -715,10 +717,13 @@ impl<'a> Iterator for CpioIterator<'a> {
         // Move to next entry
         self.offset = Self::align4(data_end);
 
+        // SAFETY: CPIO format uses 32-bit file sizes, so this is expected to fit
+        #[allow(clippy::cast_possible_truncation)]
+        let size_truncated = filesize as u32;
         Some(CpioEntry {
             name,
             mode,
-            size: filesize as u32,
+            size: size_truncated,
             data,
         })
     }
