@@ -19,6 +19,12 @@ pub struct ThreadRegistry {
     by_process: RwLock<BTreeMap<ProcessId, Vec<ThreadId>>>,
 }
 
+impl Default for ThreadRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ThreadRegistry {
     /// Create a new registry
     pub const fn new() -> Self {
