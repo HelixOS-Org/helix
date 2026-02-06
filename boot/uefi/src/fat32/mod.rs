@@ -285,8 +285,7 @@ impl Fat32Ebpb {
             .volume_label
             .iter()
             .rposition(|&c| c != b' ')
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
         core::str::from_utf8(&self.volume_label[..end]).unwrap_or("")
     }
 }
