@@ -28,6 +28,10 @@ pub struct TscFeatures {
 }
 
 /// Detect TSC features
+///
+/// # Safety
+///
+/// The caller must ensure the firmware is accessible.
 pub unsafe fn detect_tsc_features() -> TscFeatures {
     let (_, _, _, edx) = cpuid(1, 0);
     let available = (edx & (1 << 4)) != 0;
@@ -57,6 +61,10 @@ pub unsafe fn detect_tsc_features() -> TscFeatures {
 }
 
 /// Get TSC frequency directly from CPUID (Intel)
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_tsc_frequency_cpuid() -> Option<u64> {
     let (eax_max, _, _, _) = cpuid(0, 0);
 
@@ -89,6 +97,10 @@ pub unsafe fn get_tsc_frequency_cpuid() -> Option<u64> {
 }
 
 /// Calibrate TSC using PIT
+///
+/// # Safety
+///
+/// The caller must ensure the timer hardware is accessible and not in use.
 pub unsafe fn calibrate_tsc_pit() -> u64 {
     const PIT_FREQUENCY: u64 = 1193182;
     const CALIBRATION_MS: u64 = 50;
@@ -129,6 +141,10 @@ pub unsafe fn calibrate_tsc_pit() -> u64 {
 }
 
 /// Calibrate TSC using HPET if available
+///
+/// # Safety
+///
+/// The caller must ensure the timer hardware is accessible and not in use.
 pub unsafe fn calibrate_tsc_hpet() -> Option<u64> {
     let hpet_freq = get_hpet_frequency();
     if hpet_freq == 0 {
@@ -155,6 +171,10 @@ pub unsafe fn calibrate_tsc_hpet() -> Option<u64> {
 }
 
 /// Initialize TSC
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_tsc(ctx: &mut BootContext) -> BootResult<()> {
     let features = detect_tsc_features();
 
@@ -252,6 +272,10 @@ unsafe fn hpet_write(offset: u64, value: u64) {
 }
 
 /// Read HPET counter
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn read_hpet_counter() -> u64 {
     hpet_read(HPET_COUNTER)
 }
@@ -269,6 +293,10 @@ fn find_hpet_base(_ctx: &BootContext) -> Option<u64> {
 }
 
 /// Initialize HPET
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_hpet(ctx: &mut BootContext) -> BootResult<()> {
     let base = match find_hpet_base(ctx) {
         Some(b) => b,
@@ -311,6 +339,10 @@ pub unsafe fn init_hpet(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Set up HPET timer for one-shot interrupt
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn setup_hpet_oneshot(timer: u8, ns: u64, vector: u8) {
     let frequency = get_hpet_frequency();
     if frequency == 0 {
@@ -342,6 +374,10 @@ const PIT_CMD: u16 = 0x43;
 const PIT_FREQUENCY: u64 = 1193182;
 
 /// Initialize PIT for periodic timer
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_pit_periodic(frequency_hz: u64) {
     let divisor = PIT_FREQUENCY / frequency_hz;
 
@@ -352,6 +388,10 @@ pub unsafe fn init_pit_periodic(frequency_hz: u64) {
 }
 
 /// Disable PIT
+///
+/// # Safety
+///
+/// The caller must ensure disabling this feature won't cause system instability.
 pub unsafe fn disable_pit() {
     // Set to one-shot mode with count 0
     outb(PIT_CMD, 0x30);
@@ -360,6 +400,10 @@ pub unsafe fn disable_pit() {
 }
 
 /// Busy-wait using PIT
+///
+/// # Safety
+///
+/// The caller must ensure the timer is properly calibrated.
 pub unsafe fn pit_delay_ms(ms: u64) {
     let count = ((PIT_FREQUENCY * ms) / 1000) as u16;
 
@@ -385,6 +429,10 @@ pub unsafe fn pit_delay_ms(ms: u64) {
 // =============================================================================
 
 /// Initialize all timers
+///
+/// # Safety
+///
+/// The caller must ensure timer hardware is accessible.
 pub unsafe fn init_timers(ctx: &mut BootContext) -> BootResult<()> {
     // Disable legacy PIT
     disable_pit();
@@ -419,6 +467,10 @@ pub unsafe fn init_timers(ctx: &mut BootContext) -> BootResult<()> {
 // =============================================================================
 
 /// Busy-wait for microseconds using TSC
+///
+/// # Safety
+///
+/// The caller must ensure the timer is properly calibrated.
 pub unsafe fn delay_us(us: u64) {
     let freq = get_tsc_frequency();
     if freq == 0 {
@@ -436,11 +488,19 @@ pub unsafe fn delay_us(us: u64) {
 }
 
 /// Busy-wait for milliseconds
+///
+/// # Safety
+///
+/// The caller must ensure the timer is properly calibrated.
 pub unsafe fn delay_ms(ms: u64) {
     delay_us(ms * 1000);
 }
 
 /// Busy-wait for nanoseconds
+///
+/// # Safety
+///
+/// The caller must ensure the timer is properly calibrated.
 pub unsafe fn delay_ns(ns: u64) {
     let freq = get_tsc_frequency();
     if freq == 0 {
@@ -483,11 +543,19 @@ pub fn get_time_ms() -> u64 {
 // =============================================================================
 
 /// Set TSC deadline for next interrupt
+///
+/// # Safety
+///
+/// The caller must ensure timer hardware is properly initialized.
 pub unsafe fn set_tsc_deadline(deadline: u64) {
     wrmsr(MSR_TSC_DEADLINE, deadline);
 }
 
 /// Enable TSC deadline mode for APIC timer
+///
+/// # Safety
+///
+/// The caller must ensure the system is ready for this feature to be enabled.
 pub unsafe fn enable_tsc_deadline_mode(vector: u8) {
     // LVT Timer: TSC-deadline mode
     let lvt = (2 << 17) | (vector as u32);
@@ -495,6 +563,10 @@ pub unsafe fn enable_tsc_deadline_mode(vector: u8) {
 }
 
 /// Set TSC deadline for interrupt in nanoseconds from now
+///
+/// # Safety
+///
+/// The caller must ensure timer hardware is properly initialized.
 pub unsafe fn set_deadline_ns(ns: u64) {
     let current = rdtsc();
     let ticks = ns_to_tsc(ns);
