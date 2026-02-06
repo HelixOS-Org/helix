@@ -299,6 +299,10 @@ pub fn ppn_to_pa(ppn: u64) -> u64 {
 // =============================================================================
 
 /// Walk page tables and return leaf entry
+///
+/// # Safety
+///
+/// The caller must ensure the page table structure is valid.
 pub unsafe fn walk(
     root: *const PageTable,
     va: u64,
@@ -331,6 +335,10 @@ pub unsafe fn walk(
 }
 
 /// Translate virtual address to physical address
+///
+/// # Safety
+///
+/// The caller must ensure the page table is properly set up.
 pub unsafe fn translate(root: *const PageTable, va: u64, mode: PagingMode) -> Option<u64> {
     let (entry, level) = walk(root, va, mode)?;
 
@@ -347,6 +355,10 @@ pub unsafe fn translate(root: *const PageTable, va: u64, mode: PagingMode) -> Op
 // =============================================================================
 
 /// Map a 4KB page
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_page(
     root: *mut PageTable,
     va: u64,
@@ -391,6 +403,10 @@ pub unsafe fn map_page(
 }
 
 /// Map a 2MB megapage (Sv39/Sv48/Sv57)
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_megapage(
     root: *mut PageTable,
     va: u64,
@@ -439,6 +455,10 @@ pub unsafe fn map_megapage(
 }
 
 /// Map a 1GB gigapage (Sv39/Sv48/Sv57)
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_gigapage(
     root: *mut PageTable,
     va: u64,
@@ -521,6 +541,10 @@ pub fn detect_paging_mode() -> PagingMode {
 }
 
 /// Setup page tables
+///
+/// # Safety
+///
+/// The caller must ensure the page table pointer is valid and properly aligned.
 pub unsafe fn setup_page_tables(
     ctx: &mut BootContext,
     allocator: &mut FrameAllocator,
@@ -576,6 +600,10 @@ pub unsafe fn setup_page_tables(
 }
 
 /// Enable MMU
+///
+/// # Safety
+///
+/// The caller must ensure page tables are properly set up.
 pub unsafe fn enable_mmu(root_table: u64, asid: u16, mode: PagingMode) {
     // Build SATP value
     let ppn = root_table >> 12;
@@ -592,6 +620,10 @@ pub unsafe fn enable_mmu(root_table: u64, asid: u16, mode: PagingMode) {
 }
 
 /// Disable MMU (return to bare mode)
+///
+/// # Safety
+///
+/// The caller must ensure identity mapping is in place before disabling.
 pub unsafe fn disable_mmu() {
     write_satp(0);
     sfence_vma();
@@ -604,6 +636,10 @@ pub fn get_current_asid() -> u16 {
 }
 
 /// Set ASID
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn set_asid(asid: u16) {
     let satp = read_satp();
     let satp = (satp & !(0xFFFF << SATP_ASID_SHIFT)) | ((asid as u64) << SATP_ASID_SHIFT);
@@ -640,6 +676,10 @@ pub fn flush_tlb_addr_asid(va: u64, asid: u64) {
 // =============================================================================
 
 /// Initialize MMU
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Get memory region for page tables
     let pt_region_start = ctx.boot_info.page_table_region.start;
