@@ -56,6 +56,10 @@ impl AcpiTables {
     }
 
     /// Initialize from RSDP pointer
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_from_rsdp(&mut self, rsdp: *const Rsdp) -> Result<()> {
         if rsdp.is_null() {
             return Err(Error::InvalidParameter);
@@ -374,11 +378,19 @@ impl AcpiTableEntry {
     }
 
     /// Get table header
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the table pointer is valid.
     pub unsafe fn header(&self) -> &AcpiSdtHeader {
         &*(self.address.0 as *const AcpiSdtHeader)
     }
 
     /// Get table data (after header)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the data pointer is valid.
     pub unsafe fn data(&self) -> &[u8] {
         let data_ptr = (self.address.0 + core::mem::size_of::<AcpiSdtHeader>() as u64) as *const u8;
         let data_len = self.length as usize - core::mem::size_of::<AcpiSdtHeader>();
