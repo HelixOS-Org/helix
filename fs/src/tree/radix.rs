@@ -19,7 +19,7 @@ pub const RADIX_BITS: usize = 6;
 pub const RADIX_SIZE: usize = 1 << RADIX_BITS; // 64
 
 /// Maximum tree height for 64-bit keys
-pub const MAX_RADIX_HEIGHT: usize = (64 + RADIX_BITS - 1) / RADIX_BITS; // 11
+pub const MAX_RADIX_HEIGHT: usize = 64_usize.div_ceil(RADIX_BITS); // 11
 
 /// Mask for extracting index at level
 const RADIX_MASK: u64 = (RADIX_SIZE - 1) as u64;
@@ -50,6 +50,7 @@ pub struct RadixNode {
 impl RadixNode {
     /// Create new node
     pub fn new(height: u8) -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const ZERO: AtomicU64 = AtomicU64::new(0);
         Self {
             slots: [ZERO; RADIX_SIZE],
@@ -135,7 +136,7 @@ pub fn height_for_key(key: u64) -> u8 {
     }
 
     let bits = 64 - key.leading_zeros();
-    ((bits as usize + RADIX_BITS - 1) / RADIX_BITS).saturating_sub(1) as u8
+    (bits as usize).div_ceil(RADIX_BITS).saturating_sub(1) as u8
 }
 
 // ============================================================================
