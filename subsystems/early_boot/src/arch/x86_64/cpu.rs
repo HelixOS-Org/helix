@@ -11,6 +11,10 @@ use crate::error::{BootError, BootResult};
 // =============================================================================
 
 /// Detect CPU features and fill in CpuState
+///
+/// # Safety
+///
+/// The caller must ensure the firmware is accessible.
 pub unsafe fn detect_features(state: &mut CpuState) -> BootResult<()> {
     // Get vendor string
     let (_, ebx, ecx, edx) = cpuid(0, 0);
@@ -248,6 +252,10 @@ fn detect_topology(state: &mut CpuState) {
 // =============================================================================
 
 /// Initialize FPU and SIMD extensions
+///
+/// # Safety
+///
+/// The caller must ensure the CPU supports these features.
 pub unsafe fn init_fpu_simd() -> BootResult<()> {
     // Enable FPU
     let mut cr0 = read_cr0();
@@ -288,6 +296,10 @@ pub unsafe fn init_fpu_simd() -> BootResult<()> {
 // =============================================================================
 
 /// Configure control registers for optimal operation
+///
+/// # Safety
+///
+/// The caller must ensure the hardware supports this configuration.
 pub unsafe fn configure_control_registers(ctx: &mut BootContext) -> BootResult<()> {
     // CR0: Already set up for protected mode with paging
     let mut cr0 = read_cr0();
@@ -345,6 +357,10 @@ pub unsafe fn configure_control_registers(ctx: &mut BootContext) -> BootResult<(
 // =============================================================================
 
 /// Enable and configure syscall/sysret
+///
+/// # Safety
+///
+/// The caller must ensure syscall handler is properly configured.
 pub unsafe fn enable_syscall() -> BootResult<()> {
     // STAR: segment bases for SYSCALL/SYSRET
     // Low 32 bits: SYSCALL EIP (not used in long mode)
