@@ -3,7 +3,7 @@
 //! Boot-time memory map structures for passing to the kernel.
 
 use crate::error::Result;
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -494,13 +494,13 @@ impl MemoryMap {
         self.entries
             .iter()
             .filter(|e| e.memory_type.is_usable())
-            .map(|e| e.size())
+            .map(MemoryMapEntry::size)
             .sum()
     }
 
     /// Get total memory (all types)
     pub fn total_memory(&self) -> u64 {
-        self.entries.iter().map(|e| e.size()).sum()
+        self.entries.iter().map(MemoryMapEntry::size).sum()
     }
 
     /// Get highest physical address
