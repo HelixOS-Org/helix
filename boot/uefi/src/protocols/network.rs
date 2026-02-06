@@ -7,7 +7,6 @@ use crate::error::{Error, Result};
 use crate::raw::types::*;
 
 extern crate alloc;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // =============================================================================
@@ -276,19 +275,6 @@ impl MacAddress {
 
         Some(Self(bytes))
     }
-
-    /// Format as string
-    pub fn to_string(&self) -> String {
-        alloc::format!(
-            "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
-            self.0[0],
-            self.0[1],
-            self.0[2],
-            self.0[3],
-            self.0[4],
-            self.0[5]
-        )
-    }
 }
 
 impl core::fmt::Display for MacAddress {
@@ -504,8 +490,8 @@ impl Ipv6Address {
     /// Get segments
     pub fn segments(&self) -> [u16; 8] {
         let mut segs = [0u16; 8];
-        for i in 0..8 {
-            segs[i] = ((self.0[i * 2] as u16) << 8) | (self.0[i * 2 + 1] as u16);
+        for (i, seg) in segs.iter_mut().enumerate() {
+            *seg = ((self.0[i * 2] as u16) << 8) | (self.0[i * 2 + 1] as u16);
         }
         segs
     }
