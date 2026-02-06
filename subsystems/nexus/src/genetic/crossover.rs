@@ -274,7 +274,7 @@ fn average_genes(g1: &Gene, g2: &Gene) -> Gene {
     let len = g1.codons.len().min(g2.codons.len());
     for i in 0..len {
         if rand_f64() < 0.5 {
-            averaged.codons[i] = g2.codons[i].clone();
+            averaged.codons[i] = g2.codons[i];
         }
     }
 
@@ -440,14 +440,14 @@ pub fn semantic_crossover(parent1: &CodeGenome, parent2: &CodeGenome) -> CodeGen
     for gene in &parent1.genes {
         p1_by_type
             .entry(gene.gene_type as u8)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(gene);
     }
 
     for gene in &parent2.genes {
         p2_by_type
             .entry(gene.gene_type as u8)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(gene);
     }
 
