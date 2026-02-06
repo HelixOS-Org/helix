@@ -277,6 +277,10 @@ static mut IST_STACKS: [InterruptStack; 7] = [
 // =============================================================================
 
 /// Initialize GDT with TSS
+///
+/// # Safety
+///
+/// The caller must ensure this is called exactly once during system initialization.
 pub unsafe fn init_gdt(ctx: &mut BootContext) -> BootResult<()> {
     // Set up kernel stack in TSS
     let kernel_stack_top = (&raw const KERNEL_STACK as u64) + 32768;
@@ -384,6 +388,10 @@ impl PerCpuGdt {
     }
 
     /// Initialize this per-CPU GDT
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&mut self) {
         // Set up kernel stack
         let stack_top = self.kernel_stack.as_ptr().add(32768) as u64;
@@ -402,6 +410,10 @@ impl PerCpuGdt {
     }
 
     /// Load this GDT and TSS for the current CPU
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for this descriptor table.
     pub unsafe fn load(&self) {
         let gdt_ptr = self.gdt.pointer();
         core::arch::asm!(
