@@ -103,15 +103,31 @@ impl ModuleInfo {
 #[derive(Debug, Clone)]
 pub enum Event {
     /// System tick (timer interrupt)
-    Tick { timestamp_ns: u64 },
+    Tick {
+        /// Timestamp in nanoseconds since boot
+        timestamp_ns: u64,
+    },
     /// System is shutting down
     Shutdown,
     /// Memory pressure notification
-    MemoryPressure { level: MemoryPressureLevel },
+    MemoryPressure {
+        /// Current memory pressure severity level
+        level: MemoryPressureLevel,
+    },
     /// CPU hotplug event
-    CpuHotplug { cpu_id: u32, online: bool },
+    CpuHotplug {
+        /// ID of the affected CPU core
+        cpu_id: u32,
+        /// True if coming online, false if going offline
+        online: bool,
+    },
     /// Custom event with payload
-    Custom { name: String, data: Vec<u8> },
+    Custom {
+        /// Name identifying the custom event type
+        name: String,
+        /// Raw byte data payload for the event
+        data: Vec<u8>,
+    },
 }
 
 /// Memory pressure levels
@@ -321,11 +337,15 @@ pub trait ModuleTrait: Send + Sync {
     }
 
     /// Get module state for hot-reload (optional)
+    ///
+    /// Override to serialize internal state before module is reloaded.
     fn save_state(&self) -> Option<Vec<u8>> {
         None
     }
 
     /// Restore module state after hot-reload (optional)
+    ///
+    /// Override to deserialize and restore internal state after reload.
     fn restore_state(&mut self, _state: &[u8]) -> Result<(), ModuleError> {
         Ok(())
     }
@@ -338,8 +358,13 @@ pub trait ModuleTrait: Send + Sync {
 use crate::{Module, ModuleContext, ModuleDependency, ModuleMetadata};
 
 /// Adapter to use ModuleTrait with the old Module interface
+///
+/// Wraps a v2 `ModuleTrait` implementation to provide compatibility
+/// with the legacy `Module` trait interface.
 pub struct ModuleAdapter<T: ModuleTrait> {
+    /// The wrapped v2 module implementation
     inner: T,
+    /// Cached metadata converted from v2 format (unused currently)
     _metadata_cache: Option<ModuleMetadata>,
 }
 
@@ -362,6 +387,7 @@ impl<T: ModuleTrait> ModuleAdapter<T> {
         &mut self.inner
     }
 
+    /// Build legacy metadata from v2 module info
     fn _build_metadata(&self) -> ModuleMetadata {
         let info = self.inner.info();
         ModuleMetadata {
