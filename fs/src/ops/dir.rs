@@ -325,8 +325,7 @@ impl ReaddirParams {
 // ============================================================================
 
 /// Open directory handle.
-#[derive(Clone, Copy)]
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 pub struct OpenDir {
     /// Device ID
     pub dev: u64,
@@ -379,7 +378,6 @@ impl OpenDir {
         self.refcount
     }
 }
-
 
 // ============================================================================
 // Directory Table
