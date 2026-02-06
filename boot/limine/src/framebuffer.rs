@@ -253,7 +253,7 @@ impl<'a, 'b> Console<'a, 'b> {
     }
 }
 
-impl<'a, 'b> core::fmt::Write for Console<'a, 'b> {
+impl core::fmt::Write for Console<'_, '_> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         Console::write_str(self, s);
         Ok(())
