@@ -110,7 +110,7 @@ impl SymbolManager {
     pub fn find_by_address(&self, address: u64) -> Option<&Symbol> {
         self.by_address
             .get(&address)
-            .and_then(|indices| indices.first())
+            .and_then(|v| v.first())
             .map(|&i| &self.symbols[i])
     }
 
