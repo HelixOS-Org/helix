@@ -285,8 +285,7 @@ impl BootServices {
             (self.bs().locate_handle)(
                 search_type,
                 protocol
-                    .map(|g| g as *const Guid)
-                    .unwrap_or(core::ptr::null()),
+                    .map_or(core::ptr::null(), |g| g as *const Guid),
                 search_key,
                 &mut buffer_size,
                 buffer.as_mut_ptr(),
@@ -367,8 +366,7 @@ impl BootServices {
             (self.bs().locate_handle_buffer)(
                 search_type,
                 protocol
-                    .map(|g| g as *const Guid)
-                    .unwrap_or(core::ptr::null()),
+                    .map_or(core::ptr::null(), |g| g as *const Guid),
                 core::ptr::null_mut(),
                 &mut count,
                 &mut buffer,
