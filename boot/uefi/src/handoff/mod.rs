@@ -336,6 +336,7 @@ impl HandoffSerializer {
     }
 
     /// Write u8
+    #[allow(clippy::unnecessary_wraps)]
     fn write_u8(&mut self, value: u8) -> Result<()> {
         self.buffer.push(value);
         self.offset += 1;
@@ -343,6 +344,7 @@ impl HandoffSerializer {
     }
 
     /// Write u16
+    #[allow(clippy::unnecessary_wraps)]
     fn write_u16(&mut self, value: u16) -> Result<()> {
         self.buffer.extend_from_slice(&value.to_le_bytes());
         self.offset += 2;
@@ -350,6 +352,7 @@ impl HandoffSerializer {
     }
 
     /// Write u32
+    #[allow(clippy::unnecessary_wraps)]
     fn write_u32(&mut self, value: u32) -> Result<()> {
         self.buffer.extend_from_slice(&value.to_le_bytes());
         self.offset += 4;
@@ -357,6 +360,7 @@ impl HandoffSerializer {
     }
 
     /// Write u64
+    #[allow(clippy::unnecessary_wraps)]
     fn write_u64(&mut self, value: u64) -> Result<()> {
         self.buffer.extend_from_slice(&value.to_le_bytes());
         self.offset += 8;
