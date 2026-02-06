@@ -6,6 +6,7 @@
 
 extern crate alloc;
 use alloc::vec::Vec;
+use core::cmp::Ordering;
 
 use super::types::StigmergyGrid;
 use crate::math::F64Ext;
@@ -291,19 +292,15 @@ impl ForagingSimulation {
 
     /// Direction towards position
     fn direction_to(&self, from: (usize, usize), to: (usize, usize)) -> (i32, i32) {
-        let dx = if to.0 > from.0 {
-            1
-        } else if to.0 < from.0 {
-            -1
-        } else {
-            0
+        let dx = match to.0.cmp(&from.0) {
+            Ordering::Greater => 1,
+            Ordering::Less => -1,
+            Ordering::Equal => 0,
         };
-        let dy = if to.1 > from.1 {
-            1
-        } else if to.1 < from.1 {
-            -1
-        } else {
-            0
+        let dy = match to.1.cmp(&from.1) {
+            Ordering::Greater => 1,
+            Ordering::Less => -1,
+            Ordering::Equal => 0,
         };
         (dx, dy)
     }
