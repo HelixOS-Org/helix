@@ -69,6 +69,10 @@ impl MemoryManager {
     }
 
     /// Initialize from UEFI memory map
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_from_memory_map(
         &mut self,
         map_key: usize,
@@ -215,6 +219,10 @@ impl MemoryManager {
     }
 
     /// Initialize paging
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure page table memory is available and properly aligned.
     pub unsafe fn init_paging(&mut self) -> Result<()> {
         self.paging = Some(paging::PageTableManager::new());
         if let Some(ref mut paging) = self.paging {
