@@ -247,7 +247,7 @@ jobs:
         run: cargo install cargo-audit --locked
 
       - name: 📦 Install cargo-deny
-        run: cargo install cargo-deny --locked --version "~0.18"
+        run: cargo install cargo-deny --locked --version "0.18.3"
 
       - name: 🔍 Run cargo-audit
         run: cargo audit --deny warnings
