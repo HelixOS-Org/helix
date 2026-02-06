@@ -864,7 +864,7 @@ impl BootManager {
         if self
             .entries
             .selected()
-            .map(|e| e.is_bootable())
+            .map(BootEntry::is_bootable)
             .unwrap_or(false)
         {
             self.state = BootState::EntrySelected;
@@ -920,7 +920,7 @@ impl BootManager {
             && self
                 .entries
                 .selected()
-                .map(|e| e.is_bootable())
+                .map(BootEntry::is_bootable)
                 .unwrap_or(false)
     }
 
