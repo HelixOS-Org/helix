@@ -93,7 +93,7 @@ impl RelocationEngine {
             None
         };
 
-        let symbol_value = symbol.map(|s| s.value as i64).unwrap_or(0);
+        let symbol_value = symbol.map_or(0, |s| s.value as i64);
         let addend = reloc.addend;
 
         let (value, size) = match reloc.reloc_type {
@@ -210,14 +210,14 @@ impl RelocationEngine {
 
             r_x86_64::R_X86_64_SIZE32 => {
                 // Z + A
-                let z = symbol.map(|s| s.size as i64).unwrap_or(0);
+                let z = symbol.map_or(0, |s| s.size as i64);
                 let value = z + addend;
                 (value as u64, 4)
             },
 
             r_x86_64::R_X86_64_SIZE64 => {
                 // Z + A
-                let z = symbol.map(|s| s.size as i64).unwrap_or(0);
+                let z = symbol.map_or(0, |s| s.size as i64);
                 let value = z + addend;
                 (value as u64, 8)
             },
