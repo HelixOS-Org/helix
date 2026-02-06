@@ -402,7 +402,7 @@ impl CpuInfo {
         // SAFETY: We hold a valid pointer to the SmpInfo
         // Write extra_argument first, then goto_address to trigger the CPU
         unsafe {
-            let info_ptr = self.raw as *mut raw::RawSmpInfo;
+            let info_ptr = self.raw.cast_mut();
             // Write the argument first using volatile write
             core::ptr::write_volatile(core::ptr::addr_of_mut!((*info_ptr).extra_argument), arg);
             // Write goto_address last (atomic) - this triggers the CPU to start
