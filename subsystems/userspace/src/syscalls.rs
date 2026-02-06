@@ -305,13 +305,13 @@ pub type SyscallHandler = fn(SyscallArgs) -> SyscallResult;
 /// Syscall table entry
 struct SyscallEntry {
     /// Syscall number
-    number: Syscall,
+    _number: Syscall,
     /// Handler function
     handler: SyscallHandler,
     /// Number of arguments
-    arg_count: u8,
+    _arg_count: u8,
     /// Description
-    name: &'static str,
+    _name: &'static str,
 }
 
 /// The syscall table
@@ -324,6 +324,7 @@ pub struct SyscallTable {
 
 impl SyscallTable {
     /// Create new syscall table
+    #[allow(clippy::declare_interior_mutable_const)]
     pub const fn new() -> Self {
         const ZERO: AtomicU64 = AtomicU64::new(0);
         Self {
@@ -353,7 +354,7 @@ impl SyscallTable {
 
     fn register_handler_internal(
         &self,
-        handlers: &mut Vec<Option<SyscallEntry>>,
+        handlers: &mut [Option<SyscallEntry>],
         syscall: Syscall,
         handler: SyscallHandler,
         arg_count: u8,
@@ -362,10 +363,10 @@ impl SyscallTable {
         let num = syscall as usize;
         if num < handlers.len() {
             handlers[num] = Some(SyscallEntry {
-                number: syscall,
+                _number: syscall,
                 handler,
-                arg_count,
-                name,
+                _arg_count: arg_count,
+                _name: name,
             });
         }
     }
