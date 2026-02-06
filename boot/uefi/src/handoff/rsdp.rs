@@ -2,7 +2,7 @@
 //!
 //! Structures and utilities for ACPI Root System Description Pointer.
 
-use crate::raw::types::*;
+use crate::raw::types::PhysicalAddress;
 
 // =============================================================================
 // RSDP SIGNATURE
