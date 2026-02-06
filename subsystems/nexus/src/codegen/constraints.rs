@@ -507,7 +507,7 @@ impl ConstraintSolver {
         let mut constraints = ConstraintSet::new();
 
         // Create variables for inputs
-        for (_i, param) in spec.inputs.iter().enumerate() {
+        for param in spec.inputs.iter() {
             let var = self.fresh_var();
             let typ = self.typespec_to_expr(&param.typ);
             constraints.declare(var, &param.name, typ.clone());
@@ -523,6 +523,7 @@ impl ConstraintSolver {
         constraints
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn typespec_to_expr(&self, typ: &TypeSpec) -> TypeExpr {
         match typ {
             TypeSpec::Bool => TypeExpr::Concrete(IRType::Bool),
