@@ -424,7 +424,7 @@ impl Scheduler for PriorityScheduler {
         let priority = task.priority;
         self.priority_queues
             .entry(priority)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(task);
     }
 
