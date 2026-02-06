@@ -42,7 +42,15 @@
 
 use core::fmt;
 
-use crate::requests::{BootTimeRequest, BootTimeResponse, BootloaderInfoRequest, BootloaderInfoResponse, DtbRequest, DtbResponse, EfiMemmapRequest, EfiMemmapResponse, EfiSystemTableRequest, EfiSystemTableResponse, Framebuffer, FramebufferRequest, FramebufferResponse, HhdmRequest, HhdmResponse, KernelAddressRequest, KernelAddressResponse, KernelFileRequest, KernelFileResponse, LimineRequest, MemoryEntry, MemoryMapRequest, MemoryMapResponse, ModuleRequest, ModuleResponse, PagingModeRequest, PagingModeResponse, RsdpRequest, RsdpResponse, SmbiosRequest, SmbiosResponse, SmpRequest, SmpResponse};
+use crate::requests::{
+    BootTimeRequest, BootTimeResponse, BootloaderInfoRequest, BootloaderInfoResponse, DtbRequest,
+    DtbResponse, EfiMemmapRequest, EfiMemmapResponse, EfiSystemTableRequest,
+    EfiSystemTableResponse, Framebuffer, FramebufferRequest, FramebufferResponse, HhdmRequest,
+    HhdmResponse, KernelAddressRequest, KernelAddressResponse, KernelFileRequest,
+    KernelFileResponse, LimineRequest, MemoryEntry, MemoryMapRequest, MemoryMapResponse,
+    ModuleRequest, ModuleResponse, PagingModeRequest, PagingModeResponse, RsdpRequest,
+    RsdpResponse, SmbiosRequest, SmbiosResponse, SmpRequest, SmpResponse,
+};
 
 /// Unified boot information structure
 ///
