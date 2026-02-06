@@ -238,7 +238,7 @@ impl<'a, 'b> Console<'a, 'b> {
                 *ptr = encoded as u8;
             },
             16 => {
-                *(ptr as *mut u16) = encoded as u16;
+                core::ptr::write_unaligned(ptr as *mut u16, encoded as u16);
             },
             24 => {
                 *ptr = encoded as u8;
@@ -246,7 +246,7 @@ impl<'a, 'b> Console<'a, 'b> {
                 *ptr.add(2) = (encoded >> 16) as u8;
             },
             32 => {
-                *(ptr as *mut u32) = encoded;
+                core::ptr::write_unaligned(ptr as *mut u32, encoded);
             },
             _ => {},
         }
@@ -658,17 +658,19 @@ impl DoubleBuffer {
         let offset = y * self.pitch + x * bytes_per_pixel;
         let encoded = self.format.encode(color);
 
+        // SAFETY: ptr is within the back buffer allocation, and we use
+        // write_unaligned to handle potentially unaligned framebuffer addresses.
         unsafe {
             let ptr = self.back.add(offset);
             match bytes_per_pixel {
                 1 => *ptr = encoded as u8,
-                2 => *(ptr as *mut u16) = encoded as u16,
+                2 => core::ptr::write_unaligned(ptr as *mut u16, encoded as u16),
                 3 => {
                     *ptr = encoded as u8;
                     *ptr.add(1) = (encoded >> 8) as u8;
                     *ptr.add(2) = (encoded >> 16) as u8;
                 },
-                4 => *(ptr as *mut u32) = encoded,
+                4 => core::ptr::write_unaligned(ptr as *mut u32, encoded),
                 _ => {},
             }
         }
@@ -679,6 +681,8 @@ impl DoubleBuffer {
         let bytes_per_pixel = self.bpp / 8;
         let encoded = self.format.encode(color);
 
+        // SAFETY: ptr is within the back buffer allocation, and we use
+        // write_unaligned to handle potentially unaligned framebuffer addresses.
         unsafe {
             for y in 0..self.height {
                 for x in 0..self.width {
@@ -686,13 +690,13 @@ impl DoubleBuffer {
                     let ptr = self.back.add(offset);
                     match bytes_per_pixel {
                         1 => *ptr = encoded as u8,
-                        2 => *(ptr as *mut u16) = encoded as u16,
+                        2 => core::ptr::write_unaligned(ptr as *mut u16, encoded as u16),
                         3 => {
                             *ptr = encoded as u8;
                             *ptr.add(1) = (encoded >> 8) as u8;
                             *ptr.add(2) = (encoded >> 16) as u8;
                         },
-                        4 => *(ptr as *mut u32) = encoded,
+                        4 => core::ptr::write_unaligned(ptr as *mut u32, encoded),
                         _ => {},
                     }
                 }
