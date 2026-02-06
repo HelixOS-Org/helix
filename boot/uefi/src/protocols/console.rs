@@ -519,7 +519,7 @@ impl InputKey {
 
     /// Check if this is a printable character
     pub fn is_printable(&self) -> bool {
-        self.unicode_char.map(|c| !c.is_control()).unwrap_or(false)
+        self.unicode_char.map_or(false, |c| !c.is_control())
     }
 
     /// Check if this is a special key (arrow, function, etc.)
