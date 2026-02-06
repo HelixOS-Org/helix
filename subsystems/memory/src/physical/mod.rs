@@ -142,6 +142,12 @@ pub struct PhysicalMemoryManager {
     regions: RwLock<Vec<PhysicalRegion>>,
 }
 
+impl Default for PhysicalMemoryManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PhysicalMemoryManager {
     /// Create a new manager
     pub const fn new() -> Self {
