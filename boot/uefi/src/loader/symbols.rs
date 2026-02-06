@@ -56,7 +56,7 @@ impl SymbolManager {
         // Index by address
         self.by_address
             .entry(symbol.address)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(index);
 
         // Update stats
@@ -117,15 +117,13 @@ impl SymbolManager {
     /// Find symbol containing address
     pub fn find_containing(&self, address: u64) -> Option<&Symbol> {
         // Find the largest address <= target
-        for (&sym_addr, indices) in self.by_address.range(..=address).rev() {
+        if let Some((&sym_addr, indices)) = self.by_address.range(..=address).next_back() {
             for &index in indices {
                 let symbol = &self.symbols[index];
                 if address >= sym_addr && address < sym_addr + symbol.size {
                     return Some(symbol);
                 }
             }
-            // Only check symbols at the same address
-            break;
         }
         None
     }
@@ -187,7 +185,7 @@ impl SymbolManager {
     /// Symbolize address for debugging
     pub fn symbolize(&self, address: u64) -> String {
         match self.find_nearest(address) {
-            Some((symbol, offset)) if offset == 0 => symbol.name.clone(),
+            Some((symbol, 0)) => symbol.name.clone(),
             Some((symbol, offset)) => {
                 alloc::format!("{}+0x{:x}", symbol.name, offset)
             },
