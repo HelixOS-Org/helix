@@ -342,7 +342,7 @@ impl ElitismManager {
             if let Some(species) = individual.species {
                 by_species
                     .entry(species)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(individual);
             }
         }
