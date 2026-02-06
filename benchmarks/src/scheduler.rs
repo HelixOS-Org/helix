@@ -132,16 +132,16 @@ fn bench_null_context_switch() -> u64 {
 
     // Simulate register save (volatile writes)
     let mut regs = [0u64; 16];
-    for i in 0..16 {
+    for (i, reg) in regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
     // Simulate register restore (volatile reads)
     let mut sum = 0u64;
-    for i in 0..16 {
-        sum += unsafe { core::ptr::read_volatile(&regs[i]) };
+    for reg in &regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
 
     let end = timing::read_tsc();
@@ -158,25 +158,25 @@ fn bench_full_context_switch() -> u64 {
 
     // Save general purpose registers (16)
     let mut gp_regs = [0u64; 16];
-    for i in 0..16 {
+    for (i, reg) in gp_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut gp_regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
     // Save segment registers (6)
     let mut seg_regs = [0u16; 6];
-    for i in 0..6 {
+    for (i, reg) in seg_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut seg_regs[i], i as u16);
+            core::ptr::write_volatile(reg, i as u16);
         }
     }
 
     // Save control registers (5)
     let mut ctrl_regs = [0u64; 5];
-    for i in 0..5 {
+    for (i, reg) in ctrl_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut ctrl_regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
@@ -186,14 +186,14 @@ fn bench_full_context_switch() -> u64 {
 
     // Restore
     let mut sum = 0u64;
-    for i in 0..16 {
-        sum += unsafe { core::ptr::read_volatile(&gp_regs[i]) };
+    for reg in &gp_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
-    for i in 0..6 {
-        sum += unsafe { core::ptr::read_volatile(&seg_regs[i]) } as u64;
+    for reg in &seg_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) } as u64;
     }
-    for i in 0..5 {
-        sum += unsafe { core::ptr::read_volatile(&ctrl_regs[i]) };
+    for reg in &ctrl_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
 
     let end = timing::read_tsc();
@@ -207,27 +207,27 @@ fn bench_context_switch_with_fpu() -> u64 {
 
     // Save FPU/SSE state (512 bytes for FXSAVE, 1024 for XSAVE)
     let mut fpu_state = [0u8; 512];
-    for i in 0..512 {
+    for (i, byte) in fpu_state.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut fpu_state[i], i as u8);
+            core::ptr::write_volatile(byte, i as u8);
         }
     }
 
     // General registers
     let mut regs = [0u64; 16];
-    for i in 0..16 {
+    for (i, reg) in regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
     // Restore
     let mut sum = 0u64;
-    for i in 0..16 {
-        sum += unsafe { core::ptr::read_volatile(&regs[i]) };
+    for reg in &regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
-    for i in 0..512 {
-        sum += unsafe { core::ptr::read_volatile(&fpu_state[i]) } as u64;
+    for byte in &fpu_state {
+        sum += unsafe { core::ptr::read_volatile(byte) } as u64;
     }
 
     let end = timing::read_tsc();
@@ -465,9 +465,9 @@ fn bench_preemption_latency() -> u64 {
 
         // Save current state
         let mut state = [0u64; 16];
-        for i in 0..16 {
+        for (i, slot) in state.iter_mut().enumerate() {
             unsafe {
-                core::ptr::write_volatile(&mut state[i], i as u64);
+                core::ptr::write_volatile(slot, i as u64);
             }
         }
 
@@ -477,8 +477,8 @@ fn bench_preemption_latency() -> u64 {
 
         // Load next state
         let mut sum = 0u64;
-        for i in 0..16 {
-            sum += unsafe { core::ptr::read_volatile(&state[i]) };
+        for slot in &state {
+            sum += unsafe { core::ptr::read_volatile(slot) };
         }
         core::hint::black_box(sum);
     }
