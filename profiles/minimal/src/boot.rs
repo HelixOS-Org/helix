@@ -412,6 +412,7 @@ _stack_top:
 /// Verify that multiboot info is valid
 /// Returns the physical address of multiboot info structure
 #[inline]
+#[allow(dead_code)]
 pub fn validate_multiboot(magic: u32, info_addr: usize) -> Option<usize> {
     // Multiboot2 bootloader magic (passed in EAX)
     const MULTIBOOT2_BOOTLOADER_MAGIC: u32 = 0x36d76289;
