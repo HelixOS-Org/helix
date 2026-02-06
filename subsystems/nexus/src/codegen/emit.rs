@@ -617,6 +617,7 @@ impl CodeEmitter {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn type_to_rust(&self, typ: &IRType) -> String {
         match typ {
             IRType::Void => "()".into(),
@@ -654,6 +655,7 @@ impl CodeEmitter {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn type_to_llvm(&self, typ: &IRType) -> String {
         match typ {
             IRType::Void => "void".into(),
@@ -686,7 +688,7 @@ impl CodeEmitter {
         tests.push_str("    use super::*;\n\n");
 
         for func in ir.functions.values() {
-            tests.push_str(&format!("    #[test]\n"));
+            tests.push_str("    #[test]\n");
             tests.push_str(&format!("    fn test_{}() {{\n", func.name));
             tests.push_str("        // Auto-generated test\n");
             tests.push_str("        // TODO: Add assertions\n");
