@@ -433,7 +433,7 @@ impl MountTable {
         let slot = self
             .mounts
             .iter()
-            .position(|m| m.as_ref().map_or(false, |mp| mp.id == id))
+            .position(|m| m.as_ref().is_some_and(|mp| mp.id == id))
             .ok_or(HfsError::NotFound)?;
 
         let mount = self.mounts[slot].as_ref().unwrap();
