@@ -167,7 +167,9 @@ pub mod reloc_x86_64 {
     pub const R_X86_64_REX_GOTPCRELX: u32 = 42;
 }
 
-/// Human-readable relocation type name
+/// Returns a human-readable name for an x86_64 relocation type.
+///
+/// Unknown relocation types return `"R_X86_64_UNKNOWN"`.
 pub fn reloc_type_name(rtype: u32) -> &'static str {
     use reloc_x86_64::*;
     match rtype {
@@ -457,32 +459,32 @@ impl RelocationContext {
         }
     }
 
-    /// Create context with GOT base
+    /// Sets the Global Offset Table (GOT) base address and returns self.
     pub fn with_got(mut self, got_base: u64) -> Self {
         self.got_base = Some(got_base);
         self
     }
 
-    /// Enable strict mode (fail on any error)
+    /// Enables strict mode where any relocation error causes immediate failure.
     pub fn strict(mut self) -> Self {
         self.strict_mode = true;
         self.max_errors = 0;
         self
     }
 
-    /// Check if an offset is within kernel bounds
+    /// Returns `true` if the given offset is within the kernel's memory bounds.
     #[inline]
     pub fn in_bounds(&self, offset: u64) -> bool {
         offset < self.kernel_size as u64
     }
 
-    /// Translate a linked address to a loaded address
+    /// Translates a linked (compile-time) address to the actual loaded address.
     #[inline]
     pub fn translate(&self, linked_addr: u64) -> u64 {
         (linked_addr as i128 + self.slide as i128) as u64
     }
 
-    /// Calculate the offset from load_base for a given linked address
+    /// Converts a linked address to an offset from the kernel base, if within bounds.
     #[inline]
     pub fn linked_to_offset(&self, linked_addr: u64) -> Option<u64> {
         if linked_addr >= self.link_base {
@@ -512,30 +514,40 @@ pub struct RelocStats {
     pub errors: usize,
 
     // Per-type counts
+    /// Count of R_X86_64_NONE relocations
     pub r_none: usize,
+    /// Count of R_X86_64_RELATIVE relocations
     pub r_relative: usize,
+    /// Count of R_X86_64_64 relocations
     pub r_64: usize,
+    /// Count of R_X86_64_32 relocations
     pub r_32: usize,
+    /// Count of R_X86_64_32S relocations
     pub r_32s: usize,
+    /// Count of R_X86_64_PC32 relocations
     pub r_pc32: usize,
+    /// Count of R_X86_64_PC64 relocations
     pub r_pc64: usize,
+    /// Count of GOT-related relocations
     pub r_got: usize,
+    /// Count of PLT-related relocations
     pub r_plt: usize,
+    /// Count of other/unknown relocations
     pub r_other: usize,
 }
 
 impl RelocStats {
-    /// Create new empty statistics
+    /// Creates a new `RelocStats` with all counters initialized to zero.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Check if relocation was successful
+    /// Returns `true` if the number of errors is within the acceptable limit.
     pub fn is_success(&self, max_errors: usize) -> bool {
         self.errors <= max_errors
     }
 
-    /// Get success rate as percentage
+    /// Calculates the success rate as a percentage (0.0 to 100.0).
     pub fn success_rate(&self) -> f32 {
         if self.total_entries == 0 {
             100.0
@@ -1068,7 +1080,9 @@ pub fn validate_relocation(ctx: &RelocationContext, kernel_base: *const u8) -> R
 // DEBUG HELPERS
 // ============================================================================
 
-/// Print relocation entry details (for debugging)
+/// Prints detailed information about a single relocation entry.
+///
+/// Outputs the offset, type, symbol index, and addend for debugging purposes.
 #[cfg(feature = "debug_reloc")]
 pub fn debug_print_rela(rela: &Elf64Rela, index: usize) {
     let rtype = rela.r_type();
@@ -1085,7 +1099,9 @@ pub fn debug_print_rela(rela: &Elf64Rela, index: usize) {
     );
 }
 
-/// Dump all relocations (for debugging)
+/// Dumps all relocation entries to the debug log.
+///
+/// Iterates through all entries and prints their details using `debug_print_rela`.
 #[cfg(feature = "debug_reloc")]
 pub fn debug_dump_relocations(rela_entries: &[Elf64Rela]) {
     log::debug!("Relocation entries ({}):", rela_entries.len());
