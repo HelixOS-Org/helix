@@ -376,6 +376,12 @@ pub unsafe fn send_ipi(destination: IpiDestination, vector: u8) {
 }
 
 /// Broadcast an IPI to all processors except self
+///
+/// # Safety
+///
+/// - The Local APIC must be properly initialized.
+/// - The vector must be a valid interrupt vector (32-255).
+/// - All target CPUs must be capable of receiving interrupts.
 #[inline]
 pub unsafe fn broadcast_ipi(vector: u8) {
     unsafe {
@@ -457,29 +463,53 @@ pub mod registers {
 
 /// x2APIC MSR offsets
 pub mod x2apic_msr {
+    /// Base MSR address for x2APIC registers
     pub const BASE: u32 = 0x800;
+    /// APIC ID register MSR
     pub const ID: u32 = BASE + 0x02;
+    /// APIC version register MSR
     pub const VERSION: u32 = BASE + 0x03;
+    /// Task priority register MSR
     pub const TPR: u32 = BASE + 0x08;
+    /// Processor priority register MSR
     pub const PPR: u32 = BASE + 0x0A;
+    /// End-of-interrupt register MSR
     pub const EOI: u32 = BASE + 0x0B;
+    /// Logical destination register MSR
     pub const LDR: u32 = BASE + 0x0D;
+    /// Spurious interrupt vector register MSR
     pub const SVR: u32 = BASE + 0x0F;
+    /// In-service register base MSR
     pub const ISR_BASE: u32 = BASE + 0x10;
+    /// Trigger mode register base MSR
     pub const TMR_BASE: u32 = BASE + 0x18;
+    /// Interrupt request register base MSR
     pub const IRR_BASE: u32 = BASE + 0x20;
+    /// Error status register MSR
     pub const ESR: u32 = BASE + 0x28;
+    /// LVT corrected machine check interrupt MSR
     pub const LVT_CMCI: u32 = BASE + 0x2F;
-    pub const ICR: u32 = BASE + 0x30; // Combined in x2APIC
+    /// Interrupt command register MSR (combined high/low in x2APIC)
+    pub const ICR: u32 = BASE + 0x30;
+    /// LVT timer register MSR
     pub const LVT_TIMER: u32 = BASE + 0x32;
+    /// LVT thermal sensor register MSR
     pub const LVT_THERMAL: u32 = BASE + 0x33;
+    /// LVT performance monitoring counter MSR
     pub const LVT_PERF: u32 = BASE + 0x34;
+    /// LVT LINT0 register MSR
     pub const LVT_LINT0: u32 = BASE + 0x35;
+    /// LVT LINT1 register MSR
     pub const LVT_LINT1: u32 = BASE + 0x36;
+    /// LVT error register MSR
     pub const LVT_ERROR: u32 = BASE + 0x37;
+    /// Timer initial count register MSR
     pub const TIMER_ICR: u32 = BASE + 0x38;
+    /// Timer current count register MSR
     pub const TIMER_CCR: u32 = BASE + 0x39;
+    /// Timer divide configuration register MSR
     pub const TIMER_DCR: u32 = BASE + 0x3E;
+    /// Self IPI register MSR
     pub const SELF_IPI: u32 = BASE + 0x3F;
 }
 
