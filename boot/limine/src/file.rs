@@ -660,7 +660,7 @@ impl<'a> CpioIterator<'a> {
                 b'A'..=b'F' => b - b'A' + 10,
                 _ => return None,
             };
-            result = result * 16 + digit as u32;
+            result = result * 16 + u32::from(digit);
         }
         Some(result)
     }
