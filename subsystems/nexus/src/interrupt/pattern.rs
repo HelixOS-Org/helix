@@ -50,7 +50,7 @@ impl InterruptPatternDetector {
 
     /// Record interrupt timestamp
     pub fn record(&mut self, irq: Irq, timestamp: u64) {
-        let history = self.history.entry(irq).or_insert_with(Vec::new);
+        let history = self.history.entry(irq).or_default();
         history.push(timestamp);
 
         if history.len() > self.max_history {
