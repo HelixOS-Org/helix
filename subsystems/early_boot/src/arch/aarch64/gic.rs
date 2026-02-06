@@ -318,6 +318,10 @@ fn write_icc_sgi1r_el1(value: u64) {
 // =============================================================================
 
 /// Detect GIC version
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is accessible.
 pub unsafe fn detect_gic_version() -> u8 {
     // Try GICv3 first by reading ICC_SRE_EL1
     let sre = read_icc_sre_el1();
@@ -338,6 +342,10 @@ pub unsafe fn detect_gic_version() -> u8 {
 // =============================================================================
 
 /// Initialize GIC
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Detect GIC version
     GIC_VERSION = detect_gic_version();
@@ -511,6 +519,10 @@ unsafe fn init_gicv3_cpu_interface() {
 // =============================================================================
 
 /// Enable an interrupt
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt ID is valid and a handler is registered.
 pub unsafe fn enable_irq(irq: u32) {
     if irq >= NUM_IRQS {
         return;
@@ -530,6 +542,10 @@ pub unsafe fn enable_irq(irq: u32) {
 }
 
 /// Disable an interrupt
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt ID is valid.
 pub unsafe fn disable_irq(irq: u32) {
     if irq >= NUM_IRQS {
         return;
@@ -548,6 +564,10 @@ pub unsafe fn disable_irq(irq: u32) {
 }
 
 /// Set interrupt priority
+///
+/// # Safety
+///
+/// The caller must ensure the interrupt ID is valid for this GIC implementation.
 pub unsafe fn set_priority(irq: u32, priority: u8) {
     if irq >= NUM_IRQS {
         return;
@@ -571,6 +591,10 @@ pub unsafe fn set_priority(irq: u32, priority: u8) {
 }
 
 /// Acknowledge interrupt
+///
+/// # Safety
+///
+/// The caller must ensure an interrupt is pending.
 pub unsafe fn ack_irq() -> u32 {
     if GIC_VERSION >= 3 {
         read_icc_iar1_el1()
@@ -580,6 +604,10 @@ pub unsafe fn ack_irq() -> u32 {
 }
 
 /// End of interrupt
+///
+/// # Safety
+///
+/// The caller must ensure an interrupt was acknowledged and is being handled.
 pub unsafe fn eoi(irq: u32) {
     if GIC_VERSION >= 3 {
         write_icc_eoir1_el1(irq);
@@ -589,6 +617,10 @@ pub unsafe fn eoi(irq: u32) {
 }
 
 /// Send SGI (Software Generated Interrupt)
+///
+/// # Safety
+///
+/// The caller must ensure the SGI number is valid (0-15) and targets are valid.
 pub unsafe fn send_sgi(sgi: u8, target_list: u16) {
     if GIC_VERSION >= 3 {
         // GICv3 uses ICC_SGI1R_EL1
@@ -602,6 +634,10 @@ pub unsafe fn send_sgi(sgi: u8, target_list: u16) {
 }
 
 /// Send SGI to all other CPUs
+///
+/// # Safety
+///
+/// The caller must ensure the SGI number is valid (0-15) and targets are valid.
 pub unsafe fn send_sgi_others(sgi: u8) {
     if GIC_VERSION >= 3 {
         // IRM=1 for all other PEs
