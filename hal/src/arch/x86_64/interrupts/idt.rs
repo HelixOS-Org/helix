@@ -256,6 +256,7 @@ pub unsafe fn get_idt_mut() -> &'static mut Idt {
 /// # Safety
 ///
 /// This must only be called once during early boot.
+#[allow(clippy::fn_to_numeric_cast)]
 pub unsafe fn init_idt() {
     let idt = unsafe { get_idt_mut() };
     let kernel_cs = segmentation::selectors::KERNEL_CS.raw();
@@ -289,6 +290,9 @@ pub unsafe fn init_idt() {
 }
 
 /// Set up all exception handlers
+///
+/// Note: Function pointer casts to u64 are intentional for IDT entry format
+#[allow(clippy::fn_to_numeric_cast)]
 fn setup_exception_handlers(idt: &mut Idt, selector: u16) {
     // #DE - Divide Error
     idt.set_interrupt_handler(
