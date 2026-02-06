@@ -12,7 +12,7 @@
 //! - Invariant verification
 
 use crate::boot_info::BootInfo;
-use crate::requests::*;
+use crate::requests::{HhdmResponse, MemoryEntry, MemoryMapResponse};
 
 /// Validation result type
 pub type ValidationResult<T> = Result<T, ValidationError>;
@@ -185,6 +185,10 @@ impl ValidationErrors {
     }
 
     /// Converts to a Result, returning Ok if no errors or Err with the first error
+    ///
+    /// # Errors
+    ///
+    /// Returns the first validation error if any exists.
     pub fn into_result(self) -> ValidationResult<()> {
         if let Some(error) = self.errors.into_iter().flatten().next() {
             Err(error)
@@ -222,6 +226,10 @@ impl<'a> BootValidator<'a> {
     }
 
     /// Runs all validation checks and returns the result
+    ///
+    /// # Errors
+    ///
+    /// Returns the first validation error if any check fails.
     pub fn validate(mut self) -> ValidationResult<()> {
         self.validate_memory_map();
         self.validate_hhdm();
@@ -254,7 +262,7 @@ impl<'a> BootValidator<'a> {
         }
 
         // Validate each entry
-        for entry in entries.iter() {
+        for entry in &entries {
             // Check for zero-length regions
             if entry.length() == 0 {
                 self.errors.push(ValidationError::InvalidMemoryRegion {
@@ -382,7 +390,7 @@ impl<'a> BootValidator<'a> {
             return; // Framebuffer is optional
         };
 
-        for (_i, fb) in fb_response.iter().enumerate() {
+        for fb in fb_response.iter() {
             // Check for valid dimensions
             if fb.width() == 0 || fb.height() == 0 {
                 self.errors
@@ -456,6 +464,10 @@ impl<'a> BootValidator<'a> {
 }
 
 /// Validates a memory map response for basic correctness
+///
+/// # Errors
+///
+/// Returns an error if the memory map is empty or invalid.
 pub fn validate_memory_map(response: &MemoryMapResponse) -> ValidationResult<()> {
     let mut errors = ValidationErrors::new();
 
@@ -467,6 +479,10 @@ pub fn validate_memory_map(response: &MemoryMapResponse) -> ValidationResult<()>
 }
 
 /// Validates an HHDM response for proper higher-half mapping
+///
+/// # Errors
+///
+/// Returns an error if the HHDM offset is invalid or misaligned.
 pub fn validate_hhdm(response: &HhdmResponse) -> ValidationResult<()> {
     let offset = response.offset();
 
@@ -508,6 +524,10 @@ pub fn is_valid_range(base: u64, length: u64) -> bool {
 }
 
 /// Validates that a pointer is not null and properly aligned for its type
+///
+/// # Errors
+///
+/// Returns an error if the pointer is null or misaligned.
 pub fn validate_pointer<T>(ptr: *const T) -> ValidationResult<()> {
     if ptr.is_null() {
         return Err(ValidationError::NullPointer("pointer"));
