@@ -301,10 +301,7 @@ impl SemanticMemory {
         let pattern = SemanticPattern::new(id, name.clone(), category);
 
         self.by_name.insert(name, id);
-        self.by_category
-            .entry(category)
-            .or_default()
-            .push(id);
+        self.by_category.entry(category).or_default().push(id);
         self.patterns.insert(id, pattern);
 
         id
