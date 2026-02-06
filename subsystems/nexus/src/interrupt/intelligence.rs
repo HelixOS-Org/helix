@@ -60,7 +60,7 @@ impl InterruptIntelligence {
         self.total_interrupts.fetch_add(1, Ordering::Relaxed);
 
         // Update stats
-        let stats = self.stats.entry(record.irq).or_insert_with(IrqStats::new);
+        let stats = self.stats.entry(record.irq).or_default();
         stats.record(&record);
 
         // Record pattern
