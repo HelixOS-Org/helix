@@ -44,7 +44,7 @@ pub const SHA256_K: [u32; 64] = [
 fn crc32c_table() -> [u32; 256] {
     let mut table = [0u32; 256];
 
-    for i in 0..256 {
+    for (i, entry) in table.iter_mut().enumerate() {
         let mut crc = i as u32;
         for _ in 0..8 {
             if crc & 1 != 0 {
@@ -53,7 +53,7 @@ fn crc32c_table() -> [u32; 256] {
                 crc >>= 1;
             }
         }
-        table[i] = crc;
+        *entry = crc;
     }
 
     table
@@ -385,7 +385,7 @@ impl Sha256 {
         let len_bytes = self.total_bits.to_be_bytes();
         // Need to handle this carefully since total_bits was already updated
         let mut final_block = self.buffer;
-        final_block[56..64].copy_from_slice(&((self.total_bits - 64) as u64).to_be_bytes());
+        final_block[56..64].copy_from_slice(&(self.total_bits - 64).to_be_bytes());
         self.process_block(&final_block);
 
         // Output
@@ -486,7 +486,7 @@ pub fn verify_integrity(algorithm: HashAlgorithm, data: &[u8], expected: &[u8]) 
         return IntegrityResult::failure(0, 0);
     }
 
-    let passed = &computed[..size] == &expected[..size];
+    let passed = computed[..size] == expected[..size];
 
     let exp_u64 = if size >= 8 {
         u64::from_le_bytes(expected[..8].try_into().unwrap())
