@@ -229,12 +229,12 @@ extern "C" {
 
 /// Get kernel start address
 pub fn kernel_start() -> *const u8 {
-    unsafe { core::ptr::addr_of!(__kernel_start) }
+    core::ptr::addr_of!(__kernel_start)
 }
 
 /// Get kernel end address
 pub fn kernel_end() -> *const u8 {
-    unsafe { core::ptr::addr_of!(__kernel_end) }
+    core::ptr::addr_of!(__kernel_end)
 }
 
 /// Get kernel size
@@ -244,20 +244,16 @@ pub fn kernel_size() -> usize {
 
 /// Get relocation table
 pub fn rela_section() -> (*const u8, usize) {
-    unsafe {
-        let start = core::ptr::addr_of!(__rela_start);
-        let end = core::ptr::addr_of!(__rela_end);
-        (start, end as usize - start as usize)
-    }
+    let start = core::ptr::addr_of!(__rela_start);
+    let end = core::ptr::addr_of!(__rela_end);
+    (start, end as usize - start as usize)
 }
 
 /// Get dynamic section
 pub fn dynamic_section() -> (*const u8, usize) {
-    unsafe {
-        let start = core::ptr::addr_of!(__dynamic_start);
-        let end = core::ptr::addr_of!(__dynamic_end);
-        (start, end as usize - start as usize)
-    }
+    let start = core::ptr::addr_of!(__dynamic_start);
+    let end = core::ptr::addr_of!(__dynamic_end);
+    (start, end as usize - start as usize)
 }
 
 // ============================================================================
