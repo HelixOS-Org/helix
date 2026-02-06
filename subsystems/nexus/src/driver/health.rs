@@ -119,7 +119,7 @@ impl DriverHealthMonitor {
         prev: f64,
         current: f64,
     ) -> Option<HealthEvent> {
-        let event = if current < 0.5 && prev >= 0.5 {
+        if current < 0.5 && prev >= 0.5 {
             Some(self.record_event(
                 driver_id,
                 HealthEventType::Critical,
@@ -139,9 +139,7 @@ impl DriverHealthMonitor {
             ))
         } else {
             None
-        };
-
-        event
+        }
     }
 
     /// Record health event
