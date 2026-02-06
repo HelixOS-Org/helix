@@ -404,90 +404,105 @@ impl<'a> BootInfoBuilder<'a> {
     }
 
     /// Add bootloader info from request
+    #[must_use]
     pub fn with_bootloader(mut self, request: &'a BootloaderInfoRequest) -> Self {
         self.info.bootloader = request.response();
         self
     }
 
     /// Add memory map from request
+    #[must_use]
     pub fn with_memory_map(mut self, request: &'a MemoryMapRequest) -> Self {
         self.info.memory_map = request.response();
         self
     }
 
     /// Add HHDM from request
+    #[must_use]
     pub fn with_hhdm(mut self, request: &'a HhdmRequest) -> Self {
         self.info.hhdm = request.response();
         self
     }
 
     /// Add paging mode from request
+    #[must_use]
     pub fn with_paging_mode(mut self, request: &'a PagingModeRequest) -> Self {
         self.info.paging_mode = request.response();
         self
     }
 
     /// Add kernel file from request
+    #[must_use]
     pub fn with_kernel_file(mut self, request: &'a KernelFileRequest) -> Self {
         self.info.kernel_file = request.response();
         self
     }
 
     /// Add kernel address from request
+    #[must_use]
     pub fn with_kernel_address(mut self, request: &'a KernelAddressRequest) -> Self {
         self.info.kernel_address = request.response();
         self
     }
 
     /// Add modules from request
+    #[must_use]
     pub fn with_modules(mut self, request: &'a ModuleRequest) -> Self {
         self.info.modules = request.response();
         self
     }
 
     /// Add SMP from request
+    #[must_use]
     pub fn with_smp(mut self, request: &'a SmpRequest) -> Self {
         self.info.smp = request.response();
         self
     }
 
     /// Add framebuffer from request
+    #[must_use]
     pub fn with_framebuffer(mut self, request: &'a FramebufferRequest) -> Self {
         self.info.framebuffer = request.response();
         self
     }
 
     /// Add RSDP from request
+    #[must_use]
     pub fn with_rsdp(mut self, request: &'a RsdpRequest) -> Self {
         self.info.rsdp = request.response();
         self
     }
 
     /// Add SMBIOS from request
+    #[must_use]
     pub fn with_smbios(mut self, request: &'a SmbiosRequest) -> Self {
         self.info.smbios = request.response();
         self
     }
 
     /// Add EFI system table from request
+    #[must_use]
     pub fn with_efi_system_table(mut self, request: &'a EfiSystemTableRequest) -> Self {
         self.info.efi_system_table = request.response();
         self
     }
 
     /// Add EFI memory map from request
+    #[must_use]
     pub fn with_efi_memmap(mut self, request: &'a EfiMemmapRequest) -> Self {
         self.info.efi_memmap = request.response();
         self
     }
 
     /// Add DTB from request
+    #[must_use]
     pub fn with_dtb(mut self, request: &'a DtbRequest) -> Self {
         self.info.dtb = request.response();
         self
     }
 
     /// Add boot time from request
+    #[must_use]
     pub fn with_boot_time(mut self, request: &'a BootTimeRequest) -> Self {
         self.info.boot_time = request.response();
         self
