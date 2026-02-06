@@ -215,7 +215,7 @@ impl core::fmt::Debug for File {
             .field("size", &self.size)
             .field("address", &format_args!("{:#x}", self.address))
             .field("media_type", &self.media_type)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -320,6 +320,7 @@ impl ModuleCollection {
     }
 
     /// Iterate over modules
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> ModuleIterator<'_> {
         ModuleIterator {
             collection: self,
@@ -449,6 +450,7 @@ impl PathBuf {
     }
 
     /// Create from string
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         let mut buf = Self::new();
         buf.push(s);
@@ -615,7 +617,7 @@ impl FileType {
         let sample = if data.len() > 512 { &data[..512] } else { data };
         sample
             .iter()
-            .all(|&b| b == b'\n' || b == b'\r' || b == b'\t' || (b >= 0x20 && b < 0x7f))
+            .all(|&b| b == b'\n' || b == b'\r' || b == b'\t' || (0x20..0x7f).contains(&b))
     }
 
     /// Detect from file
