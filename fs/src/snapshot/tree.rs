@@ -126,12 +126,7 @@ impl SnapshotTree {
 
     /// Find node by ID
     pub fn find(&self, id: SnapshotId) -> Option<usize> {
-        for i in 0..self.count {
-            if self.nodes[i].id == id {
-                return Some(i);
-            }
-        }
-        None
+        (0..self.count).find(|&i| self.nodes[i].id == id)
     }
 
     /// Get node by ID
