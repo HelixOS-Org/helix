@@ -124,6 +124,10 @@ impl Gicv3Distributor {
     }
 
     /// Initialize the GICv3 Distributor
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self) {
         // Disable the distributor
         self.inner.write_ctlr(0);
@@ -154,6 +158,10 @@ impl Gicv3Distributor {
     }
 
     /// Set the routing for an SPI to a specific CPU affinity
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID and target CPU are valid.
     pub unsafe fn set_routing(&self, intid: u32, affinity: CpuAffinity) {
         if intid < SPI_BASE {
             return;
@@ -164,6 +172,10 @@ impl Gicv3Distributor {
     }
 
     /// Set the routing for an SPI to any available CPU (1-of-N)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID and target CPU are valid.
     pub unsafe fn set_routing_any(&self, intid: u32) {
         if intid < SPI_BASE {
             return;
@@ -173,6 +185,10 @@ impl Gicv3Distributor {
     }
 
     /// Get the routing for an SPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for routing queries.
     pub unsafe fn get_routing(&self, intid: u32) -> (CpuAffinity, bool) {
         let value = self.inner.read_irouter(intid);
         let any_mode = (value & IROUTER_MODE_ANY) != 0;
@@ -186,6 +202,10 @@ impl Gicv3Distributor {
     }
 
     /// Set all SPIs to route to any CPU
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is appropriate for the current exception level.
     pub unsafe fn set_all_spi_routing_any(&self) {
         let num_irqs = self.inner.num_interrupts();
         for intid in SPI_BASE..num_irqs {
@@ -194,6 +214,10 @@ impl Gicv3Distributor {
     }
 
     /// Set all SPIs to route to the current CPU
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is appropriate for the current exception level.
     pub unsafe fn set_all_spi_routing_current(&self) {
         // Read current CPU's affinity from MPIDR_EL1
         let mpidr: u64;
@@ -330,11 +354,19 @@ impl Gicv3 {
     }
 
     /// Initialize the GICv3 Distributor (call once on BSP)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_distributor(&self) {
         self.distributor.init();
     }
 
     /// Initialize the current CPU's interface and Redistributor
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure this is called once per CPU during initialization.
     pub unsafe fn init_cpu(&self) {
         // Find and initialize our Redistributor
         if let Some(redist) = find_redistributor_for_current_cpu(self.gicr_base) {
@@ -346,12 +378,20 @@ impl Gicv3 {
     }
 
     /// Full initialization (BSP should call this)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self) {
         self.init_distributor();
         self.init_cpu();
     }
 
     /// Initialize for a secondary CPU (AP)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_secondary(&self) {
         self.init_cpu();
     }
@@ -369,11 +409,19 @@ impl Gicv3 {
     }
 
     /// Get the current CPU's Redistributor
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn current_redistributor(&self) -> Option<Redistributor> {
         find_redistributor_for_current_cpu(self.gicr_base)
     }
 
     /// Enable an SPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the system is ready for this feature to be enabled.
     pub unsafe fn enable_spi(&self, intid: u32, priority: Priority, trigger: TriggerMode) {
         if intid < SPI_BASE {
             return;
@@ -398,6 +446,10 @@ impl Gicv3 {
     }
 
     /// Enable an SPI with specific affinity routing
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn enable_spi_with_affinity(
         &self,
         intid: u32,
@@ -419,6 +471,10 @@ impl Gicv3 {
     }
 
     /// Enable a PPI on the current CPU
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the system is ready for this feature to be enabled.
     pub unsafe fn enable_ppi(&self, ppi: u8, priority: Priority, trigger: TriggerMode) {
         let intid = 16 + ppi as u32;
         if intid >= 32 {
@@ -434,6 +490,10 @@ impl Gicv3 {
     }
 
     /// Disable an interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn disable_interrupt(&self, intid: u32) {
         if intid >= SPI_BASE {
             self.distributor.inner().disable_interrupt(intid);
@@ -472,6 +532,10 @@ impl Gicv3 {
     }
 
     /// Get the number of supported interrupts
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized.
     pub unsafe fn num_interrupts(&self) -> u32 {
         self.distributor.inner().num_interrupts()
     }
