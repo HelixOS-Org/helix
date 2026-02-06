@@ -565,7 +565,7 @@ impl ToneGenerator {
         let phase_increment = (tone.frequency as f32) / (self.sample_rate as f32);
         let volume_scale = (tone.volume as f32) / 100.0;
 
-        for i in 0..samples_to_generate {
+        for sample_buf in buffer.iter_mut().take(samples_to_generate) {
             let sample = match tone.waveform {
                 Waveform::Sine => self.sine_sample(),
                 Waveform::Square => self.square_sample(),
@@ -574,7 +574,7 @@ impl ToneGenerator {
                 Waveform::Noise => self.noise_sample(),
             };
 
-            buffer[i] = ((sample * volume_scale) * 32767.0) as i16;
+            *sample_buf = ((sample * volume_scale) * 32767.0) as i16;
             self.phase += phase_increment;
             if self.phase >= 1.0 {
                 self.phase -= 1.0;
@@ -619,7 +619,7 @@ impl ToneGenerator {
     /// Generate noise sample (LFSR)
     fn noise_sample(&mut self) -> f32 {
         // Linear feedback shift register
-        let bit = ((self.noise_state >> 0)
+        let bit = (self.noise_state
             ^ (self.noise_state >> 2)
             ^ (self.noise_state >> 3)
             ^ (self.noise_state >> 5))
