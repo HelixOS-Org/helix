@@ -1197,7 +1197,7 @@ impl ElfLoader {
     pub fn loadable_segments(&self) -> Vec<&Elf64ProgramHeader> {
         self.program_headers
             .iter()
-            .filter(|p| p.is_load())
+            .filter(|h| h.is_load())
             .collect()
     }
 
