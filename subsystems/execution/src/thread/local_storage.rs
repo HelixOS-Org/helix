@@ -92,6 +92,12 @@ pub struct TlsKeyRegistry {
     keys: RwLock<BTreeMap<TlsKey, Option<TlsDestructor>>>,
 }
 
+impl Default for TlsKeyRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TlsKeyRegistry {
     /// Create a new registry
     pub const fn new() -> Self {
