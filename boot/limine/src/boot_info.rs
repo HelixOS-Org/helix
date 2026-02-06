@@ -167,12 +167,12 @@ impl<'a> BootInfo<'a> {
 
     /// Get HHDM offset
     pub fn hhdm_offset(&self) -> u64 {
-        self.hhdm.map(HhdmResponse::offset).unwrap_or(0)
+        self.hhdm.map_or(0, HhdmResponse::offset)
     }
 
     /// Convert physical address to virtual using HHDM
     pub fn phys_to_virt(&self, phys: u64) -> u64 {
-        self.hhdm.map(|h| h.phys_to_virt(phys)).unwrap_or(phys)
+        self.hhdm.map_or(phys, |h| h.phys_to_virt(phys))
     }
 
     /// Convert virtual address to physical using HHDM
@@ -188,8 +188,7 @@ impl<'a> BootInfo<'a> {
     /// Check if using 5-level paging
     pub fn is_five_level_paging(&self) -> bool {
         self.paging_mode
-            .map(PagingModeResponse::is_five_level)
-            .unwrap_or(false)
+            .map_or(false, PagingModeResponse::is_five_level)
     }
 
     /// Get kernel file
@@ -205,15 +204,13 @@ impl<'a> BootInfo<'a> {
     /// Get kernel physical base
     pub fn kernel_phys_base(&self) -> u64 {
         self.kernel_address
-            .map(KernelAddressResponse::physical_base)
-            .unwrap_or(0)
+            .map_or(0, KernelAddressResponse::physical_base)
     }
 
     /// Get kernel virtual base
     pub fn kernel_virt_base(&self) -> u64 {
         self.kernel_address
-            .map(KernelAddressResponse::virtual_base)
-            .unwrap_or(0)
+            .map_or(0, KernelAddressResponse::virtual_base)
     }
 
     /// Get modules
@@ -223,7 +220,7 @@ impl<'a> BootInfo<'a> {
 
     /// Get number of boot modules
     pub fn module_count(&self) -> usize {
-        self.modules.map(ModuleResponse::module_count).unwrap_or(0)
+        self.modules.map_or(0, ModuleResponse::module_count)
     }
 
     /// Get SMP information
@@ -233,12 +230,12 @@ impl<'a> BootInfo<'a> {
 
     /// Get number of CPUs
     pub fn cpu_count(&self) -> usize {
-        self.smp.map(SmpResponse::cpu_count).unwrap_or(1)
+        self.smp.map_or(1, SmpResponse::cpu_count)
     }
 
     /// Get BSP LAPIC ID
     pub fn bsp_lapic_id(&self) -> u64 {
-        self.smp.map(SmpResponse::bsp_lapic_id).unwrap_or(0)
+        self.smp.map_or(0, SmpResponse::bsp_lapic_id)
     }
 
     /// Get framebuffer response
@@ -253,7 +250,7 @@ impl<'a> BootInfo<'a> {
 
     /// Check if graphical output is available
     pub fn has_framebuffer(&self) -> bool {
-        self.framebuffer.map(|f| f.count() > 0).unwrap_or(false)
+        self.framebuffer.map_or(false, |f| f.count() > 0)
     }
 
     /// Get RSDP
@@ -298,7 +295,7 @@ impl<'a> BootInfo<'a> {
 
     /// Check if Device Tree is available
     pub fn has_device_tree(&self) -> bool {
-        self.dtb.map(DtbResponse::is_valid).unwrap_or(false)
+        self.dtb.map_or(false, DtbResponse::is_valid)
     }
 
     /// Get boot time
