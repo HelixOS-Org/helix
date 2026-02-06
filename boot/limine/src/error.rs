@@ -144,7 +144,10 @@ impl fmt::Display for MemoryError {
                 required,
                 available,
             } => {
-                write!(f, "Insufficient memory: need {required} bytes, have {available}")
+                write!(
+                    f,
+                    "Insufficient memory: need {required} bytes, have {available}"
+                )
             },
             Self::AddressOutOfRange(addr) => write!(f, "Address out of range: {addr:#x}"),
             Self::InvalidRegion { base, length } => {
