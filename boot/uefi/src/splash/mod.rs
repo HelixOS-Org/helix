@@ -268,21 +268,27 @@ impl Rect {
     /// Right edge
     #[must_use]
     pub const fn right(&self) -> i32 {
-        self.x.saturating_add(Self::u32_to_i32_saturated(self.width))
+        self.x
+            .saturating_add(Self::u32_to_i32_saturated(self.width))
     }
 
     /// Bottom edge
     #[must_use]
     pub const fn bottom(&self) -> i32 {
-        self.y.saturating_add(Self::u32_to_i32_saturated(self.height))
+        self.y
+            .saturating_add(Self::u32_to_i32_saturated(self.height))
     }
 
     /// Center point
     #[must_use]
     pub const fn center(&self) -> Point {
         Point {
-            x: self.x.saturating_add(Self::u32_to_i32_saturated(self.width / 2)),
-            y: self.y.saturating_add(Self::u32_to_i32_saturated(self.height / 2)),
+            x: self
+                .x
+                .saturating_add(Self::u32_to_i32_saturated(self.width / 2)),
+            y: self
+                .y
+                .saturating_add(Self::u32_to_i32_saturated(self.height / 2)),
         }
     }
 
