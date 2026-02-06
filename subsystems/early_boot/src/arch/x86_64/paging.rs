@@ -354,16 +354,28 @@ impl BootFrameAllocator {
 static mut FRAME_ALLOCATOR: BootFrameAllocator = BootFrameAllocator::new();
 
 /// Initialize frame allocator
+///
+/// # Safety
+///
+/// The caller must ensure memory regions are valid and not already in use.
 pub unsafe fn init_frame_allocator(start: u64, end: u64) {
     FRAME_ALLOCATOR.init(start, end);
 }
 
 /// Allocate a frame
+///
+/// # Safety
+///
+/// The caller must ensure the allocator is properly initialized.
 pub unsafe fn alloc_frame() -> Option<u64> {
     FRAME_ALLOCATOR.alloc_frame()
 }
 
 /// Allocate a page table
+///
+/// # Safety
+///
+/// The caller must ensure the allocator is properly initialized.
 pub unsafe fn alloc_page_table() -> Option<&'static mut PageTable> {
     let frame = alloc_frame()?;
     Some(&mut *(frame as *mut PageTable))
@@ -389,12 +401,20 @@ static mut USE_5_LEVEL_PAGING: bool = false;
 // =============================================================================
 
 /// Check if 5-level paging is supported
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized.
 pub unsafe fn supports_5_level_paging() -> bool {
     let (_, _, ecx, _) = super::cpuid(7, 0);
     (ecx & (1 << 16)) != 0 // LA57 bit
 }
 
 /// Set up initial page tables
+///
+/// # Safety
+///
+/// The caller must ensure the page table pointer is valid and properly aligned.
 pub unsafe fn setup_page_tables(ctx: &mut BootContext) -> BootResult<()> {
     // Determine paging mode
     let use_5_level = ctx.config.enable_5_level_paging && supports_5_level_paging();
@@ -535,6 +555,10 @@ unsafe fn setup_kernel_mapping(ctx: &BootContext) -> BootResult<()> {
 // =============================================================================
 
 /// Map a 4KB page
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_4kb_page(virt: u64, phys: u64, flags: PageFlags) -> BootResult<()> {
     let pml4 = &mut BOOT_PML4;
 
@@ -558,6 +582,10 @@ pub unsafe fn map_4kb_page(virt: u64, phys: u64, flags: PageFlags) -> BootResult
 }
 
 /// Map a 2MB large page
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_2mb_page(virt: u64, phys: u64, flags: PageFlags) -> BootResult<()> {
     if !is_aligned(virt, LARGE_PAGE_SIZE) || !is_aligned(phys, LARGE_PAGE_SIZE) {
         return Err(BootError::InvalidAddress);
@@ -582,6 +610,10 @@ pub unsafe fn map_2mb_page(virt: u64, phys: u64, flags: PageFlags) -> BootResult
 }
 
 /// Map a 1GB huge page
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_1gb_page(virt: u64, phys: u64, flags: PageFlags) -> BootResult<()> {
     if !is_aligned(virt, HUGE_PAGE_SIZE) || !is_aligned(phys, HUGE_PAGE_SIZE) {
         return Err(BootError::InvalidAddress);
@@ -676,6 +708,10 @@ unsafe fn enable_5_level_paging() -> BootResult<()> {
 // =============================================================================
 
 /// Translate virtual address to physical (for current page tables)
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn virt_to_phys(virt: u64) -> Option<u64> {
     let pml4 = &BOOT_PML4;
 
@@ -733,6 +769,10 @@ pub const fn phys_to_hhdm(phys_addr: u64) -> u64 {
 // =============================================================================
 
 /// Flush entire TLB
+///
+/// # Safety
+///
+/// The caller must ensure this is called when page table changes need to be visible.
 pub unsafe fn flush_tlb() {
     let cr3: u64;
     core::arch::asm!("mov {}, cr3", out(reg) cr3, options(nostack));
@@ -740,11 +780,19 @@ pub unsafe fn flush_tlb() {
 }
 
 /// Flush TLB for a single page
+///
+/// # Safety
+///
+/// The caller must ensure this is called when page table changes need to be visible.
 pub unsafe fn flush_tlb_page(addr: u64) {
     super::invlpg(addr);
 }
 
 /// Flush TLB for a range of pages
+///
+/// # Safety
+///
+/// The caller must ensure this is called when page table changes need to be visible.
 pub unsafe fn flush_tlb_range(start: u64, end: u64) {
     let mut addr = align_down(start, PAGE_SIZE);
     while addr < end {
@@ -754,6 +802,10 @@ pub unsafe fn flush_tlb_range(start: u64, end: u64) {
 }
 
 /// Invalidate all PCID entries
+///
+/// # Safety
+///
+/// The caller must ensure this is called when page table changes need to be visible.
 pub unsafe fn flush_tlb_all_pcid() {
     // INVPCID instruction if available, otherwise full flush
     core::arch::asm!(
@@ -771,6 +823,10 @@ pub unsafe fn flush_tlb_all_pcid() {
 // =============================================================================
 
 /// Apply KASLR offset to kernel mapping
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn apply_kaslr_offset(ctx: &mut BootContext, offset: u64) -> BootResult<()> {
     let kernel_phys = ctx.boot_info.kernel_phys_base;
     let kernel_size = ctx.boot_info.kernel_size;
@@ -813,6 +869,10 @@ pub unsafe fn apply_kaslr_offset(ctx: &mut BootContext, offset: u64) -> BootResu
 // =============================================================================
 
 /// Map a range of physical memory
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual address ranges are valid and not already mapped.
 pub unsafe fn map_range(
     virt_start: u64,
     phys_start: u64,
@@ -852,6 +912,10 @@ pub unsafe fn map_range(
 }
 
 /// Unmap a virtual address
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn unmap_page(virt: u64) -> BootResult<()> {
     let pml4 = &mut BOOT_PML4;
 
