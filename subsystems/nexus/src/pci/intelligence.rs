@@ -115,7 +115,7 @@ impl PciIntelligence {
                 issues.push(PciIssue {
                     issue_type: PciIssueType::NoDriver,
                     severity: 4,
-                    description: format!("Device {} has no driver", device.id.to_string()),
+                    description: format!("Device {} has no driver", device.id),
                     device: Some(device.id),
                 });
                 recommendations.push(PciRecommendation {
@@ -137,7 +137,7 @@ impl PciIntelligence {
                         severity: 6,
                         description: format!(
                             "Device {} running at {} {} (max {} {})",
-                            device.id.to_string(),
+                            device.id,
                             link.speed.name(),
                             link.width.name(),
                             link.max_speed.name(),
@@ -162,7 +162,7 @@ impl PciIntelligence {
                 issues.push(PciIssue {
                     issue_type: PciIssueType::LegacyInterrupt,
                     severity: 3,
-                    description: format!("Device {} using legacy IRQ", device.id.to_string()),
+                    description: format!("Device {} using legacy IRQ", device.id),
                     device: Some(device.id),
                 });
                 recommendations.push(PciRecommendation {
@@ -178,22 +178,22 @@ impl PciIntelligence {
                 issues.push(PciIssue {
                     issue_type: PciIssueType::NoIommu,
                     severity: 5,
-                    description: format!("Device {} not in IOMMU domain", device.id.to_string()),
+                    description: format!("Device {} not in IOMMU domain", device.id),
                     device: Some(device.id),
                 });
             }
 
             // Check unassigned BARs
-            for bar in &device.bars {
-                if bar.is_valid() && !bar.assigned {
+            for base_addr_reg in &device.bars {
+                if base_addr_reg.is_valid() && !base_addr_reg.assigned {
                     health_score -= 2.0;
                     issues.push(PciIssue {
                         issue_type: PciIssueType::UnassignedBar,
                         severity: 4,
                         description: format!(
                             "Device {} BAR{} not assigned",
-                            device.id.to_string(),
-                            bar.index
+                            device.id,
+                            base_addr_reg.index
                         ),
                         device: Some(device.id),
                     });
