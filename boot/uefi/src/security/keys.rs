@@ -814,7 +814,7 @@ fn parse_der_length(data: &[u8]) -> Result<(usize, usize), KeyError> {
             }
 
             Ok((length, 1 + num_octets))
-        }
+        },
     }
 }
 
