@@ -460,12 +460,12 @@ impl Iterator for MadtIterator {
         }
 
         unsafe {
-            let header = &*(self.current as *const MadtEntryHeader);
+            let header = &*(self.current.cast::<MadtEntryHeader>());
             let entry = match header.entry_type {
-                0 => MadtEntry::LocalApic(*(self.current as *const MadtLocalApic)),
-                1 => MadtEntry::IoApic(*(self.current as *const MadtIoApic)),
-                2 => MadtEntry::InterruptOverride(*(self.current as *const MadtInterruptOverride)),
-                4 => MadtEntry::LocalApicNmi(*(self.current as *const MadtLocalApicNmi)),
+                0 => MadtEntry::LocalApic(*self.current.cast::<MadtLocalApic>()),
+                1 => MadtEntry::IoApic(*self.current.cast::<MadtIoApic>()),
+                2 => MadtEntry::InterruptOverride(*self.current.cast::<MadtInterruptOverride>()),
+                4 => MadtEntry::LocalApicNmi(*self.current.cast::<MadtLocalApicNmi>()),
                 t => MadtEntry::Unknown(t),
             };
 
@@ -635,7 +635,7 @@ impl SmbiosStructure {
     pub fn formatted(&self) -> &[u8] {
         unsafe {
             slice::from_raw_parts(
-                self.header as *const _ as *const u8,
+                (self.header as *const SmbiosHeader).cast::<u8>(),
                 self.header.length as usize,
             )
         }
@@ -689,7 +689,7 @@ impl Iterator for SmbiosIterator {
         }
 
         unsafe {
-            let header = &*(self.current as *const SmbiosHeader);
+            let header = &*(self.current.cast::<SmbiosHeader>());
 
             // End of table marker
             if header.structure_type == 127 {
