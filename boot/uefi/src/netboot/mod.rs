@@ -730,8 +730,7 @@ impl HttpUrl {
             // Port specified
             let port_end = rest[pos + 1..]
                 .find('/')
-                .map(|p| pos + 1 + p)
-                .unwrap_or(rest.len());
+                .map_or(rest.len(), |p| pos + 1 + p);
             let port_str = &rest[pos + 1..port_end];
             if let Ok(port) = port_str.parse() {
                 result.port = port;
