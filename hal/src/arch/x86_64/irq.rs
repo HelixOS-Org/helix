@@ -10,30 +10,50 @@ use super::{pit, task};
 /// Interrupt frame pushed by CPU on interrupt
 #[repr(C)]
 pub struct InterruptFrame {
+    /// Instruction pointer at time of interrupt
     pub rip: u64,
+    /// Code segment selector
     pub cs: u64,
+    /// CPU flags register
     pub rflags: u64,
+    /// Stack pointer at time of interrupt
     pub rsp: u64,
+    /// Stack segment selector
     pub ss: u64,
 }
 
 /// Saved registers during interrupt
 #[repr(C)]
 pub struct SavedRegs {
+    /// Accumulator register
     pub rax: u64,
+    /// Base register (callee-saved)
     pub rbx: u64,
+    /// Counter register
     pub rcx: u64,
+    /// Data register
     pub rdx: u64,
+    /// Source index register
     pub rsi: u64,
+    /// Destination index register
     pub rdi: u64,
+    /// Base pointer register (callee-saved)
     pub rbp: u64,
+    /// Extended register 8
     pub r8: u64,
+    /// Extended register 9
     pub r9: u64,
+    /// Extended register 10
     pub r10: u64,
+    /// Extended register 11
     pub r11: u64,
+    /// Extended register 12 (callee-saved)
     pub r12: u64,
+    /// Extended register 13 (callee-saved)
     pub r13: u64,
+    /// Extended register 14 (callee-saved)
     pub r14: u64,
+    /// Extended register 15 (callee-saved)
     pub r15: u64,
 }
 
@@ -67,6 +87,11 @@ pub extern "C" fn timer_handler_inner() {
 }
 
 /// Timer interrupt entry point (naked function to save all registers)
+///
+/// # Safety
+///
+/// - Must only be called by hardware interrupt dispatch.
+/// - The interrupt stack frame must be properly set up by the CPU.
 #[naked]
 pub unsafe extern "C" fn timer_handler() {
     unsafe {
@@ -138,6 +163,11 @@ pub extern "C" fn keyboard_handler_inner() {
 }
 
 /// Keyboard interrupt entry point
+///
+/// # Safety
+///
+/// - Must only be called by hardware interrupt dispatch.
+/// - The interrupt stack frame must be properly set up by the CPU.
 #[naked]
 pub unsafe extern "C" fn keyboard_handler() {
     unsafe {
