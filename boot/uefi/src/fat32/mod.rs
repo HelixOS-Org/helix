@@ -761,7 +761,7 @@ impl FatFilesystem {
 
     /// Get root cluster (FAT32) or 0 (FAT12/16)
     pub fn root_cluster(&self) -> u32 {
-        self.ebpb32.map(|e| e.root_cluster).unwrap_or(0)
+        self.ebpb32.map_or(0, |e| e.root_cluster)
     }
 
     /// Convert cluster number to sector number
@@ -847,7 +847,7 @@ impl FatFilesystem {
 
     /// Get volume serial number
     pub fn volume_serial(&self) -> u32 {
-        self.ebpb32.map(|e| e.volume_serial).unwrap_or(0)
+        self.ebpb32.map_or(0, |e| e.volume_serial)
     }
 }
 
