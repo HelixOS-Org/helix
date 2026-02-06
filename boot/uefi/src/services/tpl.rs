@@ -314,7 +314,7 @@ pub struct TplLockGuard<'a, T> {
     _tpl_guard: TplGuard,
 }
 
-impl<'a, T> core::ops::Deref for TplLockGuard<'a, T> {
+impl<T> core::ops::Deref for TplLockGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -322,13 +322,13 @@ impl<'a, T> core::ops::Deref for TplLockGuard<'a, T> {
     }
 }
 
-impl<'a, T> core::ops::DerefMut for TplLockGuard<'a, T> {
+impl<T> core::ops::DerefMut for TplLockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut T {
         unsafe { &mut *self.lock.data.get() }
     }
 }
 
-impl<'a, T> Drop for TplLockGuard<'a, T> {
+impl<T> Drop for TplLockGuard<'_, T> {
     fn drop(&mut self) {
         self.lock
             .locked
@@ -377,7 +377,7 @@ pub struct TplMutexGuard<'a, T> {
     guard: TplLockGuard<'a, T>,
 }
 
-impl<'a, T> core::ops::Deref for TplMutexGuard<'a, T> {
+impl<T> core::ops::Deref for TplMutexGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -385,7 +385,7 @@ impl<'a, T> core::ops::Deref for TplMutexGuard<'a, T> {
     }
 }
 
-impl<'a, T> core::ops::DerefMut for TplMutexGuard<'a, T> {
+impl<T> core::ops::DerefMut for TplMutexGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut T {
         &mut self.guard
     }
