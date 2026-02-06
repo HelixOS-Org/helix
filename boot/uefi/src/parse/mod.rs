@@ -634,7 +634,8 @@ impl Path {
         for part in s.split(['/', '\\']) {
             match part {
                 "" | "." => {},
-                ".." => {
+                ".." =>
+                {
                     #[allow(clippy::implicit_saturating_sub)]
                     if comp_count > 0 {
                         comp_count -= 1;
