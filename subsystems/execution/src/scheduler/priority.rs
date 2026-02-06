@@ -138,12 +138,14 @@ impl Default for Priority {
 
 /// Priority class
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum PriorityClass {
     /// Idle (only runs when nothing else)
     Idle,
     /// Below normal
     BelowNormal,
     /// Normal
+    #[default]
     Normal,
     /// Above normal
     AboveNormal,
@@ -167,8 +169,3 @@ impl PriorityClass {
     }
 }
 
-impl Default for PriorityClass {
-    fn default() -> Self {
-        PriorityClass::Normal
-    }
-}
