@@ -406,7 +406,7 @@ impl<'a> BootValidator<'a> {
             if !matches!(fb.bpp(), 15 | 16 | 24 | 32) {
                 self.errors.push(ValidationError::InvalidValue {
                     field: "framebuffer_bpp",
-                    value: fb.bpp() as u64,
+                    value: u64::from(fb.bpp()),
                 });
             }
 
