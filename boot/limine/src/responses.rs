@@ -220,7 +220,7 @@ impl MemoryMap {
     /// Get total usable memory
     pub fn total_usable(&self) -> u64 {
         self.iter()
-            .filter(|r| r.is_usable())
+            .filter(super::memory::MemoryRegion::is_usable)
             .map(|r| r.size())
             .sum()
     }
