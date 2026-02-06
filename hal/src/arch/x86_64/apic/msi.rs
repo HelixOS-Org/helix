@@ -517,14 +517,17 @@ pub mod msi_cap {
     pub const MSG_ADDR_LO: u8 = 0x04;
     /// Message Address (upper 32 bits) - only if 64-bit capable
     pub const MSG_ADDR_HI: u8 = 0x08;
-    /// Message Data - offset depends on 64-bit capability
+    /// Message Data register offset for 32-bit MSI capability
     pub const MSG_DATA_32: u8 = 0x08;
+    /// Message Data register offset for 64-bit MSI capability
     pub const MSG_DATA_64: u8 = 0x0C;
-    /// Mask Bits - if per-vector masking supported
+    /// Mask Bits register offset for 32-bit MSI (if per-vector masking supported)
     pub const MASK_BITS_32: u8 = 0x0C;
+    /// Mask Bits register offset for 64-bit MSI (if per-vector masking supported)
     pub const MASK_BITS_64: u8 = 0x10;
-    /// Pending Bits
+    /// Pending Bits register offset for 32-bit MSI
     pub const PEND_BITS_32: u8 = 0x10;
+    /// Pending Bits register offset for 64-bit MSI
     pub const PEND_BITS_64: u8 = 0x14;
 }
 
