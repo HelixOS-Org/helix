@@ -137,8 +137,7 @@ impl Default for Priority {
 }
 
 /// Priority class
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PriorityClass {
     /// Idle (only runs when nothing else)
     Idle,
@@ -168,4 +167,3 @@ impl PriorityClass {
         }
     }
 }
-
