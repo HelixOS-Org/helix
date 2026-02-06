@@ -671,6 +671,7 @@ impl CodeGenEngine {
         code
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn type_to_rust(&self, typ: &TypeSpec) -> String {
         match typ {
             TypeSpec::Unit => "()".into(),
