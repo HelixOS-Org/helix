@@ -150,6 +150,7 @@ impl AcpiTables {
     }
 
     /// Add table entry
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn add_table_entry(&mut self, addr: PhysicalAddress) -> Result<()> {
         if addr.0 == 0 {
             return Ok(());
@@ -210,12 +211,12 @@ impl AcpiTables {
     /// Get DSDT
     pub fn dsdt(&self) -> Option<PhysicalAddress> {
         // DSDT is referenced from FADT, not in RSDT/XSDT
-        self.fadt().and_then(|fadt_entry| unsafe {
+        self.fadt().map(|fadt_entry| unsafe {
             let fadt = &*(fadt_entry.address.0 as *const Fadt);
             if fadt.header.length >= 148 && fadt.x_dsdt != 0 {
-                Some(PhysicalAddress(fadt.x_dsdt))
+                PhysicalAddress(fadt.x_dsdt)
             } else {
-                Some(PhysicalAddress(fadt.dsdt as u64))
+                PhysicalAddress(fadt.dsdt as u64)
             }
         })
     }
