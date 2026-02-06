@@ -536,16 +536,16 @@ fn bench_sequential_access() -> u64 {
     let start = timing::read_tsc();
 
     // Sequential write
-    for i in 0..128 {
+    for (i, slot) in buffer.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut buffer[i], i as u64);
+            core::ptr::write_volatile(slot, i as u64);
         }
     }
 
     // Sequential read
     let mut sum = 0u64;
-    for i in 0..128 {
-        sum += unsafe { core::ptr::read_volatile(&buffer[i]) };
+    for slot in &buffer {
+        sum += unsafe { core::ptr::read_volatile(slot) };
     }
 
     let end = timing::read_tsc();
