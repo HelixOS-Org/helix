@@ -219,6 +219,7 @@ impl ResourceBroker {
                 if let Some(limit) = quota.get_limit_mut(class) {
                     if !limit.try_allocate(amount) {
                         // Rollback global allocation
+                        #[allow(clippy::excessive_nesting)]
                         if let Some(limit) = self.global_limits.write().get_mut(&class) {
                             limit.release(amount);
                         }
