@@ -158,20 +158,20 @@ impl ProbeState {
 
     /// Can transition to
     pub fn can_transition_to(&self, target: &Self) -> bool {
-        match (self, target) {
-            (Self::Registered, Self::Initializing) => true,
-            (Self::Initializing, Self::Active) => true,
-            (Self::Initializing, Self::Failed) => true,
-            (Self::Active, Self::Paused) => true,
-            (Self::Active, Self::Failed) => true,
-            (Self::Active, Self::ShuttingDown) => true,
-            (Self::Paused, Self::Active) => true,
-            (Self::Paused, Self::ShuttingDown) => true,
-            (Self::Failed, Self::Initializing) => true,
-            (Self::Failed, Self::Stopped) => true,
-            (Self::ShuttingDown, Self::Stopped) => true,
-            _ => false,
-        }
+        matches!(
+            (self, target),
+            (Self::Registered, Self::Initializing)
+                | (Self::Initializing, Self::Active)
+                | (Self::Initializing, Self::Failed)
+                | (Self::Active, Self::Paused)
+                | (Self::Active, Self::Failed)
+                | (Self::Active, Self::ShuttingDown)
+                | (Self::Paused, Self::Active)
+                | (Self::Paused, Self::ShuttingDown)
+                | (Self::Failed, Self::Initializing)
+                | (Self::Failed, Self::Stopped)
+                | (Self::ShuttingDown, Self::Stopped)
+        )
     }
 }
 
