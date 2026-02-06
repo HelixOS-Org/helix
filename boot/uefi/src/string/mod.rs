@@ -477,8 +477,7 @@ impl<const N: usize> String16<N> {
         let end = slice
             .iter()
             .rposition(|&c| !Char16(c).is_whitespace())
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
 
         if start >= end {
             return Self::new();
