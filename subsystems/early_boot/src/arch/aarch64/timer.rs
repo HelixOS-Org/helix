@@ -325,6 +325,10 @@ fn write_cntvoff_el2(value: u64) {
 // =============================================================================
 
 /// Initialize the generic timer
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Get current exception level
     let el = get_current_el();
@@ -373,6 +377,10 @@ pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Initialize timer for AP (secondary CPU)
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_ap() {
     // Disable physical timer interrupt
     write_cntp_ctl(CTL_IMASK);
