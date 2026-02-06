@@ -26,30 +26,57 @@ pub enum ValidationError {
     NullPointer(&'static str),
     /// An address is not properly aligned
     MisalignedAddress {
+        /// The misaligned address
         address: u64,
+        /// The required alignment in bytes
         required_alignment: u64,
     },
     /// A memory region is invalid
     InvalidMemoryRegion {
+        /// Base address of the invalid region
         base: u64,
+        /// Length of the invalid region
         length: u64,
+        /// Description of why the region is invalid
         reason: &'static str,
     },
     /// Memory regions overlap
     OverlappingRegions {
+        /// First overlapping region (base, end)
         region1: (u64, u64),
+        /// Second overlapping region (base, end)
         region2: (u64, u64),
     },
     /// An invalid value was encountered
-    InvalidValue { field: &'static str, value: u64 },
+    InvalidValue {
+        /// Name of the field with invalid value
+        field: &'static str,
+        /// The invalid value
+        value: u64,
+    },
     /// Structure size mismatch
-    SizeMismatch { expected: usize, actual: usize },
+    SizeMismatch {
+        /// Expected size in bytes
+        expected: usize,
+        /// Actual size in bytes
+        actual: usize,
+    },
     /// Checksum validation failed
     ChecksumFailed(&'static str),
     /// Magic number validation failed
-    InvalidMagic { expected: u64, actual: u64 },
+    InvalidMagic {
+        /// Expected magic value
+        expected: u64,
+        /// Actual magic value found
+        actual: u64,
+    },
     /// Response revision too old
-    RevisionTooOld { minimum: u64, actual: u64 },
+    RevisionTooOld {
+        /// Minimum required revision
+        minimum: u64,
+        /// Actual revision found
+        actual: u64,
+    },
     /// Custom validation error
     Custom(&'static str),
 }
@@ -171,7 +198,7 @@ impl ValidationErrors {
         self.errors[0].as_ref()
     }
 
-    /// Convert to result (Ok if no errors, Err with first error otherwise)
+    /// Converts to a Result, returning Ok if no errors or Err with the first error
     pub fn into_result(self) -> ValidationResult<()> {
         if let Some(error) = self.errors.into_iter().flatten().next() {
             Err(error)
@@ -207,7 +234,7 @@ impl<'a> BootValidator<'a> {
         self
     }
 
-    /// Run all validations
+    /// Runs all validation checks and returns the result
     pub fn validate(mut self) -> ValidationResult<()> {
         self.validate_memory_map();
         self.validate_hhdm();
