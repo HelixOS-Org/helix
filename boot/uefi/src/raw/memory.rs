@@ -630,7 +630,7 @@ impl MemoryMap {
     /// Get total usable memory
     pub fn total_usable_memory(&self) -> u64 {
         self.iter()
-            .filter(MemoryDescriptor::is_usable)
+            .filter(|d| d.is_usable())
             .map(|d| d.size())
             .sum()
     }
@@ -638,7 +638,7 @@ impl MemoryMap {
     /// Get total conventional memory
     pub fn total_conventional_memory(&self) -> u64 {
         self.iter()
-            .filter(MemoryDescriptor::is_conventional)
+            .filter(|d| d.is_conventional())
             .map(|d| d.size())
             .sum()
     }
@@ -646,8 +646,8 @@ impl MemoryMap {
     /// Find the largest conventional memory region
     pub fn largest_conventional_region(&self) -> Option<MemoryDescriptor> {
         self.iter()
-            .filter(MemoryDescriptor::is_conventional)
-            .max_by_key(MemoryDescriptor::size)
+            .filter(|d| d.is_conventional())
+            .max_by_key(|d| d.size())
     }
 
     /// Get memory at or above a specific address
