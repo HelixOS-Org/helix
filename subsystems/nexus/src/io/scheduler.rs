@@ -85,10 +85,7 @@ impl IoScheduler {
         let process_id = request.process_id;
 
         // Record pattern
-        let analyzer = self
-            .pattern_analyzers
-            .entry(process_id)
-            .or_default();
+        let analyzer = self.pattern_analyzers.entry(process_id).or_default();
         analyzer.record(request.offset, request.size, request.is_read());
 
         // Add to queue
