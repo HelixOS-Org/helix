@@ -21,9 +21,10 @@ use core::fmt;
 // =============================================================================
 
 /// Number parse error
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ParseError {
     /// Empty input
+    #[default]
     Empty,
     /// Invalid character
     InvalidChar,
@@ -35,12 +36,6 @@ pub enum ParseError {
     InvalidBase,
     /// Negative value for unsigned
     Negative,
-}
-
-impl Default for ParseError {
-    fn default() -> Self {
-        ParseError::Empty
-    }
 }
 
 impl fmt::Display for ParseError {
@@ -125,10 +120,10 @@ pub fn parse_i64(s: &str) -> ParseResult<i64> {
         return Err(ParseError::Empty);
     }
 
-    let (negative, s) = if s.starts_with('-') {
-        (true, &s[1..])
-    } else if s.starts_with('+') {
-        (false, &s[1..])
+    let (negative, s) = if let Some(stripped) = s.strip_prefix('-') {
+        (true, stripped)
+    } else if let Some(stripped) = s.strip_prefix('+') {
+        (false, stripped)
     } else {
         (false, s)
     };
@@ -219,9 +214,10 @@ impl Default for AsciiString {
 // =============================================================================
 
 /// Size unit
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SizeUnit {
     /// Bytes
+    #[default]
     Bytes,
     /// Kilobytes (1024)
     KB,
@@ -233,12 +229,6 @@ pub enum SizeUnit {
     TB,
     /// Petabytes
     PB,
-}
-
-impl Default for SizeUnit {
-    fn default() -> Self {
-        SizeUnit::Bytes
-    }
 }
 
 impl SizeUnit {
@@ -372,7 +362,7 @@ impl FormattedSize {
 // =============================================================================
 
 /// Time unit
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TimeUnit {
     /// Nanoseconds
     Nanoseconds,
@@ -381,6 +371,7 @@ pub enum TimeUnit {
     /// Milliseconds
     Milliseconds,
     /// Seconds
+    #[default]
     Seconds,
     /// Minutes
     Minutes,
@@ -388,12 +379,6 @@ pub enum TimeUnit {
     Hours,
     /// Days
     Days,
-}
-
-impl Default for TimeUnit {
-    fn default() -> Self {
-        TimeUnit::Seconds
-    }
 }
 
 impl TimeUnit {
@@ -557,6 +542,7 @@ impl Default for Path {
 
 impl Path {
     /// Create from str
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         let mut path = Self::default();
         let bytes = s.as_bytes();
@@ -582,7 +568,7 @@ impl Path {
     /// Get filename
     pub fn filename(&self) -> &str {
         let s = self.as_str();
-        let last_sep = s.rfind(|c| c == '/' || c == '\\');
+        let last_sep = s.rfind(['/', '\\']);
         match last_sep {
             Some(idx) => &s[idx + 1..],
             None => s,
@@ -602,7 +588,7 @@ impl Path {
     /// Get parent directory
     pub fn parent(&self) -> Path {
         let s = self.as_str();
-        let last_sep = s.rfind(|c| c == '/' || c == '\\');
+        let last_sep = s.rfind(['/', '\\']);
         match last_sep {
             Some(0) => Path::from_str("/"),
             Some(idx) => Path::from_str(&s[..idx]),
@@ -645,10 +631,11 @@ impl Path {
         let mut components: [&str; 32] = [""; 32];
         let mut comp_count = 0;
 
-        for part in s.split(|c| c == '/' || c == '\\') {
+        for part in s.split(['/', '\\']) {
             match part {
                 "" | "." => {},
                 ".." => {
+                    #[allow(clippy::implicit_saturating_sub)]
                     if comp_count > 0 {
                         comp_count -= 1;
                     }
@@ -669,12 +656,12 @@ impl Path {
             result.len = 1;
         }
 
-        for i in 0..comp_count {
+        for (i, component) in components.iter().enumerate().take(comp_count) {
             if i > 0 && result.len < MAX_PATH_LEN {
                 result.data[result.len] = b'/';
                 result.len += 1;
             }
-            let comp = components[i].as_bytes();
+            let comp = component.as_bytes();
             let copy_len = comp.len().min(MAX_PATH_LEN - result.len);
             result.data[result.len..result.len + copy_len].copy_from_slice(&comp[..copy_len]);
             result.len += copy_len;
@@ -871,9 +858,10 @@ impl fmt::Display for Guid {
 // =============================================================================
 
 /// Config line type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ConfigLineType {
     /// Empty line
+    #[default]
     Empty,
     /// Comment line
     Comment,
@@ -883,12 +871,6 @@ pub enum ConfigLineType {
     KeyValue,
     /// Invalid line
     Invalid,
-}
-
-impl Default for ConfigLineType {
-    fn default() -> Self {
-        ConfigLineType::Empty
-    }
 }
 
 /// Parsed config line
