@@ -1042,9 +1042,10 @@ impl Default for TouchEvent {
 // =============================================================================
 
 /// Keyboard layout
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum KeyboardLayout {
     /// US English (QWERTY)
+    #[default]
     UsEnglish,
     /// UK English
     UkEnglish,
@@ -1101,12 +1102,6 @@ impl KeyboardLayout {
             KeyboardLayout::Korean => "ko-KR",
             KeyboardLayout::ChineseSimplified => "zh-CN",
         }
-    }
-}
-
-impl Default for KeyboardLayout {
-    fn default() -> Self {
-        KeyboardLayout::UsEnglish
     }
 }
 
