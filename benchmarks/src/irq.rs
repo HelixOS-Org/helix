@@ -644,10 +644,10 @@ fn bench_nested_irq() -> u64 {
 
 #[derive(Clone, Copy)]
 struct ExceptionFrame {
-    error_code: u64,
-    rip: u64,
-    cs: u64,
-    rflags: u64,
-    rsp: u64,
-    ss: u64,
+    _error_code: u64,
+    _rip: u64,
+    _cs: u64,
+    _rflags: u64,
+    _rsp: u64,
+    _ss: u64,
 }
