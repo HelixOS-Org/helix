@@ -924,6 +924,7 @@ impl PeLoader {
     }
 
     /// Read null-terminated string
+    #[allow(clippy::unused_self)]
     fn read_string(&self, data: &[u8], offset: usize) -> String {
         if offset >= data.len() {
             return String::new();
