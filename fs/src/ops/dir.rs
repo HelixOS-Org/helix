@@ -326,6 +326,7 @@ impl ReaddirParams {
 
 /// Open directory handle.
 #[derive(Clone, Copy)]
+#[derive(Default)]
 pub struct OpenDir {
     /// Device ID
     pub dev: u64,
@@ -379,18 +380,6 @@ impl OpenDir {
     }
 }
 
-impl Default for OpenDir {
-    fn default() -> Self {
-        Self {
-            dev: 0,
-            ino: 0,
-            offset: 0,
-            eof: false,
-            refcount: 0,
-            owner_pid: 0,
-        }
-    }
-}
 
 // ============================================================================
 // Directory Table
