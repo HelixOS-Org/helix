@@ -176,7 +176,7 @@ impl SmpResponse {
 
     /// Get the BSP CPU info
     pub fn bsp(&self) -> Option<CpuInfo<'_>> {
-        self.cpus().find(|c| c.is_bsp())
+        self.cpus().find(CpuInfo::is_bsp)
     }
 
     /// Get all APs (Application Processors)
