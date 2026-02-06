@@ -357,7 +357,13 @@ impl VqeOptimizer {
             let gradient = self.engine.compute_gradient();
 
             // Update parameters
-            for (param, grad) in self.engine.parameters.values.iter_mut().zip(gradient.iter()) {
+            for (param, grad) in self
+                .engine
+                .parameters
+                .values
+                .iter_mut()
+                .zip(gradient.iter())
+            {
                 *param -= self.learning_rate * grad;
             }
 
