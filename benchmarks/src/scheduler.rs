@@ -249,13 +249,15 @@ fn bench_thread_create() -> u64 {
     core::hint::black_box(&stack);
 
     // 2. Initialize thread control block
-    let mut tcb = ThreadControlBlock::default();
-    tcb.id = 1;
-    tcb.state = ThreadState::Ready;
-    tcb.priority = 50;
+    let mut tcb = ThreadControlBlock {
+        id: 1,
+        state: ThreadState::Ready,
+        priority: 50,
+        stack_ptr: stack.as_ptr() as u64 + 4096,
+        ..ThreadControlBlock::default()
+    };
 
     // 3. Setup initial context
-    tcb.stack_ptr = stack.as_ptr() as u64 + 4096;
     #[allow(clippy::fn_to_numeric_cast)]
     {
         tcb.instruction_ptr = dummy_thread_entry as u64;
