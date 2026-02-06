@@ -48,13 +48,8 @@ impl BuddyAllocator {
 
     /// Get order for a size
     fn size_to_order(&self, size: usize) -> usize {
-        let pages = (size + self.page_size - 1) / self.page_size;
-        let order = (usize::BITS - pages.leading_zeros()) as usize;
-        if 1 << order == pages {
-            order
-        } else {
-            order
-        }
+        let pages = size.div_ceil(self.page_size);
+        (usize::BITS - pages.leading_zeros()) as usize
     }
 
     /// Get buddy address
