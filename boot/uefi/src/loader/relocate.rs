@@ -477,12 +477,20 @@ pub struct RelocationFixup;
 
 impl RelocationFixup {
     /// Apply 64-bit absolute relocation
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the operation is valid for current system state.
     pub unsafe fn apply_abs64(ptr: *mut u64, delta: i64) {
         let old = *ptr;
         *ptr = (old as i64 + delta) as u64;
     }
 
     /// Apply 32-bit absolute relocation
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the operation is valid for current system state.
     pub unsafe fn apply_abs32(ptr: *mut u32, delta: i64) -> Result<()> {
         let old = *ptr as i64;
         let new = old + delta;
@@ -496,6 +504,10 @@ impl RelocationFixup {
     }
 
     /// Apply PC-relative 32-bit relocation
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the operation is valid for current system state.
     pub unsafe fn apply_pc32(ptr: *mut u32, symbol: u64, addend: i64) -> Result<()> {
         let p = ptr as u64;
         let value = symbol as i64 + addend - p as i64;
@@ -509,6 +521,10 @@ impl RelocationFixup {
     }
 
     /// Apply signed 32-bit relocation
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the operation is valid for current system state.
     pub unsafe fn apply_s32(ptr: *mut i32, value: i64) -> Result<()> {
         if value < i32::MIN as i64 || value > i32::MAX as i64 {
             return Err(Error::RelocationOverflow);
