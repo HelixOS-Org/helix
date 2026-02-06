@@ -631,7 +631,7 @@ struct ThreadControlBlock {
     priority: i32,
     stack_ptr: u64,
     instruction_ptr: u64,
-    flags: u32,
+    _flags: u32,
 }
 
 #[derive(Default, Clone, Copy, PartialEq)]
@@ -639,8 +639,8 @@ enum ThreadState {
     #[default]
     New,
     Ready,
-    Running,
-    Blocked,
+    _Running,
+    _Blocked,
     Terminated,
 }
 
@@ -650,22 +650,22 @@ fn dummy_thread_entry() {}
 struct Intent {
     class: IntentClass,
     latency_target: u64,
-    cpu_budget: u32,
-    memory_budget: u64,
-    flags: u32,
+    _cpu_budget: u32,
+    _memory_budget: u64,
+    _flags: u32,
 }
 
 #[derive(Clone, Copy)]
 enum IntentClass {
-    RealTime,
+    _RealTime,
     Interactive,
-    Batch,
-    Background,
+    _Batch,
+    _Background,
 }
 
 struct PolicyContext {
     cpu_load: u8,
-    memory_usage: u8,
+    _memory_usage: u8,
     task_wait_time: u64,
     task_priority: i32,
     power_mode: u8,
