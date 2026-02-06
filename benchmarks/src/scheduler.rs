@@ -256,7 +256,10 @@ fn bench_thread_create() -> u64 {
 
     // 3. Setup initial context
     tcb.stack_ptr = stack.as_ptr() as u64 + 4096;
-    tcb.instruction_ptr = dummy_thread_entry as u64;
+    #[allow(clippy::fn_to_numeric_cast)]
+    {
+        tcb.instruction_ptr = dummy_thread_entry as u64;
+    }
 
     // 4. Add to scheduler queue (simulated)
     core::hint::black_box(&tcb);
