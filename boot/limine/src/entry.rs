@@ -418,7 +418,7 @@ pub trait EarlyDebug {
     }
 }
 
-/// Serial port debug output (x86_64)
+/// Serial port debug output (`x86_64`)
 #[cfg(target_arch = "x86_64")]
 pub struct SerialDebug {
     port: u16,
