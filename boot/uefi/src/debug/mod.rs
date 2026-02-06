@@ -446,8 +446,15 @@ pub struct LogBuffer {
     total_bytes: usize,
 }
 
+impl Default for LogBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LogBuffer {
     /// Create new log buffer
+    #[allow(clippy::large_stack_arrays)]
     pub const fn new() -> Self {
         const NONE_ENTRY: Option<LogEntry> = None;
 
@@ -568,6 +575,12 @@ pub struct Logger {
     buffer: LogBuffer,
     /// Initialized flag
     initialized: bool,
+}
+
+impl Default for Logger {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Logger {
