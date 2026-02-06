@@ -645,7 +645,7 @@ impl EvolutionController {
 
     fn map_to_cell(&self, genome: &CodeGenome, grid_dims: &[usize]) -> Vec<usize> {
         // Map genome features to grid coordinates
-        let features = vec![
+        let features = [
             genome.complexity,
             genome.size() as f64,
             genome.active_size() as f64,
