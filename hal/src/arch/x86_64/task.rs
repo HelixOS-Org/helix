@@ -20,7 +20,10 @@ use spin::RwLock;
 /// Task ID type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct TaskId(u64);
+pub struct TaskId(
+    /// The unique numeric identifier for this task
+    u64,
+);
 
 impl TaskId {
     /// Create a new unique task ID
@@ -72,25 +75,31 @@ pub enum TaskPrivilege {
 #[derive(Debug, Clone, Default)]
 #[repr(C)]
 pub struct CpuContext {
-    // Callee-saved registers (must be preserved across function calls)
+    /// Callee-saved general purpose register R15
     pub r15: u64,
+    /// Callee-saved general purpose register R14
     pub r14: u64,
+    /// Callee-saved general purpose register R13
     pub r13: u64,
+    /// Callee-saved general purpose register R12
     pub r12: u64,
+    /// Callee-saved base register (RBX)
     pub rbx: u64,
+    /// Base pointer register (RBP)
     pub rbp: u64,
 
-    // Return address (rip when we switch back)
+    /// Instruction pointer (return address for context switch)
     pub rip: u64,
 
-    // Stack pointer
+    /// Stack pointer register
     pub rsp: u64,
 
-    // Flags
+    /// CPU flags register
     pub rflags: u64,
 
-    // For userspace tasks
+    /// Code segment selector
     pub cs: u64,
+    /// Stack segment selector
     pub ss: u64,
 }
 
@@ -136,8 +145,9 @@ pub const KERNEL_STACK_SIZE: usize = 16 * 1024; // 16 KB
 /// Stack size for user tasks
 pub const USER_STACK_SIZE: usize = 64 * 1024; // 64 KB
 
-/// A kernel stack
+/// A kernel stack allocated on the heap
 pub struct KernelStack {
+    /// The stack memory buffer
     data: Box<[u8; KERNEL_STACK_SIZE]>,
 }
 
@@ -199,12 +209,15 @@ impl Task {
 
         // We need to set up the stack so context_switch can "return" to entry
         // The initial context switch will pop registers and ret to entry
+        #[allow(clippy::fn_to_numeric_cast)]
+        let context = CpuContext::new_kernel(entry as u64, stack_top);
+
         Self {
             id: TaskId::new(),
             name: name.into(),
             state: TaskState::Ready,
             privilege: TaskPrivilege::Kernel,
-            context: CpuContext::new_kernel(entry as u64, stack_top),
+            context,
             kernel_stack,
             user_stack: None,
             time_slice: 10, // 10 ticks default
@@ -241,15 +254,15 @@ impl Task {
 // Task Scheduler
 // =============================================================================
 
-/// The global task scheduler
+/// The global task scheduler implementing round-robin scheduling
 pub struct Scheduler {
-    /// All tasks
+    /// List of all registered tasks
     tasks: RwLock<Vec<Task>>,
-    /// Index of currently running task
+    /// Index of the currently running task in the tasks vector
     current: AtomicU32,
-    /// Total context switches
+    /// Counter for total context switches performed
     switches: AtomicU64,
-    /// Is scheduler active?
+    /// Flag indicating whether the scheduler is active (1) or stopped (0)
     active: AtomicU32,
 }
 
@@ -456,6 +469,7 @@ impl Default for Scheduler {
 
 use spin::Once;
 
+/// The singleton global scheduler instance
 static GLOBAL_SCHEDULER: Once<Scheduler> = Once::new();
 
 /// Get the global scheduler
@@ -467,13 +481,13 @@ pub fn scheduler() -> &'static Scheduler {
     })
 }
 
-/// Spawn a new kernel task
+/// Spawn a new kernel task with the given name and entry point
 pub fn spawn(name: impl Into<String>, entry: extern "C" fn()) -> TaskId {
     let task = Task::new_kernel(name, entry);
     scheduler().spawn(task)
 }
 
-/// Exit the current task
+/// Exit the current task with the given exit code (never returns)
 pub fn exit(code: i32) -> ! {
     scheduler().exit(code);
 
@@ -485,7 +499,7 @@ pub fn exit(code: i32) -> ! {
     }
 }
 
-/// Yield to other tasks
+/// Yield execution to allow other tasks to run
 pub fn yield_now() {
     scheduler().yield_now();
 }
