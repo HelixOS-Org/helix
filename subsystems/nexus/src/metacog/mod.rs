@@ -176,7 +176,7 @@ pub enum DecisionType {
 }
 
 /// Introspection engine
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct IntrospectionEngine {
     /// Current cognitive state
     state: CognitiveState,
@@ -210,12 +210,7 @@ pub struct SubsystemMetrics {
 impl IntrospectionEngine {
     /// Create a new introspection engine
     pub fn new() -> Self {
-        Self {
-            state: CognitiveState::default(),
-            history: VecDeque::with_capacity(MAX_HISTORY),
-            metrics: BTreeMap::new(),
-            time: 0,
-        }
+        Self::default()
     }
 
     /// Record a decision
@@ -319,15 +314,21 @@ pub struct LocalConfidenceCalibrator {
     calibration_data: BTreeMap<SubsystemId, Vec<(f64, bool)>>,
 }
 
-impl LocalConfidenceCalibrator {
-    /// Create a new confidence calibrator
-    pub fn new() -> Self {
+impl Default for LocalConfidenceCalibrator {
+    fn default() -> Self {
         Self {
             temperature: 1.0,
             platt_params: BTreeMap::new(),
             isotonic_bins: BTreeMap::new(),
             calibration_data: BTreeMap::new(),
         }
+    }
+}
+
+impl LocalConfidenceCalibrator {
+    /// Create a new confidence calibrator
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Add calibration data point
@@ -708,7 +709,7 @@ impl CognitiveRegulator {
         }
 
         let per_subsystem = self.budget / n as f64;
-        for (&subsystem, _) in &self.learning_rates {
+        for &subsystem in self.learning_rates.keys() {
             self.resource_allocation.insert(subsystem, per_subsystem);
         }
     }
@@ -889,9 +890,8 @@ pub struct PatternStats {
     pub total_time: u64,
 }
 
-impl MetaReasoner {
-    /// Create a new meta-reasoner
-    pub fn new() -> Self {
+impl Default for MetaReasoner {
+    fn default() -> Self {
         // Initialize with some default patterns
         let patterns = vec![
             ReasoningPattern {
@@ -931,6 +931,13 @@ impl MetaReasoner {
             patterns,
             pattern_stats: BTreeMap::new(),
         }
+    }
+}
+
+impl MetaReasoner {
+    /// Create a new meta-reasoner
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Record a reasoning trace
