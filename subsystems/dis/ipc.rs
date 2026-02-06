@@ -326,7 +326,7 @@ impl Message {
 
     /// Check if expired
     pub fn is_expired(&self, now: Nanoseconds) -> bool {
-        self.expiry.map_or(false, |exp| now > exp)
+        self.expiry.is_some_and(|exp| now > exp)
     }
 }
 
