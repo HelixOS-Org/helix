@@ -169,7 +169,12 @@ impl SlabAllocator {
     }
 
     /// Initialize with backing memory
-    pub fn init(&self, memory: *mut u8, size: usize) {
+    ///
+    /// # Safety
+    /// - `memory` must be a valid pointer to at least `size` bytes of writeable memory
+    /// - The memory must remain valid for the lifetime of the allocator
+    /// - No other code may access this memory while the allocator owns it
+    pub unsafe fn init(&self, memory: *mut u8, size: usize) {
         let mut caches = self.caches.lock();
 
         // Divide memory among size classes
@@ -221,7 +226,7 @@ impl HeapAllocator for SlabAllocator {
         core::ptr::null_mut()
     }
 
-    fn deallocate(&self, ptr: *mut u8, layout: Layout) {
+    unsafe fn deallocate(&self, ptr: *mut u8, layout: Layout) {
         let size = layout.size().max(layout.align());
 
         if let Some(class) = Self::size_class(size) {
