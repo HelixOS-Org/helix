@@ -866,7 +866,7 @@ impl PcrBank {
     /// Get PCR value
     #[must_use]
     pub fn get(&self, pcr: u32) -> Option<&[u8]> {
-        self.values.get(pcr as usize).map(|v| v.as_slice())
+        self.values.get(pcr as usize).map(Vec::as_slice)
     }
 }
 
