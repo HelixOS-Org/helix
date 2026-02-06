@@ -201,7 +201,7 @@ impl Generalizer {
         for exp in experiences {
             by_action
                 .entry(exp.action.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(exp);
         }
 
@@ -276,7 +276,7 @@ impl Generalizer {
 
         self.by_action
             .entry(String::from(action))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(id);
 
         self.rules.insert(id, rule);
