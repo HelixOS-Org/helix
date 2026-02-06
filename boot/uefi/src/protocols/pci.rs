@@ -536,7 +536,7 @@ impl Protocol for PciDevice {
 impl EnumerableProtocol for PciDevice {
     fn enumerate() -> Result<Vec<Self>> {
         let handles = super::ProtocolLocator::locate_all::<Self>()?;
-        Ok(handles.into_iter().map(|h| h.leak()).collect())
+        Ok(handles.into_iter().map(super::ProtocolHandle::leak).collect())
     }
 }
 
