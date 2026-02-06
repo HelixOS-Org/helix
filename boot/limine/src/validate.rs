@@ -90,7 +90,10 @@ impl core::fmt::Display for ValidationError {
                 address,
                 required_alignment,
             } => {
-                write!(f, "Address {address:#x} not aligned to {required_alignment}")
+                write!(
+                    f,
+                    "Address {address:#x} not aligned to {required_alignment}"
+                )
             },
             Self::InvalidMemoryRegion {
                 base,
