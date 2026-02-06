@@ -364,7 +364,7 @@ impl VirtAddr {
 
     /// Get page table indices for this address (4-level paging)
     ///
-    /// Returns (pml4_index, pdpt_index, pd_index, pt_index)
+    /// Returns (`pml4_index`, `pdpt_index`, `pd_index`, `pt_index`)
     #[inline]
     pub const fn page_table_indices(self) -> (u16, u16, u16, u16) {
         let pml4 = ((self.0 >> 39) & 0x1FF) as u16;
@@ -565,7 +565,7 @@ impl HHDM {
     ///
     /// # Safety
     ///
-    /// Same requirements as phys_ref, plus the length must be valid.
+    /// Same requirements as `phys_ref`, plus the length must be valid.
     pub unsafe fn phys_slice<T>(phys: PhysAddr, len: usize) -> &'static [T] {
         let virt = Self::phys_to_virt(phys);
         unsafe { core::slice::from_raw_parts(virt.as_ptr(), len) }
@@ -575,7 +575,7 @@ impl HHDM {
     ///
     /// # Safety
     ///
-    /// Same requirements as phys_ref_mut, plus the length must be valid.
+    /// Same requirements as `phys_ref_mut`, plus the length must be valid.
     pub unsafe fn phys_slice_mut<T>(phys: PhysAddr, len: usize) -> &'static mut [T] {
         let virt = Self::phys_to_virt(phys);
         unsafe { core::slice::from_raw_parts_mut(virt.as_mut_ptr(), len) }
