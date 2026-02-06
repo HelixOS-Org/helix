@@ -147,7 +147,7 @@ impl ModuleTrait for RoundRobinModule {
                 EventResponse::Handled
             },
             Event::CpuHotplug { cpu_id, online } => {
-                if let Some(ref scheduler) = self.scheduler {
+                if let Some(ref _scheduler) = self.scheduler {
                     if *online {
                         log::info!("[round-robin] CPU {} coming online", cpu_id);
                         // scheduler.add_cpu(*cpu_id);
