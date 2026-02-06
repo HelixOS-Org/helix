@@ -52,6 +52,7 @@ const NUM_VECTORS: usize = 256;
 /// Each entry is an atomic pointer to a handler function.
 /// NULL means use the default handler.
 static HANDLER_TABLE: [AtomicPtr<()>; NUM_VECTORS] = {
+    #[allow(clippy::declare_interior_mutable_const)]
     const NULL_PTR: AtomicPtr<()> = AtomicPtr::new(core::ptr::null_mut());
     [NULL_PTR; NUM_VECTORS]
 };
