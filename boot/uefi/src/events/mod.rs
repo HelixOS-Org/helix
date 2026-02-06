@@ -39,7 +39,7 @@ use core::fmt;
 // =============================================================================
 
 /// Event category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EventCategory {
     /// Boot lifecycle events
     Boot,
@@ -56,15 +56,10 @@ pub enum EventCategory {
     /// Timer events
     Timer,
     /// System events
+    #[default]
     System,
     /// Custom events
     Custom,
-}
-
-impl Default for EventCategory {
-    fn default() -> Self {
-        EventCategory::System
-    }
 }
 
 impl fmt::Display for EventCategory {
