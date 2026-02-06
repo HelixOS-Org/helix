@@ -189,7 +189,7 @@ impl EfiRuntimeServices {
     pub unsafe fn set_wakeup_time(&self, enable: bool, time: Option<&Time>) -> Result<(), Status> {
         let status = (self.set_wakeup_time)(
             enable as Boolean,
-            time.map(|t| t as *const Time).unwrap_or(core::ptr::null()),
+            time.map_or(core::ptr::null(), |t| t as *const Time),
         );
         status.to_status_result()
     }
