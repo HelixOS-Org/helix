@@ -798,19 +798,19 @@ pub struct EfiSystemTable {
     pub firmware_revision: u32,
     /// Handle for the active console input device
     pub console_in_handle: *const (),
-    /// Pointer to EFI_SIMPLE_TEXT_INPUT_PROTOCOL
+    /// Pointer to `EFI_SIMPLE_TEXT_INPUT_PROTOCOL`
     pub con_in: *const (),
     /// Handle for the active console output device
     pub console_out_handle: *const (),
-    /// Pointer to EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL
+    /// Pointer to `EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL`
     pub con_out: *const (),
     /// Handle for the active standard error device
     pub standard_error_handle: *const (),
-    /// Pointer to EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL for stderr
+    /// Pointer to `EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL` for stderr
     pub std_err: *const (),
-    /// Pointer to EFI_RUNTIME_SERVICES
+    /// Pointer to `EFI_RUNTIME_SERVICES`
     pub runtime_services: *const EfiRuntimeServices,
-    /// Pointer to EFI_BOOT_SERVICES (null after ExitBootServices)
+    /// Pointer to `EFI_BOOT_SERVICES` (null after `ExitBootServices`)
     pub boot_services: *const (),
     /// Number of entries in the configuration table
     pub number_of_table_entries: usize,
@@ -850,33 +850,33 @@ pub struct EfiConfigurationTable {
 pub struct EfiRuntimeServices {
     /// Table header with signature and revision
     pub header: EfiTableHeader,
-    /// GetTime runtime service function pointer
+    /// `GetTime` runtime service function pointer
     pub get_time: *const (),
-    /// SetTime runtime service function pointer
+    /// `SetTime` runtime service function pointer
     pub set_time: *const (),
-    /// GetWakeupTime runtime service function pointer
+    /// `GetWakeupTime` runtime service function pointer
     pub get_wakeup_time: *const (),
-    /// SetWakeupTime runtime service function pointer
+    /// `SetWakeupTime` runtime service function pointer
     pub set_wakeup_time: *const (),
-    /// SetVirtualAddressMap runtime service function pointer
+    /// `SetVirtualAddressMap` runtime service function pointer
     pub set_virtual_address_map: *const (),
-    /// ConvertPointer runtime service function pointer
+    /// `ConvertPointer` runtime service function pointer
     pub convert_pointer: *const (),
-    /// GetVariable runtime service function pointer
+    /// `GetVariable` runtime service function pointer
     pub get_variable: *const (),
-    /// GetNextVariableName runtime service function pointer
+    /// `GetNextVariableName` runtime service function pointer
     pub get_next_variable_name: *const (),
-    /// SetVariable runtime service function pointer
+    /// `SetVariable` runtime service function pointer
     pub set_variable: *const (),
-    /// GetNextHighMonotonicCount runtime service function pointer
+    /// `GetNextHighMonotonicCount` runtime service function pointer
     pub get_next_high_monotonic_count: *const (),
-    /// ResetSystem runtime service function pointer
+    /// `ResetSystem` runtime service function pointer
     pub reset_system: *const (),
-    /// UpdateCapsule runtime service function pointer
+    /// `UpdateCapsule` runtime service function pointer
     pub update_capsule: *const (),
-    /// QueryCapsuleCapabilities runtime service function pointer
+    /// `QueryCapsuleCapabilities` runtime service function pointer
     pub query_capsule_capabilities: *const (),
-    /// QueryVariableInfo runtime service function pointer
+    /// `QueryVariableInfo` runtime service function pointer
     pub query_variable_info: *const (),
 }
 
@@ -920,7 +920,7 @@ pub enum EfiMemoryType {
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct EfiMemoryDescriptor {
-    /// Type of memory region (see EfiMemoryType)
+    /// Type of memory region (see `EfiMemoryType`)
     pub memory_type: u32,
     /// Physical start address of the memory region
     pub physical_start: u64,
@@ -955,7 +955,7 @@ impl EfiMemoryDescriptor {
         }
     }
 
-    /// Check if memory is usable after ExitBootServices
+    /// Check if memory is usable after `ExitBootServices`
     pub fn is_usable(&self) -> bool {
         matches!(
             self.get_type(),
