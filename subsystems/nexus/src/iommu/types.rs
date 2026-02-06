@@ -2,7 +2,6 @@
 
 extern crate alloc;
 
-use alloc::string::String;
 
 // ============================================================================
 // IOMMU ID
@@ -81,15 +80,14 @@ impl DeviceId {
     pub fn bdf(&self) -> u16 {
         ((self.bus as u16) << 8) | ((self.device as u16) << 3) | (self.function as u16)
     }
+}
 
-    /// Format as string
-    pub fn to_string(&self) -> String {
-        alloc::format!(
+impl core::fmt::Display for DeviceId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
             "{:04x}:{:02x}:{:02x}.{}",
-            self.segment,
-            self.bus,
-            self.device,
-            self.function
+            self.segment, self.bus, self.device, self.function
         )
     }
 }
