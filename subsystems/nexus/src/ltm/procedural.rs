@@ -234,10 +234,7 @@ impl ProceduralMemory {
         let procedure = Procedure::new(id, name.clone(), procedure_type);
 
         self.by_name.insert(name, id);
-        self.by_type
-            .entry(procedure_type)
-            .or_default()
-            .push(id);
+        self.by_type.entry(procedure_type).or_default().push(id);
         self.procedures.insert(id, procedure);
 
         id
