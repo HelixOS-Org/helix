@@ -286,7 +286,7 @@ impl CodeGenome {
             }
         }
 
-        for (innov, _) in &other_innovations {
+        for innov in other_innovations.keys() {
             if !self_innovations.contains_key(innov) {
                 if *innov > threshold {
                     excess += 1;
