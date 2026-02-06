@@ -215,9 +215,9 @@ impl IdtEntry {
 
     /// Get handler offset
     pub const fn offset(&self) -> u64 {
-        u64::from(self.offset_low)
-            | (u64::from(self.offset_middle) << 16)
-            | (u64::from(self.offset_high) << 32)
+        (self.offset_low as u64)
+            | ((self.offset_middle as u64) << 16)
+            | ((self.offset_high as u64) << 32)
     }
 
     /// Set handler offset
@@ -323,7 +323,7 @@ impl InterruptContext {
     /// Get exception name
     pub const fn exception_name(&self) -> &'static str {
         if self.vector < 32 {
-            EXCEPTION_NAMES[usize::try_from(self.vector).unwrap_or(0)]
+            EXCEPTION_NAMES[self.vector as usize]
         } else {
             "Interrupt"
         }
@@ -331,7 +331,7 @@ impl InterruptContext {
 
     /// Check if has error code
     pub const fn has_error_code(&self) -> bool {
-        has_error_code(u8::try_from(self.vector).unwrap_or(0))
+        has_error_code((self.vector & 0xFF) as u8)
     }
 }
 
