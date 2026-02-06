@@ -66,6 +66,7 @@ impl MemoryMapInfo {
     }
 
     /// Iterate over descriptors
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> MemoryMapIterator<'_> {
         MemoryMapIterator::new(&self.descriptors)
     }
@@ -74,7 +75,7 @@ impl MemoryMapInfo {
     pub fn usable_entries(&self) -> impl Iterator<Item = &MemoryDescriptor> {
         self.descriptors
             .iter()
-            .filter(|d| d.memory_type == MemoryType::ConventionalMemory as u32 as u32)
+            .filter(|d| d.memory_type == MemoryType::ConventionalMemory as u32)
     }
 
     /// Get total usable memory
@@ -126,7 +127,7 @@ impl MemoryMapInfo {
         self.sort_by_address();
 
         let mut merged = Vec::with_capacity(self.descriptors.len());
-        let mut current = self.descriptors[0].clone();
+        let mut current = self.descriptors[0];
 
         for desc in &self.descriptors[1..] {
             let current_end = current.physical_start + current.number_of_pages * 4096;
@@ -140,7 +141,7 @@ impl MemoryMapInfo {
                 current.number_of_pages += desc.number_of_pages;
             } else {
                 merged.push(current);
-                current = desc.clone();
+                current = *desc;
             }
         }
         merged.push(current);
