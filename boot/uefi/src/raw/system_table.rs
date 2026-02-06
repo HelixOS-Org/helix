@@ -545,11 +545,13 @@ impl SystemTablePtr {
     }
 
     /// Get reference to the system table
+    #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &EfiSystemTable {
         unsafe { self.0.as_ref() }
     }
 
     /// Get mutable reference to the system table
+    #[allow(clippy::should_implement_trait)]
     pub fn as_mut(&mut self) -> &mut EfiSystemTable {
         unsafe { self.0.as_mut() }
     }
