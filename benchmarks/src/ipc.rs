@@ -684,6 +684,7 @@ fn bench_notification_send() -> u64 {
 
     // Set notification bit
     static NOTIFICATIONS: [AtomicU64; 16] = {
+        #[allow(clippy::declare_interior_mutable_const)]
         const INIT: AtomicU64 = AtomicU64::new(0);
         [INIT; 16]
     };
@@ -706,6 +707,7 @@ fn bench_notification_send() -> u64 {
 fn bench_notification_wait() -> u64 {
     // Pre-set notification
     static NOTIFICATIONS: [AtomicU64; 16] = {
+        #[allow(clippy::declare_interior_mutable_const)]
         const INIT: AtomicU64 = AtomicU64::new(1);
         [INIT; 16]
     };
@@ -777,6 +779,7 @@ fn bench_event_subscribe() -> u64 {
 
     // Store event mask
     static EVENT_MASKS: [AtomicU64; 16] = {
+        #[allow(clippy::declare_interior_mutable_const)]
         const INIT: AtomicU64 = AtomicU64::new(0);
         [INIT; 16]
     };
