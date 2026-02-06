@@ -100,11 +100,7 @@ impl CodeUnderstandingIntelligence {
 
     /// Build control flow graph for function
     pub fn build_cfg(&mut self, func_id: SymbolId) -> &ControlFlowGraph {
-        if !self.cfgs.contains_key(&func_id) {
-            let cfg = ControlFlowGraph::new();
-            self.cfgs.insert(func_id, cfg);
-        }
-        self.cfgs.get(&func_id).unwrap()
+        self.cfgs.entry(func_id).or_default()
     }
 
     /// Analyze data flow for function
