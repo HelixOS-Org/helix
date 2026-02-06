@@ -6,7 +6,6 @@
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
-#![feature(panic_info_message)]
 #![feature(naked_functions)]
 
 extern crate alloc;
@@ -61,6 +60,7 @@ const HEAP_SIZE: usize = 1024 * 1024; // 1MB heap for benchmarks
 
 /// Static heap buffer
 #[repr(align(4096))]
+#[allow(dead_code)]
 struct HeapBuffer([u8; HEAP_SIZE]);
 
 /// Wrapper for heap buffer that allows safe sharing as static memory.
@@ -163,7 +163,17 @@ fn init_heap() {
 /// Called by the architecture-specific boot code after basic initialization.
 /// The boot_info pointer is actually the Multiboot2 info structure address
 /// passed by the bootloader in the RDI register.
+///
+/// # Safety
+///
+/// This function is marked with `#[allow(clippy::not_unsafe_ptr_arg_deref)]` because:
+/// - It is the kernel entry point called directly from assembly boot code
+/// - The multiboot2_info pointer is guaranteed valid by the bootloader (GRUB/Limine)
+/// - Making this function `unsafe` would require the assembly caller to use `unsafe`,
+///   which is not possible in the FFI ABI boundary
+/// - The pointer is validated before any dereference (null check in parse function)
 #[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn kernel_main(multiboot2_info: *const u8) -> ! {
     // Initialize serial first so we can output debug info
     #[cfg(target_arch = "x86_64")]
@@ -180,6 +190,8 @@ pub extern "C" fn kernel_main(multiboot2_info: *const u8) -> ! {
 
     // Phase 0: Parse Multiboot2 info and initialize framebuffer
     serial_write_str("[BOOT] Parsing Multiboot2 boot information...\n");
+    // SAFETY: multiboot2_info is the valid pointer passed by the bootloader
+    // in the RDI register after multiboot2 handoff
     unsafe {
         parse_multiboot2_framebuffer(multiboot2_info);
     }
@@ -241,7 +253,9 @@ pub extern "C" fn kernel_main(multiboot2_info: *const u8) -> ! {
 /// Parse Multiboot2 boot information and extract framebuffer
 ///
 /// # Safety
-/// The pointer must be a valid Multiboot2 info structure
+/// - The pointer must be a valid Multiboot2 info structure provided by the bootloader
+/// - The structure must remain valid for the duration of this call
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 unsafe fn parse_multiboot2_framebuffer(mb2_info: *const u8) {
     if mb2_info.is_null() {
         serial_write_str("  [FB] ERROR: Null Multiboot2 info pointer\n");
@@ -288,7 +302,7 @@ unsafe fn parse_multiboot2_framebuffer(mb2_info: *const u8) {
             let fb_pitch = *(tag_ptr.add(16) as *const u32);
             let fb_width = *(tag_ptr.add(20) as *const u32);
             let fb_height = *(tag_ptr.add(24) as *const u32);
-            let fb_bpp = *(tag_ptr.add(28) as *const u8);
+            let fb_bpp = *(tag_ptr.add(28));
 
             serial_write_str("  [FB] Framebuffer address: 0x");
             print_hex(fb_addr);
@@ -335,10 +349,7 @@ fn test_allocation() {
     use alloc::vec::Vec;
 
     // Test Vec allocation
-    let mut v: Vec<u32> = Vec::new();
-    v.push(1);
-    v.push(2);
-    v.push(3);
+    let v: Vec<u32> = alloc::vec![1, 2, 3];
 
     if v.len() == 3 {
         serial_write_str("  Vec allocation: OK\n");
@@ -413,7 +424,8 @@ pub enum MemoryRegionType {
 }
 
 /// Early initialization
-fn early_init(boot_info: *const BootInfo) {
+#[allow(dead_code)]
+fn early_init(_boot_info: *const BootInfo) {
     // Initialize console for early output
     #[cfg(feature = "serial_console")]
     {
@@ -479,7 +491,7 @@ fn init_filesystem() {
             print_num(free * bs as u64 / 1024);
             serial_write_str(" KB\n");
         },
-        Err(e) => {
+        Err(_e) => {
             serial_write_str("  [HelixFS] ❌ Failed to initialize filesystem\n");
         },
     }
@@ -500,16 +512,12 @@ fn init_filesystem() {
 /// - Kernel integrity validation
 #[cfg(target_arch = "x86_64")]
 fn kernel_relocation_demo() {
-    use helix_relocation::boot::BootContext;
     use helix_relocation::context::BootProtocol;
     use helix_relocation::kaslr::{
         EntropyCollector, EntropyConfig, EntropyQuality, Kaslr, KaslrConfig,
     };
     use helix_relocation::validation::{ValidationConfig, ValidationLevel};
-    use helix_relocation::{
-        PhysAddr, RelocationContext, RelocationContextBuilder, RelocationEngine, RelocationStats,
-        RelocationStrategy, VirtAddr,
-    };
+    use helix_relocation::{RelocationContextBuilder, RelocationEngine, RelocationStrategy};
 
     serial_write_str("\n");
     serial_write_str("╔══════════════════════════════════════════════════════════════╗\n");
@@ -527,14 +535,12 @@ fn kernel_relocation_demo() {
 
     // Get kernel end address from linker symbol (from linker.ld)
     extern "C" {
-        static __bss_start: u8;
-        static __bss_end: u8;
         static _kernel_end: u8;
     }
 
     // Kernel is loaded at 1MB per linker script
     let kernel_start = 0x10_0000u64; // 1MB - from linker script
-    let kernel_end = unsafe { core::ptr::addr_of!(_kernel_end) as u64 };
+    let kernel_end = core::ptr::addr_of!(_kernel_end) as u64;
     let kernel_size = kernel_end.saturating_sub(kernel_start) as usize;
 
     serial_write_str("[RELOC] Kernel start:  0x");
@@ -630,7 +636,7 @@ fn kernel_relocation_demo() {
 
     // Create KASLR engine
     let kaslr_config = KaslrConfig::default();
-    let kaslr = Kaslr::new(kaslr_config);
+    let _kaslr = Kaslr::new(kaslr_config);
     serial_write_str("[KASLR] KASLR engine initialized\n");
     serial_write_str("[KASLR] Alignment: 2 MiB (huge page)\n");
     serial_write_str("[KASLR] Entropy bits: 20 (~1M positions)\n\n");
@@ -654,7 +660,7 @@ fn kernel_relocation_demo() {
     serial_write_str("         • R_X86_64_32S      (11) - Direct 32-bit sign-ext\n");
     serial_write_str("\n");
 
-    let engine = RelocationEngine::new();
+    let _engine = RelocationEngine::new();
     serial_write_str("[ENGINE] ✓ Relocation engine initialized\n");
     serial_write_str("[ENGINE] State: Ready for relocation processing\n\n");
 
@@ -665,7 +671,7 @@ fn kernel_relocation_demo() {
     serial_write_str("  STEP 5: Kernel Validation System\n");
     serial_write_str("═══════════════════════════════════════════════════════════════\n\n");
 
-    let validation_config = ValidationConfig {
+    let _validation_config = ValidationConfig {
         pre_validation: ValidationLevel::Standard,
         post_validation: ValidationLevel::Full,
         verify_elf: true,
@@ -735,8 +741,6 @@ fn start_kernel() {
 
     #[cfg(target_arch = "x86_64")]
     {
-        use helix_hal::arch::x86_64::task;
-
         // Run Kernel Relocation Demo FIRST (before other demos)
         kernel_relocation_demo();
 
@@ -765,7 +769,7 @@ fn hot_reload_demo() {
     use helix_core::hotreload::schedulers::{
         PriorityScheduler, RoundRobinScheduler, SchedulableTask, Scheduler, TaskState,
     };
-    use helix_core::hotreload::{self, ModuleCategory, SlotId};
+    use helix_core::hotreload::{self, ModuleCategory};
 
     serial_write_str("═══════════════════════════════════════════════════════════════\n");
     serial_write_str("  STEP 1: Create scheduler slot and load RoundRobin\n");
@@ -1129,7 +1133,7 @@ extern "C" fn task_b() {
 extern "C" fn task_c() {
     serial_write_str("[Task C] Starting...\n");
 
-    for i in 0..5 {
+    for _i in 0..5 {
         let mut spin = 0u64;
         while spin < 50_000_000 {
             spin += 1;
@@ -1180,7 +1184,7 @@ unsafe fn init_serial() {
     // Enable DLAB
     port_write(COM1 + 3, 0x80);
     // Set baud rate (115200)
-    port_write(COM1 + 0, 0x01);
+    port_write(COM1, 0x01);
     port_write(COM1 + 1, 0x00);
     // 8N1
     port_write(COM1 + 3, 0x03);
