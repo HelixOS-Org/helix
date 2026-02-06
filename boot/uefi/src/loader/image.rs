@@ -100,8 +100,7 @@ impl ImageReader {
     pub fn sections(&self) -> &[ImageSection] {
         self.image
             .as_ref()
-            .map(|i| i.sections.as_slice())
-            .unwrap_or(&[])
+            .map_or(&[], |i| i.sections.as_slice())
     }
 }
 
