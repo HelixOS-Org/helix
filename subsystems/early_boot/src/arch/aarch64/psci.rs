@@ -206,6 +206,10 @@ unsafe fn hvc_call(func: u32, arg0: u64, arg1: u64, arg2: u64) -> i64 {
 
 /// Make PSCI call using detected conduit
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn psci_call(func: u32, arg0: u64, arg1: u64, arg2: u64) -> i64 {
     match PSCI_CONDUIT {
         PsciConduit::Smc => smc_call(func, arg0, arg1, arg2),
@@ -236,6 +240,10 @@ unsafe fn detect_conduit() -> PsciConduit {
 }
 
 /// Get PSCI version
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_version() -> u32 {
     let cached = PSCI_VER.load(Ordering::SeqCst);
     if cached != 0 {
@@ -252,12 +260,20 @@ pub unsafe fn get_version() -> u32 {
 }
 
 /// Check if PSCI feature is supported
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized.
 pub unsafe fn is_feature_supported(func: u32) -> bool {
     let result = psci_call(PSCI_FEATURES, func as u64, 0, 0);
     result >= 0
 }
 
 /// Initialize PSCI
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Detect conduit
     PSCI_CONDUIT = detect_conduit();
@@ -293,12 +309,20 @@ pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
 /// * `target_cpu` - MPIDR of target CPU
 /// * `entry_point` - Physical address of entry point
 /// * `context_id` - Context ID passed to entry point in x0
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU exists and the entry point is valid.
 pub unsafe fn cpu_on(target_cpu: u64, entry_point: u64, context_id: u64) -> i32 {
     let result = psci_call(CPU_ON_64, target_cpu, entry_point, context_id);
     result as i32
 }
 
 /// Turn off calling CPU (does not return on success)
+///
+/// # Safety
+///
+/// The caller must ensure this CPU can be safely powered off.
 pub unsafe fn cpu_off() -> i32 {
     let result = psci_call(CPU_OFF, 0, 0, 0);
     result as i32
@@ -310,12 +334,20 @@ pub unsafe fn cpu_off() -> i32 {
 /// * `power_state` - Power state to enter
 /// * `entry_point` - Physical address of resume entry point
 /// * `context_id` - Context ID passed on resume
+///
+/// # Safety
+///
+/// The caller must ensure the suspend state is valid and resume is properly configured.
 pub unsafe fn cpu_suspend(power_state: u32, entry_point: u64, context_id: u64) -> i32 {
     let result = psci_call(CPU_SUSPEND_64, power_state as u64, entry_point, context_id);
     result as i32
 }
 
 /// Get affinity info for a CPU
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn affinity_info(target_affinity: u64, lowest_affinity_level: u32) -> i32 {
     let result = psci_call(
         AFFINITY_INFO_64,
@@ -327,6 +359,10 @@ pub unsafe fn affinity_info(target_affinity: u64, lowest_affinity_level: u32) ->
 }
 
 /// Check if CPU is online
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU exists and the entry point is valid.
 pub unsafe fn is_cpu_online(mpidr: u64) -> bool {
     let result = affinity_info(mpidr & 0xFF_FFFF_FFFF, 0);
     result == AFFINITY_ON as i32
@@ -337,6 +373,10 @@ pub unsafe fn is_cpu_online(mpidr: u64) -> bool {
 // =============================================================================
 
 /// Power off the system (does not return)
+///
+/// # Safety
+///
+/// The caller must ensure all necessary cleanup has been performed.
 pub unsafe fn system_off() -> ! {
     psci_call(SYSTEM_OFF, 0, 0, 0);
 
@@ -347,6 +387,10 @@ pub unsafe fn system_off() -> ! {
 }
 
 /// Reset the system (does not return)
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn system_reset() -> ! {
     psci_call(SYSTEM_RESET, 0, 0, 0);
 
@@ -357,6 +401,10 @@ pub unsafe fn system_reset() -> ! {
 }
 
 /// Reset the system with reason (PSCI 1.1+)
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn system_reset2(reset_type: u32, cookie: u64) -> ! {
     psci_call(SYSTEM_RESET2_64, reset_type as u64, cookie, 0);
 
@@ -365,6 +413,10 @@ pub unsafe fn system_reset2(reset_type: u32, cookie: u64) -> ! {
 }
 
 /// Suspend the entire system
+///
+/// # Safety
+///
+/// The caller must ensure suspend mode is valid.
 pub unsafe fn system_suspend(entry_point: u64, context_id: u64) -> i32 {
     let result = psci_call(SYSTEM_SUSPEND_64, entry_point, context_id, 0);
     result as i32
@@ -402,6 +454,10 @@ static mut AP_TRAMPOLINES: [ApTrampoline; 256] =
 /// * `entry_point` - Entry function pointer
 /// * `stack_top` - Top of stack for this CPU
 /// * `page_table` - Physical address of page table
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU exists and the entry point is valid.
 pub unsafe fn start_cpu(
     cpu_id: u32,
     mpidr: u64,
@@ -496,18 +552,30 @@ pub fn park_cpu() {
 // =============================================================================
 
 /// Get migration type
+///
+/// # Safety
+///
+/// The caller must ensure migration is supported and valid.
 pub unsafe fn migrate_info_type() -> i32 {
     let result = psci_call(MIGRATE_INFO_TYPE, 0, 0, 0);
     result as i32
 }
 
 /// Migrate to specified CPU (if supported)
+///
+/// # Safety
+///
+/// The caller must ensure migration is supported and valid.
 pub unsafe fn migrate(target_cpu: u64) -> i32 {
     let result = psci_call(MIGRATE_64, target_cpu, 0, 0);
     result as i32
 }
 
 /// Get migration target CPU
+///
+/// # Safety
+///
+/// The caller must ensure migration is supported and valid.
 pub unsafe fn migrate_info_up_cpu() -> u64 {
     let result = psci_call(MIGRATE_INFO_UP_CPU_64, 0, 0, 0);
     result as u64
@@ -518,12 +586,20 @@ pub unsafe fn migrate_info_up_cpu() -> u64 {
 // =============================================================================
 
 /// Enable/disable memory protection
+///
+/// # Safety
+///
+/// The caller must ensure the memory region is valid.
 pub unsafe fn mem_protect(enable: bool) -> i32 {
     let result = psci_call(MEM_PROTECT, enable as u64, 0, 0);
     result as i32
 }
 
 /// Check if memory range is protected
+///
+/// # Safety
+///
+/// The caller must ensure the memory region is valid.
 pub unsafe fn mem_protect_check_range(base: u64, length: u64) -> i32 {
     let result = psci_call(MEM_PROTECT_CHECK_RANGE_64, base, length, 0);
     result as i32
@@ -534,12 +610,20 @@ pub unsafe fn mem_protect_check_range(base: u64, length: u64) -> i32 {
 // =============================================================================
 
 /// Get power state residency statistics
+///
+/// # Safety
+///
+/// The caller must ensure the power state ID is valid.
 pub unsafe fn stat_residency(target_cpu: u64, power_state: u32) -> u64 {
     let result = psci_call(PSCI_STAT_RESIDENCY_64, target_cpu, power_state as u64, 0);
     result as u64
 }
 
 /// Get power state entry count
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized.
 pub unsafe fn stat_count(target_cpu: u64, power_state: u32) -> u64 {
     let result = psci_call(PSCI_STAT_COUNT_64, target_cpu, power_state as u64, 0);
     result as u64
@@ -557,6 +641,10 @@ pub const HW_STATE_STANDBY: u32 = 1;
 pub const HW_STATE_ON: u32 = 2;
 
 /// Get node hardware state
+///
+/// # Safety
+///
+/// The caller must ensure the power state ID is valid.
 pub unsafe fn node_hw_state(target_cpu: u64, power_level: u32) -> i32 {
     let result = psci_call(NODE_HW_STATE_64, target_cpu, power_level as u64, 0);
     result as i32
@@ -572,6 +660,10 @@ pub const SUSPEND_MODE_PC: u32 = 0;
 pub const SUSPEND_MODE_OSI: u32 = 1;
 
 /// Set suspend mode
+///
+/// # Safety
+///
+/// The caller must ensure the value is appropriate for the current exception level.
 pub unsafe fn set_suspend_mode(mode: u32) -> i32 {
     let result = psci_call(PSCI_SET_SUSPEND_MODE, mode as u64, 0, 0);
     result as i32
