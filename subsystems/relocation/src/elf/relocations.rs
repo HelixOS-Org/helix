@@ -335,6 +335,10 @@ pub unsafe fn apply_x86_64_relocation(
 
 /// Apply a single AArch64 relocation
 #[cfg(target_arch = "aarch64")]
+///
+/// # Safety
+///
+/// The caller must ensure the relocation data is valid and memory is writable.
 pub unsafe fn apply_aarch64_relocation(
     target: *mut u8,
     r_type: u32,
