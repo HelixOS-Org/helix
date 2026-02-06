@@ -234,6 +234,7 @@ pub struct VerificationEngine {
 }
 
 /// SMT Solver (simplified interface)
+#[derive(Default)]
 pub struct SMTSolver {
     /// Solver state
     assertions: Vec<SymbolicExpr>,
@@ -241,9 +242,7 @@ pub struct SMTSolver {
 
 impl SMTSolver {
     pub fn new() -> Self {
-        Self {
-            assertions: Vec::new(),
-        }
+        Self::default()
     }
 
     pub fn push(&mut self) {
@@ -475,6 +474,7 @@ impl VerificationEngine {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn expr_to_symbolic(&self, expr: &Expr) -> SymbolicExpr {
         match expr {
             Expr::Var(name) => SymbolicExpr::Var(name.clone()),
