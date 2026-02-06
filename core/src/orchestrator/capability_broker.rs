@@ -153,6 +153,12 @@ pub struct CapabilityBroker {
     by_resource: RwLock<BTreeMap<(ResourceType, u64), Vec<CapabilityId>>>,
 }
 
+impl Default for CapabilityBroker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CapabilityBroker {
     /// Create a new capability broker
     pub const fn new() -> Self {
