@@ -9,9 +9,7 @@
 
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
-use crate::{
-    benchmark, timing, BenchmarkCategory, BenchmarkDef, BenchmarkId, BenchmarkSuite,
-};
+use crate::{benchmark, timing, BenchmarkCategory, BenchmarkDef, BenchmarkId, BenchmarkSuite};
 
 // =============================================================================
 // Benchmark Registration
