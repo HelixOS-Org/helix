@@ -659,9 +659,7 @@ impl Blake3 {
         ];
 
         // 7 rounds
-        for round in 0..7 {
-            let s = &BLAKE3_MSG_SCHEDULE[round];
-
+        for s in &BLAKE3_MSG_SCHEDULE {
             // Column step
             Self::g(&mut state, 0, 4, 8, 12, m[s[0]], m[s[1]]);
             Self::g(&mut state, 1, 5, 9, 13, m[s[2]], m[s[3]]);
@@ -849,7 +847,7 @@ pub fn hash_name_casefold(name: &[u8]) -> u64 {
     let mut hash = FNV_OFFSET;
     for &byte in name {
         // Simple ASCII case folding
-        let byte = if byte >= b'A' && byte <= b'Z' {
+        let byte = if byte.is_ascii_uppercase() {
             byte + 32
         } else {
             byte
