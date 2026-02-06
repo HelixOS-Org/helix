@@ -98,24 +98,28 @@ impl PhysAddr {
 
     /// Align the address down to a page boundary
     #[inline]
+    #[must_use]
     pub const fn page_align_down(self) -> Self {
         Self(self.0 & !(Self::PAGE_SIZE - 1))
     }
 
     /// Align the address up to a page boundary
     #[inline]
+    #[must_use]
     pub const fn page_align_up(self) -> Self {
         Self((self.0 + Self::PAGE_SIZE - 1) & !(Self::PAGE_SIZE - 1))
     }
 
     /// Align down to arbitrary alignment
     #[inline]
+    #[must_use]
     pub const fn align_down(self, align: u64) -> Self {
         Self(self.0 & !(align - 1))
     }
 
     /// Align up to arbitrary alignment
     #[inline]
+    #[must_use]
     pub const fn align_up(self, align: u64) -> Self {
         Self((self.0 + align - 1) & !(align - 1))
     }
@@ -340,12 +344,14 @@ impl VirtAddr {
 
     /// Align the address down to a page boundary
     #[inline]
+    #[must_use]
     pub const fn page_align_down(self) -> Self {
         Self(self.0 & !(Self::PAGE_SIZE - 1))
     }
 
     /// Align the address up to a page boundary
     #[inline]
+    #[must_use]
     pub const fn page_align_up(self) -> Self {
         Self((self.0 + Self::PAGE_SIZE - 1) & !(Self::PAGE_SIZE - 1))
     }
