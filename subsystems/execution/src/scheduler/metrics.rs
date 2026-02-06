@@ -24,6 +24,12 @@ pub struct SchedulerMetrics {
     wait_time: AtomicU64,
 }
 
+impl Default for SchedulerMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SchedulerMetrics {
     /// Create new metrics
     pub const fn new() -> Self {
