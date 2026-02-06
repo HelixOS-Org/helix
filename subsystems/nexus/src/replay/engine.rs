@@ -158,7 +158,7 @@ impl ReplayEngine {
 
     /// Set replay speed
     pub fn set_speed(&mut self, speed: f64) {
-        self.speed = speed.max(0.1).min(100.0);
+        self.speed = speed.clamp(0.1, 100.0);
     }
 
     /// Get replay speed
@@ -173,9 +173,7 @@ impl ReplayEngine {
                 self.pause();
                 return Some(self.position());
             }
-            if self.step().is_none() {
-                return None;
-            }
+            self.step()?;
         }
         None
     }
