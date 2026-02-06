@@ -799,7 +799,7 @@ fn bench_mutex_lock() -> u64 {
     // Try to acquire
     let result = MUTEX.compare_exchange(0, 1, Ordering::Acquire, Ordering::Relaxed);
 
-    core::hint::black_box(result);
+    let _ = core::hint::black_box(result);
 
     let end = timing::read_tsc();
 
