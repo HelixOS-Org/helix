@@ -1,0 +1,236 @@
+# =============================================================================
+# Helix OS - Cargo Configuration
+# =============================================================================
+# Cross-compilation and build settings for kernel development
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Build Defaults
+# -----------------------------------------------------------------------------
+
+[build]
+# Default target for x86_64 bare metal
+target = "x86_64-unknown-none"
+
+# Use sccache for faster incremental builds (if available)
+# rustc-wrapper = "sccache"
+
+# Number of parallel jobs (uncomment to limit)
+# jobs = 8
+
+# -----------------------------------------------------------------------------
+# x86_64 Target Configuration
+# -----------------------------------------------------------------------------
+
+[target.x86_64-unknown-none]
+runner = "scripts/run_qemu.sh"
+linker = "rust-lld"
+rustflags = [
+    # Enforce warnings and unsafe hygiene
+    "-D", "warnings",
+    "-D", "unsafe_op_in_unsafe_fn",
+
+    # Kernel code model for higher-half mapping
+    "-C", "code-model=kernel",
+
+    # Static relocation for Multiboot2 boot (boot code needs absolute addresses)
+    # NOTE: For Limine/UEFI boot with KASLR, change to:
+    #   "-C", "relocation-model=pie",
+    #   "-C", "link-arg=-Tprofiles/minimal/linker_pie.ld",
+    "-C", "relocation-model=static",
+
+    # Disable floating-point instructions in kernel
+    # SSE/AVX/soft-float disabled to avoid FPU state management in kernel
+    "-C", "target-feature=-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-avx,-avx2",
+
+    # Standard linker script (use linker_pie.ld for PIE mode)
+    "-C", "link-arg=-Tprofiles/minimal/linker.ld",
+
+    # Link-time optimization for release builds
+    # "-C", "lto=thin",
+
+    # Generate frame pointers for debugging
+    "-C", "force-frame-pointers=yes",
+
+    # Emit debug info
+    "-C", "debuginfo=2",
+
+    # Overflow checks (disabled in release for performance)
+    # "-C", "overflow-checks=yes",
+]
+
+# -----------------------------------------------------------------------------
+# AArch64 Target Configuration
+# -----------------------------------------------------------------------------
+
+[target.aarch64-unknown-none]
+runner = "scripts/run_qemu_aarch64.sh"
+linker = "rust-lld"
+rustflags = [
+    # Disable SIMD/FP in kernel (use soft-float)
+    "-C", "target-feature=-fp-armv8,-neon",
+
+    # Linker script (when aarch64 support is added)
+    # "-C", "link-arg=-Tprofiles/minimal/linker-aarch64.ld",
+
+    # Frame pointers for debugging
+    "-C", "force-frame-pointers=yes",
+
+    # Debug info
+    "-C", "debuginfo=2",
+]
+
+# -----------------------------------------------------------------------------
+# RISC-V 64-bit Target Configuration
+# -----------------------------------------------------------------------------
+
+[target.riscv64gc-unknown-none-elf]
+runner = "scripts/run_qemu_riscv64.sh"
+linker = "rust-lld"
+rustflags = [
+    # Disable floating-point extensions
+    "-C", "target-feature=-f,-d",
+
+    # Linker script (when riscv64 support is added)
+    # "-C", "link-arg=-Tprofiles/minimal/linker-riscv64.ld",
+
+    # Frame pointers for debugging
+    "-C", "force-frame-pointers=yes",
+
+    # Debug info
+    "-C", "debuginfo=2",
+]
+
+# -----------------------------------------------------------------------------
+# Host Target (for tests and tools)
+# -----------------------------------------------------------------------------
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    # Sanitizers for testing (uncomment as needed)
+    # "-Z", "sanitizer=address",
+    # "-Z", "sanitizer=memory",
+    # "-Z", "sanitizer=thread",
+]
+
+[target.x86_64-apple-darwin]
+rustflags = []
+
+[target.aarch64-apple-darwin]
+rustflags = []
+
+# -----------------------------------------------------------------------------
+# Build-std Configuration (Unstable)
+# -----------------------------------------------------------------------------
+
+[unstable]
+# Build core and alloc from source for custom targets
+build-std = ["core", "alloc", "compiler_builtins"]
+
+# Include memcpy, memset, etc. from compiler-builtins
+build-std-features = ["compiler-builtins-mem"]
+
+# -----------------------------------------------------------------------------
+# Cargo Aliases
+# -----------------------------------------------------------------------------
+
+[alias]
+# Build kernel in release mode
+kbuild = "build --release"
+
+# Build kernel in debug mode
+kbuild-debug = "build"
+
+# Run tests on host
+ktest = "test --target x86_64-unknown-linux-gnu"
+
+# Run clippy on all targets
+kclippy = "clippy --all-targets --all-features -- -D warnings"
+
+# Format check
+kfmt = "fmt --all -- --check"
+
+# Full check (format + clippy + build)
+kcheck = "check --all-targets --all-features"
+
+# Build documentation
+kdoc = "doc --no-deps --document-private-items"
+
+# Clean everything
+kclean = "clean"
+
+# Run benchmarks
+kbench = "bench --target x86_64-unknown-linux-gnu"
+
+# Expand macros (requires cargo-expand)
+kexpand = "expand"
+
+# Show build plan
+kplan = "build --build-plan"
+
+# Tree of dependencies
+ktree = "tree --all-features"
+
+# -----------------------------------------------------------------------------
+# Environment Variables
+# -----------------------------------------------------------------------------
+
+[env]
+# Emit LLVM IR for debugging (uncomment when needed)
+# RUSTFLAGS = "--emit=llvm-ir"
+
+# Enable backtraces for panics
+RUST_BACKTRACE = "1"
+
+# Log level for build scripts
+RUST_LOG = "info"
+
+# -----------------------------------------------------------------------------
+# Registry Configuration
+# -----------------------------------------------------------------------------
+
+[registries]
+# Custom registry (if needed)
+# helix = { index = "https://registry.helix-os.org/index" }
+
+# -----------------------------------------------------------------------------
+# Network Configuration
+# -----------------------------------------------------------------------------
+
+[net]
+# Retry failed downloads
+retry = 3
+
+# Git fetch with CLI (more reliable on some systems)
+git-fetch-with-cli = true
+
+# Offline mode (uncomment to disable network access)
+# offline = true
+
+# -----------------------------------------------------------------------------
+# Profile Overrides
+# -----------------------------------------------------------------------------
+
+# Override settings for specific packages
+[profile.release.package.helix-core]
+opt-level = 3
+
+[profile.release.package.helix-hal]
+opt-level = 3
+
+[profile.release.package.helix-fs]
+opt-level = 3
+
+# Benchmarks always with optimizations
+[profile.bench.package.helix-benchmarks]
+opt-level = 3
+
+# -----------------------------------------------------------------------------
+# Future Configuration (uncomment when features stabilize)
+# -----------------------------------------------------------------------------
+
+# [future-incompat-report]
+# frequency = "always"
+
+# [doc]
+# browser = "firefox"
