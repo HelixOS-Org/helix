@@ -455,6 +455,10 @@ pub struct Elf64SectionHeader {
 const SHT_RELA: u32 = 4;
 
 /// Find .rela.dyn section in ELF
+///
+/// # Safety
+///
+/// The caller must ensure the ELF data is valid.
 pub unsafe fn find_rela_section(
     elf_data: *const u8,
     elf_size: usize,
@@ -523,6 +527,10 @@ pub unsafe fn find_rela_section(
 /// Relocate a kernel and update boot info
 ///
 /// This is the main entry point for kernel relocation from the bootloader.
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU exists and the entry point is valid.
 pub unsafe fn relocate_kernel_and_update_bootinfo(
     kernel_data: *mut u8,
     kernel_size: usize,
