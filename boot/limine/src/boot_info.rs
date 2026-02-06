@@ -119,12 +119,16 @@ impl<'a> BootInfo<'a> {
 
     /// Get the bootloader name
     pub fn bootloader_name(&self) -> &str {
-        self.bootloader.map(BootloaderInfoResponse::name).unwrap_or("Unknown")
+        self.bootloader
+            .map(BootloaderInfoResponse::name)
+            .unwrap_or("Unknown")
     }
 
     /// Get the bootloader version
     pub fn bootloader_version(&self) -> &str {
-        self.bootloader.map(BootloaderInfoResponse::version).unwrap_or("Unknown")
+        self.bootloader
+            .map(BootloaderInfoResponse::version)
+            .unwrap_or("Unknown")
     }
 
     /// Get memory map
@@ -144,7 +148,9 @@ impl<'a> BootInfo<'a> {
 
     /// Get total physical memory
     pub fn total_memory(&self) -> u64 {
-        self.memory_map.map(MemoryMapResponse::total_memory).unwrap_or(0)
+        self.memory_map
+            .map(MemoryMapResponse::total_memory)
+            .unwrap_or(0)
     }
 
     /// Get total usable memory
@@ -181,7 +187,9 @@ impl<'a> BootInfo<'a> {
 
     /// Check if using 5-level paging
     pub fn is_five_level_paging(&self) -> bool {
-        self.paging_mode.map(PagingModeResponse::is_five_level).unwrap_or(false)
+        self.paging_mode
+            .map(PagingModeResponse::is_five_level)
+            .unwrap_or(false)
     }
 
     /// Get kernel file
@@ -196,12 +204,16 @@ impl<'a> BootInfo<'a> {
 
     /// Get kernel physical base
     pub fn kernel_phys_base(&self) -> u64 {
-        self.kernel_address.map(KernelAddressResponse::physical_base).unwrap_or(0)
+        self.kernel_address
+            .map(KernelAddressResponse::physical_base)
+            .unwrap_or(0)
     }
 
     /// Get kernel virtual base
     pub fn kernel_virt_base(&self) -> u64 {
-        self.kernel_address.map(KernelAddressResponse::virtual_base).unwrap_or(0)
+        self.kernel_address
+            .map(KernelAddressResponse::virtual_base)
+            .unwrap_or(0)
     }
 
     /// Get modules
