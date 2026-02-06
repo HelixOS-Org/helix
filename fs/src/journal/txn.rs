@@ -401,6 +401,7 @@ pub struct TxnManager {
 impl TxnManager {
     /// Create new transaction manager
     pub fn new() -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const ZERO: AtomicU64 = AtomicU64::new(0);
         Self {
             next_id: AtomicU64::new(1),
