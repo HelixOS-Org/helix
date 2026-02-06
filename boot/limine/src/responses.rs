@@ -256,7 +256,7 @@ pub struct MemoryMapIterator<'a> {
     index: usize,
 }
 
-impl<'a> Iterator for MemoryMapIterator<'a> {
+impl Iterator for MemoryMapIterator<'_> {
     type Item = MemoryRegion;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -271,7 +271,7 @@ impl<'a> Iterator for MemoryMapIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for MemoryMapIterator<'a> {}
+impl ExactSizeIterator for MemoryMapIterator<'_> {}
 
 // =============================================================================
 // HHDM Response
@@ -501,7 +501,7 @@ pub struct SmpIterator<'a> {
     index: usize,
 }
 
-impl<'a> Iterator for SmpIterator<'a> {
+impl Iterator for SmpIterator<'_> {
     type Item = CpuInfo;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -516,7 +516,7 @@ impl<'a> Iterator for SmpIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for SmpIterator<'a> {}
+impl ExactSizeIterator for SmpIterator<'_> {}
 
 // =============================================================================
 // Framebuffer Response
