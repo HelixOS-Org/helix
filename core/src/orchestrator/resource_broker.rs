@@ -16,7 +16,7 @@ pub struct ResourceId(u64);
 
 impl ResourceId {
     /// Create a new resource ID
-    fn new() -> Self {
+    fn _new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
     }
@@ -100,7 +100,7 @@ impl Default for ResourceLimit {
 #[derive(Debug, Clone)]
 pub struct ResourceQuota {
     /// Entity ID (process, container, etc.)
-    entity_id: u64,
+    _entity_id: u64,
     /// Limits by resource class
     limits: BTreeMap<ResourceClass, ResourceLimit>,
 }
@@ -109,7 +109,7 @@ impl ResourceQuota {
     /// Create a new quota
     pub fn new(entity_id: u64) -> Self {
         Self {
-            entity_id,
+            _entity_id: entity_id,
             limits: BTreeMap::new(),
         }
     }
