@@ -932,8 +932,7 @@ impl PeLoader {
         let end = data[offset..]
             .iter()
             .position(|&b| b == 0)
-            .map(|p| offset + p)
-            .unwrap_or(data.len());
+            .map_or(data.len(), |p| offset + p);
 
         String::from_utf8_lossy(&data[offset..end]).into_owned()
     }
