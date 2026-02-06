@@ -521,11 +521,7 @@ impl BlockWrite for MemoryBlockDevice {
 
         // SAFETY: We've verified bounds
         unsafe {
-            core::ptr::copy_nonoverlapping(
-                buffer.as_ptr(),
-                self.buffer.add(offset),
-                bytes,
-            );
+            core::ptr::copy_nonoverlapping(buffer.as_ptr(), self.buffer.add(offset), bytes);
         }
 
         Ok(blocks)
