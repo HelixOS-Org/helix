@@ -159,7 +159,7 @@ pub unsafe fn apply_early_relocations(
     let relocator = EarlyRelocator::new(phys_base, link_base, kernel_size);
 
     let rela_count = rela_size / core::mem::size_of::<Elf64Rela>();
-    let rela_ptr = rela_base as *const Elf64Rela;
+    let rela_ptr = rela_base.cast::<Elf64Rela>();
 
     unsafe { relocator.apply_relative_relocations(rela_ptr, rela_count) }
 }
