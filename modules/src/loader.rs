@@ -130,6 +130,12 @@ pub struct LoaderRegistry {
     loaders: RwLock<Vec<Arc<dyn ModuleLoader>>>,
 }
 
+impl Default for LoaderRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LoaderRegistry {
     /// Create a new registry
     pub const fn new() -> Self {
