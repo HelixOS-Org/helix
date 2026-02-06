@@ -27,7 +27,11 @@ use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use crate::boot_info::{BootInfo, BootInfoBuilder};
-use crate::requests::*;
+use crate::requests::{
+    BootTimeRequest, BootloaderInfoRequest, FramebufferRequest, HhdmRequest, KernelAddressRequest,
+    KernelFileRequest, MemoryMapRequest, ModuleRequest, PagingModeRequest, RsdpRequest,
+    SmbiosRequest, SmpRequest,
+};
 
 /// Flag indicating if early boot has completed
 static EARLY_BOOT_COMPLETE: AtomicBool = AtomicBool::new(false);
@@ -54,6 +58,7 @@ pub fn is_panic_in_progress() -> bool {
 ///
 /// This function disables interrupts and halts the CPU repeatedly.
 /// Use this when the kernel cannot continue execution.
+#[allow(clippy::inline_always)] // Critical hardware function must be inlined
 #[inline(always)]
 pub fn halt_loop() -> ! {
     loop {
@@ -131,6 +136,10 @@ impl StandardRequests {
     }
 
     /// Build boot info from responses
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required boot info components are missing.
     pub fn build_boot_info(&self) -> Result<BootInfo<'_>, crate::boot_info::BootInfoError> {
         BootInfoBuilder::new()
             .with_bootloader(&self.bootloader)
@@ -371,18 +380,21 @@ pub fn halt_all_cpus() -> ! {
 }
 
 /// Halt the current CPU
+#[allow(clippy::inline_always)] // Critical hardware function must be inlined
 #[inline(always)]
 pub fn halt() -> ! {
     halt_all_cpus()
 }
 
 /// CPU relaxation hint for busy-wait loops
+#[allow(clippy::inline_always)] // Critical hardware function must be inlined
 #[inline(always)]
 pub fn cpu_relax() {
     core::hint::spin_loop();
 }
 
 /// Memory fence for cross-CPU synchronization
+#[allow(clippy::inline_always)] // Critical hardware function must be inlined
 #[inline(always)]
 pub fn memory_fence() {
     core::sync::atomic::fence(Ordering::SeqCst);
@@ -444,7 +456,7 @@ impl SerialDebug {
             // Enable DLAB
             Self::outb(self.port + 3, 0x80);
             // Set divisor to 1 (115200 baud)
-            Self::outb(self.port + 0, 0x01);
+            Self::outb(self.port, 0x01);
             Self::outb(self.port + 1, 0x00);
             // 8 bits, no parity, one stop bit
             Self::outb(self.port + 3, 0x03);
@@ -455,6 +467,7 @@ impl SerialDebug {
         }
     }
 
+    #[allow(clippy::inline_always)] // Critical I/O port function must be inlined
     #[inline(always)]
     unsafe fn outb(port: u16, value: u8) {
         core::arch::asm!(
@@ -465,6 +478,7 @@ impl SerialDebug {
         );
     }
 
+    #[allow(clippy::inline_always)] // Critical I/O port function must be inlined
     #[inline(always)]
     unsafe fn inb(port: u16) -> u8 {
         let value: u8;
