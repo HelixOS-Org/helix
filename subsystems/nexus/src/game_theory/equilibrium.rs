@@ -20,14 +20,20 @@ pub struct NashSolver {
     rng: u64,
 }
 
-impl NashSolver {
-    /// Create a new solver
-    pub fn new() -> Self {
+impl Default for NashSolver {
+    fn default() -> Self {
         Self {
             max_iterations: 10000,
             tolerance: 1e-8,
             rng: 0xDEADBEEF,
         }
+    }
+}
+
+impl NashSolver {
+    /// Create a new solver
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Find Nash equilibrium using support enumeration (small games)
@@ -246,9 +252,8 @@ impl NashSolver {
                 }
 
                 // Update populations using replicator equation
-                for s in 0..num_strategies {
-                    let delta =
-                        populations[player][s] * (fitnesses[s] - avg_fitness) * learning_rate;
+                for (s, &fitness) in fitnesses.iter().enumerate().take(num_strategies) {
+                    let delta = populations[player][s] * (fitness - avg_fitness) * learning_rate;
                     new_populations[player][s] += delta;
                     new_populations[player][s] = new_populations[player][s].max(0.0);
                 }
@@ -299,6 +304,7 @@ impl NashSolver {
         expected
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn enumerate_expected_payoff(
         &self,
         game: &Game,
@@ -358,11 +364,17 @@ pub struct EssChecker {
     invasion_epsilon: f64,
 }
 
-impl EssChecker {
-    pub fn new() -> Self {
+impl Default for EssChecker {
+    fn default() -> Self {
         Self {
             invasion_epsilon: 0.01,
         }
+    }
+}
+
+impl EssChecker {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Check if strategy is evolutionarily stable
@@ -388,10 +400,10 @@ impl EssChecker {
                 return false;
             }
 
-            if (payoff_ms - payoff_ss).abs() < self.invasion_epsilon {
-                if payoff_mm >= payoff_sm + self.invasion_epsilon {
-                    return false;
-                }
+            if (payoff_ms - payoff_ss).abs() < self.invasion_epsilon
+                && payoff_mm >= payoff_sm + self.invasion_epsilon
+            {
+                return false;
             }
         }
 
@@ -618,15 +630,21 @@ pub struct KernelResourceGameManager {
     mechanism: MechanismDesign,
 }
 
-impl KernelResourceGameManager {
-    /// Create a new manager
-    pub fn new() -> Self {
+impl Default for KernelResourceGameManager {
+    fn default() -> Self {
         Self {
             nash_solver: NashSolver::new(),
             ess_checker: EssChecker::new(),
             current_game: None,
             mechanism: MechanismDesign::new(MechanismType::MaxMinFair),
         }
+    }
+}
+
+impl KernelResourceGameManager {
+    /// Create a new manager
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Create game for CPU time allocation
