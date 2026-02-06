@@ -55,6 +55,12 @@ pub struct TaskStateSegment {
     pub iomap_base: u16,
 }
 
+impl Default for TaskStateSegment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TaskStateSegment {
     /// Create a new TSS with zeroed stacks
     pub const fn new() -> Self {
@@ -197,6 +203,12 @@ pub struct GdtPointer {
 pub struct Gdt {
     entries: [GdtEntry; 5],
     tss_entry: TssDescriptor,
+}
+
+impl Default for Gdt {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Gdt {
