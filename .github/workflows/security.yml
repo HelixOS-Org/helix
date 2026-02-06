@@ -57,7 +57,7 @@ jobs:
       - name: 📦 Install Security Tools
         run: |
           cargo install cargo-audit --locked
-          cargo install cargo-deny --locked --version "~0.18"
+          cargo install cargo-deny --locked --version "0.18.3"
           cargo install cargo-outdated --locked
 
       - name: 🔍 Cargo Audit
