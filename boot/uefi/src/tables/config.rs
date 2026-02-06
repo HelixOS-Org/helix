@@ -67,6 +67,7 @@ impl ConfigTableManager {
     }
 
     /// Add table
+    #[allow(clippy::unnecessary_wraps)]
     fn add_table(&mut self, guid: Guid, address: PhysicalAddress) -> Result<()> {
         let table_type = ConfigTableType::from_guid(&guid);
 
@@ -80,6 +81,7 @@ impl ConfigTableManager {
     }
 
     /// Parse ACPI configuration
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_acpi(&mut self) -> Result<()> {
         // Try ACPI 2.0+ first
         let rsdp_addr = self
@@ -124,6 +126,7 @@ impl ConfigTableManager {
     }
 
     /// Parse SMBIOS configuration
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_smbios(&mut self) -> Result<()> {
         // Try SMBIOS 3.x first
         let entry_addr = self
@@ -162,6 +165,7 @@ impl ConfigTableManager {
     }
 
     /// Parse device tree blob configuration
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_dtb(&mut self) -> Result<()> {
         if let Some(addr) = self.find_table_by_type(ConfigTableType::Dtb) {
             let header = &*(addr.0 as *const DtbHeader);
@@ -192,6 +196,7 @@ impl ConfigTableManager {
     }
 
     /// Parse debug configuration
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_debug(&mut self) -> Result<()> {
         if let Some(addr) = self.find_table_by_type(ConfigTableType::DebugImageInfo) {
             self.debug = Some(DebugConfig {
