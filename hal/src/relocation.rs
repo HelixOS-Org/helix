@@ -65,9 +65,19 @@ pub enum RelocError {
     /// Unsupported relocation type
     UnsupportedRelocType(u32),
     /// Relocation target out of kernel bounds
-    OutOfBounds { offset: u64, size: u64 },
+    OutOfBounds {
+        /// Byte offset of the relocation within the kernel image
+        offset: u64,
+        /// Total size of the kernel image in bytes
+        size: u64,
+    },
     /// Overflow during relocation calculation
-    Overflow { offset: u64, value: i64 },
+    Overflow {
+        /// Byte offset where the overflow occurred
+        offset: u64,
+        /// The computed relocation value that caused overflow
+        value: i64,
+    },
     /// No relocations found (not necessarily an error)
     NoRelocations,
     /// Too many relocation errors
