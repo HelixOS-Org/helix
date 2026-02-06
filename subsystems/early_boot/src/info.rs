@@ -297,6 +297,10 @@ impl MemoryInfo {
     }
 
     /// Iterate over usable memory regions
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure memory map information is valid.
     pub unsafe fn usable_regions(&self) -> impl Iterator<Item = &MemoryMapEntry> {
         self.memory_map()
             .iter()
