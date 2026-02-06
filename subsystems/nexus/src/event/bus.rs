@@ -63,7 +63,7 @@ impl EventBus {
         self.handlers.push(handler);
         // Sort by priority (descending)
         self.handlers
-            .sort_by(|a, b| b.priority().cmp(&a.priority()));
+            .sort_by_key(|h| core::cmp::Reverse(h.priority()));
     }
 
     /// Publish an event
