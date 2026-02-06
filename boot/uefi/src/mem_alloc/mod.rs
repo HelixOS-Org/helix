@@ -988,7 +988,7 @@ pub const fn is_aligned(value: usize, align: usize) -> bool {
 
 /// Calculate pages needed for size
 pub const fn pages_for_bytes(bytes: usize) -> usize {
-    (bytes + PAGE_SIZE - 1) / PAGE_SIZE
+    bytes.div_ceil(PAGE_SIZE)
 }
 
 /// Convert pages to bytes
