@@ -311,6 +311,10 @@ impl PoolAllocator {
     }
 
     /// Allocate memory
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the allocator is properly initialized.
     pub unsafe fn allocate(&mut self, size: usize, align: usize) -> Option<*mut u8> {
         let actual_size = size.max(align);
 
@@ -335,6 +339,10 @@ impl PoolAllocator {
     }
 
     /// Free memory
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the memory was allocated by this allocator and is not in use.
     pub unsafe fn free(&mut self, ptr: *mut u8, size: usize) {
         let actual_size = size;
 
@@ -514,6 +522,10 @@ impl UefiAllocator {
     }
 
     /// Initialize with pool allocator
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self, allocator: *mut PoolAllocator) {
         *self.inner.get() = Some(allocator);
     }
