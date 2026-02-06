@@ -227,9 +227,9 @@ impl Vendor {
         vendor[4..8].copy_from_slice(&result.edx.to_le_bytes());
         vendor[8..12].copy_from_slice(&result.ecx.to_le_bytes());
 
-        if &vendor == Self::INTEL {
+        if vendor == *Self::INTEL {
             Vendor::Intel
-        } else if &vendor == Self::AMD {
+        } else if vendor == *Self::AMD {
             Vendor::Amd
         } else {
             Vendor::Unknown(vendor)
