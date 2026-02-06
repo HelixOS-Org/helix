@@ -164,6 +164,12 @@ pub struct Idt {
     entries: [IdtEntry; IDT_ENTRIES],
 }
 
+impl Default for Idt {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Idt {
     /// Create a new IDT with all entries missing
     pub const fn new() -> Self {
@@ -287,7 +293,7 @@ pub mod vectors {
     pub const IRQ_BASE: u8 = 32;
 
     /// Timer IRQ
-    pub const TIMER: u8 = IRQ_BASE + 0;
+    pub const TIMER: u8 = IRQ_BASE;
     /// Keyboard IRQ
     pub const KEYBOARD: u8 = IRQ_BASE + 1;
     /// Syscall vector
@@ -302,6 +308,9 @@ pub mod vectors {
 ///
 /// # Safety
 /// Must be called only once during early boot.
+///
+/// Note: Function pointer casts to u64 are required for the x86_64 IDT entry format.
+#[allow(clippy::fn_to_numeric_cast)]
 pub unsafe fn init() {
     use super::exceptions;
 
