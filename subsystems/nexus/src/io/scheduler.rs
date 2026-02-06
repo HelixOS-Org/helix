@@ -88,7 +88,7 @@ impl IoScheduler {
         let analyzer = self
             .pattern_analyzers
             .entry(process_id)
-            .or_insert_with(IoPatternAnalyzer::default);
+            .or_default();
         analyzer.record(request.offset, request.size, request.is_read());
 
         // Add to queue
@@ -103,7 +103,7 @@ impl IoScheduler {
     }
 
     /// Try to merge request with existing (static version)
-    fn try_merge_static(queue: &mut Vec<IoRequest>, new: &IoRequest) -> Option<usize> {
+    fn try_merge_static(queue: &mut [IoRequest], new: &IoRequest) -> Option<usize> {
         for (i, existing) in queue.iter_mut().enumerate() {
             // Same device and operation type
             if existing.device_id != new.device_id || existing.op_type != new.op_type {
@@ -186,14 +186,13 @@ impl IoScheduler {
             .enumerate()
             .min_by_key(|(_, r)| {
                 let size_factor = r.size / 4096;
-                let priority_factor = match r.priority {
+                match r.priority {
                     IoPriority::RealTime => 0,
                     IoPriority::High => size_factor,
                     IoPriority::Normal => size_factor * 2,
                     IoPriority::Low => size_factor * 4,
                     IoPriority::Idle => size_factor * 8,
-                };
-                priority_factor
+                }
             })
             .map(|(i, _)| i)
     }
