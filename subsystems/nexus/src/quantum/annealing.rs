@@ -515,7 +515,7 @@ impl QuantumAnnealingEngine {
         energy
     }
 
-    fn mcmc_sweep(&mut self, config: &mut Vec<i8>, ising: &IsingModel, temperature: f64) {
+    fn mcmc_sweep(&mut self, config: &mut [i8], ising: &IsingModel, temperature: f64) {
         let n = config.len();
 
         for i in 0..n {
@@ -629,6 +629,7 @@ impl QuantumAnnealingEngine {
 }
 
 /// Adaptive schedule for quantum annealing
+#[derive(Default)]
 pub struct AdaptiveAnnealingSchedule {
     /// Schedule parameters
     temperature_history: Vec<f64>,
@@ -640,12 +641,7 @@ pub struct AdaptiveAnnealingSchedule {
 
 impl AdaptiveAnnealingSchedule {
     pub fn new() -> Self {
-        Self {
-            temperature_history: Vec::new(),
-            energy_history: Vec::new(),
-            acceptance_history: Vec::new(),
-            optimal_schedule: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Learn optimal schedule from annealing runs
