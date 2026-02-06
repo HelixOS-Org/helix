@@ -589,8 +589,8 @@ impl ToneGenerator {
         // Approximate sine using polynomial
         let x = self.phase * 2.0 - 1.0; // -1 to 1
         let x2 = x * x;
-        // Taylor series approximation
-        x * (3.141_592_65 - x2 * (5.167_712_78 - x2 * 2.550_164_03))
+        // Taylor series approximation (constants truncated to f32 precision)
+        x * (core::f32::consts::PI - x2 * (5.167_712_7 - x2 * 2.550_164))
     }
 
     /// Generate square wave sample
