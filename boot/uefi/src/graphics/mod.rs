@@ -249,7 +249,7 @@ impl GraphicsOutput {
 
     /// Get mode info
     pub fn get_mode(&self, mode_number: usize) -> Option<&GraphicsMode> {
-        self.modes.get(mode_number).and_then(|m| m.as_ref())
+        self.modes.get(mode_number).and_then(Option::as_ref)
     }
 
     /// Get current mode
@@ -463,7 +463,7 @@ impl GraphicsOutput {
                 }
 
                 let pixel = blt_buffer
-                    .and_then(|b| b.first())
+                    .and_then(<[BltPixel]>::first)
                     .ok_or(GraphicsError::InvalidParameter)?;
 
                 self.fill_rect(
