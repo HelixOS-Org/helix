@@ -25,6 +25,10 @@ use crate::requests::{KernelAddressRequest, LimineRequest};
 /// * `kernel_addr` - Limine kernel address request (must have response)
 /// * `kernel_size` - Size of kernel in bytes
 ///
+/// # Errors
+///
+/// Returns an error if the kernel address response is not available.
+///
 /// # Returns
 /// A configured `RelocationContext` for the Limine boot environment
 pub fn create_context_from_limine(
@@ -37,10 +41,8 @@ pub fn create_context_from_limine(
     let phys_base = response.physical_base();
     let virt_base = response.virtual_base();
 
-    // Calculate the slide (difference between where we were linked and where we are)
+    // KASLR slide calculation: difference between where linked and where loaded
     // For Limine, this is typically zero unless KASLR is enabled
-    #[allow(clippy::cast_possible_wrap)] // Intentional: computing signed relocation slide
-    let _slide = virt_base as i64 - phys_base as i64;
 
     RelocationContextBuilder::new()
         .phys_base(phys_base)
@@ -53,6 +55,10 @@ pub fn create_context_from_limine(
 }
 
 /// Create boot context for relocation subsystem from Limine
+///
+/// # Errors
+///
+/// Returns an error if the kernel address response is not available.
 pub fn create_boot_context(
     kernel_addr: &KernelAddressRequest,
     kernel_size: usize,
@@ -113,6 +119,10 @@ impl LimineKaslr {
     ///
     /// If Limine already applied KASLR, this returns 0.
     /// Otherwise, generates a new slide value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if slide computation fails.
     pub fn get_slide(&mut self, kernel_size: usize) -> RelocResult<i64> {
         if !self.enabled {
             return Ok(0);
@@ -134,6 +144,10 @@ impl LimineKaslr {
 ///
 /// Limine already handles most relocation, but this can be used for
 /// additional relocations if needed.
+///
+/// # Errors
+///
+/// Returns an error if relocation fails due to invalid data.
 ///
 /// # Safety
 /// - Must be called before kernel starts modifying its own memory
@@ -178,6 +192,10 @@ pub struct LimineRelocatableKernel {
 
 impl LimineRelocatableKernel {
     /// Create from Limine boot info
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the relocation context cannot be created.
     pub fn from_limine(
         kernel_addr: &KernelAddressRequest,
         kernel_size: usize,
@@ -189,6 +207,10 @@ impl LimineRelocatableKernel {
     }
 
     /// Apply all relocations
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if relocation fails.
     ///
     /// # Safety
     /// - Kernel memory must be writable
