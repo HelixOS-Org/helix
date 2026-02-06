@@ -372,7 +372,7 @@ impl<'a> BootInfo<'a> {
     }
 }
 
-impl<'a> fmt::Debug for BootInfo<'a> {
+impl fmt::Debug for BootInfo<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("BootInfo")
             .field("bootloader", &self.bootloader_name())
@@ -525,7 +525,7 @@ impl<'a> BootInfoBuilder<'a> {
     }
 }
 
-impl<'a> Default for BootInfoBuilder<'a> {
+impl Default for BootInfoBuilder<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -625,7 +625,7 @@ pub trait BootProtocol {
     fn bootloader_name(&self) -> &str;
 }
 
-impl<'a> BootProtocol for BootInfo<'a> {
+impl BootProtocol for BootInfo<'_> {
     fn usable_memory(&self) -> u64 {
         self.usable_memory_size()
     }
