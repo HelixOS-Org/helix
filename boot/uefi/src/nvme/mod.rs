@@ -1016,8 +1016,7 @@ impl IdentifyController {
             .sn
             .iter()
             .rposition(|&c| c != b' ' && c != 0)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
         &self.sn[..end]
     }
 
@@ -1027,8 +1026,7 @@ impl IdentifyController {
             .mn
             .iter()
             .rposition(|&c| c != b' ' && c != 0)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
         &self.mn[..end]
     }
 
@@ -1038,8 +1036,7 @@ impl IdentifyController {
             .fr
             .iter()
             .rposition(|&c| c != b' ' && c != 0)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
         &self.fr[..end]
     }
 
@@ -1645,7 +1642,7 @@ pub const fn prp_entries_needed(offset: usize, length: usize, page_size: usize) 
     }
 
     let remaining = length - first_page_bytes;
-    (remaining + page_size - 1) / page_size
+    remaining.div_ceil(page_size)
 }
 
 // =============================================================================
