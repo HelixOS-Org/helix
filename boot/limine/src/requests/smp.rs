@@ -11,7 +11,7 @@ use crate::protocol::request_ids::SMP_ID;
 
 /// SMP request flags
 pub mod smp_flags {
-    /// Request x2APIC mode (x86_64 only)
+    /// Request x2APIC mode (`x86_64` only)
     pub const X2APIC: u64 = 1 << 0;
 }
 
@@ -78,7 +78,7 @@ impl SmpRequest {
         self
     }
 
-    /// Enable x2APIC mode (x86_64)
+    /// Enable `x2APIC` mode (`x86_64`)
     #[must_use]
     pub const fn enable_x2apic(mut self) -> Self {
         self.flags |= smp_flags::X2APIC;
@@ -118,7 +118,7 @@ pub struct SmpResponse {
     revision: u64,
     /// Response flags
     flags: u64,
-    /// BSP LAPIC ID (x86_64) or MPIDR (AArch64) or hart ID (RISC-V)
+    /// BSP LAPIC ID (`x86_64`) or MPIDR (`AArch64`) or hart ID (`RISC-V`)
     bsp_lapic_id: u64,
     /// Number of CPUs
     cpu_count: u64,
@@ -137,7 +137,7 @@ impl SmpResponse {
         self.flags
     }
 
-    /// Check if x2APIC is enabled (x86_64)
+    /// Check if `x2APIC` is enabled (`x86_64`)
     pub fn x2apic_enabled(&self) -> bool {
         self.flags & smp_response_flags::X2APIC_ENABLED != 0
     }
@@ -236,7 +236,7 @@ impl<'a> Iterator for CpuIterator<'a> {
 
 impl ExactSizeIterator for CpuIterator<'_> {}
 
-/// CPU information (x86_64)
+/// CPU information (`x86_64`)
 pub struct CpuInfo<'a> {
     raw: &'a RawSmpInfo,
     bsp_lapic_id: u64,
@@ -275,7 +275,7 @@ impl<'a> CpuInfo<'a> {
     /// Start this CPU at the given entry point
     ///
     /// The entry point function will receive the extra argument in a register.
-    /// On x86_64, it's passed in RDI.
+    /// On `x86_64`, it's passed in RDI.
     ///
     /// # Arguments
     ///
