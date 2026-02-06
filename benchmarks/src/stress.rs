@@ -239,6 +239,7 @@ fn bench_memory_fragmentation() -> u64 {
 
     // Simulate fragmented allocation pattern
     static BLOCKS: [AtomicU64; 32] = {
+        #[allow(clippy::declare_interior_mutable_const)]
         const INIT: AtomicU64 = AtomicU64::new(0);
         [INIT; 32]
     };
@@ -717,6 +718,7 @@ fn bench_worst_case() -> u64 {
 
             // Memory pressure
             static MEM: [AtomicU64; 64] = {
+                #[allow(clippy::declare_interior_mutable_const)]
                 const INIT: AtomicU64 = AtomicU64::new(0);
                 [INIT; 64]
             };
