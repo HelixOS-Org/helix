@@ -175,7 +175,7 @@ impl MigrationOptimizer {
         }
 
         let destination = best_node?;
-        let estimated_duration = (workload.memory / (1024 * 1024 * 100)) as u64 * 1000;
+        let estimated_duration = (workload.memory / (1024 * 1024 * 100)) * 1000;
         let estimated_downtime = estimated_duration / 10;
 
         Some(MigrationRecommendation {
