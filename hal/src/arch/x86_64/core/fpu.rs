@@ -168,6 +168,10 @@ pub struct XsaveHeader {
 }
 
 impl XsaveHeader {
+    /// Create a new zeroed XSAVE header
+    ///
+    /// Initializes all state-component bitmaps to zero, indicating
+    /// no extended state components are valid or in compacted format.
     pub const fn new() -> Self {
         Self {
             xstate_bv: 0,
@@ -598,6 +602,11 @@ pub unsafe fn init_fpu() {
 ///
 /// Called when handling #NM (Device Not Available) exception
 /// in lazy FPU context switching.
+///
+/// # Safety
+///
+/// - Must only be called from an exception handler context.
+/// - The caller must ensure FPU state is properly saved/restored.
 #[inline]
 pub unsafe fn clear_ts() {
     unsafe {
@@ -606,6 +615,11 @@ pub unsafe fn clear_ts() {
 }
 
 /// Set TS flag to trigger #NM on FPU use
+///
+/// # Safety
+///
+/// - This modifies the CR0 control register.
+/// - The caller must handle the resulting #NM exceptions.
 #[inline]
 pub unsafe fn set_ts() {
     unsafe {
