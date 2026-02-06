@@ -138,6 +138,7 @@ impl PhysAddr {
 
     /// Calculate offset to another address
     #[inline]
+    #[allow(clippy::cast_possible_wrap)] // Intentional: computing signed offset between addresses
     pub const fn offset_from(self, other: Self) -> i64 {
         self.0 as i64 - other.0 as i64
     }
