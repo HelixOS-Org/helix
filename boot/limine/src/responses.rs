@@ -391,7 +391,7 @@ impl CpuInfo {
             Self {
                 processor_id: info.processor_id,
                 lapic_id: info.lapic_id,
-                is_bsp: info.lapic_id as u64 == bsp_lapic_id,
+                is_bsp: u64::from(info.lapic_id) == bsp_lapic_id,
                 raw,
             }
         }
@@ -646,7 +646,7 @@ impl RsdpInfo {
                 (*xsdp).xsdt_address
             } else {
                 let rsdp = self.address.as_u64() as *const crate::firmware::Rsdp;
-                (*rsdp).rsdt_address as u64
+                u64::from((*rsdp).rsdt_address)
             }
         }
     }
