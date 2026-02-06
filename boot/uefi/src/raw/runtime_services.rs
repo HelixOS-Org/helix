@@ -274,9 +274,7 @@ impl EfiRuntimeServices {
             core::ptr::null_mut(),
         );
 
-        if status == Status::BUFFER_TOO_SMALL {
-            Ok(size)
-        } else if status.is_success() {
+        if status == Status::BUFFER_TOO_SMALL || status.is_success() {
             Ok(size)
         } else {
             Err(status)
