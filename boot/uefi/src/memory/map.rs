@@ -220,7 +220,7 @@ impl<'a> Iterator for MemoryMapIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for MemoryMapIterator<'a> {}
+impl ExactSizeIterator for MemoryMapIterator<'_> {}
 
 // =============================================================================
 // MEMORY RANGE
