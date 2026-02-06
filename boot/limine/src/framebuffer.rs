@@ -324,11 +324,13 @@ impl Rect {
     }
 
     /// Returns the X coordinate of the right edge.
+    #[allow(clippy::cast_possible_wrap)] // width fits in i32 for valid framebuffer dimensions
     pub const fn right(&self) -> i32 {
         self.x + self.width as i32
     }
 
     /// Returns the Y coordinate of the bottom edge.
+    #[allow(clippy::cast_possible_wrap)] // height fits in i32 for valid framebuffer dimensions
     pub const fn bottom(&self) -> i32 {
         self.y + self.height as i32
     }
@@ -357,6 +359,9 @@ impl Rect {
         let right = self.right().min(other.right());
         let bottom = self.bottom().min(other.bottom());
 
+        // Intersection is valid, compute dimensions
+        // cast_sign_loss: right >= x and bottom >= y are guaranteed by the intersection check
+        #[allow(clippy::cast_sign_loss)]
         Some(Rect {
             x,
             y,
@@ -397,7 +402,7 @@ impl<'a, 'b> Graphics<'a, 'b> {
     }
 
     /// Check if point is within bounds and clip region
-    #[allow(clippy::cast_possible_truncation)] // framebuffer dimensions fit in i32
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)] // framebuffer dimensions fit in i32
     fn in_bounds(&self, x: i32, y: i32) -> bool {
         if x < 0 || y < 0 {
             return false;
@@ -414,6 +419,7 @@ impl<'a, 'b> Graphics<'a, 'b> {
     }
 
     /// Set a pixel
+    #[allow(clippy::cast_sign_loss)] // Bounds checked by in_bounds
     pub fn set_pixel(&self, x: i32, y: i32, color: Color) {
         if self.in_bounds(x, y) {
             self.fb.set_pixel(x as usize, y as usize, color);
@@ -548,7 +554,7 @@ impl<'a, 'b> Graphics<'a, 'b> {
     }
 
     /// Draw a gradient from top to bottom
-    #[allow(clippy::cast_possible_truncation)] // t is computed to be 0-255
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)] // t is computed to be 0-255, y fits in i32
     pub fn fill_gradient_v(&self, rect: Rect, top: Color, bottom: Color) {
         for y in 0..rect.height {
             let t = (y * 255 / rect.height.max(1)) as u8;
@@ -558,7 +564,7 @@ impl<'a, 'b> Graphics<'a, 'b> {
     }
 
     /// Draw a gradient from left to right
-    #[allow(clippy::cast_possible_truncation)] // t is computed to be 0-255
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)] // t is computed to be 0-255, x fits in i32
     pub fn fill_gradient_h(&self, rect: Rect, left: Color, right: Color) {
         for x in 0..rect.width {
             let t = (x * 255 / rect.width.max(1)) as u8;
@@ -719,6 +725,7 @@ impl DoubleBuffer {
     }
 
     /// Swap only a dirty region
+    #[allow(clippy::cast_sign_loss)] // Values are clamped to >= 0 before cast
     pub fn swap_region(&self, rect: Rect) {
         let bytes_per_pixel = self.bpp / 8;
         let x = rect.x.max(0) as usize;
@@ -799,6 +806,7 @@ impl Bitmap {
 }
 
 /// Draws a bitmap to the graphics context at the specified position.
+#[allow(clippy::cast_possible_wrap)] // Bitmap dimensions fit in i32
 pub fn draw_bitmap(gfx: &Graphics, bitmap: &Bitmap, pos: Point) {
     for y in 0..bitmap.height() {
         for x in 0..bitmap.width() {
@@ -812,13 +820,14 @@ pub fn draw_bitmap(gfx: &Graphics, bitmap: &Bitmap, pos: Point) {
 }
 
 /// Draws a bitmap scaled to fit the destination rectangle.
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // scaling always produces valid pixel indices
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_precision_loss)] // scaling always produces valid pixel indices
 pub fn draw_bitmap_scaled(gfx: &Graphics, bitmap: &Bitmap, dest: Rect) {
     let scale_x = bitmap.width() as f32 / dest.width as f32;
     let scale_y = bitmap.height() as f32 / dest.height as f32;
 
     for dy in 0..dest.height {
         for dx in 0..dest.width {
+            #[allow(clippy::cast_possible_wrap)] // dx/dy fit in i32 for valid dest dimensions
             let sx = (dx as f32 * scale_x) as u32;
             let sy = (dy as f32 * scale_y) as u32;
             if let Some(color) = bitmap.pixel(sx, sy) {
