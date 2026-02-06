@@ -35,7 +35,7 @@ pub struct ProtocolHandle<'a, P: Protocol> {
     _marker: PhantomData<&'a P>,
 }
 
-impl<'a, P: Protocol> ProtocolHandle<'a, P> {
+impl<P: Protocol> ProtocolHandle<'_, P> {
     /// Create a new protocol handle
     ///
     /// # Safety
@@ -77,7 +77,7 @@ impl<'a, P: Protocol> ProtocolHandle<'a, P> {
     }
 }
 
-impl<'a, P: Protocol> core::ops::Deref for ProtocolHandle<'a, P> {
+impl<P: Protocol> core::ops::Deref for ProtocolHandle<'_, P> {
     type Target = P;
 
     fn deref(&self) -> &Self::Target {
@@ -85,12 +85,12 @@ impl<'a, P: Protocol> core::ops::Deref for ProtocolHandle<'a, P> {
     }
 }
 
-impl<'a, P: Protocol> core::ops::DerefMut for ProtocolHandle<'a, P> {
+impl<P: Protocol> core::ops::DerefMut for ProtocolHandle<'_, P> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.interface }
     }
 }
-impl<'a, P: Protocol> Drop for ProtocolHandle<'a, P> {
+impl<P: Protocol> Drop for ProtocolHandle<'_, P> {
     fn drop(&mut self) {
         if self.close_on_drop && !self.interface.is_null() {
             unsafe {
