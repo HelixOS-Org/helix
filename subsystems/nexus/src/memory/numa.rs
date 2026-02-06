@@ -122,7 +122,7 @@ impl NumaAnalyzer {
     /// Get overall NUMA efficiency
     pub fn numa_efficiency(&self) -> f64 {
         let local: u64 = self.local_accesses.iter().sum();
-        let remote: u64 = self.cross_node_accesses.iter().flat_map(|r| r).sum();
+        let remote: u64 = self.cross_node_accesses.iter().flatten().sum();
         let total = local + remote;
 
         if total == 0 {
