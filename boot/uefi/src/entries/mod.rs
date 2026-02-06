@@ -688,10 +688,12 @@ impl Default for MenuItem {
 impl MenuItem {
     /// Create from boot entry
     pub fn from_entry(entry: &BootEntry, index: u16) -> Self {
-        let mut item = Self::default();
-        item.item_type = MenuItemType::BootEntry;
-        item.entry_index = index;
-        item.hotkey = entry.hotkey;
+        let mut item = Self {
+            item_type: MenuItemType::BootEntry,
+            entry_index: index,
+            hotkey: entry.hotkey,
+            ..Self::default()
+        };
         item.label[..entry.title_len].copy_from_slice(&entry.title[..entry.title_len]);
         item.label_len = entry.title_len;
         item.icon[..entry.icon_len].copy_from_slice(&entry.icon[..entry.icon_len]);
