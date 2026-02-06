@@ -27,6 +27,7 @@ pub const MIN_DIRECT_IO: usize = 512;
 
 /// I/O vector entry.
 #[derive(Clone, Copy, Debug)]
+#[derive(Default)]
 pub struct IoVec {
     /// Buffer pointer (as usize for no_std)
     pub base: usize,
@@ -51,11 +52,6 @@ impl IoVec {
     }
 }
 
-impl Default for IoVec {
-    fn default() -> Self {
-        Self { base: 0, len: 0 }
-    }
-}
 
 /// I/O vector array.
 #[derive(Clone, Copy)]
