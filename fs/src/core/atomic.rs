@@ -267,7 +267,10 @@ impl<T: Copy> SeqLock<T> {
     ///
     /// # Safety
     /// Caller must ensure no concurrent reads or writes.
+    /// This uses interior mutability via `UnsafeCell`, which is why
+    /// returning `&mut T` from `&self` is valid.
     #[inline]
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn get_mut(&self) -> &mut T {
         unsafe { &mut *self.data.get() }
     }
@@ -476,6 +479,7 @@ impl AtomicBitset {
 
     /// Create new empty bitset (all zeros)
     pub const fn new() -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const ZERO: AtomicU64 = AtomicU64::new(0);
         Self { words: [ZERO; 64] }
     }
