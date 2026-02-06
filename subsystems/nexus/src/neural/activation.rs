@@ -182,8 +182,8 @@ pub struct SELU;
 
 impl SELU {
     // Fixed constants for self-normalization
-    const ALPHA: f32 = 1.6732632423543772;
-    const SCALE: f32 = 1.0507009873554805;
+    const ALPHA: f32 = 1.673_263_2;
+    const SCALE: f32 = 1.050_701;
 
     pub fn new() -> Self {
         Self
@@ -474,7 +474,7 @@ pub struct GELU;
 
 impl GELU {
     // sqrt(2/π)
-    const SQRT_2_PI: f32 = 0.7978845608028654;
+    const SQRT_2_PI: f32 = 0.797_884_6;
     const COEF: f32 = 0.044715;
 
     pub fn new() -> Self {
