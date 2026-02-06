@@ -120,15 +120,13 @@ impl<'a> BootInfo<'a> {
     /// Get the bootloader name
     pub fn bootloader_name(&self) -> &str {
         self.bootloader
-            .map(BootloaderInfoResponse::name)
-            .unwrap_or("Unknown")
+            .map_or("Unknown", BootloaderInfoResponse::name)
     }
 
     /// Get the bootloader version
     pub fn bootloader_version(&self) -> &str {
         self.bootloader
-            .map(BootloaderInfoResponse::version)
-            .unwrap_or("Unknown")
+            .map_or("Unknown", BootloaderInfoResponse::version)
     }
 
     /// Get memory map
@@ -149,15 +147,13 @@ impl<'a> BootInfo<'a> {
     /// Get total physical memory
     pub fn total_memory(&self) -> u64 {
         self.memory_map
-            .map(MemoryMapResponse::total_memory)
-            .unwrap_or(0)
+            .map_or(0, MemoryMapResponse::total_memory)
     }
 
     /// Get total usable memory
     pub fn usable_memory_size(&self) -> u64 {
         self.memory_map
-            .map(MemoryMapResponse::total_usable_memory)
-            .unwrap_or(0)
+            .map_or(0, MemoryMapResponse::total_usable_memory)
     }
 
     /// Get HHDM response
@@ -188,7 +184,7 @@ impl<'a> BootInfo<'a> {
     /// Check if using 5-level paging
     pub fn is_five_level_paging(&self) -> bool {
         self.paging_mode
-            .map_or(false, PagingModeResponse::is_five_level)
+            .is_some_and(PagingModeResponse::is_five_level)
     }
 
     /// Get kernel file
@@ -250,7 +246,7 @@ impl<'a> BootInfo<'a> {
 
     /// Check if graphical output is available
     pub fn has_framebuffer(&self) -> bool {
-        self.framebuffer.map_or(false, |f| f.count() > 0)
+        self.framebuffer.is_some_and(|f| f.count() > 0)
     }
 
     /// Get RSDP
@@ -295,7 +291,7 @@ impl<'a> BootInfo<'a> {
 
     /// Check if Device Tree is available
     pub fn has_device_tree(&self) -> bool {
-        self.dtb.map_or(false, DtbResponse::is_valid)
+        self.dtb.is_some_and(DtbResponse::is_valid)
     }
 
     /// Get boot time
