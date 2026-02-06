@@ -409,7 +409,7 @@ pub struct DevicePathNodeIter<'a> {
     offset: usize,
 }
 
-impl<'a> Iterator for DevicePathNodeIter<'a> {
+impl Iterator for DevicePathNodeIter<'_> {
     type Item = DevicePathNode;
 
     fn next(&mut self) -> Option<Self::Item> {
