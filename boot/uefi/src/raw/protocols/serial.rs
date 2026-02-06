@@ -586,7 +586,7 @@ impl<'a> SerialWriter<'a> {
     }
 }
 
-impl<'a> fmt::Write for SerialWriter<'a> {
+impl fmt::Write for SerialWriter<'_> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_str(s).map_err(|_| fmt::Error)?;
         Ok(())
