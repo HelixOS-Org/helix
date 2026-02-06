@@ -312,6 +312,7 @@ impl<const N: usize> String16<N> {
     }
 
     /// Create from ASCII str
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         let mut result = Self::new();
         for c in s.chars() {
@@ -569,6 +570,12 @@ impl<const N: usize> PartialEq<&str> for String16<N> {
 pub struct NumWriter<const N: usize> {
     buffer: [u8; N],
     pos: usize,
+}
+
+impl<const N: usize> Default for NumWriter<N> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<const N: usize> NumWriter<N> {
@@ -1101,7 +1108,7 @@ pub fn path_filename(path: &str) -> &str {
 
 /// Extract directory from path
 pub fn path_directory(path: &str) -> &str {
-    if let Some(pos) = path.rfind(|c| c == '\\' || c == '/') {
+    if let Some(pos) = path.rfind(['\\', '/']) {
         &path[..pos]
     } else {
         ""
