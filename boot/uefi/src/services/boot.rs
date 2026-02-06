@@ -284,8 +284,7 @@ impl BootServices {
         let status = unsafe {
             (self.bs().locate_handle)(
                 search_type,
-                protocol
-                    .map_or(core::ptr::null(), |g| g as *const Guid),
+                protocol.map_or(core::ptr::null(), |g| g as *const Guid),
                 search_key,
                 &mut buffer_size,
                 buffer.as_mut_ptr(),
@@ -365,8 +364,7 @@ impl BootServices {
         let status = unsafe {
             (self.bs().locate_handle_buffer)(
                 search_type,
-                protocol
-                    .map_or(core::ptr::null(), |g| g as *const Guid),
+                protocol.map_or(core::ptr::null(), |g| g as *const Guid),
                 core::ptr::null_mut(),
                 &mut count,
                 &mut buffer,
