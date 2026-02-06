@@ -59,7 +59,7 @@ fn write_to_console(console: &mut dyn ConsoleWriter, args: fmt::Arguments) -> fm
     // Wrapper to implement Write for a ConsoleWriter reference
     struct ConsoleWriteAdapter<'a>(&'a mut dyn ConsoleWriter);
 
-    impl<'a> Write for ConsoleWriteAdapter<'a> {
+    impl Write for ConsoleWriteAdapter<'_> {
         fn write_str(&mut self, s: &str) -> fmt::Result {
             ConsoleWriter::write_str(self.0, s);
             Ok(())
