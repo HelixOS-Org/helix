@@ -809,6 +809,12 @@ pub struct BootProgress {
     error_count: usize,
 }
 
+impl Default for BootProgress {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BootProgress {
     /// Creates a new boot progress tracker.
     #[must_use]
