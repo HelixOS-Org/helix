@@ -380,6 +380,10 @@ static mut TTBR1_L0: PageTable = PageTable::empty();
 // =============================================================================
 
 /// Set up page tables
+///
+/// # Safety
+///
+/// The caller must ensure the page table pointer is valid and properly aligned.
 pub unsafe fn setup_page_tables(ctx: &mut BootContext) -> BootResult<()> {
     // Find memory for page table allocator
     let (alloc_start, alloc_end) = find_page_table_memory(ctx)?;
@@ -604,6 +608,10 @@ unsafe fn enable_mmu() {
 // =============================================================================
 
 /// Map a 4KB page
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_4kb_page(virt: u64, phys: u64, flags: PageFlags) -> BootResult<()> {
     let l0 = if virt >= 0xFFFF_0000_0000_0000 {
         &mut TTBR1_L0
@@ -636,6 +644,10 @@ pub unsafe fn map_4kb_page(virt: u64, phys: u64, flags: PageFlags) -> BootResult
 }
 
 /// Map a 2MB block
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_2mb_block(virt: u64, phys: u64, flags: PageFlags) -> BootResult<()> {
     if !is_aligned(virt, LARGE_PAGE_SIZE) || !is_aligned(phys, LARGE_PAGE_SIZE) {
         return Err(BootError::InvalidAddress);
@@ -665,6 +677,10 @@ pub unsafe fn map_2mb_block(virt: u64, phys: u64, flags: PageFlags) -> BootResul
 }
 
 /// Map a 1GB block
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_1gb_block(virt: u64, phys: u64, flags: PageFlags) -> BootResult<()> {
     if !is_aligned(virt, HUGE_PAGE_SIZE) || !is_aligned(phys, HUGE_PAGE_SIZE) {
         return Err(BootError::InvalidAddress);
@@ -713,6 +729,10 @@ unsafe fn get_or_create_table(
 // =============================================================================
 
 /// Apply KASLR offset
+///
+/// # Safety
+///
+/// The caller must ensure page tables support the randomization offset.
 pub unsafe fn apply_kaslr(ctx: &mut BootContext, offset: u64) -> BootResult<()> {
     let new_base = KERNEL_VIRT_BASE + offset;
 
@@ -756,6 +776,10 @@ pub unsafe fn apply_kaslr(ctx: &mut BootContext, offset: u64) -> BootResult<()> 
 // =============================================================================
 
 /// Map device memory
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual addresses are valid and properly aligned.
 pub unsafe fn map_device(virt: u64, phys: u64, size: u64) -> BootResult<()> {
     let mut addr = 0u64;
     while addr < size {
