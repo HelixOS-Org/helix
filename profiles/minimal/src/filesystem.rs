@@ -8,7 +8,6 @@
 //! - B+tree extent mapping
 //! - Journaling with crash recovery
 
-use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::serial_write_str;
@@ -19,6 +18,7 @@ use crate::serial_write_str;
 
 /// Filesystem error
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub enum HfsError {
     /// Not initialized
     NotInitialized,
@@ -77,8 +77,11 @@ impl StaticRamDisk {
     /// Get mutable access to the buffer
     ///
     /// # Safety
-    /// Caller must hold RAMDISK_LOCK
+    /// - Caller must hold RAMDISK_LOCK
+    /// - This uses interior mutability through UnsafeCell which is sound
+    ///   because access is protected by the RAMDISK_LOCK mutex
     #[inline]
+    #[allow(clippy::mut_from_ref)]
     unsafe fn as_mut(&self) -> &mut RamDiskBuffer {
         &mut *self.0.get()
     }
@@ -172,7 +175,8 @@ pub struct HelixFsState {
     pub root_ino: u64,
     /// Next free inode
     pub next_ino: u64,
-    /// Mount options
+    /// Mount options (reserved for future use)
+    #[allow(dead_code)]
     pub mount_flags: u32,
 }
 
@@ -282,7 +286,7 @@ fn mount_root() -> HfsResult<()> {
     read_block(0, &mut superblock)?;
 
     // Check magic
-    if &superblock[0..4] != &[0x48, 0x4C, 0x58, 0x46] {
+    if superblock[0..4] != [0x48, 0x4C, 0x58, 0x46] {
         return Err(HfsError::BadMagic);
     }
 
@@ -316,6 +320,7 @@ pub fn is_mounted() -> bool {
 
 /// Simple file entry for demo
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct SimpleFile {
     pub name: [u8; 64],
     pub name_len: usize,
@@ -552,7 +557,7 @@ pub fn run_demo() {
             crate::print_num(ino);
             serial_write_str(")\n");
         },
-        Err(e) => {
+        Err(_e) => {
             serial_write_str("  Failed to create hello.txt\n");
         },
     }
