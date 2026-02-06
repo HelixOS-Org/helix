@@ -107,6 +107,8 @@ impl Rsdt {
         }
 
         let entry_count = (header.length as usize - core::mem::size_of::<AcpiSdtHeader>()) / 4;
+        // SAFETY: ACPI addresses are valid on 64-bit systems
+        #[allow(clippy::cast_possible_truncation)]
         let entries_ptr = (addr as usize + core::mem::size_of::<AcpiSdtHeader>()) as *const u32;
         let entries = slice::from_raw_parts(entries_ptr, entry_count);
 
@@ -160,6 +162,8 @@ impl Xsdt {
         }
 
         let entry_count = (header.length as usize - core::mem::size_of::<AcpiSdtHeader>()) / 8;
+        // SAFETY: ACPI addresses are valid on 64-bit systems
+        #[allow(clippy::cast_possible_truncation)]
         let entries_ptr = (addr as usize + core::mem::size_of::<AcpiSdtHeader>()) as *const u64;
         let entries = slice::from_raw_parts(entries_ptr, entry_count);
 
@@ -429,7 +433,10 @@ impl MadtIterator {
             return None;
         }
 
+        // SAFETY: MADT addresses are valid on 64-bit systems
+        #[allow(clippy::cast_possible_truncation)]
         let current = (madt_addr as usize + core::mem::size_of::<MadtHeader>()) as *const u8;
+        #[allow(clippy::cast_possible_truncation)]
         let end = (madt_addr as usize + header.header.length as usize) as *const u8;
 
         Some(Self { current, end })
