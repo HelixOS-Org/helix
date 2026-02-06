@@ -80,8 +80,9 @@ impl AcpiSdtHeader {
 
     /// Validate checksum
     pub fn validate(&self) -> bool {
-        let bytes =
-            unsafe { slice::from_raw_parts((self as *const Self).cast::<u8>(), self.length as usize) };
+        let bytes = unsafe {
+            slice::from_raw_parts((self as *const Self).cast::<u8>(), self.length as usize)
+        };
         bytes.iter().fold(0u8, |sum, &b| sum.wrapping_add(b)) == 0
     }
 }
