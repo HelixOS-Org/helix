@@ -12,6 +12,8 @@
 
 use core::slice;
 
+extern crate alloc;
+
 // =============================================================================
 // ACPI Support
 // =============================================================================
@@ -1117,6 +1119,8 @@ impl DeviceTree {
 
 #[cfg(test)]
 mod tests {
+    use alloc::format;
+
     use super::*;
 
     #[test]
