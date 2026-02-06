@@ -717,6 +717,7 @@ impl Default for EventQueue {
 
 impl EventQueue {
     /// Create new event queue
+    #[allow(clippy::large_stack_arrays)]
     pub const fn new() -> Self {
         Self {
             events: [Event {
