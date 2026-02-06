@@ -148,7 +148,7 @@ impl UsbIntelligence {
                     issues.push(UsbIssue {
                         issue_type: UsbIssueType::NoDriver,
                         severity: 4,
-                        description: format!("Device {} has no driver", device.id.to_string()),
+                        description: format!("Device {} has no driver", device.id),
                         device: Some(device.id),
                     });
                     recommendations.push(UsbRecommendation {
@@ -171,7 +171,7 @@ impl UsbIntelligence {
                         severity: 7,
                         description: format!(
                             "Storage device {} running at {}",
-                            device.id.to_string(),
+                            device.id,
                             device.speed.name()
                         ),
                         device: Some(device.id),
@@ -188,7 +188,7 @@ impl UsbIntelligence {
                     issues.push(UsbIssue {
                         issue_type: UsbIssueType::Suspended,
                         severity: 2,
-                        description: format!("Device {} is suspended", device.id.to_string()),
+                        description: format!("Device {} is suspended", device.id),
                         device: Some(device.id),
                     });
                 }
@@ -204,7 +204,7 @@ impl UsbIntelligence {
                         severity: 5,
                         description: format!(
                             "Hub {} is {}% utilized",
-                            hub.device_id.to_string(),
+                            hub.device_id,
                             (utilization * 100.0) as u32
                         ),
                         device: Some(hub.device_id),
@@ -220,8 +220,7 @@ impl UsbIntelligence {
                             severity: 9,
                             description: format!(
                                 "Hub {} port {} over-current",
-                                hub.device_id.to_string(),
-                                port.number
+                                hub.device_id, port.number
                             ),
                             device: Some(hub.device_id),
                         });
