@@ -261,6 +261,10 @@ unsafe fn lapic_write_x2apic(reg: u32, value: u32) {
 }
 
 /// Read from local APIC register (auto-selects mode)
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn lapic_read(reg: u32) -> u32 {
     if X2APIC_ENABLED {
         lapic_read_x2apic(reg)
@@ -270,6 +274,10 @@ pub unsafe fn lapic_read(reg: u32) -> u32 {
 }
 
 /// Write to local APIC register (auto-selects mode)
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn lapic_write(reg: u32, value: u32) {
     if X2APIC_ENABLED {
         lapic_write_x2apic(reg, value)
@@ -283,6 +291,10 @@ pub unsafe fn lapic_write(reg: u32, value: u32) {
 // =============================================================================
 
 /// Read from I/O APIC register
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn ioapic_read(ioapic: &IoApic, reg: u32) -> u32 {
     let ioregsel = ioapic.base as *mut u32;
     let iowin = (ioapic.base + 0x10) as *mut u32;
@@ -292,6 +304,10 @@ pub unsafe fn ioapic_read(ioapic: &IoApic, reg: u32) -> u32 {
 }
 
 /// Write to I/O APIC register
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn ioapic_write(ioapic: &IoApic, reg: u32, value: u32) {
     let ioregsel = ioapic.base as *mut u32;
     let iowin = (ioapic.base + 0x10) as *mut u32;
@@ -301,6 +317,10 @@ pub unsafe fn ioapic_write(ioapic: &IoApic, reg: u32, value: u32) {
 }
 
 /// Read I/O APIC redirection entry
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn ioapic_read_redirect(ioapic: &IoApic, irq: u8) -> IoApicRedirectionEntry {
     let reg = IOAPIC_REG_REDTBL_BASE + (irq as u32 * 2);
     let low = ioapic_read(ioapic, reg);
@@ -309,6 +329,10 @@ pub unsafe fn ioapic_read_redirect(ioapic: &IoApic, irq: u8) -> IoApicRedirectio
 }
 
 /// Write I/O APIC redirection entry
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn ioapic_write_redirect(ioapic: &IoApic, irq: u8, entry: IoApicRedirectionEntry) {
     let reg = IOAPIC_REG_REDTBL_BASE + (irq as u32 * 2);
     ioapic_write(ioapic, reg, entry.low);
@@ -320,30 +344,50 @@ pub unsafe fn ioapic_write_redirect(ioapic: &IoApic, irq: u8, entry: IoApicRedir
 // =============================================================================
 
 /// Check if APIC is present
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized.
 pub unsafe fn has_apic() -> bool {
     let (_, _, _, edx) = cpuid(1, 0);
     (edx & (1 << 9)) != 0
 }
 
 /// Check if x2APIC is supported
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized.
 pub unsafe fn has_x2apic() -> bool {
     let (_, _, ecx, _) = cpuid(1, 0);
     (ecx & (1 << 21)) != 0
 }
 
 /// Get APIC base address from MSR
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_apic_base() -> u64 {
     let msr_value = rdmsr(MSR_APIC_BASE);
     msr_value & 0xFFFF_FFFF_FFFF_F000
 }
 
 /// Enable the local APIC
+///
+/// # Safety
+///
+/// The caller must ensure APIC is properly configured.
 pub unsafe fn enable_lapic() {
     let msr_value = rdmsr(MSR_APIC_BASE);
     wrmsr(MSR_APIC_BASE, msr_value | (1 << 11)); // Enable bit
 }
 
 /// Enable x2APIC mode
+///
+/// # Safety
+///
+/// The caller must ensure APIC is properly configured.
 pub unsafe fn enable_x2apic() {
     let msr_value = rdmsr(MSR_APIC_BASE);
     wrmsr(MSR_APIC_BASE, msr_value | (1 << 10) | (1 << 11)); // x2APIC + enable
@@ -351,6 +395,10 @@ pub unsafe fn enable_x2apic() {
 }
 
 /// Initialize the local APIC
+///
+/// # Safety
+///
+/// The caller must ensure APIC memory is properly mapped and not already initialized.
 pub unsafe fn init_lapic(ctx: &mut BootContext) -> BootResult<()> {
     if !has_apic() {
         return Err(BootError::HardwareNotSupported);
@@ -415,6 +463,10 @@ pub unsafe fn init_lapic(ctx: &mut BootContext) -> BootResult<()> {
 // =============================================================================
 
 /// Initialize I/O APIC
+///
+/// # Safety
+///
+/// The caller must ensure APIC memory is properly mapped and not already initialized.
 pub unsafe fn init_ioapic(ctx: &mut BootContext) -> BootResult<()> {
     // Find I/O APIC from ACPI tables
     let ioapic_base = find_ioapic_base(ctx)?;
@@ -497,11 +549,19 @@ unsafe fn configure_ioapic_irq(
 // =============================================================================
 
 /// Send End of Interrupt
+///
+/// # Safety
+///
+/// The caller must ensure an interrupt is being handled.
 pub unsafe fn send_eoi() {
     lapic_write(LAPIC_EOI, 0);
 }
 
 /// Send IPI (Inter-Processor Interrupt)
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU ID is valid and the IPI type is appropriate.
 pub unsafe fn send_ipi(dest: u8, vector: u8, flags: u32) {
     if X2APIC_ENABLED {
         // x2APIC uses single MSR write
@@ -515,6 +575,10 @@ pub unsafe fn send_ipi(dest: u8, vector: u8, flags: u32) {
 }
 
 /// Wait for IPI delivery
+///
+/// # Safety
+///
+/// The caller must ensure the hardware will eventually signal completion.
 pub unsafe fn wait_ipi_delivery() {
     if !X2APIC_ENABLED {
         while lapic_read(LAPIC_ICR_LOW) & (1 << 12) != 0 {
@@ -524,6 +588,10 @@ pub unsafe fn wait_ipi_delivery() {
 }
 
 /// Send INIT IPI
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn send_init_ipi(dest: u8) {
     send_ipi(dest, 0, ICR_INIT | ICR_ASSERT | ICR_TRIGGER_LEVEL);
     wait_ipi_delivery();
@@ -534,12 +602,20 @@ pub unsafe fn send_init_ipi(dest: u8) {
 }
 
 /// Send SIPI (Startup IPI)
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU ID is valid and the IPI type is appropriate.
 pub unsafe fn send_sipi(dest: u8, vector: u8) {
     send_ipi(dest, vector, ICR_SIPI | ICR_ASSERT);
     wait_ipi_delivery();
 }
 
 /// Send NMI to another processor
+///
+/// # Safety
+///
+/// The caller must ensure the target CPUs can handle NMI safely.
 pub unsafe fn send_nmi(dest: u8) {
     send_ipi(dest, 0, ICR_NMI | ICR_ASSERT);
     wait_ipi_delivery();
@@ -550,6 +626,10 @@ pub unsafe fn send_nmi(dest: u8) {
 // =============================================================================
 
 /// Calibrate APIC timer frequency
+///
+/// # Safety
+///
+/// The caller must ensure the timer hardware is accessible and not in use.
 pub unsafe fn calibrate_apic_timer() -> u64 {
     // Use PIT to calibrate APIC timer
     const PIT_FREQUENCY: u64 = 1193182;
@@ -600,6 +680,10 @@ unsafe fn pit_wait(count: u16) {
 }
 
 /// Set up APIC timer for periodic interrupts
+///
+/// # Safety
+///
+/// The caller must ensure timer hardware is properly initialized.
 pub unsafe fn setup_apic_timer(frequency_hz: u64, vector: u8) {
     let apic_freq = APIC_FREQUENCY.load(Ordering::SeqCst);
     if apic_freq == 0 {
@@ -614,6 +698,10 @@ pub unsafe fn setup_apic_timer(frequency_hz: u64, vector: u8) {
 }
 
 /// Stop APIC timer
+///
+/// # Safety
+///
+/// The caller must ensure the component is currently running.
 pub unsafe fn stop_apic_timer() {
     lapic_write(LAPIC_LVT_TIMER, LVT_MASKED);
     lapic_write(LAPIC_TIMER_ICR, 0);
@@ -633,6 +721,10 @@ const PIC2_CMD: u16 = 0xA0;
 const PIC2_DATA: u16 = 0xA1;
 
 /// Disable the legacy 8259 PIC
+///
+/// # Safety
+///
+/// The caller must ensure APIC is ready to take over interrupt handling.
 pub unsafe fn disable_pic() {
     // Initialize PICs
     outb(PIC1_CMD, 0x11); // ICW1: init + ICW4 needed
@@ -656,6 +748,10 @@ pub unsafe fn disable_pic() {
 }
 
 /// Send EOI to legacy PIC
+///
+/// # Safety
+///
+/// The caller must ensure an interrupt is being handled.
 pub unsafe fn pic_send_eoi(irq: u8) {
     if irq >= 8 {
         outb(PIC2_CMD, 0x20);
@@ -668,6 +764,10 @@ pub unsafe fn pic_send_eoi(irq: u8) {
 // =============================================================================
 
 /// Get local APIC ID
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_apic_id() -> u32 {
     if X2APIC_ENABLED {
         lapic_read(LAPIC_ID)
@@ -677,16 +777,28 @@ pub unsafe fn get_apic_id() -> u32 {
 }
 
 /// Get APIC version
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_apic_version() -> u32 {
     lapic_read(LAPIC_VERSION) & 0xFF
 }
 
 /// Get maximum LVT entry
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_max_lvt() -> u32 {
     ((lapic_read(LAPIC_VERSION) >> 16) & 0xFF) + 1
 }
 
 /// Check if we're on the BSP
+///
+/// # Safety
+///
+/// The caller must ensure APIC is initialized.
 pub unsafe fn is_bsp() -> bool {
     (rdmsr(MSR_APIC_BASE) & (1 << 8)) != 0
 }
