@@ -52,6 +52,12 @@ pub struct HotReloadEngine {
     saved_state: RwLock<Option<Box<dyn Any + Send + Sync>>>,
 }
 
+impl Default for HotReloadEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HotReloadEngine {
     /// Create a new hot reload engine
     pub const fn new() -> Self {
