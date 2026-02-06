@@ -116,8 +116,11 @@ pub struct CpuFeatures {
 impl CpuFeatures {
     /// Detect CPU features
     pub fn detect() -> Self {
-        let mut features = Self::default();
-        features.atomics = true; // Assume atomics on all 64-bit platforms
+        // Assume atomics on all 64-bit platforms
+        let mut features = Self {
+            atomics: true,
+            ..Self::default()
+        };
 
         // In a real kernel, we'd use CPUID (x86), feature registers (ARM), etc.
         // Here we just set reasonable defaults
