@@ -353,18 +353,35 @@ pub enum HpetTimerMode {
     Periodic,
 }
 
-/// Timer interrupt delivery
+/// Timer interrupt delivery mode
+///
+/// Specifies how HPET timer interrupts are routed to the processor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HpetTimerDelivery {
     /// Legacy I/O APIC routing
+    ///
+    /// Interrupt is routed through the I/O APIC using the specified IRQ line.
     IoApic(u8),
-    /// FSB (MSI) delivery
-    Fsb { address: u64, data: u32 },
+    /// FSB (Front Side Bus) / MSI delivery
+    ///
+    /// Interrupt is delivered directly to the processor using Message Signaled Interrupts.
+    Fsb {
+        /// MSI address (typically contains destination APIC ID and delivery mode)
+        address: u64,
+        /// MSI data (typically contains the interrupt vector)
+        data: u32,
+    },
 }
 
 /// Individual HPET timer
+///
+/// Represents a single comparator within the HPET hardware.
+/// Each timer can generate interrupts when the main counter
+/// matches its comparator value.
 pub struct HpetTimer {
+    /// Base MMIO address of the HPET registers
     base: u64,
+    /// Timer index (0 to N-1 where N is the number of timers)
     index: u8,
 }
 
