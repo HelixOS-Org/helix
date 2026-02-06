@@ -223,7 +223,7 @@ impl BootEntryFlags {
 // =============================================================================
 
 /// Device path type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DevicePathType {
     /// Hard disk partition
     HardDisk,
@@ -240,13 +240,8 @@ pub enum DevicePathType {
     /// File path
     FilePath,
     /// Unknown
+    #[default]
     Unknown,
-}
-
-impl Default for DevicePathType {
-    fn default() -> Self {
-        DevicePathType::Unknown
-    }
 }
 
 /// Partition identifier
@@ -271,9 +266,10 @@ impl Default for PartitionId {
 }
 
 /// Partition type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PartitionType {
     /// Unknown
+    #[default]
     Unknown,
     /// EFI System Partition
     Esp,
@@ -291,12 +287,6 @@ pub enum PartitionType {
     AppleHfs,
     /// Apple APFS
     AppleApfs,
-}
-
-impl Default for PartitionType {
-    fn default() -> Self {
-        PartitionType::Unknown
-    }
 }
 
 // =============================================================================
@@ -616,9 +606,10 @@ impl Default for EfiAppEntryBuilder {
 // =============================================================================
 
 /// Menu item state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MenuItemState {
     /// Normal state
+    #[default]
     Normal,
     /// Highlighted/selected
     Selected,
@@ -628,16 +619,11 @@ pub enum MenuItemState {
     Hidden,
 }
 
-impl Default for MenuItemState {
-    fn default() -> Self {
-        MenuItemState::Normal
-    }
-}
-
 /// Menu item type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MenuItemType {
     /// Boot entry
+    #[default]
     BootEntry,
     /// Submenu
     Submenu,
@@ -649,12 +635,6 @@ pub enum MenuItemType {
     Toggle,
     /// Text info
     Info,
-}
-
-impl Default for MenuItemType {
-    fn default() -> Self {
-        MenuItemType::BootEntry
-    }
 }
 
 /// Menu item structure
@@ -758,9 +738,10 @@ impl MenuItem {
 // =============================================================================
 
 /// Menu action
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MenuAction {
     /// No action
+    #[default]
     None,
     /// Boot selected entry
     Boot,
@@ -804,22 +785,17 @@ pub enum MenuAction {
     Recovery,
 }
 
-impl Default for MenuAction {
-    fn default() -> Self {
-        MenuAction::None
-    }
-}
-
 // =============================================================================
 // MENU CONFIGURATION
 // =============================================================================
 
 /// Menu style
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MenuStyle {
     /// Simple list
     List,
     /// Box with border
+    #[default]
     Box,
     /// Grid with icons
     Grid,
@@ -827,12 +803,6 @@ pub enum MenuStyle {
     Minimal,
     /// Full screen
     FullScreen,
-}
-
-impl Default for MenuStyle {
-    fn default() -> Self {
-        MenuStyle::Box
-    }
 }
 
 /// Menu position
@@ -1206,9 +1176,10 @@ impl BootOrder {
 // =============================================================================
 
 /// Auto-detected OS type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DetectedOs {
     /// Unknown
+    #[default]
     Unknown,
     /// Helix OS
     Helix,
@@ -1226,12 +1197,6 @@ pub enum DetectedOs {
     NetBsd,
     /// Other EFI
     OtherEfi,
-}
-
-impl Default for DetectedOs {
-    fn default() -> Self {
-        DetectedOs::Unknown
-    }
 }
 
 impl fmt::Display for DetectedOs {
