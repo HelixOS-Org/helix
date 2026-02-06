@@ -197,6 +197,11 @@ impl EfiDevicePathProtocol {
         u16::from_le_bytes(self.length) as usize
     }
 
+    /// Check if this node has zero length
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Check if this is an end node
     pub fn is_end(&self) -> bool {
         self.device_type == DevicePathType::END as u8
@@ -232,6 +237,7 @@ impl EfiDevicePathProtocol {
     ///
     /// # Safety
     /// The caller must ensure the device path is valid.
+    #[allow(clippy::iter_without_into_iter)]
     pub unsafe fn iter(&self) -> DevicePathIter {
         DevicePathIter {
             current: self,
