@@ -1,7 +1,5 @@
 //! Core PCI types and identifiers.
 
-use alloc::format;
-use alloc::string::String;
 
 // ============================================================================
 // CORE TYPES
@@ -40,10 +38,12 @@ impl PciDeviceId {
     pub fn bdf(&self) -> u16 {
         ((self.bus as u16) << 8) | ((self.device as u16) << 3) | (self.function as u16)
     }
+}
 
-    /// Format as string
-    pub fn to_string(&self) -> String {
-        format!(
+impl core::fmt::Display for PciDeviceId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
             "{:04x}:{:02x}:{:02x}.{}",
             self.segment, self.bus, self.device, self.function
         )
