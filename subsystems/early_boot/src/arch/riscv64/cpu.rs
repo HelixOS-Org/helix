@@ -238,6 +238,10 @@ fn write_pmpaddr0(value: u64) {
 }
 
 /// Configure PMP entry 0
+///
+/// # Safety
+///
+/// The caller must ensure the hardware supports this configuration.
 pub unsafe fn configure_pmp0(addr: u64, cfg: u8) {
     // NAPOT address encoding: addr[33:2] = base[33:2] | ((size/2 - 1) >> 2)
     write_pmpaddr0(addr >> 2);
@@ -247,6 +251,10 @@ pub unsafe fn configure_pmp0(addr: u64, cfg: u8) {
 }
 
 /// Allow all memory access from S/U mode (for early boot)
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn pmp_allow_all() {
     // Set pmpaddr0 to cover all memory (NAPOT with all 1s = full range)
     write_pmpaddr0(u64::MAX >> 10);
@@ -261,6 +269,10 @@ pub unsafe fn pmp_allow_all() {
 // =============================================================================
 
 /// Initialize machine mode
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_machine_mode() {
     // Setup exception delegation
     // Delegate most exceptions to S-mode
@@ -285,6 +297,10 @@ pub unsafe fn init_machine_mode() {
 }
 
 /// Drop from M-mode to S-mode
+///
+/// # Safety
+///
+/// The caller must ensure the target exception level is properly configured.
 pub unsafe fn drop_to_supervisor(entry: u64, hartid: u64, dtb: u64) -> ! {
     // Set MEPC to entry point
     write_mepc(entry);
@@ -314,6 +330,10 @@ pub unsafe fn drop_to_supervisor(entry: u64, hartid: u64, dtb: u64) -> ! {
 // =============================================================================
 
 /// Initialize supervisor mode
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_supervisor_mode() {
     // Enable counter access from U-mode
     core::arch::asm!("csrw scounteren, {}", in(reg) 0xFFFF_FFFFu64, options(nomem, nostack));
@@ -602,6 +622,10 @@ pub extern "C" fn supervisor_trap_handler(frame: &mut TrapFrame) {
 // =============================================================================
 
 /// Enable FPU
+///
+/// # Safety
+///
+/// The caller must ensure the CPU supports these features.
 pub unsafe fn enable_fpu() {
     // Set MSTATUS.FS to Initial
     let mstatus = read_mstatus();
@@ -612,6 +636,10 @@ pub unsafe fn enable_fpu() {
 }
 
 /// Disable FPU
+///
+/// # Safety
+///
+/// The caller must ensure disabling this feature won't cause system instability.
 pub unsafe fn disable_fpu() {
     let mstatus = read_mstatus();
     write_mstatus(mstatus & !MSTATUS_FS);
@@ -622,12 +650,20 @@ pub unsafe fn disable_fpu() {
 // =============================================================================
 
 /// Enable vector extension
+///
+/// # Safety
+///
+/// The caller must ensure the system is ready for this feature to be enabled.
 pub unsafe fn enable_vector() {
     let mstatus = read_mstatus();
     write_mstatus(mstatus | MSTATUS_VS);
 }
 
 /// Disable vector extension
+///
+/// # Safety
+///
+/// The caller must ensure disabling this feature won't cause system instability.
 pub unsafe fn disable_vector() {
     let mstatus = read_mstatus();
     write_mstatus(mstatus & !MSTATUS_VS);
@@ -638,6 +674,10 @@ pub unsafe fn disable_vector() {
 // =============================================================================
 
 /// Initialize CPU
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Detect features
     let features = detect_features();
