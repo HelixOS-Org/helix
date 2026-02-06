@@ -274,7 +274,7 @@ fn bench_thread_destroy() -> u64 {
         priority: 50,
         stack_ptr: 0,
         instruction_ptr: 0,
-        flags: 0,
+        _flags: 0,
     };
 
     let start = timing::read_tsc();
@@ -534,9 +534,9 @@ fn bench_intent_evaluation() -> u64 {
     let intent = Intent {
         class: IntentClass::Interactive,
         latency_target: 1000, // 1ms
-        cpu_budget: 50,
-        memory_budget: 1024 * 1024,
-        flags: 0,
+        _cpu_budget: 50,
+        _memory_budget: 1024 * 1024,
+        _flags: 0,
     };
 
     // Evaluate intent
@@ -560,7 +560,7 @@ fn bench_policy_evaluation() -> u64 {
     // Simulate policy evaluation
     let context = PolicyContext {
         cpu_load: 50,
-        memory_usage: 40,
+        _memory_usage: 40,
         task_wait_time: 5000,
         task_priority: 50,
         power_mode: 0,
@@ -657,10 +657,13 @@ struct Intent {
 
 #[derive(Clone, Copy)]
 enum IntentClass {
-    _RealTime,
+    #[allow(dead_code)]
+    RealTime,
     Interactive,
-    _Batch,
-    _Background,
+    #[allow(dead_code)]
+    Batch,
+    #[allow(dead_code)]
+    Background,
 }
 
 struct PolicyContext {
@@ -672,9 +675,9 @@ struct PolicyContext {
 }
 
 struct TaskStats {
-    avg_runtime: u64,
+    _avg_runtime: u64,
     avg_wait_time: u64,
-    context_switches: u64,
+    _context_switches: u64,
     burst_score: u8,
     interactive_score: u8,
 }
@@ -682,7 +685,10 @@ struct TaskStats {
 #[derive(Clone, Copy)]
 enum OptimizationHint {
     None,
+    #[allow(dead_code)]
     Boost(i32),
+    #[allow(dead_code)]
     IncreaseTimeSlice(u32),
+    #[allow(dead_code)]
     DecreaseTimeSlice(u32),
 }
