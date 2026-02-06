@@ -119,7 +119,7 @@ impl Rsdt {
 
     /// Get table address by index
     pub fn get_entry(&self, index: usize) -> Option<u64> {
-        self.entries.get(index).map(|&addr| addr as u64)
+        self.entries.get(index).map(|&addr| u64::from(addr))
     }
 
     /// Find table by signature
@@ -127,7 +127,7 @@ impl Rsdt {
         for &addr in self.entries {
             let header = unsafe { &*(addr as *const AcpiSdtHeader) };
             if &header.signature == signature {
-                return Some(addr as u64);
+                return Some(u64::from(addr));
             }
         }
         None
@@ -135,7 +135,7 @@ impl Rsdt {
 
     /// Iterate over all table addresses
     pub fn iter(&self) -> impl Iterator<Item = u64> + '_ {
-        self.entries.iter().map(|&addr| addr as u64)
+        self.entries.iter().map(|&addr| u64::from(addr))
     }
 }
 
@@ -222,7 +222,7 @@ impl AcpiFinder {
         } else {
             Some(Self {
                 is_xsdt: false,
-                table_addr: rsdp.rsdt_address as u64,
+                table_addr: u64::from(rsdp.rsdt_address),
             })
         }
     }
