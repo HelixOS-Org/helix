@@ -365,7 +365,7 @@ impl Stopwatch {
 pub struct MultiSampleTimer {
     samples: [u64; 64],
     count: usize,
-    freq_mhz: u64,
+    _freq_mhz: u64,
 }
 
 impl MultiSampleTimer {
@@ -373,7 +373,7 @@ impl MultiSampleTimer {
         Self {
             samples: [0; 64],
             count: 0,
-            freq_mhz,
+            _freq_mhz: freq_mhz,
         }
     }
 
