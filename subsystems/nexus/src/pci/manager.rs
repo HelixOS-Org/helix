@@ -54,7 +54,7 @@ impl PciManager {
                 self.all_devices
                     .keys()
                     .filter(|k| k.bus == bus_num)
-                    .last()
+                    .next_back()
                     .map(|k| k.device)
                     .unwrap_or(0),
                 0,
