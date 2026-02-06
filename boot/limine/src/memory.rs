@@ -643,7 +643,7 @@ impl MemoryRegion {
 
     /// Get the size in pages
     pub fn page_count(&self) -> u64 {
-        (self.length + PhysAddr::PAGE_SIZE - 1) / PhysAddr::PAGE_SIZE
+        self.length.div_ceil(PhysAddr::PAGE_SIZE)
     }
 }
 
