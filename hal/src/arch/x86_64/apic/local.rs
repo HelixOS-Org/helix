@@ -63,6 +63,7 @@ pub enum LocalApicMode {
 // LAPIC Base Address
 // =============================================================================
 
+/// Virtual base address for Local APIC memory-mapped registers.
 static LAPIC_VIRT_BASE: AtomicU64 = AtomicU64::new(0);
 
 /// Set the virtual address for LAPIC access
@@ -134,6 +135,11 @@ unsafe fn write_msr(msr: u32, value: u64) {
 }
 
 /// Read a Local APIC register (auto-detects mode)
+///
+/// # Safety
+///
+/// - The Local APIC must be properly initialized and mapped.
+/// - The offset must be a valid LAPIC register offset.
 #[inline]
 pub unsafe fn read_lapic(offset: u32) -> u32 {
     if is_x2apic_enabled() {
@@ -146,6 +152,12 @@ pub unsafe fn read_lapic(offset: u32) -> u32 {
 }
 
 /// Write a Local APIC register (auto-detects mode)
+///
+/// # Safety
+///
+/// - The Local APIC must be properly initialized and mapped.
+/// - The offset must be a valid LAPIC register offset.
+/// - Writing invalid values may cause undefined hardware behavior.
 #[inline]
 pub unsafe fn write_lapic(offset: u32, value: u32) {
     if is_x2apic_enabled() {
@@ -164,11 +176,13 @@ pub unsafe fn write_lapic(offset: u32, value: u32) {
 // Local APIC Structure
 // =============================================================================
 
-/// Local APIC abstraction
+/// Local APIC abstraction for managing the CPU-local APIC.
+///
+/// Supports both xAPIC (memory-mapped) and x2APIC (MSR-based) modes.
 pub struct LocalApic {
-    /// Base virtual address (for xAPIC)
+    /// Base virtual address for xAPIC memory-mapped access.
     base: u64,
-    /// Operating mode
+    /// Current operating mode (xAPIC or x2APIC).
     mode: LocalApicMode,
 }
 
@@ -364,16 +378,26 @@ pub enum TimerMode {
 }
 
 /// APIC Timer Divide Configuration
+///
+/// Controls the divisor applied to the bus/core clock for the APIC timer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum TimerDivide {
+    /// Divide by 1 (no division).
     By1   = 0b1011,
+    /// Divide by 2.
     By2   = 0b0000,
+    /// Divide by 4.
     By4   = 0b0001,
+    /// Divide by 8.
     By8   = 0b0010,
+    /// Divide by 16.
     By16  = 0b0011,
+    /// Divide by 32.
     By32  = 0b1000,
+    /// Divide by 64.
     By64  = 0b1001,
+    /// Divide by 128.
     By128 = 0b1010,
 }
 
@@ -486,6 +510,12 @@ pub fn send_eoi() {
 }
 
 /// Send an IPI
+///
+/// # Safety
+///
+/// - The Local APIC must be properly initialized.
+/// - The destination CPU must be capable of receiving the interrupt.
+/// - The vector must be a valid interrupt vector (32-255).
 pub unsafe fn send_ipi(destination: IpiDestination, vector: u8) {
     if is_x2apic_enabled() {
         unsafe {
@@ -518,11 +548,8 @@ unsafe fn send_ipi_xapic(destination: IpiDestination, vector: u8) {
     }
 
     // ICR Low: vector, delivery mode (fixed), level (assert), trigger (edge), shorthand
-    let icr_low = (vector as u32)
-        | (0b000 << 8)      // Fixed delivery mode
-        | (0 << 11)         // Physical destination mode
-        | (1 << 14)         // Level: Assert
-        | (0 << 15)         // Trigger: Edge
+    let icr_low = (vector as u32)         // Physical destination mode
+        | (1 << 14)         // Trigger: Edge
         | ((dest_shorthand as u32) << 18);
 
     unsafe {
@@ -541,11 +568,8 @@ unsafe fn send_ipi_x2apic(destination: IpiDestination, vector: u8) {
 
     // x2APIC ICR is a single 64-bit MSR
     let icr = ((dest_id as u64) << 32)
-        | (vector as u64)
-        | (0b000 << 8)      // Fixed delivery mode
-        | (0 << 11)         // Physical destination mode
-        | (1 << 14)         // Level: Assert
-        | (0 << 15)         // Trigger: Edge
+        | (vector as u64)         // Physical destination mode
+        | (1 << 14)         // Trigger: Edge
         | ((dest_shorthand as u64) << 18);
 
     unsafe {
@@ -567,7 +591,10 @@ pub fn is_interrupt_pending() -> bool {
     }
 }
 
-/// Get the highest priority pending interrupt
+/// Get the highest priority pending interrupt vector.
+///
+/// Returns the vector number of the highest priority interrupt waiting
+/// in the Interrupt Request Register (IRR), or `None` if no interrupts are pending.
 pub fn get_highest_priority_pending() -> Option<u8> {
     unsafe {
         for i in (0..8).rev() {
