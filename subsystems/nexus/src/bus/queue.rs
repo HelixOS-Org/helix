@@ -146,7 +146,7 @@ impl MessageQueue {
     pub fn drain(&mut self) -> Vec<Message> {
         let mut result = Vec::with_capacity(self.count);
         for queue in self.queues.iter_mut().rev() {
-            result.extend(queue.drain(..));
+            result.append(queue);
         }
         self.count = 0;
         result
