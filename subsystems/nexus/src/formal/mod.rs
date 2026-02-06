@@ -138,7 +138,7 @@ impl LtlFormula {
 }
 
 /// Transition system state
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct State {
     /// State variables
     pub variables: BTreeMap<String, i64>,
@@ -147,9 +147,7 @@ pub struct State {
 impl State {
     /// Create new state
     pub fn new() -> Self {
-        Self {
-            variables: BTreeMap::new(),
-        }
+        Self::default()
     }
 
     /// Set variable
@@ -266,7 +264,7 @@ pub enum BmcResult {
 }
 
 /// Symbolic state for symbolic execution
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SymbolicState {
     /// Symbolic variables
     pub variables: BTreeMap<String, SmtTerm>,
@@ -279,11 +277,7 @@ pub struct SymbolicState {
 impl SymbolicState {
     /// Create new symbolic state
     pub fn new() -> Self {
-        Self {
-            variables: BTreeMap::new(),
-            path_condition: Vec::new(),
-            pc: 0,
-        }
+        Self::default()
     }
 
     /// Add path constraint
@@ -298,6 +292,7 @@ impl SymbolicState {
 }
 
 /// Symbolic executor
+#[derive(Default)]
 pub struct SymbolicExecutor {
     /// Initial state
     initial: SymbolicState,
@@ -310,11 +305,7 @@ pub struct SymbolicExecutor {
 impl SymbolicExecutor {
     /// Create new symbolic executor
     pub fn new() -> Self {
-        Self {
-            initial: SymbolicState::new(),
-            explored: Vec::new(),
-            solver: SmtSolver::new(),
-        }
+        Self::default()
     }
 
     /// Add symbolic variable
@@ -536,6 +527,7 @@ impl OctagonDomain {
 }
 
 /// Kernel verification manager
+#[derive(Default)]
 pub struct KernelVerifier {
     /// SAT solver
     sat_solver: Option<SatSolver>,
@@ -552,13 +544,7 @@ pub struct KernelVerifier {
 impl KernelVerifier {
     /// Create new kernel verifier
     pub fn new() -> Self {
-        Self {
-            sat_solver: None,
-            smt_solver: SmtSolver::new(),
-            invariants: Vec::new(),
-            verified: Vec::new(),
-            counterexamples: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Verify mutex invariant: ¬(locked1 ∧ locked2)
