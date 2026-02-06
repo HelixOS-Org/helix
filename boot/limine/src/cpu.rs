@@ -119,7 +119,7 @@ pub fn current_cpu_id() -> u32 {
 
 /// Check if we're running on the BSP
 pub fn is_bsp() -> bool {
-    current_cpu_id() as u64 == bsp_id()
+    u64::from(current_cpu_id()) == bsp_id()
 }
 
 // =============================================================================
