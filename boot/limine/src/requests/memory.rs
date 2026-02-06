@@ -567,18 +567,21 @@ impl PagingModeRequest {
     }
 
     /// Set the preferred paging mode
+    #[must_use]
     pub const fn with_mode(mut self, mode: PagingMode) -> Self {
         self.mode = mode.to_raw();
         self
     }
 
     /// Set the minimum acceptable paging mode
+    #[must_use]
     pub const fn with_min_mode(mut self, mode: PagingMode) -> Self {
         self.min_mode = mode.to_raw();
         self
     }
 
     /// Set the maximum acceptable paging mode
+    #[must_use]
     pub const fn with_max_mode(mut self, mode: PagingMode) -> Self {
         self.max_mode = mode.to_raw();
         self
