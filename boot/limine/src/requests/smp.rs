@@ -234,7 +234,7 @@ impl<'a> Iterator for CpuIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for CpuIterator<'a> {}
+impl ExactSizeIterator for CpuIterator<'_> {}
 
 /// CPU information (x86_64)
 pub struct CpuInfo<'a> {
@@ -299,7 +299,7 @@ impl<'a> CpuInfo<'a> {
     }
 }
 
-impl<'a> core::fmt::Debug for CpuInfo<'a> {
+impl core::fmt::Debug for CpuInfo<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("CpuInfo")
             .field("processor_id", &self.processor_id())
