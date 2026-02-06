@@ -340,8 +340,10 @@ impl MultiSwarmPso {
         let mut swarms = Vec::with_capacity(n_swarms);
 
         for i in 0..n_swarms {
-            let mut config = PsoConfig::default();
-            config.n_particles = particles_per_swarm;
+            let config = PsoConfig {
+                n_particles: particles_per_swarm,
+                ..PsoConfig::default()
+            };
 
             let mut swarm = PsoOptimizer::new(bounds.clone(), config);
             swarm.rng_state = 12345u64 + i as u64 * 1000;
@@ -367,9 +369,9 @@ impl MultiSwarmPso {
             self.swarms.iter().map(|s| s.global_best.clone()).collect();
 
         // Ring migration: send best to next swarm
-        for i in 0..n {
+        for (i, best_pos) in best_positions.iter().enumerate() {
             let next = (i + 1) % n;
-            let migrant = best_positions[i].clone();
+            let migrant = best_pos.clone();
 
             // Replace worst particle in next swarm
             if let Some(worst_idx) = self.swarms[next]
@@ -377,7 +379,7 @@ impl MultiSwarmPso {
                 .iter()
                 .enumerate()
                 .max_by(|(_, a), (_, b)| a.fitness.partial_cmp(&b.fitness).unwrap())
-                .map(|(i, _)| i)
+                .map(|(idx, _)| idx)
             {
                 self.swarms[next].particles[worst_idx].position = migrant.clone();
                 self.swarms[next].particles[worst_idx].best_position = migrant;
