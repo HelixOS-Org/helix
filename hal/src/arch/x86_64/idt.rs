@@ -244,24 +244,43 @@ static IDT: CpuStatic<Idt> = CpuStatic::new(Idt::new());
 
 /// Exception vector numbers
 pub mod vectors {
+    /// Division Error exception (vector 0)
     pub const DIVISION_ERROR: u8 = 0;
+    /// Debug exception (vector 1)
     pub const DEBUG: u8 = 1;
+    /// Non-Maskable Interrupt (vector 2)
     pub const NMI: u8 = 2;
+    /// Breakpoint exception (vector 3)
     pub const BREAKPOINT: u8 = 3;
+    /// Overflow exception (vector 4)
     pub const OVERFLOW: u8 = 4;
+    /// Bound Range Exceeded exception (vector 5)
     pub const BOUND_RANGE: u8 = 5;
+    /// Invalid Opcode exception (vector 6)
     pub const INVALID_OPCODE: u8 = 6;
+    /// Device Not Available exception (vector 7)
     pub const DEVICE_NOT_AVAILABLE: u8 = 7;
+    /// Double Fault exception (vector 8)
     pub const DOUBLE_FAULT: u8 = 8;
+    /// Invalid TSS exception (vector 10)
     pub const INVALID_TSS: u8 = 10;
+    /// Segment Not Present exception (vector 11)
     pub const SEGMENT_NOT_PRESENT: u8 = 11;
+    /// Stack-Segment Fault exception (vector 12)
     pub const STACK_SEGMENT: u8 = 12;
+    /// General Protection Fault exception (vector 13)
     pub const GENERAL_PROTECTION: u8 = 13;
+    /// Page Fault exception (vector 14)
     pub const PAGE_FAULT: u8 = 14;
+    /// x87 Floating-Point Exception (vector 16)
     pub const X87_FLOATING_POINT: u8 = 16;
+    /// Alignment Check exception (vector 17)
     pub const ALIGNMENT_CHECK: u8 = 17;
+    /// Machine Check exception (vector 18)
     pub const MACHINE_CHECK: u8 = 18;
+    /// SIMD Floating-Point Exception (vector 19)
     pub const SIMD_FLOATING_POINT: u8 = 19;
+    /// Virtualization Exception (vector 20)
     pub const VIRTUALIZATION: u8 = 20;
 
     /// First IRQ vector (after remapping PIC)
