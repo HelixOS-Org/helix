@@ -111,8 +111,8 @@ impl NumaTopology {
         // Initialize distance matrix with local distance
         let n = node_count as usize;
         let mut distances = vec![vec![10; n]; n];
-        for i in 0..n {
-            distances[i][i] = 10; // Local is always 10
+        for (i, row) in distances.iter_mut().enumerate() {
+            row[i] = 10; // Local is always 10
         }
 
         let bandwidths = vec![vec![0; n]; n];
