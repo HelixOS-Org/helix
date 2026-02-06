@@ -304,21 +304,37 @@ pub struct MadtEntryHeader {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum MadtEntryType {
+    /// Processor Local APIC (type 0)
     LocalApic         = 0,
+    /// I/O APIC (type 1)
     IoApic            = 1,
+    /// Interrupt Source Override (type 2)
     InterruptOverride = 2,
+    /// Non-Maskable Interrupt Source (type 3)
     NmiSource         = 3,
+    /// Local APIC NMI (type 4)
     LocalApicNmi      = 4,
+    /// Local APIC Address Override (type 5)
     LocalApicOverride = 5,
+    /// I/O SAPIC (type 6)
     IoSapic           = 6,
+    /// Local SAPIC (type 7)
     LocalSapic        = 7,
+    /// Platform Interrupt Sources (type 8)
     PlatformInterrupt = 8,
+    /// Processor Local x2APIC (type 9)
     LocalX2Apic       = 9,
+    /// Local x2APIC NMI (type 10)
     LocalX2ApicNmi    = 10,
+    /// GIC CPU Interface (type 11)
     GicCpuInterface   = 11,
+    /// GIC Distributor (type 12)
     GicDistributor    = 12,
+    /// GIC MSI Frame (type 13)
     GicMsiFrame       = 13,
+    /// GIC Redistributor (type 14)
     GicRedistributor  = 14,
+    /// GIC Interrupt Translation Service (type 15)
     GicIts            = 15,
 }
 
@@ -326,9 +342,13 @@ pub enum MadtEntryType {
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct MadtLocalApic {
+    /// Entry header containing type and length
     pub header: MadtEntryHeader,
+    /// ACPI processor ID
     pub processor_id: u8,
+    /// Processor's local APIC ID
     pub apic_id: u8,
+    /// Flags (bit 0: enabled, bit 1: online capable)
     pub flags: u32,
 }
 
@@ -348,10 +368,15 @@ impl MadtLocalApic {
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct MadtIoApic {
+    /// Entry header containing type and length
     pub header: MadtEntryHeader,
+    /// I/O APIC's ID
     pub io_apic_id: u8,
+    /// Reserved byte
     pub reserved: u8,
+    /// 32-bit physical address of I/O APIC
     pub io_apic_address: u32,
+    /// Global system interrupt number where this I/O APIC's inputs start
     pub global_system_interrupt_base: u32,
 }
 
@@ -359,10 +384,15 @@ pub struct MadtIoApic {
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct MadtInterruptOverride {
+    /// Entry header containing type and length
     pub header: MadtEntryHeader,
+    /// Bus (0 = ISA)
     pub bus: u8,
+    /// Bus-relative interrupt source (IRQ)
     pub source: u8,
+    /// Global system interrupt that this bus-relative source will signal
     pub global_system_interrupt: u32,
+    /// MPS INTI flags
     pub flags: u16,
 }
 
@@ -370,9 +400,13 @@ pub struct MadtInterruptOverride {
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct MadtLocalApicNmi {
+    /// Entry header containing type and length
     pub header: MadtEntryHeader,
+    /// ACPI processor ID (0xFF means all processors)
     pub processor_id: u8,
+    /// MPS INTI flags
     pub flags: u16,
+    /// Local APIC LINT pin (0 or 1)
     pub lint: u8,
 }
 
@@ -404,10 +438,15 @@ impl MadtIterator {
 /// MADT entry enum
 #[derive(Debug)]
 pub enum MadtEntry {
+    /// Processor local APIC structure
     LocalApic(MadtLocalApic),
+    /// I/O APIC structure
     IoApic(MadtIoApic),
+    /// Interrupt source override structure
     InterruptOverride(MadtInterruptOverride),
+    /// Local APIC NMI structure
     LocalApicNmi(MadtLocalApicNmi),
+    /// Unknown entry type with raw type ID
     Unknown(u8),
 }
 
@@ -515,17 +554,29 @@ pub struct SmbiosHeader {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SmbiosType {
+    /// BIOS Information (Type 0)
     BiosInfo            = 0,
+    /// System Information (Type 1)
     SystemInfo          = 1,
+    /// Baseboard/Module Information (Type 2)
     BaseboardInfo       = 2,
+    /// System Enclosure/Chassis (Type 3)
     ChassisInfo         = 3,
+    /// Processor Information (Type 4)
     ProcessorInfo       = 4,
+    /// Cache Information (Type 7)
     CacheInfo           = 7,
+    /// System Slots (Type 9)
     SystemSlots         = 9,
+    /// Physical Memory Array (Type 16)
     PhysicalMemoryArray = 16,
+    /// Memory Device (Type 17)
     MemoryDevice        = 17,
+    /// Memory Array Mapped Address (Type 19)
     MemoryArrayMappedAddress = 19,
+    /// System Boot Information (Type 32)
     SystemBoot          = 32,
+    /// End-of-Table (Type 127)
     EndOfTable          = 127,
 }
 
@@ -677,9 +728,13 @@ impl Iterator for SmbiosIterator {
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct EfiGuid {
+    /// First part of the GUID (time-low)
     pub data1: u32,
+    /// Second part of the GUID (time-mid)
     pub data2: u16,
+    /// Third part of the GUID (time-hi-and-version)
     pub data3: u16,
+    /// Fourth part of the GUID (clock-seq and node)
     pub data4: [u8; 8],
 }
 
@@ -734,18 +789,31 @@ impl core::fmt::Debug for EfiGuid {
 #[derive(Debug)]
 #[repr(C)]
 pub struct EfiSystemTable {
+    /// Table header with signature and revision
     pub header: EfiTableHeader,
+    /// Pointer to null-terminated UCS-2 firmware vendor string
     pub firmware_vendor: *const u16,
+    /// Firmware vendor-specific revision
     pub firmware_revision: u32,
+    /// Handle for the active console input device
     pub console_in_handle: *const (),
+    /// Pointer to EFI_SIMPLE_TEXT_INPUT_PROTOCOL
     pub con_in: *const (),
+    /// Handle for the active console output device
     pub console_out_handle: *const (),
+    /// Pointer to EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL
     pub con_out: *const (),
+    /// Handle for the active standard error device
     pub standard_error_handle: *const (),
+    /// Pointer to EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL for stderr
     pub std_err: *const (),
+    /// Pointer to EFI_RUNTIME_SERVICES
     pub runtime_services: *const EfiRuntimeServices,
-    pub boot_services: *const (), // Null after ExitBootServices
+    /// Pointer to EFI_BOOT_SERVICES (null after ExitBootServices)
+    pub boot_services: *const (),
+    /// Number of entries in the configuration table
     pub number_of_table_entries: usize,
+    /// Pointer to the configuration table array
     pub configuration_table: *const EfiConfigurationTable,
 }
 
@@ -753,10 +821,15 @@ pub struct EfiSystemTable {
 #[derive(Debug)]
 #[repr(C)]
 pub struct EfiTableHeader {
+    /// Unique signature identifying the table type
     pub signature: u64,
+    /// EFI specification version (major.minor)
     pub revision: u32,
+    /// Size of the entire table including header
     pub header_size: u32,
+    /// CRC32 checksum of the entire table
     pub crc32: u32,
+    /// Reserved, must be zero
     pub reserved: u32,
 }
 
@@ -764,7 +837,9 @@ pub struct EfiTableHeader {
 #[derive(Debug)]
 #[repr(C)]
 pub struct EfiConfigurationTable {
+    /// GUID that uniquely identifies the configuration table
     pub vendor_guid: EfiGuid,
+    /// Pointer to the configuration table data
     pub vendor_table: *const (),
 }
 
@@ -772,20 +847,35 @@ pub struct EfiConfigurationTable {
 #[derive(Debug)]
 #[repr(C)]
 pub struct EfiRuntimeServices {
+    /// Table header with signature and revision
     pub header: EfiTableHeader,
+    /// GetTime runtime service function pointer
     pub get_time: *const (),
+    /// SetTime runtime service function pointer
     pub set_time: *const (),
+    /// GetWakeupTime runtime service function pointer
     pub get_wakeup_time: *const (),
+    /// SetWakeupTime runtime service function pointer
     pub set_wakeup_time: *const (),
+    /// SetVirtualAddressMap runtime service function pointer
     pub set_virtual_address_map: *const (),
+    /// ConvertPointer runtime service function pointer
     pub convert_pointer: *const (),
+    /// GetVariable runtime service function pointer
     pub get_variable: *const (),
+    /// GetNextVariableName runtime service function pointer
     pub get_next_variable_name: *const (),
+    /// SetVariable runtime service function pointer
     pub set_variable: *const (),
+    /// GetNextHighMonotonicCount runtime service function pointer
     pub get_next_high_monotonic_count: *const (),
+    /// ResetSystem runtime service function pointer
     pub reset_system: *const (),
+    /// UpdateCapsule runtime service function pointer
     pub update_capsule: *const (),
+    /// QueryCapsuleCapabilities runtime service function pointer
     pub query_capsule_capabilities: *const (),
+    /// QueryVariableInfo runtime service function pointer
     pub query_variable_info: *const (),
 }
 
@@ -793,20 +883,35 @@ pub struct EfiRuntimeServices {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum EfiMemoryType {
+    /// Reserved by firmware
     ReservedMemoryType  = 0,
+    /// UEFI OS loader code
     LoaderCode          = 1,
+    /// UEFI OS loader data
     LoaderData          = 2,
+    /// Boot services code
     BootServicesCode    = 3,
+    /// Boot services data
     BootServicesData    = 4,
+    /// Runtime services code
     RuntimeServicesCode = 5,
+    /// Runtime services data
     RuntimeServicesData = 6,
+    /// Free usable memory
     ConventionalMemory  = 7,
+    /// Memory with errors
     UnusableMemory      = 8,
+    /// ACPI reclaim memory
     AcpiReclaimMemory   = 9,
+    /// ACPI NVS memory
     AcpiMemoryNvs       = 10,
+    /// Memory-mapped I/O
     MemoryMappedIo      = 11,
+    /// Memory-mapped I/O port space
     MemoryMappedIoPortSpace = 12,
+    /// PA code
     PalCode             = 13,
+    /// Persistent memory
     PersistentMemory    = 14,
 }
 
@@ -814,10 +919,15 @@ pub enum EfiMemoryType {
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct EfiMemoryDescriptor {
+    /// Type of memory region (see EfiMemoryType)
     pub memory_type: u32,
+    /// Physical start address of the memory region
     pub physical_start: u64,
+    /// Virtual start address of the memory region
     pub virtual_start: u64,
+    /// Number of 4KB pages in the memory region
     pub number_of_pages: u64,
+    /// Memory attributes (e.g., cacheable, executable)
     pub attribute: u64,
 }
 
@@ -928,10 +1038,15 @@ impl FdtHeader {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum FdtToken {
+    /// Start of a new node
     BeginNode = 1,
+    /// End of current node
     EndNode   = 2,
+    /// Property definition
     Prop      = 3,
+    /// No-op token
     Nop       = 4,
+    /// End of DTB structure
     End       = 9,
 }
 
