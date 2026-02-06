@@ -205,6 +205,10 @@ pub fn get_ips_value(pa_bits: u8) -> u64 {
 // =============================================================================
 
 /// Detect CPU features
+///
+/// # Safety
+///
+/// The caller must ensure the firmware is accessible.
 pub unsafe fn detect_features(ctx: &mut BootContext) -> BootResult<()> {
     // Read feature registers
     let midr: u64;
@@ -315,6 +319,10 @@ pub unsafe fn detect_features(ctx: &mut BootContext) -> BootResult<()> {
 // =============================================================================
 
 /// Initialize CPU
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     let el = read_current_el();
 
@@ -417,6 +425,10 @@ unsafe fn configure_sctlr() {
 // =============================================================================
 
 /// Drop from EL3 to EL2
+///
+/// # Safety
+///
+/// The caller must ensure the target exception level is properly configured.
 pub unsafe fn drop_to_el2(entry: u64, stack: u64) {
     // Set up SPSR for EL2h
     let spsr: u64 = 0b01001; // EL2h, interrupts masked
@@ -433,6 +445,10 @@ pub unsafe fn drop_to_el2(entry: u64, stack: u64) {
 }
 
 /// Drop from EL2 to EL1
+///
+/// # Safety
+///
+/// The caller must ensure the target exception level is properly configured.
 pub unsafe fn drop_to_el1(entry: u64, stack: u64) {
     // Set up SPSR for EL1h
     let spsr: u64 = 0b00101; // EL1h, interrupts masked
@@ -453,6 +469,10 @@ pub unsafe fn drop_to_el1(entry: u64, stack: u64) {
 // =============================================================================
 
 /// Clean and invalidate all data caches
+///
+/// # Safety
+///
+/// The caller must ensure the virtual address is valid.
 pub unsafe fn clean_invalidate_dcache_all() {
     // Get cache info
     let clidr: u64;
