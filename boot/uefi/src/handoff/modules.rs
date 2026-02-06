@@ -47,7 +47,9 @@ pub enum ModuleType {
 
 impl ModuleType {
     /// Detect from filename
+    #[allow(clippy::case_sensitive_file_extension_comparisons)]
     pub fn from_filename(name: &str) -> Self {
+        // Case-sensitivity is intentional: we've already lowercased the input
         let name_lower = name.to_lowercase();
 
         if name_lower.contains("initrd") || name_lower.contains("initramfs") {
@@ -127,12 +129,6 @@ impl ModuleType {
             ModuleType::SplashScreen => "Splash Screen",
             ModuleType::Custom => "Custom",
         }
-    }
-}
-
-impl Default for ModuleType {
-    fn default() -> Self {
-        ModuleType::Unknown
     }
 }
 
@@ -288,7 +284,7 @@ impl Default for ModuleInfo {
 
 /// C-compatible module info for serialization
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct ModuleInfoRaw {
     /// Physical address
     pub physical_address: u64,
@@ -319,25 +315,6 @@ pub struct ModuleInfoRaw {
 impl ModuleInfoRaw {
     /// Structure size
     pub const SIZE: usize = core::mem::size_of::<Self>();
-}
-
-impl Default for ModuleInfoRaw {
-    fn default() -> Self {
-        Self {
-            physical_address: 0,
-            virtual_address: 0,
-            size: 0,
-            module_type: 0,
-            flags: 0,
-            name_offset: 0,
-            name_length: 0,
-            cmdline_offset: 0,
-            cmdline_length: 0,
-            load_order: 0,
-            reserved: 0,
-            hash: [0; 32],
-        }
-    }
 }
 
 // =============================================================================
