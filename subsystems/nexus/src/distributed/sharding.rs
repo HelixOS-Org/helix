@@ -668,6 +668,7 @@ pub enum ShardError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn test_consistent_hash_ring() {
