@@ -42,7 +42,7 @@
 
 use core::fmt;
 
-use crate::requests::*;
+use crate::requests::{BootTimeRequest, BootTimeResponse, BootloaderInfoRequest, BootloaderInfoResponse, DtbRequest, DtbResponse, EfiMemmapRequest, EfiMemmapResponse, EfiSystemTableRequest, EfiSystemTableResponse, Framebuffer, FramebufferRequest, FramebufferResponse, HhdmRequest, HhdmResponse, KernelAddressRequest, KernelAddressResponse, KernelFileRequest, KernelFileResponse, LimineRequest, MemoryEntry, MemoryMapRequest, MemoryMapResponse, ModuleRequest, ModuleResponse, PagingModeRequest, PagingModeResponse, RsdpRequest, RsdpResponse, SmbiosRequest, SmbiosResponse, SmpRequest, SmpResponse};
 
 /// Unified boot information structure
 ///
@@ -501,6 +501,10 @@ impl<'a> BootInfoBuilder<'a> {
     }
 
     /// Build the boot info
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required boot info components are missing.
     pub fn build(self) -> Result<BootInfo<'a>, BootInfoError> {
         if self.info.memory_map.is_none() {
             return Err(BootInfoError::MissingMemoryMap);
