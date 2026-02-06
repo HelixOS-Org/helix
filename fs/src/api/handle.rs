@@ -324,12 +324,7 @@ impl HandleTable {
 
     /// Find entry by ID
     fn find_slot(&self, id: u64) -> Option<usize> {
-        for i in 0..MAX_HANDLES {
-            if self.entries[i].id == id && self.entries[i].is_valid() {
-                return Some(i);
-            }
-        }
-        None
+        (0..MAX_HANDLES).find(|&i| self.entries[i].id == id && self.entries[i].is_valid())
     }
 
     /// Get handle by ID
