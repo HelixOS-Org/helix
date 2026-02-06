@@ -506,6 +506,10 @@ pub fn console_writeln(s: &str) {
 // =============================================================================
 
 /// Boot secondary harts
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU exists and the entry point is valid.
 pub unsafe fn boot_secondary_harts(start_addr: u64, num_harts: u64) -> u64 {
     let mut started = 0u64;
 
@@ -578,6 +582,10 @@ pub fn get_impl_name(impl_id: u64) -> &'static str {
 // =============================================================================
 
 /// Initialize SBI
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Get SBI version
     let (major, minor) = get_spec_version();
