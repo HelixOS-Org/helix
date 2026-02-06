@@ -967,15 +967,14 @@ impl PeLoader {
             .find(|s| s.is_uninitialized_data());
 
         let (bss_start, bss_size) = bss_section
-            .map(|s| {
+            .map_or(None, 0, |s| {
                 (
                     Some(VirtualAddress(
                         optional.image_base + u64::from(s.virtual_address),
                     )),
                     u64::from(s.virtual_size),
                 )
-            })
-            .unwrap_or((None, 0));
+            }));
 
         // Build flags
         let flags = ImageFlags {
