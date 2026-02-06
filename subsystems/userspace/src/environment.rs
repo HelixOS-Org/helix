@@ -210,7 +210,7 @@ mod tests {
     fn test_env_basic() {
         let env = Environment::new();
         env.set("FOO", "bar");
-        assert_eq!(env.get("FOO"), Some("bar".to_string()));
+        assert_eq!(env.get("FOO"), Some(String::from("bar")));
     }
 
     #[test]
