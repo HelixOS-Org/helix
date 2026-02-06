@@ -102,7 +102,7 @@ pub struct Capability {
     /// Owner (holder of this capability)
     owner: u64,
     /// Creation timestamp
-    created_at: u64,
+    _created_at: u64,
     /// Expiration timestamp (0 = never)
     expires_at: u64,
     /// Is this capability revoked?
@@ -178,7 +178,7 @@ impl CapabilityBroker {
             rights,
             parent: None,
             owner,
-            created_at: 0, // TODO: get current time
+            _created_at: 0, // TODO: get current time
             expires_at: 0,
             revoked: false,
         };
@@ -231,7 +231,7 @@ impl CapabilityBroker {
             rights,
             parent: Some(parent_id),
             owner: new_owner,
-            created_at: 0,
+            _created_at: 0,
             expires_at: parent.expires_at,
             revoked: false,
         };
