@@ -579,7 +579,7 @@ impl ReplicationManager {
 
         self.segment_replicas
             .entry(segment_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(replica_id);
 
         // Log operation
