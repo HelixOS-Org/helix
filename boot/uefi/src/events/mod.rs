@@ -84,8 +84,9 @@ impl fmt::Display for EventCategory {
 }
 
 /// Event priority
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum EventPriority {
+    #[default]
     /// Lowest priority
     Low,
     /// Normal priority
@@ -96,12 +97,6 @@ pub enum EventPriority {
     Critical,
     /// Immediate (bypass queue)
     Immediate,
-}
-
-impl Default for EventPriority {
-    fn default() -> Self {
-        EventPriority::Normal
-    }
 }
 
 // =============================================================================
@@ -190,8 +185,9 @@ pub struct BootPhaseEvent {
 // =============================================================================
 
 /// Progress event type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ProgressType {
+    #[default]
     /// Discrete step progress
     Steps,
     /// Percentage progress
@@ -200,12 +196,6 @@ pub enum ProgressType {
     Bytes,
     /// Indeterminate (spinning)
     Indeterminate,
-}
-
-impl Default for ProgressType {
-    fn default() -> Self {
-        ProgressType::Percentage
-    }
 }
 
 /// Progress event
@@ -267,8 +257,9 @@ impl ProgressEvent {
 // =============================================================================
 
 /// Error severity
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum ErrorSeverity {
+    #[default]
     /// Informational
     Info,
     /// Warning (non-fatal)
@@ -279,12 +270,6 @@ pub enum ErrorSeverity {
     Critical,
     /// Panic (unrecoverable)
     Panic,
-}
-
-impl Default for ErrorSeverity {
-    fn default() -> Self {
-        ErrorSeverity::Error
-    }
 }
 
 impl fmt::Display for ErrorSeverity {
@@ -363,8 +348,9 @@ pub enum DeviceEventType {
 }
 
 /// Device class for events
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DeviceEventClass {
+    #[default]
     /// Storage device
     Storage,
     /// Network device
@@ -383,12 +369,6 @@ pub enum DeviceEventClass {
     Serial,
     /// Unknown device
     Unknown,
-}
-
-impl Default for DeviceEventClass {
-    fn default() -> Self {
-        DeviceEventClass::Unknown
-    }
 }
 
 /// Device event
@@ -613,7 +593,7 @@ impl Default for TimerEvent {
 pub type EventId = u32;
 
 /// Unified event data
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum EventData {
     /// Boot phase event
     Boot(BootPhaseEvent),
@@ -630,13 +610,8 @@ pub enum EventData {
     /// Timer event
     Timer(TimerEvent),
     /// No data
+    #[default]
     None,
-}
-
-impl Default for EventData {
-    fn default() -> Self {
-        EventData::None
-    }
 }
 
 /// Unified event structure
@@ -838,8 +813,9 @@ impl EventQueue {
 // =============================================================================
 
 /// Handler result
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HandlerResult {
+    #[default]
     /// Event not handled
     NotHandled,
     /// Event handled, continue propagation
@@ -850,15 +826,10 @@ pub enum HandlerResult {
     Error,
 }
 
-impl Default for HandlerResult {
-    fn default() -> Self {
-        HandlerResult::NotHandled
-    }
-}
-
 /// Handler type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HandlerType {
+    #[default]
     /// Logger handler
     Logger,
     /// Monitor/profiler
@@ -871,12 +842,6 @@ pub enum HandlerType {
     ErrorHandler,
     /// Custom handler
     Custom,
-}
-
-impl Default for HandlerType {
-    fn default() -> Self {
-        HandlerType::Custom
-    }
 }
 
 /// Handler registration
@@ -919,8 +884,9 @@ impl HandlerRegistration {
 // =============================================================================
 
 /// Notification level
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NotificationLevel {
+    #[default]
     /// Silent (no notification)
     Silent,
     /// Visual only
@@ -931,15 +897,10 @@ pub enum NotificationLevel {
     Both,
 }
 
-impl Default for NotificationLevel {
-    fn default() -> Self {
-        NotificationLevel::Visual
-    }
-}
-
 /// Notification type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NotificationType {
+    #[default]
     /// Information
     Info,
     /// Success
@@ -952,12 +913,6 @@ pub enum NotificationType {
     Progress,
     /// Question/prompt
     Question,
-}
-
-impl Default for NotificationType {
-    fn default() -> Self {
-        NotificationType::Info
-    }
 }
 
 /// Notification structure
