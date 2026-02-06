@@ -368,6 +368,7 @@ impl SmtSolver {
     }
 
     /// Convert term to CNF (Tseitin transformation)
+    #[allow(clippy::only_used_in_recursion)]
     fn to_cnf(
         &self,
         term: &SmtTerm,
