@@ -101,7 +101,7 @@ impl Frame {
 
     /// Get the end address
     pub fn end(&self) -> PhysAddr {
-        PhysAddr::new(self.address.as_u64() + self.size.size() as u64)
+        PhysAddr::new(self.address.as_u64() + self.size.size())
     }
 
     /// Check if address is within this frame
@@ -137,7 +137,7 @@ impl Page {
 
     /// Get the end address
     pub fn end(&self) -> VirtAddr {
-        VirtAddr::new(self.address.as_u64() + self.size.size() as u64)
+        VirtAddr::new(self.address.as_u64() + self.size.size())
     }
 
     /// Check if address is within this page
