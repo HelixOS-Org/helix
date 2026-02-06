@@ -304,21 +304,37 @@ pub unsafe fn pre_init(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Initialize serial port
+///
+/// # Safety
+///
+/// The caller must ensure serial port I/O is safe and the port is not in use.
 pub unsafe fn init_serial(config: &SerialConfig) -> BootResult<()> {
     serial::init_serial_port(config.base as u16, config.baud_rate)
 }
 
 /// Detect CPU features
+///
+/// # Safety
+///
+/// The caller must ensure the firmware is accessible.
 pub unsafe fn detect_cpu_features(state: &mut CpuState) -> BootResult<()> {
     cpu::detect_features(state)
 }
 
 /// Initialize FPU and SIMD
+///
+/// # Safety
+///
+/// The caller must ensure the CPU supports these features.
 pub unsafe fn init_fpu() -> BootResult<()> {
     cpu::init_fpu_simd()
 }
 
 /// Full CPU initialization
+///
+/// # Safety
+///
+/// The caller must ensure this is called once per CPU during initialization.
 pub unsafe fn cpu_init(ctx: &mut BootContext) -> BootResult<()> {
     // Set up GDT with TSS
     gdt::init_gdt(ctx)?;
@@ -333,17 +349,29 @@ pub unsafe fn cpu_init(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Set up page tables
+///
+/// # Safety
+///
+/// The caller must ensure the page table pointer is valid and properly aligned.
 pub unsafe fn setup_page_tables(ctx: &mut BootContext) -> BootResult<()> {
     paging::setup_page_tables(ctx)
 }
 
 /// Initialize platform drivers
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_platform_drivers(_ctx: &mut BootContext) -> BootResult<()> {
     // x86 doesn't have many platform-specific early drivers
     Ok(())
 }
 
 /// Initialize interrupts
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_interrupts(ctx: &mut BootContext) -> BootResult<()> {
     // Set up IDT
     idt::init_idt(ctx)?;
@@ -355,16 +383,28 @@ pub unsafe fn init_interrupts(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Initialize timers
+///
+/// # Safety
+///
+/// The caller must ensure timer hardware is accessible.
 pub unsafe fn init_timers(ctx: &mut BootContext) -> BootResult<()> {
     timers::init_timers(ctx)
 }
 
 /// Initialize SMP
+///
+/// # Safety
+///
+/// The caller must ensure SMP initialization is done after BSP is fully initialized.
 pub unsafe fn init_smp(ctx: &mut BootContext) -> BootResult<()> {
     smp::init_smp(ctx)
 }
 
 /// Apply KASLR
+///
+/// # Safety
+///
+/// The caller must ensure page tables support the randomization offset.
 pub unsafe fn apply_kaslr(ctx: &mut BootContext) -> BootResult<()> {
     // Generate random offset using RDRAND/RDSEED if available
     let offset = if has_cpuid_feature(7, 0, CpuidReg::Ebx, 18) {
@@ -404,6 +444,10 @@ pub unsafe fn apply_kaslr(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Prepare for kernel handoff
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn prepare_handoff(ctx: &mut BootContext) -> BootResult<()> {
     // Final CR3 should be our new page tables
     ctx.arch_data.x86.cr3 = read_cr3();
@@ -436,6 +480,10 @@ pub fn halt_forever() -> ! {
 
 /// Read MSR
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn rdmsr(msr: u32) -> u64 {
     let low: u32;
     let high: u32;
@@ -451,6 +499,10 @@ pub unsafe fn rdmsr(msr: u32) -> u64 {
 
 /// Write MSR
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn wrmsr(msr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;
@@ -513,6 +565,10 @@ pub fn read_cr0() -> u64 {
 
 /// Write CR0
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure this MSR is valid for the current CPU and the value is appropriate.
 pub unsafe fn write_cr0(value: u64) {
     core::arch::asm!(
         "mov cr0, {}",
@@ -551,6 +607,10 @@ pub fn read_cr3() -> u64 {
 
 /// Write CR3
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure this MSR is valid for the current CPU and the value is appropriate.
 pub unsafe fn write_cr3(value: u64) {
     core::arch::asm!(
         "mov cr3, {}",
@@ -575,6 +635,10 @@ pub fn read_cr4() -> u64 {
 
 /// Write CR4
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure this MSR is valid for the current CPU and the value is appropriate.
 pub unsafe fn write_cr4(value: u64) {
     core::arch::asm!(
         "mov cr4, {}",
@@ -585,6 +649,10 @@ pub unsafe fn write_cr4(value: u64) {
 
 /// Read XCR0 (extended control register)
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn xgetbv(xcr: u32) -> u64 {
     let low: u32;
     let high: u32;
@@ -600,6 +668,10 @@ pub unsafe fn xgetbv(xcr: u32) -> u64 {
 
 /// Write XCR0
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn xsetbv(xcr: u32, value: u64) {
     let low = value as u32;
     let high = (value >> 32) as u32;
@@ -614,6 +686,10 @@ pub unsafe fn xsetbv(xcr: u32, value: u64) {
 
 /// Invalidate TLB for a single page
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn invlpg(addr: u64) {
     core::arch::asm!(
         "invlpg [{}]",
@@ -624,6 +700,10 @@ pub unsafe fn invlpg(addr: u64) {
 
 /// Flush entire TLB
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure this is called when page table changes need to be visible.
 pub unsafe fn flush_tlb() {
     let cr3 = read_cr3();
     write_cr3(cr3);
@@ -631,6 +711,10 @@ pub unsafe fn flush_tlb() {
 
 /// Output byte to I/O port
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the I/O port is valid for this operation.
 pub unsafe fn outb(port: u16, value: u8) {
     core::arch::asm!(
         "out dx, al",
@@ -642,6 +726,10 @@ pub unsafe fn outb(port: u16, value: u8) {
 
 /// Input byte from I/O port
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the I/O port is valid for this operation.
 pub unsafe fn inb(port: u16) -> u8 {
     let value: u8;
     core::arch::asm!(
@@ -655,6 +743,10 @@ pub unsafe fn inb(port: u16) -> u8 {
 
 /// Output word to I/O port
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the I/O port is valid for this operation.
 pub unsafe fn outw(port: u16, value: u16) {
     core::arch::asm!(
         "out dx, ax",
@@ -666,6 +758,10 @@ pub unsafe fn outw(port: u16, value: u16) {
 
 /// Input word from I/O port
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the I/O port is valid for this operation.
 pub unsafe fn inw(port: u16) -> u16 {
     let value: u16;
     core::arch::asm!(
@@ -679,6 +775,10 @@ pub unsafe fn inw(port: u16) -> u16 {
 
 /// Output dword to I/O port
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the I/O port is valid for this operation.
 pub unsafe fn outl(port: u16, value: u32) {
     core::arch::asm!(
         "out dx, eax",
@@ -690,6 +790,10 @@ pub unsafe fn outl(port: u16, value: u32) {
 
 /// Input dword from I/O port
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the I/O port is valid for this operation.
 pub unsafe fn inl(port: u16) -> u32 {
     let value: u32;
     core::arch::asm!(
@@ -703,6 +807,10 @@ pub unsafe fn inl(port: u16) -> u32 {
 
 /// Small delay using I/O port
 #[inline(always)]
+///
+/// # Safety
+///
+/// The caller must ensure the timer is properly calibrated.
 pub unsafe fn io_delay() {
     // Write to unused port for ~1µs delay
     outb(0x80, 0);
