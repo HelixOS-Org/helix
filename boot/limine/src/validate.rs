@@ -84,8 +84,8 @@ pub enum ValidationError {
 impl core::fmt::Display for ValidationError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::MissingResponse(name) => write!(f, "Missing response: {}", name),
-            Self::NullPointer(field) => write!(f, "Null pointer: {}", field),
+            Self::MissingResponse(name) => write!(f, "Missing response: {name}"),
+            Self::NullPointer(field) => write!(f, "Null pointer: {field}"),
             Self::MisalignedAddress {
                 address,
                 required_alignment,
