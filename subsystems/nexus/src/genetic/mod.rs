@@ -141,7 +141,7 @@ pub struct Individual {
 }
 
 /// Lineage tracking
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Lineage {
     /// Ancestor chain
     pub ancestors: Vec<GenomeId>,
@@ -149,16 +149,6 @@ pub struct Lineage {
     pub mutations: u64,
     /// Number of crossovers from original
     pub crossovers: u64,
-}
-
-impl Default for Lineage {
-    fn default() -> Self {
-        Self {
-            ancestors: Vec::new(),
-            mutations: 0,
-            crossovers: 0,
-        }
-    }
 }
 
 /// Evolution configuration
