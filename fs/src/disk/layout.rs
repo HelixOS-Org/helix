@@ -104,13 +104,13 @@ impl DiskLayout {
         // Allocation bitmap: 1 bit per block
         // Each block can track block_size * 8 blocks
         let alloc_bitmap_start = 16;
-        let alloc_bitmap_blocks = (total_blocks + bits_per_block - 1) / bits_per_block;
+        let alloc_bitmap_blocks = total_blocks.div_ceil(bits_per_block);
 
         // Inode bitmap (if using fixed inode allocation)
         // Assume 1 inode per 16KB of data
         let max_inodes = total_blocks * block_size / 16384;
         let inode_bitmap_start = alloc_bitmap_start + alloc_bitmap_blocks;
-        let inode_bitmap_blocks = (max_inodes + bits_per_block - 1) / bits_per_block;
+        let inode_bitmap_blocks = max_inodes.div_ceil(bits_per_block);
 
         // Journal: 1% of filesystem, bounded
         let journal_start = inode_bitmap_start + inode_bitmap_blocks;
@@ -265,8 +265,7 @@ impl DiskLayout {
             }
             let end_i = start_i + len_i;
 
-            for j in (i + 1)..regions.len() {
-                let (start_j, len_j) = regions[j];
+            for &(start_j, len_j) in regions.iter().skip(i + 1) {
                 if len_j == 0 {
                     continue;
                 }
@@ -359,7 +358,7 @@ impl AllocGroup {
         let data_blocks = layout.data_blocks;
         let group_size = Self::TARGET_SIZE_BLOCKS;
 
-        let num_groups = (data_blocks + group_size - 1) / group_size;
+        let num_groups = data_blocks.div_ceil(group_size);
 
         (0..num_groups as u32).map(move |i| {
             let start = data_start + (i as u64) * group_size;
