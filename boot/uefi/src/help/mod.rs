@@ -47,16 +47,16 @@ pub enum HelpCategory {
 impl fmt::Display for HelpCategory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            HelpCategory::General => write!(f, "General"),
-            HelpCategory::Navigation => write!(f, "Navigation"),
-            HelpCategory::BootOptions => write!(f, "Boot Options"),
-            HelpCategory::Shortcuts => write!(f, "Keyboard Shortcuts"),
-            HelpCategory::Entries => write!(f, "Boot Entries"),
-            HelpCategory::Configuration => write!(f, "Configuration"),
-            HelpCategory::Troubleshooting => write!(f, "Troubleshooting"),
-            HelpCategory::Advanced => write!(f, "Advanced"),
-            HelpCategory::Security => write!(f, "Security"),
-            HelpCategory::Recovery => write!(f, "Recovery"),
+            Self::General => write!(f, "General"),
+            Self::Navigation => write!(f, "Navigation"),
+            Self::BootOptions => write!(f, "Boot Options"),
+            Self::Shortcuts => write!(f, "Keyboard Shortcuts"),
+            Self::Entries => write!(f, "Boot Entries"),
+            Self::Configuration => write!(f, "Configuration"),
+            Self::Troubleshooting => write!(f, "Troubleshooting"),
+            Self::Advanced => write!(f, "Advanced"),
+            Self::Security => write!(f, "Security"),
+            Self::Recovery => write!(f, "Recovery"),
         }
     }
 }
@@ -87,10 +87,10 @@ pub const HELP_CATEGORIES: [HelpCategory; HELP_CATEGORY_COUNT] = [
 pub struct KeyModifier(u8);
 
 impl KeyModifier {
-    pub const NONE: KeyModifier = KeyModifier(0);
-    pub const SHIFT: KeyModifier = KeyModifier(1 << 0);
-    pub const CTRL: KeyModifier = KeyModifier(1 << 1);
-    pub const ALT: KeyModifier = KeyModifier(1 << 2);
+    pub const NONE: Self = Self(0);
+    pub const SHIFT: Self = Self(1 << 0);
+    pub const CTRL: Self = Self(1 << 1);
+    pub const ALT: Self = Self(1 << 2);
 
     /// Check if shift is pressed
     pub const fn shift(&self) -> bool {
@@ -108,8 +108,9 @@ impl KeyModifier {
     }
 
     /// Combine modifiers
-    pub const fn combine(self, other: KeyModifier) -> KeyModifier {
-        KeyModifier(self.0 | other.0)
+    #[must_use]
+    pub const fn combine(self, other: Self) -> Self {
+        Self(self.0 | other.0)
     }
 }
 
@@ -163,42 +164,42 @@ pub enum Key {
 impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Key::None => write!(f, ""),
-            Key::F1 => write!(f, "F1"),
-            Key::F2 => write!(f, "F2"),
-            Key::F3 => write!(f, "F3"),
-            Key::F4 => write!(f, "F4"),
-            Key::F5 => write!(f, "F5"),
-            Key::F6 => write!(f, "F6"),
-            Key::F7 => write!(f, "F7"),
-            Key::F8 => write!(f, "F8"),
-            Key::F9 => write!(f, "F9"),
-            Key::F10 => write!(f, "F10"),
-            Key::F11 => write!(f, "F11"),
-            Key::F12 => write!(f, "F12"),
-            Key::Up => write!(f, "↑"),
-            Key::Down => write!(f, "↓"),
-            Key::Left => write!(f, "←"),
-            Key::Right => write!(f, "→"),
-            Key::Home => write!(f, "Home"),
-            Key::End => write!(f, "End"),
-            Key::PageUp => write!(f, "PgUp"),
-            Key::PageDown => write!(f, "PgDn"),
-            Key::Enter => write!(f, "Enter"),
-            Key::Escape => write!(f, "Esc"),
-            Key::Tab => write!(f, "Tab"),
-            Key::Space => write!(f, "Space"),
-            Key::Backspace => write!(f, "Backspace"),
-            Key::Delete => write!(f, "Del"),
-            Key::Insert => write!(f, "Ins"),
-            Key::A => write!(f, "A"),
-            Key::B => write!(f, "B"),
-            Key::C => write!(f, "C"),
-            Key::D => write!(f, "D"),
-            Key::E => write!(f, "E"),
-            Key::R => write!(f, "R"),
-            Key::S => write!(f, "S"),
-            Key::Q => write!(f, "Q"),
+            Self::None => write!(f, ""),
+            Self::F1 => write!(f, "F1"),
+            Self::F2 => write!(f, "F2"),
+            Self::F3 => write!(f, "F3"),
+            Self::F4 => write!(f, "F4"),
+            Self::F5 => write!(f, "F5"),
+            Self::F6 => write!(f, "F6"),
+            Self::F7 => write!(f, "F7"),
+            Self::F8 => write!(f, "F8"),
+            Self::F9 => write!(f, "F9"),
+            Self::F10 => write!(f, "F10"),
+            Self::F11 => write!(f, "F11"),
+            Self::F12 => write!(f, "F12"),
+            Self::Up => write!(f, "↑"),
+            Self::Down => write!(f, "↓"),
+            Self::Left => write!(f, "←"),
+            Self::Right => write!(f, "→"),
+            Self::Home => write!(f, "Home"),
+            Self::End => write!(f, "End"),
+            Self::PageUp => write!(f, "PgUp"),
+            Self::PageDown => write!(f, "PgDn"),
+            Self::Enter => write!(f, "Enter"),
+            Self::Escape => write!(f, "Esc"),
+            Self::Tab => write!(f, "Tab"),
+            Self::Space => write!(f, "Space"),
+            Self::Backspace => write!(f, "Backspace"),
+            Self::Delete => write!(f, "Del"),
+            Self::Insert => write!(f, "Ins"),
+            Self::A => write!(f, "A"),
+            Self::B => write!(f, "B"),
+            Self::C => write!(f, "C"),
+            Self::D => write!(f, "D"),
+            Self::E => write!(f, "E"),
+            Self::R => write!(f, "R"),
+            Self::S => write!(f, "S"),
+            Self::Q => write!(f, "Q"),
         }
     }
 }
@@ -932,9 +933,10 @@ impl HelpBrowser {
     }
 
     /// Get current topic ID (placeholder)
-    fn current_topic_id(&self) -> u16 {
+    const fn current_topic_id(&self) -> u16 {
         // Would return actual topic ID
-        (self.category as u16) * 10 + self.topic_index as u16
+        // Safe: topic_index is bounded by array size, fits in u16
+        (self.category as u16) * 10 + (self.topic_index as u16)
     }
 
     /// Switch panel
