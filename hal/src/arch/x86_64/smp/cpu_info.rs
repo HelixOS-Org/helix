@@ -197,12 +197,7 @@ pub fn get_cpu_info_by_apic_id(apic_id: u32) -> Option<&'static CpuInfo> {
     }
 
     // Linear search fallback
-    for cpu in CPU_INFO.iter() {
-        if cpu.apic_id() == apic_id && cpu.is_present() {
-            return Some(cpu);
-        }
-    }
-    None
+    CPU_INFO.iter().find(|&cpu| cpu.apic_id() == apic_id && cpu.is_present())
 }
 
 /// Register a CPU
