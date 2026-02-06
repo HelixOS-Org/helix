@@ -684,6 +684,7 @@ impl Logger {
     }
 
     /// Output to debug port
+    #[allow(clippy::unused_self)]
     fn output_debug_port(
         &mut self,
         level: LogLevel,
@@ -883,6 +884,7 @@ impl<'a> Hexdump<'a> {
 
     /// Write to serial port
     pub fn write_to(&self, serial: &mut SerialPort) {
+        const HEX: &[u8; 16] = b"0123456789ABCDEF";
         let bytes_per_line = self.config.bytes_per_line;
 
         for (i, chunk) in self.data.chunks(bytes_per_line).enumerate() {
@@ -900,7 +902,6 @@ impl<'a> Hexdump<'a> {
                     serial.write_str(" ");
                 }
 
-                const HEX: &[u8; 16] = b"0123456789ABCDEF";
                 let mut hex = [0u8; 2];
                 hex[0] = HEX[(byte >> 4) as usize];
                 hex[1] = HEX[(byte & 0xF) as usize];
