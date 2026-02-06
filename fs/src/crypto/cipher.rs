@@ -107,8 +107,8 @@ impl Aes256Context {
             }
 
             // XOR with previous
-            for j in 0..4 {
-                self.round_keys[i + j] = self.round_keys[i - 32 + j] ^ temp[j];
+            for (j, t) in temp.iter().enumerate() {
+                self.round_keys[i + j] = self.round_keys[i - 32 + j] ^ t;
             }
 
             i += 4;
@@ -125,8 +125,8 @@ impl Aes256Context {
         state.copy_from_slice(input);
 
         // Initial round key
-        for i in 0..16 {
-            state[i] ^= self.round_keys[i];
+        for (s, k) in state.iter_mut().zip(self.round_keys.iter()) {
+            *s ^= k;
         }
 
         // Main rounds
@@ -136,8 +136,8 @@ impl Aes256Context {
             self.mix_columns(&mut state);
 
             let round_key = &self.round_keys[round as usize * 16..];
-            for i in 0..16 {
-                state[i] ^= round_key[i];
+            for (s, k) in state.iter_mut().zip(round_key.iter()) {
+                *s ^= k;
             }
         }
 
@@ -146,8 +146,8 @@ impl Aes256Context {
         self.shift_rows(&mut state);
 
         let round_key = &self.round_keys[self.rounds as usize * 16..];
-        for i in 0..16 {
-            state[i] ^= round_key[i];
+        for (s, k) in state.iter_mut().zip(round_key.iter()) {
+            *s ^= k;
         }
 
         output[..16].copy_from_slice(&state);
@@ -172,11 +172,9 @@ impl Aes256Context {
 
         // Row 2: shift left by 2
         let t = state[2];
-        state[2] = state[10];
-        state[10] = t;
+        state.swap(2, 10);
         let t = state[6];
-        state[6] = state[14];
-        state[14] = t;
+        state.swap(6, 14);
 
         // Row 3: shift left by 3
         let t = state[15];
@@ -318,8 +316,8 @@ impl ChaCha20Context {
         }
 
         // Add original state
-        for i in 0..16 {
-            working[i] = working[i].wrapping_add(self.state[i]);
+        for (w, s) in working.iter_mut().zip(self.state.iter()) {
+            *w = w.wrapping_add(*s);
         }
 
         // Serialize to output
@@ -472,8 +470,8 @@ impl XtsContext {
             let block = &mut data[offset..offset + 16];
 
             // XOR with tweak
-            for j in 0..16 {
-                block[j] ^= tweak.bytes[j];
+            for (b, t) in block.iter_mut().zip(tweak.bytes.iter()) {
+                *b ^= t;
             }
 
             // Encrypt
@@ -481,8 +479,8 @@ impl XtsContext {
             self.data_ctx.encrypt_block(block, &mut out)?;
 
             // XOR with tweak again
-            for j in 0..16 {
-                block[j] = out[j] ^ tweak.bytes[j];
+            for ((b, o), t) in block.iter_mut().zip(out.iter()).zip(tweak.bytes.iter()) {
+                *b = o ^ t;
             }
 
             // Next tweak
