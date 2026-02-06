@@ -611,7 +611,7 @@ impl DoubleBuffer {
     pub unsafe fn new(fb: &Framebuffer, back_buffer: *mut u8) -> Self {
         let size = fb.pitch() as usize * fb.height() as usize;
         Self {
-            front: fb.address() as *mut u8,
+            front: fb.address(),
             back: back_buffer,
             size,
             width: fb.width() as usize,
@@ -664,13 +664,13 @@ impl DoubleBuffer {
             let ptr = self.back.add(offset);
             match bytes_per_pixel {
                 1 => *ptr = encoded as u8,
-                2 => core::ptr::write_unaligned(ptr as *mut u16, encoded as u16),
+                2 => core::ptr::write_unaligned(ptr.cast::<u16>(), encoded as u16),
                 3 => {
                     *ptr = encoded as u8;
                     *ptr.add(1) = (encoded >> 8) as u8;
                     *ptr.add(2) = (encoded >> 16) as u8;
                 },
-                4 => core::ptr::write_unaligned(ptr as *mut u32, encoded),
+                4 => core::ptr::write_unaligned(ptr.cast::<u32>(), encoded),
                 _ => {},
             }
         }
@@ -690,13 +690,13 @@ impl DoubleBuffer {
                     let ptr = self.back.add(offset);
                     match bytes_per_pixel {
                         1 => *ptr = encoded as u8,
-                        2 => core::ptr::write_unaligned(ptr as *mut u16, encoded as u16),
+                        2 => core::ptr::write_unaligned(ptr.cast::<u16>(), encoded as u16),
                         3 => {
                             *ptr = encoded as u8;
                             *ptr.add(1) = (encoded >> 8) as u8;
                             *ptr.add(2) = (encoded >> 16) as u8;
                         },
-                        4 => core::ptr::write_unaligned(ptr as *mut u32, encoded),
+                        4 => core::ptr::write_unaligned(ptr.cast::<u32>(), encoded),
                         _ => {},
                     }
                 }
