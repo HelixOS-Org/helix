@@ -439,6 +439,7 @@ impl GraphicsOutput {
     }
 
     /// BLT (Block Transfer) operation
+    #[allow(clippy::too_many_arguments)]
     pub fn blt(
         &mut self,
         blt_buffer: Option<&[BltPixel]>,
