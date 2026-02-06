@@ -58,6 +58,7 @@
 use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -340,9 +341,7 @@ impl PredictionEngine {
     /// Update task model
     pub fn update_task_model(&self, task_id: TaskId, stats: &TaskStats) {
         let mut models = self.task_models.write();
-        let model = models
-            .entry(task_id)
-            .or_insert(TaskPredictionModel::default());
+        let model = models.entry(task_id).or_default();
 
         // Update execution time average using exponential moving average
         let alpha = 0.3f64;
@@ -518,6 +517,12 @@ pub struct TimeSliceStrategy {
     adjustments: u64,
 }
 
+impl Default for TimeSliceStrategy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TimeSliceStrategy {
     pub fn new() -> Self {
         Self {
@@ -624,6 +629,12 @@ pub struct PriorityStrategy {
     success_rate: f64,
 }
 
+impl Default for PriorityStrategy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PriorityStrategy {
     pub fn new() -> Self {
         Self {
@@ -700,6 +711,12 @@ pub struct LoadBalanceStrategy {
     imbalance_threshold: u8,
     /// Migration cooldown
     migration_cooldown: Nanoseconds,
+}
+
+impl Default for LoadBalanceStrategy {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LoadBalanceStrategy {
@@ -781,6 +798,12 @@ pub struct EnergyStrategy {
     low_load_threshold: u8,
     /// High load threshold for performance
     high_load_threshold: u8,
+}
+
+impl Default for EnergyStrategy {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EnergyStrategy {
@@ -898,11 +921,12 @@ struct OptimizerStats {
 impl AdaptiveOptimizer {
     /// Create new adaptive optimizer
     pub fn new(config: OptimizerConfig) -> Self {
-        let mut strategies: Vec<Box<dyn OptimizationStrategy>> = Vec::new();
-        strategies.push(Box::new(TimeSliceStrategy::new()));
-        strategies.push(Box::new(PriorityStrategy::new()));
-        strategies.push(Box::new(LoadBalanceStrategy::new()));
-        strategies.push(Box::new(EnergyStrategy::new()));
+        let strategies: Vec<Box<dyn OptimizationStrategy>> = vec![
+            Box::new(TimeSliceStrategy::new()),
+            Box::new(PriorityStrategy::new()),
+            Box::new(LoadBalanceStrategy::new()),
+            Box::new(EnergyStrategy::new()),
+        ];
 
         Self {
             prediction: PredictionEngine::new(PredictionConfig::default()),
@@ -1128,7 +1152,7 @@ impl LearningModule {
         let new_weight = current + self.learning_rate * reward;
 
         // Clamp to reasonable range
-        let clamped = new_weight.max(0.1).min(10.0);
+        let clamped = new_weight.clamp(0.1, 10.0);
         weights.insert(name.to_string(), clamped);
     }
 
