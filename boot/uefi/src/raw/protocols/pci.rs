@@ -4,6 +4,9 @@
 
 use core::fmt;
 
+extern crate alloc;
+use alloc::string::String;
+
 use crate::raw::types::*;
 
 // =============================================================================
@@ -360,6 +363,16 @@ impl PciLocation {
             device,
             function,
         }
+    }
+
+    /// Create from BDF (Bus:Device:Function) with segment 0
+    pub const fn from_bdf(bus: u8, device: u8, function: u8) -> Self {
+        Self::new(0, bus, device, function)
+    }
+
+    /// Format as BDF string (Bus:Device.Function)
+    pub fn to_bdf_string(&self) -> String {
+        alloc::format!("{:02X}:{:02X}.{:X}", self.bus, self.device, self.function)
     }
 
     /// Format as BDF (Bus:Device.Function)
