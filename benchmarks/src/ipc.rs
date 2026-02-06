@@ -174,10 +174,10 @@ fn bench_send_small_message() -> u64 {
 
     // Create message header
     let msg = Message {
-        sender: 1,
+        _sender: 1,
         receiver: 2,
-        msg_type: MsgType::Data,
-        flags: 0,
+        _msg_type: MsgType::Data,
+        _flags: 0,
         payload_len: 64,
     };
 
@@ -213,10 +213,10 @@ fn bench_send_medium_message() -> u64 {
     let start = timing::read_tsc();
 
     let msg = Message {
-        sender: 1,
+        _sender: 1,
         receiver: 2,
-        msg_type: MsgType::Data,
-        flags: 0,
+        _msg_type: MsgType::Data,
+        _flags: 0,
         payload_len: 1024,
     };
 
@@ -245,10 +245,10 @@ fn bench_send_large_message() -> u64 {
     let start = timing::read_tsc();
 
     let msg = Message {
-        sender: 1,
+        _sender: 1,
         receiver: 2,
-        msg_type: MsgType::LargeData,
-        flags: MSG_FLAG_ZERO_COPY,
+        _msg_type: MsgType::LargeData,
+        _flags: MSG_FLAG_ZERO_COPY,
         payload_len: 65536,
     };
 
@@ -289,10 +289,10 @@ fn bench_receive_message() -> u64 {
 
         // Read message header
         let msg = Message {
-            sender: 1,
+            _sender: 1,
             receiver: 2,
-            msg_type: MsgType::Data,
-            flags: 0,
+            _msg_type: MsgType::Data,
+            _flags: 0,
             payload_len: 64,
         };
 
@@ -618,7 +618,7 @@ fn bench_shm_create() -> u64 {
 fn bench_shm_map() -> u64 {
     let start = timing::read_tsc();
 
-    let shm_id = 1u64;
+    let _shm_id = 1u64;
     let target_addr = 0x7000_0000u64;
 
     // Lookup SHM
@@ -895,10 +895,10 @@ fn bench_semaphore_signal() -> u64 {
 
 #[derive(Clone, Copy)]
 struct Message {
-    sender: u64,
+    _sender: u64,
     receiver: u64,
-    msg_type: MsgType,
-    flags: u32,
+    _msg_type: MsgType,
+    _flags: u32,
     payload_len: u32,
 }
 
