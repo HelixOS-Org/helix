@@ -627,7 +627,7 @@ impl MeasurementLog {
 
     /// Get PCR value
     pub fn pcr_value(&self, pcr: u8) -> Option<&[u8]> {
-        self.pcr_values.get(pcr as usize).map(|v| v.as_slice())
+        self.pcr_values.get(pcr as usize).map(Vec::as_slice)
     }
 
     /// Get measurements
