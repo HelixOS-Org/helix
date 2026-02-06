@@ -261,7 +261,7 @@ impl GoalManager {
         if let Some(parent_id) = goal.parent {
             self.hierarchy
                 .entry(parent_id)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(id);
 
             // Add to parent's subgoals
