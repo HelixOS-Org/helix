@@ -6,7 +6,7 @@ use crate::error::{Error, Result};
 use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 extern crate alloc;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 // =============================================================================
@@ -349,15 +349,15 @@ impl ModuleList {
     /// Add module with automatic type detection
     pub fn add_auto(
         &mut self,
-        name: String,
+        name: &str,
         addr: PhysicalAddress,
         size: u64,
         data: &[u8],
     ) -> &ModuleInfo {
-        let mut module = ModuleInfo::new(name.clone(), addr, size);
+        let mut module = ModuleInfo::new(name.to_string(), addr, size);
 
         // Detect type from filename first, then magic
-        module.module_type = ModuleType::from_filename(&name);
+        module.module_type = ModuleType::from_filename(name);
         if module.module_type == ModuleType::Unknown && !data.is_empty() {
             module.module_type = ModuleType::from_magic(data);
         }
@@ -521,7 +521,7 @@ impl ModuleLoader {
     }
 
     /// Load module from buffer
-    pub fn load(&mut self, name: String, data: &[u8]) -> Result<&ModuleInfo> {
+    pub fn load(&mut self, name: &str, data: &[u8]) -> Result<&ModuleInfo> {
         let size = data.len() as u64;
 
         // Check size limits
