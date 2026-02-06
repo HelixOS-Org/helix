@@ -261,6 +261,12 @@ pub struct X86_64Cpu {
     id: u32,
 }
 
+impl Default for X86_64Cpu {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl X86_64Cpu {
     /// Create a new CPU abstraction
     pub const fn new() -> Self {
