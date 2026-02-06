@@ -63,10 +63,8 @@ impl QaoaParameters {
     pub fn from_vec(&mut self, params: &[f64]) {
         let p = self.depth();
         if params.len() >= 2 * p {
-            for i in 0..p {
-                self.gammas[i] = params[i];
-                self.betas[i] = params[p + i];
-            }
+            self.gammas[..p].copy_from_slice(&params[..p]);
+            self.betas[..p].copy_from_slice(&params[p..2 * p]);
         }
     }
 }
@@ -276,10 +274,10 @@ impl QaoaEngine {
             let rand = (rng as f64) / (u64::MAX as f64);
 
             let mut cumsum = 0.0;
-            for i in 0..dim {
+            for (i, count) in counts.iter_mut().enumerate().take(dim) {
                 cumsum += self.state.probability(i);
                 if rand < cumsum {
-                    counts[i] += 1;
+                    *count += 1;
                     break;
                 }
             }
