@@ -166,6 +166,7 @@ impl AcpiParser {
     }
 
     /// Add table to list
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn add_table(&mut self, addr: PhysicalAddress) -> Result<()> {
         let header = &*(addr.0 as *const SdtHeader);
 
@@ -192,6 +193,7 @@ impl AcpiParser {
     }
 
     /// Parse FADT
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_fadt(&mut self) -> Result<()> {
         let fadt_entry = match self.find_table(b"FACP") {
             Some(e) => e.clone(),
@@ -248,6 +250,7 @@ impl AcpiParser {
     }
 
     /// Parse MADT
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_madt(&mut self) -> Result<()> {
         let madt_entry = match self.find_table(b"APIC") {
             Some(e) => e.clone(),
@@ -364,6 +367,7 @@ impl AcpiParser {
     }
 
     /// Parse HPET
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_hpet(&mut self) -> Result<()> {
         let hpet_entry = match self.find_table(b"HPET") {
             Some(e) => e.clone(),
@@ -388,6 +392,7 @@ impl AcpiParser {
     }
 
     /// Parse MCFG
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_mcfg(&mut self) -> Result<()> {
         let mcfg_entry = match self.find_table(b"MCFG") {
             Some(e) => e.clone(),
@@ -415,6 +420,7 @@ impl AcpiParser {
     }
 
     /// Parse BGRT (Boot Graphics Resource Table)
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_bgrt(&mut self) -> Result<()> {
         let bgrt_entry = match self.find_table(b"BGRT") {
             Some(e) => e.clone(),
@@ -604,6 +610,7 @@ struct Fadt {
     reset_reg: GenericAddress,
     reset_value: u8,
     arm_boot_arch: u16,
+    #[allow(clippy::struct_field_names)]
     fadt_minor_version: u8,
     x_facs: u64,
     x_dsdt: u64,
