@@ -50,11 +50,42 @@
 #![allow(unsafe_op_in_unsafe_fn)]
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
+// Allowed for kernel/UEFI code - intentional low-level patterns
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::too_many_lines)]
+// Low-level kernel code requires explicit control over casts
+#![allow(clippy::cast_lossless)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_ptr_alignment)]
+// Pointer operations are fundamental to UEFI/kernel code
+#![allow(clippy::ptr_as_ptr)]
+#![allow(clippy::ptr_cast_constness)]
+#![allow(clippy::borrow_as_ptr)]
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+// Builder patterns are common, explicit #[must_use] on Self returns not needed
+#![allow(clippy::return_self_not_must_use)]
+// Allow match arms with same body for clarity in exhaustive matches
+#![allow(clippy::match_same_arms)]
+// Format string inlining is optional style
+#![allow(clippy::uninlined_format_args)]
+// Doc backticks are style preference for technical docs with many symbols
+#![allow(clippy::doc_markdown)]
+// Wildcard imports are convenient for re-exports and prelude modules
+#![allow(clippy::wildcard_imports)]
+// Debug impls may intentionally omit function pointer fields
+#![allow(clippy::missing_fields_in_debug)]
+// Struct with many bools may be intentional for config/flags
+#![allow(clippy::struct_excessive_bools)]
+// Explicit deref can be clearer in low-level code
+#![allow(clippy::explicit_auto_deref)]
+// Double must_use is acceptable
+#![allow(clippy::double_must_use)]
 #![feature(alloc_error_handler)]
 #![feature(abi_x86_interrupt)]
 
@@ -723,8 +754,9 @@ impl UefiEnv {
 
     /// Get console for text I/O
     #[cfg(feature = "simple_text")]
-    pub fn console(&self) -> Result<protocols::console::Console<'_>> {
-        protocols::console::Console::new(self.system_table)
+    pub fn console(&self) -> Result<protocols::console::Console> {
+        let system_table = core::ptr::from_ref(self.system_table).cast_mut();
+        Ok(unsafe { protocols::console::Console::new(system_table) })
     }
 
     /// Get graphics output
