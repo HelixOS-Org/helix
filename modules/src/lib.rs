@@ -225,7 +225,9 @@ pub enum ModuleError {
     CircularDependency,
     /// Version mismatch
     VersionMismatch {
+        /// The version that was required by the dependency
         expected: ModuleVersion,
+        /// The actual version of the module found
         found: ModuleVersion,
     },
     /// ABI incompatible
@@ -236,7 +238,9 @@ pub enum ModuleError {
     InitError(String),
     /// Module in wrong state
     WrongState {
+        /// The current state of the module
         current: ModuleState,
+        /// The state required for the requested operation
         required: ModuleState,
     },
     /// Module is essential and cannot be unloaded
@@ -307,8 +311,10 @@ pub struct ModuleContext {
     /// Module's own ID
     pub id: ModuleId,
     /// Function to get a dependency by name
+    #[allow(clippy::type_complexity)]
     get_dependency: Box<dyn Fn(&str) -> Option<Arc<dyn Module>> + Send + Sync>,
     /// Function to send a message to another module
+    #[allow(clippy::type_complexity)]
     send_message: Box<dyn Fn(&str, interface::ModuleMessage) -> ModuleResult<()> + Send + Sync>,
     /// Configuration parameters
     pub config: alloc::collections::BTreeMap<String, String>,
