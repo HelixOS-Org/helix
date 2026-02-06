@@ -58,8 +58,7 @@ pub enum ProcessState {
 }
 
 /// Process priority
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum Priority {
     /// Idle priority
     Idle     = 0,
@@ -73,7 +72,6 @@ pub enum Priority {
     /// Real-time priority
     RealTime = 4,
 }
-
 
 /// File descriptor entry
 #[derive(Debug, Clone)]
