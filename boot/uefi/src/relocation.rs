@@ -131,7 +131,7 @@ impl UefiKaslr {
         if let Some(rng_value) = self.try_uefi_rng() {
             let slide = rng_value % max_slide;
             // Ensure alignment
-            slide & !(self.config.alignment - 1)
+            slide & !(self.config.alignment as u64 - 1)
         } else if Self::ALLOW_FALLBACK {
             // Fallback to TSC-based entropy
             self.tsc_based_slide(max_slide)
@@ -141,6 +141,8 @@ impl UefiKaslr {
     }
 
     /// Try to get random value from UEFI RNG protocol
+    #[allow(clippy::unused_self)]
+    #[allow(clippy::unnecessary_wraps)]
     fn try_uefi_rng(&self) -> Option<u64> {
         // In real implementation, this would query EFI_RNG_PROTOCOL
         // For now, use TSC as entropy source
