@@ -170,17 +170,14 @@ impl MemoryMapResponse {
     /// Find a usable region of at least the given size
     pub fn find_usable_region(&self, min_size: u64) -> Option<MemoryEntry> {
         self.entries()
-            .filter(|e| e.kind() == MemoryKind::Usable && e.length() >= min_size)
-            .next()
+            .find(|e| e.kind() == MemoryKind::Usable && e.length() >= min_size)
     }
 
     /// Find a usable region at or above the given address
     pub fn find_usable_above(&self, min_addr: u64, min_size: u64) -> Option<MemoryEntry> {
-        self.entries()
-            .filter(|e| {
-                e.kind() == MemoryKind::Usable && e.base() >= min_addr && e.length() >= min_size
-            })
-            .next()
+        self.entries().find(|e| {
+            e.kind() == MemoryKind::Usable && e.base() >= min_addr && e.length() >= min_size
+        })
     }
 }
 
@@ -647,18 +644,16 @@ impl PagingModeResponse {
     /// Get the maximum virtual address width in bits
     pub fn virtual_address_width(&self) -> u8 {
         match self.mode() {
-            PagingMode::FourLevel => 48,
             PagingMode::FiveLevel => 57,
-            _ => 48,
+            PagingMode::Unknown(_) | PagingMode::FourLevel => 48,
         }
     }
 
     /// Get the maximum virtual address
     pub fn max_virtual_address(&self) -> u64 {
         match self.mode() {
-            PagingMode::FourLevel => 0x0000_7FFF_FFFF_FFFF,
             PagingMode::FiveLevel => 0x00FF_FFFF_FFFF_FFFF,
-            _ => 0x0000_7FFF_FFFF_FFFF,
+            PagingMode::Unknown(_) | PagingMode::FourLevel => 0x0000_7FFF_FFFF_FFFF,
         }
     }
 }
