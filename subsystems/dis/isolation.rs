@@ -421,7 +421,7 @@ impl CapabilitySet {
         let cap_num = cap as u32;
         let word = (cap_num / 32) as usize;
         let bit = cap_num % 32;
-        self.bits.get(word).map_or(false, |w| (w >> bit) & 1 == 1)
+        self.bits.get(word).is_some_and(|w| (w >> bit) & 1 == 1)
     }
 
     /// Add capability
