@@ -224,7 +224,7 @@ impl VersionGraph {
             .branch_names
             .get(name)
             .copied()
-            .ok_or_else(|| VersionError::BranchNotFound(BranchId(0)))?;
+            .ok_or(VersionError::BranchNotFound(BranchId(0)))?;
         self.checkout(branch_id)
     }
 
