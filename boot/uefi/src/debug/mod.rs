@@ -817,7 +817,7 @@ impl PanicInfo<'_> {
         serial.write_str("\x1b[0m\n\n");
 
         if let Some(loc) = self.location {
-            serial.write_str("Location: ";
+            serial.write_str("Location: ");
             serial.write_str(loc.file());
             serial.write_str(":");
 
