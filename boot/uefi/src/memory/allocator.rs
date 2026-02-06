@@ -216,7 +216,7 @@ impl AllocationRegion {
         for (idx, block) in self.free_list.iter().enumerate() {
             let aligned = (block.address.0 + alignment - 1) & !(alignment - 1);
             let waste = aligned - block.address.0;
-            let waste_pages = (waste + PAGE_SIZE - 1) / PAGE_SIZE;
+            let waste_pages = waste.div_ceil(PAGE_SIZE);
 
             if block.pages >= pages + waste_pages {
                 return Some(idx);
