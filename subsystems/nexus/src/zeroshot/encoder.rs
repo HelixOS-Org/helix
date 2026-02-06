@@ -69,10 +69,10 @@ impl SemanticEncoder {
 
         // First layer
         let mut hidden = Vec::with_capacity(self.hidden_dim);
-        for j in 0..self.hidden_dim {
-            let mut sum = self.biases_1[j];
-            for i in 0..self.input_dim {
-                sum += features[i] * self.weights_1[i * self.hidden_dim + j];
+        for (j, bias) in self.biases_1.iter().enumerate().take(self.hidden_dim) {
+            let mut sum = *bias;
+            for (i, feature) in features.iter().enumerate().take(self.input_dim) {
+                sum += feature * self.weights_1[i * self.hidden_dim + j];
             }
             // ReLU activation
             hidden.push(sum.max(0.0));
@@ -80,10 +80,10 @@ impl SemanticEncoder {
 
         // Second layer
         let mut output = Vec::with_capacity(self.output_dim);
-        for j in 0..self.output_dim {
-            let mut sum = self.biases_2[j];
-            for i in 0..self.hidden_dim {
-                sum += hidden[i] * self.weights_2[i * self.output_dim + j];
+        for (j, bias) in self.biases_2.iter().enumerate().take(self.output_dim) {
+            let mut sum = *bias;
+            for (i, h) in hidden.iter().enumerate() {
+                sum += h * self.weights_2[i * self.output_dim + j];
             }
             output.push(sum);
         }
