@@ -272,6 +272,10 @@ impl<A: PageTableAllocator> PageTableMapper<A> {
     }
 
     /// Unmap a page
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the physical and virtual addresses are valid and properly aligned.
     pub unsafe fn unmap(&mut self, va: usize) -> Result<(usize, PageSize), MapError> {
         // Walk the page table to find the mapping
         let mut table = self.root;
@@ -343,6 +347,10 @@ impl<A: PageTableAllocator> PageTableMapper<A> {
     }
 
     /// Change flags on an existing mapping
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the physical and virtual addresses are valid and properly aligned.
     pub unsafe fn remap(&mut self, va: usize, new_flags: PageFlags) -> Result<(), MapError> {
         let mut table = self.root;
 
@@ -401,6 +409,10 @@ pub enum MapError {
 // ============================================================================
 
 /// Create identity mapping for a range
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual address ranges are valid and not already mapped.
 pub unsafe fn identity_map_range<A: PageTableAllocator>(
     mapper: &mut PageTableMapper<A>,
     start: usize,
@@ -419,6 +431,10 @@ pub unsafe fn identity_map_range<A: PageTableAllocator>(
 }
 
 /// Create identity mapping using large pages where possible
+///
+/// # Safety
+///
+/// The caller must ensure the physical and virtual address ranges are valid and not already mapped.
 pub unsafe fn identity_map_range_large<A: PageTableAllocator>(
     mapper: &mut PageTableMapper<A>,
     start: usize,
@@ -477,6 +493,10 @@ pub trait PageTableVisitor {
 }
 
 /// Walk a page table recursively
+///
+/// # Safety
+///
+/// The caller must ensure the page table structure is valid.
 pub unsafe fn walk_page_table_with_visitor<V: PageTableVisitor>(
     table: *const PageTable,
     levels: usize,
