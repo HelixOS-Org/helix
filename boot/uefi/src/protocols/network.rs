@@ -577,8 +577,9 @@ pub mod ether_types {
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
-    use super::*;
     use alloc::string::ToString;
+
+    use super::*;
 
     #[test]
     fn test_mac_address() {
