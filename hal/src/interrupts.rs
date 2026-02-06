@@ -111,7 +111,7 @@ pub trait InterruptContext: Send {
     fn error_code(&self) -> Option<u64>;
 
     /// Check if the interrupt occurred in user mode
-    fn from_user_mode(&self) -> bool;
+    fn is_from_user_mode(&self) -> bool;
 
     /// Set the return instruction pointer
     fn set_instruction_pointer(&mut self, ip: u64);
