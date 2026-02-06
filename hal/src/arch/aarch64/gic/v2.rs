@@ -182,6 +182,10 @@ impl Gicv2Distributor {
     }
 
     /// Initialize the GICv2 Distributor
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self) {
         // Disable the distributor
         self.inner.write_ctlr(0);
@@ -207,6 +211,10 @@ impl Gicv2Distributor {
     }
 
     /// Set the target CPUs for an SPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID and target CPU are valid.
     pub unsafe fn set_target(&self, intid: u32, targets: CpuTargetList) {
         if intid < SPI_BASE {
             return; // SGIs and PPIs have fixed targets
@@ -218,6 +226,10 @@ impl Gicv2Distributor {
     }
 
     /// Get the target CPUs for an SPI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn get_target(&self, intid: u32) -> CpuTargetList {
         if intid < SPI_BASE {
             return CpuTargetList::NONE;
@@ -229,6 +241,10 @@ impl Gicv2Distributor {
     }
 
     /// Set all SPI targets to the same CPU list
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is appropriate for the current exception level.
     pub unsafe fn set_all_spi_targets(&self, targets: CpuTargetList) {
         let num_irqs = self.inner.num_interrupts();
         let value = (targets.mask() as u32) * 0x01010101;
@@ -243,6 +259,10 @@ impl Gicv2Distributor {
     }
 
     /// Send a Software Generated Interrupt (SGI)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the SGI number is valid (0-15) and targets are valid.
     pub unsafe fn send_sgi(&self, sgi_id: u8, targets: CpuTargetList) {
         let value = ((targets.mask() as u32) << 16) | SGIR_TARGET_LIST | ((sgi_id as u32) & 0xF);
 
@@ -250,12 +270,20 @@ impl Gicv2Distributor {
     }
 
     /// Send an SGI to all CPUs except self
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the SGI number is valid (0-15) and targets are valid.
     pub unsafe fn send_sgi_all_except_self(&self, sgi_id: u8) {
         let value = SGIR_TARGET_ALL_EXCEPT_SELF | ((sgi_id as u32) & 0xF);
         write_volatile((self.base() as *mut u32).add(GICD_SGIR / 4), value);
     }
 
     /// Send an SGI to self
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the SGI number is valid (0-15) and targets are valid.
     pub unsafe fn send_sgi_self(&self, sgi_id: u8) {
         let value = SGIR_TARGET_SELF | ((sgi_id as u32) & 0xF);
         write_volatile((self.base() as *mut u32).add(GICD_SGIR / 4), value);
@@ -307,6 +335,10 @@ impl Gicv2CpuInterface {
     }
 
     /// Initialize the CPU interface
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self) {
         // Disable the CPU interface
         self.write_reg(GICC_CTLR, 0);
@@ -331,36 +363,60 @@ impl Gicv2CpuInterface {
 
     /// Read GICC_CTLR
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the GIC distributor/redistributor base address is valid.
     pub unsafe fn read_ctlr(&self) -> u32 {
         self.read_reg(GICC_CTLR)
     }
 
     /// Write GICC_CTLR
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_ctlr(&self, value: u32) {
         self.write_reg(GICC_CTLR, value);
     }
 
     /// Set the priority mask
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for this GIC implementation.
     pub unsafe fn set_priority_mask(&self, priority: Priority) {
         self.write_reg(GICC_PMR, priority.value() as u32);
     }
 
     /// Get the priority mask
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn get_priority_mask(&self) -> Priority {
         Priority(self.read_reg(GICC_PMR) as u8)
     }
 
     /// Set the binary point register
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn set_binary_point(&self, value: u8) {
         self.write_reg(GICC_BPR, (value & 0x7) as u32);
     }
 
     /// Get the binary point register
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn get_binary_point(&self) -> u8 {
         (self.read_reg(GICC_BPR) & 0x7) as u8
     }
@@ -370,47 +426,79 @@ impl Gicv2CpuInterface {
     /// Returns the interrupt ID. Reading this register marks the interrupt
     /// as active.
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure an interrupt is pending.
     pub unsafe fn acknowledge(&self) -> u32 {
         self.read_reg(GICC_IAR) & 0x3FF
     }
 
     /// Signal end of interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure an interrupt was acknowledged and is being handled.
     pub unsafe fn end_of_interrupt(&self, intid: u32) {
         self.write_reg(GICC_EOIR, intid);
     }
 
     /// Deactivate an interrupt (when using EOI mode 1)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt has been acknowledged.
     pub unsafe fn deactivate_interrupt(&self, intid: u32) {
         self.write_reg(GICC_DIR, intid);
     }
 
     /// Get the running priority
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn get_running_priority(&self) -> Priority {
         Priority(self.read_reg(GICC_RPR) as u8)
     }
 
     /// Get the highest priority pending interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn get_highest_pending(&self) -> u32 {
         self.read_reg(GICC_HPPIR) & 0x3FF
     }
 
     /// Read the interface identification register
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the GIC distributor/redistributor base address is valid.
     pub unsafe fn read_iidr(&self) -> u32 {
         self.read_reg(GICC_IIDR)
     }
 
     /// Enable the CPU interface
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the system is ready for this feature to be enabled.
     pub unsafe fn enable(&self) {
         let ctlr = self.read_ctlr() | GICC_CTLR_ENABLE_GRP0 | GICC_CTLR_ENABLE_GRP1;
         self.write_ctlr(ctlr);
     }
 
     /// Disable the CPU interface
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure disabling this feature won't cause system instability.
     pub unsafe fn disable(&self) {
         let ctlr = self.read_ctlr() & !(GICC_CTLR_ENABLE_GRP0 | GICC_CTLR_ENABLE_GRP1);
         self.write_ctlr(ctlr);
@@ -441,6 +529,10 @@ impl Gicv2 {
     }
 
     /// Initialize the GICv2
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self) {
         self.distributor.init();
         self.cpu_interface.init();
@@ -459,6 +551,10 @@ impl Gicv2 {
     }
 
     /// Enable an interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid and a handler is registered.
     pub unsafe fn enable_interrupt(
         &self,
         intid: u32,
@@ -485,28 +581,48 @@ impl Gicv2 {
     }
 
     /// Disable an interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn disable_interrupt(&self, intid: u32) {
         self.distributor.inner().disable_interrupt(intid);
     }
 
     /// Acknowledge an interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure an interrupt is pending.
     pub unsafe fn acknowledge(&self) -> u32 {
         self.cpu_interface.acknowledge()
     }
 
     /// Signal end of interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure an interrupt was acknowledged and is being handled.
     pub unsafe fn end_of_interrupt(&self, intid: u32) {
         self.cpu_interface.end_of_interrupt(intid);
     }
 
     /// Send an SGI
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the SGI number is valid (0-15) and targets are valid.
     pub unsafe fn send_sgi(&self, sgi_id: u8, targets: CpuTargetList) {
         self.distributor.send_sgi(sgi_id, targets);
     }
 
     /// Get the number of supported interrupts
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized.
     pub unsafe fn num_interrupts(&self) -> u32 {
         self.distributor.inner().num_interrupts()
     }
