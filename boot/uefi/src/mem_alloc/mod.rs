@@ -156,6 +156,12 @@ pub struct BitmapAllocator {
     next_free: usize,
 }
 
+impl Default for BitmapAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BitmapAllocator {
     /// Bits per entry
     const BITS_PER_ENTRY: usize = 64;
@@ -445,6 +451,12 @@ pub struct PoolAllocator {
     allocation_count: usize,
 }
 
+impl Default for PoolAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PoolAllocator {
     /// Minimum block size
     const MIN_BLOCK_SIZE: usize = BlockHeader::SIZE + 16;
@@ -730,6 +742,12 @@ pub struct BootAllocator {
 // SAFETY: Access is protected at a higher level (single-threaded boot environment)
 unsafe impl Sync for BootAllocator {}
 
+impl Default for BootAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BootAllocator {
     /// Create new allocator
     pub const fn new() -> Self {
@@ -781,6 +799,12 @@ pub struct BumpAllocator {
     next: usize,
     /// Allocation count
     allocations: usize,
+}
+
+impl Default for BumpAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BumpAllocator {
@@ -872,6 +896,12 @@ pub struct StackAllocator {
     markers: [usize; 32],
     /// Marker count
     marker_count: usize,
+}
+
+impl Default for StackAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl StackAllocator {
