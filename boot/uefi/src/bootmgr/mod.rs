@@ -444,6 +444,7 @@ impl Default for EntryList {
 
 impl EntryList {
     /// Create new entry list
+    #[allow(clippy::large_stack_arrays)]
     pub const fn new() -> Self {
         Self {
             entries: [BootEntry::new(); MAX_ENTRIES],
@@ -561,12 +562,7 @@ impl EntryList {
 
     /// Find entry by title
     pub fn find_by_title(&self, title: &str) -> Option<usize> {
-        for i in 0..self.count {
-            if self.entries[i].title() == title {
-                return Some(i);
-            }
-        }
-        None
+        (0..self.count).find(|&i| self.entries[i].title() == title)
     }
 
     /// Sort entries by priority
@@ -575,10 +571,7 @@ impl EntryList {
         for i in 0..self.count {
             for j in 0..self.count - 1 - i {
                 if self.entries[j].priority > self.entries[j + 1].priority {
-                    // Swap
-                    let tmp = self.entries[j];
-                    self.entries[j] = self.entries[j + 1];
-                    self.entries[j + 1] = tmp;
+                    self.entries.swap(j, j + 1);
                 }
             }
         }
