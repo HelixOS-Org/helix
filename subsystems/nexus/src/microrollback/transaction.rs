@@ -54,7 +54,7 @@ impl<'a> RollbackTransaction<'a> {
     }
 }
 
-impl<'a> Drop for RollbackTransaction<'a> {
+impl Drop for RollbackTransaction<'_> {
     fn drop(&mut self) {
         // If not committed, invalidate all checkpoints
         if !self.committed {
