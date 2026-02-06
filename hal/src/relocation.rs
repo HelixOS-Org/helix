@@ -1097,15 +1097,18 @@ pub fn validate_relocation(ctx: &RelocationContext, kernel_base: *const u8) -> R
 pub fn debug_print_rela(rela: &Elf64Rela, index: usize) {
     let rtype = rela.r_type();
     let sym = rela.r_sym();
+    // Copy packed fields to local variables to avoid unaligned reference
+    let offset = { rela.r_offset };
+    let addend = { rela.r_addend };
 
     log::debug!(
         "  [{:4}] offset=0x{:016x} type={:2} ({}) sym={} addend={}",
         index,
-        rela.r_offset,
+        offset,
         rtype,
         reloc_type_name(rtype),
         sym,
-        rela.r_addend
+        addend
     );
 }
 
@@ -1127,6 +1130,8 @@ pub fn debug_dump_relocations(rela_entries: &[Elf64Rela]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate alloc;
+    use alloc::format;
 
     #[test]
     fn test_reloc_context() {
