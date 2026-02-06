@@ -31,6 +31,12 @@ pub struct InterruptDispatcher {
     handlers: RwLock<[Vec<InterruptHandler>; 256]>,
 }
 
+impl Default for InterruptDispatcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InterruptDispatcher {
     /// Create a new dispatcher
     pub const fn new() -> Self {
