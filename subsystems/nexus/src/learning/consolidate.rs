@@ -268,12 +268,12 @@ impl ConsolidationEngine {
         // Add bidirectional association
         self.associations
             .entry(trace1)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push((trace2, strength));
 
         self.associations
             .entry(trace2)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push((trace1, strength));
 
         // Update trace associations
