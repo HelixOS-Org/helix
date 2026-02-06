@@ -23,26 +23,38 @@ use core::arch::{asm, naked_asm};
 
 /// Syscall numbers
 pub mod nr {
+    /// Exit the current task with a return code.
     pub const EXIT: u64 = 0;
+    /// Write data to a file descriptor.
     pub const WRITE: u64 = 1;
+    /// Yield the CPU to allow other tasks to run.
     pub const YIELD: u64 = 2;
+    /// Get the current task's process ID.
     pub const GETPID: u64 = 3;
+    /// Sleep for a specified number of milliseconds.
     pub const SLEEP: u64 = 4;
+    /// Debug syscall for printing diagnostic values.
     pub const DEBUG: u64 = 255;
 }
 
 /// Model Specific Registers for syscall
 mod msr {
-    pub const STAR: u32 = 0xC0000081; // Segment selectors
-    pub const LSTAR: u32 = 0xC0000082; // Syscall entry point (64-bit)
-    pub const CSTAR: u32 = 0xC0000083; // Syscall entry point (compat mode)
-    pub const SFMASK: u32 = 0xC0000084; // Flags mask
-    pub const EFER: u32 = 0xC0000080; // Extended features
+    /// STAR MSR: Contains segment selectors for syscall/sysret.
+    pub const STAR: u32 = 0xC0000081;
+    /// LSTAR MSR: 64-bit syscall entry point address.
+    pub const LSTAR: u32 = 0xC0000082;
+    /// CSTAR MSR: Compatibility mode syscall entry point (unused in 64-bit).
+    pub const CSTAR: u32 = 0xC0000083;
+    /// SFMASK MSR: Flags mask applied on syscall entry.
+    pub const SFMASK: u32 = 0xC0000084;
+    /// EFER MSR: Extended Feature Enable Register.
+    pub const EFER: u32 = 0xC0000080;
 }
 
 /// EFER bits
 mod efer {
-    pub const SCE: u64 = 1 << 0; // System Call Extensions
+    /// System Call Extensions enable bit (required for syscall/sysret).
+    pub const SCE: u64 = 1 << 0;
 }
 
 /// Initialize syscall/sysret support
@@ -88,7 +100,10 @@ pub unsafe fn init() {
     wrmsr(msr::STAR, star);
 
     // Set syscall entry point
-    wrmsr(msr::LSTAR, syscall_entry as u64);
+    #[allow(clippy::fn_to_numeric_cast)]
+    {
+        wrmsr(msr::LSTAR, syscall_entry as u64);
+    }
 
     // Set compat mode entry (not used, but required)
     wrmsr(msr::CSTAR, 0);
@@ -96,10 +111,12 @@ pub unsafe fn init() {
     // Set flags mask (clear IF and TF on syscall entry)
     wrmsr(msr::SFMASK, 0x300); // Clear IF (0x200) and TF (0x100)
 
+    #[allow(clippy::fn_to_numeric_cast)]
+    let lstar = syscall_entry as u64;
     log::info!(
         "Syscall/sysret initialized (STAR={:#x}, LSTAR={:#x})",
         star,
-        syscall_entry as u64
+        lstar
     );
 }
 
@@ -108,6 +125,12 @@ pub unsafe fn init() {
 /// RCX = user RIP (return address)
 /// R11 = user RFLAGS
 /// RAX = syscall number
+///
+/// # Safety
+///
+/// - Must only be called via the SYSCALL instruction.
+/// - The CPU must have properly set RCX and R11.
+/// - MSRs must be configured for syscall handling.
 #[naked]
 pub unsafe extern "C" fn syscall_entry() {
     unsafe {
@@ -192,7 +215,7 @@ pub extern "C" fn syscall_dispatcher(
             }
             // Print exit code
             let code = arg0 as i32;
-            if code >= 0 && code < 100 {
+            if (0..100).contains(&code) {
                 let tens = ((code / 10) as u8) + b'0';
                 let ones = ((code % 10) as u8) + b'0';
                 if tens > b'0' {
