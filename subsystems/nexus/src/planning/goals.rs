@@ -259,10 +259,7 @@ impl GoalManager {
 
         // Update hierarchy if parent exists
         if let Some(parent_id) = goal.parent {
-            self.hierarchy
-                .entry(parent_id)
-                .or_default()
-                .push(id);
+            self.hierarchy.entry(parent_id).or_default().push(id);
 
             // Add to parent's subgoals
             if let Some(parent) = self.goals.get_mut(&parent_id) {
