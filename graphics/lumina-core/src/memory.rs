@@ -179,12 +179,20 @@ pub struct AllocationInfo {
 
 impl AllocationInfo {
     /// Returns mapped slice if available
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the physical and virtual addresses are valid and properly aligned.
     pub unsafe fn mapped_slice(&self) -> Option<&[u8]> {
         self.mapped_ptr
             .map(|ptr| core::slice::from_raw_parts(ptr, self.size as usize))
     }
 
     /// Returns mapped mutable slice if available
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the physical and virtual addresses are valid and properly aligned.
     pub unsafe fn mapped_slice_mut(&mut self) -> Option<&mut [u8]> {
         self.mapped_ptr
             .map(|ptr| core::slice::from_raw_parts_mut(ptr, self.size as usize))
