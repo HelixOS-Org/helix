@@ -163,7 +163,7 @@ impl MemoryMapResponse {
     pub fn largest_usable_region(&self) -> Option<MemoryEntry> {
         self.entries()
             .filter(|e| e.kind() == MemoryKind::Usable)
-            .max_by_key(|e| e.length())
+            .max_by_key(MemoryEntry::length)
     }
 
     /// Find a usable region of at least the given size
