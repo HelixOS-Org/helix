@@ -163,6 +163,7 @@ pub struct BuddyAllocState {
 impl BuddyAllocState {
     /// Create new buddy allocator state
     pub fn new(total_blocks: u64) -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const EMPTY_LIST: FreeListHead = FreeListHead::new();
         const EMPTY_STATS: OrderStats = OrderStats {
             free_count: 0,
