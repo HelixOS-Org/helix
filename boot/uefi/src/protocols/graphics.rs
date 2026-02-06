@@ -329,6 +329,7 @@ impl GraphicsOutput {
     // =========================================================================
 
     /// Copy buffer to screen
+    #[allow(clippy::too_many_arguments)]
     pub fn blt_buffer_to_video(
         &self,
         buffer: &[Pixel],
@@ -363,6 +364,7 @@ impl GraphicsOutput {
     }
 
     /// Copy screen to buffer
+    #[allow(clippy::too_many_arguments)]
     pub fn blt_video_to_buffer(
         &self,
         buffer: &mut [Pixel],
@@ -774,7 +776,7 @@ impl Pixel {
     /// Create from RGBA values
     #[must_use]
     pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Self { r, g, b, a }
+        Self { b, g, r, a }
     }
 
     /// Create from 32-bit ARGB value
@@ -952,6 +954,7 @@ impl Framebuffer {
     /// # Safety
     /// Must ensure exclusive access
     #[must_use]
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn as_mut_slice(&self) -> &mut [u8] {
         core::slice::from_raw_parts_mut(self.as_ptr(), self.size)
     }
@@ -961,6 +964,7 @@ impl Framebuffer {
     /// # Safety
     /// Must ensure exclusive access
     #[must_use]
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn pixels_mut(&self) -> &mut [Pixel] {
         core::slice::from_raw_parts_mut(
             self.as_ptr() as *mut Pixel,
