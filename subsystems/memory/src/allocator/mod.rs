@@ -15,20 +15,29 @@ pub trait HeapAllocator: Send + Sync {
     fn allocate(&self, layout: Layout) -> *mut u8;
 
     /// Deallocate memory
-    fn deallocate(&self, ptr: *mut u8, layout: Layout);
+    ///
+    /// # Safety
+    /// - `ptr` must have been allocated by this allocator with the given layout
+    unsafe fn deallocate(&self, ptr: *mut u8, layout: Layout);
 
     /// Reallocate memory
-    fn reallocate(&self, ptr: *mut u8, old_layout: Layout, new_size: usize) -> *mut u8 {
+    ///
+    /// # Safety
+    /// - `ptr` must have been allocated by this allocator with `old_layout`
+    /// - `ptr` must be valid for reads of `old_layout.size()` bytes
+    unsafe fn reallocate(&self, ptr: *mut u8, old_layout: Layout, new_size: usize) -> *mut u8 {
         // Default implementation: allocate new, copy, deallocate old
         let new_layout =
             Layout::from_size_align(new_size, old_layout.align()).unwrap_or(old_layout);
 
         let new_ptr = self.allocate(new_layout);
         if !new_ptr.is_null() && !ptr.is_null() {
+            // SAFETY: Both pointers are valid and non-null, caller guarantees ptr is valid
+            // for old_layout.size() bytes, and new_ptr was just allocated with new_size
             unsafe {
                 core::ptr::copy_nonoverlapping(ptr, new_ptr, old_layout.size().min(new_size));
+                self.deallocate(ptr, old_layout);
             }
-            self.deallocate(ptr, old_layout);
         }
         new_ptr
     }
@@ -61,6 +70,12 @@ pub struct GlobalHeap {
     allocator: RwLock<Option<Arc<dyn HeapAllocator>>>,
 }
 
+impl Default for GlobalHeap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlobalHeap {
     /// Create a new global heap
     pub const fn new() -> Self {
@@ -86,7 +101,8 @@ unsafe impl GlobalAlloc for GlobalHeap {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         if let Some(ref allocator) = *self.allocator.read() {
-            allocator.deallocate(ptr, layout);
+            // SAFETY: We're in dealloc, ptr was allocated by this allocator
+            unsafe { allocator.deallocate(ptr, layout) };
         }
     }
 
@@ -94,7 +110,8 @@ unsafe impl GlobalAlloc for GlobalHeap {
         self.allocator
             .read()
             .as_ref()
-            .map(|a| a.reallocate(ptr, layout, new_size))
+            // SAFETY: We're in realloc, ptr was allocated by this allocator
+            .map(|a| unsafe { a.reallocate(ptr, layout, new_size) })
             .unwrap_or(core::ptr::null_mut())
     }
 }
@@ -107,6 +124,12 @@ pub struct BumpHeap {
     start: usize,
     /// Heap end
     end: usize,
+}
+
+impl Default for BumpHeap {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BumpHeap {
@@ -143,7 +166,7 @@ impl HeapAllocator for BumpHeap {
         aligned as *mut u8
     }
 
-    fn deallocate(&self, _ptr: *mut u8, _layout: Layout) {
+    unsafe fn deallocate(&self, _ptr: *mut u8, _layout: Layout) {
         // Bump allocator doesn't deallocate
     }
 
