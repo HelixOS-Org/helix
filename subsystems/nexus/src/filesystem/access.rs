@@ -163,13 +163,10 @@ impl FileAccessTracker {
 
         let last = history.last().unwrap();
 
-        match pattern {
-            IoPatternType::SequentialRead => {
-                for i in 1..=count {
-                    suggestions.push((last.offset + last.size as u64 * i as u64, last.size));
-                }
-            },
-            _ => {},
+        if pattern == &IoPatternType::SequentialRead {
+            for i in 1..=count {
+                suggestions.push((last.offset + last.size as u64 * i as u64, last.size));
+            }
         }
 
         suggestions
