@@ -301,7 +301,7 @@ impl EsrtEntry {
             Self::TYPE_SYSTEM => "System",
             Self::TYPE_DEVICE => "Device",
             Self::TYPE_UEFI_DRIVER => "UEFI Driver",
-            Self::TYPE_UNKNOWN | _ => "Unknown",
+            _ => "Unknown",
         }
     }
 
