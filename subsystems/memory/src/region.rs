@@ -49,6 +49,12 @@ pub struct RegionManager {
     regions: RwLock<Vec<MemoryRegionDescriptor>>,
 }
 
+impl Default for RegionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RegionManager {
     /// Create a new manager
     pub const fn new() -> Self {
