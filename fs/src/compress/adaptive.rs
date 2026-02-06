@@ -209,7 +209,7 @@ fn classify_data(analysis: &DataAnalysis, sample: &[u8]) -> DataClass {
     // Check for text
     let printable = sample
         .iter()
-        .filter(|&&b| (b >= 0x20 && b <= 0x7E) || b == b'\n' || b == b'\r' || b == b'\t')
+        .filter(|&&b| (0x20..=0x7E).contains(&b) || b == b'\n' || b == b'\r' || b == b'\t')
         .count();
 
     if printable > sample.len() * 90 / 100 {
