@@ -204,6 +204,8 @@ jobs:
 
       - name: 🔍 Run Clippy (x86_64-unknown-none)
         run: |
+          # Unset RUSTFLAGS so .cargo/config.toml target-specific flags are used
+          unset RUSTFLAGS
           cargo clippy \
             --target x86_64-unknown-none \
             --all-features \
@@ -307,6 +309,11 @@ jobs:
 
       - name: 🔨 Build Kernel
         run: |
+          # IMPORTANT: Unset RUSTFLAGS so that .cargo/config.toml target-specific
+          # rustflags are used. The env var RUSTFLAGS overrides ALL config.toml
+          # settings, which would drop critical kernel flags like:
+          # -C code-model=kernel, -C relocation-model=static, -C link-arg=-Tlinker.ld
+          unset RUSTFLAGS
           cargo build \
             --target x86_64-unknown-none \
             ${{ matrix.cargo_flags }}
