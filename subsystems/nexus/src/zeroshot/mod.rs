@@ -96,7 +96,7 @@ impl PrototypeNetwork {
 
         self.support_sets
             .entry(class_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(embedding);
 
         // Update prototype
@@ -160,7 +160,7 @@ impl PrototypeNetwork {
             let embedding = self.encoder.encode(features);
             temp_support
                 .entry(*class_id)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(embedding);
         }
 
@@ -222,8 +222,7 @@ impl PrototypeNetwork {
         // Update prototypes
         self.prototypes = prototypes;
 
-        let accuracy = correct as f64 / query.len() as f64;
-        accuracy
+        correct as f64 / query.len() as f64
     }
 }
 
@@ -267,9 +266,9 @@ impl EmbeddingGenerator {
         let mut embedding = alloc::vec![0.0; self.emb_dim];
 
         // Linear transform
-        for j in 0..self.emb_dim {
-            for i in 0..self.attr_dim.min(attributes.len()) {
-                embedding[j] += attributes[i] * self.attr_to_emb[i * self.emb_dim + j];
+        for (j, emb) in embedding.iter_mut().enumerate() {
+            for (i, attr) in attributes.iter().enumerate().take(self.attr_dim) {
+                *emb += attr * self.attr_to_emb[i * self.emb_dim + j];
             }
 
             // Add noise
@@ -277,7 +276,7 @@ impl EmbeddingGenerator {
             *rng ^= *rng >> 7;
             *rng ^= *rng << 17;
             let noise = (*rng as f64 / u64::MAX as f64 - 0.5) * self.noise_scale;
-            embedding[j] += noise;
+            *emb += noise;
         }
 
         // Normalize
@@ -592,17 +591,7 @@ pub struct KernelZeroShotManager {
 impl KernelZeroShotManager {
     /// Create a new kernel zero-shot manager
     pub fn new() -> Self {
-        let mut manager = Self {
-            learner: MetaZeroShotLearner::new(64, 32, ATTRIBUTE_DIM, EMBEDDING_DIM),
-            concepts: BTreeMap::new(),
-            concept_ids: BTreeMap::new(),
-            next_id: 1,
-        };
-
-        // Register base kernel concepts
-        manager.register_base_concepts();
-
-        manager
+        Self::default()
     }
 
     /// Register base kernel concepts with attributes
@@ -719,6 +708,22 @@ impl KernelZeroShotManager {
     }
 }
 
+impl Default for KernelZeroShotManager {
+    fn default() -> Self {
+        let mut manager = Self {
+            learner: MetaZeroShotLearner::new(64, 32, ATTRIBUTE_DIM, EMBEDDING_DIM),
+            concepts: BTreeMap::new(),
+            concept_ids: BTreeMap::new(),
+            next_id: 1,
+        };
+
+        // Register base kernel concepts
+        manager.register_base_concepts();
+
+        manager
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -817,7 +822,7 @@ mod tests {
             .register_class(1, alloc::vec![1.0, 0.0, 0.0, 0.0], false);
 
         // Self-train with unlabeled data
-        let unlabeled: Vec<(u64, FeatureVector)> = vec![
+        let unlabeled: Vec<(u64, FeatureVector)> = alloc::vec![
             (1, alloc::vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             (2, alloc::vec![0.9, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         ];
@@ -831,7 +836,7 @@ mod tests {
     fn test_domain_adapter_mmd() {
         let adapter = DomainAdapter::new(4, 8, 16);
 
-        let source = vec![
+        let source = alloc::vec![
             alloc::vec![
                 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             ],
@@ -839,7 +844,7 @@ mod tests {
                 0.9, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             ],
         ];
-        let target = vec![
+        let target = alloc::vec![
             alloc::vec![
                 0.8, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             ],
