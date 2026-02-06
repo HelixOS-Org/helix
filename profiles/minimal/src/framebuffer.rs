@@ -173,6 +173,10 @@ pub unsafe fn put_pixel(x: u32, y: u32, color: Color) {
 }
 
 /// Fill the entire screen with a color
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn clear(color: Color) {
     if !is_initialized() {
         return;
@@ -195,6 +199,10 @@ pub unsafe fn clear(color: Color) {
 }
 
 /// Draw a filled rectangle
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn fill_rect(x: u32, y: u32, w: u32, h: u32, color: Color) {
     if !is_initialized() {
         return;
@@ -221,6 +229,10 @@ pub unsafe fn fill_rect(x: u32, y: u32, w: u32, h: u32, color: Color) {
 }
 
 /// Draw a horizontal gradient bar (for boot splash)
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn draw_gradient_bar(x: u32, y: u32, w: u32, h: u32) {
     if !is_initialized() {
         return;
@@ -240,6 +252,10 @@ pub unsafe fn draw_gradient_bar(x: u32, y: u32, w: u32, h: u32) {
 }
 
 /// Draw the Helix OS boot splash screen
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU exists and the entry point is valid.
 pub unsafe fn draw_boot_splash() {
     if !is_initialized() {
         crate::serial_write_str("  [FB] Cannot draw splash - framebuffer not initialized\n");
@@ -343,6 +359,10 @@ unsafe fn draw_helix_logo(x: u32, y: u32) {
 }
 
 /// Test pattern for debugging - draw colored corners
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn draw_test_pattern() {
     if !is_initialized() {
         return;
@@ -625,6 +645,10 @@ pub fn console_size() -> (u32, u32) {
 }
 
 /// Draw a single character at pixel position
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn draw_char(x: u32, y: u32, c: char, fg: Color, bg: Color) {
     if !is_initialized() {
         return;
