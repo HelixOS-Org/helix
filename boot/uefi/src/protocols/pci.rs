@@ -887,7 +887,7 @@ pub fn find_by_class(base_class: u8, sub_class: Option<u8>) -> Result<Vec<PciDev
         .into_iter()
         .filter(|d| {
             let c = d.class();
-            c.base == base_class && sub_class.map(|s| c.sub == s).unwrap_or(true)
+            c.base == base_class && sub_class.map_or(true, |s| c.sub == s)
         })
         .collect())
 }
@@ -899,7 +899,7 @@ pub fn find_by_id(vendor_id: u16, device_id: Option<u16>) -> Result<Vec<PciDevic
     Ok(devices
         .into_iter()
         .filter(|d| {
-            d.vendor_id() == vendor_id && device_id.map(|id| d.device_id() == id).unwrap_or(true)
+            d.vendor_id() == vendor_id && device_id.map_or(true, |id| d.device_id() == id)
         })
         .collect())
 }
