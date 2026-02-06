@@ -236,7 +236,7 @@ impl ProceduralMemory {
         self.by_name.insert(name, id);
         self.by_type
             .entry(procedure_type)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(id);
         self.procedures.insert(id, procedure);
 
