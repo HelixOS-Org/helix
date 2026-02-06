@@ -1204,9 +1204,9 @@ impl SwarmConsensus {
         let mut influence = alloc::vec![alloc::vec![0.0; num_agents]; num_agents];
 
         // Initialize with uniform influence
-        for i in 0..num_agents {
-            for j in 0..num_agents {
-                influence[i][j] = 1.0 / num_agents as f64;
+        for row in influence.iter_mut().take(num_agents) {
+            for val in row.iter_mut() {
+                *val = 1.0 / num_agents as f64;
             }
         }
 
@@ -1221,12 +1221,12 @@ impl SwarmConsensus {
     pub fn update(&mut self) {
         let old_opinions = self.opinions.clone();
 
-        for i in 0..self.opinions.len() {
+        for (i, opinion) in self.opinions.iter_mut().enumerate() {
             let mut new_opinion = 0.0;
-            for j in 0..self.opinions.len() {
-                new_opinion += self.influence[i][j] * old_opinions[j];
+            for (j, old_op) in old_opinions.iter().enumerate() {
+                new_opinion += self.influence[i][j] * old_op;
             }
-            self.opinions[i] = new_opinion;
+            *opinion = new_opinion;
         }
     }
 
@@ -1281,9 +1281,8 @@ pub struct KernelSwarmManager {
     rng: u64,
 }
 
-impl KernelSwarmManager {
-    /// Create new swarm manager
-    pub fn new() -> Self {
+impl Default for KernelSwarmManager {
+    fn default() -> Self {
         Self {
             task_aco: None,
             resource_pso: None,
@@ -1293,6 +1292,13 @@ impl KernelSwarmManager {
             consensus: None,
             rng: 12345,
         }
+    }
+}
+
+impl KernelSwarmManager {
+    /// Create new swarm manager
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Initialize task assignment with ACO
