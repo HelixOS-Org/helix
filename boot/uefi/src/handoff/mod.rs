@@ -35,7 +35,7 @@ pub use modules::*;
 pub use rsdp::*;
 
 use crate::error::{Error, Result};
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 extern crate alloc;
 use alloc::string::String;
