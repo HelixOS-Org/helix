@@ -846,7 +846,7 @@ pub fn hash_name_ci(name: &[u8]) -> u64 {
 
     for &b in name {
         // Simple ASCII case folding
-        let c = if b >= b'A' && b <= b'Z' { b + 32 } else { b };
+        let c = if b.is_ascii_uppercase() { b + 32 } else { b };
         hasher.write(&[c]);
     }
 
