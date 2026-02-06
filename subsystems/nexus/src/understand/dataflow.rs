@@ -75,7 +75,7 @@ impl DataFlowResult {
 
     /// Check if variable is initialized at point
     pub fn is_initialized_at(&self, var: &str, point: u32) -> bool {
-        self.point_facts.get(&point).map_or(false, |facts| {
+        self.point_facts.get(&point).is_some_and(|facts| {
             facts
                 .iter()
                 .any(|f| matches!(f, DataFlowFact::Initialized(v) if v == var))
@@ -84,7 +84,7 @@ impl DataFlowResult {
 
     /// Check if variable is moved at point
     pub fn is_moved_at(&self, var: &str, point: u32) -> bool {
-        self.point_facts.get(&point).map_or(false, |facts| {
+        self.point_facts.get(&point).is_some_and(|facts| {
             facts
                 .iter()
                 .any(|f| matches!(f, DataFlowFact::Moved(v) if v == var))
