@@ -283,7 +283,7 @@ impl VqeEngine {
         let shift = core::f64::consts::PI / 2.0;
         let mut gradient = vec![0.0; self.parameters.len()];
 
-        for i in 0..self.parameters.len() {
+        for (i, grad) in gradient.iter_mut().enumerate() {
             // f(θ + π/2)
             let mut params_plus = self.parameters.clone();
             params_plus.values[i] += shift;
@@ -295,7 +295,7 @@ impl VqeEngine {
             let e_minus = self.compute_energy(&params_minus);
 
             // Parameter-shift gradient
-            gradient[i] = 0.5 * (e_plus - e_minus);
+            *grad = 0.5 * (e_plus - e_minus);
         }
 
         gradient
@@ -357,8 +357,8 @@ impl VqeOptimizer {
             let gradient = self.engine.compute_gradient();
 
             // Update parameters
-            for i in 0..self.engine.parameters.len() {
-                self.engine.parameters.values[i] -= self.learning_rate * gradient[i];
+            for (param, grad) in self.engine.parameters.values.iter_mut().zip(gradient.iter()) {
+                *param -= self.learning_rate * grad;
             }
 
             let energy = self.engine.energy();
@@ -473,9 +473,9 @@ pub fn lih_hamiltonian() -> Hamiltonian {
 
     for (mask, coeff) in coeffs {
         let mut paulis = vec![Pauli::I; 4];
-        for i in 0..4 {
+        for (i, pauli) in paulis.iter_mut().enumerate() {
             if (mask >> i) & 1 == 1 {
-                paulis[i] = Pauli::Z;
+                *pauli = Pauli::Z;
             }
         }
         hamiltonian.add_term(PauliString::new(paulis, coeff));
