@@ -105,16 +105,15 @@ pub struct UefiKaslr {
 
 #[cfg(feature = "relocation")]
 impl UefiKaslr {
+    const ALLOW_FALLBACK: bool = true;
+
     /// Create new UEFI KASLR with default configuration
     pub fn new() -> Self {
         Self {
             config: KaslrConfig {
-                min_entropy_bits: 12, // 4KB alignment
-                max_entropy_bits: 28, // ~256MB range
-                require_aligned: true,
                 alignment: 0x1000, // 4KB
-                use_hardware_rng: true,
-                allow_fallback: true,
+                entropy_bits: 12,  // ~4K positions
+                ..KaslrConfig::default()
             },
         }
     }
@@ -132,8 +131,8 @@ impl UefiKaslr {
         if let Some(rng_value) = self.try_uefi_rng() {
             let slide = rng_value % max_slide;
             // Ensure alignment
-            slide & !(self.config.alignment as u64 - 1)
-        } else if self.config.allow_fallback {
+            slide & !(self.config.alignment - 1)
+        } else if Self::ALLOW_FALLBACK {
             // Fallback to TSC-based entropy
             self.tsc_based_slide(max_slide)
         } else {
