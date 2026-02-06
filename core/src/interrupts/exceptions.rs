@@ -39,6 +39,12 @@ pub struct ExceptionDispatcher {
     default_handler: RwLock<Option<Arc<dyn ExceptionHandler>>>,
 }
 
+impl Default for ExceptionDispatcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExceptionDispatcher {
     /// Create a new dispatcher
     pub const fn new() -> Self {
