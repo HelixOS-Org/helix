@@ -136,10 +136,8 @@ impl Color {
     /// Check if color is dark
     pub const fn is_dark(&self) -> bool {
         // Using relative luminance approximation
-        let luminance = ((self.r as u32) * 299
-            + (self.g as u32) * 587
-            + (self.b as u32) * 114)
-            / 1000;
+        let luminance =
+            ((self.r as u32) * 299 + (self.g as u32) * 587 + (self.b as u32) * 114) / 1000;
         luminance < 128
     }
 
