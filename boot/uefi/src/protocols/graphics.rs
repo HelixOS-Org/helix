@@ -533,8 +533,12 @@ impl Protocol for GraphicsOutput {
 
 impl EnumerableProtocol for GraphicsOutput {
     fn enumerate() -> Result<Vec<Self>> {
-        super::ProtocolLocator::locate_all::<Self>()
-            .map(|handles| handles.into_iter().map(super::ProtocolHandle::leak).collect())
+        super::ProtocolLocator::locate_all::<Self>().map(|handles| {
+            handles
+                .into_iter()
+                .map(super::ProtocolHandle::leak)
+                .collect()
+        })
     }
 }
 
