@@ -73,24 +73,24 @@ impl Color {
     /// Blend with another color
     #[must_use]
     pub fn blend(&self, other: Self, alpha: u8) -> Self {
-        let a = u16::from(alpha);
-        let inv_a = 255 - a;
+        let a = alpha as u16;
+        let inv_a = 255u16 - a;
         Self {
-            r: ((u16::from(self.r) * inv_a + u16::from(other.r) * a) / 255) as u8,
-            g: ((u16::from(self.g) * inv_a + u16::from(other.g) * a) / 255) as u8,
-            b: ((u16::from(self.b) * inv_a + u16::from(other.b) * a) / 255) as u8,
-            a: ((u16::from(self.a) * inv_a + u16::from(other.a) * a) / 255) as u8,
+            r: Self::u16_to_u8(((self.r as u16) * inv_a + (other.r as u16) * a) / 255),
+            g: Self::u16_to_u8(((self.g as u16) * inv_a + (other.g as u16) * a) / 255),
+            b: Self::u16_to_u8(((self.b as u16) * inv_a + (other.b as u16) * a) / 255),
+            a: Self::u16_to_u8(((self.a as u16) * inv_a + (other.a as u16) * a) / 255),
         }
     }
 
     /// Darken by percentage (0-100)
     #[must_use]
     pub fn darken(&self, percent: u8) -> Self {
-        let factor = u16::from(100 - percent.min(100));
+        let factor = (100 - percent.min(100)) as u16;
         Self {
-            r: ((u16::from(self.r) * factor) / 100) as u8,
-            g: ((u16::from(self.g) * factor) / 100) as u8,
-            b: ((u16::from(self.b) * factor) / 100) as u8,
+            r: Self::u16_to_u8(((self.r as u16) * factor) / 100),
+            g: Self::u16_to_u8(((self.g as u16) * factor) / 100),
+            b: Self::u16_to_u8(((self.b as u16) * factor) / 100),
             a: self.a,
         }
     }
@@ -98,21 +98,30 @@ impl Color {
     /// Lighten by percentage (0-100)
     #[must_use]
     pub fn lighten(&self, percent: u8) -> Self {
-        let factor = u16::from(percent.min(100));
+        let factor = percent.min(100) as u16;
         Self {
-            r: (u16::from(self.r) + ((255 - u16::from(self.r)) * factor) / 100) as u8,
-            g: (u16::from(self.g) + ((255 - u16::from(self.g)) * factor) / 100) as u8,
-            b: (u16::from(self.b) + ((255 - u16::from(self.b)) * factor) / 100) as u8,
+            r: Self::u16_to_u8((self.r as u16) + ((255 - (self.r as u16)) * factor) / 100),
+            g: Self::u16_to_u8((self.g as u16) + ((255 - (self.g as u16)) * factor) / 100),
+            b: Self::u16_to_u8((self.b as u16) + ((255 - (self.b as u16)) * factor) / 100),
             a: self.a,
         }
     }
 
+    /// Convert u16 to u8, saturating at u8::MAX
+    const fn u16_to_u8(value: u16) -> u8 {
+        if value > u8::MAX as u16 {
+            u8::MAX
+        } else {
+            value as u8
+        }
+    }
+
     /// Transparent
-    pub const TRANSPARENT: Color = Color::rgba(0, 0, 0, 0);
+    pub const TRANSPARENT: Self = Self::rgba(0, 0, 0, 0);
     /// Black
-    pub const BLACK: Color = Color::rgb(0, 0, 0);
+    pub const BLACK: Self = Self::rgb(0, 0, 0);
     /// White
-    pub const WHITE: Color = Color::rgb(255, 255, 255);
+    pub const WHITE: Self = Self::rgb(255, 255, 255);
 }
 
 /// Helix brand colors
@@ -169,7 +178,7 @@ impl Point {
 
     /// Add offset
     #[must_use]
-    pub fn offset(&self, dx: i32, dy: i32) -> Self {
+    pub const fn offset(&self, dx: i32, dy: i32) -> Self {
         Self {
             x: self.x + dx,
             y: self.y + dy,
@@ -259,26 +268,26 @@ impl Rect {
     /// Right edge
     #[must_use]
     pub const fn right(&self) -> i32 {
-        self.x.saturating_add(self.width as i32)
+        self.x.saturating_add(Self::u32_to_i32_saturated(self.width))
     }
 
     /// Bottom edge
     #[must_use]
     pub const fn bottom(&self) -> i32 {
-        self.y.saturating_add(self.height as i32)
+        self.y.saturating_add(Self::u32_to_i32_saturated(self.height))
     }
 
     /// Center point
     #[must_use]
     pub const fn center(&self) -> Point {
         Point {
-            x: self.x.saturating_add((self.width / 2) as i32),
-            y: self.y.saturating_add((self.height / 2) as i32),
+            x: self.x.saturating_add(Self::u32_to_i32_saturated(self.width / 2)),
+            y: self.y.saturating_add(Self::u32_to_i32_saturated(self.height / 2)),
         }
     }
 
     /// Check if point is inside
-    pub fn contains(&self, point: Point) -> bool {
+    pub const fn contains(&self, point: Point) -> bool {
         point.x >= self.x && point.x < self.right() && point.y >= self.y && point.y < self.bottom()
     }
 
@@ -309,7 +318,32 @@ impl Rect {
         let h_diff = i64::from(container.height) - i64::from(self.height);
         let x = i64::from(container.x) + (w_diff / 2);
         let y = i64::from(container.y) + (h_diff / 2);
-        Self::new(x as i32, y as i32, self.width, self.height)
+        Self::new(
+            Self::i64_to_i32_saturated(x),
+            Self::i64_to_i32_saturated(y),
+            self.width,
+            self.height,
+        )
+    }
+
+    /// Convert u32 to i32, saturating at i32::MAX
+    const fn u32_to_i32_saturated(value: u32) -> i32 {
+        if value > i32::MAX as u32 {
+            i32::MAX
+        } else {
+            value as i32
+        }
+    }
+
+    /// Convert i64 to i32, saturating at boundaries
+    const fn i64_to_i32_saturated(value: i64) -> i32 {
+        if value < i32::MIN as i64 {
+            i32::MIN
+        } else if value > i32::MAX as i64 {
+            i32::MAX
+        } else {
+            value as i32
+        }
     }
 }
 
