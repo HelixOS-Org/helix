@@ -308,6 +308,7 @@ impl Timespec {
     }
 
     /// Compare times
+    #[allow(clippy::should_implement_trait)]
     pub fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         match self.sec.cmp(&other.sec) {
             core::cmp::Ordering::Equal => self.nsec.cmp(&other.nsec),
