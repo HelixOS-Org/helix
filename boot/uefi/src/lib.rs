@@ -755,7 +755,10 @@ impl UefiEnv {
     /// Get console for text I/O
     #[cfg(feature = "simple_text")]
     pub fn console(&self) -> Result<protocols::console::Console> {
-        let system_table = core::ptr::from_ref(self.system_table).cast_mut();
+        // Cast immutable reference to mutable pointer for UEFI protocol
+        // Note: Using `as *const _ as *mut _` for MSRV 1.75.0 compatibility
+        // (core::ptr::from_ref is stable only since 1.76.0)
+        let system_table = (self.system_table as *const _) as *mut _;
         Ok(unsafe { protocols::console::Console::new(system_table) })
     }
 
