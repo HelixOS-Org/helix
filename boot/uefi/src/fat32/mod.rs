@@ -841,7 +841,7 @@ impl FatFilesystem {
     pub fn volume_label(&self) -> &str {
         self.ebpb32
             .as_ref()
-            .map(|e| e.volume_label_str())
+            .map(Fat32Ebpb::volume_label_str)
             .unwrap_or("")
     }
 
