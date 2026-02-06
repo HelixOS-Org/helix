@@ -480,7 +480,7 @@ impl<'a> InodeRef<'a> {
     }
 }
 
-impl<'a> Drop for InodeRef<'a> {
+impl Drop for InodeRef<'_> {
     fn drop(&mut self) {
         if self.cache.inodes[self.index].inode.refcount > 0 {
             self.cache.inodes[self.index].inode.refcount -= 1;
