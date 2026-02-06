@@ -57,8 +57,8 @@ impl SerialPort {
             data_bits: mode.data_bits as u8,
             parity: Parity::from_raw(mode.parity()),
             stop_bits: StopBits::from_raw(mode.stop_bits()),
-            timeout: mode.timeout as u32,
-            fifo_depth: mode.receive_fifo_depth as u32,
+            timeout: mode.timeout,
+            fifo_depth: mode.receive_fifo_depth,
         };
 
         Self {
@@ -531,7 +531,7 @@ impl Parity {
         }
     }
 
-    fn to_raw(&self) -> EfiParity {
+    fn to_raw(self) -> EfiParity {
         match self {
             Self::None => EfiParity::None,
             Self::Even => EfiParity::Even,
@@ -588,7 +588,7 @@ impl StopBits {
         }
     }
 
-    fn to_raw(&self) -> EfiStopBits {
+    fn to_raw(self) -> EfiStopBits {
         match self {
             Self::One => EfiStopBits::One,
             Self::OnePointFive => EfiStopBits::OneFive,
