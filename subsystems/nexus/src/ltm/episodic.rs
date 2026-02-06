@@ -300,13 +300,13 @@ impl EpisodicMemory {
         // Index by boot
         self.by_boot
             .entry(self.current_boot)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(id);
 
         // Index by type
         self.by_type
             .entry(episode_type)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(id);
 
         self.episodes.insert(id, episode);
