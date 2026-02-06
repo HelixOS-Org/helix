@@ -216,30 +216,50 @@ impl Distributor {
 
     /// Read GICD_CTLR
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the GIC distributor/redistributor base address is valid.
     pub unsafe fn read_ctlr(&self) -> u32 {
         self.read_reg(GICD_CTLR)
     }
 
     /// Write GICD_CTLR
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_ctlr(&self, value: u32) {
         self.write_reg(GICD_CTLR, value);
     }
 
     /// Read GICD_TYPER
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the GIC distributor/redistributor base address is valid.
     pub unsafe fn read_typer(&self) -> u32 {
         self.read_reg(GICD_TYPER)
     }
 
     /// Read GICD_IIDR
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the GIC distributor/redistributor base address is valid.
     pub unsafe fn read_iidr(&self) -> u32 {
         self.read_reg(GICD_IIDR)
     }
 
     /// Get the number of supported interrupt lines
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized.
     pub unsafe fn num_interrupts(&self) -> u32 {
         let typer = self.read_typer();
         let it_lines = typer & GICD_TYPER_ITLINES_MASK;
@@ -248,6 +268,10 @@ impl Distributor {
 
     /// Get the number of implemented CPUs
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized.
     pub unsafe fn num_cpus(&self) -> u32 {
         let typer = self.read_typer();
         ((typer & GICD_TYPER_CPUNUMBER_MASK) >> 5) + 1
@@ -255,12 +279,20 @@ impl Distributor {
 
     /// Check if security extensions are supported
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized.
     pub unsafe fn has_security_extensions(&self) -> bool {
         (self.read_typer() & GICD_TYPER_SECURITY_EXTN) != 0
     }
 
     /// Wait for register write to complete (GICv3)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware will eventually signal completion.
     pub unsafe fn wait_for_rwp(&self) {
         while (self.read_ctlr() & GICD_CTLR_RWP) != 0 {
             core::hint::spin_loop();
@@ -273,6 +305,10 @@ impl Distributor {
 
     /// Enable an interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid and a handler is registered.
     pub unsafe fn enable_interrupt(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         self.write_reg(GICD_ISENABLER + reg_index * 4, 1 << bit);
@@ -280,6 +316,10 @@ impl Distributor {
 
     /// Disable an interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn disable_interrupt(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         self.write_reg(GICD_ICENABLER + reg_index * 4, 1 << bit);
@@ -287,12 +327,20 @@ impl Distributor {
 
     /// Check if an interrupt is enabled
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the system is ready for this feature to be enabled.
     pub unsafe fn is_enabled(&self, intid: u32) -> bool {
         let (reg_index, bit) = bit_reg_offset(intid);
         (self.read_reg(GICD_ISENABLER + reg_index * 4) & (1 << bit)) != 0
     }
 
     /// Disable all SPIs
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure disabling this feature won't cause system instability.
     pub unsafe fn disable_all_spis(&self) {
         let num_irqs = self.num_interrupts();
         for i in (SPI_BASE..num_irqs).step_by(32) {
@@ -307,6 +355,10 @@ impl Distributor {
 
     /// Set an interrupt pending
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the memory address is valid and properly aligned.
     pub unsafe fn set_pending(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         self.write_reg(GICD_ISPENDR + reg_index * 4, 1 << bit);
@@ -314,6 +366,10 @@ impl Distributor {
 
     /// Clear an interrupt pending state
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn clear_pending(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         self.write_reg(GICD_ICPENDR + reg_index * 4, 1 << bit);
@@ -321,6 +377,10 @@ impl Distributor {
 
     /// Check if an interrupt is pending
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn is_pending(&self, intid: u32) -> bool {
         let (reg_index, bit) = bit_reg_offset(intid);
         (self.read_reg(GICD_ISPENDR + reg_index * 4) & (1 << bit)) != 0
@@ -332,6 +392,10 @@ impl Distributor {
 
     /// Set an interrupt active
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn set_active(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         self.write_reg(GICD_ISACTIVER + reg_index * 4, 1 << bit);
@@ -339,6 +403,10 @@ impl Distributor {
 
     /// Clear an interrupt active state
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn clear_active(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         self.write_reg(GICD_ICACTIVER + reg_index * 4, 1 << bit);
@@ -346,6 +414,10 @@ impl Distributor {
 
     /// Check if an interrupt is active
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn is_active(&self, intid: u32) -> bool {
         let (reg_index, bit) = bit_reg_offset(intid);
         (self.read_reg(GICD_ISACTIVER + reg_index * 4) & (1 << bit)) != 0
@@ -357,6 +429,10 @@ impl Distributor {
 
     /// Set the priority of an interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for this GIC implementation.
     pub unsafe fn set_priority(&self, intid: u32, priority: Priority) {
         let (reg_index, byte_offset) = byte_reg_offset(intid);
         let addr =
@@ -366,6 +442,10 @@ impl Distributor {
 
     /// Get the priority of an interrupt
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn get_priority(&self, intid: u32) -> Priority {
         let (reg_index, byte_offset) = byte_reg_offset(intid);
         let addr =
@@ -374,6 +454,10 @@ impl Distributor {
     }
 
     /// Set all SPI priorities to a default value
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is appropriate for the current exception level.
     pub unsafe fn set_all_spi_priorities(&self, priority: Priority) {
         let num_irqs = self.num_interrupts();
         let value = (priority.value() as u32) * 0x01010101;
@@ -388,6 +472,10 @@ impl Distributor {
     // ========================================================================
 
     /// Set the trigger mode of an interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid and the mode is supported.
     pub unsafe fn set_trigger_mode(&self, intid: u32, mode: TriggerMode) {
         let (reg_index, bit_offset) = config_reg_offset(intid);
         let mut config = self.read_reg(GICD_ICFGR + reg_index * 4);
@@ -410,6 +498,10 @@ impl Distributor {
     }
 
     /// Get the trigger mode of an interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn get_trigger_mode(&self, intid: u32) -> TriggerMode {
         let (reg_index, bit_offset) = config_reg_offset(intid);
         let config = self.read_reg(GICD_ICFGR + reg_index * 4);
@@ -428,6 +520,10 @@ impl Distributor {
 
     /// Set an interrupt to Group 0 (secure, typically FIQ)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for group configuration.
     pub unsafe fn set_group0(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         let mut group = self.read_reg(GICD_IGROUPR + reg_index * 4);
@@ -437,6 +533,10 @@ impl Distributor {
 
     /// Set an interrupt to Group 1 (non-secure, typically IRQ)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for group configuration.
     pub unsafe fn set_group1(&self, intid: u32) {
         let (reg_index, bit) = bit_reg_offset(intid);
         let mut group = self.read_reg(GICD_IGROUPR + reg_index * 4);
@@ -445,6 +545,10 @@ impl Distributor {
     }
 
     /// Set all SPIs to Group 1 (non-secure)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is appropriate for the current exception level.
     pub unsafe fn set_all_spis_group1(&self) {
         let num_irqs = self.num_interrupts();
         for i in (SPI_BASE..num_irqs).step_by(32) {
@@ -459,6 +563,10 @@ impl Distributor {
 
     /// Read IROUTER for an SPI (GICv3)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid for routing queries.
     pub unsafe fn read_irouter(&self, intid: u32) -> u64 {
         debug_assert!(intid >= SPI_BASE);
         let offset = GICD_IROUTER + ((intid - SPI_BASE) as usize) * 8;
@@ -467,6 +575,10 @@ impl Distributor {
 
     /// Write IROUTER for an SPI (GICv3)
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID and target CPU are valid.
     pub unsafe fn write_irouter(&self, intid: u32, value: u64) {
         debug_assert!(intid >= SPI_BASE);
         let offset = GICD_IROUTER + ((intid - SPI_BASE) as usize) * 8;
