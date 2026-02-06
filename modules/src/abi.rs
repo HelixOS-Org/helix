@@ -158,6 +158,12 @@ pub struct SymbolTable {
     symbols: spin::RwLock<alloc::collections::BTreeMap<alloc::string::String, Symbol>>,
 }
 
+impl Default for SymbolTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SymbolTable {
     /// Create a new symbol table
     pub const fn new() -> Self {
