@@ -263,6 +263,7 @@ fn bench_irq_dispatch() -> u64 {
 
     // Lookup handler in IDT
     static HANDLERS: [AtomicU64; 256] = {
+        #[allow(clippy::declare_interior_mutable_const)]
         const INIT: AtomicU64 = AtomicU64::new(0);
         [INIT; 256]
     };
@@ -330,6 +331,7 @@ fn bench_keyboard_handler() -> u64 {
     // Add to keyboard buffer
     static KB_BUFFER_HEAD: AtomicU32 = AtomicU32::new(0);
     static KB_BUFFER: [AtomicU32; 64] = {
+        #[allow(clippy::declare_interior_mutable_const)]
         const INIT: AtomicU32 = AtomicU32::new(0);
         [INIT; 64]
     };
@@ -509,6 +511,7 @@ fn bench_exception_dispatch() -> u64 {
     let exception_num = 14u8; // Page fault
 
     static EXCEPTION_HANDLERS: [AtomicU64; 32] = {
+        #[allow(clippy::declare_interior_mutable_const)]
         const INIT: AtomicU64 = AtomicU64::new(0xDEAD);
         [INIT; 32]
     };
