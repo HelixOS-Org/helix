@@ -210,7 +210,7 @@ impl core::fmt::Debug for SmpResponse {
             .field("cpu_count", &self.cpu_count())
             .field("bsp_lapic_id", &self.bsp_lapic_id)
             .field("x2apic_enabled", &self.x2apic_enabled())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
