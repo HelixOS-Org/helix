@@ -946,10 +946,7 @@ impl PerfReport {
                 .phases
                 .slowest_phase()
                 .map_or(PhaseId::Unknown, |p| p.phase),
-            slowest_phase_time_ns: self
-                .phases
-                .slowest_phase()
-                .map_or(0, |p| p.duration_ns),
+            slowest_phase_time_ns: self.phases.slowest_phase().map_or(0, |p| p.duration_ns),
             total_mem_allocated: self.memory.total_allocated,
             peak_mem_usage: self.memory.peak_usage,
             total_io_read: self.io.total_read,
