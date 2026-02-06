@@ -55,6 +55,10 @@ impl AcpiParser {
     }
 
     /// Initialize from RSDP address
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&mut self, rsdp_address: PhysicalAddress) -> Result<()> {
         self.rsdp_address = rsdp_address;
 
