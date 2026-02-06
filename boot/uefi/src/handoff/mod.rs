@@ -436,6 +436,10 @@ impl HandoffPlacement {
     }
 
     /// Write boot info to memory
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write(&mut self, serializer: &HandoffSerializer) -> Result<()> {
         let data = serializer.buffer();
 
