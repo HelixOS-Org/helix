@@ -313,8 +313,10 @@ pub unsafe fn apply_relocations(
 
     use reloc_types::*;
 
-    let mut stats = RelocationStats::default();
-    stats.total_entries = rela_entries.len();
+    let mut stats = RelocationStats {
+        total_entries: rela_entries.len(),
+        ..RelocationStats::default()
+    };
 
     let slide = (load_base as i128 - link_base as i128) as i64;
 
