@@ -166,6 +166,12 @@ pub struct InterfaceRegistry {
     interfaces: spin::RwLock<alloc::collections::BTreeMap<String, Vec<ModuleId>>>,
 }
 
+impl Default for InterfaceRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InterfaceRegistry {
     /// Create a new registry
     pub const fn new() -> Self {
