@@ -87,12 +87,12 @@ impl<'a, 'b> Console<'a, 'b> {
 
     /// Get columns count
     pub fn columns(&self) -> usize {
-        self.fb.width() as usize / FONT_WIDTH
+        self.fb.width() / FONT_WIDTH
     }
 
     /// Get rows count
     pub fn rows(&self) -> usize {
-        self.fb.height() as usize / FONT_HEIGHT
+        self.fb.height() / FONT_HEIGHT
     }
 
     /// Move cursor to position
@@ -566,12 +566,12 @@ impl<'a, 'b> Graphics<'a, 'b> {
     /// Linear interpolation between two colors
     /// t is in range 0-255, where 0 = a, 255 = b
     fn lerp_color(a: Color, b: Color, t: u8) -> Color {
-        let t = t as u16;
+        let t = u16::from(t);
         let inv_t = 255 - t;
         Color::rgb(
-            ((a.r as u16 * inv_t + b.r as u16 * t) / 255) as u8,
-            ((a.g as u16 * inv_t + b.g as u16 * t) / 255) as u8,
-            ((a.b as u16 * inv_t + b.b as u16 * t) / 255) as u8,
+            ((u16::from(a.r) * inv_t + u16::from(b.r) * t) / 255) as u8,
+            ((u16::from(a.g) * inv_t + u16::from(b.g) * t) / 255) as u8,
+            ((u16::from(a.b) * inv_t + u16::from(b.b) * t) / 255) as u8,
         )
     }
 }
