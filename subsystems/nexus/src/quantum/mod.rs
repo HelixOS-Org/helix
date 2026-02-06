@@ -415,7 +415,7 @@ impl IsingModel {
 
         // Convert QUBO to Ising
         // x = (s + 1) / 2 where s ∈ {-1, +1}
-        for i in 0..n {
+        for (i, h_i) in h.iter_mut().enumerate() {
             let mut local_field = qubo.linear[i] / 2.0;
             offset += qubo.linear[i] / 2.0;
 
@@ -430,7 +430,7 @@ impl IsingModel {
                     offset += q / 4.0;
                 }
             }
-            h[i] = local_field;
+            *h_i = local_field;
         }
 
         for i in 0..n {
@@ -967,11 +967,11 @@ impl QuantumSchedulerOptimizer {
     fn decode_schedule(&self, solution: &[bool]) -> NexusResult<Vec<usize>> {
         let mut schedule = alloc::vec![0; self.num_tasks];
 
-        for task in 0..self.num_tasks {
+        for (task, slot) in schedule.iter_mut().enumerate().take(self.num_tasks) {
             for cpu in 0..self.num_cpus {
                 let idx = task * self.num_cpus + cpu;
                 if solution.get(idx).copied().unwrap_or(false) {
-                    schedule[task] = cpu;
+                    *slot = cpu;
                     break;
                 }
             }
@@ -986,14 +986,20 @@ pub struct QuantumMemoryOptimizer {
     optimizer: QuantumOptimizer,
 }
 
-impl QuantumMemoryOptimizer {
-    pub fn new() -> Self {
+impl Default for QuantumMemoryOptimizer {
+    fn default() -> Self {
         Self {
             optimizer: QuantumOptimizer::new(
                 OptimizationProblem::MemoryLayout,
                 QuantumOptimizerConfig::default(),
             ),
         }
+    }
+}
+
+impl QuantumMemoryOptimizer {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Optimize memory layout using quantum annealing
@@ -1061,11 +1067,11 @@ impl QuantumMemoryOptimizer {
     fn decode_layout(&self, solution: &[bool], n: usize) -> NexusResult<Vec<usize>> {
         let mut layout = alloc::vec![0; n];
 
-        for block in 0..n {
+        for (block, slot) in layout.iter_mut().enumerate() {
             for pos in 0..n {
                 let idx = block * n + pos;
                 if solution.get(idx).copied().unwrap_or(false) {
-                    layout[block] = pos;
+                    *slot = pos;
                     break;
                 }
             }
