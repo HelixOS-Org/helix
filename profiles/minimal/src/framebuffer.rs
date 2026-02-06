@@ -98,7 +98,10 @@ impl From<u32> for Color {
 
 impl From<Color> for u32 {
     fn from(c: Color) -> Self {
-        (c.alpha as u32) << 24 | (c.red as u32) << 16 | (c.green as u32) << 8 | c.blue as u32
+        ((c.alpha as u32) << 24)
+            | ((c.red as u32) << 16)
+            | ((c.green as u32) << 8)
+            | (c.blue as u32)
     }
 }
 
@@ -131,6 +134,7 @@ pub fn is_initialized() -> bool {
 }
 
 /// Get framebuffer info
+#[allow(dead_code)]
 pub fn get_info() -> Option<FramebufferInfo> {
     if !is_initialized() {
         return None;
@@ -203,6 +207,7 @@ pub unsafe fn clear(color: Color) {
 /// # Safety
 ///
 /// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
+#[allow(dead_code)]
 pub unsafe fn fill_rect(x: u32, y: u32, w: u32, h: u32, color: Color) {
     if !is_initialized() {
         return;
@@ -210,8 +215,6 @@ pub unsafe fn fill_rect(x: u32, y: u32, w: u32, h: u32, color: Color) {
 
     let width = FB_WIDTH.load(Ordering::Relaxed);
     let height = FB_HEIGHT.load(Ordering::Relaxed);
-
-    let color_val: u32 = color.into();
 
     for dy in 0..h {
         let py = y + dy;
@@ -233,6 +236,7 @@ pub unsafe fn fill_rect(x: u32, y: u32, w: u32, h: u32, color: Color) {
 /// # Safety
 ///
 /// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
+#[allow(dead_code)]
 pub unsafe fn draw_gradient_bar(x: u32, y: u32, w: u32, h: u32) {
     if !is_initialized() {
         return;
@@ -256,6 +260,7 @@ pub unsafe fn draw_gradient_bar(x: u32, y: u32, w: u32, h: u32) {
 /// # Safety
 ///
 /// The caller must ensure the target CPU exists and the entry point is valid.
+#[allow(dead_code)]
 pub unsafe fn draw_boot_splash() {
     if !is_initialized() {
         crate::serial_write_str("  [FB] Cannot draw splash - framebuffer not initialized\n");
@@ -363,6 +368,7 @@ unsafe fn draw_helix_logo(x: u32, y: u32) {
 /// # Safety
 ///
 /// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
+#[allow(dead_code)]
 pub unsafe fn draw_test_pattern() {
     if !is_initialized() {
         return;
@@ -655,7 +661,7 @@ pub unsafe fn draw_char(x: u32, y: u32, c: char, fg: Color, bg: Color) {
     }
 
     // Get character index (ASCII 32-126)
-    let idx = if c >= ' ' && c <= '~' {
+    let idx = if (' '..='~').contains(&c) {
         (c as usize) - 32
     } else {
         0 // Space for unknown characters
@@ -663,8 +669,7 @@ pub unsafe fn draw_char(x: u32, y: u32, c: char, fg: Color, bg: Color) {
 
     let glyph = &FONT_8X16[idx * 16..(idx + 1) * 16];
 
-    for row in 0..16 {
-        let bits = glyph[row];
+    for (row, &bits) in glyph.iter().enumerate() {
         for col in 0..8 {
             let px = x + col;
             let py = y + row as u32;
@@ -775,6 +780,7 @@ pub fn console_write_str(s: &str) {
 }
 
 /// Clear the console
+#[allow(dead_code)]
 pub fn console_clear() {
     if !console_is_ready() {
         return;
@@ -790,6 +796,7 @@ pub fn console_clear() {
 }
 
 /// Set console colors
+#[allow(dead_code)]
 pub fn console_set_colors(fg: Color, bg: Color) {
     CONSOLE_FG.store(fg.into(), Ordering::SeqCst);
     CONSOLE_BG.store(bg.into(), Ordering::SeqCst);
@@ -824,8 +831,8 @@ macro_rules! gprint {
         use core::fmt::Write;
         let mut s = alloc::string::String::new();
         write!(s, $($arg)*).ok();
-        crate::framebuffer::console_write_str(&s);
-        crate::serial_write_str(&s);
+        $crate::framebuffer::console_write_str(&s);
+        $crate::serial_write_str(&s);
     }};
 }
 
