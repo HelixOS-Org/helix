@@ -147,6 +147,7 @@ impl SmbiosTables {
     /// # Safety
     ///
     /// The table memory must be valid and readable.
+    #[allow(clippy::unnecessary_wraps)]
     unsafe fn parse_structures(&mut self) -> Result<()> {
         let end = PhysicalAddress(self.table_address.0 + u64::from(self.table_length));
         let mut ptr = self.table_address;
@@ -713,8 +714,8 @@ impl SystemInfo {
 
         if s.length >= 0x19 {
             let mut uuid_bytes = [0u8; 16];
-            for i in 0..16 {
-                uuid_bytes[i] = *data.add(4 + i);
+            for (i, byte) in uuid_bytes.iter_mut().enumerate() {
+                *byte = *data.add(4 + i);
             }
             uuid = Some(uuid_bytes);
             wakeup_type = WakeupType::from_byte(*data.add(20));
