@@ -5,6 +5,7 @@
 pub mod local_storage;
 pub mod registry;
 pub mod states;
+#[allow(clippy::module_inception)]
 pub mod thread;
 
 pub use registry::*;
