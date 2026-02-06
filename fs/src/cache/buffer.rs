@@ -174,6 +174,12 @@ pub struct HashBucket {
     _pad: [u8; 56],
 }
 
+impl Default for HashBucket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HashBucket {
     /// Create new bucket
     pub const fn new() -> Self {
@@ -562,7 +568,7 @@ impl<'a> BufferRef<'a> {
     }
 }
 
-impl<'a> Drop for BufferRef<'a> {
+impl Drop for BufferRef<'_> {
     fn drop(&mut self) {
         self.cache.release(self.handle);
     }
@@ -596,7 +602,7 @@ impl<'a> DirtyIterator<'a> {
     }
 }
 
-impl<'a> Iterator for DirtyIterator<'a> {
+impl Iterator for DirtyIterator<'_> {
     type Item = CacheHandle;
 
     fn next(&mut self) -> Option<Self::Item> {
