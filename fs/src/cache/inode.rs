@@ -395,6 +395,12 @@ pub struct InodeHashBucket {
     _pad: [u8; 56],
 }
 
+impl Default for InodeHashBucket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InodeHashBucket {
     /// Create new bucket
     pub const fn new() -> Self {
@@ -793,7 +799,7 @@ impl<'a> InodeRef<'a> {
     }
 }
 
-impl<'a> Drop for InodeRef<'a> {
+impl Drop for InodeRef<'_> {
     fn drop(&mut self) {
         self.cache.release(self.handle);
     }
