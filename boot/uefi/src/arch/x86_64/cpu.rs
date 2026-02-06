@@ -650,9 +650,9 @@ mod tests {
     fn test_feature_detection() {
         let features = detect_features();
         // These should always be true on x86_64
-        assert!(features.sse);
-        assert!(features.sse2);
-        assert!(features.tsc);
+        assert!(features.contains(CpuFeatures::SSE));
+        assert!(features.contains(CpuFeatures::SSE2));
+        assert!(features.contains(CpuFeatures::TSC));
     }
 
     #[test]
