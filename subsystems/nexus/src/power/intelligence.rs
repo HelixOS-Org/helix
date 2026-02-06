@@ -68,7 +68,7 @@ impl PowerIntelligence {
     /// Update power state with current conditions
     pub fn update(&mut self, cpu_load: f64, minute: u8) -> PowerDecision {
         // Update P-state based on load
-        let p_state = self.pstate.update(cpu_load, minute).clone();
+        let p_state = *self.pstate.update(cpu_load, minute);
 
         // Select C-state for next idle
         let c_state = self.cstate.select();
