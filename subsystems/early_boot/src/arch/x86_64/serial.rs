@@ -170,6 +170,10 @@ impl SerialPort {
     }
 
     /// Check if port exists
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure hardware probing is safe at this point.
     pub unsafe fn exists(&self) -> bool {
         // Write to scratch register and read back
         self.write_reg(REG_SR, 0xAE);
@@ -178,6 +182,10 @@ impl SerialPort {
     }
 
     /// Initialize the serial port
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self, config: &SerialConfig) -> BootResult<()> {
         if !self.exists() {
             return Err(BootError::HardwareNotSupported);
@@ -250,6 +258,10 @@ impl SerialPort {
     }
 
     /// Write a byte (blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_byte(&self, byte: u8) {
         // Wait for transmit buffer
         while !self.can_transmit() {
@@ -259,6 +271,10 @@ impl SerialPort {
     }
 
     /// Read a byte (blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn read_byte(&self) -> u8 {
         // Wait for data
         while !self.data_available() {
@@ -268,6 +284,10 @@ impl SerialPort {
     }
 
     /// Try to write a byte (non-blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn try_write_byte(&self, byte: u8) -> bool {
         if self.can_transmit() {
             self.write_reg(REG_DATA, byte);
@@ -278,6 +298,10 @@ impl SerialPort {
     }
 
     /// Try to read a byte (non-blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn try_read_byte(&self) -> Option<u8> {
         if self.data_available() {
             Some(self.read_reg(REG_DATA))
@@ -287,6 +311,10 @@ impl SerialPort {
     }
 
     /// Write a string
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_str(&self, s: &str) {
         for byte in s.bytes() {
             if byte == b'\n' {
@@ -302,6 +330,10 @@ impl SerialPort {
     }
 
     /// Check for errors
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn check_errors(&self) -> Option<SerialError> {
         let lsr = self.read_reg(REG_LSR);
 
@@ -351,6 +383,10 @@ pub static mut COM1: SerialPort = SerialPort::new(COM1_BASE);
 pub static mut COM2: SerialPort = SerialPort::new(COM2_BASE);
 
 /// Initialize the primary serial port
+///
+/// # Safety
+///
+/// The caller must ensure serial port I/O is safe and the port is not in use.
 pub unsafe fn init_serial(config: &SerialConfig) -> BootResult<()> {
     let port = if config.port == 0 {
         COM1_BASE
@@ -369,6 +405,10 @@ pub unsafe fn init_serial(config: &SerialConfig) -> BootResult<()> {
 }
 
 /// Write to the primary serial port
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn serial_write(s: &str) {
     if !SERIAL_INITIALIZED.load(Ordering::SeqCst) {
         return;
@@ -379,6 +419,10 @@ pub unsafe fn serial_write(s: &str) {
 }
 
 /// Write a byte to the primary serial port
+///
+/// # Safety
+///
+/// The caller must ensure the value is valid for the current system state.
 pub unsafe fn serial_write_byte(byte: u8) {
     if !SERIAL_INITIALIZED.load(Ordering::SeqCst) {
         return;
@@ -389,12 +433,20 @@ pub unsafe fn serial_write_byte(byte: u8) {
 }
 
 /// Read from the primary serial port (blocking)
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn serial_read() -> u8 {
     let serial = SerialPort::new(SERIAL_BASE);
     serial.read_byte()
 }
 
 /// Try to read from the primary serial port (non-blocking)
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn serial_try_read() -> Option<u8> {
     let serial = SerialPort::new(SERIAL_BASE);
     serial.try_read_byte()
