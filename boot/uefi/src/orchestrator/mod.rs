@@ -37,10 +37,11 @@ use core::fmt;
 // =============================================================================
 
 /// Boot phase
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[repr(u8)]
 pub enum BootPhase {
     /// Not started
+    #[default]
     NotStarted         = 0,
     /// Firmware entry
     FirmwareEntry      = 1,
@@ -80,12 +81,6 @@ pub enum BootPhase {
     BootComplete       = 18,
     /// Boot failed
     BootFailed         = 255,
-}
-
-impl Default for BootPhase {
-    fn default() -> Self {
-        BootPhase::NotStarted
-    }
 }
 
 impl fmt::Display for BootPhase {
@@ -926,9 +921,10 @@ pub enum HookType {
 }
 
 /// Hook result
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HookResult {
     /// Continue normally
+    #[default]
     Continue,
     /// Skip phase
     Skip,
@@ -936,12 +932,6 @@ pub enum HookResult {
     Retry,
     /// Abort boot
     Abort,
-}
-
-impl Default for HookResult {
-    fn default() -> Self {
-        HookResult::Continue
-    }
 }
 
 /// Hook registration
