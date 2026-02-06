@@ -166,10 +166,10 @@ impl<'a, 'b> Console<'a, 'b> {
     /// Scroll the console up by one line
     fn scroll_up(&mut self) {
         let line_height = FONT_HEIGHT;
-        let bytes_per_pixel = self.fb.bpp() as usize / 8;
-        let pitch = self.fb.pitch() as usize;
-        let width = self.fb.width() as usize;
-        let height = self.fb.height() as usize;
+        let bytes_per_pixel = (self.fb.bpp() / 8) as usize;
+        let pitch = self.fb.pitch();
+        let width = self.fb.width();
+        let height = self.fb.height();
 
         // Copy lines up
         let line_bytes = width * bytes_per_pixel;
@@ -536,8 +536,8 @@ impl<'a, 'b> Graphics<'a, 'b> {
 
     /// Fill the entire framebuffer
     pub fn clear(&self, color: Color) {
-        let width = self.fb.width() as usize;
-        let height = self.fb.height() as usize;
+        let width = self.fb.width();
+        let height = self.fb.height();
         for y in 0..height {
             for x in 0..width {
                 self.fb.set_pixel(x, y, color);
@@ -609,14 +609,14 @@ impl DoubleBuffer {
     ///
     /// The back buffer must be a valid memory region of at least `pitch * height` bytes.
     pub unsafe fn new(fb: &Framebuffer, back_buffer: *mut u8) -> Self {
-        let size = fb.pitch() as usize * fb.height() as usize;
+        let size = fb.pitch() * fb.height();
         Self {
             front: fb.address(),
             back: back_buffer,
             size,
-            width: fb.width() as usize,
-            height: fb.height() as usize,
-            pitch: fb.pitch() as usize,
+            width: fb.width(),
+            height: fb.height(),
+            pitch: fb.pitch(),
             bpp: fb.bpp() as usize,
             format: fb.pixel_format(),
             owns_back: false,
