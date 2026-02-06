@@ -34,7 +34,7 @@ use super::tsc;
 /// Default APIC timer vector
 pub const TIMER_VECTOR: u8 = 0x40;
 
-/// Maximum supported CPUs
+/// Maximum number of CPUs supported for per-CPU timer state
 const MAX_CPUS: usize = 256;
 
 // =============================================================================
@@ -57,13 +57,21 @@ pub enum ApicTimerMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum ApicTimerDivide {
+    /// Divide by 1 (no division)
     By1   = 0b1011,
+    /// Divide by 2
     By2   = 0b0000,
+    /// Divide by 4
     By4   = 0b0001,
+    /// Divide by 8
     By8   = 0b0010,
+    /// Divide by 16
     By16  = 0b0011,
+    /// Divide by 32
     By32  = 0b1000,
+    /// Divide by 64
     By64  = 0b1001,
+    /// Divide by 128
     By128 = 0b1010,
 }
 
@@ -87,15 +95,15 @@ impl ApicTimerDivide {
 // Per-CPU State
 // =============================================================================
 
-/// Per-CPU timer state
+/// Per-CPU timer state tracking calibration and configuration
 struct PerCpuTimerState {
-    /// Timer frequency (ticks per second)
+    /// Timer frequency in ticks per second (Hz)
     frequency: AtomicU64,
-    /// Timer is calibrated
+    /// Whether the timer has been calibrated
     calibrated: AtomicBool,
-    /// Current mode
+    /// Current operating mode (one-shot, periodic, or TSC-deadline)
     mode: AtomicU32,
-    /// Timer vector
+    /// Interrupt vector number for timer interrupts
     vector: AtomicU32,
 }
 
@@ -110,10 +118,10 @@ impl PerCpuTimerState {
     }
 }
 
-/// Per-CPU timer states
+/// Array of per-CPU timer states indexed by CPU ID
 static PER_CPU_TIMER: [PerCpuTimerState; MAX_CPUS] = [const { PerCpuTimerState::new() }; MAX_CPUS];
 
-/// TSC-deadline mode available
+/// Global flag indicating whether TSC-deadline mode is supported by the CPU
 static TSC_DEADLINE_AVAILABLE: AtomicBool = AtomicBool::new(false);
 
 // =============================================================================
@@ -123,10 +131,15 @@ static TSC_DEADLINE_AVAILABLE: AtomicBool = AtomicBool::new(false);
 // These would normally come from the APIC module, but we'll define local versions
 // to avoid circular dependencies
 
+/// Local APIC register offsets for timer configuration
 mod apic_regs {
+    /// Local Vector Table (LVT) Timer register offset
     pub const LVT_TIMER: u32 = 0x320;
+    /// Timer Initial Count Register (ICR) offset
     pub const TIMER_ICR: u32 = 0x380;
+    /// Timer Current Count Register (CCR) offset
     pub const TIMER_CCR: u32 = 0x390;
+    /// Timer Divide Configuration Register (DCR) offset
     pub const TIMER_DCR: u32 = 0x3E0;
 }
 
@@ -219,7 +232,10 @@ pub unsafe fn calibrate(cpu_id: usize) -> Result<u64, ApicTimerError> {
     Ok(frequency)
 }
 
-/// Calibrate using the PIT
+/// Calibrate the APIC timer frequency using the Programmable Interval Timer (PIT)
+///
+/// Uses the TSC as a timing reference if the frequency is known via CPUID,
+/// otherwise falls back to an estimated frequency.
 unsafe fn calibrate_with_pit() -> Result<u64, ApicTimerError> {
     const PIT_FREQ: u64 = 1_193_182;
     const CALIBRATION_MS: u64 = 10;
@@ -388,12 +404,16 @@ pub unsafe fn stop(cpu_id: usize) -> Result<(), ApicTimerError> {
     Ok(())
 }
 
-/// Read current timer count
+/// Read the current countdown value from the APIC timer
+///
+/// Returns the remaining ticks until the timer fires (or 0 if stopped).
 pub fn read_current_count() -> u32 {
     unsafe { read_apic(apic_regs::TIMER_CCR) }
 }
 
-/// Get timer frequency for a CPU
+/// Get the calibrated timer frequency for a specific CPU
+///
+/// Returns `None` if the CPU ID is invalid or the timer hasn't been calibrated.
 pub fn get_frequency(cpu_id: usize) -> Option<u64> {
     if cpu_id >= MAX_CPUS {
         return None;
@@ -406,7 +426,10 @@ pub fn get_frequency(cpu_id: usize) -> Option<u64> {
     }
 }
 
-/// Check if TSC-deadline mode is available
+/// Check if TSC-deadline mode is available on this CPU
+///
+/// TSC-deadline mode provides higher precision timing by comparing directly
+/// against the TSC value rather than using a countdown counter.
 pub fn tsc_deadline_available() -> bool {
     TSC_DEADLINE_AVAILABLE.load(Ordering::Relaxed)
 }
@@ -446,8 +469,9 @@ impl core::fmt::Display for ApicTimerError {
 // APIC Timer Structure
 // =============================================================================
 
-/// APIC Timer abstraction
+/// APIC Timer abstraction providing a per-CPU timer interface
 pub struct ApicTimer {
+    /// The CPU ID this timer instance is associated with
     cpu_id: usize,
 }
 
@@ -466,7 +490,7 @@ impl ApicTimer {
         self.cpu_id
     }
 
-    /// Check if calibrated
+    /// Check if this CPU's APIC timer has been calibrated
     #[inline]
     pub fn is_calibrated(&self) -> bool {
         PER_CPU_TIMER[self.cpu_id]
@@ -474,13 +498,15 @@ impl ApicTimer {
             .load(Ordering::Relaxed)
     }
 
-    /// Get frequency
+    /// Get the calibrated timer frequency in Hz
     #[inline]
     pub fn frequency(&self) -> Option<u64> {
         get_frequency(self.cpu_id)
     }
 
-    /// Calculate ticks for a duration in nanoseconds
+    /// Convert nanoseconds to timer ticks based on calibrated frequency
+    ///
+    /// Returns `None` if not calibrated or if the result would overflow `u32`.
     pub fn ns_to_ticks(&self, ns: u64) -> Option<u32> {
         let freq = self.frequency()?;
         let ticks = (ns as u128 * freq as u128) / 1_000_000_000;
@@ -491,12 +517,16 @@ impl ApicTimer {
         }
     }
 
-    /// Calculate ticks for a duration in microseconds
+    /// Convert microseconds to timer ticks based on calibrated frequency
+    ///
+    /// Returns `None` if not calibrated or if the result would overflow `u32`.
     pub fn us_to_ticks(&self, us: u64) -> Option<u32> {
         self.ns_to_ticks(us * 1_000)
     }
 
-    /// Calculate ticks for a duration in milliseconds
+    /// Convert milliseconds to timer ticks based on calibrated frequency
+    ///
+    /// Returns `None` if not calibrated or if the result would overflow `u32`.
     pub fn ms_to_ticks(&self, ms: u64) -> Option<u32> {
         self.ns_to_ticks(ms * 1_000_000)
     }
@@ -541,7 +571,9 @@ impl ApicTimer {
         unsafe { stop(self.cpu_id) }
     }
 
-    /// Read current count
+    /// Read the current countdown value from the APIC timer
+    ///
+    /// Returns the remaining ticks until the timer fires.
     #[inline]
     pub fn current_count(&self) -> u32 {
         read_current_count()
