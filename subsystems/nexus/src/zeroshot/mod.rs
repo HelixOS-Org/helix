@@ -158,10 +158,7 @@ impl PrototypeNetwork {
 
         for (class_id, features) in support {
             let embedding = self.encoder.encode(features);
-            temp_support
-                .entry(*class_id)
-                .or_default()
-                .push(embedding);
+            temp_support.entry(*class_id).or_default().push(embedding);
         }
 
         // Compute prototypes
