@@ -3,6 +3,7 @@
 //! Interface with UEFI Secure Boot variables, certificate databases, and verification.
 
 extern crate alloc;
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use super::hash::Sha256;
@@ -642,7 +643,7 @@ impl SecureBootVerifier {
 
                 SecureBootResult::Allowed {
                     method: AllowMethod::ValidSignature,
-                    signer: result.signer,
+                    signer: result.signer.map(Box::new),
                 }
             },
             Err(SignatureError::NoSignature) => SecureBootResult::Denied {
@@ -688,7 +689,7 @@ pub enum SecureBootResult {
         /// Method used to allow
         method: AllowMethod,
         /// Signer certificate (if signature verified)
-        signer: Option<X509Certificate>,
+        signer: Option<Box<X509Certificate>>,
     },
     /// Image is denied
     Denied {
