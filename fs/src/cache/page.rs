@@ -214,6 +214,12 @@ pub struct PageHashBucket {
     _pad: [u8; 56],
 }
 
+impl Default for PageHashBucket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PageHashBucket {
     /// Create new bucket
     pub const fn new() -> Self {
@@ -336,7 +342,7 @@ impl PageRange {
     /// From byte range
     pub fn from_bytes(offset: u64, len: u64) -> Self {
         let start = offset / PAGE_SIZE as u64;
-        let end = (offset + len + PAGE_SIZE as u64 - 1) / PAGE_SIZE as u64;
+        let end = (offset + len).div_ceil(PAGE_SIZE as u64);
         Self { start, end }
     }
 
