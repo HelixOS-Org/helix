@@ -9,6 +9,8 @@ use core::ops::{Add, BitAnd, BitOr, Not, Sub};
 
 #[cfg(feature = "alloc")]
 extern crate alloc as alloc_crate;
+#[cfg(feature = "alloc")]
+use alloc_crate::boxed::Box;
 
 // ============================================================================
 // Block and Inode Types
@@ -1187,7 +1189,7 @@ pub enum DirEntryName {
     /// Inline name (up to 248 bytes)
     Inline {
         len: u8,
-        bytes: [u8; DIRENT_INLINE_NAME_LEN],
+        bytes: Box<[u8; DIRENT_INLINE_NAME_LEN]>,
     },
     #[cfg(feature = "alloc")]
     /// Heap-allocated name for longer names
@@ -1202,7 +1204,7 @@ impl DirEntryName {
             bytes[..s.len()].copy_from_slice(s);
             Self::Inline {
                 len: s.len() as u8,
-                bytes,
+                bytes: Box::new(bytes),
             }
         } else {
             #[cfg(feature = "alloc")]
@@ -1216,7 +1218,7 @@ impl DirEntryName {
                 bytes.copy_from_slice(&s[..DIRENT_INLINE_NAME_LEN]);
                 Self::Inline {
                     len: DIRENT_INLINE_NAME_LEN as u8,
-                    bytes,
+                    bytes: Box::new(bytes),
                 }
             }
         }
