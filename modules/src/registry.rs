@@ -33,6 +33,12 @@ pub struct ModuleRegistry {
     provides: RwLock<BTreeMap<String, Vec<ModuleId>>>,
 }
 
+impl Default for ModuleRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ModuleRegistry {
     /// Create a new registry
     pub const fn new() -> Self {
