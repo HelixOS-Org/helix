@@ -637,12 +637,12 @@ impl PolicyGradient {
             // For softmax: ∂log π(a|s) / ∂θ_a = features * (1 - π(a|s))
             //              ∂log π(a|s) / ∂θ_b = features * (-π(b|s)) for b ≠ a
 
-            for a in 0..self.num_actions {
-                for f in 0..self.feature_dim {
+            for (a, &prob) in probs.iter().enumerate().take(self.num_actions) {
+                for (f, &feature) in features.iter().enumerate().take(self.feature_dim) {
                     let grad = if a == action {
-                        features[f] * (1.0 - probs[a])
+                        feature * (1.0 - prob)
                     } else {
-                        features[f] * (-probs[a])
+                        feature * (-prob)
                     };
 
                     self.weights[a][f] += self.learning_rate * advantage * grad;
@@ -730,19 +730,21 @@ impl ActorCritic {
         let td_error = reward + self.discount * next_value - current_value;
 
         // Update critic
-        for i in 0..self.feature_dim {
-            self.critic_weights[i] += self.critic_lr * td_error * state_features[i];
+        for (critic_weight, state_feature) in
+            self.critic_weights.iter_mut().zip(state_features.iter())
+        {
+            *critic_weight += self.critic_lr * td_error * state_feature;
         }
 
         // Update actor using TD error as advantage
         let probs = self.actor.action_probs(state_features);
 
-        for a in 0..self.actor.num_actions {
-            for f in 0..self.feature_dim {
+        for (a, &prob) in probs.iter().enumerate().take(self.actor.num_actions) {
+            for (f, &feature) in state_features.iter().enumerate().take(self.feature_dim) {
                 let grad = if a == action {
-                    state_features[f] * (1.0 - probs[a])
+                    feature * (1.0 - prob)
                 } else {
-                    state_features[f] * (-probs[a])
+                    feature * (-prob)
                 };
 
                 self.actor.weights[a][f] += self.actor.learning_rate * td_error * grad;
@@ -1005,6 +1007,7 @@ impl KernelRLAgent {
     }
 
     /// Learn from experience
+    #[allow(clippy::too_many_arguments)]
     pub fn learn(
         &mut self,
         prev_cpu: f64,
