@@ -99,6 +99,8 @@ impl MemoryManager {
 
     /// Calculate memory statistics
     fn calculate_stats(&mut self) {
+        use crate::raw::memory::MemoryType;
+
         if let Some(ref map) = self.map {
             let mut total = 0u64;
             let mut usable = 0u64;
@@ -112,8 +114,6 @@ impl MemoryManager {
             for desc in map.descriptors() {
                 let size = desc.number_of_pages * 4096;
                 total += size;
-
-                use crate::raw::memory::MemoryType;
                 let mt = desc.memory_type;
                 if mt == MemoryType::ConventionalMemory as u32 {
                     usable += size;
@@ -375,7 +375,7 @@ pub const fn page_align_down(addr: u64) -> u64 {
 
 /// Calculate number of pages for size
 pub const fn size_to_pages(size: u64) -> u64 {
-    (size + PAGE_SIZE - 1) / PAGE_SIZE
+    size.div_ceil(PAGE_SIZE)
 }
 
 /// Calculate size from pages
