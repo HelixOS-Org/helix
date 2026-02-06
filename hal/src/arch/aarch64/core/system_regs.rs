@@ -112,6 +112,10 @@ pub fn read_sctlr_el1() -> Sctlr {
 
 /// Write SCTLR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the system is in a valid state for modifying this system register.
 pub unsafe fn write_sctlr_el1(value: Sctlr) {
     asm!("msr SCTLR_EL1, {}", in(reg) value.bits(), options(nomem, nostack, preserves_flags));
 }
@@ -235,6 +239,10 @@ pub fn read_tcr_el1() -> Tcr {
 
 /// Write TCR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure this MSR is valid for the current CPU and the value is appropriate.
 pub unsafe fn write_tcr_el1(value: Tcr) {
     asm!("msr TCR_EL1, {}", in(reg) value.bits(), options(nomem, nostack, preserves_flags));
 }
@@ -311,6 +319,10 @@ pub fn read_mair_el1() -> Mair {
 
 /// Write MAIR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the system is in a valid state for modifying this system register.
 pub unsafe fn write_mair_el1(value: Mair) {
     asm!("msr MAIR_EL1, {}", in(reg) value.0, options(nomem, nostack, preserves_flags));
 }
@@ -371,6 +383,10 @@ pub fn read_ttbr0_el1() -> u64 {
 
 /// Write TTBR0_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the page table pointer is valid and properly aligned.
 pub unsafe fn write_ttbr0_el1(value: u64) {
     asm!("msr TTBR0_EL1, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -387,6 +403,10 @@ pub fn read_ttbr1_el1() -> u64 {
 
 /// Write TTBR1_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the page table pointer is valid and properly aligned.
 pub unsafe fn write_ttbr1_el1(value: u64) {
     asm!("msr TTBR1_EL1, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -407,6 +427,10 @@ pub fn read_vbar_el1() -> u64 {
 
 /// Write VBAR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the vector table is properly set up and the address is valid.
 pub unsafe fn write_vbar_el1(value: u64) {
     asm!("msr VBAR_EL1, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -473,6 +497,10 @@ pub fn read_elr_el1() -> u64 {
 
 /// Write ELR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the value is appropriate for the current exception level.
 pub unsafe fn write_elr_el1(value: u64) {
     asm!("msr ELR_EL1, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -493,6 +521,10 @@ pub fn read_spsr_el1() -> u64 {
 
 /// Write SPSR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the value is appropriate for the current exception level.
 pub unsafe fn write_spsr_el1(value: u64) {
     asm!("msr SPSR_EL1, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -513,6 +545,10 @@ pub fn read_sp_el0() -> u64 {
 
 /// Write SP_EL0
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the value is appropriate for the current exception level.
 pub unsafe fn write_sp_el0(value: u64) {
     asm!("msr SP_EL0, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -533,6 +569,10 @@ pub fn read_tpidr_el1() -> u64 {
 
 /// Write TPIDR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the thread pointer value is valid.
 pub unsafe fn write_tpidr_el1(value: u64) {
     asm!("msr TPIDR_EL1, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -553,6 +593,10 @@ pub fn read_tpidr_el0() -> u64 {
 
 /// Write TPIDR_EL0
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the thread pointer value is valid.
 pub unsafe fn write_tpidr_el0(value: u64) {
     asm!("msr TPIDR_EL0, {}", in(reg) value, options(nomem, nostack, preserves_flags));
 }
@@ -620,12 +664,20 @@ pub fn read_cpacr_el1() -> Cpacr {
 
 /// Write CPACR_EL1
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure this MSR is valid for the current CPU and the value is appropriate.
 pub unsafe fn write_cpacr_el1(value: Cpacr) {
     asm!("msr CPACR_EL1, {}", in(reg) value.bits(), options(nomem, nostack, preserves_flags));
 }
 
 /// Enable FP/SIMD access
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure the CPU supports these features.
 pub unsafe fn enable_fp_simd() {
     let cpacr = read_cpacr_el1() | Cpacr::FPEN_TRAP_NONE;
     write_cpacr_el1(cpacr);
