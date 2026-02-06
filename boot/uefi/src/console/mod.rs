@@ -449,7 +449,7 @@ impl Key {
                     0x0009 => Self::Tab,
                     0x000D => Self::Enter,
                     0x001B => Self::Escape,
-                    c if c >= 0x20 && c < 0x7F => Self::Char(c as u8 as char),
+                    c if (0x20..0x7F).contains(&c) => Self::Char(c as u8 as char),
                     _ => Self::Unknown(key.unicode_char),
                 }
             },
@@ -656,7 +656,7 @@ fn get_glyph(c: char) -> [u8; 16] {
     // In real implementation, use embedded font data
     let byte = c as u8;
 
-    if byte < 32 || byte > 126 {
+    if !(32..=126).contains(&byte) {
         return [0; 16]; // Non-printable
     }
 
