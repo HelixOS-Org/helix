@@ -5,7 +5,7 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use super::{rdmsr, wrmsr};
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 // =============================================================================
 // LOCAL APIC CONSTANTS
