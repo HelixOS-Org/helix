@@ -29,6 +29,12 @@ pub struct SchedulerFramework {
     load_balancer: RwLock<Option<Arc<dyn LoadBalancer>>>,
 }
 
+impl Default for SchedulerFramework {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SchedulerFramework {
     /// Create a new scheduler framework
     pub const fn new() -> Self {
