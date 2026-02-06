@@ -119,12 +119,12 @@ impl<'a> BootInfo<'a> {
 
     /// Get the bootloader name
     pub fn bootloader_name(&self) -> &str {
-        self.bootloader.map(|b| b.name()).unwrap_or("Unknown")
+        self.bootloader.map(BootloaderInfoResponse::name).unwrap_or("Unknown")
     }
 
     /// Get the bootloader version
     pub fn bootloader_version(&self) -> &str {
-        self.bootloader.map(|b| b.version()).unwrap_or("Unknown")
+        self.bootloader.map(BootloaderInfoResponse::version).unwrap_or("Unknown")
     }
 
     /// Get memory map
@@ -139,18 +139,18 @@ impl<'a> BootInfo<'a> {
 
     /// Get usable memory regions
     pub fn usable_memory(&self) -> impl Iterator<Item = MemoryEntry> + 'a {
-        self.memory_regions().filter(|e| e.is_usable())
+        self.memory_regions().filter(MemoryEntry::is_usable)
     }
 
     /// Get total physical memory
     pub fn total_memory(&self) -> u64 {
-        self.memory_map.map(|m| m.total_memory()).unwrap_or(0)
+        self.memory_map.map(MemoryMapResponse::total_memory).unwrap_or(0)
     }
 
     /// Get total usable memory
     pub fn usable_memory_size(&self) -> u64 {
         self.memory_map
-            .map(|m| m.total_usable_memory())
+            .map(MemoryMapResponse::total_usable_memory)
             .unwrap_or(0)
     }
 
@@ -161,7 +161,7 @@ impl<'a> BootInfo<'a> {
 
     /// Get HHDM offset
     pub fn hhdm_offset(&self) -> u64 {
-        self.hhdm.map(|h| h.offset()).unwrap_or(0)
+        self.hhdm.map(HhdmResponse::offset).unwrap_or(0)
     }
 
     /// Convert physical address to virtual using HHDM
@@ -181,7 +181,7 @@ impl<'a> BootInfo<'a> {
 
     /// Check if using 5-level paging
     pub fn is_five_level_paging(&self) -> bool {
-        self.paging_mode.map(|p| p.is_five_level()).unwrap_or(false)
+        self.paging_mode.map(PagingModeResponse::is_five_level).unwrap_or(false)
     }
 
     /// Get kernel file
@@ -196,12 +196,12 @@ impl<'a> BootInfo<'a> {
 
     /// Get kernel physical base
     pub fn kernel_phys_base(&self) -> u64 {
-        self.kernel_address.map(|k| k.physical_base()).unwrap_or(0)
+        self.kernel_address.map(KernelAddressResponse::physical_base).unwrap_or(0)
     }
 
     /// Get kernel virtual base
     pub fn kernel_virt_base(&self) -> u64 {
-        self.kernel_address.map(|k| k.virtual_base()).unwrap_or(0)
+        self.kernel_address.map(KernelAddressResponse::virtual_base).unwrap_or(0)
     }
 
     /// Get modules
@@ -211,7 +211,7 @@ impl<'a> BootInfo<'a> {
 
     /// Get number of boot modules
     pub fn module_count(&self) -> usize {
-        self.modules.map(|m| m.module_count()).unwrap_or(0)
+        self.modules.map(ModuleResponse::module_count).unwrap_or(0)
     }
 
     /// Get SMP information
@@ -221,12 +221,12 @@ impl<'a> BootInfo<'a> {
 
     /// Get number of CPUs
     pub fn cpu_count(&self) -> usize {
-        self.smp.map(|s| s.cpu_count()).unwrap_or(1)
+        self.smp.map(SmpResponse::cpu_count).unwrap_or(1)
     }
 
     /// Get BSP LAPIC ID
     pub fn bsp_lapic_id(&self) -> u64 {
-        self.smp.map(|s| s.bsp_lapic_id()).unwrap_or(0)
+        self.smp.map(SmpResponse::bsp_lapic_id).unwrap_or(0)
     }
 
     /// Get framebuffer response
@@ -236,7 +236,7 @@ impl<'a> BootInfo<'a> {
 
     /// Get primary framebuffer
     pub fn primary_framebuffer(&self) -> Option<Framebuffer<'a>> {
-        self.framebuffer.and_then(|f| f.primary())
+        self.framebuffer.and_then(FramebufferResponse::primary)
     }
 
     /// Check if graphical output is available
@@ -251,7 +251,7 @@ impl<'a> BootInfo<'a> {
 
     /// Get ACPI RSDP address
     pub fn acpi_rsdp_address(&self) -> Option<*const u8> {
-        self.rsdp.map(|r| r.address())
+        self.rsdp.map(RsdpResponse::address)
     }
 
     /// Check if ACPI is available
@@ -286,7 +286,7 @@ impl<'a> BootInfo<'a> {
 
     /// Check if Device Tree is available
     pub fn has_device_tree(&self) -> bool {
-        self.dtb.map(|d| d.is_valid()).unwrap_or(false)
+        self.dtb.map(DtbResponse::is_valid).unwrap_or(false)
     }
 
     /// Get boot time
@@ -296,7 +296,7 @@ impl<'a> BootInfo<'a> {
 
     /// Get boot timestamp
     pub fn boot_timestamp(&self) -> Option<i64> {
-        self.boot_time.map(|t| t.timestamp())
+        self.boot_time.map(BootTimeResponse::timestamp)
     }
 
     // =========================================================================
