@@ -750,6 +750,12 @@ pub struct ExtentTreeRoot {
     pub total_blocks: u64,
 }
 
+impl Default for ExtentTreeRoot {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExtentTreeRoot {
     /// Size in bytes
     pub const SIZE: usize = 192;
