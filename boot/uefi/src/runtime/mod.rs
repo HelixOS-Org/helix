@@ -500,6 +500,10 @@ pub struct RuntimeServices {
 
 impl RuntimeServices {
     /// Create from table pointer
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the table pointer is valid and the table has correct format.
     pub unsafe fn from_table(table: *const RuntimeServicesTable) -> Self {
         Self {
             _table: table,
