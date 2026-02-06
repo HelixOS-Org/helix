@@ -27,21 +27,30 @@ use super::{Environment, UserResult, STATS};
 const MAX_HISTORY: usize = 100;
 
 /// Maximum command line length
-const MAX_LINE: usize = 1024;
+const _MAX_LINE: usize = 1024;
 
 /// Shell prompt
 const PROMPT: &str = "helix> ";
 
 /// ANSI color codes
 pub mod colors {
+    /// Reset all terminal formatting to default.
     pub const RESET: &str = "\x1b[0m";
+    /// Red foreground color.
     pub const RED: &str = "\x1b[31m";
+    /// Green foreground color.
     pub const GREEN: &str = "\x1b[32m";
+    /// Yellow foreground color.
     pub const YELLOW: &str = "\x1b[33m";
+    /// Blue foreground color.
     pub const BLUE: &str = "\x1b[34m";
+    /// Magenta foreground color.
     pub const MAGENTA: &str = "\x1b[35m";
+    /// Cyan foreground color.
     pub const CYAN: &str = "\x1b[36m";
+    /// White foreground color.
     pub const WHITE: &str = "\x1b[37m";
+    /// Bold text formatting.
     pub const BOLD: &str = "\x1b[1m";
 }
 
@@ -92,7 +101,7 @@ pub trait ShellCommand: Send + Sync {
     fn execute(&self, args: &[&str], shell: &Shell) -> CommandResult;
 }
 
-/// Built-in help command
+/// Built-in `help` command for displaying available commands and usage information.
 struct HelpCommand;
 
 impl ShellCommand for HelpCommand {
@@ -155,7 +164,7 @@ impl ShellCommand for HelpCommand {
     }
 }
 
-/// Exit command
+/// Built-in `exit` command to terminate the shell session.
 struct ExitCommand;
 
 impl ShellCommand for ExitCommand {
@@ -172,7 +181,7 @@ impl ShellCommand for ExitCommand {
     }
 }
 
-/// Echo command
+/// Built-in `echo` command to display text and expand environment variables.
 struct EchoCommand;
 
 impl ShellCommand for EchoCommand {
@@ -192,8 +201,8 @@ impl ShellCommand for EchoCommand {
 
         for (i, arg) in args.iter().enumerate() {
             // Expand environment variables
-            let expanded = if arg.starts_with('$') {
-                shell.env.get(&arg[1..]).unwrap_or_default()
+            let expanded = if let Some(var_name) = arg.strip_prefix('$') {
+                shell.env.get(var_name).unwrap_or_default()
             } else {
                 arg.to_string()
             };
@@ -208,7 +217,7 @@ impl ShellCommand for EchoCommand {
     }
 }
 
-/// Clear screen command
+/// Built-in `clear` command to clear the terminal screen using ANSI escape codes.
 struct ClearCommand;
 
 impl ShellCommand for ClearCommand {
@@ -225,7 +234,7 @@ impl ShellCommand for ClearCommand {
     }
 }
 
-/// Process list command
+/// Built-in `ps` command to list running processes and their states.
 struct PsCommand;
 
 impl ShellCommand for PsCommand {
@@ -282,7 +291,7 @@ impl ShellCommand for PsCommand {
     }
 }
 
-/// Memory info command
+/// Built-in `mem` command to display memory usage and allocation statistics.
 struct MemCommand;
 
 impl ShellCommand for MemCommand {
@@ -319,7 +328,7 @@ impl ShellCommand for MemCommand {
     }
 }
 
-/// Uptime command
+/// Built-in `uptime` command to display how long the system has been running.
 struct UptimeCommand;
 
 impl ShellCommand for UptimeCommand {
@@ -336,7 +345,7 @@ impl ShellCommand for UptimeCommand {
     }
 }
 
-/// Uname command
+/// Built-in `uname` command to display system information (kernel name, version, architecture).
 struct UnameCommand;
 
 impl ShellCommand for UnameCommand {
@@ -378,7 +387,7 @@ impl ShellCommand for UnameCommand {
     }
 }
 
-/// Set environment variable command
+/// Built-in `set` command to get or set environment variables.
 struct SetCommand;
 
 impl ShellCommand for SetCommand {
@@ -420,7 +429,7 @@ impl ShellCommand for SetCommand {
     }
 }
 
-/// History command
+/// Built-in `history` command to display previously executed commands.
 struct HistoryCommand;
 
 impl ShellCommand for HistoryCommand {
@@ -443,7 +452,7 @@ impl ShellCommand for HistoryCommand {
     }
 }
 
-/// Benchmark command
+/// Built-in `bench` command to run kernel performance benchmarks.
 struct BenchCommand;
 
 impl ShellCommand for BenchCommand {
@@ -485,7 +494,7 @@ impl ShellCommand for BenchCommand {
     }
 }
 
-/// Stats command
+/// Built-in `stats` command to display userspace subsystem statistics.
 struct StatsCommand;
 
 impl ShellCommand for StatsCommand {
@@ -537,7 +546,7 @@ impl ShellCommand for StatsCommand {
     }
 }
 
-/// Cat command (simulated)
+/// Built-in `cat` command to display file contents (simulated for demo purposes).
 struct CatCommand;
 
 impl ShellCommand for CatCommand {
@@ -573,7 +582,7 @@ impl ShellCommand for CatCommand {
     }
 }
 
-/// Run ELF command
+/// Built-in `run` command to load and execute ELF binary programs.
 struct RunCommand;
 
 impl ShellCommand for RunCommand {
@@ -606,7 +615,7 @@ impl ShellCommand for RunCommand {
     }
 }
 
-/// Version command
+/// Built-in `version` command to display detailed Helix OS version information.
 struct VersionCommand;
 
 impl ShellCommand for VersionCommand {
@@ -683,7 +692,7 @@ impl ShellCommand for VersionCommand {
     }
 }
 
-/// Demo command - demonstrates OS features
+/// Built-in `demo` command to demonstrate Helix OS features (hot-reload, self-healing, DIS).
 struct DemoCommand;
 
 impl ShellCommand for DemoCommand {
@@ -784,7 +793,7 @@ impl ShellCommand for DemoCommand {
                 )
                 .ok();
             },
-            "all" | _ => {
+            _ => {
                 writeln!(
                     output,
                     "{}Helix Feature Demonstrations{}",
@@ -824,17 +833,20 @@ impl ShellCommand for DemoCommand {
     }
 }
 
-/// The Helix Shell
+/// The Helix Shell - an interactive command interpreter for Helix OS.
+///
+/// Provides built-in commands, environment variable support, command history,
+/// and serves as the primary user interface for the operating system.
 pub struct Shell {
-    /// Registered commands
+    /// Registered commands available in this shell instance.
     pub commands: Mutex<Vec<Box<dyn ShellCommand>>>,
-    /// Command history
+    /// Command history for navigation and recall of previous commands.
     pub history: Mutex<Vec<String>>,
-    /// Environment
+    /// Environment variables for the shell session.
     pub env: Environment,
-    /// Current working directory
+    /// Current working directory path.
     pub cwd: Mutex<String>,
-    /// Running flag
+    /// Flag indicating whether the shell main loop is running.
     running: core::sync::atomic::AtomicBool,
 }
 
@@ -884,7 +896,10 @@ impl Shell {
         commands.push(Box::new(DemoCommand));
     }
 
-    /// Find a command by name
+    /// Find a registered command by its name.
+    ///
+    /// Returns `None` as commands cannot be cloned from `Box<dyn ShellCommand>`.
+    /// This method is used internally for command lookup during help display.
     pub fn find_command(&self, name: &str) -> Option<Box<dyn ShellCommand>> {
         let commands = self.commands.lock();
         for cmd in commands.iter() {
@@ -896,7 +911,10 @@ impl Shell {
         None
     }
 
-    /// Execute a command line
+    /// Parse and execute a command line string.
+    ///
+    /// Handles command parsing, history recording, and command dispatch.
+    /// Returns the result of command execution or an error for unknown commands.
     pub fn execute_line(&self, line: &str) -> CommandResult {
         let line = line.trim();
 
@@ -937,13 +955,18 @@ impl Shell {
         ))
     }
 
-    /// Print the prompt
+    /// Print the shell prompt to the console.
+    ///
+    /// In a full implementation, this outputs the prompt string to the console.
+    /// Currently handled by the main loop.
     pub fn print_prompt(&self) {
         // In real OS, would output to console
         // For now, this is handled by the main loop
     }
 
-    /// Display welcome banner
+    /// Generate the welcome banner displayed when the shell starts.
+    ///
+    /// Returns an ASCII art banner with version and feature information.
     pub fn banner(&self) -> String {
         format!(
             r#"
@@ -1033,7 +1056,10 @@ impl Shell {
         )
     }
 
-    /// Run the shell (main loop)
+    /// Run the interactive shell main loop.
+    ///
+    /// Reads commands from input, executes them, and displays output
+    /// until an exit command is received or the shell is terminated.
     pub fn run(&self) -> UserResult<()> {
         use core::sync::atomic::Ordering;
 
@@ -1052,13 +1078,16 @@ impl Shell {
         Ok(())
     }
 
-    /// Run a single demo session (for kernel integration)
+    /// Run a demonstration session showcasing shell capabilities.
+    ///
+    /// Executes a predefined sequence of commands to demonstrate shell features.
+    /// Returns the combined output as a string for display or testing.
     pub fn run_demo(&self) -> String {
         let mut output = String::new();
 
         // Print banner
         output.push_str(&self.banner());
-        output.push_str("\n");
+        output.push('\n');
 
         // Demo some commands
         let demo_commands = ["version", "uname -a", "ps", "mem", "stats", "demo all"];
@@ -1075,14 +1104,14 @@ impl Shell {
             match self.execute_line(cmd) {
                 CommandResult::Success(Some(msg)) => {
                     output.push_str(&msg);
-                    output.push_str("\n");
+                    output.push('\n');
                 },
                 CommandResult::Error(msg) => {
                     output.push_str(&format!("{}Error: {}{}\n", colors::RED, msg, colors::RESET));
                 },
                 _ => {},
             }
-            output.push_str("\n");
+            output.push('\n');
         }
 
         output
