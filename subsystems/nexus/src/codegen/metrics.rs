@@ -7,9 +7,9 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::{format, vec};
 
 use super::ir::{IRFunction, IRModule, IROp};
 use crate::math::F64Ext;
@@ -214,7 +214,7 @@ impl MaintainabilityIndex {
         let adjusted = mi + 50.0 * self.comment_ratio.sin();
 
         // Normalize to 0-100
-        adjusted.max(0.0).min(100.0)
+        adjusted.clamp(0.0, 100.0)
     }
 }
 
@@ -287,28 +287,25 @@ impl MetricsCollector {
 
     /// Collect all metrics for IR module
     pub fn collect(&mut self, ir: &IRModule) -> MetricReport {
-        let mut results = Vec::new();
-
         // Size metrics
-        results.push(self.measure(MetricKind::LinesOfCode, ir));
-        results.push(self.measure(MetricKind::InstructionCount, ir));
-        results.push(self.measure(MetricKind::FunctionCount, ir));
-        results.push(self.measure(MetricKind::BlockCount, ir));
-
-        // Complexity metrics
-        results.push(self.measure(MetricKind::CyclomaticComplexity, ir));
-        results.push(self.measure(MetricKind::NestingDepth, ir));
-        results.push(self.measure(MetricKind::HalsteadVolume, ir));
-        results.push(self.measure(MetricKind::MaintainabilityIndex, ir));
-
-        // Performance metrics
-        results.push(self.measure(MetricKind::EstimatedCycles, ir));
-        results.push(self.measure(MetricKind::MemoryFootprint, ir));
-        results.push(self.measure(MetricKind::StackUsage, ir));
-
-        // Safety metrics
-        results.push(self.measure(MetricKind::UnsafeBlockCount, ir));
-        results.push(self.measure(MetricKind::RawPointerOps, ir));
+        let results = vec![
+            self.measure(MetricKind::LinesOfCode, ir),
+            self.measure(MetricKind::InstructionCount, ir),
+            self.measure(MetricKind::FunctionCount, ir),
+            self.measure(MetricKind::BlockCount, ir),
+            // Complexity metrics
+            self.measure(MetricKind::CyclomaticComplexity, ir),
+            self.measure(MetricKind::NestingDepth, ir),
+            self.measure(MetricKind::HalsteadVolume, ir),
+            self.measure(MetricKind::MaintainabilityIndex, ir),
+            // Performance metrics
+            self.measure(MetricKind::EstimatedCycles, ir),
+            self.measure(MetricKind::MemoryFootprint, ir),
+            self.measure(MetricKind::StackUsage, ir),
+            // Safety metrics
+            self.measure(MetricKind::UnsafeBlockCount, ir),
+            self.measure(MetricKind::RawPointerOps, ir),
+        ];
 
         // Calculate overall score
         let overall = self.calculate_overall_score(&results);
