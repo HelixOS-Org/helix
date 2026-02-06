@@ -520,13 +520,7 @@ impl SizeIndexedFreeList {
     pub fn find_class(&self, count: u64) -> Option<usize> {
         let min_class = size_class(count);
 
-        for class in min_class..SIZE_CLASSES.len() {
-            if self.counts[class] > 0 {
-                return Some(class);
-            }
-        }
-
-        None
+        (min_class..SIZE_CLASSES.len()).find(|&class| self.counts[class] > 0)
     }
 
     /// Get count for size class
