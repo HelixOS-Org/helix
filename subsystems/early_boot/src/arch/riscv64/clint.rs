@@ -87,6 +87,10 @@ pub fn get_mtime() -> u64 {
 }
 
 /// Set time value (requires M-mode)
+///
+/// # Safety
+///
+/// The caller must ensure the CLINT base address is properly mapped.
 pub unsafe fn set_mtime(value: u64) {
     clint_write64(CLINT_MTIME, value);
 }
@@ -97,23 +101,39 @@ pub fn get_mtimecmp(hartid: u64) -> u64 {
 }
 
 /// Set timer compare value for hart
+///
+/// # Safety
+///
+/// The caller must ensure the CLINT base address is properly mapped.
 pub unsafe fn set_mtimecmp(hartid: u64, value: u64) {
     clint_write64(CLINT_MTIMECMP_BASE + hartid * 8, value);
 }
 
 /// Set timer to fire after specified ticks
+///
+/// # Safety
+///
+/// The caller must ensure timer hardware is properly initialized.
 pub unsafe fn set_timer_relative(hartid: u64, ticks: u64) {
     let current = get_mtime();
     set_mtimecmp(hartid, current.wrapping_add(ticks));
 }
 
 /// Disable timer interrupt for hart
+///
+/// # Safety
+///
+/// The caller must ensure timer is currently running.
 pub unsafe fn disable_timer(hartid: u64) {
     // Set compare to max value to effectively disable
     set_mtimecmp(hartid, u64::MAX);
 }
 
 /// Clear timer interrupt by setting new compare value
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn clear_timer_interrupt(hartid: u64) {
     // Must set mtimecmp > mtime to clear interrupt
     let current = get_mtime();
@@ -133,21 +153,37 @@ pub fn get_msip(hartid: u64) -> bool {
 }
 
 /// Set software interrupt pending for hart (send IPI)
+///
+/// # Safety
+///
+/// The caller must ensure the hart ID is valid.
 pub unsafe fn set_msip(hartid: u64) {
     clint_write32(CLINT_MSIP_BASE + hartid * 4, 1);
 }
 
 /// Clear software interrupt pending for hart
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn clear_msip(hartid: u64) {
     clint_write32(CLINT_MSIP_BASE + hartid * 4, 0);
 }
 
 /// Send IPI to hart
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU ID is valid and the IPI type is appropriate.
 pub unsafe fn send_ipi(hartid: u64) {
     set_msip(hartid);
 }
 
 /// Clear IPI for current hart
+///
+/// # Safety
+///
+/// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
 pub unsafe fn clear_ipi() {
     let hartid = read_mhartid();
     clear_msip(hartid);
@@ -249,6 +285,10 @@ static mut PERIODIC_TIMERS: [PeriodicTimer; 16] =
     unsafe { core::mem::MaybeUninit::zeroed().assume_init() };
 
 /// Start periodic timer for hart
+///
+/// # Safety
+///
+/// The caller must ensure the component is ready to be started.
 pub unsafe fn start_periodic(hartid: u64, period_us: u64) {
     if hartid >= 16 {
         return;
@@ -272,6 +312,10 @@ pub unsafe fn start_periodic(hartid: u64, period_us: u64) {
 }
 
 /// Handle periodic timer interrupt
+///
+/// # Safety
+///
+/// The caller must ensure an interrupt is pending and this context is safe for handling.
 pub unsafe fn handle_periodic(hartid: u64) {
     if hartid >= 16 {
         return;
@@ -286,6 +330,10 @@ pub unsafe fn handle_periodic(hartid: u64) {
 }
 
 /// Stop periodic timer for hart
+///
+/// # Safety
+///
+/// The caller must ensure the component is currently running.
 pub unsafe fn stop_periodic(hartid: u64) {
     if hartid >= 16 {
         return;
@@ -300,6 +348,10 @@ pub unsafe fn stop_periodic(hartid: u64) {
 // =============================================================================
 
 /// Schedule one-shot timer interrupt after microseconds
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn schedule_oneshot_us(hartid: u64, us: u64) {
     let ticks = us * TICKS_PER_US.load(Ordering::SeqCst);
     set_timer_relative(hartid, ticks);
@@ -310,6 +362,10 @@ pub unsafe fn schedule_oneshot_us(hartid: u64, us: u64) {
 }
 
 /// Schedule one-shot timer interrupt after milliseconds
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn schedule_oneshot_ms(hartid: u64, ms: u64) {
     schedule_oneshot_us(hartid, ms * 1000);
 }
@@ -417,6 +473,10 @@ impl Watchdog {
 // =============================================================================
 
 /// Initialize CLINT
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Get CLINT base from device tree or use default
     let base = if let Some(ref dt_info) = ctx.boot_info.device_tree {
@@ -453,6 +513,10 @@ pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Initialize CLINT for secondary hart
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_secondary(hartid: u64) {
     // Disable timer interrupt
     disable_timer(hartid);
