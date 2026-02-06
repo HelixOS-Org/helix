@@ -279,7 +279,7 @@ impl Lexer {
         while let Some(ch) = self.peek() {
             if ch.is_ascii_digit() || ch == b'_' {
                 text.push(self.advance().unwrap());
-            } else if ch == b'.' && self.peek_ahead(1).map_or(false, |c| c.is_ascii_digit()) {
+            } else if ch == b'.' && self.peek_ahead(1).is_some_and(|c| c.is_ascii_digit()) {
                 is_float = true;
                 text.push(self.advance().unwrap());
             } else if ch == b'e' || ch == b'E' {
@@ -550,14 +550,11 @@ impl Lexer {
     /// Get next token
     pub fn next_token(&mut self) -> Token {
         // Skip whitespace and comments
-        loop {
-            if let Some(token) = self.skip_whitespace() {
-                return token;
-            }
-            if let Some(token) = self.skip_comment() {
-                return token;
-            }
-            break;
+        if let Some(token) = self.skip_whitespace() {
+            return token;
+        }
+        if let Some(token) = self.skip_comment() {
+            return token;
         }
 
         // Try each lexer
