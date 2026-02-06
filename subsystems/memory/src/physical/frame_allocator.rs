@@ -27,7 +27,7 @@ impl BumpAllocator {
     /// Create a new bump allocator
     pub fn new(start: u64, end: u64, page_size: PageSize) -> Self {
         // Align start to page boundary
-        let page_mask = page_size.size() as u64 - 1;
+        let page_mask = page_size.size() - 1;
         let aligned_start = (start + page_mask) & !page_mask;
 
         Self {
@@ -42,14 +42,14 @@ impl BumpAllocator {
         if self.next >= self.end {
             0
         } else {
-            ((self.end - self.next) / self.page_size.size() as u64) as usize
+            ((self.end - self.next) / self.page_size.size()) as usize
         }
     }
 }
 
 impl FrameAllocator for BumpAllocator {
     fn allocate_frame(&mut self) -> MemResult<Frame> {
-        let size = self.page_size.size() as u64;
+        let size = self.page_size.size();
 
         if self.next + size > self.end {
             return Err(crate::MemError::OutOfMemory);
