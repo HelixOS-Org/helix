@@ -4,6 +4,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+use core::cmp::Ordering;
 
 use super::types::{PState, PowerMode};
 use super::workload::WorkloadPredictor;
@@ -126,12 +127,10 @@ impl PStateGovernor {
         let target = self.select_ondemand(load);
 
         // Only move one step at a time
-        if target > self.current_idx {
-            self.current_idx.saturating_add(1).min(target)
-        } else if target < self.current_idx {
-            self.current_idx.saturating_sub(1).max(target)
-        } else {
-            self.current_idx
+        match target.cmp(&self.current_idx) {
+            Ordering::Greater => self.current_idx.saturating_add(1).min(target),
+            Ordering::Less => self.current_idx.saturating_sub(1).max(target),
+            Ordering::Equal => self.current_idx,
         }
     }
 
