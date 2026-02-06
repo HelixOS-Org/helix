@@ -243,8 +243,7 @@ pub fn set_watchdog_with_message(
             i
         })
         .last()
-        .map(|i| i + 1)
-        .unwrap_or(0);
+        .map_or(0, |i| i + 1);
 
     let result = unsafe {
         ((*bs).set_watchdog_timer)(seconds as usize, code.raw(), len * 2, buffer.as_ptr())
