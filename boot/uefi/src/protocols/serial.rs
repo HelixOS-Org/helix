@@ -380,7 +380,7 @@ impl Protocol for SerialPort {
 impl EnumerableProtocol for SerialPort {
     fn enumerate() -> Result<Vec<Self>> {
         super::ProtocolLocator::locate_all::<Self>()
-            .map(|handles| handles.into_iter().map(|h| h.leak()).collect())
+            .map(|handles| handles.into_iter().map(super::ProtocolHandle::leak).collect())
     }
 }
 
