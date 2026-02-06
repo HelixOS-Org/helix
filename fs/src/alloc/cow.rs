@@ -97,6 +97,7 @@ pub struct RefCountBlock {
 impl RefCountBlock {
     /// Create new block (all untracked)
     pub const fn new() -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const ZERO: AtomicU32 = AtomicU32::new(0);
         Self {
             entries: [ZERO; REFCOUNT_ENTRIES_PER_BLOCK],
