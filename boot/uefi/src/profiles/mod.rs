@@ -553,7 +553,7 @@ impl BootPreset {
 // =============================================================================
 
 /// Environment type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Environment {
     /// Development environment
     Development,
@@ -562,17 +562,12 @@ pub enum Environment {
     /// Staging/pre-production
     Staging,
     /// Production
+    #[default]
     Production,
     /// Demo/showcase
     Demo,
     /// Benchmark/performance testing
     Benchmark,
-}
-
-impl Default for Environment {
-    fn default() -> Self {
-        Environment::Production
-    }
 }
 
 impl fmt::Display for Environment {
