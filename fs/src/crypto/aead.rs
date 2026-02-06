@@ -80,8 +80,8 @@ impl GcmMul {
         let mut z = [0u64; 2];
         let mut v = self.h;
 
-        for i in 0..2 {
-            let mut word = x[i];
+        for word_ref in x.iter() {
+            let mut word = *word_ref;
             for _ in 0..64 {
                 if word & 0x8000000000000000 != 0 {
                     z[0] ^= v[0];
@@ -548,10 +548,10 @@ impl Poly1305 {
 
         // Reduce
         let mut carry = 0u64;
-        for i in 0..5 {
-            d[i] += carry;
-            self.h[i] = (d[i] & 0x03ffffff) as u32;
-            carry = d[i] >> 26;
+        for (d_i, h_i) in d.iter_mut().zip(self.h.iter_mut()).take(5) {
+            *d_i += carry;
+            *h_i = (*d_i & 0x03ffffff) as u32;
+            carry = *d_i >> 26;
         }
         self.h[0] = self.h[0].wrapping_add((carry * 5) as u32);
     }
