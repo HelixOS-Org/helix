@@ -134,6 +134,12 @@ pub struct PerCpu<T: Sized> {
     init: [AtomicBool; MAX_CPUS],
 }
 
+impl<T: Sized> Default for PerCpu<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Sized> PerCpu<T> {
     /// Create a new per-CPU storage
     pub const fn new() -> Self {
@@ -261,6 +267,12 @@ impl CpuBarrier {
 /// One-shot synchronization flag
 pub struct OnceFlag {
     done: AtomicBool,
+}
+
+impl Default for OnceFlag {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OnceFlag {
