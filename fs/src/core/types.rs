@@ -1040,7 +1040,11 @@ impl Hash256 {
     #[inline]
     pub fn xor(&self, other: &Self) -> Self {
         let mut result = [0u8; 32];
-        for ((r, a), b) in result.iter_mut().zip(self.bytes.iter()).zip(other.bytes.iter()) {
+        for ((r, a), b) in result
+            .iter_mut()
+            .zip(self.bytes.iter())
+            .zip(other.bytes.iter())
+        {
             *r = a ^ b;
         }
         Self { bytes: result }
