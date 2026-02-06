@@ -142,8 +142,8 @@ impl ThermalIntelligence {
                     description: alloc::format!(
                         "Zone {} near critical: {} (critical: {})",
                         zone.name,
-                        temp.to_string(),
-                        critical.to_string()
+                        temp,
+                        critical
                     ),
                     zone: Some(zone.id),
                 });
@@ -157,11 +157,7 @@ impl ThermalIntelligence {
                 issues.push(ThermalIssue {
                     issue_type: ThermalIssueType::HighTemperature,
                     severity: 7,
-                    description: alloc::format!(
-                        "Zone {} running hot: {}",
-                        zone.name,
-                        temp.to_string()
-                    ),
+                    description: alloc::format!("Zone {} running hot: {}", zone.name, temp),
                     zone: Some(zone.id),
                 });
                 recommendations.push(ThermalRecommendation {
@@ -196,7 +192,7 @@ impl ThermalIntelligence {
                             "Zone {} {} trip triggered at {}",
                             zone.name,
                             trip.trip_type.name(),
-                            temp.to_string()
+                            temp
                         ),
                         zone: Some(zone.id),
                     });
