@@ -75,7 +75,7 @@ impl RuntimeServices {
             None => core::ptr::null(),
         };
 
-        let status = unsafe { (self.rs().set_wakeup_time)(if enable { 1 } else { 0 }, time_ptr) };
+        let status = unsafe { (self.rs().set_wakeup_time)(u8::from(enable), time_ptr) };
         status.to_status_result()
     }
 }
