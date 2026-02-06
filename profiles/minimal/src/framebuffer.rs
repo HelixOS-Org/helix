@@ -173,7 +173,7 @@ pub unsafe fn put_pixel(x: u32, y: u32, color: Color) {
     let offset = (y as u64 * pitch as u64) + (x as u64 * bytes_per_pixel as u64);
     let pixel_addr = (addr + offset) as *mut u32;
 
-    *pixel_addr = color.into();
+    unsafe { *pixel_addr = color.into() };
 }
 
 /// Fill the entire screen with a color
@@ -197,7 +197,7 @@ pub unsafe fn clear(color: Color) {
         for x in 0..width {
             let offset = (y as u64 * pitch as u64) + (x as u64 * 4);
             let pixel = (addr + offset) as *mut u32;
-            *pixel = color_val;
+            unsafe { *pixel = color_val };
         }
     }
 }
@@ -226,7 +226,7 @@ pub unsafe fn fill_rect(x: u32, y: u32, w: u32, h: u32, color: Color) {
             if px >= width {
                 break;
             }
-            put_pixel(px, py, color);
+            unsafe { put_pixel(px, py, color) };
         }
     }
 }
@@ -250,7 +250,7 @@ pub unsafe fn draw_gradient_bar(x: u32, y: u32, w: u32, h: u32) {
 
         let color = Color::rgb(r, g, b);
         for dy in 0..h {
-            put_pixel(x + dx, y + dy, color);
+            unsafe { put_pixel(x + dx, y + dy, color) };
         }
     }
 }
@@ -272,38 +272,41 @@ pub unsafe fn draw_boot_splash() {
     let width = FB_WIDTH.load(Ordering::Relaxed);
     let height = FB_HEIGHT.load(Ordering::Relaxed);
 
-    // Clear to dark background
-    clear(Color::rgb(20, 20, 30));
+    // SAFETY: framebuffer is initialized (checked above), all operations use valid coordinates
+    unsafe {
+        // Clear to dark background
+        clear(Color::rgb(20, 20, 30));
 
-    // Draw gradient bar at center
-    let bar_width = width * 2 / 3;
-    let bar_height = 40;
-    let bar_x = (width - bar_width) / 2;
-    let bar_y = height / 2;
+        // Draw gradient bar at center
+        let bar_width = width * 2 / 3;
+        let bar_height = 40;
+        let bar_x = (width - bar_width) / 2;
+        let bar_y = height / 2;
 
-    draw_gradient_bar(bar_x, bar_y, bar_width, bar_height);
+        draw_gradient_bar(bar_x, bar_y, bar_width, bar_height);
 
-    // Draw border around bar
-    let border_color = Color::WHITE;
-    // Top border
-    for x in bar_x..bar_x + bar_width {
-        put_pixel(x, bar_y - 1, border_color);
-    }
-    // Bottom border
-    for x in bar_x..bar_x + bar_width {
-        put_pixel(x, bar_y + bar_height, border_color);
-    }
-    // Left border
-    for y in bar_y - 1..bar_y + bar_height + 1 {
-        put_pixel(bar_x - 1, y, border_color);
-    }
-    // Right border
-    for y in bar_y - 1..bar_y + bar_height + 1 {
-        put_pixel(bar_x + bar_width, y, border_color);
-    }
+        // Draw border around bar
+        let border_color = Color::WHITE;
+        // Top border
+        for x in bar_x..bar_x + bar_width {
+            put_pixel(x, bar_y - 1, border_color);
+        }
+        // Bottom border
+        for x in bar_x..bar_x + bar_width {
+            put_pixel(x, bar_y + bar_height, border_color);
+        }
+        // Left border
+        for y in bar_y - 1..bar_y + bar_height + 1 {
+            put_pixel(bar_x - 1, y, border_color);
+        }
+        // Right border
+        for y in bar_y - 1..bar_y + bar_height + 1 {
+            put_pixel(bar_x + bar_width, y, border_color);
+        }
 
-    // Draw "HELIX" text pattern at top (simple pixel art)
-    draw_helix_logo(width / 2 - 100, height / 3);
+        // Draw "HELIX" text pattern at top (simple pixel art)
+        draw_helix_logo(width / 2 - 100, height / 3);
+    }
 
     crate::serial_write_str("  [FB] Boot splash complete!\n");
 }
@@ -312,54 +315,57 @@ pub unsafe fn draw_boot_splash() {
 unsafe fn draw_helix_logo(x: u32, y: u32) {
     let color = Color::HELIX_PURPLE;
 
-    // 'H'
-    for i in 0..20 {
-        put_pixel(x, y + i, color);
-    }
-    for i in 0..20 {
-        put_pixel(x + 10, y + i, color);
-    }
-    for i in 0..11 {
-        put_pixel(x + i, y + 10, color);
-    }
+    // SAFETY: caller guarantees framebuffer is initialized and coordinates are valid
+    unsafe {
+        // 'H'
+        for i in 0..20 {
+            put_pixel(x, y + i, color);
+        }
+        for i in 0..20 {
+            put_pixel(x + 10, y + i, color);
+        }
+        for i in 0..11 {
+            put_pixel(x + i, y + 10, color);
+        }
 
-    // 'E'
-    for i in 0..20 {
-        put_pixel(x + 20, y + i, color);
-    }
-    for i in 0..10 {
-        put_pixel(x + 20 + i, y, color);
-    }
-    for i in 0..10 {
-        put_pixel(x + 20 + i, y + 10, color);
-    }
-    for i in 0..10 {
-        put_pixel(x + 20 + i, y + 19, color);
-    }
+        // 'E'
+        for i in 0..20 {
+            put_pixel(x + 20, y + i, color);
+        }
+        for i in 0..10 {
+            put_pixel(x + 20 + i, y, color);
+        }
+        for i in 0..10 {
+            put_pixel(x + 20 + i, y + 10, color);
+        }
+        for i in 0..10 {
+            put_pixel(x + 20 + i, y + 19, color);
+        }
 
-    // 'L'
-    for i in 0..20 {
-        put_pixel(x + 40, y + i, color);
-    }
-    for i in 0..10 {
-        put_pixel(x + 40 + i, y + 19, color);
-    }
+        // 'L'
+        for i in 0..20 {
+            put_pixel(x + 40, y + i, color);
+        }
+        for i in 0..10 {
+            put_pixel(x + 40 + i, y + 19, color);
+        }
 
-    // 'I'
-    for i in 0..10 {
-        put_pixel(x + 60 + i, y, color);
-    }
-    for i in 0..20 {
-        put_pixel(x + 65, y + i, color);
-    }
-    for i in 0..10 {
-        put_pixel(x + 60 + i, y + 19, color);
-    }
+        // 'I'
+        for i in 0..10 {
+            put_pixel(x + 60 + i, y, color);
+        }
+        for i in 0..20 {
+            put_pixel(x + 65, y + i, color);
+        }
+        for i in 0..10 {
+            put_pixel(x + 60 + i, y + 19, color);
+        }
 
-    // 'X'
-    for i in 0..20 {
-        put_pixel(x + 80 + i / 2, y + i, color);
-        put_pixel(x + 90 - i / 2, y + i, color);
+        // 'X'
+        for i in 0..20 {
+            put_pixel(x + 80 + i / 2, y + i, color);
+            put_pixel(x + 90 - i / 2, y + i, color);
+        }
     }
 }
 
@@ -380,26 +386,29 @@ pub unsafe fn draw_test_pattern() {
     let height = FB_HEIGHT.load(Ordering::Relaxed);
     let size = 50;
 
-    // Top-left: Red
-    fill_rect(0, 0, size, size, Color::RED);
+    // SAFETY: framebuffer is initialized (checked above), all coordinates are within bounds
+    unsafe {
+        // Top-left: Red
+        fill_rect(0, 0, size, size, Color::RED);
 
-    // Top-right: Green
-    fill_rect(width - size, 0, size, size, Color::GREEN);
+        // Top-right: Green
+        fill_rect(width - size, 0, size, size, Color::GREEN);
 
-    // Bottom-left: Blue
-    fill_rect(0, height - size, size, size, Color::BLUE);
+        // Bottom-left: Blue
+        fill_rect(0, height - size, size, size, Color::BLUE);
 
-    // Bottom-right: Yellow
-    fill_rect(width - size, height - size, size, size, Color::YELLOW);
+        // Bottom-right: Yellow
+        fill_rect(width - size, height - size, size, size, Color::YELLOW);
 
-    // Center: White
-    fill_rect(
-        width / 2 - size / 2,
-        height / 2 - size / 2,
-        size,
-        size,
-        Color::WHITE,
-    );
+        // Center: White
+        fill_rect(
+            width / 2 - size / 2,
+            height / 2 - size / 2,
+            size,
+            size,
+            Color::WHITE,
+        );
+    }
 
     crate::serial_write_str("  [FB] Test pattern complete!\n");
 }
@@ -674,7 +683,7 @@ pub unsafe fn draw_char(x: u32, y: u32, c: char, fg: Color, bg: Color) {
             let px = x + col;
             let py = y + row as u32;
             let color = if (bits >> (7 - col)) & 1 != 0 { fg } else { bg };
-            put_pixel(px, py, color);
+            unsafe { put_pixel(px, py, color) };
         }
     }
 }
