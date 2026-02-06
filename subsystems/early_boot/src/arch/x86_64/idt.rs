@@ -594,6 +594,10 @@ fn write_serial_str(_s: &str) {
 // =============================================================================
 
 /// Initialize the IDT with exception handlers
+///
+/// # Safety
+///
+/// The caller must ensure this is called exactly once during system initialization.
 pub unsafe fn init_idt(ctx: &mut BootContext) -> BootResult<()> {
     let kernel_cs = super::KERNEL_CS;
 
@@ -812,6 +816,10 @@ unsafe fn send_apic_eoi() {
 }
 
 /// Set up IRQ entries in IDT
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_irq_handlers(ctx: &mut BootContext) -> BootResult<()> {
     let kernel_cs = super::KERNEL_CS;
 
