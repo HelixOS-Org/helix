@@ -355,7 +355,7 @@ impl EcPublicKey {
             return Err(KeyError::InvalidKeyFormat);
         }
 
-        let x = BigUint::from_be_bytes(&point[1..1 + key_size]);
+        let x = BigUint::from_be_bytes(&point[1..=key_size]);
         let y = BigUint::from_be_bytes(&point[1 + key_size..]);
 
         Ok(Self { curve, x, y })
@@ -723,16 +723,16 @@ impl BigUint {
         let mut result = vec![0u64; n];
         let mut borrow = 0i128;
 
-        for i in 0..n {
+        for (i, res) in result.iter_mut().enumerate().take(n) {
             let a = self.limbs.get(i).copied().unwrap_or(0) as i128;
             let b = other.limbs.get(i).copied().unwrap_or(0) as i128;
             let diff = a - b - borrow;
 
             if diff < 0 {
-                result[i] = (diff + (1i128 << 64)) as u64;
+                *res = (diff + (1i128 << 64)) as u64;
                 borrow = 1;
             } else {
-                result[i] = diff as u64;
+                *res = diff as u64;
                 borrow = 0;
             }
         }
@@ -756,10 +756,10 @@ impl BigUint {
         }
 
         for i in (0..self.limbs.len()).rev() {
-            if self.limbs[i] > other.limbs[i] {
-                return 1;
-            } else if self.limbs[i] < other.limbs[i] {
-                return -1;
+            match self.limbs[i].cmp(&other.limbs[i]) {
+                core::cmp::Ordering::Greater => return 1,
+                core::cmp::Ordering::Less => return -1,
+                core::cmp::Ordering::Equal => {},
             }
         }
 
@@ -799,22 +799,22 @@ fn parse_der_length(data: &[u8]) -> Result<(usize, usize), KeyError> {
 
     let first = data[0];
 
-    if first < 0x80 {
-        Ok((first as usize, 1))
-    } else if first == 0x80 {
-        Err(KeyError::InvalidDer) // Indefinite length not supported
-    } else {
-        let num_octets = (first & 0x7f) as usize;
-        if num_octets > 4 || data.len() < 1 + num_octets {
-            return Err(KeyError::InvalidDer);
-        }
+    match first.cmp(&0x80) {
+        core::cmp::Ordering::Less => Ok((first as usize, 1)),
+        core::cmp::Ordering::Equal => Err(KeyError::InvalidDer), // Indefinite length not supported
+        core::cmp::Ordering::Greater => {
+            let num_octets = (first & 0x7f) as usize;
+            if num_octets > 4 || data.len() < 1 + num_octets {
+                return Err(KeyError::InvalidDer);
+            }
 
-        let mut length = 0usize;
-        for i in 0..num_octets {
-            length = (length << 8) | (data[1 + i] as usize);
-        }
+            let mut length = 0usize;
+            for i in 0..num_octets {
+                length = (length << 8) | (data[1 + i] as usize);
+            }
 
-        Ok((length, 1 + num_octets))
+            Ok((length, 1 + num_octets))
+        }
     }
 }
 
@@ -1032,10 +1032,10 @@ fn parse_x509_certificate(der: &[u8]) -> Result<X509Certificate, KeyError> {
     }
 
     // Skip unused bits
-    let signature = if !sig_value.is_empty() {
-        sig_value[1..].to_vec()
-    } else {
+    let signature = if sig_value.is_empty() {
         Vec::new()
+    } else {
+        sig_value[1..].to_vec()
     };
 
     // Parse TBSCertificate
@@ -1162,6 +1162,7 @@ fn parse_validity(data: &[u8]) -> Result<(u64, u64), KeyError> {
 }
 
 /// Parse time (UTCTime or GeneralizedTime)
+#[allow(clippy::unnecessary_wraps)]
 fn parse_time(data: &[u8]) -> Result<u64, KeyError> {
     // Simplified: just return 0 for now
     // Real implementation would parse YYMMDDHHMMSSZ or YYYYMMDDHHMMSSZ
