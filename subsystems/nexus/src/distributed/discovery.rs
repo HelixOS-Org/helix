@@ -163,6 +163,7 @@ impl BootstrapManager {
     }
 
     /// Get next bootstrap node
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<&BootstrapNode> {
         if self.config.nodes.is_empty() {
             return None;
