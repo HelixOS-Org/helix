@@ -31,12 +31,19 @@
 
 extern crate alloc;
 
+/// Debug utilities and logging for kernel development.
 pub mod debug;
+/// Hot-reload support for dynamic module updates.
 pub mod hotreload;
+/// Interrupt handling and routing infrastructure.
 pub mod interrupts;
+/// Inter-process communication primitives.
 pub mod ipc;
+/// Core orchestration and coordination services.
 pub mod orchestrator;
+/// Self-healing and recovery mechanisms.
 pub mod selfheal;
+/// System call gateway and dispatch.
 pub mod syscall;
 
 use core::sync::atomic::{AtomicU32, Ordering};
@@ -94,6 +101,7 @@ impl From<u32> for KernelState {
     }
 }
 
+/// Global atomic storage for the current kernel state.
 static KERNEL_STATE: AtomicU32 = AtomicU32::new(KernelState::EarlyBoot as u32);
 
 /// Get the current kernel state
@@ -202,19 +210,46 @@ pub struct ComponentStats {
 #[derive(Debug, Clone)]
 pub enum KernelEvent {
     /// A module was loaded
-    ModuleLoaded { name: alloc::string::String },
+    ModuleLoaded {
+        /// Name of the loaded module
+        name: alloc::string::String,
+    },
     /// A module was unloaded
-    ModuleUnloaded { name: alloc::string::String },
+    ModuleUnloaded {
+        /// Name of the unloaded module
+        name: alloc::string::String,
+    },
     /// System state changed
-    StateChanged { old: KernelState, new: KernelState },
+    StateChanged {
+        /// Previous kernel state
+        old: KernelState,
+        /// New kernel state
+        new: KernelState,
+    },
     /// Memory pressure detected
-    MemoryPressure { level: MemoryPressureLevel },
+    MemoryPressure {
+        /// Current memory pressure level
+        level: MemoryPressureLevel,
+    },
     /// CPU hotplug event
-    CpuHotplug { cpu: usize, online: bool },
+    CpuHotplug {
+        /// CPU core ID
+        cpu: usize,
+        /// Whether the CPU is now online
+        online: bool,
+    },
     /// Timer tick
-    TimerTick { timestamp: u64 },
+    TimerTick {
+        /// Timestamp of the tick
+        timestamp: u64,
+    },
     /// Custom event
-    Custom { id: u64, data: alloc::vec::Vec<u8> },
+    Custom {
+        /// Custom event identifier
+        id: u64,
+        /// Event payload data
+        data: alloc::vec::Vec<u8>,
+    },
 }
 
 /// Memory pressure levels
