@@ -153,6 +153,7 @@ pub unsafe fn init() {
     log::info!("x86_64 HAL: PIC and PIT initialized");
 
     // Set up timer interrupt handler
+    #[allow(clippy::fn_to_numeric_cast)]
     unsafe {
         idt::set_handler(
             idt::vectors::TIMER,
