@@ -91,44 +91,52 @@ pub const IDT_ENTRIES: usize = 256;
 /// Maximum number of CPUs supported
 pub const MAX_CPUS: usize = 256;
 
-/// Exception vectors (0x00-0x1F)
+/// Start of exception vector range (0x00)
 pub const EXCEPTION_START: u8 = 0x00;
+/// End of exception vector range (0x1F)
 pub const EXCEPTION_END: u8 = 0x1F;
 
-/// Legacy PIC IRQ vectors (0x20-0x2F)
+/// Start of legacy PIC IRQ vector range (0x20)
 pub const PIC_IRQ_START: u8 = 0x20;
+/// End of legacy PIC IRQ vector range (0x2F)
 pub const PIC_IRQ_END: u8 = 0x2F;
 
-/// System vectors (0x30-0x3F)
+/// Start of system vector range for IPIs and syscalls (0x30)
 pub const SYSTEM_VECTOR_START: u8 = 0x30;
+/// End of system vector range (0x3F)
 pub const SYSTEM_VECTOR_END: u8 = 0x3F;
 
-/// APIC/device vectors (0x40-0xEF)
+/// Start of APIC/device interrupt vector range (0x40)
 pub const DEVICE_VECTOR_START: u8 = 0x40;
+/// End of APIC/device interrupt vector range (0xEF)
 pub const DEVICE_VECTOR_END: u8 = 0xEF;
 
 /// Spurious interrupt vector
 pub const SPURIOUS_VECTOR: u8 = 0xFF;
 
-/// APIC Timer vector (commonly used)
+/// APIC Timer interrupt vector (commonly used for scheduling)
 pub const APIC_TIMER_VECTOR: u8 = 0x40;
 
-/// APIC Error vector
+/// APIC Error interrupt vector for handling APIC errors
 pub const APIC_ERROR_VECTOR: u8 = 0xFE;
 
-/// IPI vectors
+/// IPI vector for triggering reschedule on another CPU
 pub const IPI_RESCHEDULE_VECTOR: u8 = 0x30;
+/// IPI vector for TLB shootdown across CPUs
 pub const IPI_TLB_SHOOTDOWN_VECTOR: u8 = 0x31;
+/// IPI vector for halting a CPU
 pub const IPI_HALT_VECTOR: u8 = 0x32;
+/// IPI vector for remote function calls between CPUs
 pub const IPI_CALL_FUNCTION_VECTOR: u8 = 0x33;
 
-/// System call vector (used with INT instruction fallback)
+/// System call vector used with INT instruction as SYSCALL/SYSENTER fallback
 pub const SYSCALL_VECTOR: u8 = 0x80;
 
 // =============================================================================
 // Initialization State
 // =============================================================================
 
+/// Tracks whether the IDT has been initialized (prevents double initialization)
 static IDT_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 // =============================================================================
@@ -271,6 +279,11 @@ pub fn halt_loop() -> ! {
 /// Send End-Of-Interrupt signal
 ///
 /// This is a placeholder - actual implementation depends on APIC configuration.
+///
+/// # Safety
+///
+/// - Must be called only after properly handling an interrupt.
+/// - The vector must match the interrupt being acknowledged.
 #[inline]
 pub unsafe fn end_of_interrupt(_vector: u8) {
     // TODO: Send EOI to Local APIC
@@ -313,6 +326,7 @@ pub unsafe fn register_exception_handler(vector: u8, handler: usize, ist: u8) {
 ///
 /// Disables interrupts when created, restores previous state when dropped.
 pub struct InterruptGuard {
+    /// Whether interrupts were enabled before this guard was created
     was_enabled: bool,
 }
 
