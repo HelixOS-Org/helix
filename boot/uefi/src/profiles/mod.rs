@@ -35,7 +35,7 @@ use core::fmt;
 // =============================================================================
 
 /// Hardware platform type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HardwarePlatform {
     /// Generic desktop PC
     Desktop,
@@ -56,13 +56,8 @@ pub enum HardwarePlatform {
     /// Apple Silicon Mac
     AppleSilicon,
     /// Unknown platform
+    #[default]
     Unknown,
-}
-
-impl Default for HardwarePlatform {
-    fn default() -> Self {
-        HardwarePlatform::Unknown
-    }
 }
 
 impl fmt::Display for HardwarePlatform {
@@ -83,9 +78,10 @@ impl fmt::Display for HardwarePlatform {
 }
 
 /// Virtual machine type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum VmType {
     /// Not a VM
+    #[default]
     None,
     /// VMware
     VMware,
@@ -111,12 +107,6 @@ pub enum VmType {
     Unknown,
 }
 
-impl Default for VmType {
-    fn default() -> Self {
-        VmType::None
-    }
-}
-
 impl VmType {
     /// Check if this is a VM
     pub const fn is_vm(&self) -> bool {
@@ -130,7 +120,7 @@ impl VmType {
 }
 
 /// CPU architecture
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CpuArch {
     /// x86-64 / AMD64
     X86_64,
@@ -141,13 +131,8 @@ pub enum CpuArch {
     /// LoongArch64
     Loongarch64,
     /// Unknown
+    #[default]
     Unknown,
-}
-
-impl Default for CpuArch {
-    fn default() -> Self {
-        CpuArch::Unknown
-    }
 }
 
 impl fmt::Display for CpuArch {
@@ -163,7 +148,7 @@ impl fmt::Display for CpuArch {
 }
 
 /// CPU vendor
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CpuVendor {
     /// Intel
     Intel,
@@ -180,17 +165,12 @@ pub enum CpuVendor {
     /// Ampere
     Ampere,
     /// Unknown
+    #[default]
     Unknown,
 }
 
-impl Default for CpuVendor {
-    fn default() -> Self {
-        CpuVendor::Unknown
-    }
-}
-
 /// Firmware type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FirmwareType {
     /// UEFI
     Uefi,
@@ -203,13 +183,8 @@ pub enum FirmwareType {
     /// U-Boot
     UBoot,
     /// Unknown
+    #[default]
     Unknown,
-}
-
-impl Default for FirmwareType {
-    fn default() -> Self {
-        FirmwareType::Unknown
-    }
 }
 
 /// Hardware capabilities
@@ -333,11 +308,12 @@ impl Default for HardwareProfile {
 // =============================================================================
 
 /// Boot preset type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PresetType {
     /// Quick boot (minimal checks)
     Quick,
     /// Normal boot (default)
+    #[default]
     Normal,
     /// Full diagnostic boot
     Full,
@@ -355,12 +331,6 @@ pub enum PresetType {
     PowerSave,
     /// Custom preset
     Custom,
-}
-
-impl Default for PresetType {
-    fn default() -> Self {
-        PresetType::Normal
-    }
 }
 
 impl fmt::Display for PresetType {
