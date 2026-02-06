@@ -25,6 +25,12 @@ pub struct DebugInterface {
     commands: spin::RwLock<Vec<&'static dyn DebugCommand>>,
 }
 
+impl Default for DebugInterface {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DebugInterface {
     /// Create a new debug interface
     pub const fn new() -> Self {
