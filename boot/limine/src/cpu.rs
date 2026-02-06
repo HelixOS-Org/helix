@@ -60,7 +60,7 @@ pub fn all_cpus_started() -> bool {
 
 /// Get the current CPU ID
 ///
-/// On x86_64, this uses CPUID to get the APIC ID.
+/// On `x86_64`, this uses CPUID to get the APIC ID.
 #[cfg(target_arch = "x86_64")]
 pub fn current_cpu_id() -> u32 {
     // Read LAPIC ID from CPUID leaf 1
