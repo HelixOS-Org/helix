@@ -117,6 +117,7 @@ impl MemoryMapResponse {
     }
 
     /// Get the number of memory map entries
+    #[allow(clippy::cast_possible_truncation)] // entry_count is always small enough to fit in usize
     pub fn entry_count(&self) -> usize {
         self.entry_count as usize
     }
