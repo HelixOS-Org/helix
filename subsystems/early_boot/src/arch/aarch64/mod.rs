@@ -373,6 +373,10 @@ pub fn invalidate_tlb() {
 }
 
 /// Invalidate data cache by virtual address
+///
+/// # Safety
+///
+/// The caller must ensure the virtual address is valid.
 pub unsafe fn invalidate_dcache_va(va: u64) {
     core::arch::asm!(
         "dc ivac, {}",
@@ -382,6 +386,10 @@ pub unsafe fn invalidate_dcache_va(va: u64) {
 }
 
 /// Clean data cache by virtual address
+///
+/// # Safety
+///
+/// The caller must ensure the virtual address is valid.
 pub unsafe fn clean_dcache_va(va: u64) {
     core::arch::asm!(
         "dc cvac, {}",
@@ -391,6 +399,10 @@ pub unsafe fn clean_dcache_va(va: u64) {
 }
 
 /// Clean and invalidate data cache by virtual address
+///
+/// # Safety
+///
+/// The caller must ensure the virtual address is valid.
 pub unsafe fn clean_invalidate_dcache_va(va: u64) {
     core::arch::asm!(
         "dc civac, {}",
@@ -466,6 +478,10 @@ pub fn write_daif(daif: u64) {
 // =============================================================================
 
 /// Pre-initialization (very early)
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn pre_init(ctx: &mut BootContext) -> BootResult<()> {
     // Disable interrupts
     disable_interrupts();
@@ -482,46 +498,82 @@ pub unsafe fn pre_init(ctx: &mut BootContext) -> BootResult<()> {
 }
 
 /// Initialize serial console
+///
+/// # Safety
+///
+/// The caller must ensure serial port I/O is safe and the port is not in use.
 pub unsafe fn init_serial(ctx: &mut BootContext) -> BootResult<()> {
     serial::init_uart(ctx)
 }
 
 /// Detect CPU features
+///
+/// # Safety
+///
+/// The caller must ensure the firmware is accessible.
 pub unsafe fn detect_cpu_features(ctx: &mut BootContext) -> BootResult<()> {
     cpu::detect_features(ctx)
 }
 
 /// CPU initialization
+///
+/// # Safety
+///
+/// The caller must ensure this is called once per CPU during initialization.
 pub unsafe fn cpu_init(ctx: &mut BootContext) -> BootResult<()> {
     cpu::init(ctx)
 }
 
 /// Set up page tables
+///
+/// # Safety
+///
+/// The caller must ensure the page table pointer is valid and properly aligned.
 pub unsafe fn setup_page_tables(ctx: &mut BootContext) -> BootResult<()> {
     mmu::setup_page_tables(ctx)
 }
 
 /// Initialize interrupts (GIC)
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init_interrupts(ctx: &mut BootContext) -> BootResult<()> {
     gic::init(ctx)
 }
 
 /// Initialize timers
+///
+/// # Safety
+///
+/// The caller must ensure timer hardware is accessible.
 pub unsafe fn init_timers(ctx: &mut BootContext) -> BootResult<()> {
     timer::init(ctx)
 }
 
 /// Initialize SMP
+///
+/// # Safety
+///
+/// The caller must ensure SMP initialization is done after BSP is fully initialized.
 pub unsafe fn init_smp(ctx: &mut BootContext) -> BootResult<()> {
     psci::init_smp(ctx)
 }
 
 /// Apply KASLR
+///
+/// # Safety
+///
+/// The caller must ensure page tables support the randomization offset.
 pub unsafe fn apply_kaslr(ctx: &mut BootContext, offset: u64) -> BootResult<()> {
     mmu::apply_kaslr(ctx, offset)
 }
 
 /// Prepare for handoff to kernel
+///
+/// # Safety
+///
+/// The caller must ensure all safety invariants are upheld.
 pub unsafe fn prepare_handoff(ctx: &mut BootContext) -> BootResult<()> {
     // Final barrier to ensure all writes are visible
     dsb();
