@@ -32,13 +32,17 @@ pub struct TrampolineData {
     pub entry_point: u64,
     /// Initial CR3 (page table)
     pub cr3: u64,
-    /// GDT pointer (limit + base)
+    /// GDT pointer limit (size of the GDT minus one)
     pub gdt_limit: u16,
+    /// Padding for alignment after gdt_limit
     pub _pad1: u16,
+    /// GDT base linear address
     pub gdt_base: u64,
-    /// IDT pointer (limit + base)
+    /// IDT pointer limit (size of the IDT minus one)
     pub idt_limit: u16,
+    /// Padding for alignment after idt_limit
     pub _pad2: u16,
+    /// IDT base linear address
     pub idt_base: u64,
     /// Stack pointers for each AP (indexed by APIC ID)
     pub stacks: [u64; MAX_CPUS],
