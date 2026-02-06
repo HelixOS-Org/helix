@@ -747,7 +747,7 @@ impl Extent {
             logical_start,
             physical_start: 0,
             block_count,
-            flags: ExtentFlags::HOLE as u16,
+            flags: ExtentFlags::HOLE,
             checksum: 0,
         }
     }
@@ -783,25 +783,25 @@ impl Extent {
     /// Check if this is a hole
     #[inline]
     pub const fn is_hole(&self) -> bool {
-        (self.flags & ExtentFlags::HOLE as u16) != 0
+        (self.flags & ExtentFlags::HOLE) != 0
     }
 
     /// Check if this extent is shared (CoW)
     #[inline]
     pub const fn is_shared(&self) -> bool {
-        (self.flags & ExtentFlags::SHARED as u16) != 0
+        (self.flags & ExtentFlags::SHARED) != 0
     }
 
     /// Check if this extent is compressed
     #[inline]
     pub const fn is_compressed(&self) -> bool {
-        (self.flags & ExtentFlags::COMPRESSED as u16) != 0
+        (self.flags & ExtentFlags::COMPRESSED) != 0
     }
 
     /// Check if this extent is encrypted
     #[inline]
     pub const fn is_encrypted(&self) -> bool {
-        (self.flags & ExtentFlags::ENCRYPTED as u16) != 0
+        (self.flags & ExtentFlags::ENCRYPTED) != 0
     }
 
     /// Size in bytes
@@ -1040,8 +1040,8 @@ impl Hash256 {
     #[inline]
     pub fn xor(&self, other: &Self) -> Self {
         let mut result = [0u8; 32];
-        for i in 0..32 {
-            result[i] = self.bytes[i] ^ other.bytes[i];
+        for ((r, a), b) in result.iter_mut().zip(self.bytes.iter()).zip(other.bytes.iter()) {
+            *r = a ^ b;
         }
         Self { bytes: result }
     }
