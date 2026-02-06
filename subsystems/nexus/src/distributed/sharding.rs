@@ -11,6 +11,7 @@ use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::cmp::Ordering as CmpOrdering;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::NodeId;
@@ -548,15 +549,12 @@ impl ShardManager {
             return;
         }
 
-        let target_per_node = (shard_count + node_count - 1) / node_count;
+        let target_per_node = shard_count.div_ceil(node_count);
         let mut node_shards: BTreeMap<NodeId, Vec<ShardId>> = BTreeMap::new();
 
         // Count shards per node
         for shard in self.shards.values() {
-            node_shards
-                .entry(shard.primary)
-                .or_insert_with(Vec::new)
-                .push(shard.id);
+            node_shards.entry(shard.primary).or_default().push(shard.id);
         }
 
         // Find overloaded and underloaded nodes
@@ -565,13 +563,17 @@ impl ShardManager {
 
         for &node in nodes {
             let count = node_shards.get(&node).map(|v| v.len()).unwrap_or(0);
-            if count > target_per_node {
-                if let Some(shards) = node_shards.get(&node) {
-                    let excess: Vec<_> = shards.iter().skip(target_per_node).copied().collect();
-                    overloaded.push((node, excess));
-                }
-            } else if count < target_per_node {
-                underloaded.push(node);
+            match count.cmp(&target_per_node) {
+                CmpOrdering::Greater => {
+                    if let Some(shards) = node_shards.get(&node) {
+                        let excess: Vec<_> = shards.iter().skip(target_per_node).copied().collect();
+                        overloaded.push((node, excess));
+                    }
+                },
+                CmpOrdering::Less => {
+                    underloaded.push(node);
+                },
+                CmpOrdering::Equal => {},
             }
         }
 
