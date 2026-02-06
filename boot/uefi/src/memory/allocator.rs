@@ -449,6 +449,12 @@ pub struct BumpAllocator {
     start: usize,
 }
 
+impl Default for BumpAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BumpAllocator {
     /// Create new bump allocator
     pub const fn new() -> Self {
@@ -511,6 +517,12 @@ impl BumpAllocator {
 pub struct UefiAllocator {
     /// Inner allocator
     inner: UnsafeCell<Option<*mut PoolAllocator>>,
+}
+
+impl Default for UefiAllocator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl UefiAllocator {
