@@ -129,6 +129,7 @@ impl Environment {
 
     /// Expand variables in a string
     /// Replaces $VAR and ${VAR} with their values
+    #[allow(clippy::excessive_nesting)]
     pub fn expand(&self, input: &str) -> String {
         let mut result = String::new();
         let mut chars = input.chars().peekable();
