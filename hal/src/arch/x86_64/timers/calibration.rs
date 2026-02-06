@@ -115,7 +115,7 @@ unsafe fn calibrate_tsc_single_pit(pit_ticks: u64) -> Result<u64, TimerError> {
 
     // Configure channel 2 in mode 0 (interrupt on terminal count)
     let command =
-        ((pit::PitChannel::Channel2 as u8) << 6) | ((pit::PitAccess::LowHigh as u8) << 4) | 0; // Mode 0
+        ((pit::PitChannel::Channel2 as u8) << 6) | ((pit::PitAccess::LowHigh as u8) << 4); // Mode 0
 
     unsafe { outb(0x43, command) };
 
@@ -289,7 +289,7 @@ pub fn calibrate_apic_with_pit() -> Result<CalibrationResult, TimerError> {
         core::ptr::write_volatile(APIC_TIMER_ICR as *mut u32, 0xFFFF_FFFF);
 
         // Use PIT for timing
-        let command = (2 << 6) | (3 << 4) | 0; // Channel 2, low/high, mode 0
+        let command = (2 << 6) | (3 << 4); // Channel 2, low/high, mode 0
         outb(0x43, command);
         outb(0x42, pit_ticks_u16 as u8);
         outb(0x42, (pit_ticks_u16 >> 8) as u8);
