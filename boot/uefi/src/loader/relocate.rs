@@ -458,8 +458,7 @@ impl KaslrGenerator {
             return 0;
         }
 
-        let offset = (self.seed % range) * self.alignment + self.min_offset;
-        offset
+        (self.seed % range) * self.alignment + self.min_offset
     }
 
     /// Generate new base address
