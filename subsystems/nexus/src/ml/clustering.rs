@@ -83,10 +83,10 @@ impl KMeans {
                 }
             }
 
-            for c in 0..self.k {
-                if counts[c] > 0 {
-                    for j in 0..n_features {
-                        self.centroids[c][j] /= counts[c] as f64;
+            for (c, &count) in counts.iter().enumerate().take(self.k) {
+                if count > 0 {
+                    for val in self.centroids[c].iter_mut() {
+                        *val /= count as f64;
                     }
                 }
             }
