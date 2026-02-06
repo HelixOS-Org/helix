@@ -25,9 +25,11 @@ pub type Pid = u64;
 /// File descriptor type
 pub type Fd = i32;
 
-/// Standard file descriptors
+/// Standard input file descriptor
 pub const STDIN_FD: Fd = 0;
+/// Standard output file descriptor
 pub const STDOUT_FD: Fd = 1;
+/// Standard error file descriptor
 pub const STDERR_FD: Fd = 2;
 
 /// Maximum file descriptors per process
@@ -57,12 +59,14 @@ pub enum ProcessState {
 
 /// Process priority
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default)]
 pub enum Priority {
     /// Idle priority
     Idle     = 0,
     /// Low priority
     Low      = 1,
     /// Normal priority
+    #[default]
     Normal   = 2,
     /// High priority
     High     = 3,
@@ -70,11 +74,6 @@ pub enum Priority {
     RealTime = 4,
 }
 
-impl Default for Priority {
-    fn default() -> Self {
-        Priority::Normal
-    }
-}
 
 /// File descriptor entry
 #[derive(Debug, Clone)]
@@ -321,7 +320,7 @@ impl Default for RuntimeConfig {
 /// The userspace runtime
 pub struct Runtime {
     /// Configuration
-    config: RuntimeConfig,
+    _config: RuntimeConfig,
     /// Process table
     processes: RwLock<BTreeMap<Pid, Arc<ProcessHandle>>>,
     /// Next PID
@@ -334,7 +333,7 @@ impl Runtime {
     /// Create new runtime
     pub const fn new() -> Self {
         Self {
-            config: RuntimeConfig {
+            _config: RuntimeConfig {
                 default_stack_size: 8 * 1024 * 1024,
                 default_heap_size: 16 * 1024 * 1024,
                 max_processes: MAX_PROCESSES,
@@ -347,7 +346,7 @@ impl Runtime {
     }
 
     /// Initialize with config
-    pub fn init_with_config(&self, config: RuntimeConfig) {
+    pub fn init_with_config(&self, _config: RuntimeConfig) {
         // Note: can't actually change config in const fn created struct
         // In real impl, would use UnsafeCell or similar
         self.initialized.store(true, Ordering::SeqCst);
