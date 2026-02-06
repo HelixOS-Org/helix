@@ -707,7 +707,11 @@ mod tests {
 
     #[test]
     fn test_memory_range_contains() {
-        let range = MemoryRange::new(PhysicalAddress(0x1000), PhysicalAddress(0x2000), RangeType::Usable);
+        let range = MemoryRange::new(
+            PhysicalAddress(0x1000),
+            PhysicalAddress(0x2000),
+            RangeType::Usable,
+        );
         assert!(range.contains(PhysicalAddress(0x1000)));
         assert!(range.contains(PhysicalAddress(0x1500)));
         assert!(!range.contains(PhysicalAddress(0x2000))); // Exclusive end
@@ -716,9 +720,21 @@ mod tests {
 
     #[test]
     fn test_memory_range_overlaps() {
-        let r1 = MemoryRange::new(PhysicalAddress(0x1000), PhysicalAddress(0x2000), RangeType::Usable);
-        let r2 = MemoryRange::new(PhysicalAddress(0x1500), PhysicalAddress(0x2500), RangeType::Usable);
-        let r3 = MemoryRange::new(PhysicalAddress(0x2000), PhysicalAddress(0x3000), RangeType::Usable);
+        let r1 = MemoryRange::new(
+            PhysicalAddress(0x1000),
+            PhysicalAddress(0x2000),
+            RangeType::Usable,
+        );
+        let r2 = MemoryRange::new(
+            PhysicalAddress(0x1500),
+            PhysicalAddress(0x2500),
+            RangeType::Usable,
+        );
+        let r3 = MemoryRange::new(
+            PhysicalAddress(0x2000),
+            PhysicalAddress(0x3000),
+            RangeType::Usable,
+        );
 
         assert!(r1.overlaps(&r2));
         assert!(!r1.overlaps(&r3));
