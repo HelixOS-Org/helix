@@ -873,6 +873,10 @@ impl<const N: usize> fmt::Debug for StringBuilder<N> {
 // =============================================================================
 
 /// Get string length (null-terminated u16)
+///
+/// # Safety
+///
+/// The caller must ensure the string pointer is valid and null-terminated.
 pub unsafe fn strlen16(s: *const u16) -> usize {
     if s.is_null() {
         return 0;
@@ -889,6 +893,10 @@ pub unsafe fn strlen16(s: *const u16) -> usize {
 }
 
 /// Get string length (null-terminated u8)
+///
+/// # Safety
+///
+/// The caller must ensure the string pointer is valid and null-terminated.
 pub unsafe fn strlen8(s: *const u8) -> usize {
     if s.is_null() {
         return 0;
@@ -905,6 +913,10 @@ pub unsafe fn strlen8(s: *const u8) -> usize {
 }
 
 /// Compare two u16 strings
+///
+/// # Safety
+///
+/// The caller must ensure the string pointer is valid and null-terminated.
 pub unsafe fn strcmp16(s1: *const u16, s2: *const u16) -> i32 {
     let mut i = 0;
     loop {
@@ -924,6 +936,10 @@ pub unsafe fn strcmp16(s1: *const u16, s2: *const u16) -> i32 {
 }
 
 /// Copy u16 string
+///
+/// # Safety
+///
+/// The caller must ensure the string pointer is valid and null-terminated.
 pub unsafe fn strcpy16(dest: *mut u16, src: *const u16) {
     let mut i = 0;
     loop {
