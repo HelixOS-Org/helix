@@ -492,12 +492,12 @@ impl<T: Clone> MultiLevelCache<T> {
 
     /// Get combined stats
     pub fn total_stats(&self) -> CacheStats {
-        let mut total = CacheStats::default();
-
-        total.hits = self.l1.stats.hits + self.l2.stats.hits;
-        total.misses = self.l1.stats.misses;
-        total.evictions = self.l1.stats.evictions + self.l2.stats.evictions;
-        total.write_backs = self.l1.stats.write_backs + self.l2.stats.write_backs;
+        let mut total = CacheStats {
+            hits: self.l1.stats.hits + self.l2.stats.hits,
+            misses: self.l1.stats.misses,
+            evictions: self.l1.stats.evictions + self.l2.stats.evictions,
+            write_backs: self.l1.stats.write_backs + self.l2.stats.write_backs,
+        };
 
         if let Some(l3) = &self.l3 {
             total.hits += l3.stats.hits;
