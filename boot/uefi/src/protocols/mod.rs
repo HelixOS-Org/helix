@@ -458,13 +458,13 @@ impl ProtocolNotification {
         use crate::event::EventType;
         use crate::services::boot_services;
 
+        // Create notify event
+        extern "efiapi" fn notify_stub(_event: Event, _context: *mut core::ffi::c_void) {}
+
         let bs = unsafe { boot_services() };
 
         let mut event = Event(core::ptr::null_mut());
         let mut registration = core::ptr::null_mut();
-
-        // Create notify event
-        extern "efiapi" fn notify_stub(_event: Event, _context: *mut core::ffi::c_void) {}
 
         let result = unsafe {
             ((*bs).create_event)(
