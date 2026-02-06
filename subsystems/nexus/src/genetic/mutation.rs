@@ -134,11 +134,11 @@ fn mutate_codon(codon: &Codon) -> Codon {
         Codon::Op(op) => {
             // Small change to opcode
             let delta = (rand_i32() % 5) - 2;
-            Codon::Op(((*op as i32 + delta).max(0).min(255)) as u8)
+            Codon::Op(((*op as i32 + delta).clamp(0, 255)) as u8)
         },
         Codon::Reg(reg) => {
             // Change register
-            Codon::Reg(((*reg as i32 + rand_i32() % 3 - 1).max(0).min(15)) as u8)
+            Codon::Reg(((*reg as i32 + rand_i32() % 3 - 1).clamp(0, 15)) as u8)
         },
         Codon::Imm(val) => {
             // Small change to immediate
@@ -158,7 +158,7 @@ fn mutate_codon(codon: &Codon) -> Codon {
             let delta = (rand_i32() % 10 - 5) as i16;
             Codon::Label(((*label as i16 + delta).max(0)) as u16)
         },
-        Codon::Type(t) => Codon::Type(((*t as i32 + rand_i32() % 3 - 1).max(0).min(15)) as u8),
+        Codon::Type(t) => Codon::Type(((*t as i32 + rand_i32() % 3 - 1).clamp(0, 15)) as u8),
         Codon::Control(_) => {
             // Randomly change control type
             let controls = [
