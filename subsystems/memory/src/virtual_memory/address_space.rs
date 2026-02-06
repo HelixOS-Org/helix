@@ -118,7 +118,7 @@ impl AddressSpace {
         let _region = self.remove_region(addr)?;
 
         // Unmap pages
-        let page_size = PageSize::Size4KiB.size() as u64;
+        let page_size = PageSize::Size4KiB.size();
         let mut current = addr.as_u64();
         let end = current + size;
 
@@ -133,7 +133,7 @@ impl AddressSpace {
 
     /// Change memory protection
     pub fn mprotect(&self, addr: VirtAddr, size: u64, flags: PageFlags) -> MemResult<()> {
-        let page_size = PageSize::Size4KiB.size() as u64;
+        let page_size = PageSize::Size4KiB.size();
         let mut current = addr.as_u64();
         let end = current + size;
 
