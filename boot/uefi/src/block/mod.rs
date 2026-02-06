@@ -117,10 +117,7 @@ impl BlockDeviceType {
 
     /// Check if device is rotational
     pub const fn is_rotational(&self) -> bool {
-        matches!(
-            self,
-            Self::Hdd | Self::UsbHdd | Self::Floppy
-        )
+        matches!(self, Self::Hdd | Self::UsbHdd | Self::Floppy)
     }
 }
 
