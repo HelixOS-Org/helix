@@ -560,8 +560,8 @@ impl ImageBuilder {
         };
 
         let bss_section = self.sections.iter().find(|s| s.flags.bss);
-        let (bss_start, bss_size) = bss_section
-            .map_or((None, 0), |s| (Some(s.virtual_address), s.size));
+        let (bss_start, bss_size) =
+            bss_section.map_or((None, 0), |s| (Some(s.virtual_address), s.size));
 
         LoadedImage {
             format: self.format,
