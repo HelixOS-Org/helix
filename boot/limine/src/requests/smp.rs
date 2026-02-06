@@ -289,7 +289,7 @@ impl<'a> CpuInfo<'a> {
     pub fn start(&self, entry: u64, arg: u64) {
         // Set the extra argument first
         // Safety: The raw structure is mutable from the bootloader's perspective
-        let raw_ptr = self.raw as *const RawSmpInfo as *mut RawSmpInfo;
+        let raw_ptr = (self.raw as *const RawSmpInfo).cast_mut();
         unsafe {
             (*raw_ptr).extra_argument = arg;
         }
