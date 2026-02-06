@@ -108,7 +108,7 @@ impl AffinityOptimizer {
             let node_cpus: Vec<_> = self
                 .numa_nodes
                 .get(current_node as usize)
-                .map(|n| n.clone())
+                .cloned()
                 .unwrap_or_default();
 
             let mut selected = Vec::new();
