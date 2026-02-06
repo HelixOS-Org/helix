@@ -35,7 +35,7 @@ use core::fmt;
 // =============================================================================
 
 /// Error category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ErrorCategory {
     /// Boot process errors
     Boot,
@@ -56,15 +56,10 @@ pub enum ErrorCategory {
     /// Protocol errors
     Protocol,
     /// Internal errors
+    #[default]
     Internal,
     /// User errors
     User,
-}
-
-impl Default for ErrorCategory {
-    fn default() -> Self {
-        ErrorCategory::Internal
-    }
 }
 
 impl fmt::Display for ErrorCategory {
@@ -86,7 +81,7 @@ impl fmt::Display for ErrorCategory {
 }
 
 /// Error severity level
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum Severity {
     /// Debug information
     Debug,
@@ -95,17 +90,12 @@ pub enum Severity {
     /// Warning (non-fatal)
     Warning,
     /// Error (potentially fatal)
+    #[default]
     Error,
     /// Critical (likely fatal)
     Critical,
     /// Fatal (unrecoverable)
     Fatal,
-}
-
-impl Default for Severity {
-    fn default() -> Self {
-        Severity::Error
-    }
 }
 
 impl fmt::Display for Severity {
@@ -331,9 +321,10 @@ impl BootError {
 // =============================================================================
 
 /// Recovery strategy
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RecoveryStrategy {
     /// No recovery possible
+    #[default]
     None,
     /// Retry the operation
     Retry,
@@ -357,12 +348,6 @@ pub enum RecoveryStrategy {
     UefiShell,
     /// Enter firmware setup
     FirmwareSetup,
-}
-
-impl Default for RecoveryStrategy {
-    fn default() -> Self {
-        RecoveryStrategy::None
-    }
 }
 
 impl fmt::Display for RecoveryStrategy {
@@ -463,9 +448,10 @@ pub fn recommended_recovery(code: ErrorCode) -> RecoveryAction {
 // =============================================================================
 
 /// Error output destination
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ErrorOutput {
     /// Console/screen
+    #[default]
     Console,
     /// Serial port
     Serial,
@@ -481,14 +467,8 @@ pub enum ErrorOutput {
     All,
 }
 
-impl Default for ErrorOutput {
-    fn default() -> Self {
-        ErrorOutput::Console
-    }
-}
-
 /// Error report format
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ErrorFormat {
     /// Short one-line
     Short,
@@ -497,13 +477,8 @@ pub enum ErrorFormat {
     /// Technical (for logs)
     Technical,
     /// User-friendly
+    #[default]
     UserFriendly,
-}
-
-impl Default for ErrorFormat {
-    fn default() -> Self {
-        ErrorFormat::UserFriendly
-    }
 }
 
 /// Error report configuration
@@ -793,11 +768,12 @@ impl ErrorLog {
 // =============================================================================
 
 /// Error screen type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ErrorScreenType {
     /// Simple text message
     Text,
     /// Box with details
+    #[default]
     Box,
     /// Full screen with options
     FullScreen,
@@ -805,12 +781,6 @@ pub enum ErrorScreenType {
     BlueScreen,
     /// Minimal/panic style
     Minimal,
-}
-
-impl Default for ErrorScreenType {
-    fn default() -> Self {
-        ErrorScreenType::Box
-    }
 }
 
 /// Error screen content
