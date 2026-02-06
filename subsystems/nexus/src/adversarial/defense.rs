@@ -136,8 +136,7 @@ impl RandomizedSmoothing {
         let (top_class, top_count) = class_counts
             .iter()
             .max_by_key(|(_, &c)| c)
-            .map(|(&c, &n)| (c, n))
-            .unwrap_or((0, 0));
+            .map_or(0, 0, |(&c, &n)| (c, n)));
 
         let confidence = top_count as f64 / self.n_samples as f64;
 
