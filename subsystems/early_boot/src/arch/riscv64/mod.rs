@@ -762,12 +762,20 @@ pub fn wfi() {
 
 /// Execute MRET (return from machine mode)
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure proper CSR state for exception return.
 pub unsafe fn mret() -> ! {
     core::arch::asm!("mret", options(noreturn));
 }
 
 /// Execute SRET (return from supervisor mode)
 #[inline]
+///
+/// # Safety
+///
+/// The caller must ensure proper CSR state for exception return.
 pub unsafe fn sret() -> ! {
     core::arch::asm!("sret", options(noreturn));
 }
@@ -827,6 +835,10 @@ pub fn get_hart_id() -> u64 {
 // =============================================================================
 
 /// Machine mode entry point
+///
+/// # Safety
+///
+/// The caller must ensure proper machine state before calling this entry point.
 pub unsafe fn machine_entry(hartid: u64, dtb_addr: u64) -> ! {
     // Primary hart setup
     if hartid == 0 {
@@ -856,6 +868,10 @@ extern "C" fn supervisor_entry(hartid: u64, dtb_addr: u64) -> ! {
 }
 
 /// Early boot initialization
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Initialize CPU
     cpu::init(ctx)?;
