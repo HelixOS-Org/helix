@@ -298,7 +298,7 @@ impl<'a, P: Protocol, F: FnOnce(&mut P)> ScopedProtocol<'a, P, F> {
     }
 }
 
-impl<'a, P: Protocol, F: FnOnce(&mut P)> core::ops::Deref for ScopedProtocol<'a, P, F> {
+impl<P: Protocol, F: FnOnce(&mut P)> core::ops::Deref for ScopedProtocol<'_, P, F> {
     type Target = P;
 
     fn deref(&self) -> &Self::Target {
@@ -306,13 +306,13 @@ impl<'a, P: Protocol, F: FnOnce(&mut P)> core::ops::Deref for ScopedProtocol<'a,
     }
 }
 
-impl<'a, P: Protocol, F: FnOnce(&mut P)> core::ops::DerefMut for ScopedProtocol<'a, P, F> {
+impl<P: Protocol, F: FnOnce(&mut P)> core::ops::DerefMut for ScopedProtocol<'_, P, F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.protocol.interface }
     }
 }
 
-impl<'a, P: Protocol, F: FnOnce(&mut P)> Drop for ScopedProtocol<'a, P, F> {
+impl<P: Protocol, F: FnOnce(&mut P)> Drop for ScopedProtocol<'_, P, F> {
     fn drop(&mut self) {
         if let Some(cleanup) = self.cleanup.take() {
             cleanup(unsafe { &mut *self.protocol.interface });
