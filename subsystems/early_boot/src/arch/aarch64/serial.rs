@@ -264,6 +264,10 @@ impl Pl011 {
     }
 
     /// Initialize UART with specified settings
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self, baud: u32, data_bits: DataBits, parity: Parity, stop_bits: StopBits) {
         // Disable UART
         self.write(UARTCR, 0);
@@ -320,6 +324,10 @@ impl Pl011 {
     }
 
     /// Initialize with default settings (115200 8N1)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_default(&self) {
         self.init(
             baudrate::B115200,
@@ -331,35 +339,59 @@ impl Pl011 {
 
     /// Check if transmit FIFO is full
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn tx_full(&self) -> bool {
         self.read(UARTFR) & FR_TXFF != 0
     }
 
     /// Check if transmit FIFO is empty
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn tx_empty(&self) -> bool {
         self.read(UARTFR) & FR_TXFE != 0
     }
 
     /// Check if receive FIFO is empty
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn rx_empty(&self) -> bool {
         self.read(UARTFR) & FR_RXFE != 0
     }
 
     /// Check if receive FIFO is full
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn rx_full(&self) -> bool {
         self.read(UARTFR) & FR_RXFF != 0
     }
 
     /// Check if UART is busy
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn busy(&self) -> bool {
         self.read(UARTFR) & FR_BUSY != 0
     }
 
     /// Write a byte (blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_byte(&self, byte: u8) {
         // Wait for space in FIFO
         while self.tx_full() {
@@ -369,6 +401,10 @@ impl Pl011 {
     }
 
     /// Write a byte (non-blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn try_write_byte(&self, byte: u8) -> bool {
         if self.tx_full() {
             return false;
@@ -378,6 +414,10 @@ impl Pl011 {
     }
 
     /// Read a byte (blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn read_byte(&self) -> u8 {
         // Wait for data
         while self.rx_empty() {
@@ -387,6 +427,10 @@ impl Pl011 {
     }
 
     /// Read a byte (non-blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn try_read_byte(&self) -> Option<u8> {
         if self.rx_empty() {
             return None;
@@ -395,6 +439,10 @@ impl Pl011 {
     }
 
     /// Write a string
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_str(&self, s: &str) {
         for byte in s.bytes() {
             if byte == b'\n' {
@@ -405,6 +453,10 @@ impl Pl011 {
     }
 
     /// Write bytes
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_bytes(&self, bytes: &[u8]) {
         for &byte in bytes {
             self.write_byte(byte);
@@ -412,6 +464,10 @@ impl Pl011 {
     }
 
     /// Flush transmit FIFO
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the operation is safe in the current context.
     pub unsafe fn flush(&self) {
         while !self.tx_empty() || self.busy() {
             core::hint::spin_loop();
@@ -419,44 +475,76 @@ impl Pl011 {
     }
 
     /// Get receive errors
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn get_errors(&self) -> u32 {
         self.read(UARTRSR)
     }
 
     /// Clear receive errors
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
     pub unsafe fn clear_errors(&self) {
         self.write(UARTRSR, 0);
     }
 
     /// Enable interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid and a handler is registered.
     pub unsafe fn enable_interrupt(&self, mask: u32) {
         let current = self.read(UARTIMSC);
         self.write(UARTIMSC, current | mask);
     }
 
     /// Disable interrupt
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn disable_interrupt(&self, mask: u32) {
         let current = self.read(UARTIMSC);
         self.write(UARTIMSC, current & !mask);
     }
 
     /// Get pending interrupts
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn get_interrupts(&self) -> u32 {
         self.read(UARTMIS)
     }
 
     /// Clear interrupts
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the framebuffer is properly initialized and coordinates are valid.
     pub unsafe fn clear_interrupts(&self, mask: u32) {
         self.write(UARTICR, mask);
     }
 
     /// Set FIFO levels for interrupts
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the UART hardware is properly initialized.
     pub unsafe fn set_fifo_levels(&self, tx_level: u8, rx_level: u8) {
         let ifls = ((tx_level as u32) & 0x7) | (((rx_level as u32) & 0x7) << 3);
         self.write(UARTIFLS, ifls);
     }
 
     /// Get peripheral ID
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn get_periph_id(&self) -> u32 {
         let p0 = self.read(UARTPERIPHID0) & 0xFF;
         let p1 = self.read(UARTPERIPHID1) & 0xFF;
@@ -480,6 +568,10 @@ impl Write for Pl011 {
 // =============================================================================
 
 /// Initialize global UART
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Get UART address from device tree or use default
     let base = if let Some(ref dt_info) = ctx.boot_info.device_tree {
