@@ -727,9 +727,8 @@ impl FatFilesystem {
         };
 
         // Calculate filesystem layout
-        let root_dir_sectors = ((bpb.root_entry_count as u32 * 32)
-            + (bpb.bytes_per_sector as u32 - 1))
-            / bpb.bytes_per_sector as u32;
+        let root_dir_sectors =
+            (bpb.root_entry_count as u32 * 32).div_ceil(bpb.bytes_per_sector as u32);
 
         let fat_sectors = sectors_per_fat * bpb.num_fats as u32;
         let first_data_sector = bpb.reserved_sectors as u32 + fat_sectors + root_dir_sectors;
