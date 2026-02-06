@@ -146,8 +146,7 @@ impl<'a> BootInfo<'a> {
 
     /// Get total physical memory
     pub fn total_memory(&self) -> u64 {
-        self.memory_map
-            .map_or(0, MemoryMapResponse::total_memory)
+        self.memory_map.map_or(0, MemoryMapResponse::total_memory)
     }
 
     /// Get total usable memory
