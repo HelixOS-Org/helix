@@ -7,12 +7,10 @@
 //! - Preemption latency
 //! - Multi-core load balancing
 
-use alloc::string::String;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use crate::{
-    benchmark, measure, timing, BenchmarkCategory, BenchmarkDef, BenchmarkId, BenchmarkSuite,
+    benchmark, timing, BenchmarkCategory, BenchmarkDef, BenchmarkId, BenchmarkSuite,
 };
 
 // =============================================================================
