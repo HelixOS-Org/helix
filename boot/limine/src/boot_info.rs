@@ -573,11 +573,11 @@ impl MissingComponents {
 /// Architecture type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Architecture {
-    /// x86-64 / AMD64
+    /// `x86-64` / `AMD64`
     X86_64,
-    /// AArch64 / ARM64
+    /// `AArch64` / `ARM64`
     AArch64,
-    /// RISC-V 64-bit
+    /// `RISC-V` 64-bit
     RiscV64,
     /// Unknown architecture
     Unknown,
