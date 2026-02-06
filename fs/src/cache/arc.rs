@@ -145,6 +145,12 @@ pub struct ArcLinkedList {
     pub count: AtomicU32,
 }
 
+impl Default for ArcLinkedList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ArcLinkedList {
     /// Create new empty list
     pub const fn new() -> Self {
@@ -209,6 +215,12 @@ pub struct ArcHashBucket {
     pub lock: AtomicU32,
     /// Padding
     _pad: [u8; 56],
+}
+
+impl Default for ArcHashBucket {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ArcHashBucket {
