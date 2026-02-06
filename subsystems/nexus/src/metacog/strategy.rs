@@ -497,7 +497,9 @@ impl StrategySelector {
             }
         }
 
-        let selected = match self.algorithm {
+        
+
+        match self.algorithm {
             SelectionAlgorithm::EpsilonGreedy => self.epsilon_greedy_select(&applicable, task_type),
             SelectionAlgorithm::UCB => self.ucb_select(&applicable),
             SelectionAlgorithm::ThompsonSampling => {
@@ -508,9 +510,7 @@ impl StrategySelector {
                 self.contextual_select(&applicable, task_type, budget)
             },
             SelectionAlgorithm::BestKnown => self.best_known_select(&applicable, task_type),
-        };
-
-        selected
+        }
     }
 
     /// Epsilon-greedy selection
