@@ -774,7 +774,7 @@ pub struct StringEntry {
 }
 
 /// String table resource
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct StringTableResource {
     /// Resource ID
     pub id: ResourceId,
@@ -788,19 +788,6 @@ pub struct StringTableResource {
     pub data_offset: u32,
     /// String data size
     pub data_size: u32,
-}
-
-impl Default for StringTableResource {
-    fn default() -> Self {
-        Self {
-            id: 0,
-            language: [0u8; 8],
-            language_len: 0,
-            entry_count: 0,
-            data_offset: 0,
-            data_size: 0,
-        }
-    }
 }
 
 // =============================================================================
