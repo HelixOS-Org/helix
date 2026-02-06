@@ -1149,7 +1149,7 @@ mod tests {
 
     #[test]
     fn test_policy_gradient() {
-        let mut pg = PolicyGradient::new(4, 2, 0.01);
+        let pg = PolicyGradient::new(4, 2, 0.01);
 
         let features = vec![1.0, 0.0, 0.5, 0.5];
         let probs = pg.action_probs(&features);
