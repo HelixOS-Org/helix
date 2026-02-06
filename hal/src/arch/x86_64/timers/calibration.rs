@@ -114,8 +114,7 @@ unsafe fn calibrate_tsc_single_pit(pit_ticks: u64) -> Result<u64, TimerError> {
     };
 
     // Configure channel 2 in mode 0 (interrupt on terminal count)
-    let command =
-        ((pit::PitChannel::Channel2 as u8) << 6) | ((pit::PitAccess::LowHigh as u8) << 4); // Mode 0
+    let command = ((pit::PitChannel::Channel2 as u8) << 6) | ((pit::PitAccess::LowHigh as u8) << 4); // Mode 0
 
     unsafe { outb(0x43, command) };
 
