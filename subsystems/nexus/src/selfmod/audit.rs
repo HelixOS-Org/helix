@@ -275,13 +275,13 @@ impl AuditLog {
         if let Some(mod_id) = mod_id {
             self.by_modification
                 .entry(mod_id)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(id);
         }
         if let Some(ver_id) = ver_id {
             self.by_version
                 .entry(ver_id)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(id);
         }
 
