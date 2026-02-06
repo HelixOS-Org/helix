@@ -38,7 +38,7 @@ impl EfiRngProtocol {
     /// # Safety
     /// The caller must ensure the protocol pointer is valid.
     pub unsafe fn get_supported_algorithms(&self, buffer: &mut [Guid]) -> Result<usize, Status> {
-        let mut size = buffer.len() * core::mem::size_of::<Guid>();
+        let mut size = core::mem::size_of_val(buffer);
         let status = (self.get_info)(self as *const _ as *mut _, &mut size, buffer.as_mut_ptr());
 
         match status {
