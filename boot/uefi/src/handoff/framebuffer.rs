@@ -3,14 +3,14 @@
 //! Structures and types for framebuffer configuration and manipulation.
 
 use crate::error::{Error, Result};
-use crate::raw::types::*;
+use crate::raw::types::PhysicalAddress;
 
 // =============================================================================
 // PIXEL FORMAT
 // =============================================================================
 
 /// Pixel format enumeration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(u8)]
 pub enum PixelFormat {
     /// 32-bit RGB (8 bits per channel, red in LSB)
@@ -24,37 +24,31 @@ pub enum PixelFormat {
     /// Text mode (no framebuffer)
     Text    = 4,
     /// Unknown format
+    #[default]
     Unknown = 255,
 }
 
 impl PixelFormat {
     /// Get bytes per pixel
-    pub fn bytes_per_pixel(&self) -> u32 {
+    pub const fn bytes_per_pixel(&self) -> u32 {
         match self {
-            PixelFormat::Rgb32 | PixelFormat::Bgr32 => 4,
-            PixelFormat::Rgb565 => 2,
-            PixelFormat::Bitmask => 4, // Assume 32-bit
-            PixelFormat::Text | PixelFormat::Unknown => 0,
+            Self::Rgb32 | Self::Bgr32 | Self::Bitmask => 4,
+            Self::Rgb565 => 2,
+            Self::Text | Self::Unknown => 0,
         }
     }
 
     /// Get bits per pixel
-    pub fn bits_per_pixel(&self) -> u32 {
+    pub const fn bits_per_pixel(&self) -> u32 {
         self.bytes_per_pixel() * 8
     }
 
     /// Check if format is linear (not planar)
-    pub fn is_linear(&self) -> bool {
+    pub const fn is_linear(&self) -> bool {
         matches!(
             self,
-            PixelFormat::Rgb32 | PixelFormat::Bgr32 | PixelFormat::Rgb565 | PixelFormat::Bitmask
+            Self::Rgb32 | Self::Bgr32 | Self::Rgb565 | Self::Bitmask
         )
-    }
-}
-
-impl Default for PixelFormat {
-    fn default() -> Self {
-        PixelFormat::Unknown
     }
 }
 
@@ -101,18 +95,20 @@ impl PixelBitmask {
     };
 
     /// Get shift for mask
-    fn mask_shift(mask: u32) -> u8 {
+    const fn mask_shift(mask: u32) -> u8 {
         if mask == 0 {
             return 0;
         }
+        // trailing_zeros returns u32, max value is 32, fits in u8
         mask.trailing_zeros() as u8
     }
 
     /// Get width for mask
-    fn mask_width(mask: u32) -> u8 {
+    const fn mask_width(mask: u32) -> u8 {
         if mask == 0 {
             return 0;
         }
+        // count_ones returns u32, max value is 32, fits in u8
         (mask >> Self::mask_shift(mask)).count_ones() as u8
     }
 
