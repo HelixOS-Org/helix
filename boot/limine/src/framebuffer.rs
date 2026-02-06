@@ -227,7 +227,7 @@ impl<'a, 'b> Console<'a, 'b> {
     }
 
     /// Write pixel directly using the framebuffer's pixel format
-    #[allow(dead_code)]
+    #[allow(dead_code, clippy::cast_possible_truncation)] // extracting bytes from encoded u32 color value
     unsafe fn write_pixel_raw(&self, ptr: *mut u8, color: Color) {
         let format = self.fb.pixel_format();
         let encoded = format.encode(color);
@@ -391,11 +391,13 @@ impl<'a, 'b> Graphics<'a, 'b> {
     }
 
     /// Get the framebuffer bounds
+    #[allow(clippy::cast_possible_truncation)] // framebuffer dimensions fit in u32
     pub fn bounds(&self) -> Rect {
         Rect::new(0, 0, self.fb.width() as u32, self.fb.height() as u32)
     }
 
     /// Check if point is within bounds and clip region
+    #[allow(clippy::cast_possible_truncation)] // framebuffer dimensions fit in i32
     fn in_bounds(&self, x: i32, y: i32) -> bool {
         if x < 0 || y < 0 {
             return false;
@@ -546,6 +548,7 @@ impl<'a, 'b> Graphics<'a, 'b> {
     }
 
     /// Draw a gradient from top to bottom
+    #[allow(clippy::cast_possible_truncation)] // t is computed to be 0-255
     pub fn fill_gradient_v(&self, rect: Rect, top: Color, bottom: Color) {
         for y in 0..rect.height {
             let t = (y * 255 / rect.height.max(1)) as u8;
@@ -555,6 +558,7 @@ impl<'a, 'b> Graphics<'a, 'b> {
     }
 
     /// Draw a gradient from left to right
+    #[allow(clippy::cast_possible_truncation)] // t is computed to be 0-255
     pub fn fill_gradient_h(&self, rect: Rect, left: Color, right: Color) {
         for x in 0..rect.width {
             let t = (x * 255 / rect.width.max(1)) as u8;
@@ -565,6 +569,7 @@ impl<'a, 'b> Graphics<'a, 'b> {
 
     /// Linear interpolation between two colors
     /// t is in range 0-255, where 0 = a, 255 = b
+    #[allow(clippy::cast_possible_truncation)] // result of lerp is always 0-255
     fn lerp_color(a: Color, b: Color, t: u8) -> Color {
         let t = u16::from(t);
         let inv_t = 255 - t;
