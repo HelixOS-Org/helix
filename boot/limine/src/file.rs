@@ -314,7 +314,7 @@ impl ModuleCollection {
     /// Find module containing string in command line
     pub fn find_by_cmdline_contains(&self, pattern: &str) -> Option<&File> {
         self.iter()
-            .find(|f| f.cmdline().map_or(false, |c| c.contains(pattern)))
+            .find(|f| f.cmdline().is_some_and(|c| c.contains(pattern)))
     }
 
     /// Iterate over modules
