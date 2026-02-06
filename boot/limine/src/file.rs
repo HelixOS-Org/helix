@@ -241,9 +241,13 @@ impl MediaType {
 }
 
 /// ELF class
+///
+/// Indicates whether an ELF binary is 32-bit or 64-bit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElfClass {
+    /// 32-bit ELF binary
     Elf32,
+    /// 64-bit ELF binary
     Elf64,
 }
 
@@ -323,7 +327,7 @@ impl ModuleCollection {
 
     /// Get total size of all modules
     pub fn total_size(&self) -> u64 {
-        self.iter().map(|f| f.size()).sum()
+        self.iter().map(File::size).sum()
     }
 }
 
