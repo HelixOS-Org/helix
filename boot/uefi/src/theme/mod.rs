@@ -94,57 +94,71 @@ impl Color {
     }
 
     /// Blend with another color
-    pub fn blend(&self, other: Color, t: u8) -> Color {
+    #[must_use]
+    pub fn blend(&self, other: Self, t: u8) -> Self {
         let t = t as u16;
-        let inv_t = 255 - t;
-        Color {
-            r: (((self.r as u16 * inv_t) + (other.r as u16 * t)) / 255) as u8,
-            g: (((self.g as u16 * inv_t) + (other.g as u16 * t)) / 255) as u8,
-            b: (((self.b as u16 * inv_t) + (other.b as u16 * t)) / 255) as u8,
-            a: (((self.a as u16 * inv_t) + (other.a as u16 * t)) / 255) as u8,
+        let inv_t = 255u16 - t;
+        Self {
+            r: Self::u16_to_u8(((self.r as u16) * inv_t + (other.r as u16) * t) / 255),
+            g: Self::u16_to_u8(((self.g as u16) * inv_t + (other.g as u16) * t) / 255),
+            b: Self::u16_to_u8(((self.b as u16) * inv_t + (other.b as u16) * t) / 255),
+            a: Self::u16_to_u8(((self.a as u16) * inv_t + (other.a as u16) * t) / 255),
         }
     }
 
     /// Darken color
-    pub fn darken(&self, amount: u8) -> Color {
-        let factor = 255 - amount;
-        Color {
-            r: ((self.r as u16 * factor as u16) / 255) as u8,
-            g: ((self.g as u16 * factor as u16) / 255) as u8,
-            b: ((self.b as u16 * factor as u16) / 255) as u8,
+    #[must_use]
+    pub const fn darken(&self, amount: u8) -> Self {
+        let factor = 255u16 - (amount as u16);
+        Self {
+            r: Self::u16_to_u8(((self.r as u16) * factor) / 255),
+            g: Self::u16_to_u8(((self.g as u16) * factor) / 255),
+            b: Self::u16_to_u8(((self.b as u16) * factor) / 255),
             a: self.a,
         }
     }
 
     /// Lighten color
-    pub fn lighten(&self, amount: u8) -> Color {
-        Color {
-            r: self
-                .r
-                .saturating_add(((255 - self.r) as u16 * amount as u16 / 255) as u8),
-            g: self
-                .g
-                .saturating_add(((255 - self.g) as u16 * amount as u16 / 255) as u8),
-            b: self
-                .b
-                .saturating_add(((255 - self.b) as u16 * amount as u16 / 255) as u8),
+    #[must_use]
+    pub const fn lighten(&self, amount: u8) -> Self {
+        let amount = amount as u16;
+        let r_delta = ((255u16 - (self.r as u16)) * amount) / 255;
+        let g_delta = ((255u16 - (self.g as u16)) * amount) / 255;
+        let b_delta = ((255u16 - (self.b as u16)) * amount) / 255;
+        Self {
+            r: self.r.saturating_add(Self::u16_to_u8(r_delta)),
+            g: self.g.saturating_add(Self::u16_to_u8(g_delta)),
+            b: self.b.saturating_add(Self::u16_to_u8(b_delta)),
             a: self.a,
         }
     }
 
     /// Check if color is dark
-    pub fn is_dark(&self) -> bool {
+    pub const fn is_dark(&self) -> bool {
         // Using relative luminance approximation
-        let luminance = (self.r as u32 * 299 + self.g as u32 * 587 + self.b as u32 * 114) / 1000;
+        let luminance = ((self.r as u32) * 299
+            + (self.g as u32) * 587
+            + (self.b as u32) * 114)
+            / 1000;
         luminance < 128
     }
 
     /// Get contrasting text color
-    pub fn contrast_text(&self) -> Color {
+    #[must_use]
+    pub const fn contrast_text(&self) -> Self {
         if self.is_dark() {
             colors::WHITE
         } else {
             colors::BLACK
+        }
+    }
+
+    /// Convert u16 to u8, saturating at u8::MAX
+    const fn u16_to_u8(value: u16) -> u8 {
+        if value > u8::MAX as u16 {
+            u8::MAX
+        } else {
+            value as u8
         }
     }
 }
@@ -252,12 +266,12 @@ pub enum ColorSchemeType {
 impl fmt::Display for ColorSchemeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ColorSchemeType::Dark => write!(f, "Dark"),
-            ColorSchemeType::Light => write!(f, "Light"),
-            ColorSchemeType::HighContrastDark => write!(f, "High Contrast Dark"),
-            ColorSchemeType::HighContrastLight => write!(f, "High Contrast Light"),
-            ColorSchemeType::System => write!(f, "System"),
-            ColorSchemeType::Custom => write!(f, "Custom"),
+            Self::Dark => write!(f, "Dark"),
+            Self::Light => write!(f, "Light"),
+            Self::HighContrastDark => write!(f, "High Contrast Dark"),
+            Self::HighContrastLight => write!(f, "High Contrast Light"),
+            Self::System => write!(f, "System"),
+            Self::Custom => write!(f, "Custom"),
         }
     }
 }
@@ -481,15 +495,15 @@ impl FontWeight {
     /// Get numeric weight
     pub const fn weight(&self) -> u16 {
         match self {
-            FontWeight::Thin => 100,
-            FontWeight::ExtraLight => 200,
-            FontWeight::Light => 300,
-            FontWeight::Normal => 400,
-            FontWeight::Medium => 500,
-            FontWeight::Semibold => 600,
-            FontWeight::Bold => 700,
-            FontWeight::ExtraBold => 800,
-            FontWeight::Black => 900,
+            Self::Thin => 100,
+            Self::ExtraLight => 200,
+            Self::Light => 300,
+            Self::Normal => 400,
+            Self::Medium => 500,
+            Self::Semibold => 600,
+            Self::Bold => 700,
+            Self::ExtraBold => 800,
+            Self::Black => 900,
         }
     }
 }
@@ -528,12 +542,12 @@ impl FontSizePreset {
     /// Get size in pixels (at 96 DPI)
     pub const fn size_px(&self) -> u16 {
         match self {
-            FontSizePreset::XSmall => 10,
-            FontSizePreset::Small => 12,
-            FontSizePreset::Medium => 14,
-            FontSizePreset::Large => 16,
-            FontSizePreset::XLarge => 20,
-            FontSizePreset::XXLarge => 24,
+            Self::XSmall => 10,
+            Self::Small => 12,
+            Self::Medium => 14,
+            Self::Large => 16,
+            Self::XLarge => 20,
+            Self::XXLarge => 24,
         }
     }
 }
@@ -608,13 +622,13 @@ impl SpacingPreset {
     /// Get value in pixels
     pub const fn px(&self) -> u16 {
         match self {
-            SpacingPreset::None => 0,
-            SpacingPreset::XSmall => 4,
-            SpacingPreset::Small => 8,
-            SpacingPreset::Medium => 16,
-            SpacingPreset::Large => 24,
-            SpacingPreset::XLarge => 32,
-            SpacingPreset::XXLarge => 48,
+            Self::None => 0,
+            Self::XSmall => 4,
+            Self::Small => 8,
+            Self::Medium => 16,
+            Self::Large => 24,
+            Self::XLarge => 32,
+            Self::XXLarge => 48,
         }
     }
 }
@@ -641,12 +655,12 @@ impl RadiusPreset {
     /// Get value in pixels
     pub const fn px(&self) -> u16 {
         match self {
-            RadiusPreset::None => 0,
-            RadiusPreset::Small => 2,
-            RadiusPreset::Medium => 4,
-            RadiusPreset::Large => 8,
-            RadiusPreset::XLarge => 12,
-            RadiusPreset::Full => 9999,
+            Self::None => 0,
+            Self::Small => 2,
+            Self::Medium => 4,
+            Self::Large => 8,
+            Self::XLarge => 12,
+            Self::Full => 9999,
         }
     }
 }
@@ -669,10 +683,10 @@ impl BorderWidth {
     /// Get value in pixels
     pub const fn px(&self) -> u16 {
         match self {
-            BorderWidth::None => 0,
-            BorderWidth::Thin => 1,
-            BorderWidth::Medium => 2,
-            BorderWidth::Thick => 4,
+            Self::None => 0,
+            Self::Thin => 1,
+            Self::Medium => 2,
+            Self::Thick => 4,
         }
     }
 }
