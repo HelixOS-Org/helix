@@ -484,7 +484,7 @@ mod tests {
             .bootloader_name("Helix UEFI Bootloader")
             .bootloader_version("1.0.0")
             .command_line("debug root=/dev/sda1")
-            .add_memory_region(0x1000, 0x100000, MemoryType::Usable)
+            .add_memory_region(PhysicalAddress(0x1000u64), 0x100000u64, MemoryType::Usable)
             .build();
 
         assert_eq!(info.bootloader_name, "Helix UEFI Bootloader");
