@@ -681,10 +681,11 @@ impl Measurement {
 
     /// Get digest as hex string
     pub fn digest_hex(&self) -> String {
-        self.digest
-            .iter()
-            .map(|b| alloc::format!("{:02x}", b))
-            .collect()
+        use core::fmt::Write;
+        self.digest.iter().fold(String::new(), |mut acc, b| {
+            let _ = write!(acc, "{:02x}", b);
+            acc
+        })
     }
 }
 
