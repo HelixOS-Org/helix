@@ -391,7 +391,7 @@ pub struct WavInfo<'a> {
     pub data: &'a [u8],
 }
 
-impl<'a> WavInfo<'a> {
+impl WavInfo<'_> {
     /// Get duration in milliseconds
     pub const fn duration_ms(&self) -> u32 {
         if self.format.bytes_per_second() == 0 {
