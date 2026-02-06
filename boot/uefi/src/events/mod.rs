@@ -109,8 +109,9 @@ impl Default for EventPriority {
 // =============================================================================
 
 /// Boot phase
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum BootPhase {
+    #[default]
     /// Firmware handoff received
     FirmwareEntry,
     /// Early initialization
@@ -145,12 +146,6 @@ pub enum BootPhase {
     KernelEntry,
     /// Boot complete
     BootComplete,
-}
-
-impl Default for BootPhase {
-    fn default() -> Self {
-        BootPhase::FirmwareEntry
-    }
 }
 
 impl fmt::Display for BootPhase {
@@ -348,9 +343,10 @@ impl Default for ErrorEvent {
 // =============================================================================
 
 /// Device event type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DeviceEventType {
     /// Device discovered
+    #[default]
     Discovered,
     /// Device attached (hot-plug)
     Attached,
@@ -364,12 +360,6 @@ pub enum DeviceEventType {
     Ready,
     /// Device error
     Error,
-}
-
-impl Default for DeviceEventType {
-    fn default() -> Self {
-        DeviceEventType::Discovered
-    }
 }
 
 /// Device class for events
@@ -439,9 +429,10 @@ impl Default for DeviceEvent {
 // =============================================================================
 
 /// Security event type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecurityEventType {
     /// Secure Boot status change
+    #[default]
     SecureBootStatus,
     /// Image verification
     ImageVerification,
@@ -457,12 +448,6 @@ pub enum SecurityEventType {
     LockoutTriggered,
     /// Security violation
     Violation,
-}
-
-impl Default for SecurityEventType {
-    fn default() -> Self {
-        SecurityEventType::SecureBootStatus
-    }
 }
 
 /// Security event
@@ -503,9 +488,10 @@ impl Default for SecurityEvent {
 // =============================================================================
 
 /// User event type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum UserEventType {
     /// Key press
+    #[default]
     KeyPress,
     /// Key release
     KeyRelease,
@@ -521,12 +507,6 @@ pub enum UserEventType {
     Timeout,
     /// Hotkey activated
     Hotkey,
-}
-
-impl Default for UserEventType {
-    fn default() -> Self {
-        UserEventType::KeyPress
-    }
 }
 
 /// User input event
@@ -583,9 +563,10 @@ pub mod modifiers {
 // =============================================================================
 
 /// Timer event type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TimerEventType {
     /// One-shot timer fired
+    #[default]
     OneShot,
     /// Periodic timer tick
     Periodic,
@@ -595,12 +576,6 @@ pub enum TimerEventType {
     WatchdogWarning,
     /// Watchdog expired
     WatchdogExpired,
-}
-
-impl Default for TimerEventType {
-    fn default() -> Self {
-        TimerEventType::OneShot
-    }
 }
 
 /// Timer event
