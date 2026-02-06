@@ -155,7 +155,7 @@ struct MonitoredModule {
     /// Saved state for recovery
     last_known_state: Option<Vec<u8>>,
     /// Is monitoring enabled
-    enabled: bool,
+    _enabled: bool,
 }
 
 /// The Self-Healing Manager
@@ -207,7 +207,7 @@ impl SelfHealingManager {
             },
             factory,
             last_known_state: None,
-            enabled: true,
+            _enabled: true,
         };
 
         self.modules.write().insert(slot_id, entry);
