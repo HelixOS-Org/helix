@@ -678,6 +678,7 @@ impl TheoremProver {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn terms_equal(&self, t1: &Term, t2: &Term) -> bool {
         match (t1, t2) {
             (Term::Var(a), Term::Var(b)) => a == b,
@@ -903,6 +904,7 @@ impl TheoremProver {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn substitute_term(&self, t: &Term, var: &str, replacement: &Term) -> Term {
         match t {
             Term::Var(name) if name == var => replacement.clone(),
