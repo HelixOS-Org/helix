@@ -1550,7 +1550,7 @@ pub const fn virtqueue_size(queue_size: u16, align: usize) -> usize {
 
 /// Check if a number is a power of 2
 pub const fn is_power_of_2(n: u16) -> bool {
-    n != 0 && (n & (n - 1)) == 0
+    n.is_power_of_two()
 }
 
 /// Round up to next power of 2
