@@ -53,6 +53,12 @@ pub struct ContextSwitchEngine {
     hooks: spin::RwLock<alloc::vec::Vec<alloc::sync::Arc<dyn ContextSwitchHook>>>,
 }
 
+impl Default for ContextSwitchEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ContextSwitchEngine {
     /// Create a new context switch engine
     pub const fn new() -> Self {
