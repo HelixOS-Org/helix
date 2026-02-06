@@ -743,7 +743,7 @@ impl<'a> ArrayWriter<'a> {
     }
 }
 
-impl<'a> Write for ArrayWriter<'a> {
+impl Write for ArrayWriter<'_> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let bytes = s.as_bytes();
         let space = self.buf.len() - self.pos;
@@ -807,7 +807,7 @@ pub struct PanicInfo<'a> {
     pub location: Option<&'a core::panic::Location<'a>>,
 }
 
-impl<'a> PanicInfo<'a> {
+impl PanicInfo<'_> {
     /// Format panic for display
     pub fn format(&self, serial: &mut SerialPort) {
         serial.write_str("\n\x1b[91m");
@@ -817,7 +817,7 @@ impl<'a> PanicInfo<'a> {
         serial.write_str("\x1b[0m\n\n");
 
         if let Some(loc) = self.location {
-            serial.write_str("Location: ");
+            serial.write_str("Location: ";
             serial.write_str(loc.file());
             serial.write_str(":");
 
