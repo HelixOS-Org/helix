@@ -363,7 +363,7 @@ fn bench_free_large() -> u64 {
 
     if (bitmap >> buddy) & 1 == 1 {
         // Can merge
-        BUDDY_FREE[order].fetch_and(!(1 << block | 1 << buddy), Ordering::SeqCst);
+        BUDDY_FREE[order].fetch_and(!((1 << block) | (1 << buddy)), Ordering::SeqCst);
         BUDDY_FREE[order + 1].fetch_or(1 << (block / 2), Ordering::SeqCst);
     }
 
