@@ -769,9 +769,10 @@ impl Default for CodeEmitter {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
+
     use super::super::ir::{IRBuilder, IRParam, ParamAttributes};
     use super::*;
-    use alloc::vec;
 
     #[test]
     fn test_emit_function() {
