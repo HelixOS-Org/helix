@@ -166,17 +166,17 @@ fn bench_irq_latency_with_save() -> u64 {
 
     // Hardware frame
     let mut hw_frame = [0u64; 5];
-    for i in 0..5 {
+    for (i, frame) in hw_frame.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut hw_frame[i], i as u64);
+            core::ptr::write_volatile(frame, i as u64);
         }
     }
 
     // Save all general purpose registers (15 + error code)
     let mut gp_regs = [0u64; 16];
-    for i in 0..16 {
+    for (i, reg) in gp_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut gp_regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
@@ -185,11 +185,11 @@ fn bench_irq_latency_with_save() -> u64 {
 
     // Restore registers
     let mut sum = 0u64;
-    for i in 0..16 {
-        sum += unsafe { core::ptr::read_volatile(&gp_regs[i]) };
+    for reg in &gp_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
-    for i in 0..5 {
-        sum += unsafe { core::ptr::read_volatile(&hw_frame[i]) };
+    for frame in &hw_frame {
+        sum += unsafe { core::ptr::read_volatile(frame) };
     }
 
     let end = timing::read_tsc();
@@ -203,17 +203,17 @@ fn bench_irq_latency_full() -> u64 {
 
     // 1. Hardware frame saved
     let mut hw_frame = [0u64; 5];
-    for i in 0..5 {
+    for (i, frame) in hw_frame.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut hw_frame[i], i as u64);
+            core::ptr::write_volatile(frame, i as u64);
         }
     }
 
     // 2. Save GP registers
     let mut gp_regs = [0u64; 16];
-    for i in 0..16 {
+    for (i, reg) in gp_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut gp_regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
@@ -232,13 +232,13 @@ fn bench_irq_latency_full() -> u64 {
 
     // 6. Restore registers
     let mut sum = 0u64;
-    for i in 0..16 {
-        sum += unsafe { core::ptr::read_volatile(&gp_regs[i]) };
+    for reg in &gp_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
 
     // 7. IRETQ
-    for i in 0..5 {
-        sum += unsafe { core::ptr::read_volatile(&hw_frame[i]) };
+    for frame in &hw_frame {
+        sum += unsafe { core::ptr::read_volatile(frame) };
     }
 
     let end = timing::read_tsc();
@@ -600,9 +600,9 @@ fn bench_nested_irq() -> u64 {
 
     // Save state
     let mut outer_regs = [0u64; 16];
-    for i in 0..16 {
+    for (i, reg) in outer_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut outer_regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
@@ -612,23 +612,23 @@ fn bench_nested_irq() -> u64 {
 
     // Save nested state
     let mut inner_regs = [0u64; 16];
-    for i in 0..16 {
+    for (i, reg) in inner_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut inner_regs[i], i as u64 + 100);
+            core::ptr::write_volatile(reg, i as u64 + 100);
         }
     }
 
     // Inner handler completes
     let mut sum = 0u64;
-    for i in 0..16 {
-        sum += unsafe { core::ptr::read_volatile(&inner_regs[i]) };
+    for reg in &inner_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
 
     LEVEL.fetch_sub(1, Ordering::SeqCst);
 
     // Outer handler completes
-    for i in 0..16 {
-        sum += unsafe { core::ptr::read_volatile(&outer_regs[i]) };
+    for reg in &outer_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
 
     LEVEL.fetch_sub(1, Ordering::SeqCst);
