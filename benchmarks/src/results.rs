@@ -2,7 +2,7 @@
 //!
 //! Collects, analyzes, and formats benchmark results.
 
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
 use core::fmt::Write;
