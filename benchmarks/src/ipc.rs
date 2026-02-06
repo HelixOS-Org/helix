@@ -327,12 +327,12 @@ fn bench_channel_create() -> u64 {
 
     // Create channel structure
     let channel = Channel {
-        id: channel_id,
-        sender: 0,
-        receiver: 0,
-        capacity: 16,
-        count: AtomicU32::new(0),
-        flags: 0,
+        _id: channel_id,
+        _sender: 0,
+        _receiver: 0,
+        _capacity: 16,
+        _count: AtomicU32::new(0),
+        _flags: 0,
     };
 
     // Register in channel table
@@ -594,11 +594,11 @@ fn bench_shm_create() -> u64 {
 
     // Create SHM descriptor
     let shm = SharedMemory {
-        id: shm_id,
-        base,
-        size: size as u64,
-        ref_count: AtomicU32::new(1),
-        flags: 0,
+        _id: shm_id,
+        _base: base,
+        _size: size as u64,
+        _ref_count: AtomicU32::new(1),
+        _flags: 0,
     };
 
     // Register in SHM table
