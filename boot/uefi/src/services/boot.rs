@@ -55,7 +55,7 @@ impl BootServices {
     /// # Safety
     /// Must only be called with a TPL returned by raise_tpl.
     pub unsafe fn restore_tpl(&self, old_tpl: Tpl) {
-        (self.bs().restore_tpl)(old_tpl)
+        (self.bs().restore_tpl)(old_tpl);
     }
 
     /// Execute code at raised TPL
@@ -279,7 +279,7 @@ impl BootServices {
         search_key: *mut core::ffi::c_void,
         buffer: &mut [Handle],
     ) -> Result<usize, Status> {
-        let mut buffer_size = buffer.len() * core::mem::size_of::<Handle>();
+        let mut buffer_size = core::mem::size_of_val(buffer);
 
         let status = unsafe {
             (self.bs().locate_handle)(
