@@ -472,6 +472,7 @@ impl SynthesisEngine {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn enumerate_at_depth(&self, space: &SearchSpace, depth: usize) -> Vec<Program> {
         let mut programs = Vec::new();
 
@@ -599,6 +600,7 @@ impl SynthesisEngine {
         constraints
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn predicate_to_constraint(&self, pred: &Predicate) -> ConstraintExpr {
         match pred {
             Predicate::Eq(e1, e2) => ConstraintExpr::BinOp(
@@ -620,6 +622,7 @@ impl SynthesisEngine {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn expr_to_constraint(&self, expr: &Expr) -> ConstraintExpr {
         match expr {
             Expr::Var(name) => ConstraintExpr::Var(name.clone()),
@@ -797,6 +800,7 @@ impl SynthesisEngine {
         builder.finalize()
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn type_to_ir(&self, typ: &TypeSpec) -> IRType {
         match typ {
             TypeSpec::Unit => IRType::Void,
@@ -816,6 +820,7 @@ impl SynthesisEngine {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn program_to_source(&self, program: &Program) -> String {
         match program {
             Program::Var(name) => name.clone(),
@@ -864,6 +869,7 @@ impl SynthesisEngine {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn estimate_program_cost(&self, program: &Program) -> (u64, usize) {
         match program {
             Program::Var(_) => (1, 4),
@@ -887,6 +893,7 @@ impl SynthesisEngine {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn estimate_complexity(&self, program: &Program) -> u32 {
         match program {
             Program::Var(_) | Program::Const(_) => 1,
