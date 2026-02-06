@@ -298,8 +298,8 @@ fn bench_receive_message() -> u64 {
 
         // Copy payload
         let mut buffer = [0u8; 64];
-        for i in 0..64 {
-            buffer[i] = i as u8;
+        for (i, byte) in buffer.iter_mut().enumerate() {
+            *byte = i as u8;
         }
 
         core::hint::black_box((msg, buffer));
@@ -459,9 +459,9 @@ fn bench_null_syscall() -> u64 {
 
     // 2. Save user registers
     let mut user_regs = [0u64; 6]; // RDI, RSI, RDX, R10, R8, R9
-    for i in 0..6 {
+    for (i, reg) in user_regs.iter_mut().enumerate() {
         unsafe {
-            core::ptr::write_volatile(&mut user_regs[i], i as u64);
+            core::ptr::write_volatile(reg, i as u64);
         }
     }
 
@@ -474,8 +474,8 @@ fn bench_null_syscall() -> u64 {
 
     // 5. Restore and return
     let mut sum = 0u64;
-    for i in 0..6 {
-        sum += unsafe { core::ptr::read_volatile(&user_regs[i]) };
+    for reg in &user_regs {
+        sum += unsafe { core::ptr::read_volatile(reg) };
     }
 
     // 6. Mode switch (kernel -> user)
@@ -561,8 +561,8 @@ fn bench_read_syscall() -> u64 {
 
         // Read from device
         let mut kernel_buf = [0u8; 64];
-        for i in 0..to_read {
-            kernel_buf[i] = i as u8;
+        for (i, byte) in kernel_buf.iter_mut().enumerate().take(to_read) {
+            *byte = i as u8;
         }
 
         // Copy to user space
