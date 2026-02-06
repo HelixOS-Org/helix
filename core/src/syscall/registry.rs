@@ -31,6 +31,12 @@ pub struct SyscallRegistry {
     named: RwLock<BTreeMap<String, SyscallNumber>>,
 }
 
+impl Default for SyscallRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SyscallRegistry {
     /// Create a new registry
     pub const fn new() -> Self {
