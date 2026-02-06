@@ -490,8 +490,7 @@ pub struct BitmapAllocState {
 impl BitmapAllocState {
     /// Create new state
     pub fn new(total_blocks: u64) -> Self {
-        let num_bitmap_blocks =
-            (total_blocks as usize).div_ceil(BITS_PER_BLOCK) as u32;
+        let num_bitmap_blocks = (total_blocks as usize).div_ceil(BITS_PER_BLOCK) as u32;
 
         Self {
             num_blocks: num_bitmap_blocks,
