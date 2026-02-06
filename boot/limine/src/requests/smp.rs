@@ -72,12 +72,14 @@ impl SmpRequest {
     }
 
     /// Create with specific flags
+    #[must_use]
     pub const fn with_flags(mut self, flags: u64) -> Self {
         self.flags = flags;
         self
     }
 
     /// Enable x2APIC mode (x86_64)
+    #[must_use]
     pub const fn enable_x2apic(mut self) -> Self {
         self.flags |= smp_flags::X2APIC;
         self
