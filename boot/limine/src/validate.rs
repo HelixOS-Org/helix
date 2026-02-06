@@ -492,7 +492,7 @@ pub fn is_aligned(address: u64, alignment: u64) -> bool {
     address & (alignment - 1) == 0
 }
 
-/// Checks if an address is page-aligned (4 KiB boundary)
+/// Checks if an address is page-aligned (4 `KiB` boundary)
 pub fn is_page_aligned(address: u64) -> bool {
     is_aligned(address, 4096)
 }
