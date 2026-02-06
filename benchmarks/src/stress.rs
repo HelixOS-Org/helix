@@ -375,12 +375,11 @@ fn bench_priority_inversion() -> u64 {
             core::hint::black_box("boosted");
         }
 
-        // Wait for lock
-        while LOCK.load(Ordering::Acquire) != 0 {
+        // Wait for lock (or simulate low priority releasing)
+        if LOCK.load(Ordering::Acquire) != 0 {
             core::hint::spin_loop();
             // Simulate low priority releasing
             LOCK.store(0, Ordering::Release);
-            break;
         }
 
         // Restore priority
