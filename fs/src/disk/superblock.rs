@@ -637,8 +637,8 @@ impl SuperblockLocations {
         let mut backup = [BlockNum::NULL; BACKUP_SUPERBLOCK_COPIES];
 
         // Primary: first 8 blocks
-        for i in 0..PRIMARY_SUPERBLOCK_COPIES {
-            primary[i] = BlockNum::new(i as u64);
+        for (i, p) in primary.iter_mut().enumerate() {
+            *p = BlockNum::new(i as u64);
         }
 
         // Backup: spread across disk at power-of-2 intervals
