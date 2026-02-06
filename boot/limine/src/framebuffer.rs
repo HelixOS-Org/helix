@@ -176,7 +176,7 @@ impl<'a, 'b> Console<'a, 'b> {
         let scroll_lines = height - line_height;
 
         unsafe {
-            let base = self.fb.address() as *mut u8;
+            let base = self.fb.address();
             for y in 0..scroll_lines {
                 let src = base.add((y + line_height) * pitch);
                 let dst = base.add(y * pitch);
@@ -238,7 +238,7 @@ impl<'a, 'b> Console<'a, 'b> {
                 *ptr = encoded as u8;
             },
             16 => {
-                core::ptr::write_unaligned(ptr as *mut u16, encoded as u16);
+                core::ptr::write_unaligned(ptr.cast::<u16>(), encoded as u16);
             },
             24 => {
                 *ptr = encoded as u8;
@@ -246,7 +246,7 @@ impl<'a, 'b> Console<'a, 'b> {
                 *ptr.add(2) = (encoded >> 16) as u8;
             },
             32 => {
-                core::ptr::write_unaligned(ptr as *mut u32, encoded);
+                core::ptr::write_unaligned(ptr.cast::<u32>(), encoded);
             },
             _ => {},
         }
