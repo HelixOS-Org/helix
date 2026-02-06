@@ -565,6 +565,10 @@ impl SmbiosStructure {
 
     /// Get raw data
     #[must_use]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the data pointer is valid.
     pub unsafe fn data(&self) -> &[u8] {
         core::slice::from_raw_parts(
             (self.address.0 + core::mem::size_of::<SmbiosHeader>() as u64) as *const u8,
@@ -606,6 +610,10 @@ pub struct BiosInfo {
 
 impl BiosInfo {
     /// Parse from structure
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the structure data is valid and complete.
     pub unsafe fn from_structure(s: &SmbiosStructure) -> Self {
         let data = (s.address.0 + 4) as *const u8;
 
@@ -686,6 +694,10 @@ pub struct SystemInfo {
 
 impl SystemInfo {
     /// Parse from structure
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the structure data is valid and complete.
     pub unsafe fn from_structure(s: &SmbiosStructure) -> Self {
         let data = (s.address.0 + 4) as *const u8;
 
@@ -812,6 +824,10 @@ pub struct BaseboardInfo {
 
 impl BaseboardInfo {
     /// Parse from structure
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the structure data is valid and complete.
     pub unsafe fn from_structure(s: &SmbiosStructure) -> Self {
         let data = (s.address.0 + 4) as *const u8;
 
@@ -952,6 +968,10 @@ pub struct ChassisInfo {
 
 impl ChassisInfo {
     /// Parse from structure
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the structure data is valid and complete.
     pub unsafe fn from_structure(s: &SmbiosStructure) -> Self {
         let data = (s.address.0 + 4) as *const u8;
 
@@ -1206,6 +1226,10 @@ pub struct ProcessorInfo {
 
 impl ProcessorInfo {
     /// Parse from structure
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the structure data is valid and complete.
     pub unsafe fn from_structure(s: &SmbiosStructure) -> Self {
         let data = (s.address.0 + 4) as *const u8;
 
@@ -1383,6 +1407,10 @@ pub struct MemoryDeviceInfo {
 
 impl MemoryDeviceInfo {
     /// Parse from structure
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the structure data is valid and complete.
     pub unsafe fn from_structure(s: &SmbiosStructure) -> Self {
         let data = (s.address.0 + 4) as *const u8;
 
