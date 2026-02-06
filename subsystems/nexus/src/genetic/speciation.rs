@@ -9,6 +9,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+use core::cmp::Ordering;
 
 use super::genome::CodeGenome;
 use super::population::Population;
@@ -282,13 +283,17 @@ impl SpeciesManager {
         let current = self.species.len();
         let target = self.config.target_species;
 
-        if current < target {
-            // Too few species, increase threshold (more separation)
-            self.config.threshold += self.config.threshold_adjustment;
-        } else if current > target {
-            // Too many species, decrease threshold (less separation)
-            self.config.threshold =
-                (self.config.threshold - self.config.threshold_adjustment).max(0.1);
+        match current.cmp(&target) {
+            Ordering::Less => {
+                // Too few species, increase threshold (more separation)
+                self.config.threshold += self.config.threshold_adjustment;
+            },
+            Ordering::Greater => {
+                // Too many species, decrease threshold (less separation)
+                self.config.threshold =
+                    (self.config.threshold - self.config.threshold_adjustment).max(0.1);
+            },
+            Ordering::Equal => {},
         }
     }
 
