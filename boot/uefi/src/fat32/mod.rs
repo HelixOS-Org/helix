@@ -841,8 +841,7 @@ impl FatFilesystem {
     pub fn volume_label(&self) -> &str {
         self.ebpb32
             .as_ref()
-            .map(Fat32Ebpb::volume_label_str)
-            .unwrap_or("")
+            .map_or("", Fat32Ebpb::volume_label_str)
     }
 
     /// Get volume serial number
