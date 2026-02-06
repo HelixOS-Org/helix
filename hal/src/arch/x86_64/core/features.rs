@@ -824,10 +824,19 @@ impl FeatureRequirements {
 }
 
 /// Missing feature error
+///
+/// Describes a CPU feature that was required but not available.
 #[derive(Debug, Clone, Copy)]
 pub enum MissingFeature {
     /// Physical address bits insufficient
-    PhysAddrBits { required: u8, available: u8 },
+    ///
+    /// The CPU does not support enough physical address bits.
+    PhysAddrBits {
+        /// Minimum required physical address bits
+        required: u8,
+        /// Actual available physical address bits on this CPU
+        available: u8,
+    },
     /// Named feature missing
     Feature(&'static str),
 }
