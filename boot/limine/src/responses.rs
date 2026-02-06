@@ -183,6 +183,7 @@ impl MemoryMap {
     }
 
     /// Get entry count
+    #[allow(clippy::cast_possible_truncation)] // entry_count is always small enough to fit in usize
     pub fn count(&self) -> usize {
         self.entry_count as usize
     }
@@ -457,6 +458,7 @@ impl SmpInfo {
     }
 
     /// Get CPU count
+    #[allow(clippy::cast_possible_truncation)] // cpu_count is always small enough to fit in usize
     pub fn cpu_count(&self) -> usize {
         self.cpu_count as usize
     }
@@ -568,6 +570,7 @@ impl ColorMask {
     }
 
     /// Extract value from pixel
+    #[allow(clippy::cast_possible_truncation)] // value is masked to fit in u8
     pub const fn extract(&self, pixel: u32) -> u8 {
         ((pixel >> self.shift) & ((1 << self.size) - 1)) as u8
     }
@@ -590,6 +593,7 @@ impl FramebufferInfo {
     }
 
     /// Get pixel offset
+    #[allow(clippy::cast_possible_truncation)] // pitch fits in usize on 64-bit systems
     pub fn pixel_offset(&self, x: usize, y: usize) -> usize {
         y * self.pitch as usize + x * self.bytes_per_pixel()
     }
@@ -679,6 +683,8 @@ impl BootTime {
         // Simple calculation - not accounting for leap seconds
         let days_since_epoch = self.unix_time / 86400;
         let mut year = 1970u32;
+        // SAFETY: For reasonable dates (until ~year 5881610) this won't overflow
+        #[allow(clippy::cast_possible_truncation)]
         let mut remaining_days = days_since_epoch as i32;
 
         loop {
@@ -705,7 +711,10 @@ impl BootTime {
             month += 1;
         }
 
-        (year, month, (remaining_days + 1) as u8)
+        // SAFETY: remaining_days is always 0-30 after the loop, so +1 gives 1-31 which fits in u8
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let day = (remaining_days + 1) as u8;
+        (year, month, day)
     }
 }
 
