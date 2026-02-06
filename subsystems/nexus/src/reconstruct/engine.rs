@@ -14,6 +14,7 @@ pub struct ReplayEngine {
     /// State reconstructor
     reconstructor: StateReconstructor,
     /// Event handlers
+    #[allow(clippy::type_complexity)]
     handlers: BTreeMap<u64, Vec<Box<dyn Fn(&StateEvent) + Send + Sync>>>,
 }
 
