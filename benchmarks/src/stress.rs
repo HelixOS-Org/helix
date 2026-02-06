@@ -426,7 +426,7 @@ fn bench_thundering_herd() -> u64 {
     static RESOURCE: AtomicU32 = AtomicU32::new(0);
     let winner = RESOURCE.compare_exchange(0, 1, Ordering::SeqCst, Ordering::Relaxed);
 
-    core::hint::black_box((woken, winner));
+    let _ = core::hint::black_box((woken, winner));
 
     let end = timing::read_tsc();
 
