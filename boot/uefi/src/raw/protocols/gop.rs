@@ -104,8 +104,7 @@ impl EfiGraphicsOutputProtocol {
         delta: usize,
     ) -> Result<(), Status> {
         let buffer_ptr = buffer
-            .map(<[EfiGraphicsOutputBltPixel]>::as_mut_ptr)
-            .unwrap_or(core::ptr::null_mut());
+            .map_or(core::ptr::null_mut(), <[EfiGraphicsOutputBltPixel]>::as_mut_ptr);
 
         let status = (self.blt)(
             self, buffer_ptr, operation, src_x, src_y, dst_x, dst_y, width, height, delta,
