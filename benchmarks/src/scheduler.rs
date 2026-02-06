@@ -596,9 +596,9 @@ fn bench_optimization_hint() -> u64 {
 
     // Simulate ML-based optimization
     let stats = TaskStats {
-        avg_runtime: 5000,
+        _avg_runtime: 5000,
         avg_wait_time: 2000,
-        context_switches: 100,
+        _context_switches: 100,
         burst_score: 60,
         interactive_score: 80,
     };
