@@ -300,6 +300,7 @@ pub type ApEntry = extern "C" fn() -> !;
 ///
 /// This function iterates through all CPUs and starts each AP at the
 /// given entry point.
+#[allow(clippy::fn_to_numeric_cast)]
 pub fn start_all_aps(smp: &SmpResponse, entry: ApEntry, arg: u64) {
     for cpu in smp.cpus() {
         if !cpu.is_bsp() {
