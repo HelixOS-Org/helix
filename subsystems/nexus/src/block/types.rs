@@ -2,9 +2,6 @@
 //!
 //! Fundamental types for block device intelligence.
 
-use alloc::format;
-use alloc::string::String;
-
 /// Block device major number
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Major(pub u32);
@@ -35,10 +32,11 @@ impl BlockDeviceId {
     pub fn dev_t(&self) -> u64 {
         ((self.major.0 as u64) << 20) | (self.minor.0 as u64)
     }
+}
 
-    /// Format as string
-    pub fn to_string(&self) -> String {
-        format!("{}:{}", self.major.0, self.minor.0)
+impl core::fmt::Display for BlockDeviceId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}:{}", self.major.0, self.minor.0)
     }
 }
 
