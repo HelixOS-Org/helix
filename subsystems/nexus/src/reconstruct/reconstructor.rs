@@ -42,7 +42,7 @@ impl StateReconstructor {
     pub fn log_for(&mut self, component: ComponentId) -> &mut StateLog {
         self.logs
             .entry(component.raw())
-            .or_insert_with(StateLog::default)
+            .or_default()
     }
 
     /// Record an event
