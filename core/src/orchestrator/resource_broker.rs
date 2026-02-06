@@ -146,6 +146,12 @@ pub struct ResourceBroker {
     providers: RwLock<BTreeMap<ResourceClass, Arc<dyn ResourceProvider>>>,
 }
 
+impl Default for ResourceBroker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ResourceBroker {
     /// Create a new resource broker
     pub const fn new() -> Self {
