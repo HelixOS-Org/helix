@@ -30,7 +30,7 @@ use core::fmt;
 // =============================================================================
 
 /// System summary
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct SystemSummary {
     /// CPU info
     pub cpu: CpuSummary,
@@ -46,20 +46,6 @@ pub struct SystemSummary {
     pub boot: BootSummary,
     /// System timestamp
     pub timestamp_us: u64,
-}
-
-impl Default for SystemSummary {
-    fn default() -> Self {
-        Self {
-            cpu: CpuSummary::default(),
-            memory: MemorySummary::default(),
-            storage: StorageSummary::default(),
-            firmware: FirmwareSummary::default(),
-            graphics: GraphicsSummary::default(),
-            boot: BootSummary::default(),
-            timestamp_us: 0,
-        }
-    }
 }
 
 // =============================================================================
@@ -833,7 +819,7 @@ impl Default for BootSummary {
 // =============================================================================
 
 /// Network interface info
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct NetworkInterfaceInfo {
     /// Interface index
     pub index: u8,
@@ -855,27 +841,11 @@ pub struct NetworkInterfaceInfo {
     pub pxe_capable: bool,
 }
 
-impl Default for NetworkInterfaceInfo {
-    fn default() -> Self {
-        Self {
-            index: 0,
-            mac: [0u8; 6],
-            ipv4: [0u8; 4],
-            ipv4_mask: [0u8; 4],
-            ipv4_gateway: [0u8; 4],
-            ipv6: [0u8; 16],
-            link_up: false,
-            speed_mbps: 0,
-            pxe_capable: false,
-        }
-    }
-}
-
 impl NetworkInterfaceInfo {
     /// Format MAC address
     pub fn mac_string(&self) -> [u8; 17] {
-        let mut buf = [0u8; 17];
         const HEX: &[u8] = b"0123456789ABCDEF";
+        let mut buf = [0u8; 17];
         let mut idx = 0;
         for i in 0..6 {
             buf[idx] = HEX[(self.mac[i] >> 4) as usize];
