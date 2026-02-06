@@ -199,10 +199,7 @@ impl Generalizer {
         // Group by action
         let mut by_action: BTreeMap<String, Vec<&FeedbackEntry>> = BTreeMap::new();
         for exp in experiences {
-            by_action
-                .entry(exp.action.clone())
-                .or_default()
-                .push(exp);
+            by_action.entry(exp.action.clone()).or_default().push(exp);
         }
 
         // For each action, find common patterns in positive outcomes
