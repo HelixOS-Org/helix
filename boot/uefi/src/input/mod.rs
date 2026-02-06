@@ -1019,9 +1019,7 @@ impl TouchEvent {
 
     /// Check if this is a tap gesture (single quick touch)
     pub fn is_tap(&self) -> bool {
-        self.point_count == 1
-            && self.points[0]
-                .is_some_and(|p| p.state == TouchState::Up)
+        self.point_count == 1 && self.points[0].is_some_and(|p| p.state == TouchState::Up)
     }
 
     /// Check if this is a two-finger gesture
