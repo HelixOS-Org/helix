@@ -303,7 +303,7 @@ impl SemanticMemory {
         self.by_name.insert(name, id);
         self.by_category
             .entry(category)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(id);
         self.patterns.insert(id, pattern);
 
