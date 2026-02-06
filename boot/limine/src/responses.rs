@@ -219,14 +219,14 @@ impl MemoryMap {
     /// Get total usable memory
     pub fn total_usable(&self) -> u64 {
         self.iter()
-            .filter(|r| r.is_usable())
-            .map(|r| r.size())
+            .filter(MemoryRegion::is_usable)
+            .map(MemoryRegion::size)
             .sum()
     }
 
     /// Get total memory
     pub fn total(&self) -> u64 {
-        self.iter().map(|r| r.size()).sum()
+        self.iter().map(MemoryRegion::size).sum()
     }
 
     /// Find region containing address
@@ -237,8 +237,8 @@ impl MemoryMap {
     /// Find largest usable region
     pub fn largest_usable(&self) -> Option<MemoryRegion> {
         self.iter()
-            .filter(|r| r.is_usable())
-            .max_by_key(|r| r.size())
+            .filter(MemoryRegion::is_usable)
+            .max_by_key(MemoryRegion::size)
     }
 
     /// Get regions of a specific kind
@@ -546,9 +546,13 @@ pub struct FramebufferInfo {
 }
 
 /// Color channel mask
+///
+/// Describes the bit layout of a single color channel in a pixel format.
 #[derive(Debug, Clone, Copy)]
 pub struct ColorMask {
+    /// Number of bits used for this color channel
     pub size: u8,
+    /// Bit position of this color channel within the pixel
     pub shift: u8,
 }
 
