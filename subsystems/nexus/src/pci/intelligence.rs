@@ -192,8 +192,7 @@ impl PciIntelligence {
                         severity: 4,
                         description: format!(
                             "Device {} BAR{} not assigned",
-                            device.id,
-                            base_addr_reg.index
+                            device.id, base_addr_reg.index
                         ),
                         device: Some(device.id),
                     });
