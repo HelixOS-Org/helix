@@ -83,7 +83,7 @@ impl StaticRamDisk {
     #[inline]
     #[allow(clippy::mut_from_ref)]
     unsafe fn as_mut(&self) -> &mut RamDiskBuffer {
-        &mut *self.0.get()
+        unsafe { &mut *self.0.get() }
     }
 
     /// Get immutable access to the buffer
@@ -92,7 +92,7 @@ impl StaticRamDisk {
     /// Caller must hold RAMDISK_LOCK
     #[inline]
     unsafe fn as_ref(&self) -> &RamDiskBuffer {
-        &*self.0.get()
+        unsafe { &*self.0.get() }
     }
 }
 
