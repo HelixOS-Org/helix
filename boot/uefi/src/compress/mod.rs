@@ -119,10 +119,10 @@ pub fn rle_compress(input: &[u8], output: &mut [u8]) -> Option<RleResult> {
         in_pos += run_len;
     }
 
-    let ratio = if input.len() > 0 {
-        ((input.len() - out_pos) * 100 / input.len()) as u8
-    } else {
+    let ratio = if input.is_empty() {
         0
+    } else {
+        ((input.len() - out_pos) * 100 / input.len()) as u8
     };
 
     Some(RleResult {
@@ -389,7 +389,7 @@ impl _HuffmanNode {
         }
     }
 
-    fn _is_leaf(&self) -> bool {
+    fn _is_leaf(self) -> bool {
         self.symbol >= 0
     }
 }
@@ -402,6 +402,12 @@ pub struct HuffmanTable {
     lengths: [u8; 256],
     /// Number of symbols
     num_symbols: usize,
+}
+
+impl Default for HuffmanTable {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl HuffmanTable {
@@ -422,9 +428,9 @@ impl HuffmanTable {
         let mut symbols: [(u8, u32); 256] = [(0, 0); 256];
         let mut count = 0;
 
-        for i in 0..256 {
-            if frequencies[i] > 0 {
-                symbols[count] = (i as u8, frequencies[i]);
+        for (i, &freq) in frequencies.iter().enumerate() {
+            if freq > 0 {
+                symbols[count] = (i as u8, freq);
                 count += 1;
             }
         }
@@ -450,10 +456,9 @@ impl HuffmanTable {
         } else {
             (32 - (count - 1).leading_zeros()) as u8
         };
-        let max_bits = max_bits.max(1).min(15);
+        let max_bits = max_bits.clamp(1, 15);
 
-        for i in 0..count {
-            let sym = symbols[i].0;
+        for (i, &(sym, _)) in symbols.iter().enumerate().take(count) {
             table.codes[sym as usize] = i as u16;
             table.lengths[sym as usize] = max_bits;
         }
@@ -601,7 +606,7 @@ impl<'a> BitWriter<'a> {
 
     /// Get bytes written
     pub fn bytes_written(&self) -> usize {
-        self.pos + if self.bits_in_buffer > 0 { 1 } else { 0 }
+        self.pos + usize::from(self.bits_in_buffer > 0)
     }
 }
 
