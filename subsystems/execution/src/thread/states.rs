@@ -5,8 +5,10 @@
 /// Thread state (unit-only for atomic storage)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
+#[derive(Default)]
 pub enum ThreadState {
     /// Thread is being created
+    #[default]
     Creating = 0,
     /// Thread is ready to run
     Ready    = 1,
@@ -107,8 +109,3 @@ impl ThreadState {
     }
 }
 
-impl Default for ThreadState {
-    fn default() -> Self {
-        ThreadState::Creating
-    }
-}
