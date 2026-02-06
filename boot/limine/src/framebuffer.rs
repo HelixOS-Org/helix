@@ -823,15 +823,15 @@ pub fn draw_bitmap(gfx: &Graphics, bitmap: &Bitmap, pos: Point) {
 #[allow(
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
-    clippy::cast_precision_loss
-)] // scaling always produces valid pixel indices
+    clippy::cast_precision_loss,
+    clippy::cast_possible_wrap
+)] // scaling always produces valid pixel indices; dx/dy fit in i32
 pub fn draw_bitmap_scaled(gfx: &Graphics, bitmap: &Bitmap, dest: Rect) {
     let scale_x = bitmap.width() as f32 / dest.width as f32;
     let scale_y = bitmap.height() as f32 / dest.height as f32;
 
     for dy in 0..dest.height {
         for dx in 0..dest.width {
-            #[allow(clippy::cast_possible_wrap)] // dx/dy fit in i32 for valid dest dimensions
             let sx = (dx as f32 * scale_x) as u32;
             let sy = (dy as f32 * scale_y) as u32;
             if let Some(color) = bitmap.pixel(sx, sy) {
