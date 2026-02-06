@@ -24,6 +24,7 @@ pub struct MessageBus {
     /// Router
     router: Router,
     /// Subscribers per topic
+    #[allow(clippy::type_complexity)]
     subscribers: BTreeMap<String, Vec<Box<dyn Fn(&Message) + Send + Sync>>>,
     /// Is running
     running: AtomicBool,
