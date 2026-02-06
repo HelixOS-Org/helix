@@ -120,7 +120,9 @@ impl core::fmt::Display for ValidationError {
 /// Collection of validation errors
 #[derive(Debug, Default)]
 pub struct ValidationErrors {
+    /// Fixed-size array storing validation errors
     errors: [Option<ValidationError>; 16],
+    /// Current number of errors in the collection
     count: usize,
 }
 
@@ -136,7 +138,7 @@ impl ValidationErrors {
         }
     }
 
-    /// Add an error
+    /// Add an error to the collection
     pub fn push(&mut self, error: ValidationError) {
         if self.count < self.errors.len() {
             self.errors[self.count] = Some(error);
@@ -149,22 +151,22 @@ impl ValidationErrors {
         self.count > 0
     }
 
-    /// Get the number of errors
+    /// Returns the number of errors in the collection
     pub fn len(&self) -> usize {
         self.count
     }
 
-    /// Check if empty
+    /// Returns true if no errors have been recorded
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
 
-    /// Iterate over errors
+    /// Returns an iterator over the validation errors
     pub fn iter(&self) -> impl Iterator<Item = &ValidationError> {
         self.errors[..self.count].iter().filter_map(|e| e.as_ref())
     }
 
-    /// Get the first error
+    /// Returns the first error if any exists
     pub fn first(&self) -> Option<&ValidationError> {
         self.errors[0].as_ref()
     }
@@ -181,8 +183,11 @@ impl ValidationErrors {
 
 /// Validator for boot information
 pub struct BootValidator<'a> {
+    /// Reference to the boot information being validated
     boot_info: &'a BootInfo<'a>,
+    /// Collection of validation errors encountered
     errors: ValidationErrors,
+    /// Whether to perform strict validation checks
     strict: bool,
 }
 
@@ -196,7 +201,7 @@ impl<'a> BootValidator<'a> {
         }
     }
 
-    /// Enable strict validation mode
+    /// Enables strict validation mode which checks optional components
     pub fn strict(mut self) -> Self {
         self.strict = true;
         self
@@ -436,7 +441,7 @@ impl<'a> BootValidator<'a> {
     }
 }
 
-/// Validate a memory map response
+/// Validates a memory map response for basic correctness
 pub fn validate_memory_map(response: &MemoryMapResponse) -> ValidationResult<()> {
     let mut errors = ValidationErrors::new();
 
@@ -447,7 +452,7 @@ pub fn validate_memory_map(response: &MemoryMapResponse) -> ValidationResult<()>
     errors.into_result()
 }
 
-/// Validate an HHDM response
+/// Validates an HHDM response for proper higher-half mapping
 pub fn validate_hhdm(response: &HhdmResponse) -> ValidationResult<()> {
     let offset = response.offset();
 
@@ -468,27 +473,27 @@ pub fn validate_hhdm(response: &HhdmResponse) -> ValidationResult<()> {
     Ok(())
 }
 
-/// Check if an address is properly aligned
+/// Checks if an address is properly aligned to the given alignment
 pub fn is_aligned(address: u64, alignment: u64) -> bool {
     address & (alignment - 1) == 0
 }
 
-/// Check if an address is page-aligned (4 KB)
+/// Checks if an address is page-aligned (4 KiB boundary)
 pub fn is_page_aligned(address: u64) -> bool {
     is_aligned(address, 4096)
 }
 
-/// Check if an address is in the higher half
+/// Checks if an address is in the higher half of the address space
 pub fn is_higher_half(address: u64) -> bool {
     address >= 0xFFFF_8000_0000_0000
 }
 
-/// Check if an address range is valid
+/// Checks if an address range is valid (non-zero length, no overflow)
 pub fn is_valid_range(base: u64, length: u64) -> bool {
     length > 0 && base.checked_add(length).is_some()
 }
 
-/// Validate a pointer is not null and aligned
+/// Validates that a pointer is not null and properly aligned for its type
 pub fn validate_pointer<T>(ptr: *const T) -> ValidationResult<()> {
     if ptr.is_null() {
         return Err(ValidationError::NullPointer("pointer"));
