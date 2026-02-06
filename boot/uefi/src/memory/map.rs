@@ -707,18 +707,18 @@ mod tests {
 
     #[test]
     fn test_memory_range_contains() {
-        let range = MemoryRange::new(0x1000, 0x2000, RangeType::Usable);
-        assert!(range.contains(0x1000));
-        assert!(range.contains(0x1500));
-        assert!(!range.contains(0x2000)); // Exclusive end
-        assert!(!range.contains(0x0500));
+        let range = MemoryRange::new(PhysicalAddress(0x1000), PhysicalAddress(0x2000), RangeType::Usable);
+        assert!(range.contains(PhysicalAddress(0x1000)));
+        assert!(range.contains(PhysicalAddress(0x1500)));
+        assert!(!range.contains(PhysicalAddress(0x2000))); // Exclusive end
+        assert!(!range.contains(PhysicalAddress(0x0500)));
     }
 
     #[test]
     fn test_memory_range_overlaps() {
-        let r1 = MemoryRange::new(0x1000, 0x2000, RangeType::Usable);
-        let r2 = MemoryRange::new(0x1500, 0x2500, RangeType::Usable);
-        let r3 = MemoryRange::new(0x2000, 0x3000, RangeType::Usable);
+        let r1 = MemoryRange::new(PhysicalAddress(0x1000), PhysicalAddress(0x2000), RangeType::Usable);
+        let r2 = MemoryRange::new(PhysicalAddress(0x1500), PhysicalAddress(0x2500), RangeType::Usable);
+        let r3 = MemoryRange::new(PhysicalAddress(0x2000), PhysicalAddress(0x3000), RangeType::Usable);
 
         assert!(r1.overlaps(&r2));
         assert!(!r1.overlaps(&r3));
@@ -733,9 +733,9 @@ mod tests {
 
     #[test]
     fn test_layout_checks() {
-        assert!(layout::is_low_memory(0x50000));
-        assert!(!layout::is_low_memory(0x200000));
-        assert!(layout::is_vga_memory(0xA5000));
-        assert!(layout::is_bios_memory(0xF5000));
+        assert!(layout::is_low_memory(PhysicalAddress(0x50000)));
+        assert!(!layout::is_low_memory(PhysicalAddress(0x200000)));
+        assert!(layout::is_vga_memory(PhysicalAddress(0xA5000)));
+        assert!(layout::is_bios_memory(PhysicalAddress(0xF5000)));
     }
 }
