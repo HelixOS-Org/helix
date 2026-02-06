@@ -3,7 +3,7 @@
 //! Structures for passing loaded modules (initrd, kernel modules, etc.) to the kernel.
 
 use crate::error::{Error, Result};
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 extern crate alloc;
 use alloc::string::String;
