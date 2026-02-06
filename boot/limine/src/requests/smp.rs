@@ -257,7 +257,7 @@ impl<'a> CpuInfo<'a> {
 
     /// Check if this is the BSP (Bootstrap Processor)
     pub fn is_bsp(&self) -> bool {
-        self.raw.lapic_id as u64 == self.bsp_lapic_id
+        u64::from(self.raw.lapic_id) == self.bsp_lapic_id
     }
 
     /// Check if this CPU has been started
