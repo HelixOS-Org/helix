@@ -160,6 +160,7 @@ impl MemoryMap {
     }
 
     /// Iterate over memory descriptors
+    #[allow(clippy::iter_without_into_iter)]
     pub const fn iter(&self) -> MemoryMapIterator<'_> {
         MemoryMapIterator {
             map: self,
