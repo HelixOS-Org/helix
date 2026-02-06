@@ -654,6 +654,7 @@ impl DoubleBuffer {
     }
 
     /// Set a pixel in the back buffer
+    #[allow(clippy::cast_possible_truncation)] // extracting bytes from encoded u32 color value
     pub fn set_pixel(&self, x: usize, y: usize, color: Color) {
         if x >= self.width || y >= self.height {
             return;
@@ -682,6 +683,7 @@ impl DoubleBuffer {
     }
 
     /// Fill the back buffer with a color
+    #[allow(clippy::cast_possible_truncation)] // extracting bytes from encoded u32 color value
     pub fn clear(&self, color: Color) {
         let bytes_per_pixel = self.bpp / 8;
         let encoded = self.format.encode(color);
@@ -810,6 +812,7 @@ pub fn draw_bitmap(gfx: &Graphics, bitmap: &Bitmap, pos: Point) {
 }
 
 /// Draws a bitmap scaled to fit the destination rectangle.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // scaling always produces valid pixel indices
 pub fn draw_bitmap_scaled(gfx: &Graphics, bitmap: &Bitmap, dest: Rect) {
     let scale_x = bitmap.width() as f32 / dest.width as f32;
     let scale_y = bitmap.height() as f32 / dest.height as f32;
