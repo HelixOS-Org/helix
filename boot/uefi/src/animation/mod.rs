@@ -265,17 +265,11 @@ impl Easing {
                 }
             },
             Self::ExpoInOut => {
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)]
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)]
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -296,17 +290,11 @@ impl Easing {
                 }
             },
             Self::ElasticIn => {
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)] // Exact comparison with boundary values is intentional
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)] // Exact comparison with boundary values is intentional
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -314,17 +302,11 @@ impl Easing {
                 -Self::pow2_approx(10.0 * t - 10.0) * Self::sin_approx((t * 10.0 - 10.75) * c4)
             },
             Self::ElasticOut => {
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)] // Exact comparison with boundary values is intentional
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)] // Exact comparison with boundary values is intentional
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -332,17 +314,11 @@ impl Easing {
                 Self::pow2_approx(-10.0 * t) * Self::sin_approx((t * 10.0 - 0.75) * c4) + 1.0
             },
             Self::ElasticInOut => {
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)] // Exact comparison with boundary values is intentional
                 if t == 0.0 {
                     return 0.0;
                 }
-                #[expect(
-                    clippy::float_cmp,
-                    reason = "Exact comparison with boundary values is intentional"
-                )]
+                #[allow(clippy::float_cmp)] // Exact comparison with boundary values is intentional
                 if t == 1.0 {
                     return 1.0;
                 }
@@ -451,7 +427,7 @@ impl Easing {
             let shift = (-xi).min(31) as u32;
             1.0 / (1u32 << shift) as f32
         };
-        base * (1.0 + 0.693_147_2 * xf + 0.240_226_5 * xf * xf)
+        base * (1.0 + core::f32::consts::LN_2 * xf + 0.240_226_5 * xf * xf)
     }
 
     /// Approximate square root for `no_std` environments.
