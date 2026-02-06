@@ -202,6 +202,12 @@ impl CpuContext for StubCpuContext {
 /// Stub CPU implementation
 pub struct StubCpu;
 
+impl Default for StubCpu {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StubCpu {
     /// Create a new stub CPU
     pub const fn new() -> Self {
@@ -362,6 +368,12 @@ pub struct StubMmu {
     page_table: StubPageTable,
 }
 
+impl Default for StubMmu {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StubMmu {
     /// Create a new stub MMU
     pub const fn new() -> Self {
@@ -451,6 +463,12 @@ impl MmuAbstraction for StubMmu {
 /// Stub Interrupt Controller
 pub struct StubInterruptController;
 
+impl Default for StubInterruptController {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StubInterruptController {
     /// Create a new stub interrupt controller
     pub const fn new() -> Self {
@@ -538,6 +556,12 @@ impl InterruptController for StubInterruptController {
 
 /// Stub Firmware Interface
 pub struct StubFirmware;
+
+impl Default for StubFirmware {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl StubFirmware {
     /// Create a new stub firmware interface
