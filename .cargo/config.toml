@@ -27,33 +27,41 @@ runner = "scripts/run_qemu.sh"
 linker = "rust-lld"
 rustflags = [
     # Enforce warnings and unsafe hygiene
-    "-D", "warnings",
-    "-D", "unsafe_op_in_unsafe_fn",
+    "-D",
+    "warnings",
+    "-D",
+    "unsafe_op_in_unsafe_fn",
 
     # Kernel code model for higher-half mapping
-    "-C", "code-model=kernel",
+    "-C",
+    "code-model=kernel",
 
     # Static relocation for Multiboot2 boot (boot code needs absolute addresses)
     # NOTE: For Limine/UEFI boot with KASLR, change to:
     #   "-C", "relocation-model=pie",
     #   "-C", "link-arg=-Tprofiles/minimal/linker_pie.ld",
-    "-C", "relocation-model=static",
+    "-C",
+    "relocation-model=static",
 
     # Disable floating-point instructions in kernel
     # SSE/AVX/soft-float disabled to avoid FPU state management in kernel
-    "-C", "target-feature=-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-avx,-avx2",
+    "-C",
+    "target-feature=-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-avx,-avx2",
 
     # Standard linker script (use linker_pie.ld for PIE mode)
-    "-C", "link-arg=-Tprofiles/minimal/linker.ld",
+    "-C",
+    "link-arg=-Tprofiles/minimal/linker.ld",
 
     # Link-time optimization for release builds
     # "-C", "lto=thin",
 
     # Generate frame pointers for debugging
-    "-C", "force-frame-pointers=yes",
+    "-C",
+    "force-frame-pointers=yes",
 
     # Emit debug info
-    "-C", "debuginfo=2",
+    "-C",
+    "debuginfo=2",
 
     # Overflow checks (disabled in release for performance)
     # "-C", "overflow-checks=yes",
@@ -68,16 +76,19 @@ runner = "scripts/run_qemu_aarch64.sh"
 linker = "rust-lld"
 rustflags = [
     # Disable SIMD/FP in kernel (use soft-float)
-    "-C", "target-feature=-fp-armv8,-neon",
+    "-C",
+    "target-feature=-fp-armv8,-neon",
 
     # Linker script (when aarch64 support is added)
     # "-C", "link-arg=-Tprofiles/minimal/linker-aarch64.ld",
 
     # Frame pointers for debugging
-    "-C", "force-frame-pointers=yes",
+    "-C",
+    "force-frame-pointers=yes",
 
     # Debug info
-    "-C", "debuginfo=2",
+    "-C",
+    "debuginfo=2",
 ]
 
 # -----------------------------------------------------------------------------
@@ -89,16 +100,19 @@ runner = "scripts/run_qemu_riscv64.sh"
 linker = "rust-lld"
 rustflags = [
     # Disable floating-point extensions
-    "-C", "target-feature=-f,-d",
+    "-C",
+    "target-feature=-f,-d",
 
     # Linker script (when riscv64 support is added)
     # "-C", "link-arg=-Tprofiles/minimal/linker-riscv64.ld",
 
     # Frame pointers for debugging
-    "-C", "force-frame-pointers=yes",
+    "-C",
+    "force-frame-pointers=yes",
 
     # Debug info
-    "-C", "debuginfo=2",
+    "-C",
+    "debuginfo=2",
 ]
 
 # -----------------------------------------------------------------------------
