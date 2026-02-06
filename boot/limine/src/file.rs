@@ -352,7 +352,7 @@ impl<'a> Iterator for ModuleIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for ModuleIterator<'a> {}
+impl ExactSizeIterator for ModuleIterator<'_> {}
 
 // =============================================================================
 // Path Utilities
