@@ -820,7 +820,11 @@ pub fn draw_bitmap(gfx: &Graphics, bitmap: &Bitmap, pos: Point) {
 }
 
 /// Draws a bitmap scaled to fit the destination rectangle.
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_precision_loss)] // scaling always produces valid pixel indices
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)] // scaling always produces valid pixel indices
 pub fn draw_bitmap_scaled(gfx: &Graphics, bitmap: &Bitmap, dest: Rect) {
     let scale_x = bitmap.width() as f32 / dest.width as f32;
     let scale_y = bitmap.height() as f32 / dest.height as f32;
