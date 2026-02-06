@@ -473,6 +473,7 @@ pub trait ProtocolHandler: Send + Sync {
 /// Default protocol handler
 pub struct DefaultProtocolHandler {
     node_id: NodeId,
+    #[allow(clippy::type_complexity)]
     handlers: BTreeMap<MessageType, Box<dyn Fn(&Message) -> Option<Message> + Send + Sync>>,
 }
 
