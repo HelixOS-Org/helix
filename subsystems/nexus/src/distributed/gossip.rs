@@ -637,7 +637,7 @@ impl<T: Clone + Ord> ORSet<T> {
     pub fn add(&mut self, element: T, node: NodeId, timestamp: u64) {
         self.elements
             .entry(element)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push((node, timestamp));
     }
 
@@ -645,7 +645,7 @@ impl<T: Clone + Ord> ORSet<T> {
         if let Some(tags) = self.elements.remove(element) {
             self.tombstones
                 .entry(element.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .extend(tags);
         }
     }
@@ -661,7 +661,7 @@ impl<T: Clone + Ord> ORSet<T> {
     pub fn merge(&mut self, other: &ORSet<T>) {
         // Merge elements
         for (elem, tags) in &other.elements {
-            let entry = self.elements.entry(elem.clone()).or_insert_with(Vec::new);
+            let entry = self.elements.entry(elem.clone()).or_default();
             for tag in tags {
                 if !entry.contains(tag) {
                     entry.push(*tag);
@@ -671,7 +671,7 @@ impl<T: Clone + Ord> ORSet<T> {
 
         // Merge tombstones
         for (elem, tags) in &other.tombstones {
-            let entry = self.tombstones.entry(elem.clone()).or_insert_with(Vec::new);
+            let entry = self.tombstones.entry(elem.clone()).or_default();
             for tag in tags {
                 if !entry.contains(tag) {
                     entry.push(*tag);
