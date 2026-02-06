@@ -334,7 +334,8 @@ extern "C" fn simd_floating_point_inner(frame: &InterruptStackFrame) {
 
 /// Generates a naked exception handler wrapper without error code.
 macro_rules! exception_handler {
-    ($name:ident, $handler:expr) => {
+    ($(#[$meta:meta])* $name:ident, $handler:expr) => {
+        $(#[$meta])*
         #[naked]
         pub extern "C" fn $name() {
             unsafe {
@@ -392,7 +393,8 @@ macro_rules! exception_handler {
 
 /// Exception handler with error code
 macro_rules! exception_handler_with_error {
-    ($name:ident, $handler:expr) => {
+    ($(#[$meta:meta])* $name:ident, $handler:expr) => {
+        $(#[$meta])*
         #[naked]
         pub extern "C" fn $name() {
             unsafe {
@@ -459,39 +461,75 @@ macro_rules! exception_handler_with_error {
 // Generate Handler Wrappers
 // =============================================================================
 
-/// Handler for Division Error exception (#DE, vector 0).
-exception_handler!(division_error_handler, division_error_inner);
-/// Handler for Debug exception (#DB, vector 1).
-exception_handler!(debug_handler, debug_inner);
-/// Handler for Non-Maskable Interrupt (NMI, vector 2).
-exception_handler!(nmi_handler, nmi_inner);
-/// Handler for Breakpoint exception (#BP, vector 3).
-exception_handler!(breakpoint_handler, breakpoint_inner);
-/// Handler for Overflow exception (#OF, vector 4).
-exception_handler!(overflow_handler, overflow_inner);
-/// Handler for Bound Range Exceeded exception (#BR, vector 5).
-exception_handler!(bound_range_handler, bound_range_inner);
-/// Handler for Invalid Opcode exception (#UD, vector 6).
-exception_handler!(invalid_opcode_handler, invalid_opcode_inner);
-/// Handler for Device Not Available exception (#NM, vector 7).
-exception_handler!(device_not_available_handler, device_not_available_inner);
-/// Handler for Double Fault exception (#DF, vector 8).
-exception_handler_with_error!(double_fault_handler, double_fault_inner);
-/// Handler for Invalid TSS exception (#TS, vector 10).
-exception_handler_with_error!(invalid_tss_handler, invalid_tss_inner);
-/// Handler for Segment Not Present exception (#NP, vector 11).
-exception_handler_with_error!(segment_not_present_handler, segment_not_present_inner);
-/// Handler for Stack-Segment Fault exception (#SS, vector 12).
-exception_handler_with_error!(stack_segment_handler, stack_segment_inner);
-/// Handler for General Protection Fault exception (#GP, vector 13).
-exception_handler_with_error!(general_protection_handler, general_protection_inner);
-/// Handler for Page Fault exception (#PF, vector 14).
-exception_handler_with_error!(page_fault_handler, page_fault_inner);
-/// Handler for x87 Floating-Point exception (#MF, vector 16).
-exception_handler!(x87_floating_point_handler, x87_floating_point_inner);
-/// Handler for Alignment Check exception (#AC, vector 17).
-exception_handler_with_error!(alignment_check_handler, alignment_check_inner);
-/// Handler for Machine Check exception (#MC, vector 18).
-exception_handler!(machine_check_handler, machine_check_inner);
-/// Handler for SIMD Floating-Point exception (#XM, vector 19).
-exception_handler!(simd_floating_point_handler, simd_floating_point_inner);
+exception_handler!(
+    /// Handler for Division Error exception (#DE, vector 0).
+    division_error_handler, division_error_inner
+);
+exception_handler!(
+    /// Handler for Debug exception (#DB, vector 1).
+    debug_handler, debug_inner
+);
+exception_handler!(
+    /// Handler for Non-Maskable Interrupt (NMI, vector 2).
+    nmi_handler, nmi_inner
+);
+exception_handler!(
+    /// Handler for Breakpoint exception (#BP, vector 3).
+    breakpoint_handler, breakpoint_inner
+);
+exception_handler!(
+    /// Handler for Overflow exception (#OF, vector 4).
+    overflow_handler, overflow_inner
+);
+exception_handler!(
+    /// Handler for Bound Range Exceeded exception (#BR, vector 5).
+    bound_range_handler, bound_range_inner
+);
+exception_handler!(
+    /// Handler for Invalid Opcode exception (#UD, vector 6).
+    invalid_opcode_handler, invalid_opcode_inner
+);
+exception_handler!(
+    /// Handler for Device Not Available exception (#NM, vector 7).
+    device_not_available_handler, device_not_available_inner
+);
+exception_handler_with_error!(
+    /// Handler for Double Fault exception (#DF, vector 8).
+    double_fault_handler, double_fault_inner
+);
+exception_handler_with_error!(
+    /// Handler for Invalid TSS exception (#TS, vector 10).
+    invalid_tss_handler, invalid_tss_inner
+);
+exception_handler_with_error!(
+    /// Handler for Segment Not Present exception (#NP, vector 11).
+    segment_not_present_handler, segment_not_present_inner
+);
+exception_handler_with_error!(
+    /// Handler for Stack-Segment Fault exception (#SS, vector 12).
+    stack_segment_handler, stack_segment_inner
+);
+exception_handler_with_error!(
+    /// Handler for General Protection Fault exception (#GP, vector 13).
+    general_protection_handler, general_protection_inner
+);
+exception_handler_with_error!(
+    /// Handler for Page Fault exception (#PF, vector 14).
+    page_fault_handler, page_fault_inner
+);
+exception_handler!(
+    /// Handler for x87 Floating-Point exception (#MF, vector 16).
+    x87_floating_point_handler, x87_floating_point_inner
+);
+exception_handler_with_error!(
+    /// Handler for Alignment Check exception (#AC, vector 17).
+    alignment_check_handler, alignment_check_inner
+);
+exception_handler!(
+    /// Handler for Machine Check exception (#MC, vector 18).
+    machine_check_handler, machine_check_inner
+);
+exception_handler!(
+    /// Handler for SIMD Floating-Point exception (#XM, vector 19).
+    simd_floating_point_handler, simd_floating_point_inner
+);
