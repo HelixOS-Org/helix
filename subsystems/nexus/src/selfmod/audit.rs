@@ -273,16 +273,10 @@ impl AuditLog {
 
         // Update indexes
         if let Some(mod_id) = mod_id {
-            self.by_modification
-                .entry(mod_id)
-                .or_default()
-                .push(id);
+            self.by_modification.entry(mod_id).or_default().push(id);
         }
         if let Some(ver_id) = ver_id {
-            self.by_version
-                .entry(ver_id)
-                .or_default()
-                .push(id);
+            self.by_version.entry(ver_id).or_default().push(id);
         }
 
         self.last_hash = entry_hash;
