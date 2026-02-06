@@ -28,6 +28,12 @@ pub struct InterruptRouter {
     rr_counter: core::sync::atomic::AtomicUsize,
 }
 
+impl Default for InterruptRouter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InterruptRouter {
     /// Create a new router
     pub const fn new() -> Self {
