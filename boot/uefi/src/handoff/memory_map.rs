@@ -118,12 +118,6 @@ impl MemoryType {
     }
 }
 
-impl Default for MemoryType {
-    fn default() -> Self {
-        MemoryType::Reserved
-    }
-}
-
 // =============================================================================
 // MEMORY ATTRIBUTES
 // =============================================================================
