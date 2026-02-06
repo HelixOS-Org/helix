@@ -11,14 +11,18 @@ pub enum Error {
     NoResponse(&'static str),
     /// Invalid response data
     InvalidResponse {
+        /// The name of the request that received an invalid response
         request: &'static str,
+        /// The reason why the response is invalid
         reason: &'static str,
     },
     /// Feature not supported
     NotSupported(&'static str),
     /// Invalid parameter
     InvalidParameter {
+        /// The name of the invalid parameter
         param: &'static str,
+        /// The reason why the parameter is invalid
         reason: &'static str,
     },
     /// Memory error
@@ -97,22 +101,37 @@ impl From<crate::validate::ValidationError> for Error {
 pub enum MemoryError {
     /// Memory map not available
     NoMemoryMap,
-    /// HHDM not available
+    /// HHDM (Higher Half Direct Map) not available
     NoHhdm,
     /// No usable memory found
     NoUsableMemory,
     /// Insufficient memory for operation
-    InsufficientMemory { required: u64, available: u64 },
+    InsufficientMemory {
+        /// The number of bytes required for the operation
+        required: u64,
+        /// The number of bytes currently available
+        available: u64,
+    },
     /// Address out of range
     AddressOutOfRange(u64),
     /// Invalid memory region
-    InvalidRegion { base: u64, length: u64 },
-    /// Overlapping memory regions
+    InvalidRegion {
+        /// Base address of the invalid region
+        base: u64,
+        /// Length of the invalid region in bytes
+        length: u64,
+    },
+    /// Overlapping memory regions detected
     OverlappingRegions,
-    /// Memory region not found
+    /// Requested memory region not found
     RegionNotFound,
-    /// Allocation failed
-    AllocationFailed { size: usize, align: usize },
+    /// Memory allocation failed
+    AllocationFailed {
+        /// Requested allocation size in bytes
+        size: usize,
+        /// Requested alignment in bytes
+        align: usize,
+    },
 }
 
 impl fmt::Display for MemoryError {
@@ -144,21 +163,26 @@ impl fmt::Display for MemoryError {
     }
 }
 
-/// SMP-related errors
+/// SMP (Symmetric Multi-Processing) related errors
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SmpError {
-    /// SMP not available
+    /// SMP functionality is not available on this system
     NotAvailable,
-    /// CPU not found
+    /// The specified CPU was not found in the system
     CpuNotFound(u32),
-    /// CPU already started
+    /// The CPU has already been started and cannot be started again
     CpuAlreadyStarted(u32),
-    /// Failed to start CPU
+    /// Failed to start the specified CPU
     StartupFailed(u32),
-    /// Invalid CPU ID
+    /// The provided CPU ID is invalid
     InvalidCpuId(u32),
-    /// Too many CPUs
-    TooManyCpus { count: usize, max: usize },
+    /// The number of CPUs exceeds the maximum supported
+    TooManyCpus {
+        /// The actual number of CPUs detected
+        count: usize,
+        /// The maximum number of CPUs supported
+        max: usize,
+    },
 }
 
 impl fmt::Display for SmpError {
@@ -179,17 +203,30 @@ impl fmt::Display for SmpError {
 /// Framebuffer-related errors
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FramebufferError {
-    /// No framebuffer available
+    /// No framebuffer is available on this system
     NotAvailable,
-    /// Framebuffer index out of range
+    /// The requested framebuffer index is out of range
     IndexOutOfRange(usize),
-    /// Unsupported pixel format
-    UnsupportedFormat { bpp: u16 },
-    /// Invalid coordinates
-    InvalidCoordinates { x: usize, y: usize },
-    /// Buffer too small
-    BufferTooSmall { required: usize, provided: usize },
-    /// No video modes available
+    /// The pixel format is not supported
+    UnsupportedFormat {
+        /// Bits per pixel of the unsupported format
+        bpp: u16,
+    },
+    /// The specified coordinates are outside the framebuffer bounds
+    InvalidCoordinates {
+        /// The x coordinate that was invalid
+        x: usize,
+        /// The y coordinate that was invalid
+        y: usize,
+    },
+    /// The provided buffer is too small for the operation
+    BufferTooSmall {
+        /// The number of bytes required
+        required: usize,
+        /// The number of bytes provided
+        provided: usize,
+    },
+    /// No video modes are available
     NoVideoModes,
 }
 
@@ -215,21 +252,21 @@ impl fmt::Display for FramebufferError {
 /// Firmware-related errors
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FirmwareError {
-    /// ACPI not available
+    /// ACPI tables are not available on this system
     NoAcpi,
-    /// Invalid RSDP
+    /// The RSDP (Root System Description Pointer) is invalid or malformed
     InvalidRsdp,
-    /// SMBIOS not available
+    /// SMBIOS tables are not available on this system
     NoSmbios,
-    /// Invalid SMBIOS tables
+    /// The SMBIOS tables are invalid or corrupted
     InvalidSmbios,
-    /// EFI not available
+    /// EFI/UEFI services are not available
     NoEfi,
-    /// Invalid EFI data
+    /// EFI data is invalid or malformed
     InvalidEfi(&'static str),
-    /// Device tree not available
+    /// Device tree (FDT) is not available on this system
     NoDeviceTree,
-    /// Invalid device tree
+    /// The device tree is invalid or malformed
     InvalidDeviceTree,
 }
 
