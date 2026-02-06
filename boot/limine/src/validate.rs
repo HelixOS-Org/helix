@@ -90,24 +90,15 @@ impl core::fmt::Display for ValidationError {
                 address,
                 required_alignment,
             } => {
-                write!(
-                    f,
-                    "Address {:#x} not aligned to {}",
-                    address, required_alignment
-                )
+                write!(f, "Address {address:#x} not aligned to {required_alignment}")
             },
             Self::InvalidMemoryRegion {
                 base,
                 length,
                 reason,
             } => {
-                write!(
-                    f,
-                    "Invalid memory region {:#x}-{:#x}: {}",
-                    base,
-                    base + length,
-                    reason
-                )
+                let end = base + length;
+                write!(f, "Invalid memory region {base:#x}-{end:#x}: {reason}")
             },
             Self::OverlappingRegions { region1, region2 } => {
                 write!(
@@ -117,29 +108,21 @@ impl core::fmt::Display for ValidationError {
                 )
             },
             Self::InvalidValue { field, value } => {
-                write!(f, "Invalid value for {}: {:#x}", field, value)
+                write!(f, "Invalid value for {field}: {value:#x}")
             },
             Self::SizeMismatch { expected, actual } => {
-                write!(f, "Size mismatch: expected {}, got {}", expected, actual)
+                write!(f, "Size mismatch: expected {expected}, got {actual}")
             },
             Self::ChecksumFailed(structure) => {
-                write!(f, "Checksum validation failed for {}", structure)
+                write!(f, "Checksum validation failed for {structure}")
             },
             Self::InvalidMagic { expected, actual } => {
-                write!(
-                    f,
-                    "Invalid magic: expected {:#x}, got {:#x}",
-                    expected, actual
-                )
+                write!(f, "Invalid magic: expected {expected:#x}, got {actual:#x}")
             },
             Self::RevisionTooOld { minimum, actual } => {
-                write!(
-                    f,
-                    "Revision {} too old, minimum required: {}",
-                    actual, minimum
-                )
+                write!(f, "Revision {actual} too old, minimum required: {minimum}")
             },
-            Self::Custom(msg) => write!(f, "{}", msg),
+            Self::Custom(msg) => write!(f, "{msg}"),
         }
     }
 }
