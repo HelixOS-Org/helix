@@ -91,6 +91,7 @@ impl EfiGraphicsOutputProtocol {
     ///
     /// # Safety
     /// The caller must ensure the protocol pointer and buffer are valid.
+    #[allow(clippy::too_many_arguments)]
     pub unsafe fn blt(
         &mut self,
         buffer: Option<&mut [EfiGraphicsOutputBltPixel]>,
