@@ -517,12 +517,12 @@ fn bench_exception_dispatch() -> u64 {
 
     // Build exception frame
     let frame = ExceptionFrame {
-        error_code: 0x02,
-        rip: 0x1000,
-        cs: 0x08,
-        rflags: 0x202,
-        rsp: 0x7FFF_0000,
-        ss: 0x10,
+        _error_code: 0x02,
+        _rip: 0x1000,
+        _cs: 0x08,
+        _rflags: 0x202,
+        _rsp: 0x7FFF_0000,
+        _ss: 0x10,
     };
 
     core::hint::black_box((handler, frame));
