@@ -542,6 +542,10 @@ pub struct ExecutionContext {
 
 impl ExecutionContext {
     /// Jump to kernel (never returns)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the kernel image is valid and properly loaded.
     pub unsafe fn execute(&self, boot_info: *const u8) -> ! {
         #[cfg(target_arch = "x86_64")]
         {
