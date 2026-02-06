@@ -39,6 +39,7 @@ pub fn create_context_from_limine(
 
     // Calculate the slide (difference between where we were linked and where we are)
     // For Limine, this is typically zero unless KASLR is enabled
+    #[allow(clippy::cast_possible_wrap)] // Intentional: computing signed relocation slide
     let _slide = virt_base as i64 - phys_base as i64;
 
     RelocationContextBuilder::new()
@@ -155,6 +156,8 @@ pub unsafe fn apply_early_relocations(
     }
 
     let phys_base = helix_relocation::PhysAddr::new(kernel_base);
+    #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
+    // Intentional: relocation slide arithmetic
     let link_base = helix_relocation::PhysAddr::new((kernel_base as i64 - slide) as u64);
     let relocator = EarlyRelocator::new(phys_base, link_base, kernel_size);
 
