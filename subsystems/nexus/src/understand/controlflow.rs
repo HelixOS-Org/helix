@@ -257,7 +257,7 @@ impl ControlFlowGraph {
         for (id, block) in &self.blocks {
             for &succ in &block.successors {
                 // An edge is a back edge if the target dominates the source
-                if dom.get(&id).map_or(false, |doms| doms.contains(&succ)) {
+                if dom.get(id).is_some_and(|doms| doms.contains(&succ)) {
                     back_edges.push((*id, succ));
                 }
             }
