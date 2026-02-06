@@ -18,6 +18,7 @@ extern crate alloc;
 
 // Submodules
 pub mod bus;
+#[allow(clippy::module_inception)]
 pub mod event;
 pub mod handler;
 pub mod kind;
