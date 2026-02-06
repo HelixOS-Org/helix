@@ -534,7 +534,7 @@ mod tests {
 
     #[test]
     fn test_tpl_lock() {
-        let lock = TplLock::new(42);
+        let _lock = TplLock::new(42);
         // Can't test without boot services
     }
 
