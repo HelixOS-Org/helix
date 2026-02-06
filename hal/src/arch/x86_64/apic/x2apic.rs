@@ -517,8 +517,11 @@ pub fn configure_timer(vector: u8, mode: TimerMode, masked: bool) {
 /// Timer Mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TimerMode {
+    /// One-shot mode: timer fires once after the initial count reaches zero
     OneShot,
+    /// Periodic mode: timer automatically reloads and fires repeatedly
     Periodic,
+    /// TSC-Deadline mode: timer fires when TSC reaches the programmed deadline value
     TscDeadline,
 }
 
