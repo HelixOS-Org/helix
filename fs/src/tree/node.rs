@@ -2,6 +2,7 @@
 //!
 //! Provides internal and leaf node structures for the B+tree.
 
+use core::cmp::Ordering;
 use core::mem::size_of;
 
 use super::{SearchResult, TreeType};
@@ -277,12 +278,12 @@ impl InternalNode64 {
 
         while left < right {
             let mid = left + (right - left) / 2;
-            if entries[mid].key == key {
-                return SearchResult::Found(mid);
-            } else if entries[mid].key < key {
-                left = mid + 1;
-            } else {
-                right = mid;
+            // Copy key to avoid unaligned reference in packed struct
+            let entry_key = { entries[mid].key };
+            match entry_key.cmp(&key) {
+                Ordering::Equal => return SearchResult::Found(mid),
+                Ordering::Less => left = mid + 1,
+                Ordering::Greater => right = mid,
             }
         }
 
@@ -502,12 +503,12 @@ impl LeafNode8_24 {
 
         while left < right {
             let mid = left + (right - left) / 2;
-            if entries[mid].key == key {
-                return SearchResult::Found(mid);
-            } else if entries[mid].key < key {
-                left = mid + 1;
-            } else {
-                right = mid;
+            // Copy key to avoid unaligned reference in packed struct
+            let entry_key = { entries[mid].key };
+            match entry_key.cmp(&key) {
+                Ordering::Equal => return SearchResult::Found(mid),
+                Ordering::Less => left = mid + 1,
+                Ordering::Greater => right = mid,
             }
         }
 
