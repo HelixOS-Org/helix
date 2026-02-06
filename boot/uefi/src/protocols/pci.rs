@@ -292,9 +292,8 @@ impl PciDevice {
         while offset != 0 && visited < 48 {
             visited += 1;
 
-            let cap = match self.read_config_byte(offset as u32) {
-                Ok(c) => c,
-                Err(_) => return None,
+            let Ok(cap) = self.read_config_byte(offset as u32) else {
+                return None;
             };
 
             if cap == cap_id {
@@ -335,7 +334,7 @@ impl PciDevice {
     // =========================================================================
 
     /// Read from memory BAR
-    pub fn mem_read<T: Copy>(&self, bar: u8, offset: u64) -> Result<T> {
+    pub fn mem_read<T: Copy>(&self, bar_index: u8, offset: u64) -> Result<T> {
         let mut value: T = unsafe { core::mem::zeroed() };
 
         let width = match core::mem::size_of::<T>() {
@@ -350,7 +349,7 @@ impl PciDevice {
             ((*self.protocol).mem.read)(
                 self.protocol,
                 width,
-                bar,
+                bar_index,
                 offset,
                 1,
                 &mut value as *mut T as *mut core::ffi::c_void,
@@ -365,7 +364,7 @@ impl PciDevice {
     }
 
     /// Write to memory BAR
-    pub fn mem_write<T: Copy>(&self, bar: u8, offset: u64, value: T) -> Result<()> {
+    pub fn mem_write<T: Copy>(&self, bar_index: u8, offset: u64, value: T) -> Result<()> {
         let width = match core::mem::size_of::<T>() {
             1 => EfiPciIoProtocolWidth::Uint8,
             2 => EfiPciIoProtocolWidth::Uint16,
@@ -378,7 +377,7 @@ impl PciDevice {
             ((*self.protocol).mem.write)(
                 self.protocol,
                 width,
-                bar,
+                bar_index,
                 offset,
                 1,
                 &value as *const T as *mut core::ffi::c_void,
@@ -393,7 +392,7 @@ impl PciDevice {
     }
 
     /// Read from I/O BAR
-    pub fn io_read<T: Copy>(&self, bar: u8, offset: u64) -> Result<T> {
+    pub fn io_read<T: Copy>(&self, bar_index: u8, offset: u64) -> Result<T> {
         let mut value: T = unsafe { core::mem::zeroed() };
 
         let width = match core::mem::size_of::<T>() {
@@ -407,7 +406,7 @@ impl PciDevice {
             ((*self.protocol).io.read)(
                 self.protocol,
                 width,
-                bar,
+                bar_index,
                 offset,
                 1,
                 &mut value as *mut T as *mut core::ffi::c_void,
@@ -422,7 +421,7 @@ impl PciDevice {
     }
 
     /// Write to I/O BAR
-    pub fn io_write<T: Copy>(&self, bar: u8, offset: u64, value: T) -> Result<()> {
+    pub fn io_write<T: Copy>(&self, bar_index: u8, offset: u64, value: T) -> Result<()> {
         let width = match core::mem::size_of::<T>() {
             1 => EfiPciIoProtocolWidth::Uint8,
             2 => EfiPciIoProtocolWidth::Uint16,
@@ -434,7 +433,7 @@ impl PciDevice {
             ((*self.protocol).io.write)(
                 self.protocol,
                 width,
-                bar,
+                bar_index,
                 offset,
                 1,
                 &value as *const T as *mut core::ffi::c_void,
