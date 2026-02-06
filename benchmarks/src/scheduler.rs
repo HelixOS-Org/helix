@@ -632,7 +632,9 @@ fn bench_optimization_hint() -> u64 {
 #[derive(Default, Clone, Copy)]
 struct ThreadControlBlock {
     id: u64,
+    #[allow(dead_code)]
     state: ThreadState,
+    #[allow(dead_code)]
     priority: i32,
     stack_ptr: u64,
     instruction_ptr: u64,
