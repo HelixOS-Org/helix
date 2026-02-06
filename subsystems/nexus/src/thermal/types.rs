@@ -7,8 +7,6 @@
 
 extern crate alloc;
 
-use alloc::string::String;
-
 /// Thermal zone ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ThermalZoneId(pub u32);
@@ -60,9 +58,10 @@ impl Temperature {
     pub fn fahrenheit(&self) -> f32 {
         self.celsius() * 9.0 / 5.0 + 32.0
     }
+}
 
-    /// Format as string
-    pub fn to_string(&self) -> String {
-        alloc::format!("{:.1}°C", self.celsius())
+impl core::fmt::Display for Temperature {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:.1}°C", self.celsius())
     }
 }
