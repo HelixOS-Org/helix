@@ -857,6 +857,7 @@ pub struct Image {
 
 impl Image {
     /// Create new empty image
+    #[allow(clippy::large_stack_arrays)]
     pub const fn new(width: u32, height: u32, format: PixelFormat) -> Self {
         Self {
             width,
