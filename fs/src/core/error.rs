@@ -608,12 +608,10 @@ impl HfsError {
 
     /// Check if this error is recoverable
     pub const fn is_recoverable(self) -> bool {
-        match self {
-            Self::WouldBlock | Self::Again | Self::Interrupted | Self::TimedOut | Self::Busy => {
-                true
-            },
-            _ => false,
-        }
+        matches!(
+            self,
+            Self::WouldBlock | Self::Again | Self::Interrupted | Self::TimedOut | Self::Busy
+        )
     }
 
     /// Check if this is a corruption error
