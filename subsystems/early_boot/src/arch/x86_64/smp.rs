@@ -101,6 +101,10 @@ static mut PER_CPU_DATA: [PerCpuData; MAX_CPUS] = {
 };
 
 /// Get per-CPU data for current CPU
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_per_cpu() -> &'static PerCpuData {
     let apic_id = get_apic_id() as usize;
     // Find CPU by APIC ID
@@ -116,11 +120,19 @@ pub unsafe fn get_per_cpu() -> &'static PerCpuData {
 }
 
 /// Get per-CPU data by index
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_per_cpu_by_id(id: u32) -> &'static PerCpuData {
     &PER_CPU_DATA[id as usize]
 }
 
 /// Get mutable per-CPU data by index
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_per_cpu_by_id_mut(id: u32) -> &'static mut PerCpuData {
     &mut PER_CPU_DATA[id as usize]
 }
@@ -432,6 +444,10 @@ unsafe fn alloc_ap_stack() -> BootResult<u64> {
 // =============================================================================
 
 /// Initialize SMP
+///
+/// # Safety
+///
+/// The caller must ensure SMP initialization is done after BSP is fully initialized.
 pub unsafe fn init_smp(ctx: &mut BootContext) -> BootResult<()> {
     // Store BSP APIC ID
     let bsp_apic_id = get_apic_id();
@@ -520,6 +536,10 @@ pub fn is_cpu_online(cpu_id: u32) -> bool {
 }
 
 /// Get current CPU ID
+///
+/// # Safety
+///
+/// The caller must ensure the hardware is properly initialized before reading.
 pub unsafe fn get_current_cpu_id() -> u32 {
     get_per_cpu().cpu_id
 }
@@ -534,27 +554,47 @@ pub fn get_bsp_apic_id() -> u32 {
 // =============================================================================
 
 /// Send IPI to specific CPU
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU ID is valid and the IPI type is appropriate.
 pub unsafe fn send_ipi_to_cpu(cpu_id: u32, vector: u8) {
     let per_cpu = get_per_cpu_by_id(cpu_id);
     send_ipi(per_cpu.apic_id as u8, vector, ICR_FIXED | ICR_ASSERT);
 }
 
 /// Send IPI to all CPUs (including self)
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU ID is valid and the IPI type is appropriate.
 pub unsafe fn send_ipi_all(vector: u8) {
     send_ipi(0, vector, ICR_FIXED | ICR_ASSERT | ICR_ALL_INCLUDING_SELF);
 }
 
 /// Send IPI to all other CPUs
+///
+/// # Safety
+///
+/// The caller must ensure the target CPU ID is valid and the IPI type is appropriate.
 pub unsafe fn send_ipi_others(vector: u8) {
     send_ipi(0, vector, ICR_FIXED | ICR_ASSERT | ICR_ALL_EXCLUDING_SELF);
 }
 
 /// Send NMI to all CPUs
+///
+/// # Safety
+///
+/// The caller must ensure the target CPUs can handle NMI safely.
 pub unsafe fn send_nmi_all() {
     send_ipi(0, 0, ICR_NMI | ICR_ASSERT | ICR_ALL_INCLUDING_SELF);
 }
 
 /// Broadcast TLB flush
+///
+/// # Safety
+///
+/// The caller must ensure this is called when page table changes need to be visible.
 pub unsafe fn broadcast_tlb_flush() {
     const TLB_FLUSH_VECTOR: u8 = 0xFD;
     send_ipi_others(TLB_FLUSH_VECTOR);
