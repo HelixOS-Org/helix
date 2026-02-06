@@ -462,6 +462,10 @@ impl PoolAllocator {
     }
 
     /// Initialize with memory pool
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&mut self, pool: *mut u8, size: usize) {
         self.pool_start = pool;
         self.pool_size = size;
@@ -735,6 +739,10 @@ impl BootAllocator {
     }
 
     /// Initialize with memory
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&mut self, pool_mem: *mut u8, size: usize) {
         (*self.pool.get()).init(pool_mem, size);
     }
@@ -787,6 +795,10 @@ impl BumpAllocator {
     }
 
     /// Initialize with memory region
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&mut self, start: *mut u8, size: usize) {
         self.start = start as usize;
         self.end = self.start + size;
@@ -875,6 +887,10 @@ impl StackAllocator {
     }
 
     /// Initialize with memory
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&mut self, memory: *mut u8, size: usize) {
         self.memory = memory;
         self.size = size;
