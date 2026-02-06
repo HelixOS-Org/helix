@@ -23,10 +23,11 @@ mod ports {
 
 /// PIC commands
 mod cmd {
-    /// End of Interrupt
+    /// End of Interrupt command byte
     pub const EOI: u8 = 0x20;
-    /// ICW1: Initialization, ICW4 needed
+    /// ICW1: Initialization command
     pub const ICW1_INIT: u8 = 0x10;
+    /// ICW1: ICW4 will be sent
     pub const ICW1_ICW4: u8 = 0x01;
     /// ICW4: 8086/88 mode
     pub const ICW4_8086: u8 = 0x01;
@@ -38,25 +39,41 @@ pub const IRQ_OFFSET: u8 = 32;
 /// Is the PIC initialized?
 static PIC_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
-/// IRQ numbers
+/// IRQ numbers for the 8259 PIC
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Irq {
+    /// IRQ0: Programmable Interval Timer (PIT)
     Timer        = 0,
+    /// IRQ1: PS/2 Keyboard
     Keyboard     = 1,
-    Cascade      = 2, // Used internally for PIC cascading
+    /// IRQ2: Cascade (used internally for slave PIC connection)
+    Cascade      = 2,
+    /// IRQ3: COM2 serial port
     Com2         = 3,
+    /// IRQ4: COM1 serial port
     Com1         = 4,
+    /// IRQ5: LPT2 parallel port
     Lpt2         = 5,
+    /// IRQ6: Floppy disk controller
     Floppy       = 6,
+    /// IRQ7: LPT1 parallel port (or spurious interrupt)
     Lpt1         = 7,
+    /// IRQ8: Real-Time Clock (RTC)
     RtcClock     = 8,
+    /// IRQ9: ACPI/legacy free (redirected from IRQ2)
     Acpi         = 9,
+    /// IRQ10: Available for peripherals
     Available1   = 10,
+    /// IRQ11: Available for peripherals
     Available2   = 11,
+    /// IRQ12: PS/2 Mouse
     Mouse        = 12,
+    /// IRQ13: FPU/Coprocessor
     Coprocessor  = 13,
+    /// IRQ14: Primary ATA hard disk
     PrimaryAta   = 14,
+    /// IRQ15: Secondary ATA hard disk
     SecondaryAta = 15,
 }
 
