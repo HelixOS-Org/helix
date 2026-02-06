@@ -321,7 +321,7 @@ impl HotReloadRegistry {
         slot.status = SlotStatus::Active;
         slot.last_reload = self.current_tick();
 
-        log_reload(&alloc::format!("[HOTRELOAD] ✓ Module loaded successfully"));
+        log_reload("[HOTRELOAD] ✓ Module loaded successfully");
         Ok(())
     }
 
@@ -350,7 +350,7 @@ impl HotReloadRegistry {
         slot.module = None;
         slot.status = SlotStatus::Empty;
 
-        log_reload(&alloc::format!("[HOTRELOAD] ✓ Module unloaded"));
+        log_reload("[HOTRELOAD] ✓ Module unloaded");
         Ok(())
     }
 
@@ -379,58 +379,48 @@ impl HotReloadRegistry {
         let new_name = String::from(new_module.name());
 
         slot.status = SlotStatus::Swapping;
-        log_reload(&alloc::format!(
-            "\n╔══════════════════════════════════════════════╗"
-        ));
+        log_reload("\n╔══════════════════════════════════════════════╗");
         log_reload(&alloc::format!(
             "║  HOT-RELOAD: {} -> {}",
             old_name,
             new_name
         ));
-        log_reload(&alloc::format!(
-            "╚══════════════════════════════════════════════╝\n"
-        ));
+        log_reload("╚══════════════════════════════════════════════╝\n");
 
         // Step 1: Export state from old module
-        log_reload(&alloc::format!("[HOTRELOAD] Step 1: Exporting state..."));
+        log_reload("[HOTRELOAD] Step 1: Exporting state...");
         let state = old_module.export_state();
         let state_migrated = state.is_some();
 
         if state_migrated {
-            log_reload(&alloc::format!("[HOTRELOAD]   ✓ State captured"));
+            log_reload("[HOTRELOAD]   ✓ State captured");
         } else {
-            log_reload(&alloc::format!("[HOTRELOAD]   - No state to migrate"));
+            log_reload("[HOTRELOAD]   - No state to migrate");
         }
 
         // Step 2: Prepare old module for unload
-        log_reload(&alloc::format!(
-            "[HOTRELOAD] Step 2: Preparing old module for unload..."
-        ));
+        log_reload("[HOTRELOAD] Step 2: Preparing old module for unload...");
         // Note: We continue even if this fails, we've committed to the swap
         let mut old_module = old_module;
         let _ = old_module.prepare_unload();
-        log_reload(&alloc::format!("[HOTRELOAD]   ✓ Old module prepared"));
+        log_reload("[HOTRELOAD]   ✓ Old module prepared");
 
         // Step 3: Initialize new module
-        log_reload(&alloc::format!(
-            "[HOTRELOAD] Step 3: Initializing new module..."
-        ));
+        log_reload("[HOTRELOAD] Step 3: Initializing new module...");
         if let Err(e) = new_module.init() {
             // Rollback: put old module back
-            log_reload(&alloc::format!(
-                "[HOTRELOAD]   ✗ Init failed, rolling back!"
-            ));
+            log_reload("[HOTRELOAD]   ✗ Init failed, rolling back!");
             slot.module = Some(old_module);
             slot.status = SlotStatus::Active;
 
             self.record_event(slot_id, &old_name, &new_name, false, state_migrated);
             return Err(e);
         }
-        log_reload(&alloc::format!("[HOTRELOAD]   ✓ New module initialized"));
+        log_reload("[HOTRELOAD]   ✓ New module initialized");
 
         // Step 4: Migrate state
         if let Some(ref state) = state {
-            log_reload(&alloc::format!("[HOTRELOAD] Step 4: Migrating state..."));
+            log_reload("[HOTRELOAD] Step 4: Migrating state...");
             if let Err(e) = new_module.import_state(state.as_ref()) {
                 log_reload(&alloc::format!(
                     "[HOTRELOAD]   ⚠ State migration failed: {:?}",
@@ -438,14 +428,12 @@ impl HotReloadRegistry {
                 ));
                 // Continue anyway, new module will start fresh
             } else {
-                log_reload(&alloc::format!("[HOTRELOAD]   ✓ State migrated"));
+                log_reload("[HOTRELOAD]   ✓ State migrated");
             }
         }
 
         // Step 5: Activate new module
-        log_reload(&alloc::format!(
-            "[HOTRELOAD] Step 5: Activating new module..."
-        ));
+        log_reload("[HOTRELOAD] Step 5: Activating new module...");
         slot.module = Some(new_module);
         slot.status = SlotStatus::Active;
         slot.reload_count += 1;
@@ -588,7 +576,7 @@ impl HotReloadRegistry {
         slot.reload_count += 1;
         slot.last_reload = self.current_tick();
 
-        log_reload(&alloc::format!("[HOTRELOAD] ✓ Force replace successful"));
+        log_reload("[HOTRELOAD] ✓ Force replace successful");
 
         self.record_event(slot_id, &old_name, &new_name, true, false);
         Ok(())
