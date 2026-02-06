@@ -422,10 +422,7 @@ impl Default for PriorityScheduler {
 impl Scheduler for PriorityScheduler {
     fn add_task(&mut self, task: SchedulableTask) {
         let priority = task.priority;
-        self.priority_queues
-            .entry(priority)
-            .or_default()
-            .push(task);
+        self.priority_queues.entry(priority).or_default().push(task);
     }
 
     fn remove_task(&mut self, id: TaskId) -> Option<SchedulableTask> {
