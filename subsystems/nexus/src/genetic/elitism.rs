@@ -340,10 +340,7 @@ impl ElitismManager {
 
         for individual in population.iter() {
             if let Some(species) = individual.species {
-                by_species
-                    .entry(species)
-                    .or_default()
-                    .push(individual);
+                by_species.entry(species).or_default().push(individual);
             }
         }
 
