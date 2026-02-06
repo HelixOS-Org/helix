@@ -244,6 +244,10 @@ impl TableLocator {
     }
 
     /// Initialize from system table
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_from_system_table(&mut self, _system_table: *const u8) -> Result<()> {
         // TODO: Parse configuration tables from EFI_SYSTEM_TABLE
         Ok(())
