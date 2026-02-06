@@ -49,7 +49,7 @@ use core::fmt;
 // =============================================================================
 
 /// Pixel format
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PixelFormat {
     /// RGB 888 (24-bit)
     Rgb888,
@@ -62,6 +62,7 @@ pub enum PixelFormat {
     /// RGBA 8888 (32-bit with alpha)
     Rgba8888,
     /// BGRA 8888 (32-bit with alpha)
+    #[default]
     Bgra8888,
     /// RGB 565 (16-bit)
     Rgb565,
@@ -122,12 +123,6 @@ impl PixelFormat {
     /// Check if format uses palette
     pub const fn is_indexed(&self) -> bool {
         matches!(self, PixelFormat::Indexed8 | PixelFormat::Indexed4)
-    }
-}
-
-impl Default for PixelFormat {
-    fn default() -> Self {
-        PixelFormat::Bgra8888
     }
 }
 
