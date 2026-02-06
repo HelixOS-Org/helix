@@ -267,77 +267,80 @@ unsafe fn parse_multiboot2_framebuffer(mb2_info: *const u8) {
     // - reserved: u32 (offset 4)
     // - tags start at offset 8
 
-    let total_size = *(mb2_info as *const u32);
-    serial_write_str("  [FB] Multiboot2 info size: ");
-    print_num(total_size as u64);
-    serial_write_str(" bytes\n");
+    // SAFETY: mb2_info is a valid Multiboot2 info structure provided by the bootloader
+    unsafe {
+        let total_size = *(mb2_info as *const u32);
+        serial_write_str("  [FB] Multiboot2 info size: ");
+        print_num(total_size as u64);
+        serial_write_str(" bytes\n");
 
-    // Iterate through tags
-    let mut tag_ptr = mb2_info.add(8); // Skip header (8 bytes)
-    let end_ptr = mb2_info.add(total_size as usize);
+        // Iterate through tags
+        let mut tag_ptr = mb2_info.add(8); // Skip header (8 bytes)
+        let end_ptr = mb2_info.add(total_size as usize);
 
-    while (tag_ptr as usize) < (end_ptr as usize) {
-        let tag_type = *(tag_ptr as *const u32);
-        let tag_size = *(tag_ptr.add(4) as *const u32);
+        while (tag_ptr as usize) < (end_ptr as usize) {
+            let tag_type = *(tag_ptr as *const u32);
+            let tag_size = *(tag_ptr.add(4) as *const u32);
 
-        // Tag type 0 = end tag
-        if tag_type == 0 {
-            serial_write_str("  [FB] End of Multiboot2 tags\n");
-            break;
+            // Tag type 0 = end tag
+            if tag_type == 0 {
+                serial_write_str("  [FB] End of Multiboot2 tags\n");
+                break;
+            }
+
+            // Tag type 8 = framebuffer
+            if tag_type == 8 {
+                serial_write_str("  [FB] Found framebuffer tag!\n");
+
+                // Framebuffer tag structure (after type/size):
+                // - addr: u64 (offset 8)
+                // - pitch: u32 (offset 16)
+                // - width: u32 (offset 20)
+                // - height: u32 (offset 24)
+                // - bpp: u8 (offset 28)
+                // - type: u8 (offset 29)
+
+                let fb_addr = *(tag_ptr.add(8) as *const u64);
+                let fb_pitch = *(tag_ptr.add(16) as *const u32);
+                let fb_width = *(tag_ptr.add(20) as *const u32);
+                let fb_height = *(tag_ptr.add(24) as *const u32);
+                let fb_bpp = *(tag_ptr.add(28));
+
+                serial_write_str("  [FB] Framebuffer address: 0x");
+                print_hex(fb_addr);
+                serial_write_str("\n");
+                serial_write_str("  [FB] Resolution: ");
+                print_num(fb_width as u64);
+                serial_write_str("x");
+                print_num(fb_height as u64);
+                serial_write_str("x");
+                print_num(fb_bpp as u64);
+                serial_write_str("\n");
+                serial_write_str("  [FB] Pitch: ");
+                print_num(fb_pitch as u64);
+                serial_write_str(" bytes/line\n");
+
+                // Initialize our framebuffer driver
+                let fb_info = framebuffer::FramebufferInfo {
+                    addr: fb_addr,
+                    width: fb_width,
+                    height: fb_height,
+                    pitch: fb_pitch,
+                    bpp: fb_bpp as u32,
+                };
+
+                framebuffer::init(fb_info);
+
+                // Skip test pattern - console will init later and clear screen
+                serial_write_str("  [FB] Framebuffer driver ready\n");
+
+                return;
+            }
+
+            // Move to next tag (8-byte aligned)
+            let next_offset = ((tag_size as usize + 7) & !7).max(8);
+            tag_ptr = tag_ptr.add(next_offset);
         }
-
-        // Tag type 8 = framebuffer
-        if tag_type == 8 {
-            serial_write_str("  [FB] Found framebuffer tag!\n");
-
-            // Framebuffer tag structure (after type/size):
-            // - addr: u64 (offset 8)
-            // - pitch: u32 (offset 16)
-            // - width: u32 (offset 20)
-            // - height: u32 (offset 24)
-            // - bpp: u8 (offset 28)
-            // - type: u8 (offset 29)
-
-            let fb_addr = *(tag_ptr.add(8) as *const u64);
-            let fb_pitch = *(tag_ptr.add(16) as *const u32);
-            let fb_width = *(tag_ptr.add(20) as *const u32);
-            let fb_height = *(tag_ptr.add(24) as *const u32);
-            let fb_bpp = *(tag_ptr.add(28));
-
-            serial_write_str("  [FB] Framebuffer address: 0x");
-            print_hex(fb_addr);
-            serial_write_str("\n");
-            serial_write_str("  [FB] Resolution: ");
-            print_num(fb_width as u64);
-            serial_write_str("x");
-            print_num(fb_height as u64);
-            serial_write_str("x");
-            print_num(fb_bpp as u64);
-            serial_write_str("\n");
-            serial_write_str("  [FB] Pitch: ");
-            print_num(fb_pitch as u64);
-            serial_write_str(" bytes/line\n");
-
-            // Initialize our framebuffer driver
-            let fb_info = framebuffer::FramebufferInfo {
-                addr: fb_addr,
-                width: fb_width,
-                height: fb_height,
-                pitch: fb_pitch,
-                bpp: fb_bpp as u32,
-            };
-
-            framebuffer::init(fb_info);
-
-            // Skip test pattern - console will init later and clear screen
-            serial_write_str("  [FB] Framebuffer driver ready\n");
-
-            return;
-        }
-
-        // Move to next tag (8-byte aligned)
-        let next_offset = ((tag_size as usize + 7) & !7).max(8);
-        tag_ptr = tag_ptr.add(next_offset);
     }
 
     serial_write_str("  [FB] No framebuffer tag found in Multiboot2 info\n");
@@ -1179,30 +1182,36 @@ const COM1: u16 = 0x3F8;
 /// Initialize the serial port for output
 #[cfg(target_arch = "x86_64")]
 unsafe fn init_serial() {
-    // Disable interrupts
-    port_write(COM1 + 1, 0x00);
-    // Enable DLAB
-    port_write(COM1 + 3, 0x80);
-    // Set baud rate (115200)
-    port_write(COM1, 0x01);
-    port_write(COM1 + 1, 0x00);
-    // 8N1
-    port_write(COM1 + 3, 0x03);
-    // Enable FIFO
-    port_write(COM1 + 2, 0xC7);
-    // Enable modem control
-    port_write(COM1 + 4, 0x0B);
+    // SAFETY: COM1 port I/O is safe during early boot initialization
+    unsafe {
+        // Disable interrupts
+        port_write(COM1 + 1, 0x00);
+        // Enable DLAB
+        port_write(COM1 + 3, 0x80);
+        // Set baud rate (115200)
+        port_write(COM1, 0x01);
+        port_write(COM1 + 1, 0x00);
+        // 8N1
+        port_write(COM1 + 3, 0x03);
+        // Enable FIFO
+        port_write(COM1 + 2, 0xC7);
+        // Enable modem control
+        port_write(COM1 + 4, 0x0B);
+    }
 }
 
 /// Write a byte to a port
 #[cfg(target_arch = "x86_64")]
 #[inline]
 unsafe fn port_write(port: u16, value: u8) {
-    core::arch::asm!(
-        "out dx, al",
-        in("dx") port,
-        in("al") value,
-    );
+    // SAFETY: caller guarantees the port address is valid for I/O
+    unsafe {
+        core::arch::asm!(
+            "out dx, al",
+            in("dx") port,
+            in("al") value,
+        );
+    }
 }
 
 /// Read a byte from a port
@@ -1210,11 +1219,14 @@ unsafe fn port_write(port: u16, value: u8) {
 #[inline]
 unsafe fn port_read(port: u16) -> u8 {
     let value: u8;
-    core::arch::asm!(
-        "in al, dx",
-        in("dx") port,
-        out("al") value,
-    );
+    // SAFETY: caller guarantees the port address is valid for I/O
+    unsafe {
+        core::arch::asm!(
+            "in al, dx",
+            in("dx") port,
+            out("al") value,
+        );
+    }
     value
 }
 
