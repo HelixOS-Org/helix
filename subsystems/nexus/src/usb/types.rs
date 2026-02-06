@@ -2,9 +2,6 @@
 //!
 //! Fundamental types for USB subsystem management.
 
-use alloc::format;
-use alloc::string::String;
-
 /// USB bus ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BusId(pub u8);
@@ -44,10 +41,11 @@ impl UsbDeviceId {
             address: DeviceAddress::new(address),
         }
     }
+}
 
-    /// Format as string
-    pub fn to_string(&self) -> String {
-        format!("{}:{}", self.bus.0, self.address.0)
+impl core::fmt::Display for UsbDeviceId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}:{}", self.bus.0, self.address.0)
     }
 }
 
