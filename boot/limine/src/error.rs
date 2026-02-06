@@ -299,11 +299,13 @@ pub type FirmwareResult<T> = core::result::Result<T, FirmwareError>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate alloc;
+    use alloc::format;
 
     #[test]
     fn test_error_display() {
         let error = Error::NoResponse("memory_map");
-        let s = alloc::format!("{}", error);
+        let s = format!("{}", error);
         assert!(s.contains("memory_map"));
     }
 
