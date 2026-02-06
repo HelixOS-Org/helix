@@ -299,6 +299,7 @@ impl Formula {
     }
 
     /// Create negation
+    #[allow(clippy::should_implement_trait)]
     pub fn not(f: Formula) -> Self {
         Formula::Not(Box::new(f))
     }
@@ -359,6 +360,7 @@ impl Formula {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn distribute_or(&self, formulas: &[Formula]) -> Formula {
         if formulas.is_empty() {
             return Formula::False;
@@ -535,13 +537,19 @@ pub struct UnificationEngine {
     occurs_check: bool,
 }
 
-impl UnificationEngine {
-    /// Create a new unification engine
-    pub fn new() -> Self {
+impl Default for UnificationEngine {
+    fn default() -> Self {
         Self {
             max_depth: 1000,
             occurs_check: true,
         }
+    }
+}
+
+impl UnificationEngine {
+    /// Create a new unification engine
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Unify two terms
@@ -609,6 +617,7 @@ impl UnificationEngine {
     }
 
     /// Check if variable occurs in term (occurs check)
+    #[allow(clippy::only_used_in_recursion)]
     fn occurs(&self, var: &Symbol, term: &Term) -> bool {
         match term {
             Term::Variable(v) => v == var,
@@ -753,11 +762,11 @@ impl InferenceEngine {
         let body_vars: Vec<Symbol> = clause.body.iter().flat_map(|a| a.variables()).collect();
 
         for var in head_vars.into_iter().chain(body_vars) {
-            if !renaming.contains_key(&var) {
-                self.var_counter += 1;
-                let new_name = alloc::format!("_G{}", self.var_counter);
-                renaming.insert(var, Symbol::new(&new_name));
-            }
+            self.var_counter += 1;
+            let new_name = alloc::format!("_G{}", self.var_counter);
+            renaming
+                .entry(var)
+                .or_insert_with(|| Symbol::new(&new_name));
         }
 
         let mut subst = Substitution::new();
@@ -902,7 +911,7 @@ impl RuleLearner {
     pub fn learn(&self) -> Vec<Clause> {
         // Simplified rule learning using covering algorithm
         let mut learned_rules = Vec::new();
-        let mut uncovered: Vec<_> = self.positive_examples.iter().cloned().collect();
+        let mut uncovered: Vec<_> = self.positive_examples.to_vec();
 
         while !uncovered.is_empty() && learned_rules.len() < 10 {
             // Find best clause covering some positive examples
@@ -990,9 +999,8 @@ pub struct KernelSymbolicReasoner {
     learner: RuleLearner,
 }
 
-impl KernelSymbolicReasoner {
-    /// Create a new kernel reasoner
-    pub fn new() -> Self {
+impl Default for KernelSymbolicReasoner {
+    fn default() -> Self {
         let kb = Self::create_kernel_kb();
         let engine = InferenceEngine::new(kb.clone());
         let bridge = NeuralSymbolicBridge::new(64);
@@ -1004,6 +1012,13 @@ impl KernelSymbolicReasoner {
             bridge,
             learner,
         }
+    }
+}
+
+impl KernelSymbolicReasoner {
+    /// Create a new kernel reasoner
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Create kernel domain knowledge base
