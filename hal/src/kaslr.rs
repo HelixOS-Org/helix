@@ -136,40 +136,42 @@ impl KaslrConfig {
 // ENTROPY SOURCES
 // ============================================================================
 
-/// Available entropy sources
+/// Available entropy sources for KASLR randomization.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EntropySource {
-    /// RDSEED instruction (hardware true RNG) - Best quality
+    /// RDSEED instruction - hardware true random number generator (best quality).
     Rdseed,
-    /// RDRAND instruction (hardware PRNG) - Good quality
+    /// RDRAND instruction - hardware pseudo-random number generator (good quality).
     Rdrand,
-    /// UEFI RNG Protocol - Firmware provided
+    /// UEFI RNG Protocol - firmware-provided random number generator.
     UefiRng,
-    /// TSC (Time Stamp Counter) - Fallback, lower quality
+    /// TSC (Time Stamp Counter) - fallback with lower entropy quality.
     Tsc,
-    /// Combined sources (mix all available)
+    /// Combined sources - mixes all available entropy sources together.
     Mixed,
-    /// Fixed value (for debugging/testing only)
+    /// Fixed value - for debugging and testing only (no real entropy).
     Fixed(u64),
 }
 
-/// Entropy quality rating
+/// Entropy quality rating for randomness sources.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EntropyQuality {
-    /// Unsuitable for security
+    /// Unsuitable for security - no valid entropy.
     None          = 0,
-    /// Weak entropy (TSC, predictable)
+    /// Weak entropy (TSC, predictable sources).
     Weak          = 1,
-    /// Moderate entropy (firmware RNG)
+    /// Moderate entropy (firmware RNG).
     Moderate      = 2,
-    /// Strong entropy (RDRAND)
+    /// Strong entropy (RDRAND hardware PRNG).
     Strong        = 3,
-    /// Cryptographic entropy (RDSEED)
+    /// Cryptographic-grade entropy (RDSEED true RNG).
     Cryptographic = 4,
 }
 
 impl EntropySource {
-    /// Get the quality rating of this source
+    /// Get the quality rating of this entropy source.
+    ///
+    /// Higher quality sources provide better randomness for security.
     pub fn quality(&self) -> EntropyQuality {
         match self {
             Self::Rdseed => EntropyQuality::Cryptographic,
@@ -291,7 +293,9 @@ pub fn rdtsc() -> u64 {
     ((hi as u64) << 32) | (lo as u64)
 }
 
-/// Read TSC with more precision (includes RDTSCP)
+/// Read TSC with processor ID using RDTSCP instruction.
+///
+/// Returns a tuple of (timestamp, processor_id) for more precise timing.
 #[cfg(target_arch = "x86_64")]
 pub fn rdtscp() -> (u64, u32) {
     let lo: u32;
@@ -311,27 +315,39 @@ pub fn rdtscp() -> (u64, u32) {
     (((hi as u64) << 32) | (lo as u64), aux)
 }
 
-// Stubs for non-x86_64
+// Stubs for non-x86_64 architectures
+
+/// Check if RDRAND is supported (stub: always false on non-x86_64).
 #[cfg(not(target_arch = "x86_64"))]
 pub fn rdrand_supported() -> bool {
     false
 }
+
+/// Check if RDSEED is supported (stub: always false on non-x86_64).
 #[cfg(not(target_arch = "x86_64"))]
 pub fn rdseed_supported() -> bool {
     false
 }
+
+/// Get 64-bit random value from RDSEED (stub: always None on non-x86_64).
 #[cfg(not(target_arch = "x86_64"))]
 pub fn rdseed64() -> Option<u64> {
     None
 }
+
+/// Get 64-bit random value from RDRAND (stub: always None on non-x86_64).
 #[cfg(not(target_arch = "x86_64"))]
 pub fn rdrand64() -> Option<u64> {
     None
 }
+
+/// Read TSC value (stub: always 0 on non-x86_64).
 #[cfg(not(target_arch = "x86_64"))]
 pub fn rdtsc() -> u64 {
     0
 }
+
+/// Read RDTSCP value with processor ID (stub: always (0, 0) on non-x86_64).
 #[cfg(not(target_arch = "x86_64"))]
 pub fn rdtscp() -> (u64, u32) {
     (0, 0)
@@ -341,27 +357,36 @@ pub fn rdtscp() -> (u64, u32) {
 // ENTROPY MIXING
 // ============================================================================
 
-/// Simple entropy mixer using XORshift
+/// Simple entropy mixer using XORshift algorithm.
+///
+/// Combines multiple entropy sources into a single high-quality random value.
 struct EntropyMixer {
+    /// Current mixed state value.
     state: u64,
 }
 
 impl EntropyMixer {
-    /// Create mixer with initial seed
+    /// Create mixer with initial seed.
+    ///
+    /// Uses a default seed if zero is provided to avoid degenerate state.
     fn new(seed: u64) -> Self {
         Self {
             state: if seed == 0 { 0x853c49e6748fea9b } else { seed },
         }
     }
 
-    /// Mix in additional entropy
+    /// Mix in additional entropy value.
+    ///
+    /// Uses multiplicative mixing to combine entropy sources.
     fn mix(&mut self, entropy: u64) {
         self.state ^= entropy;
         self.state = self.state.wrapping_mul(0x2545F4914F6CDD1D);
         self.state ^= self.state >> 27;
     }
 
-    /// Get final mixed value
+    /// Consume the mixer and return the final mixed value.
+    ///
+    /// Applies additional mixing steps for better distribution.
     fn finalize(mut self) -> u64 {
         // Final mixing steps
         self.state ^= self.state >> 33;
@@ -373,7 +398,9 @@ impl EntropyMixer {
     }
 }
 
-/// Collect entropy from all available sources
+/// Collect entropy from all available hardware sources.
+///
+/// Returns a tuple of the mixed entropy value and the best quality achieved.
 pub fn collect_entropy() -> (u64, EntropyQuality) {
     let mut mixer = EntropyMixer::new(0);
     let mut best_quality = EntropyQuality::None;
@@ -404,7 +431,9 @@ pub fn collect_entropy() -> (u64, EntropyQuality) {
     (mixer.finalize(), best_quality)
 }
 
-/// Get entropy from a specific source
+/// Get entropy from a specific source.
+///
+/// Returns `None` if the requested source is unavailable or fails.
 pub fn get_entropy(source: EntropySource) -> Option<u64> {
     match source {
         EntropySource::Rdseed => rdseed64(),
@@ -420,42 +449,42 @@ pub fn get_entropy(source: EntropySource) -> Option<u64> {
 // KASLR GENERATION
 // ============================================================================
 
-/// Result type for KASLR operations
+/// Result type for KASLR operations.
 pub type KaslrResult<T> = Result<T, KaslrError>;
 
-/// KASLR errors
+/// Errors that can occur during KASLR operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KaslrError {
-    /// KASLR is disabled
+    /// KASLR is disabled in configuration.
     Disabled,
-    /// Kernel too large for KASLR range
+    /// Kernel is too large to fit in the KASLR range.
     KernelTooLarge,
-    /// No entropy available
+    /// No entropy source is available.
     NoEntropy,
-    /// Insufficient entropy quality
+    /// Entropy quality is below acceptable threshold.
     LowEntropy(EntropyQuality),
-    /// Invalid configuration
+    /// Configuration parameters are invalid.
     InvalidConfig,
-    /// Alignment error
+    /// Address alignment requirement not met.
     AlignmentError,
 }
 
-/// KASLR result with details
+/// Detailed KASLR result with entropy and slot information.
 #[derive(Debug, Clone)]
 pub struct KaslrResult2 {
-    /// Final load address
+    /// Final randomized kernel load address.
     pub load_address: u64,
-    /// Slide from default address
+    /// Offset from the default (non-randomized) address.
     pub slide: i64,
-    /// Entropy source used
+    /// Entropy source that was used for randomization.
     pub source: EntropySource,
-    /// Entropy quality achieved
+    /// Quality rating of the entropy used.
     pub quality: EntropyQuality,
-    /// Random value used
+    /// Raw random value used for slot selection.
     pub random_value: u64,
-    /// Slot index selected
+    /// Index of the selected slot within the KASLR range.
     pub slot_index: u64,
-    /// Total available slots
+    /// Total number of available slots in the range.
     pub total_slots: u64,
 }
 
@@ -521,7 +550,10 @@ pub fn generate_kaslr_offset(config: &KaslrConfig, kernel_size: u64) -> KaslrRes
     Ok(load_address)
 }
 
-/// Generate KASLR offset with detailed results
+/// Generate KASLR offset with detailed diagnostic results.
+///
+/// Returns comprehensive information about the randomization process,
+/// including entropy source used, quality, and slot selection details.
 pub fn generate_kaslr_offset_detailed(
     config: &KaslrConfig,
     kernel_size: u64,
@@ -584,10 +616,13 @@ pub fn generate_kaslr_offset_detailed(
 // GLOBAL STATE
 // ============================================================================
 
-/// Global KASLR state (initialized once at boot)
+/// Whether KASLR has been initialized (set once at boot).
 static KASLR_INITIALIZED: AtomicBool = AtomicBool::new(false);
+/// Whether KASLR is active (slide != 0).
 static KASLR_ENABLED: AtomicBool = AtomicBool::new(false);
+/// Current KASLR slide offset value.
 static KASLR_SLIDE: AtomicU64 = AtomicU64::new(0);
+/// Current KASLR base address.
 static KASLR_BASE: AtomicU64 = AtomicU64::new(0);
 
 /// Initialize global KASLR state
@@ -628,7 +663,9 @@ pub fn get_kaslr_base() -> u64 {
     KASLR_BASE.load(Ordering::SeqCst)
 }
 
-/// Translate a linked address to a runtime address
+/// Translate a linked (compile-time) address to a runtime address.
+///
+/// Applies the current KASLR slide to convert static addresses to actual addresses.
 #[inline]
 pub fn kaslr_translate(linked_addr: u64) -> u64 {
     let slide = get_kaslr_slide();
@@ -639,19 +676,21 @@ pub fn kaslr_translate(linked_addr: u64) -> u64 {
 // BOOT PARAMETER
 // ============================================================================
 
-/// KASLR boot parameter for kernel command line
+/// KASLR boot parameter parsed from kernel command line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KaslrBootParam {
-    /// KASLR enabled (default)
+    /// KASLR is enabled with automatic randomization (default behavior).
     Enabled,
-    /// KASLR disabled (nokaslr)
+    /// KASLR is disabled via "nokaslr" boot parameter.
     Disabled,
-    /// Use specific slide value
+    /// Use a specific fixed slide value via "kaslr_slide=" parameter.
     FixedSlide(i64),
 }
 
 impl KaslrBootParam {
-    /// Parse from kernel command line
+    /// Parse KASLR configuration from kernel command line string.
+    ///
+    /// Recognizes "nokaslr" to disable and "kaslr_slide=0xNNN" for fixed offset.
     pub fn from_cmdline(cmdline: &str) -> Self {
         if cmdline.contains("nokaslr") {
             Self::Disabled
@@ -682,20 +721,29 @@ impl KaslrBootParam {
 // DIAGNOSTICS
 // ============================================================================
 
-/// KASLR diagnostic information
+/// Diagnostic information about KASLR state and entropy sources.
 #[derive(Debug, Clone)]
 pub struct KaslrDiagnostics {
+    /// Whether RDRAND instruction is available on this CPU.
     pub rdrand_available: bool,
+    /// Whether RDSEED instruction is available on this CPU.
     pub rdseed_available: bool,
+    /// Quality rating of the best available entropy source.
     pub entropy_quality: EntropyQuality,
+    /// Sample random value from entropy collection.
     pub sample_random: u64,
+    /// Whether KASLR is currently active (non-zero slide).
     pub kaslr_active: bool,
+    /// Current KASLR slide offset in bytes.
     pub current_slide: i64,
+    /// Current kernel base address with KASLR applied.
     pub current_base: u64,
 }
 
 impl KaslrDiagnostics {
-    /// Collect diagnostic information
+    /// Collect current KASLR diagnostic information from the system.
+    ///
+    /// Queries CPU features, entropy sources, and current KASLR state.
     pub fn collect() -> Self {
         let (sample, quality) = collect_entropy();
 
