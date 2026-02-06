@@ -91,6 +91,7 @@ impl Complex {
 
     /// Addition
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn add(self, other: Self) -> Self {
         Self {
             re: self.re + other.re,
@@ -100,6 +101,7 @@ impl Complex {
 
     /// Subtraction
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn sub(self, other: Self) -> Self {
         Self {
             re: self.re - other.re,
@@ -109,6 +111,7 @@ impl Complex {
 
     /// Multiplication
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn mul(self, other: Self) -> Self {
         Self {
             re: self.re * other.re - self.im * other.im,
@@ -117,6 +120,7 @@ impl Complex {
     }
 
     /// Division
+    #[allow(clippy::should_implement_trait)]
     pub fn div(self, other: Self) -> Self {
         let denom = other.norm_sq();
         if denom < 1e-15 {
