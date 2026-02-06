@@ -394,6 +394,7 @@ pub struct ZoneManager {
 impl ZoneManager {
     /// Create new zone manager
     pub fn new(zone_count: u32, total_blocks: u64) -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const ZERO: AtomicU32 = AtomicU32::new(0);
 
         Self {
