@@ -221,20 +221,20 @@ impl NexusState {
 
     /// Can transition to
     pub fn can_transition_to(&self, target: &Self) -> bool {
-        match (self, target) {
-            (Self::Uninitialized, Self::Initializing) => true,
-            (Self::Initializing, Self::Ready) => true,
-            (Self::Initializing, Self::Failed) => true,
-            (Self::Ready, Self::Running) => true,
-            (Self::Ready, Self::ShuttingDown) => true,
-            (Self::Running, Self::Paused) => true,
-            (Self::Running, Self::ShuttingDown) => true,
-            (Self::Running, Self::Failed) => true,
-            (Self::Paused, Self::Running) => true,
-            (Self::Paused, Self::ShuttingDown) => true,
-            (Self::ShuttingDown, Self::Stopped) => true,
-            _ => false,
-        }
+        matches!(
+            (self, target),
+            (Self::Uninitialized, Self::Initializing)
+                | (Self::Initializing, Self::Ready)
+                | (Self::Initializing, Self::Failed)
+                | (Self::Ready, Self::Running)
+                | (Self::Ready, Self::ShuttingDown)
+                | (Self::Running, Self::Paused)
+                | (Self::Running, Self::ShuttingDown)
+                | (Self::Running, Self::Failed)
+                | (Self::Paused, Self::Running)
+                | (Self::Paused, Self::ShuttingDown)
+                | (Self::ShuttingDown, Self::Stopped)
+        )
     }
 }
 
