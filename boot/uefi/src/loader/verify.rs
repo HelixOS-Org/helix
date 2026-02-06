@@ -84,6 +84,7 @@ impl ImageVerifier {
     }
 
     /// SHA-256 implementation
+    #[allow(clippy::unused_self)]
     fn sha256(&self, data: &[u8]) -> Vec<u8> {
         // Initial hash values
         let mut h: [u32; 8] = [
@@ -251,16 +252,19 @@ impl ImageVerifier {
     }
 
     /// SHA-384 (placeholder)
+    #[allow(clippy::unused_self)]
     fn sha384(&self, _data: &[u8]) -> Vec<u8> {
         vec![0u8; 48]
     }
 
     /// SHA-512 (placeholder)
+    #[allow(clippy::unused_self)]
     fn sha512(&self, _data: &[u8]) -> Vec<u8> {
         vec![0u8; 64]
     }
 
     /// SHA3-256 (placeholder)
+    #[allow(clippy::unused_self)]
     fn sha3_256(&self, _data: &[u8]) -> Vec<u8> {
         vec![0u8; 32]
     }
