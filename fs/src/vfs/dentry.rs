@@ -411,8 +411,7 @@ impl DentryCache {
         }
 
         // Remove collected entries
-        for j in 0..count {
-            let (parent, name, len) = &to_remove[j];
+        for (parent, name, len) in to_remove.iter().take(count) {
             self.remove(*parent, &name[..*len]);
         }
     }
