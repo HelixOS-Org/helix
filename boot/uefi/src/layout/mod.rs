@@ -373,9 +373,10 @@ impl Default for LayoutStyle {
 // =============================================================================
 
 /// Widget type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WidgetType {
     /// Container/group
+    #[default]
     Container,
     /// Text label
     Text,
@@ -407,12 +408,6 @@ pub enum WidgetType {
     Custom,
 }
 
-impl Default for WidgetType {
-    fn default() -> Self {
-        WidgetType::Container
-    }
-}
-
 impl fmt::Display for WidgetType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -436,9 +431,10 @@ impl fmt::Display for WidgetType {
 }
 
 /// Widget state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WidgetState {
     /// Normal state
+    #[default]
     Normal,
     /// Hovered
     Hovered,
@@ -450,12 +446,6 @@ pub enum WidgetState {
     Disabled,
     /// Selected
     Selected,
-}
-
-impl Default for WidgetState {
-    fn default() -> Self {
-        WidgetState::Normal
-    }
 }
 
 /// Widget ID type
@@ -518,24 +508,20 @@ impl WidgetFlags {
 // =============================================================================
 
 /// Text alignment
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TextAlign {
+    #[default]
     Left,
     Center,
     Right,
     Justify,
 }
 
-impl Default for TextAlign {
-    fn default() -> Self {
-        TextAlign::Left
-    }
-}
-
 /// Text overflow
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TextOverflow {
     /// Clip text
+    #[default]
     Clip,
     /// Show ellipsis (...)
     Ellipsis,
@@ -543,12 +529,6 @@ pub enum TextOverflow {
     Wrap,
     /// Word wrap
     WordWrap,
-}
-
-impl Default for TextOverflow {
-    fn default() -> Self {
-        TextOverflow::Clip
-    }
 }
 
 /// Text widget properties
@@ -604,9 +584,10 @@ impl Default for TextProps {
 // =============================================================================
 
 /// Button variant
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ButtonVariant {
     /// Primary action
+    #[default]
     Primary,
     /// Secondary action
     Secondary,
@@ -620,24 +601,13 @@ pub enum ButtonVariant {
     Success,
 }
 
-impl Default for ButtonVariant {
-    fn default() -> Self {
-        ButtonVariant::Primary
-    }
-}
-
 /// Button size
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ButtonSize {
     Small,
+    #[default]
     Normal,
     Large,
-}
-
-impl Default for ButtonSize {
-    fn default() -> Self {
-        ButtonSize::Normal
-    }
 }
 
 /// Button widget properties
@@ -675,20 +645,15 @@ impl Default for ButtonProps {
 // =============================================================================
 
 /// List selection mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SelectionMode {
     /// No selection
     None,
     /// Single selection
+    #[default]
     Single,
     /// Multiple selection
     Multiple,
-}
-
-impl Default for SelectionMode {
-    fn default() -> Self {
-        SelectionMode::Single
-    }
 }
 
 /// List widget properties
@@ -729,20 +694,15 @@ impl Default for ListProps {
 // =============================================================================
 
 /// Progress variant
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ProgressVariant {
     /// Horizontal bar
+    #[default]
     Bar,
     /// Circular
     Circular,
     /// Steps/dots
     Steps,
-}
-
-impl Default for ProgressVariant {
-    fn default() -> Self {
-        ProgressVariant::Bar
-    }
 }
 
 /// Progress widget properties
@@ -783,9 +743,10 @@ impl Default for ProgressProps {
 // =============================================================================
 
 /// Input type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum InputType {
     /// Single line text
+    #[default]
     Text,
     /// Password (masked)
     Password,
@@ -795,12 +756,6 @@ pub enum InputType {
     Email,
     /// Search
     Search,
-}
-
-impl Default for InputType {
-    fn default() -> Self {
-        InputType::Text
-    }
 }
 
 /// Input widget properties
@@ -994,11 +949,12 @@ impl Widget {
 // =============================================================================
 
 /// Screen area
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ScreenArea {
     /// Header/title bar
     Header,
     /// Main content area
+    #[default]
     Content,
     /// Footer/status bar
     Footer,
@@ -1010,12 +966,6 @@ pub enum ScreenArea {
     Overlay,
     /// Full screen
     FullScreen,
-}
-
-impl Default for ScreenArea {
-    fn default() -> Self {
-        ScreenArea::Content
-    }
 }
 
 /// Screen layout configuration
