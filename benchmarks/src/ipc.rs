@@ -906,24 +906,24 @@ struct Message {
 enum MsgType {
     Data,
     LargeData,
-    Control,
+    _Control,
 }
 
 const MSG_FLAG_ZERO_COPY: u32 = 1;
 
 struct Channel {
-    id: u64,
-    sender: u64,
-    receiver: u64,
-    capacity: u32,
-    count: AtomicU32,
-    flags: u32,
+    _id: u64,
+    _sender: u64,
+    _receiver: u64,
+    _capacity: u32,
+    _count: AtomicU32,
+    _flags: u32,
 }
 
 struct SharedMemory {
-    id: u64,
-    base: u64,
-    size: u64,
-    ref_count: AtomicU32,
-    flags: u32,
+    _id: u64,
+    _base: u64,
+    _size: u64,
+    _ref_count: AtomicU32,
+    _flags: u32,
 }
