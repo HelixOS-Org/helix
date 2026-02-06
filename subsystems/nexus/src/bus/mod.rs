@@ -40,6 +40,7 @@
 // SUBMODULES
 // ============================================================================
 
+#[allow(clippy::module_inception)]
 pub mod bus;
 pub mod channel;
 pub mod domain;
