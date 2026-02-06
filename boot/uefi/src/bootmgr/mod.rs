@@ -864,8 +864,7 @@ impl BootManager {
         if self
             .entries
             .selected()
-            .map(BootEntry::is_bootable)
-            .unwrap_or(false)
+            .is_some_and(BootEntry::is_bootable)
         {
             self.state = BootState::EntrySelected;
             TransitionResult::Ok
@@ -920,8 +919,7 @@ impl BootManager {
             && self
                 .entries
                 .selected()
-                .map(BootEntry::is_bootable)
-                .unwrap_or(false)
+                .is_some_and(BootEntry::is_bootable)
     }
 
     /// Get progress percentage (0-100)
