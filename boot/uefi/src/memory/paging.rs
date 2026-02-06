@@ -939,6 +939,10 @@ impl PageTableBuilder {
     }
 
     /// Build page tables
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the builder state is valid.
     pub unsafe fn build(mut self, memory_size: u64) -> Result<PageTableManager> {
         self.manager.init()?;
 
