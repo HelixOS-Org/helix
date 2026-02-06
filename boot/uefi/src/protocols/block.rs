@@ -359,8 +359,12 @@ impl Protocol for BlockDevice {
 
 impl EnumerableProtocol for BlockDevice {
     fn enumerate() -> Result<Vec<Self>> {
-        super::ProtocolLocator::locate_all::<Self>()
-            .map(|handles| handles.into_iter().map(super::ProtocolHandle::leak).collect())
+        super::ProtocolLocator::locate_all::<Self>().map(|handles| {
+            handles
+                .into_iter()
+                .map(super::ProtocolHandle::leak)
+                .collect()
+        })
     }
 }
 
