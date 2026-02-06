@@ -210,6 +210,7 @@ impl MemoryMap {
     }
 
     /// Iterate over entries
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> MemoryMapIterator<'_> {
         MemoryMapIterator {
             map: self,
@@ -479,6 +480,7 @@ impl SmpInfo {
     }
 
     /// Iterate over CPUs
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> SmpIterator<'_> {
         SmpIterator {
             info: self,
