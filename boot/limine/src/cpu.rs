@@ -143,6 +143,7 @@ impl<T: Sized> Default for PerCpu<T> {
 impl<T: Sized> PerCpu<T> {
     /// Create a new per-CPU storage
     pub const fn new() -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const UNINIT_BOOL: AtomicBool = AtomicBool::new(false);
         Self {
             data: unsafe { core::mem::MaybeUninit::uninit().assume_init() },
