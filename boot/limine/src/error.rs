@@ -144,20 +144,17 @@ impl fmt::Display for MemoryError {
                 required,
                 available,
             } => {
-                write!(
-                    f,
-                    "Insufficient memory: need {} bytes, have {}",
-                    required, available
-                )
+                write!(f, "Insufficient memory: need {required} bytes, have {available}")
             },
-            Self::AddressOutOfRange(addr) => write!(f, "Address out of range: {:#x}", addr),
+            Self::AddressOutOfRange(addr) => write!(f, "Address out of range: {addr:#x}"),
             Self::InvalidRegion { base, length } => {
-                write!(f, "Invalid memory region: {:#x}-{:#x}", base, base + length)
+                let end = base + length;
+                write!(f, "Invalid memory region: {base:#x}-{end:#x}")
             },
             Self::OverlappingRegions => write!(f, "Overlapping memory regions"),
             Self::RegionNotFound => write!(f, "Memory region not found"),
             Self::AllocationFailed { size, align } => {
-                write!(f, "Allocation failed: size={}, align={}", size, align)
+                write!(f, "Allocation failed: size={size}, align={align}")
             },
         }
     }
@@ -189,12 +186,12 @@ impl fmt::Display for SmpError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NotAvailable => write!(f, "SMP not available"),
-            Self::CpuNotFound(id) => write!(f, "CPU {} not found", id),
-            Self::CpuAlreadyStarted(id) => write!(f, "CPU {} already started", id),
-            Self::StartupFailed(id) => write!(f, "Failed to start CPU {}", id),
-            Self::InvalidCpuId(id) => write!(f, "Invalid CPU ID: {}", id),
+            Self::CpuNotFound(id) => write!(f, "CPU {id} not found"),
+            Self::CpuAlreadyStarted(id) => write!(f, "CPU {id} already started"),
+            Self::StartupFailed(id) => write!(f, "Failed to start CPU {id}"),
+            Self::InvalidCpuId(id) => write!(f, "Invalid CPU ID: {id}"),
             Self::TooManyCpus { count, max } => {
-                write!(f, "Too many CPUs: {} (max {})", count, max)
+                write!(f, "Too many CPUs: {count} (max {max})")
             },
         }
     }
@@ -234,15 +231,11 @@ impl fmt::Display for FramebufferError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NotAvailable => write!(f, "Framebuffer not available"),
-            Self::IndexOutOfRange(idx) => write!(f, "Framebuffer index {} out of range", idx),
-            Self::UnsupportedFormat { bpp } => write!(f, "Unsupported pixel format: {} bpp", bpp),
-            Self::InvalidCoordinates { x, y } => write!(f, "Invalid coordinates: ({}, {})", x, y),
+            Self::IndexOutOfRange(idx) => write!(f, "Framebuffer index {idx} out of range"),
+            Self::UnsupportedFormat { bpp } => write!(f, "Unsupported pixel format: {bpp} bpp"),
+            Self::InvalidCoordinates { x, y } => write!(f, "Invalid coordinates: ({x}, {y})"),
             Self::BufferTooSmall { required, provided } => {
-                write!(
-                    f,
-                    "Buffer too small: need {} bytes, got {}",
-                    required, provided
-                )
+                write!(f, "Buffer too small: need {required} bytes, got {provided}")
             },
             Self::NoVideoModes => write!(f, "No video modes available"),
         }
@@ -278,7 +271,7 @@ impl fmt::Display for FirmwareError {
             Self::NoSmbios => write!(f, "SMBIOS not available"),
             Self::InvalidSmbios => write!(f, "Invalid SMBIOS tables"),
             Self::NoEfi => write!(f, "EFI not available"),
-            Self::InvalidEfi(reason) => write!(f, "Invalid EFI data: {}", reason),
+            Self::InvalidEfi(reason) => write!(f, "Invalid EFI data: {reason}"),
             Self::NoDeviceTree => write!(f, "Device tree not available"),
             Self::InvalidDeviceTree => write!(f, "Invalid device tree"),
         }
