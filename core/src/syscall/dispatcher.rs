@@ -30,6 +30,12 @@ pub struct SyscallDispatcher {
     post_hooks: spin::RwLock<alloc::vec::Vec<Arc<dyn SyscallHook>>>,
 }
 
+impl Default for SyscallDispatcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SyscallDispatcher {
     /// Create a new dispatcher
     pub const fn new() -> Self {
