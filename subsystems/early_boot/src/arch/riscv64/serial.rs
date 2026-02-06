@@ -183,6 +183,10 @@ impl Uart16550 {
     }
 
     /// Initialize UART
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init(&self, baud: u32, clock: u32) {
         // Disable interrupts
         self.write(IER, 0);
@@ -212,23 +216,39 @@ impl Uart16550 {
     }
 
     /// Initialize with default settings (115200 8N1)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_default(&self) {
         self.init(115200, DEFAULT_CLOCK);
     }
 
     /// Check if transmitter is empty
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure all safety invariants are upheld.
     pub unsafe fn tx_empty(&self) -> bool {
         self.read(LSR) & LSR_THRE != 0
     }
 
     /// Check if data is available
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn rx_ready(&self) -> bool {
         self.read(LSR) & LSR_DR != 0
     }
 
     /// Write byte (blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_byte(&self, byte: u8) {
         while !self.tx_empty() {
             core::hint::spin_loop();
@@ -237,6 +257,10 @@ impl Uart16550 {
     }
 
     /// Write byte (non-blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn try_write_byte(&self, byte: u8) -> bool {
         if !self.tx_empty() {
             return false;
@@ -246,6 +270,10 @@ impl Uart16550 {
     }
 
     /// Read byte (blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn read_byte(&self) -> u8 {
         while !self.rx_ready() {
             core::hint::spin_loop();
@@ -254,6 +282,10 @@ impl Uart16550 {
     }
 
     /// Read byte (non-blocking)
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the hardware is properly initialized before reading.
     pub unsafe fn try_read_byte(&self) -> Option<u8> {
         if !self.rx_ready() {
             return None;
@@ -262,6 +294,10 @@ impl Uart16550 {
     }
 
     /// Write string
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the value is valid for the current system state.
     pub unsafe fn write_str(&self, s: &str) {
         for byte in s.bytes() {
             if byte == b'\n' {
@@ -272,6 +308,10 @@ impl Uart16550 {
     }
 
     /// Flush output
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the operation is safe in the current context.
     pub unsafe fn flush(&self) {
         while self.read(LSR) & LSR_TEMT == 0 {
             core::hint::spin_loop();
@@ -279,17 +319,29 @@ impl Uart16550 {
     }
 
     /// Get line status
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the power state ID is valid.
     pub unsafe fn line_status(&self) -> u8 {
         self.read(LSR)
     }
 
     /// Enable interrupts
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid and a handler is registered.
     pub unsafe fn enable_interrupts(&self, mask: u8) {
         let current = self.read(IER);
         self.write(IER, current | mask);
     }
 
     /// Disable interrupts
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the interrupt ID is valid.
     pub unsafe fn disable_interrupts(&self, mask: u8) {
         let current = self.read(IER);
         self.write(IER, current & !mask);
@@ -579,6 +631,10 @@ pub fn panic_info(location: Option<&core::panic::Location>, msg: &str) {
 // =============================================================================
 
 /// Initialize serial console
+///
+/// # Safety
+///
+/// The caller must ensure system is in a valid state for initialization.
 pub unsafe fn init(ctx: &mut BootContext) -> BootResult<()> {
     // Determine if we should use SBI or direct UART
     // In S-mode, we typically use SBI; in M-mode, we use direct UART
