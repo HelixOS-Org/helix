@@ -14,7 +14,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::mem;
 
-use super::{UserError, UserResult, STATS};
+use super::STATS;
 
 /// ELF magic number
 pub const ELF_MAGIC: [u8; 4] = [0x7f, b'E', b'L', b'F'];
