@@ -298,16 +298,10 @@ impl EpisodicMemory {
         let episode = Episode::new(id, episode_type, self.current_boot, time_range);
 
         // Index by boot
-        self.by_boot
-            .entry(self.current_boot)
-            .or_default()
-            .push(id);
+        self.by_boot.entry(self.current_boot).or_default().push(id);
 
         // Index by type
-        self.by_type
-            .entry(episode_type)
-            .or_default()
-            .push(id);
+        self.by_type.entry(episode_type).or_default().push(id);
 
         self.episodes.insert(id, episode);
 
