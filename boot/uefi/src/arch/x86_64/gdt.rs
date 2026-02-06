@@ -1,4 +1,4 @@
-//! x86_64 Global Descriptor Table (GDT)
+//! `x86_64` Global Descriptor Table (GDT)
 //!
 //! Complete GDT implementation for long mode.
 
@@ -127,14 +127,18 @@ impl SegmentDescriptor {
     }
 
     /// Create new segment descriptor
+    ///
+    /// Uses const-safe bit masking for truncation instead of fallible conversions.
     pub const fn new(base: u32, limit: u32, access_byte: u8, flags_byte: u8) -> Self {
         Self {
-            limit_low: limit as u16,
-            base_low: base as u16,
-            base_middle: (base >> 16) as u8,
+            // Safe truncation via bit masking - u32 & 0xFFFF fits in u16
+            limit_low: (limit & 0xFFFF) as u16,
+            base_low: (base & 0xFFFF) as u16,
+            // Shift and mask to get specific bytes
+            base_middle: ((base >> 16) & 0xFF) as u8,
             access: access_byte,
-            limit_flags: ((limit >> 16) as u8 & 0x0F) | (flags_byte << 4),
-            base_high: (base >> 24) as u8,
+            limit_flags: (((limit >> 16) & 0x0F) as u8) | (flags_byte << 4),
+            base_high: ((base >> 24) & 0xFF) as u8,
         }
     }
 
@@ -170,9 +174,9 @@ impl SegmentDescriptor {
     pub fn base(&self) -> u32 {
         // SAFETY: Reading from packed struct fields using unaligned access
         unsafe {
-            let base_low = core::ptr::addr_of!(self.base_low).read_unaligned() as u32;
-            let base_middle = core::ptr::addr_of!(self.base_middle).read_unaligned() as u32;
-            let base_high = core::ptr::addr_of!(self.base_high).read_unaligned() as u32;
+            let base_low = u32::from(core::ptr::addr_of!(self.base_low).read_unaligned());
+            let base_middle = u32::from(core::ptr::addr_of!(self.base_middle).read_unaligned());
+            let base_high = u32::from(core::ptr::addr_of!(self.base_high).read_unaligned());
             base_low | (base_middle << 16) | (base_high << 24)
         }
     }
@@ -184,7 +188,7 @@ impl SegmentDescriptor {
     pub fn limit(&self) -> u32 {
         // SAFETY: Reading from packed struct fields using unaligned access
         unsafe {
-            let limit_low = core::ptr::addr_of!(self.limit_low).read_unaligned() as u32;
+            let limit_low = u32::from(core::ptr::addr_of!(self.limit_low).read_unaligned());
             let limit_flags = core::ptr::addr_of!(self.limit_flags).read_unaligned();
             limit_low | (u32::from(limit_flags & 0x0F) << 16)
         }
@@ -250,18 +254,18 @@ pub struct TssDescriptor {
 impl TssDescriptor {
     /// Create new TSS descriptor
     pub const fn new(base: u64, limit: u32) -> Self {
-        let base32 = u32::try_from(base).unwrap_or(u32::MAX);
+        let base32 = (base & 0xFFFF_FFFF) as u32;
 
         Self {
             low: SegmentDescriptor {
-                limit_low: u16::try_from(limit).unwrap_or(u16::MAX),
-                base_low: u16::try_from(base32).unwrap_or(u16::MAX),
-                base_middle: u8::try_from(base32 >> 16).unwrap_or(0),
+                limit_low: (limit & 0xFFFF) as u16,
+                base_low: (base32 & 0xFFFF) as u16,
+                base_middle: ((base32 >> 16) & 0xFF) as u8,
                 access: access::PRESENT | system_type::TSS64_AVAILABLE,
-                limit_flags: u8::try_from(limit >> 16).unwrap_or(0) & 0x0F,
-                base_high: u8::try_from(base32 >> 24).unwrap_or(0),
+                limit_flags: ((limit >> 16) & 0x0F) as u8,
+                base_high: ((base32 >> 24) & 0xFF) as u8,
             },
-            base_upper: u32::try_from(base >> 32).unwrap_or(0),
+            base_upper: (base >> 32) as u32,
             reserved: 0,
         }
     }
@@ -307,6 +311,9 @@ impl TaskStateSegment {
 
     /// Create new TSS
     pub const fn new() -> Self {
+        // Self::SIZE is small enough to fit in u16 (104 bytes typical)
+        // Use const assertion to ensure this at compile time
+        const _: () = assert!(TaskStateSegment::SIZE <= u16::MAX as usize);
         Self {
             reserved1: 0,
             privilege_stack_table: [0; 3],
@@ -314,7 +321,7 @@ impl TaskStateSegment {
             interrupt_stack_table: [0; 7],
             reserved3: 0,
             reserved4: 0,
-            iomap_base: u16::try_from(Self::SIZE).unwrap_or(u16::MAX), // No I/O bitmap
+            iomap_base: Self::SIZE as u16, // No I/O bitmap
         }
     }
 
