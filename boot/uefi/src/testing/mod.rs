@@ -40,7 +40,7 @@ use core::fmt;
 // =============================================================================
 
 /// Test result status
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TestStatus {
     /// Test passed
     Pass,
@@ -53,6 +53,7 @@ pub enum TestStatus {
     /// Test aborted
     Abort,
     /// Test not run
+    #[default]
     NotRun,
     /// Test in progress
     Running,
@@ -87,12 +88,6 @@ impl fmt::Display for TestStatus {
             TestStatus::Running => write!(f, "RUNNING"),
             TestStatus::Warning => write!(f, "WARNING"),
         }
-    }
-}
-
-impl Default for TestStatus {
-    fn default() -> Self {
-        TestStatus::NotRun
     }
 }
 
@@ -211,24 +206,19 @@ impl fmt::Display for TestCategory {
 }
 
 /// Test severity level
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum TestSeverity {
     /// Informational
     Info,
     /// Low severity
     Low,
     /// Medium severity
+    #[default]
     Medium,
     /// High severity
     High,
     /// Critical
     Critical,
-}
-
-impl Default for TestSeverity {
-    fn default() -> Self {
-        TestSeverity::Medium
-    }
 }
 
 // =============================================================================
