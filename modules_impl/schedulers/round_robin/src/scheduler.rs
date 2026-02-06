@@ -104,12 +104,12 @@ impl RoundRobinScheduler {
 
         let mut load = vec![0usize; cpu_count];
 
-        for (id, entry) in threads.iter() {
+        for (_id, entry) in threads.iter() {
             if entry.state == ThreadState::Runnable || entry.state == ThreadState::Running {
                 // Check affinity and count
-                for cpu in 0..cpu_count {
+                for (cpu, load_val) in load.iter_mut().enumerate() {
                     if entry.info.affinity & (1 << cpu) != 0 {
-                        load[cpu] += 1;
+                        *load_val += 1;
                     }
                 }
             }
@@ -223,7 +223,7 @@ impl Scheduler for RoundRobinScheduler {
 
         entry.state = ThreadState::Runnable;
         let priority = entry.info.priority;
-        let affinity = entry.info.affinity;
+        let _affinity = entry.info.affinity;
         drop(threads);
 
         // Find a suitable CPU
