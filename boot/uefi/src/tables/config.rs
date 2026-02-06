@@ -40,6 +40,10 @@ impl ConfigTableManager {
     }
 
     /// Initialize from system table
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure system is in a valid state for initialization.
     pub unsafe fn init_from_system_table(
         &mut self,
         config_table: *const EfiConfigurationTable,
