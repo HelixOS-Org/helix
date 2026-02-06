@@ -483,7 +483,7 @@ struct ConsoleWriter<'a> {
     console: &'a Console,
 }
 
-impl<'a> core::fmt::Write for ConsoleWriter<'a> {
+impl core::fmt::Write for ConsoleWriter<'_> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         self.console.write(s).map_err(|_| core::fmt::Error)
     }
