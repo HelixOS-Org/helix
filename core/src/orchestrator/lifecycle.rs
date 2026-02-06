@@ -54,6 +54,12 @@ pub struct LifecycleManager {
     shutdown_in_progress: AtomicBool,
 }
 
+impl Default for LifecycleManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LifecycleManager {
     /// Create a new lifecycle manager
     pub const fn new() -> Self {
