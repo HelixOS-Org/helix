@@ -283,7 +283,7 @@ impl MetaLearner {
             .filter(|s| !task.strategy_performance.contains_key(&s.id))
             .min_by_key(|s| s.use_count)
             .map(|s| s.id)
-            .or_else(|| task.best_strategy)
+            .or(task.best_strategy)
     }
 
     /// Record episode
