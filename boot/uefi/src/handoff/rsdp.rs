@@ -721,6 +721,10 @@ impl MadtInfo {
 // =============================================================================
 
 /// Search for RSDP in BIOS memory area
+///
+/// # Safety
+///
+/// The caller must ensure the memory region is accessible and valid BIOS data area.
 pub unsafe fn search_rsdp_bios() -> Option<RsdpInfo> {
     let mut addr = RSDP_SEARCH_START;
 
@@ -745,6 +749,10 @@ pub unsafe fn search_rsdp_bios() -> Option<RsdpInfo> {
 }
 
 /// Validate RSDP at given address
+///
+/// # Safety
+///
+/// The caller must ensure the memory region is accessible.
 pub unsafe fn validate_rsdp(addr: PhysicalAddress) -> Option<RsdpInfo> {
     let ptr = addr.0 as *const RsdpV1;
     let rsdp = &*ptr;
