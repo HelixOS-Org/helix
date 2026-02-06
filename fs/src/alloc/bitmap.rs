@@ -119,6 +119,7 @@ pub struct BitmapBlock {
 impl BitmapBlock {
     /// Create new empty bitmap (all free)
     pub const fn new() -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const ZERO: AtomicU64 = AtomicU64::new(0);
         Self {
             words: [ZERO; WORDS_PER_BLOCK],
@@ -127,6 +128,7 @@ impl BitmapBlock {
 
     /// Create new full bitmap (all used)
     pub fn new_full() -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const MAX: AtomicU64 = AtomicU64::new(u64::MAX);
         Self {
             words: [MAX; WORDS_PER_BLOCK],
@@ -381,6 +383,7 @@ impl Default for BitmapSummary {
 impl BitmapSummary {
     /// Create new summary (all blocks have free space)
     pub const fn new() -> Self {
+        #[allow(clippy::declare_interior_mutable_const)]
         const ZERO: AtomicU64 = AtomicU64::new(0);
         Self {
             words: [ZERO; 4096],
@@ -488,7 +491,7 @@ impl BitmapAllocState {
     /// Create new state
     pub fn new(total_blocks: u64) -> Self {
         let num_bitmap_blocks =
-            ((total_blocks as usize + BITS_PER_BLOCK - 1) / BITS_PER_BLOCK) as u32;
+            (total_blocks as usize).div_ceil(BITS_PER_BLOCK) as u32;
 
         Self {
             num_blocks: num_bitmap_blocks,
