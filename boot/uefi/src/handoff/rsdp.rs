@@ -710,8 +710,7 @@ impl MadtInfo {
 
     /// Map ISA IRQ to GSI
     pub fn irq_to_gsi(&self, irq: u8) -> u32 {
-        self.find_irq_override(irq)
-            .map_or(irq as u32, |o| o.gsi)
+        self.find_irq_override(irq).map_or(irq as u32, |o| o.gsi)
     }
 }
 
