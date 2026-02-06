@@ -128,7 +128,7 @@ impl DenseLayer {
     pub fn backward(&mut self, grad_output: &[f64], learning_rate: f64) -> Vec<f64> {
         let mut grad_input = alloc::vec![0.0; self.last_input.len()];
 
-        for i in 0..self.weights.len() {
+        for (i, weight_row) in self.weights.iter_mut().enumerate() {
             let d_activation = self.activation.derivative(self.last_output[i]);
             let delta = grad_output[i] * d_activation;
 
@@ -136,10 +136,10 @@ impl DenseLayer {
             self.biases[i] -= learning_rate * delta;
 
             // Update weights and compute gradient for input
-            for j in 0..self.weights[i].len() {
+            for (j, weight) in weight_row.iter_mut().enumerate() {
                 if j < self.last_input.len() {
-                    grad_input[j] += self.weights[i][j] * delta;
-                    self.weights[i][j] -= learning_rate * delta * self.last_input[j];
+                    grad_input[j] += *weight * delta;
+                    *weight -= learning_rate * delta * self.last_input[j];
                 }
             }
         }
