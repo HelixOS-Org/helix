@@ -521,10 +521,10 @@ impl core::fmt::Debug for HhdmResponse {
 ///
 /// Allows the kernel to specify a preferred paging mode.
 ///
-/// # Paging Modes (x86_64)
+/// # Paging Modes (`x86_64`)
 ///
-/// - 4-level paging: 48-bit virtual addresses (256 TiB)
-/// - 5-level paging: 57-bit virtual addresses (128 PiB)
+/// - 4-level paging: 48-bit virtual addresses (256 `TiB`)
+/// - 5-level paging: 57-bit virtual addresses (128 `PiB`)
 ///
 /// # Example
 ///
