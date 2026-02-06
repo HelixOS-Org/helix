@@ -3,7 +3,7 @@
 //! The main boot information structure passed to the kernel.
 
 use crate::handoff::{FramebufferInfo, MemoryMap, ModuleInfo};
-use crate::raw::types::*;
+use crate::raw::types::{PhysicalAddress, VirtualAddress};
 
 extern crate alloc;
 use alloc::string::String;
@@ -73,7 +73,7 @@ pub struct BootInfo {
     // =========================================================================
     // KASLR / RELOCATION FIELDS
     // =========================================================================
-    /// KASLR slide offset (load_address - link_address)
+    /// KASLR slide offset (`load_address` - `link_address`)
     /// Zero if KASLR is disabled or kernel loaded at link address
     pub kernel_slide: i64,
 
@@ -157,7 +157,7 @@ impl BootInfo {
     }
 
     /// Validate boot info
-    pub fn validate(&self) -> bool {
+    pub const fn validate(&self) -> bool {
         self.magic == super::BOOT_INFO_MAGIC && self.version == super::BOOT_INFO_VERSION
     }
 
@@ -172,17 +172,17 @@ impl BootInfo {
     }
 
     /// Check if framebuffer is available
-    pub fn has_framebuffer(&self) -> bool {
+    pub const fn has_framebuffer(&self) -> bool {
         self.framebuffer.is_some()
     }
 
     /// Check if ACPI is available
-    pub fn has_acpi(&self) -> bool {
+    pub const fn has_acpi(&self) -> bool {
         self.rsdp_address.is_some()
     }
 
     /// Check if running on EFI
-    pub fn is_efi(&self) -> bool {
+    pub const fn is_efi(&self) -> bool {
         self.efi_system_table.is_some()
     }
 
@@ -191,12 +191,12 @@ impl BootInfo {
     // =========================================================================
 
     /// Check if KASLR was active during boot
-    pub fn is_kaslr_active(&self) -> bool {
+    pub const fn is_kaslr_active(&self) -> bool {
         self.kaslr_enabled && self.kernel_slide != 0
     }
 
     /// Get the KASLR slide offset
-    pub fn get_kernel_slide(&self) -> i64 {
+    pub const fn get_kernel_slide(&self) -> i64 {
         self.kernel_slide
     }
 
@@ -204,12 +204,17 @@ impl BootInfo {
     ///
     /// This is useful for converting addresses from debug info or symbols
     /// to their actual runtime locations.
-    pub fn translate_address(&self, linked_addr: u64) -> u64 {
-        (linked_addr as i128 + self.kernel_slide as i128) as u64
+    pub const fn translate_address(&self, linked_addr: u64) -> u64 {
+        // Safe: using wrapping arithmetic to handle slide offsets
+        if self.kernel_slide >= 0 {
+            linked_addr.wrapping_add(self.kernel_slide as u64)
+        } else {
+            linked_addr.wrapping_sub((-self.kernel_slide) as u64)
+        }
     }
 
     /// Get KASLR entropy quality description
-    pub fn kaslr_entropy_description(&self) -> &'static str {
+    pub const fn kaslr_entropy_description(&self) -> &'static str {
         match self.kaslr_entropy_quality {
             0 => "None (KASLR disabled)",
             1 => "Weak (TSC-based)",
@@ -253,8 +258,8 @@ impl BootInfo {
     pub fn get_cmdline_option(&self, key: &str) -> Option<&str> {
         for part in self.command_line.split_whitespace() {
             if let Some(value) = part.strip_prefix(key) {
-                if value.starts_with('=') {
-                    return Some(&value[1..]);
+                if let Some(stripped) = value.strip_prefix('=') {
+                    return Some(stripped);
                 } else if value.is_empty() {
                     return Some("");
                 }
@@ -267,7 +272,7 @@ impl BootInfo {
     pub fn has_cmdline_option(&self, key: &str) -> bool {
         self.command_line
             .split_whitespace()
-            .any(|part| part == key || part.starts_with(&alloc::format!("{}=", key)))
+            .any(|part| part == key || part.starts_with(&alloc::format!("{key}=")))
     }
 }
 
@@ -294,7 +299,7 @@ pub struct TlsTemplate {
 
 impl TlsTemplate {
     /// Get BSS size
-    pub fn bss_size(&self) -> u64 {
+    pub const fn bss_size(&self) -> u64 {
         if self.mem_size > self.file_size {
             self.mem_size - self.file_size
         } else {
@@ -308,43 +313,53 @@ impl TlsTemplate {
 // =============================================================================
 
 /// Boot flags
-#[derive(Debug, Clone, Copy, Default)]
-pub struct BootFlags {
-    /// Debug mode enabled
-    pub debug: bool,
-    /// Verbose output
-    pub verbose: bool,
-    /// Single user mode
-    pub single_user: bool,
-    /// No graphics mode
-    pub no_graphics: bool,
-    /// Safe mode
-    pub safe_mode: bool,
-    /// Rescue mode
-    pub rescue: bool,
-    /// Emergency mode
-    pub emergency: bool,
-}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct BootFlags(u8);
 
 impl BootFlags {
+    /// Debug mode enabled
+    pub const DEBUG: Self = Self(1 << 0);
+    /// Verbose output
+    pub const VERBOSE: Self = Self(1 << 1);
+    /// Single user mode
+    pub const SINGLE_USER: Self = Self(1 << 2);
+    /// No graphics mode
+    pub const NO_GRAPHICS: Self = Self(1 << 3);
+    /// Safe mode
+    pub const SAFE_MODE: Self = Self(1 << 4);
+    /// Rescue mode
+    pub const RESCUE: Self = Self(1 << 5);
+    /// Emergency mode
+    pub const EMERGENCY: Self = Self(1 << 6);
+
     /// Parse from command line
     pub fn from_cmdline(cmdline: &str) -> Self {
         let mut flags = Self::default();
 
         for opt in cmdline.split_whitespace() {
             match opt {
-                "debug" => flags.debug = true,
-                "verbose" | "-v" => flags.verbose = true,
-                "single" | "1" | "S" => flags.single_user = true,
-                "nographics" | "text" => flags.no_graphics = true,
-                "safe" => flags.safe_mode = true,
-                "rescue" => flags.rescue = true,
-                "emergency" => flags.emergency = true,
+                "debug" => flags.insert(Self::DEBUG),
+                "verbose" | "-v" => flags.insert(Self::VERBOSE),
+                "single" | "1" | "S" => flags.insert(Self::SINGLE_USER),
+                "nographics" | "text" => flags.insert(Self::NO_GRAPHICS),
+                "safe" => flags.insert(Self::SAFE_MODE),
+                "rescue" => flags.insert(Self::RESCUE),
+                "emergency" => flags.insert(Self::EMERGENCY),
                 _ => {},
             }
         }
 
         flags
+    }
+
+    /// Insert flag
+    pub fn insert(&mut self, flag: Self) {
+        self.0 |= flag.0;
+    }
+
+    /// Check if a flag is set
+    pub const fn contains(self, flag: Self) -> bool {
+        (self.0 & flag.0) != 0
     }
 }
 
@@ -403,7 +418,7 @@ impl BootInfoHeader {
     /// Header size
     pub const SIZE: usize = core::mem::size_of::<Self>();
 
-    /// Create from BootInfo
+    /// Create from `BootInfo`
     pub fn from_boot_info(info: &BootInfo) -> Self {
         let mut flags = 0u64;
         if info.framebuffer.is_some() {
@@ -426,17 +441,17 @@ impl BootInfoHeader {
             reserved: 0,
             flags,
             memory_map_offset: 0,
-            memory_map_entries: info.memory_map.entries.len() as u32,
+            memory_map_entries: u32::try_from(info.memory_map.entries.len()).unwrap_or(u32::MAX),
             framebuffer_offset: 0,
             modules_offset: 0,
-            modules_count: info.modules.len() as u32,
+            modules_count: u32::try_from(info.modules.len()).unwrap_or(u32::MAX),
             cmdline_offset: 0,
-            cmdline_length: info.command_line.len() as u32,
-            rsdp_address: info.rsdp_address.map(|a| a.0).unwrap_or(0),
-            smbios_address: info.smbios_address.map(|a| a.0).unwrap_or(0),
-            efi_system_table: info.efi_system_table.map(|a| a.0).unwrap_or(0),
-            kernel_physical: info.kernel_physical_address.map(|a| a.0).unwrap_or(0),
-            kernel_virtual: info.kernel_virtual_address.map(|a| a.0).unwrap_or(0),
+            cmdline_length: u32::try_from(info.command_line.len()).unwrap_or(u32::MAX),
+            rsdp_address: info.rsdp_address.map_or(0, |a| a.0),
+            smbios_address: info.smbios_address.map_or(0, |a| a.0),
+            efi_system_table: info.efi_system_table.map_or(0, |a| a.0),
+            kernel_physical: info.kernel_physical_address.map_or(0, |a| a.0),
+            kernel_virtual: info.kernel_virtual_address.map_or(0, |a| a.0),
             kernel_size: info.kernel_size,
             physical_offset: info.physical_memory_offset.unwrap_or(0),
         }
@@ -472,10 +487,10 @@ mod tests {
     #[test]
     fn test_boot_flags() {
         let flags = BootFlags::from_cmdline("debug verbose rescue");
-        assert!(flags.debug);
-        assert!(flags.verbose);
-        assert!(flags.rescue);
-        assert!(!flags.safe_mode);
+        assert!(flags.contains(BootFlags::DEBUG));
+        assert!(flags.contains(BootFlags::VERBOSE));
+        assert!(flags.contains(BootFlags::RESCUE));
+        assert!(!flags.contains(BootFlags::SAFE_MODE));
     }
 
     #[test]
