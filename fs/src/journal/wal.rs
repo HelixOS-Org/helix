@@ -337,7 +337,7 @@ impl WalWriter {
     /// Calculate blocks needed for data
     pub fn blocks_for_data(data_len: usize) -> u64 {
         let per_block = WalBlockHeader::max_data_per_block();
-        ((data_len + per_block - 1) / per_block) as u64
+        data_len.div_ceil(per_block) as u64
     }
 
     /// Check if there's space for write
