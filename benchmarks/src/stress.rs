@@ -246,7 +246,7 @@ fn bench_memory_fragmentation() -> u64 {
     static ALLOC_PTR: AtomicU64 = AtomicU64::new(0x2_0000_0000);
 
     // Allocate all blocks
-    for (i, block) in BLOCKS.iter().enumerate() {
+    for block in BLOCKS.iter() {
         let ptr = ALLOC_PTR.fetch_add(128, Ordering::SeqCst);
         block.store(ptr, Ordering::Release);
     }
@@ -479,6 +479,7 @@ fn bench_channel_contention() -> u64 {
     // 8 producers each send 2 messages
     for producer in 0..8u64 {
         for msg in 0..2u64 {
+            #[allow(clippy::excessive_nesting)]
             loop {
                 let head = HEAD.load(Ordering::Acquire);
                 let tail = TAIL.load(Ordering::Acquire);
