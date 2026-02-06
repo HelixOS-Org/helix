@@ -497,8 +497,6 @@ impl StrategySelector {
             }
         }
 
-        
-
         match self.algorithm {
             SelectionAlgorithm::EpsilonGreedy => self.epsilon_greedy_select(&applicable, task_type),
             SelectionAlgorithm::UCB => self.ucb_select(&applicable),
