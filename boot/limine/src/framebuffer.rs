@@ -26,7 +26,9 @@ use crate::requests::{Color, Framebuffer, PixelFormat};
 // =============================================================================
 
 /// Built-in 8x16 font glyph data (subset for ASCII 32-127)
+/// Width of each font glyph in pixels.
 const FONT_WIDTH: usize = 8;
+/// Height of each font glyph in pixels.
 const FONT_HEIGHT: usize = 16;
 
 /// Simple 8x16 font data for ASCII characters
@@ -46,11 +48,17 @@ fn get_glyph(c: char) -> Option<&'static [u8]> {
 
 /// Text console backed by a framebuffer
 pub struct Console<'a, 'b> {
+    /// Reference to the underlying framebuffer.
     fb: &'a Framebuffer<'b>,
+    /// Current cursor column position (in characters).
     cursor_x: usize,
+    /// Current cursor row position (in characters).
     cursor_y: usize,
+    /// Foreground color for text rendering.
     foreground: Color,
+    /// Background color for text rendering.
     background: Color,
+    /// Number of spaces per tab character.
     tab_width: usize,
 }
 
@@ -259,15 +267,19 @@ impl<'a, 'b> core::fmt::Write for Console<'a, 'b> {
 /// Point in 2D space
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Point {
+    /// X coordinate (horizontal position).
     pub x: i32,
+    /// Y coordinate (vertical position).
     pub y: i32,
 }
 
 impl Point {
+    /// Creates a new point at the given coordinates.
     pub const fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
 
+    /// Returns the origin point (0, 0).
     pub const fn origin() -> Self {
         Self { x: 0, y: 0 }
     }
@@ -276,13 +288,18 @@ impl Point {
 /// Rectangle in 2D space
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Rect {
+    /// X coordinate of the top-left corner.
     pub x: i32,
+    /// Y coordinate of the top-left corner.
     pub y: i32,
+    /// Width of the rectangle in pixels.
     pub width: u32,
+    /// Height of the rectangle in pixels.
     pub height: u32,
 }
 
 impl Rect {
+    /// Creates a new rectangle with the given position and dimensions.
     pub const fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
         Self {
             x,
@@ -292,6 +309,7 @@ impl Rect {
         }
     }
 
+    /// Creates a rectangle from two opposite corner points.
     pub const fn from_points(p1: Point, p2: Point) -> Self {
         let x = if p1.x < p2.x { p1.x } else { p2.x };
         let y = if p1.y < p2.y { p1.y } else { p2.y };
@@ -305,18 +323,22 @@ impl Rect {
         }
     }
 
+    /// Returns the X coordinate of the right edge.
     pub const fn right(&self) -> i32 {
         self.x + self.width as i32
     }
 
+    /// Returns the Y coordinate of the bottom edge.
     pub const fn bottom(&self) -> i32 {
         self.y + self.height as i32
     }
 
+    /// Checks if a point is contained within this rectangle.
     pub fn contains(&self, p: Point) -> bool {
         p.x >= self.x && p.x < self.right() && p.y >= self.y && p.y < self.bottom()
     }
 
+    /// Checks if this rectangle intersects with another.
     pub fn intersects(&self, other: &Rect) -> bool {
         self.x < other.right()
             && self.right() > other.x
@@ -324,6 +346,7 @@ impl Rect {
             && self.bottom() > other.y
     }
 
+    /// Returns the intersection of this rectangle with another, if any.
     pub fn intersection(&self, other: &Rect) -> Option<Rect> {
         if !self.intersects(other) {
             return None;
@@ -345,7 +368,9 @@ impl Rect {
 
 /// Graphics context for drawing primitives
 pub struct Graphics<'a, 'b> {
+    /// Reference to the underlying framebuffer.
     fb: &'a Framebuffer<'b>,
+    /// Optional clipping rectangle to constrain drawing.
     clip: Option<Rect>,
 }
 
@@ -557,14 +582,23 @@ impl<'a, 'b> Graphics<'a, 'b> {
 
 /// Double-buffered framebuffer for flicker-free rendering
 pub struct DoubleBuffer {
+    /// Pointer to the front (visible) buffer.
     front: *mut u8,
+    /// Pointer to the back (drawing) buffer.
     back: *mut u8,
+    /// Total size of the buffer in bytes.
     size: usize,
+    /// Width of the framebuffer in pixels.
     width: usize,
+    /// Height of the framebuffer in pixels.
     height: usize,
+    /// Number of bytes per scanline.
     pitch: usize,
+    /// Bits per pixel.
     bpp: usize,
+    /// Pixel format used by the framebuffer.
     format: PixelFormat,
+    /// Whether this buffer owns the back buffer memory.
     owns_back: bool,
 }
 
@@ -707,8 +741,11 @@ impl Drop for DoubleBuffer {
 
 /// Simple bitmap image (raw pixel data)
 pub struct Bitmap {
+    /// Width of the bitmap in pixels.
     width: u32,
+    /// Height of the bitmap in pixels.
     height: u32,
+    /// Pointer to raw RGBA pixel data.
     data: *const u32,
 }
 
@@ -750,7 +787,7 @@ impl Bitmap {
     }
 }
 
-/// Draw a bitmap to the graphics context
+/// Draws a bitmap to the graphics context at the specified position.
 pub fn draw_bitmap(gfx: &Graphics, bitmap: &Bitmap, pos: Point) {
     for y in 0..bitmap.height() {
         for x in 0..bitmap.width() {
@@ -763,7 +800,7 @@ pub fn draw_bitmap(gfx: &Graphics, bitmap: &Bitmap, pos: Point) {
     }
 }
 
-/// Draw a scaled bitmap
+/// Draws a bitmap scaled to fit the destination rectangle.
 pub fn draw_bitmap_scaled(gfx: &Graphics, bitmap: &Bitmap, dest: Rect) {
     let scale_x = bitmap.width() as f32 / dest.width as f32;
     let scale_y = bitmap.height() as f32 / dest.height as f32;
