@@ -135,12 +135,7 @@ impl SyscallType {
         match self {
             Self::ClockGettime | Self::Brk => 0,
             Self::Read | Self::Write | Self::Mmap | Self::Munmap | Self::Futex => 1,
-            Self::Open
-            | Self::Fsync
-            | Self::Fork
-            | Self::Exec
-            | Self::Connect
-            | Self::Accept => 2,
+            Self::Open | Self::Fsync | Self::Fork | Self::Exec | Self::Connect | Self::Accept => 2,
             _ => 1,
         }
     }
