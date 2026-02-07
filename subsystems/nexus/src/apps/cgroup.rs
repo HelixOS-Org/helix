@@ -338,7 +338,7 @@ impl CgroupNode {
         match (mem_pressure, cpu_pressure) {
             (CgroupPressure::Critical, _) | (_, CgroupPressure::Critical) => {
                 CgroupPressure::Critical
-            }
+            },
             (CgroupPressure::High, _) | (_, CgroupPressure::High) => CgroupPressure::High,
             (CgroupPressure::Medium, _) | (_, CgroupPressure::Medium) => CgroupPressure::Medium,
             _ => CgroupPressure::Low,
