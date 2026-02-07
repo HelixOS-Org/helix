@@ -209,12 +209,18 @@ impl ErrnoMapping {
 
     /// Translate foreign → native
     pub fn to_native(&self, foreign_errno: i32) -> i32 {
-        self.mapping.get(&foreign_errno).copied().unwrap_or(foreign_errno)
+        self.mapping
+            .get(&foreign_errno)
+            .copied()
+            .unwrap_or(foreign_errno)
     }
 
     /// Translate native → foreign
     pub fn to_foreign(&self, native_errno: i32) -> i32 {
-        self.reverse.get(&native_errno).copied().unwrap_or(native_errno)
+        self.reverse
+            .get(&native_errno)
+            .copied()
+            .unwrap_or(native_errno)
     }
 }
 
@@ -256,7 +262,7 @@ impl EmulationContext {
         match accuracy {
             EmulationAccuracy::Stub => self.stub_calls += 1,
             EmulationAccuracy::Unsupported => self.failed_calls += 1,
-            _ => {}
+            _ => {},
         }
     }
 
