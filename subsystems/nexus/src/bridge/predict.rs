@@ -234,7 +234,7 @@ impl SyscallPredictor {
                         let probability = *best_count as f64 / *total as f64;
 
                         // Confidence degrades with steps ahead
-                        let degraded_conf = probability * (0.9_f64).powi(step as i32);
+                        let degraded_conf = probability * libm::pow(0.9_f64, step as f64);
 
                         if degraded_conf < 0.3 {
                             break;
