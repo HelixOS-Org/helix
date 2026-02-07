@@ -224,7 +224,7 @@ impl CoalesceEngine {
         Self {
             pending: BTreeMap::new(),
             threshold: 3,
-            max_gap: 64 * 1024, // 64KB gap
+            max_gap: 64 * 1024,        // 64KB gap
             max_size: 4 * 1024 * 1024, // 4MB max coalesced
             total_coalesced: 0,
             total_operations_saved: 0,
@@ -391,7 +391,7 @@ impl TransformEngine {
                         });
                         result.estimated_savings_ns = 500_000; // ~500µs
                     }
-                }
+                },
                 TransformType::Coalesce => {
                     // Submit to coalesce engine
                     if let (Some(fd_val), Some(off), Some(sz)) = (fd, offset, size) {
@@ -405,16 +405,16 @@ impl TransformEngine {
                             submitted_at: 0,
                         });
                     }
-                }
+                },
                 TransformType::AsyncConvert => {
                     result.estimated_savings_ns = 200_000; // ~200µs
-                }
+                },
                 TransformType::Eliminate => {
                     result.eliminated = true;
                     result.estimated_savings_ns = 1_000_000; // ~1ms
                     self.total_eliminations += 1;
-                }
-                _ => {}
+                },
+                _ => {},
             }
 
             self.rules[rule_idx].apply_count += 1;
@@ -435,7 +435,11 @@ impl TransformEngine {
 
     /// Get statistics
     pub fn stats(&self) -> (u64, u64, u64) {
-        (self.total_transforms, self.total_eliminations, self.total_savings_ns)
+        (
+            self.total_transforms,
+            self.total_eliminations,
+            self.total_savings_ns,
+        )
     }
 
     /// Get the coalesce engine
@@ -445,14 +449,34 @@ impl TransformEngine {
 
     fn default_rules() -> Vec<TransformRule> {
         vec![
-            TransformRule::new(1, "prefetch_seq_read", SyscallType::Read, TransformType::Prefetch)
-                .with_priority(2),
-            TransformRule::new(2, "coalesce_writes", SyscallType::Write, TransformType::Coalesce)
-                .with_priority(3),
-            TransformRule::new(3, "async_connect", SyscallType::Connect, TransformType::AsyncConvert)
-                .with_priority(4),
-            TransformRule::new(4, "prefetch_mmap", SyscallType::Mmap, TransformType::Prefetch)
-                .with_priority(3),
+            TransformRule::new(
+                1,
+                "prefetch_seq_read",
+                SyscallType::Read,
+                TransformType::Prefetch,
+            )
+            .with_priority(2),
+            TransformRule::new(
+                2,
+                "coalesce_writes",
+                SyscallType::Write,
+                TransformType::Coalesce,
+            )
+            .with_priority(3),
+            TransformRule::new(
+                3,
+                "async_connect",
+                SyscallType::Connect,
+                TransformType::AsyncConvert,
+            )
+            .with_priority(4),
+            TransformRule::new(
+                4,
+                "prefetch_mmap",
+                SyscallType::Mmap,
+                TransformType::Prefetch,
+            )
+            .with_priority(3),
         ]
     }
 }
