@@ -372,12 +372,7 @@ impl ThrottleEngine {
     }
 
     /// Check if syscall should be throttled
-    pub fn check(
-        &mut self,
-        pid: u64,
-        syscall_nr: u32,
-        current_time_ms: u64,
-    ) -> ThrottleDecision {
+    pub fn check(&mut self, pid: u64, syscall_nr: u32, current_time_ms: u64) -> ThrottleDecision {
         if !self.enabled {
             return ThrottleDecision::allow();
         }
