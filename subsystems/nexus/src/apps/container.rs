@@ -192,15 +192,15 @@ impl CgroupState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum IsolationLevel {
     /// No isolation (host process)
-    None = 0,
+    None     = 0,
     /// Partial (some namespaces)
-    Partial = 1,
+    Partial  = 1,
     /// Standard container
     Standard = 2,
     /// High isolation (all namespaces + seccomp)
-    High = 3,
+    High     = 3,
     /// Maximum (VM-like isolation)
-    Maximum = 4,
+    Maximum  = 4,
 }
 
 /// Container state
@@ -478,7 +478,11 @@ impl AppContainerAnalyzer {
             .values()
             .filter(|c| c.state == ContainerState::Running)
             .count();
-        self.stats.constrained_count = self.containers.values().filter(|c| c.is_constrained()).count();
+        self.stats.constrained_count = self
+            .containers
+            .values()
+            .filter(|c| c.is_constrained())
+            .count();
         self.stats.total_oom_kills = self.containers.values().map(|c| c.oom_kills).sum();
     }
 
