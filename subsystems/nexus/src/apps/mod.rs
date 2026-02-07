@@ -49,55 +49,54 @@ pub use anomaly::{Anomaly, AnomalyManager, AnomalySeverity, AnomalyType, Process
 pub use classify::{
     AppFingerprint, BehaviorSignature, ClassificationResult, Classifier, WorkloadCategory,
 };
-pub use history::{
-    BinaryHistory, TimeSeries, WorkloadFingerprint, WorkloadHistory, WorkloadHistoryManager,
-};
-pub use io::{BandwidthEstimator, IoAnalyzer, IoPattern, IoSchedulingHint, ProcessIoAnalyzer};
-pub use lifecycle::{LifecycleEvent, LifecycleManager, LifecyclePhase, ProcessLifecycle};
-pub use memory::{AccessPattern, AllocationAnalyzer, MemoryAnalyzer, WorkingSetEstimator};
-pub use optimize::{
-    AppOptimization, OptimizationEngine, OptimizationStrategy, SchedulerHint, TuningKnob,
-};
-pub use predict::{
-    BehaviorForecast, ForecastHorizon, PhasePrediction, ResourceForecast, WorkloadPredictor,
-};
-pub use profile::{
-    AppLifecyclePhase, CpuBehavior, IoBehavior, MemoryBehavior, NetworkBehavior, ProcessProfile,
-};
-pub use resource::{
-    CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager,
-    ResourceTracker,
-};
-pub use scheduler::{SchedClassHint, SchedulingAnalyzer, SchedulingHint as AppSchedulingHint};
-
 // Round 2 re-exports
 pub use container::{
     AppContainerAnalyzer, CgroupLimit, CgroupResource, CgroupState, ContainerProfile,
-    ContainerState, CrossContainerComm, CrossContainerCommType, IsolationLevel, NamespaceId,
-    NamespaceSet, NamespaceType, ContainerStats,
+    ContainerState, ContainerStats, CrossContainerComm, CrossContainerCommType, IsolationLevel,
+    NamespaceId, NamespaceSet, NamespaceType,
 };
 pub use energy::{
     AppEnergyAnalyzer, EnergyBudget, EnergyComponent, EnergyRating, EnergyRecType,
     EnergyRecommendation, EnergySample, ProcessEnergyProfile, WakeupEvent, WakeupReason,
     WakeupStats,
 };
+pub use history::{
+    BinaryHistory, TimeSeries, WorkloadFingerprint, WorkloadHistory, WorkloadHistoryManager,
+};
+pub use io::{BandwidthEstimator, IoAnalyzer, IoPattern, IoSchedulingHint, ProcessIoAnalyzer};
+pub use lifecycle::{LifecycleEvent, LifecycleManager, LifecyclePhase, ProcessLifecycle};
+pub use memory::{AccessPattern, AllocationAnalyzer, MemoryAnalyzer, WorkingSetEstimator};
 pub use migration::{
     AppMigrationAnalyzer, CacheAffinity, MigrationDecision, MigrationEvent, MigrationPolicy,
     MigrationReason, MigrationStats, MigrationTarget, PlacementCandidate, PlacementDecision,
     ProcessMigrationProfile,
 };
 pub use network::{
-    AppNetworkAnalyzer, ConnState, DetectedProtocol, AppNetworkPattern, NetworkQosClass,
-    PoolRecommendation, PoolReason, ProcessNetworkProfile, TrackedConnection,
+    AppNetworkAnalyzer, AppNetworkPattern, ConnState, DetectedProtocol, NetworkQosClass,
+    PoolReason, PoolRecommendation, ProcessNetworkProfile, TrackedConnection,
+};
+pub use optimize::{
+    AppOptimization, OptimizationEngine, OptimizationStrategy, SchedulerHint, TuningKnob,
+};
+pub use predict::{
+    BehaviorForecast, ForecastHorizon, PhasePrediction, ResourceForecast, WorkloadPredictor,
 };
 pub use priority::{
     AdjustmentReason, AppPriorityAnalyzer, DeadlineInfo, InheritanceState, InversionEvent,
     PriorityAdjustment, PriorityClass, PriorityStats, ProcessPriorityState,
 };
-pub use quota::{
-    AppQuotaManager, EnforcementAction, QuotaGroup, QuotaManagerStats, QuotaResource,
-    QuotaSet, QuotaTransfer, QuotaViolation, ResourceQuota,
+pub use profile::{
+    AppLifecyclePhase, CpuBehavior, IoBehavior, MemoryBehavior, NetworkBehavior, ProcessProfile,
 };
+pub use quota::{
+    AppQuotaManager, EnforcementAction, QuotaGroup, QuotaManagerStats, QuotaResource, QuotaSet,
+    QuotaTransfer, QuotaViolation, ResourceQuota,
+};
+pub use resource::{
+    CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager,
+    ResourceTracker,
+};
+pub use scheduler::{SchedClassHint, SchedulingAnalyzer, SchedulingHint as AppSchedulingHint};
 pub use signal::{
     AppSignalAnalyzer, CoalescedSignal, CoalescingRule, DeliveryPreference, ProcessSignalProfile,
     SignalArchPattern, SignalCategory, SignalCoalescer, SignalHandlerInfo, SignalHandlerMode,
