@@ -10,8 +10,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // CHECKPOINT TYPES
@@ -97,7 +97,12 @@ impl StateFragment {
     }
 
     /// Create incremental fragment
-    pub fn incremental(component: StateComponent, data_hash: u64, size_bytes: usize, base_id: u64) -> Self {
+    pub fn incremental(
+        component: StateComponent,
+        data_hash: u64,
+        size_bytes: usize,
+        base_id: u64,
+    ) -> Self {
         Self {
             component,
             data_hash,
@@ -180,7 +185,10 @@ impl Checkpoint {
 
     /// Fragment count by component
     pub fn fragment_count(&self, component: StateComponent) -> usize {
-        self.fragments.iter().filter(|f| f.component == component).count()
+        self.fragments
+            .iter()
+            .filter(|f| f.component == component)
+            .count()
     }
 }
 
@@ -258,7 +266,10 @@ impl ProcessCheckpoints {
     }
 
     fn valid_count(&self) -> usize {
-        self.checkpoints.iter().filter(|c| c.state == CheckpointState::Valid).count()
+        self.checkpoints
+            .iter()
+            .filter(|c| c.state == CheckpointState::Valid)
+            .count()
     }
 
     fn total_size(&self) -> usize {
@@ -293,7 +304,9 @@ impl BridgeCheckpointManager {
         let id = self.next_id;
         self.next_id += 1;
         let cp = Checkpoint::new(id, pid, trigger, now);
-        let history = self.processes.entry(pid)
+        let history = self
+            .processes
+            .entry(pid)
             .or_insert_with(|| ProcessCheckpoints::new(self.max_per_process));
         history.add(cp);
         self.stats.checkpoints_created += 1;
@@ -343,8 +356,7 @@ impl BridgeCheckpointManager {
             chain.push(current_id);
             let current = history.get(current_id)?;
             // Check if any fragment is incremental
-            let base = current.fragments.iter()
-                .find_map(|f| f.base_id);
+            let base = current.fragments.iter().find_map(|f| f.base_id);
             match base {
                 Some(base_id) => current_id = base_id,
                 None => break,
@@ -352,7 +364,8 @@ impl BridgeCheckpointManager {
         }
         chain.reverse();
 
-        let total_bytes: usize = chain.iter()
+        let total_bytes: usize = chain
+            .iter()
             .filter_map(|id| history.get(*id))
             .map(|c| c.total_size)
             .sum();
@@ -375,7 +388,8 @@ impl BridgeCheckpointManager {
 
     /// Verify checkpoint integrity
     pub fn verify(&self, pid: u64, checkpoint_id: u64) -> bool {
-        self.processes.get(&pid)
+        self.processes
+            .get(&pid)
             .and_then(|h| h.get(checkpoint_id))
             .map(|c| c.verify())
             .unwrap_or(false)
