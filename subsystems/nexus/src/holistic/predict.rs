@@ -80,8 +80,7 @@ impl MetricTrend {
         };
 
         let half = n / 2;
-        let first_half_avg: f64 =
-            recent[..half].iter().map(|s| s.value).sum::<f64>() / half as f64;
+        let first_half_avg: f64 = recent[..half].iter().map(|s| s.value).sum::<f64>() / half as f64;
         let second_half_avg: f64 =
             recent[half..].iter().map(|s| s.value).sum::<f64>() / (n - half) as f64;
 
@@ -298,7 +297,14 @@ impl SystemPredictor {
     }
 
     /// Get current trend directions
-    pub fn trends(&self) -> (TrendDirection, TrendDirection, TrendDirection, TrendDirection) {
+    pub fn trends(
+        &self,
+    ) -> (
+        TrendDirection,
+        TrendDirection,
+        TrendDirection,
+        TrendDirection,
+    ) {
         (
             self.cpu_trend.direction(),
             self.mem_trend.direction(),
