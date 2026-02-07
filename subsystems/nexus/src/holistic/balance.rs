@@ -104,7 +104,7 @@ impl ResourceBalancer {
             allocations: BTreeMap::new(),
             total_cpu,
             total_memory,
-            reserved_cpu: 0.5, // 0.5 core reserved for kernel
+            reserved_cpu: 0.5,                 // 0.5 core reserved for kernel
             reserved_memory: 64 * 1024 * 1024, // 64MB for kernel
             rebalance_count: 0,
         }
@@ -146,10 +146,7 @@ impl ResourceBalancer {
     }
 
     /// Detect imbalances in resource allocation
-    pub fn detect_imbalances(
-        &self,
-        usage: &BTreeMap<u64, (f64, u64)>,
-    ) -> Vec<Imbalance> {
+    pub fn detect_imbalances(&self, usage: &BTreeMap<u64, (f64, u64)>) -> Vec<Imbalance> {
         let mut imbalances = Vec::new();
 
         // Find over-consumers and under-consumers
