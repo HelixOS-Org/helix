@@ -146,14 +146,16 @@ impl FilterChain {
 
     /// Count allowed syscalls
     pub fn allowed_count(&self) -> usize {
-        self.rules.iter()
+        self.rules
+            .iter()
             .filter(|r| matches!(r.action, SeccompAction::Allow))
             .count()
     }
 
     /// Count denied syscalls
     pub fn denied_count(&self) -> usize {
-        self.rules.iter()
+        self.rules
+            .iter()
             .filter(|r| !matches!(r.action, SeccompAction::Allow))
             .count()
     }
@@ -296,9 +298,8 @@ impl ProcessSeccompProfile {
 
     /// Top violated syscalls
     pub fn top_violated(&self, n: usize) -> Vec<(u32, u64)> {
-        let mut sorted: Vec<(u32, u64)> = self.violation_hist.iter()
-            .map(|(&k, &v)| (k, v))
-            .collect();
+        let mut sorted: Vec<(u32, u64)> =
+            self.violation_hist.iter().map(|(&k, &v)| (k, v)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
         sorted.truncate(n);
         sorted
@@ -348,19 +349,27 @@ impl AppSeccompProfiler {
 
     /// Get/create process
     pub fn process(&mut self, pid: u64) -> &mut ProcessSeccompProfile {
-        self.processes.entry(pid).or_insert_with(|| ProcessSeccompProfile::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessSeccompProfile::new(pid))
     }
 
     /// Install filter
     pub fn install_filter(&mut self, pid: u64, filter: FilterChain) {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessSeccompProfile::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessSeccompProfile::new(pid));
         proc.install_filter(filter);
         self.update_stats();
     }
 
     /// Evaluate syscall
     pub fn evaluate(&mut self, pid: u64, syscall_nr: u32, now: u64) -> SeccompAction {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessSeccompProfile::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessSeccompProfile::new(pid));
         let action = proc.evaluate(syscall_nr, now);
         if !matches!(action, SeccompAction::Allow) {
             self.stats.total_violations += 1;
@@ -376,13 +385,18 @@ impl AppSeccompProfiler {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.filtered_processes = self.processes.values()
+        self.stats.filtered_processes = self
+            .processes
+            .values()
             .filter(|p| p.filter.is_some())
             .count();
         if !self.processes.is_empty() {
-            self.stats.avg_security_score = self.processes.values()
+            self.stats.avg_security_score = self
+                .processes
+                .values()
                 .map(|p| p.security_score())
-                .sum::<f64>() / self.processes.len() as f64;
+                .sum::<f64>()
+                / self.processes.len() as f64;
         }
     }
 
