@@ -102,8 +102,16 @@ impl WorkingSetEstimator {
             return 0.0;
         }
         let n = self.samples.len();
-        let first: f64 = self.samples[..n / 2].iter().map(|(_, w)| *w as f64).sum::<f64>() / (n / 2) as f64;
-        let second: f64 = self.samples[n / 2..].iter().map(|(_, w)| *w as f64).sum::<f64>() / (n - n / 2) as f64;
+        let first: f64 = self.samples[..n / 2]
+            .iter()
+            .map(|(_, w)| *w as f64)
+            .sum::<f64>()
+            / (n / 2) as f64;
+        let second: f64 = self.samples[n / 2..]
+            .iter()
+            .map(|(_, w)| *w as f64)
+            .sum::<f64>()
+            / (n - n / 2) as f64;
         if first < 1.0 {
             0.0
         } else {
@@ -215,7 +223,10 @@ impl AccessPatternDetector {
 
         // Check for strided access
         if n >= 4 {
-            let strides: Vec<i64> = addrs.windows(2).map(|w| w[1] as i64 - w[0] as i64).collect();
+            let strides: Vec<i64> = addrs
+                .windows(2)
+                .map(|w| w[1] as i64 - w[0] as i64)
+                .collect();
             let first_stride = strides[0];
             let stride_match = strides.iter().filter(|&&s| s == first_stride).count();
             let stride_ratio = stride_match as f64 / strides.len() as f64;
@@ -419,7 +430,9 @@ impl MemoryAnalyzer {
         if !self.working_sets.contains_key(&pid) && self.working_sets.len() < self.max_processes {
             self.working_sets.insert(pid, WorkingSetEstimator::new(ps));
         }
-        self.working_sets.entry(pid).or_insert_with(|| WorkingSetEstimator::new(ps))
+        self.working_sets
+            .entry(pid)
+            .or_insert_with(|| WorkingSetEstimator::new(ps))
     }
 
     /// Get or create access pattern detector
