@@ -216,7 +216,10 @@ impl Classifier {
         // Sort by similarity (descending)
         scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
 
-        let primary = scores.first().map(|(c, _)| *c).unwrap_or(WorkloadCategory::Unknown);
+        let primary = scores
+            .first()
+            .map(|(c, _)| *c)
+            .unwrap_or(WorkloadCategory::Unknown);
         let primary_conf = scores.first().map(|(_, s)| *s).unwrap_or(0.0);
 
         let secondary = if scores.len() > 1 && scores[1].1 > 0.3 {
@@ -241,11 +244,7 @@ impl Classifier {
     }
 
     /// Report ground truth for accuracy tracking
-    pub fn report_ground_truth(
-        &mut self,
-        predicted: WorkloadCategory,
-        actual: WorkloadCategory,
-    ) {
+    pub fn report_ground_truth(&mut self, predicted: WorkloadCategory, actual: WorkloadCategory) {
         if predicted == actual {
             self.correct_classifications += 1;
         }
@@ -279,7 +278,7 @@ impl Classifier {
                     fp.io_ratio * 100.0,
                     fp.ipc
                 )
-            }
+            },
             WorkloadCategory::IoBound => {
                 alloc::format!(
                     "I/O-bound: I/O ratio {:.0}%, avg size {:.0}B, {:.0} MB/s",
@@ -287,7 +286,7 @@ impl Classifier {
                     fp.io_avg_size,
                     fp.io_throughput_mbps
                 )
-            }
+            },
             WorkloadCategory::NetworkBound => {
                 alloc::format!(
                     "Network-bound: net ratio {:.0}%, {:.0} conn/s, server={}",
@@ -295,21 +294,21 @@ impl Classifier {
                     fp.connection_rate,
                     fp.is_server_pattern
                 )
-            }
+            },
             WorkloadCategory::Interactive => {
                 alloc::format!(
                     "Interactive: irregular timing (CV={:.2}), low periodicity {:.2}",
                     fp.inter_syscall_cv,
                     fp.periodicity_score
                 )
-            }
+            },
             WorkloadCategory::RealTime => {
                 alloc::format!(
                     "Real-time: high periodicity {:.2}, low CV {:.2}",
                     fp.periodicity_score,
                     fp.inter_syscall_cv
                 )
-            }
+            },
             _ => alloc::format!("Classified as {:?}", category),
         }
     }
@@ -320,7 +319,9 @@ impl Classifier {
             BehaviorSignature {
                 category: WorkloadCategory::CpuBound,
                 //       cpu   io   net  mem  seq  cache sys   cv   period server conn  growth
-                centroid: [0.8, 0.05, 0.02, 0.05, 0.5, 0.1, 0.01, 0.3, 0.2, 0.0, 0.0, 0.0],
+                centroid: [
+                    0.8, 0.05, 0.02, 0.05, 0.5, 0.1, 0.01, 0.3, 0.2, 0.0, 0.0, 0.0
+                ],
                 weights: [3.0, 2.0, 1.0, 1.0, 0.5, 1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
                 tolerance: 0.3,
             },
@@ -356,13 +357,17 @@ impl Classifier {
             },
             BehaviorSignature {
                 category: WorkloadCategory::RealTime,
-                centroid: [0.3, 0.1, 0.05, 0.05, 0.3, 0.05, 0.2, 0.1, 0.9, 0.0, 0.0, 0.0],
+                centroid: [
+                    0.3, 0.1, 0.05, 0.05, 0.3, 0.05, 0.2, 0.1, 0.9, 0.0, 0.0, 0.0
+                ],
                 weights: [1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 2.0, 3.0, 0.5, 0.5, 0.5],
                 tolerance: 0.3,
             },
             BehaviorSignature {
                 category: WorkloadCategory::Microservice,
-                centroid: [0.2, 0.15, 0.4, 0.05, 0.3, 0.05, 0.4, 0.6, 0.3, 1.0, 0.5, 0.0],
+                centroid: [
+                    0.2, 0.15, 0.4, 0.05, 0.3, 0.05, 0.4, 0.6, 0.3, 1.0, 0.5, 0.0
+                ],
                 weights: [0.5, 0.5, 2.0, 0.5, 0.5, 0.5, 1.0, 1.0, 0.5, 2.5, 2.0, 0.5],
                 tolerance: 0.35,
             },
