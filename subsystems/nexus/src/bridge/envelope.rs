@@ -11,8 +11,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // ENVELOPE TYPES
@@ -141,7 +141,10 @@ impl ArgDescriptor {
 
     /// Is pointer type
     pub fn is_pointer(&self) -> bool {
-        matches!(self.arg_type, ArgType::Pointer | ArgType::CString | ArgType::Struct | ArgType::Array)
+        matches!(
+            self.arg_type,
+            ArgType::Pointer | ArgType::CString | ArgType::Struct | ArgType::Array
+        )
     }
 }
 
@@ -416,7 +419,8 @@ impl BridgeEnvelopeManager {
     /// Remove completed
     pub fn remove_completed(&mut self) -> usize {
         let before = self.active.len();
-        self.active.retain(|_, e| e.state != EnvelopeState::Responded);
+        self.active
+            .retain(|_, e| e.state != EnvelopeState::Responded);
         before - self.active.len()
     }
 
