@@ -29,12 +29,20 @@ helix-relocation = { path = "../../subsystems/relocation", features = [
     "stats",
 ] }
 
+# NEXUS — experimental sandbox (lightweight prediction + healing only)
+helix-nexus = { path = "../../subsystems/nexus", default-features = false, features = [
+    "experimental-lite",
+] }
+
 # Note: helix-scheduler-round-robin is temporarily commented out
 # helix-scheduler-round-robin = { path = "../../modules_impl/schedulers/round_robin" }
 
 [features]
 default = ["serial_console"]
 serial_console = []
+
+# Enable NEXUS lite sandbox in the minimal profile
+nexus-lite = []
 
 # NOTE: Profile configurations moved to workspace root Cargo.toml
 # Profiles defined here are ignored when building as part of the workspace
