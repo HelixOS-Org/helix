@@ -54,11 +54,11 @@ pub enum FlowPriority {
     /// Best effort
     BestEffort = 1,
     /// Normal
-    Normal = 2,
+    Normal     = 2,
     /// High priority
-    High = 3,
+    High       = 3,
     /// Critical
-    Critical = 4,
+    Critical   = 4,
 }
 
 // ============================================================================
@@ -273,19 +273,19 @@ impl ProcessFlow {
     pub fn on_congestion(&mut self, signal: CongestionSignal) {
         self.congestion_signals += 1;
         match signal {
-            CongestionSignal::None => {}
+            CongestionSignal::None => {},
             CongestionSignal::EarlyWarning => {
                 // Reduce slightly
                 self.credits.max_credits = (self.credits.max_credits * 9 / 10).max(10);
-            }
+            },
             CongestionSignal::QueueGrowing => {
                 self.state = FlowState::Throttled;
                 self.window.on_congestion();
-            }
+            },
             CongestionSignal::QueueFull | CongestionSignal::LatencySpike => {
                 self.state = FlowState::Congested;
                 self.window.on_congestion();
-            }
+            },
         }
     }
 
@@ -429,7 +429,9 @@ impl BridgeFlowController {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.flows.len();
-        self.stats.throttled_count = self.flows.values()
+        self.stats.throttled_count = self
+            .flows
+            .values()
             .filter(|f| f.state == FlowState::Throttled || f.state == FlowState::Congested)
             .count();
         let total_latency: f64 = self.flows.values().map(|f| f.latency_ema_ns).sum();
