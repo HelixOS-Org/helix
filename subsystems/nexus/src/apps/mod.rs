@@ -41,7 +41,9 @@ pub use anomaly::{Anomaly, AnomalyManager, AnomalySeverity, AnomalyType, Process
 pub use classify::{
     AppFingerprint, BehaviorSignature, ClassificationResult, Classifier, WorkloadCategory,
 };
-pub use history::{BinaryHistory, TimeSeries, WorkloadFingerprint, WorkloadHistory, WorkloadHistoryManager};
+pub use history::{
+    BinaryHistory, TimeSeries, WorkloadFingerprint, WorkloadHistory, WorkloadHistoryManager,
+};
 pub use io::{BandwidthEstimator, IoAnalyzer, IoPattern, IoSchedulingHint, ProcessIoAnalyzer};
 pub use lifecycle::{LifecycleEvent, LifecycleManager, LifecyclePhase, ProcessLifecycle};
 pub use memory::{AccessPattern, AllocationAnalyzer, MemoryAnalyzer, WorkingSetEstimator};
@@ -54,8 +56,11 @@ pub use predict::{
 pub use profile::{
     AppLifecyclePhase, CpuBehavior, IoBehavior, MemoryBehavior, NetworkBehavior, ProcessProfile,
 };
-pub use resource::{CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager, ResourceTracker};
-pub use scheduler::{SchedulingAnalyzer, SchedulingHint as AppSchedulingHint, SchedClassHint};
+pub use resource::{
+    CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager,
+    ResourceTracker,
+};
+pub use scheduler::{SchedClassHint, SchedulingAnalyzer, SchedulingHint as AppSchedulingHint};
 
 // ============================================================================
 // TESTS
