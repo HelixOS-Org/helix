@@ -137,10 +137,7 @@ impl SandboxRule {
             return false;
         }
         for filter in &self.arg_filters {
-            let arg_value = args
-                .get(filter.arg_index as usize)
-                .copied()
-                .unwrap_or(0);
+            let arg_value = args.get(filter.arg_index as usize).copied().unwrap_or(0);
             if !filter.matches(arg_value) {
                 return false;
             }
@@ -204,9 +201,7 @@ impl SandboxProfile {
 
     /// Add rule (maintains priority ordering)
     pub fn add_rule(&mut self, rule: SandboxRule) {
-        let pos = self
-            .rules
-            .partition_point(|r| r.priority > rule.priority);
+        let pos = self.rules.partition_point(|r| r.priority > rule.priority);
         self.rules.insert(pos, rule);
     }
 
@@ -287,14 +282,14 @@ impl SandboxInstance {
         match action {
             FilterAction::Allow | FilterAction::LogAllow | FilterAction::ReturnValue(_) => {
                 self.allows += 1;
-            }
+            },
             FilterAction::Deny(_) | FilterAction::LogDeny(_) | FilterAction::Kill => {
                 self.denies += 1;
                 self.violations += 1;
-            }
+            },
             FilterAction::Trap => {
                 self.violations += 1;
-            }
+            },
         }
         action
     }
@@ -398,8 +393,8 @@ impl BridgeSandboxManager {
                 if self.violation_log.len() > self.max_log {
                     self.violation_log.remove(0);
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         if self.stats.total_checked > 0 {
