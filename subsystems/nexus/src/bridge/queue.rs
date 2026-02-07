@@ -21,13 +21,13 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueuePriority {
     /// Real-time priority
-    Realtime = 0,
+    Realtime   = 0,
     /// High priority
-    High = 1,
+    High       = 1,
     /// Normal priority
-    Normal = 2,
+    Normal     = 2,
     /// Low priority
-    Low = 3,
+    Low        = 3,
     /// Background / idle
     Background = 4,
 }
@@ -297,13 +297,11 @@ impl DrainageState {
     /// Select next queue to drain
     pub fn select_queue(&mut self, depths: &[(QueuePriority, usize)]) -> Option<QueuePriority> {
         match self.policy {
-            DrainagePolicy::StrictPriority => {
-                depths
-                    .iter()
-                    .filter(|(_, d)| *d > 0)
-                    .map(|(p, _)| *p)
-                    .next()
-            }
+            DrainagePolicy::StrictPriority => depths
+                .iter()
+                .filter(|(_, d)| *d > 0)
+                .map(|(p, _)| *p)
+                .next(),
             DrainagePolicy::RoundRobin => {
                 let non_empty: Vec<QueuePriority> = depths
                     .iter()
@@ -318,7 +316,7 @@ impl DrainageState {
                 let idx = self.current_idx as usize % non_empty.len();
                 self.current_idx = self.current_idx.wrapping_add(1);
                 Some(non_empty[idx])
-            }
+            },
             DrainagePolicy::WeightedFair => {
                 // Weighted: pick queue with highest weight * depth ratio
                 let mut best: Option<(QueuePriority, u64)> = None;
@@ -330,11 +328,11 @@ impl DrainageState {
                     match best {
                         None => best = Some((prio, score)),
                         Some((_, s)) if score > s => best = Some((prio, score)),
-                        _ => {}
+                        _ => {},
                     }
                 }
                 best.map(|(p, _)| p)
-            }
+            },
             DrainagePolicy::DeficitRoundRobin => {
                 let non_empty: Vec<QueuePriority> = depths
                     .iter()
@@ -365,7 +363,7 @@ impl DrainageState {
                 }
 
                 selected
-            }
+            },
         }
     }
 }
@@ -410,11 +408,26 @@ pub struct QueueManager {
 impl QueueManager {
     pub fn new(policy: DrainagePolicy) -> Self {
         let mut queues = BTreeMap::new();
-        queues.insert(QueuePriority::Realtime as u8, SyscallQueue::new(QueuePriority::Realtime));
-        queues.insert(QueuePriority::High as u8, SyscallQueue::new(QueuePriority::High));
-        queues.insert(QueuePriority::Normal as u8, SyscallQueue::new(QueuePriority::Normal));
-        queues.insert(QueuePriority::Low as u8, SyscallQueue::new(QueuePriority::Low));
-        queues.insert(QueuePriority::Background as u8, SyscallQueue::new(QueuePriority::Background));
+        queues.insert(
+            QueuePriority::Realtime as u8,
+            SyscallQueue::new(QueuePriority::Realtime),
+        );
+        queues.insert(
+            QueuePriority::High as u8,
+            SyscallQueue::new(QueuePriority::High),
+        );
+        queues.insert(
+            QueuePriority::Normal as u8,
+            SyscallQueue::new(QueuePriority::Normal),
+        );
+        queues.insert(
+            QueuePriority::Low as u8,
+            SyscallQueue::new(QueuePriority::Low),
+        );
+        queues.insert(
+            QueuePriority::Background as u8,
+            SyscallQueue::new(QueuePriority::Background),
+        );
 
         Self {
             queues,
@@ -438,9 +451,7 @@ impl QueueManager {
         timestamp: u64,
     ) -> Option<u64> {
         // Check backpressure
-        if self.backpressure == BackpressureState::Critical
-            && priority != QueuePriority::Realtime
-        {
+        if self.backpressure == BackpressureState::Critical && priority != QueuePriority::Realtime {
             self.stats.total_dropped += 1;
             return None;
         }
@@ -482,11 +493,7 @@ impl QueueManager {
         ]
         .iter()
         .map(|p| {
-            let depth = self
-                .queues
-                .get(&(*p as u8))
-                .map(|q| q.depth())
-                .unwrap_or(0);
+            let depth = self.queues.get(&(*p as u8)).map(|q| q.depth()).unwrap_or(0);
             (*p, depth)
         })
         .collect();
