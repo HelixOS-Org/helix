@@ -189,7 +189,8 @@ impl ProcessLifecycle {
 
         let avg_rate: f64 =
             self.recent_syscall_rates.iter().sum::<f64>() / self.recent_syscall_rates.len() as f64;
-        let recent_rate: f64 = self.recent_syscall_rates[self.recent_syscall_rates.len().saturating_sub(3)..]
+        let recent_rate: f64 = self.recent_syscall_rates
+            [self.recent_syscall_rates.len().saturating_sub(3)..]
             .iter()
             .sum::<f64>()
             / 3.0;
@@ -225,7 +226,8 @@ impl ProcessLifecycle {
             return false;
         }
         let n = self.recent_syscall_rates.len();
-        let first_half: f64 = self.recent_syscall_rates[..n / 2].iter().sum::<f64>() / (n / 2) as f64;
+        let first_half: f64 =
+            self.recent_syscall_rates[..n / 2].iter().sum::<f64>() / (n / 2) as f64;
         let second_half: f64 =
             self.recent_syscall_rates[n / 2..].iter().sum::<f64>() / (n - n / 2) as f64;
         second_half > first_half * 1.2
