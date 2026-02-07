@@ -83,7 +83,36 @@ pub mod vma_tracker;
 
 // Re-export core types
 pub use adapt::{AdaptationAction, AdaptationEngine, ResourceAdjustment, ResourceTarget};
+// Round 3 re-exports
+pub use affinity::{
+    AffinityMask, AffinityPolicy, AppAffinityManager, AppAffinityStats, CoreDescriptor, CoreType,
+    MigrationEvent as AffinityMigrationEvent, ProcessAffinityProfile,
+};
 pub use anomaly::{Anomaly, AnomalyManager, AnomalySeverity, AnomalyType, ProcessAnomalyDetector};
+// Round 5 re-exports
+pub use binary::{
+    AppBinaryAnalyzer, AppBinaryStats, BinaryProfile, ExecFormat, SectionInfo, SectionPerms,
+    SectionType, SymbolBinding, SymbolInfo, SymbolType,
+};
+pub use cache::{
+    AppCacheAnalyzer, AppCacheStats, CacheAccessType, CacheLevel, CacheLevelCounters,
+    CachePartition, CachePartitionMode, PollutionDetector, PollutionEvent,
+    WorkingSetEstimate as CacheWorkingSetEstimate, WorkingSetTracker, WorkingSetTrend,
+};
+// Round 4 re-exports
+pub use capability::{
+    AppCapability, AppCapabilityManager, AppCapabilitySet, AppCapabilityStats, CapUsageRecord,
+    CapabilityCategory, ProcessCapProfile,
+};
+pub use cgroup::{
+    AppCgroupAnalyzer, AppCgroupStats, CgroupController, CgroupMigration, CgroupNode,
+    CgroupPressure, CgroupVersion, CpuLimit, IoLimit, MemoryLimit, PidLimit,
+};
+// Round 6 re-exports
+pub use cgroup_v2::{
+    AppCgroupV2Profiler, AppCgroupV2Stats, CgroupIoStats, CgroupMemoryStats,
+    CgroupNode as CgroupV2Node, CgroupPressure as CgroupV2Pressure, CpuBandwidth,
+};
 pub use classify::{
     AppFingerprint, BehaviorSignature, ClassificationResult, Classifier, WorkloadCategory,
 };
@@ -93,28 +122,102 @@ pub use container::{
     ContainerState, ContainerStats, CrossContainerComm, CrossContainerCommType, IsolationLevel,
     NamespaceId, NamespaceSet, NamespaceType,
 };
+pub use credential::{
+    AppCredentialManager, AppCredentialStats, CredentialChange, CredentialEvent, CredentialSet,
+    GroupId, ProcessCredProfile, SecuritySession, SessionType, UserId,
+};
+pub use dependency::{
+    AppDepType, AppDependencyAnalyzer, AppDependencyStats, DepState, DepStrength, DependencyEdge,
+    DependencyGraph,
+};
 pub use energy::{
     AppEnergyAnalyzer, EnergyBudget, EnergyComponent, EnergyRating, EnergyRecType,
     EnergyRecommendation, EnergySample, ProcessEnergyProfile, WakeupEvent, WakeupReason,
     WakeupStats,
 };
+pub use environment::{
+    AppEnvironmentStats, AppEnvironmentTracker, EnvCategory, EnvDiff, EnvEntry,
+    EnvironmentSnapshot, NamespaceInfo, NamespaceSet as AppNamespaceSet, ProcessEnvironment,
+};
+pub use exe_profile::{
+    AppExeProfiler, AppExeProfilerStats, ExeArchitecture, ExecutableFormat, ExecutableProfile,
+    LibraryDep, SectionInfo as ExeSectionInfo, SectionType as ExeSectionType,
+};
+pub use fault::{
+    AppFaultAnalyzer, AppFaultStats, FaultEvent, FaultPattern, FaultSeverity, FaultType,
+    ProcessFaultProfile,
+};
+pub use fd_tracker::{AppFdStats, AppFdTracker, FdEntry, FdFlags, FdTable, FdType};
+pub use futex::{
+    AppFutexAnalyzer, AppFutexStats, LockDescriptor, LockState, PriorityInversion,
+    ProcessSyncProfile, SyncPrimitiveType, WaitChain, WaitChainEntry,
+};
+pub use futex_v2::{
+    AppFutexV2Profiler, AppFutexV2Stats, BucketStats, ContentionLevel as FutexContentionLevel,
+    FutexAddress, FutexHashProfiler, FutexOp, WaitChainDetector, WaitResult,
+};
+pub use gpu::{
+    AppGpuAnalyzer, AppGpuStats, GpuAllocType, GpuAllocation, GpuDevice, GpuDeviceType, GpuEngine,
+    ProcessGpuProfile,
+};
+pub use heap::{
+    AllocEventType, AllocHistogram, AllocRecord, AllocSizeClass, AppHeapAnalyzer, AppHeapStats,
+    CallsiteProfile, FragmentationInfo, PotentialLeak, ProcessHeapProfile,
+};
 pub use history::{
     BinaryHistory, TimeSeries, WorkloadFingerprint, WorkloadHistory, WorkloadHistoryManager,
 };
+pub use interrupt::{
+    AppInterruptProfiler, AppInterruptStats, IrqCategory, IrqStats, ProcessIrqImpact, SoftirqStats,
+    SoftirqType, StormDetector, StormSeverity,
+};
 pub use io::{BandwidthEstimator, IoAnalyzer, IoPattern, IoSchedulingHint, ProcessIoAnalyzer};
+pub use ipc::{
+    AppIpcAnalyzer, AppIpcChannel, AppIpcMechanism, AppIpcStats, IpcChannelId, IpcDirection,
+    IpcEdge, IpcGraph,
+};
+pub use leak_detect::{
+    AllocPattern, AllocType, AllocationRecord, AppLeakDetector, AppLeakDetectorStats,
+    CallsiteStats as LeakCallsiteStats, LeakReport, LeakSeverity, ProcessLeakDetector,
+};
 pub use lifecycle::{LifecycleEvent, LifecycleManager, LifecyclePhase, ProcessLifecycle};
+pub use lock::{
+    AppLockAnalyzer, AppLockStats, DeadlockDetector, LockEventType, LockInstance, LockOrderPair,
+    LockOrderValidator, LockType, WaitForEdge,
+};
 pub use memory::{AccessPattern, AllocationAnalyzer, MemoryAnalyzer, WorkingSetEstimator};
 pub use migration::{
     AppMigrationAnalyzer, CacheAffinity, MigrationDecision, MigrationEvent, MigrationPolicy,
     MigrationReason, MigrationStats, MigrationTarget, PlacementCandidate, PlacementDecision,
     ProcessMigrationProfile,
 };
+pub use mmap_tracker::{
+    AppMmapStats, AppMmapTracker, MmapFlags, MmapProtection, MmapRegion, MmapType,
+    ProcessAddressSpace, VasStats,
+};
+pub use net_stack::{
+    AppNetProfilerStats, AppNetStackProfiler, ConnDirection, ConnectionProfile, NetProtocol,
+    ProcessNetProfile, SocketBufferStats, TcpState,
+};
 pub use network::{
     AppNetworkAnalyzer, AppNetworkPattern, ConnState, DetectedProtocol, NetworkQosClass,
     PoolReason, PoolRecommendation, ProcessNetworkProfile, TrackedConnection,
 };
+pub use numa::{
+    AppNumaAnalyzer, AppNumaStats, NumaAccessCounters, NumaAccessType, NumaNode, NumaTopology,
+    PlacementReason, PlacementRecommendation, ProcessNumaProfile,
+};
 pub use optimize::{
     AppOptimization, OptimizationEngine, OptimizationStrategy, SchedulerHint, TuningKnob,
+};
+pub use page_cache::{
+    AccessPattern as AppAccessPattern, AppPageCacheProfiler, AppPageCacheStats, CachedPage,
+    FaultLatencyHistogram, PageFaultRecord, PageFaultType, PageState, ProcessPageCacheStats,
+    ThrashingDetector, WorkingSetEstimator as AppWorkingSetEstimator,
+};
+pub use perf_counter::{
+    AppPerfCounterProfiler, AppPerfCounterStats, CounterSnapshot, HwCounter, PerfBottleneck,
+    ProcessPerfProfile,
 };
 pub use predict::{
     BehaviorForecast, ForecastHorizon, PhasePrediction, ResourceForecast, WorkloadPredictor,
@@ -134,160 +237,57 @@ pub use resource::{
     CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager,
     ResourceTracker,
 };
+pub use rlimit::{
+    AppRlimitManager, AppRlimitStats, LimitViolation, ProcessLimitProfile, Rlimit, RlimitResource,
+    ViolationType,
+};
+pub use sampling::{
+    AddressHistogram, AppSamplingEngine, AppSamplingStats, CallGraph, ProcessSamplingProfile,
+    Sample, SampleSource, SamplingConfig,
+};
+pub use sched_profile::{
+    AppSchedProfileStats, AppSchedProfiler, ContextSwitchReason, CpuBurst, RunState,
+    ThreadSchedProfile, WakeupChainTracker, WakeupEvent as AppWakeupEvent,
+};
 pub use scheduler::{SchedClassHint, SchedulingAnalyzer, SchedulingHint as AppSchedulingHint};
+pub use seccomp_profile::{
+    AppSeccompProfiler, AppSeccompProfilerStats, FilterChain, FilterResult, FilterRule,
+    ProcessSeccompProfile, SeccompAction, ViolationRecord, ViolationSeverity,
+};
 pub use signal::{
     AppSignalAnalyzer, CoalescedSignal, CoalescingRule, DeliveryPreference, ProcessSignalProfile,
     SignalArchPattern, SignalCategory, SignalCoalescer, SignalHandlerInfo, SignalHandlerMode,
     SignalStats,
-};
-pub use thermal::{
-    AppThermalAnalyzer, AppThermalStats, CoreHeatMap, HeatContribution, ProcessThermalProfile,
-    ThermalBudget, ThermalImpact, ThermalReading, ThermalState as AppThermalState,
-    ThermalZone as AppThermalZone, ThrottleEvent as AppThrottleEvent,
-};
-// Round 3 re-exports
-pub use affinity::{
-    AffinityMask, AffinityPolicy, AppAffinityManager, AppAffinityStats, CoreDescriptor, CoreType,
-    MigrationEvent as AffinityMigrationEvent, ProcessAffinityProfile,
-};
-pub use cache::{
-    AppCacheAnalyzer, AppCacheStats, CacheAccessType, CacheLevel, CacheLevelCounters,
-    CachePartition, CachePartitionMode, PollutionDetector, PollutionEvent,
-    WorkingSetEstimate as CacheWorkingSetEstimate, WorkingSetTracker, WorkingSetTrend,
-};
-pub use cgroup::{
-    AppCgroupAnalyzer, AppCgroupStats, CgroupController, CgroupMigration, CgroupNode,
-    CgroupPressure, CgroupVersion, CpuLimit, IoLimit, MemoryLimit, PidLimit,
-};
-pub use futex::{
-    AppFutexAnalyzer, AppFutexStats, LockDescriptor, LockState, PriorityInversion,
-    ProcessSyncProfile, SyncPrimitiveType, WaitChain, WaitChainEntry,
-};
-pub use gpu::{
-    AppGpuAnalyzer, AppGpuStats, GpuAllocType, GpuAllocation, GpuDevice, GpuDeviceType,
-    GpuEngine, ProcessGpuProfile,
-};
-pub use numa::{
-    AppNumaAnalyzer, AppNumaStats, NumaAccessCounters, NumaAccessType, NumaNode, NumaTopology,
-    PlacementReason, PlacementRecommendation, ProcessNumaProfile,
 };
 pub use syscall_profile::{
     AppSyscallProfileStats, AppSyscallProfiler, BottleneckType, PatternDetector, PatternType,
     ProcessSyscallProfile, SyscallBottleneck, SyscallCategory, SyscallCostClass, SyscallCounter,
     SyscallDescriptor, SyscallPattern,
 };
-pub use watchdog::{
-    AppWatchdogManager, AppWatchdogStats, HealthCheckConfig, HealthCheckResult, HealthCheckType,
-    ProcessWatchdog, RecoveryAction, WatchdogStatus,
-};
-// Round 4 re-exports
-pub use capability::{
-    AppCapability, AppCapabilityManager, AppCapabilitySet, AppCapabilityStats, CapUsageRecord,
-    CapabilityCategory, ProcessCapProfile,
-};
-pub use credential::{
-    AppCredentialManager, AppCredentialStats, CredentialChange, CredentialEvent, CredentialSet,
-    GroupId, ProcessCredProfile, SecuritySession, SessionType, UserId,
-};
-pub use fault::{
-    AppFaultAnalyzer, AppFaultStats, FaultEvent, FaultPattern, FaultSeverity, FaultType,
-    ProcessFaultProfile,
-};
-pub use heap::{
-    AllocEventType, AllocHistogram, AllocRecord, AllocSizeClass, AppHeapAnalyzer, AppHeapStats,
-    CallsiteProfile, FragmentationInfo, PotentialLeak, ProcessHeapProfile,
-};
-pub use ipc::{
-    AppIpcAnalyzer, AppIpcChannel, AppIpcMechanism, AppIpcStats, IpcChannelId, IpcDirection,
-    IpcEdge, IpcGraph,
-};
-pub use mmap_tracker::{
-    AppMmapStats, AppMmapTracker, MmapFlags, MmapProtection, MmapRegion, MmapType,
-    ProcessAddressSpace, VasStats,
-};
-pub use rlimit::{
-    AppRlimitManager, AppRlimitStats, LimitViolation, ProcessLimitProfile, Rlimit,
-    RlimitResource, ViolationType,
-};
-pub use sampling::{
-    AddressHistogram, AppSamplingEngine, AppSamplingStats, CallGraph, ProcessSamplingProfile,
-    Sample, SampleSource, SamplingConfig,
+pub use thermal::{
+    AppThermalAnalyzer, AppThermalStats, CoreHeatMap, HeatContribution, ProcessThermalProfile,
+    ThermalBudget, ThermalImpact, ThermalReading, ThermalState as AppThermalState,
+    ThermalZone as AppThermalZone, ThrottleEvent as AppThrottleEvent,
 };
 pub use threading::{
     AppThreadAnalyzer, AppThreadState, AppThreadStats, CommEdge, CommType, ThreadDescriptor,
     ThreadPool, ThreadType,
 };
-// Round 5 re-exports
-pub use binary::{
-    AppBinaryAnalyzer, AppBinaryStats, BinaryProfile, ExecFormat, SectionInfo, SectionPerms,
-    SectionType, SymbolBinding, SymbolInfo, SymbolType,
-};
-pub use dependency::{
-    AppDependencyAnalyzer, AppDependencyStats, DepState, DepStrength, DependencyEdge,
-    DependencyGraph, AppDepType,
-};
-pub use environment::{
-    AppEnvironmentStats, AppEnvironmentTracker, EnvCategory, EnvDiff, EnvEntry,
-    EnvironmentSnapshot, NamespaceInfo, NamespaceSet as AppNamespaceSet, ProcessEnvironment,
-};
-pub use fd_tracker::{AppFdStats, AppFdTracker, FdEntry, FdFlags, FdTable, FdType};
-pub use lock::{
-    AppLockAnalyzer, AppLockStats, DeadlockDetector, LockEventType, LockInstance,
-    LockOrderPair, LockOrderValidator, LockType, WaitForEdge,
-};
-pub use page_cache::{
-    AccessPattern as AppAccessPattern, AppPageCacheProfiler, AppPageCacheStats, CachedPage,
-    FaultLatencyHistogram, PageFaultRecord, PageFaultType, PageState,
-    ProcessPageCacheStats, ThrashingDetector, WorkingSetEstimator as AppWorkingSetEstimator,
-};
-pub use sched_profile::{
-    AppSchedProfileStats, AppSchedProfiler, ContextSwitchReason, CpuBurst, RunState,
-    ThreadSchedProfile, WakeupChainTracker, WakeupEvent as AppWakeupEvent,
+pub use timer_profile::{
+    AppTimerProfiler, AppTimerProfilerStats, CoalesceGroup, ProcessTimerProfile, TimerPrecision,
+    TimerRecord, TimerState, TimerType, WheelLevelStats,
 };
 pub use trace::{
-    AppCallGraph, AppTraceEvent, AppTraceEventType, AppTraceProfiler, AppTraceStats,
-    CallNode, FlameGraphCollector, FlameStack,
-};
-// Round 6 re-exports
-pub use cgroup_v2::{
-    AppCgroupV2Profiler, AppCgroupV2Stats, CgroupIoStats, CgroupMemoryStats, CgroupNode as CgroupV2Node,
-    CgroupPressure as CgroupV2Pressure, CpuBandwidth,
-};
-pub use exe_profile::{
-    AppExeProfiler, AppExeProfilerStats, ExeArchitecture, ExecutableFormat, ExecutableProfile,
-    LibraryDep, SectionInfo as ExeSectionInfo, SectionType as ExeSectionType,
-};
-pub use futex_v2::{
-    AppFutexV2Profiler, AppFutexV2Stats, BucketStats, ContentionLevel as FutexContentionLevel,
-    FutexAddress, FutexHashProfiler, FutexOp, WaitChainDetector, WaitResult,
-};
-pub use interrupt::{
-    AppInterruptProfiler, AppInterruptStats, IrqCategory, IrqStats, ProcessIrqImpact,
-    SoftirqStats, SoftirqType, StormDetector, StormSeverity,
-};
-pub use leak_detect::{
-    AllocPattern, AllocType, AllocationRecord, AppLeakDetector, AppLeakDetectorStats,
-    CallsiteStats as LeakCallsiteStats, LeakReport, LeakSeverity, ProcessLeakDetector,
-};
-pub use net_stack::{
-    AppNetProfilerStats, AppNetStackProfiler, ConnDirection, ConnectionProfile,
-    NetProtocol, ProcessNetProfile, SocketBufferStats, TcpState,
-};
-pub use perf_counter::{
-    AppPerfCounterProfiler, AppPerfCounterStats, CounterSnapshot, HwCounter,
-    PerfBottleneck, ProcessPerfProfile,
-};
-pub use seccomp_profile::{
-    AppSeccompProfiler, AppSeccompProfilerStats, FilterChain, FilterResult, FilterRule,
-    ProcessSeccompProfile, SeccompAction, ViolationRecord, ViolationSeverity,
-};
-pub use timer_profile::{
-    AppTimerProfiler, AppTimerProfilerStats, CoalesceGroup, ProcessTimerProfile,
-    TimerPrecision, TimerRecord, TimerState, TimerType, WheelLevelStats,
+    AppCallGraph, AppTraceEvent, AppTraceEventType, AppTraceProfiler, AppTraceStats, CallNode,
+    FlameGraphCollector, FlameStack,
 };
 pub use vma_tracker::{
-    AppVmaTracker, AppVmaTrackerStats, FragReport, GrowthPattern, ProcessVmaTracker,
-    VmaEntry, VmaPerms, VmaType,
+    AppVmaTracker, AppVmaTrackerStats, FragReport, GrowthPattern, ProcessVmaTracker, VmaEntry,
+    VmaPerms, VmaType,
+};
+pub use watchdog::{
+    AppWatchdogManager, AppWatchdogStats, HealthCheckConfig, HealthCheckResult, HealthCheckType,
+    ProcessWatchdog, RecoveryAction, WatchdogStatus,
 };
 
 // ============================================================================
