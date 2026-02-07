@@ -399,7 +399,10 @@ impl HistoryAggregation {
 
     fn add_record(&mut self, record: &SyscallRecord) {
         self.total_records += 1;
-        *self.type_counts.entry(record.syscall_type as u8).or_insert(0) += 1;
+        *self
+            .type_counts
+            .entry(record.syscall_type as u8)
+            .or_insert(0) += 1;
         *self.process_counts.entry(record.pid).or_insert(0) += 1;
         let lat = record.latency_ns();
         self.total_latency_ns += lat;
@@ -499,7 +502,9 @@ impl HistoryManager {
         self.global_history.push(record.clone());
 
         // Store in per-process history
-        if self.process_histories.len() < self.max_processes || self.process_histories.contains_key(&pid) {
+        if self.process_histories.len() < self.max_processes
+            || self.process_histories.contains_key(&pid)
+        {
             let size = self.per_process_size;
             self.process_histories
                 .entry(pid)
