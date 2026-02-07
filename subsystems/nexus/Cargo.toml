@@ -65,8 +65,24 @@ q4_complete = ["optimization", "accel_x86", "accel_arm", "accel_riscv"]
 observability = ["trace", "causal", "replay", "debug"]
 
 # Full GENESIS
-full = ["q1_complete", "q2_complete", "q3_complete", "q4_complete", "observability"]
+full = ["q1_complete", "q2_complete", "q3_complete", "q4_complete", "observability", "y4_complete"]
 minimal = ["prediction", "healing", "trace"]
+
+# ---------------------------------------------------------------------------
+# YEAR 4 - SYMBIOSIS: Kernel-Application Cooperation
+# ---------------------------------------------------------------------------
+
+# 4.1 Intelligent Syscall Layer
+bridge = []
+# 4.2 Application Understanding
+apps = []
+# 4.3 Cooperation Protocol
+coop = []
+# 4.4 Holistic Optimization
+holistic = []
+
+# Year 4 feature set
+y4_complete = ["bridge", "apps", "coop", "holistic"]
 
 # ---------------------------------------------------------------------------
 # Experimental-lite: ultra-lightweight sandbox subset for minimal profiles.
