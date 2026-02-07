@@ -249,8 +249,15 @@ impl ProcessNetProfile {
     }
 
     /// Add/get connection
-    pub fn connection(&mut self, conn_id: u64, protocol: NetProtocol, direction: ConnDirection, now: u64) -> &mut ConnectionProfile {
-        self.connections.entry(conn_id)
+    pub fn connection(
+        &mut self,
+        conn_id: u64,
+        protocol: NetProtocol,
+        direction: ConnDirection,
+        now: u64,
+    ) -> &mut ConnectionProfile {
+        self.connections
+            .entry(conn_id)
             .or_insert_with(|| ConnectionProfile::new(conn_id, protocol, direction, now))
     }
 
@@ -274,7 +281,9 @@ impl ProcessNetProfile {
     pub fn update_aggregates(&mut self) {
         self.total_sent = self.connections.values().map(|c| c.bytes_sent).sum();
         self.total_recv = self.connections.values().map(|c| c.bytes_recv).sum();
-        self.active_connections = self.connections.values()
+        self.active_connections = self
+            .connections
+            .values()
             .filter(|c| c.tcp_state == TcpState::Established)
             .count();
     }
@@ -315,12 +324,17 @@ impl AppNetStackProfiler {
 
     /// Get/create process profile
     pub fn process(&mut self, pid: u64) -> &mut ProcessNetProfile {
-        self.processes.entry(pid).or_insert_with(|| ProcessNetProfile::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessNetProfile::new(pid))
     }
 
     /// Record send
     pub fn record_send(&mut self, pid: u64, conn_id: u64, bytes: u64, now: u64) {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessNetProfile::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessNetProfile::new(pid));
         let conn = proc.connection(conn_id, NetProtocol::Tcp, ConnDirection::Outbound, now);
         conn.record_send(bytes, now);
         self.update_stats();
@@ -328,7 +342,10 @@ impl AppNetStackProfiler {
 
     /// Record recv
     pub fn record_recv(&mut self, pid: u64, conn_id: u64, bytes: u64, now: u64) {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessNetProfile::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessNetProfile::new(pid));
         let conn = proc.connection(conn_id, NetProtocol::Tcp, ConnDirection::Inbound, now);
         conn.record_recv(bytes, now);
         self.update_stats();
@@ -342,13 +359,20 @@ impl AppNetStackProfiler {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.total_connections = self.processes.values()
-            .map(|p| p.connections.len())
+        self.stats.total_connections = self.processes.values().map(|p| p.connections.len()).sum();
+        self.stats.total_bytes = self
+            .processes
+            .values()
+            .map(|p| {
+                p.connections
+                    .values()
+                    .map(|c| c.bytes_sent + c.bytes_recv)
+                    .sum::<u64>()
+            })
             .sum();
-        self.stats.total_bytes = self.processes.values()
-            .map(|p| p.connections.values().map(|c| c.bytes_sent + c.bytes_recv).sum::<u64>())
-            .sum();
-        self.stats.high_retransmit = self.processes.values()
+        self.stats.high_retransmit = self
+            .processes
+            .values()
             .flat_map(|p| p.connections.values())
             .filter(|c| c.retransmit_rate() > 0.05)
             .count();
