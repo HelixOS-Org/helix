@@ -29,7 +29,7 @@ pub mod protocol;
 
 // Re-export core types
 pub use feedback::{CoopFeedback, CoopMetrics, FeedbackCollector, FeedbackType};
-pub use hints::{AppHint, AppHintType, KernelAdvisory, KernelAdvisoryType, HintBus};
+pub use hints::{AppHint, AppHintType, HintBus, KernelAdvisory, KernelAdvisoryType};
 pub use negotiate::{
     Contract, ContractId, ContractState, NegotiationEngine, ResourceDemand, ResourceOffer,
 };
@@ -49,18 +49,18 @@ mod tests {
     fn test_hint_creation() {
         let hint = AppHint::new(42, AppHintType::ComputeIntensive { duration_ms: 5000 });
         assert_eq!(hint.pid, 42);
-        assert!(matches!(hint.hint_type, AppHintType::ComputeIntensive { .. }));
+        assert!(matches!(
+            hint.hint_type,
+            AppHintType::ComputeIntensive { .. }
+        ));
     }
 
     #[test]
     fn test_advisory_creation() {
-        let advisory = KernelAdvisory::new(
-            42,
-            KernelAdvisoryType::MemoryPressure {
-                level: PressureLevel::Medium,
-                recommended_release_bytes: 50 * 1024 * 1024,
-            },
-        );
+        let advisory = KernelAdvisory::new(42, KernelAdvisoryType::MemoryPressure {
+            level: PressureLevel::Medium,
+            recommended_release_bytes: 50 * 1024 * 1024,
+        });
         assert_eq!(advisory.pid, 42);
     }
 
@@ -68,8 +68,12 @@ mod tests {
     fn test_hint_bus() {
         let mut bus = HintBus::new(100);
 
-        bus.send_hint(AppHint::new(42, AppHintType::LatencySensitive { thread_id: 1 }));
-        bus.send_hint(AppHint::new(43, AppHintType::IoHeavy { expected_bytes: 1024 * 1024 }));
+        bus.send_hint(AppHint::new(42, AppHintType::LatencySensitive {
+            thread_id: 1,
+        }));
+        bus.send_hint(AppHint::new(43, AppHintType::IoHeavy {
+            expected_bytes: 1024 * 1024,
+        }));
 
         let hints = bus.drain_hints();
         assert_eq!(hints.len(), 2);
