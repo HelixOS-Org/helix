@@ -392,13 +392,15 @@ impl BridgeDedupManager {
 
     /// Get redundancy patterns
     pub fn redundancy_patterns(&self) -> Vec<&RedundancyPattern> {
-        self.redundancy.values().filter(|p| p.total_redundant > 5).collect()
+        self.redundancy
+            .values()
+            .filter(|p| p.total_redundant > 5)
+            .collect()
     }
 
     fn update_stats(&mut self) {
         if self.stats.total_lookups > 0 {
-            self.stats.hit_rate =
-                self.stats.total_hits as f64 / self.stats.total_lookups as f64;
+            self.stats.hit_rate = self.stats.total_hits as f64 / self.stats.total_lookups as f64;
         }
         self.stats.redundant_patterns = self
             .redundancy
