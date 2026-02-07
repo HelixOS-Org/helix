@@ -67,24 +67,37 @@ pub mod validate;
 // Re-export core types
 pub use async_io::{AsyncCompletion, AsyncIoEngine, AsyncIoRequest, AsyncPriority, AsyncStatus};
 pub use batch::{BatchDecision, BatchEntry, BatchGroup, BatchOptimizer, BatchStats};
-pub use cache::{SyscallCache, SyscallCacheConfig, CacheKey, CachedResult, Cacheability};
-pub use compat::{AbiVersion, CompatConfig, CompatLayer, CompatProfile, MappingTable, ArgRewriter};
+pub use cache::{CacheKey, Cacheability, CachedResult, SyscallCache, SyscallCacheConfig};
+// Re-exports from expanded modules (Round 2)
+pub use coalesce::{
+    CoalesceCategory, CoalesceEngine, CoalesceState, CoalesceStats, CoalescedBatch, PendingSyscall,
+    WindowConfig,
+};
+pub use compat::{AbiVersion, ArgRewriter, CompatConfig, CompatLayer, CompatProfile, MappingTable};
 pub use context::{
     Capability, CapabilitySet, ContextManager, LimitCheck, NamespaceContext, NamespaceType,
     ProcessContext, RLimit, ResourceLimits, SchedClass, SecurityLabel, ThreadContext,
 };
-pub use history::{HistoryManager, HistoryQuery, QueryResult, SyscallRecord, RecordRingBuffer};
+pub use fallback::{
+    EmulationEntry, EmulationRegistry, ErrorCategory, FallbackAlertType, FallbackEngine,
+    FallbackResult, FallbackStrategy, RetryConfig, SyscallFallbackChain,
+};
+pub use history::{HistoryManager, HistoryQuery, QueryResult, RecordRingBuffer, SyscallRecord};
 pub use intent::{IntentAnalyzer, IntentConfidence, IntentPattern, IntentType};
+pub use intercept::{
+    FilterCondition, FilterProgram, InterceptAction, InterceptEngine, InterceptHook,
+    InterceptPoint, InterceptVerdict, SyscallArgs,
+};
 pub use metrics::{
     ErrorTracker, LatencyHistogram, MetricsRegistry, ProcessSyscallMetrics, SyscallTypeMetrics,
     ThroughputTracker,
 };
 pub use optimizer::{
-    AdaptiveTuner, ContentionDetector, GlobalOptimizer, OptimizationBenefit, OptimizationOpportunity,
-    OptimizationType, TunableParam,
+    AdaptiveTuner, ContentionDetector, GlobalOptimizer, OptimizationBenefit,
+    OptimizationOpportunity, OptimizationType, TunableParam,
 };
 pub use pattern::{NgramAnalyzer, PatternKind, PatternMatch, PatternMatcher, PatternTemplate};
-pub use pipeline::{PipelineConfig, PipelineStage, SyscallPipeline, StageDecision};
+pub use pipeline::{PipelineConfig, PipelineStage, StageDecision, SyscallPipeline};
 pub use predict::{
     PredictedSyscall, SyscallConfidence, SyscallPattern, SyscallPredictor, SyscallSequence,
 };
@@ -92,33 +105,18 @@ pub use prefetch::{
     FileReadAhead, PrefetchConfig, PrefetchManager, PrefetchPriority, PrefetchRequest, PrefetchType,
 };
 pub use profile::{AppBehavior, AppClass, AppProfile, AppProfiler, ResourceUsagePattern};
-pub use security::{SecurityAction, SecurityEngine, SecurityRule};
-pub use syscall::{
-    OptimizationHint, SyscallContext, SyscallId, SyscallInterceptor, SyscallMetrics, SyscallResult,
-    SyscallRouter, SyscallType,
-};
-pub use transform::{TransformEngine, TransformRule, TransformType, TransformedSyscall};
-
-// Re-exports from expanded modules (Round 2)
-pub use coalesce::{
-    CoalesceCategory, CoalesceEngine, CoalesceState, CoalesceStats, CoalescedBatch,
-    PendingSyscall, WindowConfig,
-};
-pub use fallback::{
-    EmulationEntry, EmulationRegistry, ErrorCategory, FallbackAlertType, FallbackEngine,
-    FallbackResult, FallbackStrategy, RetryConfig, SyscallFallbackChain,
-};
-pub use intercept::{
-    FilterCondition, FilterProgram, InterceptAction, InterceptEngine, InterceptHook,
-    InterceptPoint, InterceptVerdict, SyscallArgs,
-};
 pub use queue::{
-    BackpressureConfig, BackpressureState, DrainagePolicy, QueueEntry, QueueManager,
-    QueuePriority, SyscallQueue,
+    BackpressureConfig, BackpressureState, DrainagePolicy, QueueEntry, QueueManager, QueuePriority,
+    SyscallQueue,
 };
 pub use routing::{
     CachedRoute, FallbackChain, FallbackHandler, RouteCache, RouteConditions, RouteEntry,
     RoutePath, RouteReason, RouteStats, RoutingEngine,
+};
+pub use security::{SecurityAction, SecurityEngine, SecurityRule};
+pub use syscall::{
+    OptimizationHint, SyscallContext, SyscallId, SyscallInterceptor, SyscallMetrics, SyscallResult,
+    SyscallRouter, SyscallType,
 };
 pub use throttle::{
     ProcessThrottleConfig, SlidingWindow, SyscallThrottleConfig, ThrottleDecision, ThrottleEngine,
@@ -129,6 +127,7 @@ pub use trace::{
     SessionState as TraceSessionState, SyscallTraceSummary, TraceEvent, TraceEventType,
     TraceFilter, TraceRingBuffer,
 };
+pub use transform::{TransformEngine, TransformRule, TransformType, TransformedSyscall};
 pub use validate::{
     ArgRule, ArgType, SyscallValidationSpec, ValidationContext, ValidationEngine, ValidationError,
     ValidationFinding, ValidationReport, ValidationResult, ValidationStats,
