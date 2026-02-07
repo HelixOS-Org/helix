@@ -221,7 +221,9 @@ impl ProcessCache {
 
     fn insert(&mut self, entry: CachedResult, current_time: u64) {
         // Evict if at capacity
-        while self.entries.len() >= self.max_entries || self.current_bytes + entry.size_bytes > self.max_bytes {
+        while self.entries.len() >= self.max_entries
+            || self.current_bytes + entry.size_bytes > self.max_bytes
+        {
             if !self.evict_one(current_time) {
                 break;
             }
@@ -297,16 +299,12 @@ fn classify_cacheability(syscall_type: SyscallType) -> Cacheability {
         // Most syscalls are not cacheable
         SyscallType::Read | SyscallType::Write | SyscallType::Open | SyscallType::Close => {
             Cacheability::NeverCacheable
-        }
-        SyscallType::Mmap | SyscallType::Munmap | SyscallType::Brk => {
-            Cacheability::NeverCacheable
-        }
-        SyscallType::Fork | SyscallType::Exec | SyscallType::Exit => {
-            Cacheability::NeverCacheable
-        }
+        },
+        SyscallType::Mmap | SyscallType::Munmap | SyscallType::Brk => Cacheability::NeverCacheable,
+        SyscallType::Fork | SyscallType::Exec | SyscallType::Exit => Cacheability::NeverCacheable,
         SyscallType::Connect | SyscallType::Accept | SyscallType::Send | SyscallType::Recv => {
             Cacheability::NeverCacheable
-        }
+        },
 
         // Poll/Ioctl might be cacheable in specific contexts
         SyscallType::Ioctl => Cacheability::TimeBounded { ttl_ms: 100 },
@@ -402,11 +400,11 @@ impl SyscallCache {
                 self.global_hits += 1;
                 // Re-borrow as immutable
                 cache.entries.get(&key)
-            }
+            },
             None => {
                 self.global_misses += 1;
                 None
-            }
+            },
         }
     }
 
@@ -474,15 +472,15 @@ impl SyscallCache {
                         }
                     }
                 }
-            }
+            },
             InvalidationEvent::ProcessStateChanged { pid } => {
                 self.process_caches.remove(&pid);
-            }
+            },
             InvalidationEvent::FlushAll => {
                 self.process_caches.clear();
                 self.inode_to_keys.clear();
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
