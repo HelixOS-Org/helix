@@ -60,22 +60,26 @@ pub struct ThermalReading {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ThermalState {
     /// Cool - well below limits
-    Cool = 0,
+    Cool       = 0,
     /// Normal operating range
-    Normal = 1,
+    Normal     = 1,
     /// Warm - approaching limits
-    Warm = 2,
+    Warm       = 2,
     /// Hot - throttling imminent
-    Hot = 3,
+    Hot        = 3,
     /// Throttling active
     Throttling = 4,
     /// Critical - emergency shutdown range
-    Critical = 5,
+    Critical   = 5,
 }
 
 impl ThermalState {
     /// From temperature relative to limits
-    pub fn from_temp(temp_mc: MilliCelsius, passive_mc: MilliCelsius, critical_mc: MilliCelsius) -> Self {
+    pub fn from_temp(
+        temp_mc: MilliCelsius,
+        passive_mc: MilliCelsius,
+        critical_mc: MilliCelsius,
+    ) -> Self {
         if temp_mc >= critical_mc {
             Self::Critical
         } else if temp_mc >= passive_mc {
@@ -140,7 +144,10 @@ impl CoreHeatMap {
 
     /// Record contribution
     pub fn record(&mut self, core: u32, pid: u64, mw: u32) {
-        let core_map = self.core_contributions.entry(core).or_insert_with(BTreeMap::new);
+        let core_map = self
+            .core_contributions
+            .entry(core)
+            .or_insert_with(BTreeMap::new);
         *core_map.entry(pid).or_insert(0) += mw;
     }
 
@@ -203,13 +210,13 @@ pub enum ThermalImpact {
     /// Negligible heat
     Negligible = 0,
     /// Low impact
-    Low = 1,
+    Low        = 1,
     /// Moderate
-    Moderate = 2,
+    Moderate   = 2,
     /// High
-    High = 3,
+    High       = 3,
     /// Extreme
-    Extreme = 4,
+    Extreme    = 4,
 }
 
 // ============================================================================
@@ -372,8 +379,11 @@ impl AppThermalAnalyzer {
         }
 
         if matches!(reading.zone, ThermalZone::CpuPackage(_)) {
-            self.state =
-                ThermalState::from_temp(reading.temp_mc, self.passive_trip_mc, self.critical_trip_mc);
+            self.state = ThermalState::from_temp(
+                reading.temp_mc,
+                self.passive_trip_mc,
+                self.critical_trip_mc,
+            );
             self.stats.system_temp_mc = reading.temp_mc;
             self.stats.system_state = self.state as u8;
         }
@@ -444,19 +454,16 @@ impl AppThermalAnalyzer {
             .map(|p| p.throttle_contributions)
             .unwrap_or(0);
 
-        self.profiles.insert(
+        self.profiles.insert(pid, ProcessThermalProfile {
             pid,
-            ProcessThermalProfile {
-                pid,
-                impact,
-                avg_heat_mw: avg_heat,
-                peak_heat_mw: peak_heat,
-                throttle_contributions,
-                preferred_cores: preferred,
-                avoid_cores: avoid,
-                budget_remaining_mw: budget_remaining,
-            },
-        );
+            impact,
+            avg_heat_mw: avg_heat,
+            peak_heat_mw: peak_heat,
+            throttle_contributions,
+            preferred_cores: preferred,
+            avoid_cores: avoid,
+            budget_remaining_mw: budget_remaining,
+        });
 
         self.stats.tracked = self.profiles.len();
         self.profiles.get(&pid)
@@ -466,9 +473,9 @@ impl AppThermalAnalyzer {
     pub fn allocate_budget(&mut self, pid: u64, mw: u32) -> bool {
         let result = self.budget.allocate(pid, mw);
         if self.budget.system_budget_mw > 0 {
-            self.stats.budget_utilization_pct =
-                (self.budget.allocated_mw as u64 * 100 / self.budget.system_budget_mw as u64)
-                    as u32;
+            self.stats.budget_utilization_pct = (self.budget.allocated_mw as u64 * 100
+                / self.budget.system_budget_mw as u64)
+                as u32;
         }
         result
     }
