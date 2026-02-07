@@ -164,7 +164,10 @@ impl PatternTemplate {
         // Fork-exec: fork → exec → waitpid
         patterns.push(
             PatternTemplate::new(PatternKind::ForkExec)
-                .add(PatternElement::AnyOf(alloc::vec![SyscallType::Fork, SyscallType::Clone]))
+                .add(PatternElement::AnyOf(alloc::vec![
+                    SyscallType::Fork,
+                    SyscallType::Clone
+                ]))
                 .add(PatternElement::WildcardRepeat(0, 5))
                 .add(PatternElement::Exact(SyscallType::Exec))
                 .with_min_confidence(0.8),
@@ -263,9 +266,17 @@ impl PatternMatcher {
     }
 
     /// Record a syscall and check for patterns
-    pub fn record(&mut self, pid: u64, syscall_type: SyscallType, timestamp: u64) -> Vec<PatternMatch> {
+    pub fn record(
+        &mut self,
+        pid: u64,
+        syscall_type: SyscallType,
+        timestamp: u64,
+    ) -> Vec<PatternMatch> {
         let max = self.max_history;
-        let history = self.histories.entry(pid).or_insert_with(SyscallHistory::new);
+        let history = self
+            .histories
+            .entry(pid)
+            .or_insert_with(SyscallHistory::new);
         history.push(syscall_type, timestamp, max);
 
         // Try to match all templates against recent history
@@ -312,7 +323,7 @@ impl PatternMatcher {
                         let old_conf = bm as f64 / bt as f64;
                         let new_conf = matched as f64 / total as f64;
                         new_conf > old_conf
-                    }
+                    },
                 };
                 if better {
                     best_match = Some((matched, total, gaps));
@@ -378,14 +389,14 @@ impl PatternMatcher {
                     } else {
                         pos += 1;
                     }
-                }
+                },
                 PatternElement::AnyOf(options) => {
                     total_required += 1;
                     if options.contains(&window[pos]) {
                         matched += 1;
                     }
                     pos += 1;
-                }
+                },
                 PatternElement::Repeat(expected, min, max) => {
                     total_required += *min;
                     let mut count = 0;
@@ -396,25 +407,25 @@ impl PatternMatcher {
                     if count >= *min {
                         matched += count.min(*min);
                     }
-                }
+                },
                 PatternElement::Optional(expected) => {
                     if pos < window.len() && window[pos] == *expected {
                         matched += 1;
                         total_required += 1;
                         pos += 1;
                     }
-                }
+                },
                 PatternElement::Wildcard => {
                     total_required += 1;
                     matched += 1;
                     pos += 1;
-                }
+                },
                 PatternElement::WildcardRepeat(min, max) => {
                     total_required += *min;
                     let advance = (*max).min(window.len() - pos);
                     matched += advance.min(*min);
                     pos += advance;
-                }
+                },
             }
         }
 
@@ -431,7 +442,11 @@ impl PatternMatcher {
         self.detected.get(&pid).and_then(|matches| {
             matches
                 .iter()
-                .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(core::cmp::Ordering::Equal))
+                .max_by(|a, b| {
+                    a.confidence
+                        .partial_cmp(&b.confidence)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
                 .map(|m| m.kind)
         })
     }
@@ -479,14 +494,26 @@ impl NgramAnalyzer {
         self.total_samples += 1;
 
         for window in types.windows(2) {
-            *self.bigrams.entry((window[0] as u8, window[1] as u8)).or_insert(0) += 1;
+            *self
+                .bigrams
+                .entry((window[0] as u8, window[1] as u8))
+                .or_insert(0) += 1;
         }
         for window in types.windows(3) {
-            *self.trigrams.entry((window[0] as u8, window[1] as u8, window[2] as u8)).or_insert(0) += 1;
+            *self
+                .trigrams
+                .entry((window[0] as u8, window[1] as u8, window[2] as u8))
+                .or_insert(0) += 1;
         }
         for window in types.windows(4) {
-            *self.quadgrams
-                .entry((window[0] as u8, window[1] as u8, window[2] as u8, window[3] as u8))
+            *self
+                .quadgrams
+                .entry((
+                    window[0] as u8,
+                    window[1] as u8,
+                    window[2] as u8,
+                    window[3] as u8,
+                ))
                 .or_insert(0) += 1;
         }
     }
@@ -518,7 +545,9 @@ impl NgramAnalyzer {
     /// Bigram probability P(b | a)
     pub fn bigram_probability(&self, a: SyscallType, b: SyscallType) -> f64 {
         let count = self.bigrams.get(&(a as u8, b as u8)).copied().unwrap_or(0);
-        let total_a: u64 = self.bigrams.iter()
+        let total_a: u64 = self
+            .bigrams
+            .iter()
             .filter(|(&(first, _), _)| first == a as u8)
             .map(|(_, &v)| v)
             .sum();
