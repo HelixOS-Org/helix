@@ -274,7 +274,9 @@ impl ProcessLeakDetector {
 
     /// Record allocation
     pub fn record_alloc(&mut self, addr: u64, size: usize, callsite_hash: u64) {
-        let cs = self.callsites.entry(callsite_hash)
+        let cs = self
+            .callsites
+            .entry(callsite_hash)
             .or_insert_with(|| CallsiteStats::new(callsite_hash));
         cs.record_alloc(size);
         self.active.insert(addr, (size, callsite_hash));
@@ -298,7 +300,8 @@ impl ProcessLeakDetector {
 
     /// Generate leak report
     pub fn report(&self) -> Vec<LeakReport> {
-        self.callsites.values()
+        self.callsites
+            .values()
             .filter(|cs| cs.leak_severity() != LeakSeverity::None)
             .map(|cs| LeakReport {
                 callsite_hash: cs.callsite_hash,
@@ -329,7 +332,9 @@ impl AppLeakDetector {
 
     /// Record allocation
     pub fn record_alloc(&mut self, pid: u64, addr: u64, size: usize, callsite_hash: u64) {
-        let detector = self.processes.entry(pid)
+        let detector = self
+            .processes
+            .entry(pid)
             .or_insert_with(|| ProcessLeakDetector::new(pid));
         detector.record_alloc(addr, size, callsite_hash);
     }
@@ -351,15 +356,14 @@ impl AppLeakDetector {
 
     /// Get leaks for process
     pub fn process_leaks(&self, pid: u64) -> Vec<LeakReport> {
-        self.processes.get(&pid)
+        self.processes
+            .get(&pid)
             .map(|d| d.report())
             .unwrap_or_default()
     }
 
     fn update_stats(&mut self) {
-        self.stats.tracked_callsites = self.processes.values()
-            .map(|d| d.callsites.len())
-            .sum();
+        self.stats.tracked_callsites = self.processes.values().map(|d| d.callsites.len()).sum();
         let mut suspected = 0;
         let mut confirmed = 0;
         let mut bytes = 0u64;
@@ -369,12 +373,12 @@ impl AppLeakDetector {
                     LeakSeverity::Possible | LeakSeverity::Probable => {
                         suspected += 1;
                         bytes += cs.live_bytes;
-                    }
+                    },
                     LeakSeverity::Confirmed | LeakSeverity::Critical => {
                         confirmed += 1;
                         bytes += cs.live_bytes;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
