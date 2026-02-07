@@ -336,6 +336,22 @@ pub mod formal;
 pub mod swarm;
 
 // ============================================================================
+// YEAR 4 - SYMBIOSIS: KERNEL-APPLICATION COOPERATION
+// ============================================================================
+
+/// Intelligent syscall layer - interception, prediction, batching, async I/O
+pub mod bridge;
+
+/// Application understanding engine - profiling, classification, adaptation
+pub mod apps;
+
+/// Cooperation protocol - bidirectional hints, contracts, negotiation
+pub mod coop;
+
+/// Holistic optimization - system-wide balancing, policies, prediction
+pub mod holistic;
+
+// ============================================================================
 // COGNITIVE ARCHITECTURE (7 DOMAINS)
 // ============================================================================
 
@@ -591,6 +607,35 @@ pub use crate::virtualization::{
     WorkloadPriority, WorkloadState,
 };
 
+// Year 4 - SYMBIOSIS Re-exports
+// Bridge (4.1) - Intelligent Syscall Layer
+pub use crate::bridge::{
+    AsyncIoEngine, AsyncPriority, BatchOptimizer, SyscallContext, SyscallInterceptor,
+    SyscallPredictor, SyscallRouter, SyscallType,
+};
+pub use crate::bridge::profile::{AppClass, AppProfile, AppProfiler};
+
+// Apps (4.2) - Application Understanding Engine
+pub use crate::apps::{
+    AdaptationEngine, AppFingerprint, BehaviorSignature, OptimizationEngine, ProcessProfile,
+    WorkloadCategory, WorkloadPredictor,
+};
+
+// Coop (4.3) - Cooperation Protocol
+pub use crate::coop::{
+    CoopFeedback, CoopMessage, CoopSession, Contract, ContractState, FeedbackCollector,
+    FeedbackType, HintBus, NegotiationEngine, ProtocolVersion,
+};
+pub use crate::coop::hints::PressureLevel;
+pub use crate::coop::hints::{AppHint, AppHintType, KernelAdvisory, KernelAdvisoryType};
+
+// Holistic (4.4) - System-Wide Optimization
+pub use crate::holistic::{
+    OptimizationGoal, Orchestrator, PolicyEngine, PolicyRule, ResourceBalancer, SystemPredictor,
+    SystemSnapshot,
+};
+pub use crate::holistic::policy::{PolicyAction, PolicyCondition};
+
 // ============================================================================
 // VERSION INFO
 // ============================================================================
@@ -599,13 +644,13 @@ pub use crate::virtualization::{
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// NEXUS build timestamp
-pub const BUILD_TIMESTAMP: &str = "2028-01-29";
+pub const BUILD_TIMESTAMP: &str = "2029-01-29";
 
 /// NEXUS codename
-pub const CODENAME: &str = "EVOLUTION";
+pub const CODENAME: &str = "SYMBIOSIS";
 
 /// NEXUS year
-pub const YEAR: u32 = 3;
+pub const YEAR: u32 = 4;
 
 // ============================================================================
 // ARCHITECTURE DETECTION
