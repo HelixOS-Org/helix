@@ -25,15 +25,23 @@ extern crate alloc;
 pub mod adapt;
 pub mod anomaly;
 pub mod classify;
+pub mod container;
+pub mod energy;
 pub mod history;
 pub mod io;
 pub mod lifecycle;
 pub mod memory;
+pub mod migration;
+pub mod network;
 pub mod optimize;
 pub mod predict;
+pub mod priority;
 pub mod profile;
+pub mod quota;
 pub mod resource;
 pub mod scheduler;
+pub mod signal;
+pub mod thermal;
 
 // Re-export core types
 pub use adapt::{AdaptationAction, AdaptationEngine, ResourceAdjustment, ResourceTarget};
@@ -61,6 +69,45 @@ pub use resource::{
     ResourceTracker,
 };
 pub use scheduler::{SchedClassHint, SchedulingAnalyzer, SchedulingHint as AppSchedulingHint};
+
+// Round 2 re-exports
+pub use container::{
+    AppContainerAnalyzer, CgroupLimit, CgroupResource, CgroupState, ContainerProfile,
+    ContainerState, CrossContainerComm, CrossContainerCommType, IsolationLevel, NamespaceId,
+    NamespaceSet, NamespaceType, ContainerStats,
+};
+pub use energy::{
+    AppEnergyAnalyzer, EnergyBudget, EnergyComponent, EnergyRating, EnergyRecType,
+    EnergyRecommendation, EnergySample, ProcessEnergyProfile, WakeupEvent, WakeupReason,
+    WakeupStats,
+};
+pub use migration::{
+    AppMigrationAnalyzer, CacheAffinity, MigrationDecision, MigrationEvent, MigrationPolicy,
+    MigrationReason, MigrationStats, MigrationTarget, PlacementCandidate, PlacementDecision,
+    ProcessMigrationProfile,
+};
+pub use network::{
+    AppNetworkAnalyzer, ConnState, DetectedProtocol, AppNetworkPattern, NetworkQosClass,
+    PoolRecommendation, PoolReason, ProcessNetworkProfile, TrackedConnection,
+};
+pub use priority::{
+    AdjustmentReason, AppPriorityAnalyzer, DeadlineInfo, InheritanceState, InversionEvent,
+    PriorityAdjustment, PriorityClass, PriorityStats, ProcessPriorityState,
+};
+pub use quota::{
+    AppQuotaManager, EnforcementAction, QuotaGroup, QuotaManagerStats, QuotaResource,
+    QuotaSet, QuotaTransfer, QuotaViolation, ResourceQuota,
+};
+pub use signal::{
+    AppSignalAnalyzer, CoalescedSignal, CoalescingRule, DeliveryPreference, ProcessSignalProfile,
+    SignalArchPattern, SignalCategory, SignalCoalescer, SignalHandlerInfo, SignalHandlerMode,
+    SignalStats,
+};
+pub use thermal::{
+    AppThermalAnalyzer, AppThermalStats, CoreHeatMap, HeatContribution, ProcessThermalProfile,
+    ThermalBudget, ThermalImpact, ThermalReading, ThermalState as AppThermalState,
+    ThermalZone as AppThermalZone, ThrottleEvent as AppThrottleEvent,
+};
 
 // ============================================================================
 // TESTS
