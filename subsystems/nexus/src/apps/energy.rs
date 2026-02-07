@@ -139,13 +139,13 @@ pub enum EnergyRating {
     /// Excellent - minimal energy use
     Excellent = 0,
     /// Good
-    Good = 1,
+    Good      = 1,
     /// Average
-    Average = 2,
+    Average   = 2,
     /// Poor
-    Poor = 3,
+    Poor      = 3,
     /// Very poor - energy hog
-    VeryPoor = 4,
+    VeryPoor  = 4,
 }
 
 /// Per-process energy profile
@@ -301,11 +301,7 @@ impl AppEnergyAnalyzer {
             0
         };
 
-        let peak_power = samples
-            .iter()
-            .map(|s| s.avg_power_mw())
-            .max()
-            .unwrap_or(0);
+        let peak_power = samples.iter().map(|s| s.avg_power_mw()).max().unwrap_or(0);
 
         // Component breakdown
         let mut component_total: BTreeMap<u8, u64> = BTreeMap::new();
@@ -358,20 +354,17 @@ impl AppEnergyAnalyzer {
             0.0
         };
 
-        self.profiles.insert(
+        self.profiles.insert(pid, ProcessEnergyProfile {
             pid,
-            ProcessEnergyProfile {
-                pid,
-                rating,
-                avg_power_mw: avg_power,
-                peak_power_mw: peak_power,
-                total_energy_uj: total_energy,
-                component_pct,
-                wakeup_stats,
-                idle_efficiency,
-                battery_impact_pct_per_hour: battery_impact,
-            },
-        );
+            rating,
+            avg_power_mw: avg_power,
+            peak_power_mw: peak_power,
+            total_energy_uj: total_energy,
+            component_pct,
+            wakeup_stats,
+            idle_efficiency,
+            battery_impact_pct_per_hour: battery_impact,
+        });
 
         self.profiles.get(&pid)
     }
@@ -410,20 +403,13 @@ impl AppEnergyAnalyzer {
 
     /// Set energy budget
     pub fn set_budget(&mut self, pid: u64, budget_mw: MilliWatts) {
-        self.budgets.insert(
+        self.budgets.insert(pid, EnergyBudget {
             pid,
-            EnergyBudget {
-                pid,
-                budget_mw,
-                current_mw: self
-                    .profiles
-                    .get(&pid)
-                    .map(|p| p.avg_power_mw)
-                    .unwrap_or(0),
-                over_budget: false,
-                grace_ms: 5000,
-            },
-        );
+            budget_mw,
+            current_mw: self.profiles.get(&pid).map(|p| p.avg_power_mw).unwrap_or(0),
+            over_budget: false,
+            grace_ms: 5000,
+        });
     }
 
     /// Get recommendations for process
