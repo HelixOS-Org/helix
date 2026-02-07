@@ -329,10 +329,7 @@ impl ProcessSyncProfile {
                 }
                 visited.push(current_thread);
 
-                let owner = self
-                    .locks
-                    .get(&current_lock)
-                    .and_then(|l| l.owner);
+                let owner = self.locks.get(&current_lock).and_then(|l| l.owner);
 
                 chain.push(WaitChainEntry {
                     thread: current_thread,
@@ -349,7 +346,7 @@ impl ProcessSyncProfile {
                         } else {
                             break;
                         }
-                    }
+                    },
                     None => break,
                 }
             }
@@ -365,10 +362,7 @@ impl ProcessSyncProfile {
     /// Most contended locks
     pub fn most_contended(&self, limit: usize) -> Vec<&LockDescriptor> {
         let mut locks: Vec<_> = self.locks.values().collect();
-        locks.sort_by(|a, b| {
-            b.contention_count
-                .cmp(&a.contention_count)
-        });
+        locks.sort_by(|a, b| b.contention_count.cmp(&a.contention_count));
         locks.truncate(limit);
         locks
     }
@@ -419,11 +413,7 @@ impl AppFutexAnalyzer {
     pub fn register_lock(&mut self, pid: u64, address: u64, prim_type: SyncPrimitiveType) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.register_lock(address, prim_type);
-            self.stats.total_locks = self
-                .profiles
-                .values()
-                .map(|p| p.locks.len())
-                .sum();
+            self.stats.total_locks = self.profiles.values().map(|p| p.locks.len()).sum();
         }
     }
 
