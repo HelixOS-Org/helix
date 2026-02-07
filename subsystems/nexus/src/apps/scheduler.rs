@@ -225,7 +225,10 @@ impl SchedulingAnalyzer {
         ctx_switch_rate: f64,
         current_cpu: u32,
     ) {
-        let state = self.states.entry(pid).or_insert_with(|| ProcessSchedState::new(pid));
+        let state = self
+            .states
+            .entry(pid)
+            .or_insert_with(|| ProcessSchedState::new(pid));
 
         let old_cpu = state.current_cpu;
         state.add_sample(cpu_usage, io_wait, ctx_switch_rate);
@@ -308,7 +311,7 @@ impl SchedulingAnalyzer {
             pid: state.pid,
             cpu_affinity: None,
             numa_node: None,
-            priority_delta: -2, // Slightly higher priority
+            priority_delta: -2,  // Slightly higher priority
             time_slice_us: 2000, // 2ms (short slice, will yield on I/O anyway)
             sched_class: Some(SchedClassHint::Normal),
             preemption: PreemptionPolicy::Default,
@@ -323,7 +326,7 @@ impl SchedulingAnalyzer {
             pid: state.pid,
             cpu_affinity: None,
             numa_node: None,
-            priority_delta: -5, // Higher priority for low latency
+            priority_delta: -5,  // Higher priority for low latency
             time_slice_us: 1000, // 1ms
             sched_class: Some(SchedClassHint::Normal),
             preemption: PreemptionPolicy::EagerPreemption,
