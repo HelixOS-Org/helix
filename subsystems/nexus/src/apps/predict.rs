@@ -207,12 +207,13 @@ impl WorkloadPredictor {
 
         // Confidence degrades with horizon
         let base_confidence = if history.len() > 20 { 0.85 } else { 0.5 };
-        let confidence = base_confidence * match horizon {
-            ForecastHorizon::Short => 0.95,
-            ForecastHorizon::Medium => 0.80,
-            ForecastHorizon::Long => 0.60,
-            ForecastHorizon::Extended => 0.40,
-        };
+        let confidence = base_confidence
+            * match horizon {
+                ForecastHorizon::Short => 0.95,
+                ForecastHorizon::Medium => 0.80,
+                ForecastHorizon::Long => 0.60,
+                ForecastHorizon::Extended => 0.40,
+            };
 
         ResourceForecast {
             predicted_value: predicted.max(0.0),
