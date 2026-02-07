@@ -91,7 +91,12 @@ pub struct TimerRecord {
 }
 
 impl TimerRecord {
-    pub fn new(timer_id: u64, timer_type: TimerType, precision: TimerPrecision, interval_ns: u64) -> Self {
+    pub fn new(
+        timer_id: u64,
+        timer_type: TimerType,
+        precision: TimerPrecision,
+        interval_ns: u64,
+    ) -> Self {
         Self {
             timer_id,
             timer_type,
@@ -210,7 +215,8 @@ impl ProcessTimerProfile {
         if interval_ns < self.min_interval_ns && interval_ns > 0 {
             self.min_interval_ns = interval_ns;
         }
-        self.timers.entry(timer_id)
+        self.timers
+            .entry(timer_id)
             .or_insert_with(|| TimerRecord::new(timer_id, timer_type, precision, interval_ns))
     }
 
@@ -241,7 +247,9 @@ impl ProcessTimerProfile {
     /// Find coalescing opportunities
     pub fn find_coalesce_opportunities(&self) -> Vec<CoalesceGroup> {
         let mut groups: Vec<CoalesceGroup> = Vec::new();
-        let periodic: Vec<&TimerRecord> = self.timers.values()
+        let periodic: Vec<&TimerRecord> = self
+            .timers
+            .values()
             .filter(|t| t.timer_type == TimerType::Periodic && t.state == TimerState::Armed)
             .collect();
 
@@ -282,7 +290,10 @@ impl ProcessTimerProfile {
 
     /// Count active timers
     pub fn active_count(&self) -> usize {
-        self.timers.values().filter(|t| t.state == TimerState::Armed).count()
+        self.timers
+            .values()
+            .filter(|t| t.state == TimerState::Armed)
+            .count()
     }
 }
 
@@ -352,7 +363,9 @@ impl AppTimerProfiler {
 
     /// Get/create process
     pub fn process(&mut self, pid: u64) -> &mut ProcessTimerProfile {
-        self.processes.entry(pid).or_insert_with(|| ProcessTimerProfile::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessTimerProfile::new(pid))
     }
 
     /// Create timer
@@ -364,7 +377,10 @@ impl AppTimerProfiler {
         precision: TimerPrecision,
         interval_ns: u64,
     ) {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessTimerProfile::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessTimerProfile::new(pid));
         proc.create_timer(timer_id, timer_type, precision, interval_ns);
         self.update_stats();
     }
@@ -396,9 +412,7 @@ impl AppTimerProfiler {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.total_active_timers = self.processes.values()
-            .map(|p| p.active_count())
-            .sum();
+        self.stats.total_active_timers = self.processes.values().map(|p| p.active_count()).sum();
         self.stats.high_freq_processes = self.processes.values()
             .filter(|p| p.min_interval_ns < 1_000_000) // < 1ms
             .count();
