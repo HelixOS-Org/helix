@@ -27,7 +27,11 @@ pub struct AbiVersion {
 
 impl AbiVersion {
     pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self { major, minor, patch }
+        Self {
+            major,
+            minor,
+            patch,
+        }
     }
 
     /// Current Helix ABI version
@@ -324,24 +328,36 @@ impl ArgRewriter {
                     } else {
                         0
                     }
-                }
+                },
                 ArgTransform::Reposition(src_idx) => {
                     if *src_idx < source_args.len() {
                         source_args[*src_idx]
                     } else {
                         0
                     }
-                }
+                },
                 ArgTransform::AddConstant(c) => {
-                    let src = if i < source_args.len() { source_args[i] } else { 0 };
+                    let src = if i < source_args.len() {
+                        source_args[i]
+                    } else {
+                        0
+                    };
                     (src as i64 + c) as u64
-                }
+                },
                 ArgTransform::Mask(mask) => {
-                    let src = if i < source_args.len() { source_args[i] } else { 0 };
+                    let src = if i < source_args.len() {
+                        source_args[i]
+                    } else {
+                        0
+                    };
                     src & mask
-                }
+                },
                 ArgTransform::MapFlags(mappings) => {
-                    let src = if i < source_args.len() { source_args[i] } else { 0 };
+                    let src = if i < source_args.len() {
+                        source_args[i]
+                    } else {
+                        0
+                    };
                     let mut result = 0u64;
                     for mapping in mappings {
                         let bit_set = (src & mapping.source_bit) != 0;
@@ -351,21 +367,33 @@ impl ArgRewriter {
                         }
                     }
                     result
-                }
+                },
                 ArgTransform::PointerAdjust(offset) => {
-                    let src = if i < source_args.len() { source_args[i] } else { 0 };
+                    let src = if i < source_args.len() {
+                        source_args[i]
+                    } else {
+                        0
+                    };
                     if src == 0 {
                         0
                     } else {
                         (src as i64 + offset) as u64
                     }
-                }
+                },
                 ArgTransform::NullDefault(default) => {
-                    let src = if i < source_args.len() { source_args[i] } else { 0 };
+                    let src = if i < source_args.len() {
+                        source_args[i]
+                    } else {
+                        0
+                    };
                     if src == 0 { *default } else { src }
-                }
+                },
                 ArgTransform::Clamp(min, max) => {
-                    let src = if i < source_args.len() { source_args[i] } else { 0 };
+                    let src = if i < source_args.len() {
+                        source_args[i]
+                    } else {
+                        0
+                    };
                     if src < *min {
                         *min
                     } else if src > *max {
@@ -373,7 +401,7 @@ impl ArgRewriter {
                     } else {
                         src
                     }
-                }
+                },
             };
             result.push(value);
         }
@@ -386,8 +414,12 @@ impl ArgRewriter {
         match &self.return_transform {
             ReturnTransform::Identity => value,
             ReturnTransform::NegateErrors => {
-                if value < 0 { -value } else { value }
-            }
+                if value < 0 {
+                    -value
+                } else {
+                    value
+                }
+            },
             ReturnTransform::MapErrors(map) => {
                 for &(src, dst) in map {
                     if value == src {
@@ -395,10 +427,14 @@ impl ArgRewriter {
                     }
                 }
                 value
-            }
+            },
             ReturnTransform::BoolToErrno => {
-                if value == 0 { -1 } else { 0 }
-            }
+                if value == 0 {
+                    -1
+                } else {
+                    0
+                }
+            },
         }
     }
 }
@@ -460,8 +496,14 @@ impl CompatLayer {
     }
 
     /// Register an argument rewriter
-    pub fn register_rewriter(&mut self, profile: CompatProfile, syscall_number: u32, rewriter: ArgRewriter) {
-        self.rewriters.insert((profile as u8, syscall_number), rewriter);
+    pub fn register_rewriter(
+        &mut self,
+        profile: CompatProfile,
+        syscall_number: u32,
+        rewriter: ArgRewriter,
+    ) {
+        self.rewriters
+            .insert((profile as u8, syscall_number), rewriter);
     }
 
     /// Set profile for a process
