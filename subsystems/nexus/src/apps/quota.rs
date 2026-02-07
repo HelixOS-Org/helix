@@ -148,15 +148,15 @@ impl ResourceQuota {
         match action {
             EnforcementAction::Allow | EnforcementAction::Warn => {
                 self.usage += amount;
-            }
+            },
             EnforcementAction::Throttle => {
                 let over = (self.usage + amount).saturating_sub(self.hard_limit);
                 self.burst_used += over;
                 self.usage += amount;
-            }
+            },
             EnforcementAction::Deny | EnforcementAction::Kill => {
                 // Don't consume
-            }
+            },
         }
 
         if self.usage > self.peak_usage {
@@ -464,7 +464,13 @@ impl AppQuotaManager {
     }
 
     /// Consume resource
-    pub fn consume(&mut self, pid: u64, resource: QuotaResource, amount: u64, now: u64) -> EnforcementAction {
+    pub fn consume(
+        &mut self,
+        pid: u64,
+        resource: QuotaResource,
+        amount: u64,
+        now: u64,
+    ) -> EnforcementAction {
         let mut worst_action = EnforcementAction::Allow;
 
         // Consume from process quota
@@ -487,7 +493,10 @@ impl AppQuotaManager {
         }
 
         // Record violation if needed
-        if matches!(worst_action, EnforcementAction::Throttle | EnforcementAction::Deny) {
+        if matches!(
+            worst_action,
+            EnforcementAction::Throttle | EnforcementAction::Deny
+        ) {
             let available = self
                 .process_quotas
                 .get(&pid)
@@ -577,9 +586,10 @@ impl AppQuotaManager {
         for set in self.process_quotas.values_mut() {
             if set.active {
                 // Check if any periodic quotas need reset
-                let needs_reset = set.quotas.iter().any(|q| {
-                    q.period_ms > 0 && now.saturating_sub(set.last_reset) >= q.period_ms
-                });
+                let needs_reset = set
+                    .quotas
+                    .iter()
+                    .any(|q| q.period_ms > 0 && now.saturating_sub(set.last_reset) >= q.period_ms);
                 if needs_reset {
                     set.reset_periodic(now);
                 }
