@@ -158,11 +158,7 @@ impl RunningStats {
     /// Standard deviation
     pub fn std_dev(&self) -> f64 {
         let var = self.variance();
-        if var > 0.0 {
-            libm::sqrt(var)
-        } else {
-            0.0
-        }
+        if var > 0.0 { libm::sqrt(var) } else { 0.0 }
     }
 
     /// Z-score for a value
@@ -452,7 +448,8 @@ impl AnomalyManager {
     pub fn get_detector(&mut self, pid: u64) -> &mut ProcessAnomalyDetector {
         let threshold = self.z_threshold;
         if !self.detectors.contains_key(&pid) && self.detectors.len() < self.max_processes {
-            self.detectors.insert(pid, ProcessAnomalyDetector::new(threshold));
+            self.detectors
+                .insert(pid, ProcessAnomalyDetector::new(threshold));
         }
         self.detectors
             .entry(pid)
