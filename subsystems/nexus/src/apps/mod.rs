@@ -23,16 +23,22 @@
 extern crate alloc;
 
 pub mod adapt;
+pub mod affinity;
 pub mod anomaly;
+pub mod cache;
+pub mod cgroup;
 pub mod classify;
 pub mod container;
 pub mod energy;
+pub mod futex;
+pub mod gpu;
 pub mod history;
 pub mod io;
 pub mod lifecycle;
 pub mod memory;
 pub mod migration;
 pub mod network;
+pub mod numa;
 pub mod optimize;
 pub mod predict;
 pub mod priority;
@@ -41,7 +47,28 @@ pub mod quota;
 pub mod resource;
 pub mod scheduler;
 pub mod signal;
+pub mod syscall_profile;
 pub mod thermal;
+pub mod watchdog;
+// Round 4
+pub mod capability;
+pub mod credential;
+pub mod fault;
+pub mod heap;
+pub mod ipc;
+pub mod mmap_tracker;
+pub mod rlimit;
+pub mod sampling;
+pub mod threading;
+// Round 5
+pub mod binary;
+pub mod dependency;
+pub mod environment;
+pub mod fd_tracker;
+pub mod lock;
+pub mod page_cache;
+pub mod sched_profile;
+pub mod trace;
 
 // Re-export core types
 pub use adapt::{AdaptationAction, AdaptationEngine, ResourceAdjustment, ResourceTarget};
@@ -106,6 +133,109 @@ pub use thermal::{
     AppThermalAnalyzer, AppThermalStats, CoreHeatMap, HeatContribution, ProcessThermalProfile,
     ThermalBudget, ThermalImpact, ThermalReading, ThermalState as AppThermalState,
     ThermalZone as AppThermalZone, ThrottleEvent as AppThrottleEvent,
+};
+// Round 3 re-exports
+pub use affinity::{
+    AffinityMask, AffinityPolicy, AppAffinityManager, AppAffinityStats, CoreDescriptor, CoreType,
+    MigrationEvent as AffinityMigrationEvent, ProcessAffinityProfile,
+};
+pub use cache::{
+    AppCacheAnalyzer, AppCacheStats, CacheAccessType, CacheLevel, CacheLevelCounters,
+    CachePartition, CachePartitionMode, PollutionDetector, PollutionEvent,
+    WorkingSetEstimate as CacheWorkingSetEstimate, WorkingSetTracker, WorkingSetTrend,
+};
+pub use cgroup::{
+    AppCgroupAnalyzer, AppCgroupStats, CgroupController, CgroupMigration, CgroupNode,
+    CgroupPressure, CgroupVersion, CpuLimit, IoLimit, MemoryLimit, PidLimit,
+};
+pub use futex::{
+    AppFutexAnalyzer, AppFutexStats, LockDescriptor, LockState, PriorityInversion,
+    ProcessSyncProfile, SyncPrimitiveType, WaitChain, WaitChainEntry,
+};
+pub use gpu::{
+    AppGpuAnalyzer, AppGpuStats, GpuAllocType, GpuAllocation, GpuDevice, GpuDeviceType,
+    GpuEngine, ProcessGpuProfile,
+};
+pub use numa::{
+    AppNumaAnalyzer, AppNumaStats, NumaAccessCounters, NumaAccessType, NumaNode, NumaTopology,
+    PlacementReason, PlacementRecommendation, ProcessNumaProfile,
+};
+pub use syscall_profile::{
+    AppSyscallProfileStats, AppSyscallProfiler, BottleneckType, PatternDetector, PatternType,
+    ProcessSyscallProfile, SyscallBottleneck, SyscallCategory, SyscallCostClass, SyscallCounter,
+    SyscallDescriptor, SyscallPattern,
+};
+pub use watchdog::{
+    AppWatchdogManager, AppWatchdogStats, HealthCheckConfig, HealthCheckResult, HealthCheckType,
+    ProcessWatchdog, RecoveryAction, WatchdogStatus,
+};
+// Round 4 re-exports
+pub use capability::{
+    AppCapability, AppCapabilityManager, AppCapabilitySet, AppCapabilityStats, CapUsageRecord,
+    CapabilityCategory, ProcessCapProfile,
+};
+pub use credential::{
+    AppCredentialManager, AppCredentialStats, CredentialChange, CredentialEvent, CredentialSet,
+    GroupId, ProcessCredProfile, SecuritySession, SessionType, UserId,
+};
+pub use fault::{
+    AppFaultAnalyzer, AppFaultStats, FaultEvent, FaultPattern, FaultSeverity, FaultType,
+    ProcessFaultProfile,
+};
+pub use heap::{
+    AllocEventType, AllocHistogram, AllocRecord, AllocSizeClass, AppHeapAnalyzer, AppHeapStats,
+    CallsiteProfile, FragmentationInfo, PotentialLeak, ProcessHeapProfile,
+};
+pub use ipc::{
+    AppIpcAnalyzer, AppIpcChannel, AppIpcMechanism, AppIpcStats, IpcChannelId, IpcDirection,
+    IpcEdge, IpcGraph,
+};
+pub use mmap_tracker::{
+    AppMmapStats, AppMmapTracker, MmapFlags, MmapProtection, MmapRegion, MmapType,
+    ProcessAddressSpace, VasStats,
+};
+pub use rlimit::{
+    AppRlimitManager, AppRlimitStats, LimitViolation, ProcessLimitProfile, Rlimit,
+    RlimitResource, ViolationType,
+};
+pub use sampling::{
+    AddressHistogram, AppSamplingEngine, AppSamplingStats, CallGraph, ProcessSamplingProfile,
+    Sample, SampleSource, SamplingConfig,
+};
+pub use threading::{
+    AppThreadAnalyzer, AppThreadState, AppThreadStats, CommEdge, CommType, ThreadDescriptor,
+    ThreadPool, ThreadType,
+};
+// Round 5 re-exports
+pub use binary::{
+    AppBinaryAnalyzer, AppBinaryStats, BinaryProfile, ExecFormat, SectionInfo, SectionPerms,
+    SectionType, SymbolBinding, SymbolInfo, SymbolType,
+};
+pub use dependency::{
+    AppDependencyAnalyzer, AppDependencyStats, DepState, DepStrength, DependencyEdge,
+    DependencyGraph, AppDepType,
+};
+pub use environment::{
+    AppEnvironmentStats, AppEnvironmentTracker, EnvCategory, EnvDiff, EnvEntry,
+    EnvironmentSnapshot, NamespaceInfo, NamespaceSet as AppNamespaceSet, ProcessEnvironment,
+};
+pub use fd_tracker::{AppFdStats, AppFdTracker, FdEntry, FdFlags, FdTable, FdType};
+pub use lock::{
+    AppLockAnalyzer, AppLockStats, DeadlockDetector, LockEventType, LockInstance,
+    LockOrderPair, LockOrderValidator, LockType, WaitForEdge,
+};
+pub use page_cache::{
+    AccessPattern as AppAccessPattern, AppPageCacheProfiler, AppPageCacheStats, CachedPage,
+    FaultLatencyHistogram, PageFaultRecord, PageFaultType, PageState,
+    ProcessPageCacheStats, ThrashingDetector, WorkingSetEstimator as AppWorkingSetEstimator,
+};
+pub use sched_profile::{
+    AppSchedProfileStats, AppSchedProfiler, ContextSwitchReason, CpuBurst, RunState,
+    ThreadSchedProfile, WakeupChainTracker, WakeupEvent as AppWakeupEvent,
+};
+pub use trace::{
+    AppCallGraph, AppTraceEvent, AppTraceEventType, AppTraceProfiler, AppTraceStats,
+    CallNode, FlameGraphCollector, FlameStack,
 };
 
 // ============================================================================
