@@ -128,7 +128,9 @@ impl CompressionDictionary {
 
     /// Evict LRU
     fn evict_lru(&mut self) {
-        let lru_key = self.entries.iter()
+        let lru_key = self
+            .entries
+            .iter()
             .min_by_key(|(_, e)| e.last_used_ns)
             .map(|(k, _)| *k);
         if let Some(k) = lru_key {
@@ -257,9 +259,17 @@ impl DeltaEncoder {
         }
         // Estimate bytes needed for deltas vs full values
         let full_bytes = values.len() * 8;
-        let delta_bits = if max_delta == 0 { 1 } else { 64 - max_delta.leading_zeros() as usize };
+        let delta_bits = if max_delta == 0 {
+            1
+        } else {
+            64 - max_delta.leading_zeros() as usize
+        };
         let delta_bytes = (values.len() * delta_bits + 7) / 8 + 8; // +8 for base value
-        let saved = if full_bytes > delta_bytes { full_bytes - delta_bytes } else { 0 };
+        let saved = if full_bytes > delta_bytes {
+            full_bytes - delta_bytes
+        } else {
+            0
+        };
         self.stats.bytes_saved += saved as u64;
         saved as u64
     }
@@ -355,7 +365,12 @@ impl BridgeCompressionEngine {
     }
 
     /// Compress data — returns estimated compressed size
-    pub fn compress(&mut self, data: &[u8], syscall_nr: u32, now: u64) -> (CompressionResult, usize) {
+    pub fn compress(
+        &mut self,
+        data: &[u8],
+        syscall_nr: u32,
+        now: u64,
+    ) -> (CompressionResult, usize) {
         self.stats.operations += 1;
         self.stats.bytes_processed += data.len() as u64;
 
@@ -373,13 +388,13 @@ impl BridgeCompressionEngine {
                 } else {
                     (CompressionResult::Expansion, data.len())
                 }
-            }
+            },
             CompressionAlgorithm::Dictionary => {
                 // Add to dictionary and estimate
                 self.dictionary.add_pattern(data, now);
                 let estimated = data.len() * 3 / 4; // rough 25% savings
                 (CompressionResult::Compressed, estimated)
-            }
+            },
             CompressionAlgorithm::Delta | CompressionAlgorithm::Adaptive => {
                 let rle_size = self.rle.estimate_compressed_size(data);
                 if rle_size < data.len() {
@@ -388,14 +403,17 @@ impl BridgeCompressionEngine {
                     self.dictionary.add_pattern(data, now);
                     (CompressionResult::Incompressible, data.len())
                 }
-            }
+            },
         };
 
         // Update profile
-        let profile = self.profiles.entry(syscall_nr).or_insert_with(|| SyscallCompressionProfile {
-            syscall_class: syscall_nr,
-            ..Default::default()
-        });
+        let profile =
+            self.profiles
+                .entry(syscall_nr)
+                .or_insert_with(|| SyscallCompressionProfile {
+                    syscall_class: syscall_nr,
+                    ..Default::default()
+                });
         profile.total_compressed += 1;
         profile.total_original += data.len() as u64;
         profile.total_compressed_bytes += compressed_size as u64;
