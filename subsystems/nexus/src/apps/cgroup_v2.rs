@@ -10,8 +10,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // CGROUP TYPES
@@ -309,7 +309,9 @@ impl AppCgroupV2Profiler {
     /// Register cgroup
     pub fn register(&mut self, path: String, version: CgroupVersion) -> u64 {
         let key = Self::hash_path(&path);
-        self.nodes.entry(key).or_insert_with(|| CgroupNode::new(path, version));
+        self.nodes
+            .entry(key)
+            .or_insert_with(|| CgroupNode::new(path, version));
         self.update_stats();
         key
     }
@@ -360,7 +362,8 @@ impl AppCgroupV2Profiler {
     /// Get pressure for cgroup
     pub fn pressure(&self, path: &str) -> CgroupPressure {
         let key = Self::hash_path(path);
-        self.nodes.get(&key)
+        self.nodes
+            .get(&key)
             .map(|n| n.memory.pressure())
             .unwrap_or(CgroupPressure::None)
     }
@@ -368,10 +371,14 @@ impl AppCgroupV2Profiler {
     fn update_stats(&mut self) {
         self.stats.tracked_cgroups = self.nodes.len();
         self.stats.total_processes = self.pid_map.len();
-        self.stats.throttled_cgroups = self.nodes.values()
+        self.stats.throttled_cgroups = self
+            .nodes
+            .values()
             .filter(|n| n.cpu.throttle_rate() > 0.1)
             .count();
-        self.stats.oom_risk_cgroups = self.nodes.values()
+        self.stats.oom_risk_cgroups = self
+            .nodes
+            .values()
             .filter(|n| n.memory.usage_ratio() > 0.9)
             .count();
     }
