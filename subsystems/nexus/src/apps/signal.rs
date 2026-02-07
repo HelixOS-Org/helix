@@ -211,13 +211,7 @@ impl SignalCoalescer {
     }
 
     /// Submit signal for potential coalescing
-    pub fn submit(
-        &mut self,
-        pid: u64,
-        signal: u32,
-        sender: u64,
-        timestamp: u64,
-    ) -> bool {
+    pub fn submit(&mut self, pid: u64, signal: u32, sender: u64, timestamp: u64) -> bool {
         let rule = match self.rules.get(&signal) {
             Some(r) if r.enabled => r.clone(),
             _ => return false,
@@ -241,16 +235,13 @@ impl SignalCoalescer {
         }
 
         // Start new coalesce group
-        process_pending.insert(
+        process_pending.insert(signal, CoalescedSignal {
             signal,
-            CoalescedSignal {
-                signal,
-                count: 1,
-                first_at: timestamp,
-                last_at: timestamp,
-                senders: alloc::vec![sender],
-            },
-        );
+            count: 1,
+            first_at: timestamp,
+            last_at: timestamp,
+            senders: alloc::vec![sender],
+        });
 
         false
     }
@@ -308,26 +299,27 @@ impl AppSignalAnalyzer {
 
     /// Register process
     pub fn register_process(&mut self, pid: u64) {
-        self.profiles.insert(
+        self.profiles.insert(pid, ProcessSignalProfile {
             pid,
-            ProcessSignalProfile {
-                pid,
-                arch_pattern: SignalArchPattern::Minimal,
-                handlers: Vec::new(),
-                blocked_mask: 0,
-                signal_stats: BTreeMap::new(),
-                total_received: 0,
-                signal_heavy: false,
-                delivery_preference: DeliveryPreference::Immediate,
-            },
-        );
+            arch_pattern: SignalArchPattern::Minimal,
+            handlers: Vec::new(),
+            blocked_mask: 0,
+            signal_stats: BTreeMap::new(),
+            total_received: 0,
+            signal_heavy: false,
+            delivery_preference: DeliveryPreference::Immediate,
+        });
     }
 
     /// Record signal handler installation
     pub fn record_handler(&mut self, pid: u64, info: SignalHandlerInfo) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             // Update or add handler
-            if let Some(existing) = profile.handlers.iter_mut().find(|h| h.signal == info.signal) {
+            if let Some(existing) = profile
+                .handlers
+                .iter_mut()
+                .find(|h| h.signal == info.signal)
+            {
                 *existing = info;
             } else {
                 profile.handlers.push(info);
@@ -371,21 +363,38 @@ impl AppSignalAnalyzer {
     pub fn detect_pattern(&mut self, pid: u64) -> Option<SignalArchPattern> {
         let profile = self.profiles.get_mut(&pid)?;
 
-        let has_sigio = profile.handlers.iter().any(|h| h.category == SignalCategory::Io);
-        let has_sigalrm = profile.handlers.iter().any(|h| h.category == SignalCategory::Timer);
-        let has_sigchld = profile.handlers.iter().any(|h| h.category == SignalCategory::Child);
-        let has_sigusr = profile.handlers.iter().any(|h| h.category == SignalCategory::User);
-        let has_rt = profile.handlers.iter().any(|h| h.category == SignalCategory::Realtime);
+        let has_sigio = profile
+            .handlers
+            .iter()
+            .any(|h| h.category == SignalCategory::Io);
+        let has_sigalrm = profile
+            .handlers
+            .iter()
+            .any(|h| h.category == SignalCategory::Timer);
+        let has_sigchld = profile
+            .handlers
+            .iter()
+            .any(|h| h.category == SignalCategory::Child);
+        let has_sigusr = profile
+            .handlers
+            .iter()
+            .any(|h| h.category == SignalCategory::User);
+        let has_rt = profile
+            .handlers
+            .iter()
+            .any(|h| h.category == SignalCategory::Realtime);
 
         let pattern = if has_rt {
             SignalArchPattern::RealtimeQueue
         } else if has_sigio {
             SignalArchPattern::SignalDrivenIo
-        } else if has_sigalrm && profile
-            .signal_stats
-            .values()
-            .filter(|s| s.delivered > 10)
-            .count() > 0
+        } else if has_sigalrm
+            && profile
+                .signal_stats
+                .values()
+                .filter(|s| s.delivered > 10)
+                .count()
+                > 0
         {
             SignalArchPattern::TimerBased
         } else if has_sigchld {
