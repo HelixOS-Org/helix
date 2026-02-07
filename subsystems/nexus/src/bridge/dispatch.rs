@@ -175,7 +175,8 @@ impl DispatchTable {
 
     /// Register handler
     pub fn register(&mut self, syscall_nr: u32, handler_type: HandlerType) {
-        self.handlers.insert(syscall_nr, HandlerEntry::new(syscall_nr, handler_type));
+        self.handlers
+            .insert(syscall_nr, HandlerEntry::new(syscall_nr, handler_type));
     }
 
     /// Lookup handler
@@ -198,8 +199,8 @@ impl DispatchTable {
                     } else {
                         DispatchDecision::Immediate
                     }
-                }
-            }
+                },
+            },
         }
     }
 
@@ -217,7 +218,9 @@ impl DispatchTable {
 
     /// Rebuild hot cache
     pub fn rebuild_hot_cache(&mut self) {
-        let mut entries: Vec<(u32, u64)> = self.handlers.iter()
+        let mut entries: Vec<(u32, u64)> = self
+            .handlers
+            .iter()
             .filter(|(_, h)| h.is_hot)
             .map(|(&nr, h)| (nr, h.invocations))
             .collect();
@@ -316,7 +319,8 @@ impl SyscallPredictor {
         }
 
         let confidence = best_count as f64 / total as f64;
-        let handler_type = table.lookup(best_nr)
+        let handler_type = table
+            .lookup(best_nr)
             .map(|h| h.handler_type)
             .unwrap_or(HandlerType::Standard);
 
@@ -389,8 +393,8 @@ impl BridgeDispatchOptimizer {
                 if self.table.is_hot(syscall_nr) {
                     self.stats.hot_dispatches += 1;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Record for prediction
@@ -401,7 +405,8 @@ impl BridgeDispatchOptimizer {
 
     /// Record completion
     pub fn record_completion(&mut self, syscall_nr: u32, latency_ns: u64, success: bool) {
-        self.table.record_invocation(syscall_nr, latency_ns, success);
+        self.table
+            .record_invocation(syscall_nr, latency_ns, success);
     }
 
     /// Predict next syscall
