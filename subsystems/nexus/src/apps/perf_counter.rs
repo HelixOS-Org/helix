@@ -325,12 +325,17 @@ impl AppPerfCounterProfiler {
 
     /// Get/create process
     pub fn process(&mut self, pid: u64) -> &mut ProcessPerfProfile {
-        self.processes.entry(pid).or_insert_with(|| ProcessPerfProfile::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessPerfProfile::new(pid))
     }
 
     /// Update process counters
     pub fn update(&mut self, pid: u64, snapshot: CounterSnapshot) {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessPerfProfile::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessPerfProfile::new(pid));
         proc.update(snapshot);
         self.update_stats();
     }
@@ -353,16 +358,19 @@ impl AppPerfCounterProfiler {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.cpu_bound = self.processes.values()
+        self.stats.cpu_bound = self
+            .processes
+            .values()
             .filter(|p| p.bottleneck == PerfBottleneck::CpuBound)
             .count();
-        self.stats.memory_bound = self.processes.values()
+        self.stats.memory_bound = self
+            .processes
+            .values()
             .filter(|p| p.bottleneck == PerfBottleneck::MemoryBound)
             .count();
         if !self.processes.is_empty() {
-            self.stats.avg_ipc = self.processes.values()
-                .map(|p| p.avg_ipc())
-                .sum::<f64>() / self.processes.len() as f64;
+            self.stats.avg_ipc = self.processes.values().map(|p| p.avg_ipc()).sum::<f64>()
+                / self.processes.len() as f64;
         }
     }
 
