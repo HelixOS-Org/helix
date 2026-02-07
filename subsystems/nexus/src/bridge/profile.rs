@@ -48,7 +48,10 @@ impl AppClass {
 
     /// Whether this class benefits from batching
     pub fn benefits_from_batching(&self) -> bool {
-        matches!(self, Self::IoIntensive | Self::Batch | Self::NetworkIntensive)
+        matches!(
+            self,
+            Self::IoIntensive | Self::Batch | Self::NetworkIntensive
+        )
     }
 
     /// Whether this class is latency-sensitive
@@ -112,10 +115,7 @@ impl ResourceUsagePattern {
         let net_score = self.net_bps as f64 / 1_000_000_000.0;
         let mem_score = self.avg_memory as f64 / (4 * 1024 * 1024 * 1024) as f64;
 
-        let max = cpu_score
-            .max(io_score)
-            .max(net_score)
-            .max(mem_score);
+        let max = cpu_score.max(io_score).max(net_score).max(mem_score);
 
         if (max - cpu_score).abs() < f64::EPSILON {
             "cpu"
@@ -373,8 +373,7 @@ impl AppProfiler {
                 .count();
 
             behavior.sequential_reads = read_count as f64 / self.recent_types.len() as f64 > 0.6;
-            behavior.sequential_writes =
-                write_count as f64 / self.recent_types.len() as f64 > 0.6;
+            behavior.sequential_writes = write_count as f64 / self.recent_types.len() as f64 > 0.6;
         }
 
         // Detect mmap usage
@@ -417,7 +416,8 @@ impl AppProfiler {
         } else if behavior.avg_inter_syscall_ns > 10_000_000 {
             // Long gaps between syscalls → CPU-bound
             AppClass::CpuIntensive
-        } else if behavior.avg_inter_syscall_ns < 100_000 && behavior.inter_syscall_stddev < 50_000.0
+        } else if behavior.avg_inter_syscall_ns < 100_000
+            && behavior.inter_syscall_stddev < 50_000.0
         {
             // Very regular, fast syscalls → real-time
             AppClass::RealTime
@@ -470,16 +470,14 @@ impl AppProfiler {
                         expected_improvement: 0.25,
                     });
                 }
-            }
+            },
             AppClass::NetworkIntensive => {
                 recs.push(ProfileRecommendation {
                     category: "batching",
-                    description: String::from(
-                        "Batch network sends for throughput improvement",
-                    ),
+                    description: String::from("Batch network sends for throughput improvement"),
                     expected_improvement: 0.20,
                 });
-            }
+            },
             AppClass::Interactive => {
                 recs.push(ProfileRecommendation {
                     category: "latency",
@@ -488,7 +486,7 @@ impl AppProfiler {
                     ),
                     expected_improvement: 0.15,
                 });
-            }
+            },
             AppClass::RealTime => {
                 recs.push(ProfileRecommendation {
                     category: "prediction",
@@ -497,8 +495,8 @@ impl AppProfiler {
                     ),
                     expected_improvement: 0.30,
                 });
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // General recommendations
