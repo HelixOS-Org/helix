@@ -477,3 +477,8 @@ result-*
 
 # asdf
 .tool-versions.local
+
+# Cleanup: artefacts et temporaires
+build/uefi_test/
+build/uefi_shell/
+build/uefi_final/
