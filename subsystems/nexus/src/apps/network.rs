@@ -105,7 +105,14 @@ pub struct TrackedConnection {
 }
 
 impl TrackedConnection {
-    pub fn new(id: u64, pid: u64, remote_hash: u64, remote_port: u16, local_port: u16, timestamp: u64) -> Self {
+    pub fn new(
+        id: u64,
+        pid: u64,
+        remote_hash: u64,
+        remote_port: u16,
+        local_port: u16,
+        timestamp: u64,
+    ) -> Self {
         Self {
             id,
             pid,
@@ -320,7 +327,10 @@ impl AppNetworkAnalyzer {
     pub fn analyze_process(&mut self, pid: u64) -> Option<&ProcessNetworkProfile> {
         let conns = self.connections.get(&pid)?;
 
-        let active = conns.iter().filter(|c| c.state == ConnState::Established).count() as u32;
+        let active = conns
+            .iter()
+            .filter(|c| c.state == ConnState::Established)
+            .count() as u32;
         let total = conns.len() as u64;
 
         let total_sent: u64 = conns.iter().map(|c| c.bytes_sent).sum();
@@ -339,7 +349,10 @@ impl AppNetworkAnalyzer {
             AppNetworkPattern::ShortLived
         } else if avg_duration > 30_000 && active > 0 {
             AppNetworkPattern::Streaming
-        } else if conns.iter().any(|c| c.avg_rtt_us() > 0 && c.avg_rtt_us() < 1000) {
+        } else if conns
+            .iter()
+            .any(|c| c.avg_rtt_us() > 0 && c.avg_rtt_us() < 1000)
+        {
             AppNetworkPattern::RequestResponse
         } else {
             AppNetworkPattern::Persistent
@@ -371,22 +384,19 @@ impl AppNetworkAnalyzer {
             _ => 0,
         };
 
-        self.profiles.insert(
+        self.profiles.insert(pid, ProcessNetworkProfile {
             pid,
-            ProcessNetworkProfile {
-                pid,
-                pattern,
-                active_connections: active,
-                total_connections: total,
-                total_bytes_sent: total_sent,
-                total_bytes_received: total_recv,
-                avg_conn_duration_ms: avg_duration,
-                protocol_dist: proto_dist,
-                latency_sensitive,
-                recommended_pool_size: pool_size,
-                qos_class: qos,
-            },
-        );
+            pattern,
+            active_connections: active,
+            total_connections: total,
+            total_bytes_sent: total_sent,
+            total_bytes_received: total_recv,
+            avg_conn_duration_ms: avg_duration,
+            protocol_dist: proto_dist,
+            latency_sensitive,
+            recommended_pool_size: pool_size,
+            qos_class: qos,
+        });
 
         self.profiles.get(&pid)
     }
