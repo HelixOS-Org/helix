@@ -6,7 +6,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use super::classify::WorkloadCategory;
 use super::profile::ProcessProfile;
 
 // ============================================================================
