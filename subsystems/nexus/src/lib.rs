@@ -407,6 +407,11 @@ pub mod integration;
 
 pub use crate::accel::{AcceleratorRegistry, CryptoAccel, VectorOps};
 pub use crate::anomaly::{Anomaly, AnomalyDetector};
+// Apps (4.2) - Application Understanding Engine
+pub use crate::apps::{
+    AdaptationEngine, AppFingerprint, BehaviorSignature, OptimizationEngine, ProcessProfile,
+    WorkloadCategory, WorkloadPredictor,
+};
 // TODO: bench module is empty - uncomment when types are implemented
 // pub use crate::bench::{Benchmark, BenchmarkResult, BenchmarkSuite};
 // Block Device Intelligence Re-exports
@@ -415,6 +420,13 @@ pub use crate::block::{
     BlockIntelligence, BlockManager, DiskStats, IoRequest as BlockIoRequest, IoRequestType,
     IoScheduler as BlockIoScheduler, Major, Minor, Partition, PartitionType, QueueDepth,
     RequestQueue, WorkloadAnalysis as BlockWorkloadAnalysis, WorkloadType as BlockWorkloadType,
+};
+pub use crate::bridge::profile::{AppClass, AppProfile, AppProfiler};
+// Year 4 - SYMBIOSIS Re-exports
+// Bridge (4.1) - Intelligent Syscall Layer
+pub use crate::bridge::{
+    AsyncIoEngine, AsyncPriority, BatchOptimizer, SyscallContext, SyscallInterceptor,
+    SyscallPredictor, SyscallRouter, SyscallType,
 };
 // Cache Intelligence Re-exports
 pub use crate::cache::{
@@ -426,6 +438,14 @@ pub use crate::canary::{Canary, CanaryMonitor, Invariant};
 pub use crate::causal::{CausalEdge, CausalGraph, CausalNode};
 pub use crate::chaos::{ChaosEngine, FaultConfig};
 pub use crate::config::NexusConfig;
+pub use crate::coop::hints::{
+    AppHint, AppHintType, KernelAdvisory, KernelAdvisoryType, PressureLevel,
+};
+// Coop (4.3) - Cooperation Protocol
+pub use crate::coop::{
+    Contract, ContractState, CoopFeedback, CoopMessage, CoopSession, FeedbackCollector,
+    FeedbackType, HintBus, NegotiationEngine, ProtocolVersion,
+};
 pub use crate::core::{Nexus, NexusLevel, NexusState};
 pub use crate::debug::{BugPattern, Debugger, Diagnosis};
 // Q2 Re-exports
@@ -457,6 +477,12 @@ pub use crate::ftrace::{
 };
 pub use crate::fuzz::{FuzzInput, Fuzzer, MutationStrategy};
 pub use crate::heal::{HealingEngine, HealingResult, HealingStrategy};
+pub use crate::holistic::policy::{PolicyAction, PolicyCondition};
+// Holistic (4.4) - System-Wide Optimization
+pub use crate::holistic::{
+    OptimizationGoal, Orchestrator, PolicyEngine, PolicyRule, ResourceBalancer, SystemPredictor,
+    SystemSnapshot,
+};
 // Integration Re-exports
 // TODO: integration module is empty - uncomment when types are implemented
 // pub use crate::integration::{HealthProbe, HealthStatus, NexusRuntime};
@@ -606,35 +632,6 @@ pub use crate::virtualization::{
     VirtualizationIntelligence, VmExitStats, VmExitType, VmInfo, VmIntelligence, WorkloadInfo,
     WorkloadPriority, WorkloadState,
 };
-
-// Year 4 - SYMBIOSIS Re-exports
-// Bridge (4.1) - Intelligent Syscall Layer
-pub use crate::bridge::{
-    AsyncIoEngine, AsyncPriority, BatchOptimizer, SyscallContext, SyscallInterceptor,
-    SyscallPredictor, SyscallRouter, SyscallType,
-};
-pub use crate::bridge::profile::{AppClass, AppProfile, AppProfiler};
-
-// Apps (4.2) - Application Understanding Engine
-pub use crate::apps::{
-    AdaptationEngine, AppFingerprint, BehaviorSignature, OptimizationEngine, ProcessProfile,
-    WorkloadCategory, WorkloadPredictor,
-};
-
-// Coop (4.3) - Cooperation Protocol
-pub use crate::coop::{
-    CoopFeedback, CoopMessage, CoopSession, Contract, ContractState, FeedbackCollector,
-    FeedbackType, HintBus, NegotiationEngine, ProtocolVersion,
-};
-pub use crate::coop::hints::PressureLevel;
-pub use crate::coop::hints::{AppHint, AppHintType, KernelAdvisory, KernelAdvisoryType};
-
-// Holistic (4.4) - System-Wide Optimization
-pub use crate::holistic::{
-    OptimizationGoal, Orchestrator, PolicyEngine, PolicyRule, ResourceBalancer, SystemPredictor,
-    SystemSnapshot,
-};
-pub use crate::holistic::policy::{PolicyAction, PolicyCondition};
 
 // ============================================================================
 // VERSION INFO
