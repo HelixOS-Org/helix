@@ -27,19 +27,19 @@ use super::syscall::SyscallType;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PipelineStage {
     /// Initial interception and classification
-    Intercept = 0,
+    Intercept   = 0,
     /// Intent and pattern analysis
-    Analyze = 1,
+    Analyze     = 1,
     /// Transformation and rewriting
-    Transform = 2,
+    Transform   = 2,
     /// Cache lookup
-    CacheCheck = 3,
+    CacheCheck  = 3,
     /// Security validation
-    Security = 4,
+    Security    = 4,
     /// Scheduling and prioritization
-    Schedule = 5,
+    Schedule    = 5,
     /// Kernel execution
-    Execute = 6,
+    Execute     = 6,
     /// Post-processing and feedback
     PostProcess = 7,
 }
@@ -99,17 +99,17 @@ pub enum StageDecision {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ExecutionPriority {
     /// Immediate execution (latency-critical)
-    Immediate = 0,
+    Immediate  = 0,
     /// High priority
-    High = 1,
+    High       = 1,
     /// Normal priority
-    Normal = 2,
+    Normal     = 2,
     /// Low priority (can be batched)
-    Low = 3,
+    Low        = 3,
     /// Background (execute when idle)
     Background = 4,
     /// Deferred (will be batched)
-    Deferred = 5,
+    Deferred   = 5,
 }
 
 /// Context that flows through the pipeline
@@ -152,7 +152,13 @@ pub struct PipelineContext {
 }
 
 impl PipelineContext {
-    pub fn new(request_id: u64, pid: u64, tid: u64, syscall_type: SyscallType, args: [u64; 6]) -> Self {
+    pub fn new(
+        request_id: u64,
+        pid: u64,
+        tid: u64,
+        syscall_type: SyscallType,
+        args: [u64; 6],
+    ) -> Self {
         Self {
             request_id,
             pid,
@@ -197,10 +203,7 @@ impl PipelineContext {
 
     /// Add an annotation
     pub fn annotate(&mut self, stage: PipelineStage, message: String) {
-        self.annotations.push(PipelineAnnotation {
-            stage,
-            message,
-        });
+        self.annotations.push(PipelineAnnotation { stage, message });
     }
 }
 
@@ -244,7 +247,7 @@ impl StageStats {
         match decision {
             StageDecision::Continue | StageDecision::SkipTo(_) | StageDecision::Retry => {
                 self.continues += 1;
-            }
+            },
             StageDecision::ShortCircuit => self.short_circuits += 1,
             StageDecision::Abort => self.aborts += 1,
             StageDecision::Defer => self.defers += 1,
@@ -434,12 +437,7 @@ impl SyscallPipeline {
     }
 
     /// Record a stage result
-    pub fn record_stage(
-        &mut self,
-        stage: PipelineStage,
-        latency_ns: u64,
-        decision: StageDecision,
-    ) {
+    pub fn record_stage(&mut self, stage: PipelineStage, latency_ns: u64, decision: StageDecision) {
         self.stats.stages[stage as usize].record(latency_ns, decision);
     }
 
