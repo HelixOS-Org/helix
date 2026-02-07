@@ -92,7 +92,11 @@ impl AggregateAccumulator {
             end,
             min: self.min,
             max: self.max,
-            mean: if self.count > 0 { self.sum / self.count as f64 } else { 0.0 },
+            mean: if self.count > 0 {
+                self.sum / self.count as f64
+            } else {
+                0.0
+            },
             count: self.count,
             sum: self.sum,
         }
@@ -125,7 +129,7 @@ impl TimeSeries {
         match &mut self.current_minute {
             Some(acc) if timestamp.saturating_sub(acc.start) < 60_000 => {
                 acc.add(value);
-            }
+            },
             Some(acc) => {
                 let agg = acc.finalize(timestamp);
                 if self.minute_agg.len() >= self.max_minutes {
@@ -133,17 +137,17 @@ impl TimeSeries {
                 }
                 self.minute_agg.push(agg);
                 self.current_minute = Some(AggregateAccumulator::new(timestamp, value));
-            }
+            },
             None => {
                 self.current_minute = Some(AggregateAccumulator::new(timestamp, value));
-            }
+            },
         }
 
         // Hour aggregation (3,600,000 ms = 1 hour)
         match &mut self.current_hour {
             Some(acc) if timestamp.saturating_sub(acc.start) < 3_600_000 => {
                 acc.add(value);
-            }
+            },
             Some(acc) => {
                 let agg = acc.finalize(timestamp);
                 if self.hour_agg.len() >= self.max_hours {
@@ -151,10 +155,10 @@ impl TimeSeries {
                 }
                 self.hour_agg.push(agg);
                 self.current_hour = Some(AggregateAccumulator::new(timestamp, value));
-            }
+            },
             None => {
                 self.current_hour = Some(AggregateAccumulator::new(timestamp, value));
-            }
+            },
         }
     }
 
@@ -179,8 +183,10 @@ impl TimeSeries {
             return 0.0;
         }
         let n = self.raw.len();
-        let first_half: f64 = self.raw[..n / 2].iter().map(|(_, v)| v).sum::<f64>() / (n / 2) as f64;
-        let second_half: f64 = self.raw[n / 2..].iter().map(|(_, v)| v).sum::<f64>() / (n - n / 2) as f64;
+        let first_half: f64 =
+            self.raw[..n / 2].iter().map(|(_, v)| v).sum::<f64>() / (n / 2) as f64;
+        let second_half: f64 =
+            self.raw[n / 2..].iter().map(|(_, v)| v).sum::<f64>() / (n - n / 2) as f64;
         if first_half < 0.001 {
             return 0.0;
         }
@@ -258,7 +264,7 @@ impl WorkloadHistory {
         Self {
             pid,
             binary_id,
-            cpu_usage: TimeSeries::new(300, 60, 24),     // 5 min raw, 1h minute, 1d hour
+            cpu_usage: TimeSeries::new(300, 60, 24), // 5 min raw, 1h minute, 1d hour
             memory_usage: TimeSeries::new(300, 60, 24),
             io_rate: TimeSeries::new(300, 60, 24),
             syscall_rate: TimeSeries::new(300, 60, 24),
@@ -416,7 +422,8 @@ impl WorkloadHistoryManager {
     /// Get or create process history
     pub fn get_or_create(&mut self, pid: u64, binary_id: u64) -> &mut WorkloadHistory {
         if !self.histories.contains_key(&pid) && self.histories.len() < self.max_processes {
-            self.histories.insert(pid, WorkloadHistory::new(pid, binary_id));
+            self.histories
+                .insert(pid, WorkloadHistory::new(pid, binary_id));
         }
         self.histories
             .entry(pid)
@@ -435,8 +442,11 @@ impl WorkloadHistoryManager {
 
     /// Get or create binary history
     pub fn get_or_create_binary(&mut self, binary_id: u64) -> &mut BinaryHistory {
-        if !self.binary_histories.contains_key(&binary_id) && self.binary_histories.len() < self.max_binaries {
-            self.binary_histories.insert(binary_id, BinaryHistory::new(binary_id));
+        if !self.binary_histories.contains_key(&binary_id)
+            && self.binary_histories.len() < self.max_binaries
+        {
+            self.binary_histories
+                .insert(binary_id, BinaryHistory::new(binary_id));
         }
         self.binary_histories
             .entry(binary_id)
