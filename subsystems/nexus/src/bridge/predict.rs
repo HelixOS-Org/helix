@@ -164,7 +164,12 @@ impl SyscallPredictor {
             let key = self.compute_ngram_key();
             let type_key = syscall_type.from_number_reverse_pub();
 
-            *self.ngram_table.entry(key).or_default().entry(type_key).or_insert(0) += 1;
+            *self
+                .ngram_table
+                .entry(key)
+                .or_default()
+                .entry(type_key)
+                .or_insert(0) += 1;
             *self.ngram_totals.entry(key).or_insert(0) += 1;
         }
 
@@ -191,9 +196,7 @@ impl SyscallPredictor {
         }
 
         // Find the most likely next syscall
-        let (best_type_key, best_count) = transitions
-            .iter()
-            .max_by_key(|(_, count)| **count)?;
+        let (best_type_key, best_count) = transitions.iter().max_by_key(|(_, count)| **count)?;
 
         let probability = *best_count as f64 / total as f64;
 
