@@ -410,20 +410,17 @@ impl FallbackEngine {
 
             if let Some(ref retry_config) = rule.retry_config {
                 // Start retry state
-                self.active_retries.insert(
-                    key,
-                    RetryState {
-                        syscall_nr,
-                        pid,
-                        attempt: 1,
-                        max_attempts: retry_config.max_retries,
-                        strategy: rule.strategy,
-                        started_at: timestamp,
-                        last_attempt_at: timestamp,
-                        next_retry_at: timestamp + retry_config.initial_backoff_us,
-                        error,
-                    },
-                );
+                self.active_retries.insert(key, RetryState {
+                    syscall_nr,
+                    pid,
+                    attempt: 1,
+                    max_attempts: retry_config.max_retries,
+                    strategy: rule.strategy,
+                    started_at: timestamp,
+                    last_attempt_at: timestamp,
+                    next_retry_at: timestamp + retry_config.initial_backoff_us,
+                    error,
+                });
             }
 
             rule.strategy
@@ -431,10 +428,7 @@ impl FallbackEngine {
             FallbackStrategy::PropagateError
         };
 
-        *stats
-            .by_strategy
-            .entry(strategy as u8)
-            .or_insert(0) += 1;
+        *stats.by_strategy.entry(strategy as u8).or_insert(0) += 1;
 
         strategy
     }
