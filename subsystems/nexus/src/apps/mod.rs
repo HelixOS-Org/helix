@@ -69,6 +69,17 @@ pub mod lock;
 pub mod page_cache;
 pub mod sched_profile;
 pub mod trace;
+// Round 6
+pub mod cgroup_v2;
+pub mod exe_profile;
+pub mod futex_v2;
+pub mod interrupt;
+pub mod leak_detect;
+pub mod net_stack;
+pub mod perf_counter;
+pub mod seccomp_profile;
+pub mod timer_profile;
+pub mod vma_tracker;
 
 // Re-export core types
 pub use adapt::{AdaptationAction, AdaptationEngine, ResourceAdjustment, ResourceTarget};
@@ -236,6 +247,47 @@ pub use sched_profile::{
 pub use trace::{
     AppCallGraph, AppTraceEvent, AppTraceEventType, AppTraceProfiler, AppTraceStats,
     CallNode, FlameGraphCollector, FlameStack,
+};
+// Round 6 re-exports
+pub use cgroup_v2::{
+    AppCgroupV2Profiler, AppCgroupV2Stats, CgroupIoStats, CgroupMemoryStats, CgroupNode as CgroupV2Node,
+    CgroupPressure as CgroupV2Pressure, CpuBandwidth,
+};
+pub use exe_profile::{
+    AppExeProfiler, AppExeProfilerStats, ExeArchitecture, ExecutableFormat, ExecutableProfile,
+    LibraryDep, SectionInfo as ExeSectionInfo, SectionType as ExeSectionType,
+};
+pub use futex_v2::{
+    AppFutexV2Profiler, AppFutexV2Stats, BucketStats, ContentionLevel as FutexContentionLevel,
+    FutexAddress, FutexHashProfiler, FutexOp, WaitChainDetector, WaitResult,
+};
+pub use interrupt::{
+    AppInterruptProfiler, AppInterruptStats, IrqCategory, IrqStats, ProcessIrqImpact,
+    SoftirqStats, SoftirqType, StormDetector, StormSeverity,
+};
+pub use leak_detect::{
+    AllocPattern, AllocType, AllocationRecord, AppLeakDetector, AppLeakDetectorStats,
+    CallsiteStats as LeakCallsiteStats, LeakReport, LeakSeverity, ProcessLeakDetector,
+};
+pub use net_stack::{
+    AppNetProfilerStats, AppNetStackProfiler, ConnDirection, ConnectionProfile,
+    NetProtocol, ProcessNetProfile, SocketBufferStats, TcpState,
+};
+pub use perf_counter::{
+    AppPerfCounterProfiler, AppPerfCounterStats, CounterSnapshot, HwCounter,
+    PerfBottleneck, ProcessPerfProfile,
+};
+pub use seccomp_profile::{
+    AppSeccompProfiler, AppSeccompProfilerStats, FilterChain, FilterResult, FilterRule,
+    ProcessSeccompProfile, SeccompAction, ViolationRecord, ViolationSeverity,
+};
+pub use timer_profile::{
+    AppTimerProfiler, AppTimerProfilerStats, CoalesceGroup, ProcessTimerProfile,
+    TimerPrecision, TimerRecord, TimerState, TimerType, WheelLevelStats,
+};
+pub use vma_tracker::{
+    AppVmaTracker, AppVmaTrackerStats, FragReport, GrowthPattern, ProcessVmaTracker,
+    VmaEntry, VmaPerms, VmaType,
 };
 
 // ============================================================================
