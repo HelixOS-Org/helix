@@ -90,10 +90,7 @@ impl IntentType {
     pub fn benefits_from_batching(&self) -> bool {
         matches!(
             self,
-            Self::MetadataScan
-                | Self::DirectoryTraversal
-                | Self::LogAppend
-                | Self::SystemInfoQuery
+            Self::MetadataScan | Self::DirectoryTraversal | Self::LogAppend | Self::SystemInfoQuery
         )
     }
 
@@ -129,13 +126,13 @@ impl IntentType {
     /// Recommended I/O block size multiplier
     pub fn io_size_multiplier(&self) -> u32 {
         match self {
-            Self::SequentialFileRead => 4,   // 4x readahead
-            Self::FileCopy => 8,             // 8x for throughput
-            Self::LargeFileWrite => 4,       // 4x write buffering
-            Self::NetworkStreaming => 2,      // 2x socket buffer
-            Self::DirectoryTraversal => 2,   // 2x directory buffer
-            Self::RandomFileAccess => 1,     // No readahead
-            Self::LogAppend => 1,            // Direct writes
+            Self::SequentialFileRead => 4, // 4x readahead
+            Self::FileCopy => 8,           // 8x for throughput
+            Self::LargeFileWrite => 4,     // 4x write buffering
+            Self::NetworkStreaming => 2,   // 2x socket buffer
+            Self::DirectoryTraversal => 2, // 2x directory buffer
+            Self::RandomFileAccess => 1,   // No readahead
+            Self::LogAppend => 1,          // Direct writes
             _ => 1,
         }
     }
@@ -214,11 +211,7 @@ pub struct IntentPattern {
 }
 
 impl IntentPattern {
-    pub fn new(
-        name: &'static str,
-        intent: IntentType,
-        sequence: Vec<SyscallType>,
-    ) -> Self {
+    pub fn new(name: &'static str, intent: IntentType, sequence: Vec<SyscallType>) -> Self {
         Self {
             name,
             intent,
@@ -320,14 +313,19 @@ impl ProcessIntentState {
 
     /// Get the dominant intent (highest confidence)
     pub fn dominant_intent(&self) -> Option<&IntentConfidence> {
-        self.active_intents
-            .iter()
-            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(core::cmp::Ordering::Equal))
+        self.active_intents.iter().max_by(|a, b| {
+            a.confidence
+                .partial_cmp(&b.confidence)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        })
     }
 
     /// Get all actionable intents
     pub fn actionable_intents(&self) -> Vec<&IntentConfidence> {
-        self.active_intents.iter().filter(|i| i.is_actionable()).collect()
+        self.active_intents
+            .iter()
+            .filter(|i| i.is_actionable())
+            .collect()
     }
 
     /// Update or add an intent detection
@@ -342,7 +340,9 @@ impl ProcessIntentState {
                     .iter()
                     .enumerate()
                     .min_by(|(_, a), (_, b)| {
-                        a.confidence.partial_cmp(&b.confidence).unwrap_or(core::cmp::Ordering::Equal)
+                        a.confidence
+                            .partial_cmp(&b.confidence)
+                            .unwrap_or(core::cmp::Ordering::Equal)
                     })
                     .map(|(i, _)| i)
                 {
@@ -375,17 +375,50 @@ impl ProcessIntentState {
         let total = self.total_syscalls as f64;
 
         // Count reads vs writes
-        let reads = *self.type_counts.get(&(SyscallType::Read as u8)).unwrap_or(&0) as f64;
-        let writes = *self.type_counts.get(&(SyscallType::Write as u8)).unwrap_or(&0) as f64;
-        let opens = *self.type_counts.get(&(SyscallType::Open as u8)).unwrap_or(&0) as f64;
-        let stats = *self.type_counts.get(&(SyscallType::Stat as u8)).unwrap_or(&0) as f64;
-        let connects = *self.type_counts.get(&(SyscallType::Connect as u8)).unwrap_or(&0) as f64;
-        let accepts = *self.type_counts.get(&(SyscallType::Accept as u8)).unwrap_or(&0) as f64;
-        let mmaps = *self.type_counts.get(&(SyscallType::Mmap as u8)).unwrap_or(&0) as f64;
-        let polls = *self.type_counts.get(&(SyscallType::Poll as u8)).unwrap_or(&0) as f64;
-        let forks = *self.type_counts.get(&(SyscallType::Fork as u8)).unwrap_or(&0) as f64;
-        let sends = *self.type_counts.get(&(SyscallType::Send as u8)).unwrap_or(&0) as f64;
-        let recvs = *self.type_counts.get(&(SyscallType::Recv as u8)).unwrap_or(&0) as f64;
+        let reads = *self
+            .type_counts
+            .get(&(SyscallType::Read as u8))
+            .unwrap_or(&0) as f64;
+        let writes = *self
+            .type_counts
+            .get(&(SyscallType::Write as u8))
+            .unwrap_or(&0) as f64;
+        let opens = *self
+            .type_counts
+            .get(&(SyscallType::Open as u8))
+            .unwrap_or(&0) as f64;
+        let stats = *self
+            .type_counts
+            .get(&(SyscallType::Stat as u8))
+            .unwrap_or(&0) as f64;
+        let connects = *self
+            .type_counts
+            .get(&(SyscallType::Connect as u8))
+            .unwrap_or(&0) as f64;
+        let accepts = *self
+            .type_counts
+            .get(&(SyscallType::Accept as u8))
+            .unwrap_or(&0) as f64;
+        let mmaps = *self
+            .type_counts
+            .get(&(SyscallType::Mmap as u8))
+            .unwrap_or(&0) as f64;
+        let polls = *self
+            .type_counts
+            .get(&(SyscallType::Poll as u8))
+            .unwrap_or(&0) as f64;
+        let forks = *self
+            .type_counts
+            .get(&(SyscallType::Fork as u8))
+            .unwrap_or(&0) as f64;
+        let sends = *self
+            .type_counts
+            .get(&(SyscallType::Send as u8))
+            .unwrap_or(&0) as f64;
+        let recvs = *self
+            .type_counts
+            .get(&(SyscallType::Recv as u8))
+            .unwrap_or(&0) as f64;
 
         // Sequential read pattern: high read ratio, low random
         if reads / total > 0.4 && opens / total < 0.1 {
@@ -482,7 +515,9 @@ impl IntentAnalyzer {
 
     /// Get or create process state
     pub fn process_state(&mut self, pid: u64) -> &mut ProcessIntentState {
-        self.processes.entry(pid).or_insert_with(|| ProcessIntentState::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessIntentState::new(pid))
     }
 
     /// Record a syscall and analyze
@@ -492,7 +527,10 @@ impl IntentAnalyzer {
         syscall_type: SyscallType,
         timestamp: u64,
     ) -> Option<IntentType> {
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessIntentState::new(pid));
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessIntentState::new(pid));
         state.record(syscall_type);
 
         // Run analysis every 10 syscalls
@@ -568,36 +606,41 @@ impl IntentAnalyzer {
 
     fn default_patterns() -> Vec<IntentPattern> {
         vec![
-            IntentPattern::new(
-                "sequential_read",
-                IntentType::SequentialFileRead,
-                vec![SyscallType::Open, SyscallType::Read, SyscallType::Read, SyscallType::Read],
-            ),
-            IntentPattern::new(
-                "file_copy",
-                IntentType::FileCopy,
-                vec![SyscallType::Open, SyscallType::Read, SyscallType::Write, SyscallType::Read, SyscallType::Write],
-            ),
-            IntentPattern::new(
-                "dir_traversal",
-                IntentType::DirectoryTraversal,
-                vec![SyscallType::Open, SyscallType::Stat, SyscallType::Stat, SyscallType::Stat],
-            ),
-            IntentPattern::new(
-                "network_server",
-                IntentType::NetworkServer,
-                vec![SyscallType::Accept, SyscallType::Read, SyscallType::Write, SyscallType::Accept],
-            ),
-            IntentPattern::new(
-                "process_spawn",
-                IntentType::ProcessSpawn,
-                vec![SyscallType::Fork, SyscallType::Exec],
-            ),
-            IntentPattern::new(
-                "event_loop",
-                IntentType::EventDrivenIo,
-                vec![SyscallType::Poll, SyscallType::Read, SyscallType::Write, SyscallType::Poll],
-            ),
+            IntentPattern::new("sequential_read", IntentType::SequentialFileRead, vec![
+                SyscallType::Open,
+                SyscallType::Read,
+                SyscallType::Read,
+                SyscallType::Read,
+            ]),
+            IntentPattern::new("file_copy", IntentType::FileCopy, vec![
+                SyscallType::Open,
+                SyscallType::Read,
+                SyscallType::Write,
+                SyscallType::Read,
+                SyscallType::Write,
+            ]),
+            IntentPattern::new("dir_traversal", IntentType::DirectoryTraversal, vec![
+                SyscallType::Open,
+                SyscallType::Stat,
+                SyscallType::Stat,
+                SyscallType::Stat,
+            ]),
+            IntentPattern::new("network_server", IntentType::NetworkServer, vec![
+                SyscallType::Accept,
+                SyscallType::Read,
+                SyscallType::Write,
+                SyscallType::Accept,
+            ]),
+            IntentPattern::new("process_spawn", IntentType::ProcessSpawn, vec![
+                SyscallType::Fork,
+                SyscallType::Exec,
+            ]),
+            IntentPattern::new("event_loop", IntentType::EventDrivenIo, vec![
+                SyscallType::Poll,
+                SyscallType::Read,
+                SyscallType::Write,
+                SyscallType::Poll,
+            ]),
         ]
     }
 }
