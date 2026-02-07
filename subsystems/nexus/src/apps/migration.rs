@@ -202,8 +202,8 @@ impl ProcessMigrationProfile {
         }
 
         // Running average cost
-        self.avg_cost = (self.avg_cost * (self.total_migrations - 1) + event.cost)
-            / self.total_migrations;
+        self.avg_cost =
+            (self.avg_cost * (self.total_migrations - 1) + event.cost) / self.total_migrations;
 
         self.cache_affinity.reset(event.to_cpu, event.timestamp);
 
@@ -359,7 +359,8 @@ impl AppMigrationAnalyzer {
     /// Register process
     pub fn register(&mut self, pid: u64, cpu: u32) {
         let numa = self.cpu_to_numa.get(&cpu).copied().unwrap_or(0);
-        self.profiles.insert(pid, ProcessMigrationProfile::new(pid, cpu, numa));
+        self.profiles
+            .insert(pid, ProcessMigrationProfile::new(pid, cpu, numa));
     }
 
     /// Evaluate migration
@@ -401,7 +402,7 @@ impl AppMigrationAnalyzer {
         if target_load >= current_load {
             match reason {
                 MigrationReason::LoadBalance => return MigrationDecision::Deny,
-                _ => {}
+                _ => {},
             }
         }
 
@@ -427,11 +428,7 @@ impl AppMigrationAnalyzer {
     }
 
     /// Find best placement for process
-    pub fn find_placement(
-        &self,
-        pid: u64,
-        reason: MigrationReason,
-    ) -> Option<PlacementDecision> {
+    pub fn find_placement(&self, pid: u64, reason: MigrationReason) -> Option<PlacementDecision> {
         let profile = self.profiles.get(&pid)?;
         let current_cpu = profile.cache_affinity.last_cpu;
         let current_numa = profile.preferred_numa;
@@ -451,7 +448,8 @@ impl AppMigrationAnalyzer {
             let power_benefit = if load < 50 { 0.3 } else { 0.0 };
 
             let load_score = 1.0 - (load as f64 / 100.0);
-            let score = load_score * 0.4 + cache_benefit * 0.3 + numa_benefit * 0.2 + power_benefit * 0.1;
+            let score =
+                load_score * 0.4 + cache_benefit * 0.3 + numa_benefit * 0.2 + power_benefit * 0.1;
 
             candidates.push(PlacementCandidate {
                 cpu,
