@@ -241,7 +241,7 @@ impl FeedbackCollector {
             FeedbackType::ContractFulfilled => metrics.contracts_fulfilled += 1,
             FeedbackType::ContractViolatedByKernel | FeedbackType::ContractViolatedByApp => {
                 metrics.contracts_violated += 1;
-            }
+            },
             FeedbackType::PerformanceImproved
             | FeedbackType::NoEffect
             | FeedbackType::PerformanceDegraded => {
@@ -249,7 +249,7 @@ impl FeedbackCollector {
                 metrics.improvement_count += 1;
                 self.global_improvement_sum += feedback.improvement_ratio;
                 self.global_improvement_count += 1;
-            }
+            },
         }
 
         // Store in history
