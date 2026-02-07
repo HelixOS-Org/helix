@@ -19,13 +19,13 @@ pub enum AsyncPriority {
     /// Background — can be delayed indefinitely
     Background = 0,
     /// Low — best effort, no deadline
-    Low = 1,
+    Low        = 1,
     /// Normal — standard priority
-    Normal = 2,
+    Normal     = 2,
     /// High — latency-sensitive
-    High = 3,
+    High       = 3,
     /// Realtime — must complete within deadline
-    Realtime = 4,
+    Realtime   = 4,
 }
 
 /// Status of an async I/O request
@@ -188,13 +188,7 @@ impl AsyncIoEngine {
     /// Create a new engine with max concurrency
     pub fn new(max_concurrency: usize) -> Self {
         Self {
-            queues: [
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-            ],
+            queues: [Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new()],
             in_progress: BTreeMap::new(),
             completions: Vec::new(),
             max_concurrency,
