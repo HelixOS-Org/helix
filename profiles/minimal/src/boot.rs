@@ -47,17 +47,17 @@ struct Multiboot2Header {
     header_length: u32,
     checksum: u32,
     // Framebuffer tag: 20 bytes + 4 pad = 24 bytes (offsets 0x10 - 0x27)
-    fb_type: u16,     // Tag type 5 = framebuffer
-    fb_flags: u16,    // Flags (0 = required, 1 = optional)
-    fb_size: u32,     // Tag size = 20 bytes (unpadded)
-    fb_width: u32,    // Preferred width
-    fb_height: u32,   // Preferred height
-    fb_depth: u32,    // Preferred bpp
-    _fb_pad: u32,     // Padding to 8-byte align the next tag
+    fb_type: u16,   // Tag type 5 = framebuffer
+    fb_flags: u16,  // Flags (0 = required, 1 = optional)
+    fb_size: u32,   // Tag size = 20 bytes (unpadded)
+    fb_width: u32,  // Preferred width
+    fb_height: u32, // Preferred height
+    fb_depth: u32,  // Preferred bpp
+    _fb_pad: u32,   // Padding to 8-byte align the next tag
     // End tag: 8 bytes (offsets 0x28 - 0x2F)
-    end_type: u16,    // Type 0 = end
-    end_flags: u16,   // Flags 0
-    end_size: u32,    // Size 8
+    end_type: u16,  // Type 0 = end
+    end_flags: u16, // Flags 0
+    end_size: u32,  // Size 8
 }
 
 /// Multiboot2 header structure - placed in a special section
