@@ -48,13 +48,13 @@ pub enum PrefetchPriority {
     /// Background (idle time only)
     Background = 0,
     /// Low (when resources available)
-    Low = 1,
+    Low        = 1,
     /// Normal
-    Normal = 2,
+    Normal     = 2,
     /// High (likely needed soon)
-    High = 3,
+    High       = 3,
     /// Critical (almost certainly needed)
-    Critical = 4,
+    Critical   = 4,
 }
 
 /// A prefetch request
@@ -269,7 +269,10 @@ impl FileReadAhead {
         }
 
         // Check if this read hit a previous prefetch
-        let tracker = self.access_patterns.entry((pid, fd)).or_insert_with(FileAccessTracker::new);
+        let tracker = self
+            .access_patterns
+            .entry((pid, fd))
+            .or_insert_with(FileAccessTracker::new);
 
         if tracker.last_readahead > 0 && offset <= tracker.last_readahead {
             self.hits += 1;
@@ -289,7 +292,8 @@ impl FileReadAhead {
 
         // Calculate prefetch parameters
         let prefetch_offset = offset + size;
-        let prefetch_size = (tracker.avg_read_size as f64 * self.config.read_ahead_multiplier) as u64;
+        let prefetch_size =
+            (tracker.avg_read_size as f64 * self.config.read_ahead_multiplier) as u64;
         let prefetch_size = prefetch_size.min(self.config.max_prefetch_size);
 
         // Don't repeat recent prefetches
@@ -459,14 +463,17 @@ impl PrefetchManager {
     ) {
         match syscall_type {
             SyscallType::Read => {
-                if let Some(request) = self.file_readahead.on_read(pid, fd, offset, size, timestamp) {
+                if let Some(request) = self
+                    .file_readahead
+                    .on_read(pid, fd, offset, size, timestamp)
+                {
                     self.submit(request);
                 }
-            }
+            },
             SyscallType::Close => {
                 self.file_readahead.close_file(pid, fd);
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
