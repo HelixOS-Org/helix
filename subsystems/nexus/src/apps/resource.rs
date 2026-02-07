@@ -399,19 +399,16 @@ impl FdTracker {
 
     /// Open a new FD
     pub fn open(&mut self, fd: u32, fd_type: FdType, flags: u32, timestamp: u64) {
-        self.fds.insert(
+        self.fds.insert(fd, FdInfo {
             fd,
-            FdInfo {
-                fd,
-                fd_type,
-                flags,
-                offset: 0,
-                bytes_read: 0,
-                bytes_written: 0,
-                ops: 0,
-                opened_at: timestamp,
-            },
-        );
+            fd_type,
+            flags,
+            offset: 0,
+            bytes_read: 0,
+            bytes_written: 0,
+            ops: 0,
+            opened_at: timestamp,
+        });
         self.total_opened += 1;
         let count = self.fds.len() as u32;
         if count > self.peak_count {
@@ -539,7 +536,9 @@ impl ResourceManager {
         if !self.trackers.contains_key(&pid) && self.trackers.len() < self.max_processes {
             self.trackers.insert(pid, ResourceTracker::new(pid));
         }
-        self.trackers.entry(pid).or_insert_with(|| ResourceTracker::new(pid))
+        self.trackers
+            .entry(pid)
+            .or_insert_with(|| ResourceTracker::new(pid))
     }
 
     /// Get tracker
