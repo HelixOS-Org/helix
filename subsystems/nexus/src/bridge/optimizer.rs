@@ -124,7 +124,10 @@ impl ContentionDetector {
 
     /// Record a lock acquisition
     pub fn record_lock(&mut self, resource_id: u64, pid: u64, wait_ns: u64) {
-        let entries = self.lock_contention.entry(resource_id).or_insert_with(Vec::new);
+        let entries = self
+            .lock_contention
+            .entry(resource_id)
+            .or_insert_with(Vec::new);
         if let Some(entry) = entries.iter_mut().find(|(p, _, _)| *p == pid) {
             entry.1 += 1;
             entry.2 += wait_ns;
@@ -166,7 +169,11 @@ impl ContentionDetector {
                     resource_type: ResourceType::File,
                     resource_id: inode,
                     participant_pids: pids.clone(),
-                    severity: if pids.len() > 4 { ContentionSeverity::High } else { ContentionSeverity::Medium },
+                    severity: if pids.len() > 4 {
+                        ContentionSeverity::High
+                    } else {
+                        ContentionSeverity::Medium
+                    },
                     total_wait_ns: 0,
                 });
             }
@@ -375,7 +382,7 @@ impl AdaptiveTuner {
                 }
                 self.phase = TuningPhase::TryDecrease;
                 None
-            }
+            },
             TuningPhase::TryIncrease => {
                 self.params[self.current_param].post_adjustment_perf = current_perf;
                 if self.params[self.current_param].adjustment_improved() {
@@ -383,7 +390,9 @@ impl AdaptiveTuner {
                     self.iterations_since_improvement = 0;
                     self.phase = TuningPhase::Baseline;
                     self.advance_param();
-                    Some(TuningAction::Improved(self.params[self.current_param.saturating_sub(1)].name))
+                    Some(TuningAction::Improved(
+                        self.params[self.current_param.saturating_sub(1)].name,
+                    ))
                 } else {
                     // Revert and try decrease
                     self.params[self.current_param].decrease();
@@ -400,7 +409,7 @@ impl AdaptiveTuner {
                         None
                     }
                 }
-            }
+            },
             TuningPhase::TryDecrease => {
                 self.params[self.current_param].post_adjustment_perf = current_perf;
                 if self.params[self.current_param].adjustment_improved() {
@@ -414,7 +423,7 @@ impl AdaptiveTuner {
                 self.phase = TuningPhase::Baseline;
                 self.advance_param();
                 None
-            }
+            },
             TuningPhase::Evaluate | TuningPhase::Stable => {
                 if self.iterations_since_improvement > self.max_stale_iterations {
                     self.phase = TuningPhase::Stable;
@@ -423,7 +432,7 @@ impl AdaptiveTuner {
                     self.phase = TuningPhase::Baseline;
                     None
                 }
-            }
+            },
         }
     }
 
@@ -485,8 +494,20 @@ impl GlobalOptimizer {
         tuner.add_param(TunableParam::new("batch_size", 16.0, 1.0, 256.0, 4.0));
         tuner.add_param(TunableParam::new("cache_size_mb", 8.0, 1.0, 64.0, 2.0));
         tuner.add_param(TunableParam::new("prefetch_depth", 4.0, 0.0, 32.0, 2.0));
-        tuner.add_param(TunableParam::new("async_queue_depth", 32.0, 4.0, 512.0, 8.0));
-        tuner.add_param(TunableParam::new("rate_limit_rps", 10000.0, 100.0, 1000000.0, 1000.0));
+        tuner.add_param(TunableParam::new(
+            "async_queue_depth",
+            32.0,
+            4.0,
+            512.0,
+            8.0,
+        ));
+        tuner.add_param(TunableParam::new(
+            "rate_limit_rps",
+            10000.0,
+            100.0,
+            1000000.0,
+            1000.0,
+        ));
 
         Self {
             opportunities: Vec::new(),
@@ -507,7 +528,10 @@ impl GlobalOptimizer {
                 .iter()
                 .enumerate()
                 .min_by(|(_, a), (_, b)| {
-                    a.benefit.score().partial_cmp(&b.benefit.score()).unwrap_or(core::cmp::Ordering::Equal)
+                    a.benefit
+                        .score()
+                        .partial_cmp(&b.benefit.score())
+                        .unwrap_or(core::cmp::Ordering::Equal)
                 })
                 .map(|(i, _)| i)
             {
@@ -555,6 +579,7 @@ impl GlobalOptimizer {
     /// Remove process from tracking
     pub fn remove_process(&mut self, pid: u64) {
         self.contention.remove_process(pid);
-        self.opportunities.retain(|opp| !opp.affected_pids.contains(&pid));
+        self.opportunities
+            .retain(|opp| !opp.affected_pids.contains(&pid));
     }
 }
