@@ -178,15 +178,11 @@ impl FilterCondition {
             Self::SyscallNr(nr) => syscall_nr == *nr,
             Self::SyscallRange(lo, hi) => syscall_nr >= *lo && syscall_nr <= *hi,
             Self::ArgEquals(idx, val) => args.get(*idx as usize) == Some(*val),
-            Self::ArgGreaterThan(idx, val) => {
-                args.get(*idx as usize).map_or(false, |v| v > *val)
-            }
-            Self::ArgLessThan(idx, val) => {
-                args.get(*idx as usize).map_or(false, |v| v < *val)
-            }
+            Self::ArgGreaterThan(idx, val) => args.get(*idx as usize).map_or(false, |v| v > *val),
+            Self::ArgLessThan(idx, val) => args.get(*idx as usize).map_or(false, |v| v < *val),
             Self::ArgBitSet(idx, mask) => {
                 args.get(*idx as usize).map_or(false, |v| v & mask == *mask)
-            }
+            },
             Self::ProcessGroup(g) => pgroup == *g,
             Self::Always => true,
         }
@@ -328,7 +324,12 @@ impl InterceptEngine {
     }
 
     /// Install hook
-    pub fn install_hook(&mut self, point: InterceptPoint, filter: FilterProgram, expires_at: u64) -> u32 {
+    pub fn install_hook(
+        &mut self,
+        point: InterceptPoint,
+        filter: FilterProgram,
+        expires_at: u64,
+    ) -> u32 {
         let id = self.next_hook_id;
         self.next_hook_id += 1;
 
@@ -346,7 +347,7 @@ impl InterceptEngine {
             InterceptPoint::Both => {
                 self.pre_hooks.push(hook.clone());
                 self.post_hooks.push(hook);
-            }
+            },
         }
 
         // Sort by priority (descending)
@@ -397,15 +398,21 @@ impl InterceptEngine {
                     InterceptAction::Block | InterceptAction::LogBlock => {
                         self.total_blocked += 1;
                         InterceptVerdict::block()
-                    }
-                    InterceptAction::OverrideReturn => {
-                        InterceptVerdict::override_return(-1)
-                    }
+                    },
+                    InterceptAction::OverrideReturn => InterceptVerdict::override_return(-1),
                     _ => InterceptVerdict::allow(),
                 };
 
                 // Log
-                self.log_intercept(timestamp, pid, syscall_nr, hook.id, hook.filter.action, args, None);
+                self.log_intercept(
+                    timestamp,
+                    pid,
+                    syscall_nr,
+                    hook.id,
+                    hook.filter.action,
+                    args,
+                    None,
+                );
 
                 return verdict;
             }
