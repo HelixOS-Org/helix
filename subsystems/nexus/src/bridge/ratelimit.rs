@@ -307,10 +307,10 @@ impl BridgeRateLimiter {
             RateLimitScope::Global | RateLimitScope::PerSyscall => {
                 let bucket = TokenBucket::new(policy.rate, policy.rate).with_burst(policy.burst);
                 self.global_buckets.insert(policy.id, bucket);
-            }
+            },
             _ => {
                 // Per-process buckets created on demand
-            }
+            },
         }
         self.policies.push(policy);
         self.stats.active_limiters = self.policies.iter().filter(|p| p.enabled).count();
@@ -335,14 +335,14 @@ impl BridgeRateLimiter {
                     } else {
                         true
                     }
-                }
+                },
                 RateLimitScope::PerProcess | RateLimitScope::PerProcessPerSyscall => {
                     let key = (policy.id, pid);
                     let bucket = self.process_buckets.entry(key).or_insert_with(|| {
                         TokenBucket::new(policy.rate, policy.rate).with_burst(policy.burst)
                     });
                     bucket.try_consume(1, now_ns)
-                }
+                },
             };
 
             if !allowed {
@@ -359,8 +359,7 @@ impl BridgeRateLimiter {
 
     fn update_rate(&mut self) {
         if self.stats.total_checks > 0 {
-            self.stats.rejection_rate =
-                self.stats.rejected as f64 / self.stats.total_checks as f64;
+            self.stats.rejection_rate = self.stats.rejected as f64 / self.stats.total_checks as f64;
         }
     }
 
