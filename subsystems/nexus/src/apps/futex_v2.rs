@@ -129,7 +129,7 @@ impl FutexAddress {
         match result {
             WaitResult::Timeout => self.timeout_count += 1,
             WaitResult::Requeued => self.requeue_count += 1,
-            _ => {}
+            _ => {},
         }
     }
 
@@ -306,7 +306,8 @@ impl FutexHashProfiler {
         } else {
             self.buckets.values().map(|b| b.lookups).sum::<u64>() / self.buckets.len() as u64
         };
-        self.buckets.values()
+        self.buckets
+            .values()
             .filter(|b| b.lookups > avg * 2)
             .map(|b| b.index)
             .collect()
@@ -356,9 +357,13 @@ impl AppFutexV2Profiler {
 
     /// Record futex wait
     pub fn record_wait(&mut self, addr: u64, pid: u64, tid: u64, now: u64) {
-        let futex = self.addresses.entry(addr).or_insert_with(|| FutexAddress::new(addr));
+        let futex = self
+            .addresses
+            .entry(addr)
+            .or_insert_with(|| FutexAddress::new(addr));
         futex.record_wait();
-        self.hash_profiler.record_access(futex.bucket, futex.current_waiters > 1);
+        self.hash_profiler
+            .record_access(futex.bucket, futex.current_waiters > 1);
         self.wait_chains.record_wait(WaitChainEntry {
             waiter_pid: pid,
             waiter_tid: tid,
@@ -380,7 +385,8 @@ impl AppFutexV2Profiler {
 
     /// Get contention level
     pub fn contention(&self, addr: u64) -> ContentionLevel {
-        self.addresses.get(&addr)
+        self.addresses
+            .get(&addr)
             .map(|f| f.contention())
             .unwrap_or(ContentionLevel::None)
     }
@@ -397,10 +403,14 @@ impl AppFutexV2Profiler {
 
     fn update_stats(&mut self) {
         self.stats.tracked_addresses = self.addresses.len();
-        self.stats.contended_count = self.addresses.values()
+        self.stats.contended_count = self
+            .addresses
+            .values()
             .filter(|a| a.current_waiters > 0)
             .count();
-        self.stats.heavy_contention = self.addresses.values()
+        self.stats.heavy_contention = self
+            .addresses
+            .values()
             .filter(|a| a.contention() == ContentionLevel::Heavy)
             .count();
         self.stats.active_chains = self.wait_chains.active_count();
