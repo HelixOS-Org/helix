@@ -5,7 +5,6 @@
 //! the full character of an application.
 
 use alloc::string::String;
-use alloc::vec::Vec;
 
 // ============================================================================
 // LIFECYCLE PHASES
@@ -295,7 +294,7 @@ impl ProcessProfile {
 
     /// Compute the overall health score
     pub fn compute_health(&mut self) {
-        let mut score = 1.0;
+        let mut score: f64 = 1.0;
 
         // Memory leak penalty
         if self.memory.likely_leak() {
