@@ -113,36 +113,36 @@ impl ProcessContext {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Capability {
     /// Network operations
-    NetBind = 0,
-    NetAdmin = 1,
-    NetRaw = 2,
+    NetBind          = 0,
+    NetAdmin         = 1,
+    NetRaw           = 2,
     /// File operations
-    FileRead = 3,
-    FileWrite = 4,
-    FileExec = 5,
-    FileOwner = 6,
+    FileRead         = 3,
+    FileWrite        = 4,
+    FileExec         = 5,
+    FileOwner        = 6,
     /// System operations
-    SysAdmin = 7,
-    SysBoot = 8,
-    SysMmap = 9,
-    SysFork = 10,
-    SysExec = 11,
-    SysKill = 12,
-    SysIoctl = 13,
-    SysPtrace = 14,
-    SysModule = 15,
+    SysAdmin         = 7,
+    SysBoot          = 8,
+    SysMmap          = 9,
+    SysFork          = 10,
+    SysExec          = 11,
+    SysKill          = 12,
+    SysIoctl         = 13,
+    SysPtrace        = 14,
+    SysModule        = 15,
     /// IPC
-    IpcOwner = 16,
-    IpcLock = 17,
+    IpcOwner         = 16,
+    IpcLock          = 17,
     /// Device
-    DevRaw = 18,
-    DevMknod = 19,
+    DevRaw           = 18,
+    DevMknod         = 19,
     /// Scheduling
-    SchedSetparam = 20,
+    SchedSetparam    = 20,
     SchedSetaffinity = 21,
     /// Audit
-    AuditControl = 22,
-    AuditWrite = 23,
+    AuditControl     = 22,
+    AuditWrite       = 23,
 }
 
 /// Set of capabilities
@@ -535,7 +535,9 @@ impl ContextManager {
 
     /// Get mutable thread context
     pub fn get_thread_mut(&mut self, pid: u64, tid: u64) -> Option<&mut ThreadContext> {
-        self.thread_contexts.get_mut(&pid).and_then(|m| m.get_mut(&tid))
+        self.thread_contexts
+            .get_mut(&pid)
+            .and_then(|m| m.get_mut(&tid))
     }
 
     /// Remove process and all threads
@@ -568,16 +570,14 @@ impl ContextManager {
     pub fn processes_in_namespace(&self, ns_type: NamespaceType, ns_id: u64) -> Vec<u64> {
         self.contexts
             .iter()
-            .filter(|(_, ctx)| {
-                match ns_type {
-                    NamespaceType::Pid => ctx.namespace.pid_ns == ns_id,
-                    NamespaceType::Mount => ctx.namespace.mnt_ns == ns_id,
-                    NamespaceType::Network => ctx.namespace.net_ns == ns_id,
-                    NamespaceType::Ipc => ctx.namespace.ipc_ns == ns_id,
-                    NamespaceType::Uts => ctx.namespace.uts_ns == ns_id,
-                    NamespaceType::User => ctx.namespace.user_ns == ns_id,
-                    NamespaceType::Cgroup => ctx.namespace.cgroup_ns == ns_id,
-                }
+            .filter(|(_, ctx)| match ns_type {
+                NamespaceType::Pid => ctx.namespace.pid_ns == ns_id,
+                NamespaceType::Mount => ctx.namespace.mnt_ns == ns_id,
+                NamespaceType::Network => ctx.namespace.net_ns == ns_id,
+                NamespaceType::Ipc => ctx.namespace.ipc_ns == ns_id,
+                NamespaceType::Uts => ctx.namespace.uts_ns == ns_id,
+                NamespaceType::User => ctx.namespace.user_ns == ns_id,
+                NamespaceType::Cgroup => ctx.namespace.cgroup_ns == ns_id,
             })
             .map(|(&pid, _)| pid)
             .collect()
