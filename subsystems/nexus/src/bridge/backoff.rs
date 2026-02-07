@@ -85,7 +85,7 @@ impl BackoffConfig {
     pub fn transient() -> Self {
         Self {
             strategy: BackoffStrategy::ExponentialJitter,
-            initial_delay_ns: 1_000_000, // 1ms
+            initial_delay_ns: 1_000_000,  // 1ms
             max_delay_ns: 30_000_000_000, // 30s
             multiplier: 2.0,
             max_attempts: 10,
@@ -109,7 +109,7 @@ impl BackoffConfig {
     pub fn timeout() -> Self {
         Self {
             strategy: BackoffStrategy::Linear,
-            initial_delay_ns: 5_000_000, // 5ms
+            initial_delay_ns: 5_000_000,  // 5ms
             max_delay_ns: 10_000_000_000, // 10s
             multiplier: 1.0,
             max_attempts: 5,
@@ -171,16 +171,16 @@ impl BackoffTracker {
             BackoffStrategy::Fixed => self.config.initial_delay_ns,
             BackoffStrategy::Linear => {
                 self.config.initial_delay_ns + (self.attempt as u64 * self.config.initial_delay_ns)
-            }
+            },
             BackoffStrategy::Exponential | BackoffStrategy::ExponentialJitter => {
                 let factor = libm::pow(self.config.multiplier, self.attempt as f64);
                 (self.config.initial_delay_ns as f64 * factor) as u64
-            }
+            },
             BackoffStrategy::FullJitter => {
                 let factor = libm::pow(self.config.multiplier, self.attempt as f64);
                 let cap = (self.config.initial_delay_ns as f64 * factor) as u64;
                 self.pseudo_random() % (cap.max(1))
-            }
+            },
         };
 
         let mut delay = base_delay.min(self.config.max_delay_ns);
@@ -217,7 +217,7 @@ impl BackoffTracker {
         match self.state {
             BackoffState::Active | BackoffState::Ceiling => {
                 now >= self.last_failure_ns + self.current_delay_ns
-            }
+            },
             BackoffState::Idle => true,
             BackoffState::Failed => false,
         }
@@ -262,12 +262,23 @@ impl ProcessBackoff {
     }
 
     /// Get or create tracker for operation
-    pub fn tracker_mut(&mut self, operation_key: u64, config: BackoffConfig) -> &mut BackoffTracker {
-        self.trackers.entry(operation_key).or_insert_with(|| BackoffTracker::new(config))
+    pub fn tracker_mut(
+        &mut self,
+        operation_key: u64,
+        config: BackoffConfig,
+    ) -> &mut BackoffTracker {
+        self.trackers
+            .entry(operation_key)
+            .or_insert_with(|| BackoffTracker::new(config))
     }
 
     /// Record failure
-    pub fn record_failure(&mut self, operation_key: u64, config: BackoffConfig, now: u64) -> Option<u64> {
+    pub fn record_failure(
+        &mut self,
+        operation_key: u64,
+        config: BackoffConfig,
+        now: u64,
+    ) -> Option<u64> {
         self.total_failures += 1;
         let tracker = self.tracker_mut(operation_key, config);
         tracker.record_failure(now)
@@ -290,7 +301,10 @@ impl ProcessBackoff {
 
     /// Active backoff count
     pub fn active_count(&self) -> usize {
-        self.trackers.values().filter(|t| t.state == BackoffState::Active || t.state == BackoffState::Ceiling).count()
+        self.trackers
+            .values()
+            .filter(|t| t.state == BackoffState::Active || t.state == BackoffState::Ceiling)
+            .count()
     }
 }
 
@@ -347,13 +361,27 @@ impl BridgeBackoffManager {
     }
 
     /// Record failure
-    pub fn record_failure(&mut self, pid: u64, syscall_nr: u32, arg_hash: u64, error_class: ErrorClass, now: u64) -> Option<u64> {
+    pub fn record_failure(
+        &mut self,
+        pid: u64,
+        syscall_nr: u32,
+        arg_hash: u64,
+        error_class: ErrorClass,
+        now: u64,
+    ) -> Option<u64> {
         if error_class == ErrorClass::Permanent {
             return None;
         }
-        let config = self.configs.get(&(error_class as u8)).cloned().unwrap_or_else(BackoffConfig::transient);
+        let config = self
+            .configs
+            .get(&(error_class as u8))
+            .cloned()
+            .unwrap_or_else(BackoffConfig::transient);
         let key = Self::operation_key(syscall_nr, arg_hash);
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessBackoff::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessBackoff::new(pid));
         let result = proc.record_failure(key, config, now);
         self.stats.total_failures += 1;
         if result.is_none() {
@@ -376,7 +404,8 @@ impl BridgeBackoffManager {
     /// Should retry now
     pub fn should_retry(&self, pid: u64, syscall_nr: u32, arg_hash: u64, now: u64) -> bool {
         let key = Self::operation_key(syscall_nr, arg_hash);
-        self.processes.get(&pid)
+        self.processes
+            .get(&pid)
             .and_then(|p| p.trackers.get(&key))
             .map(|t| t.should_retry_now(now))
             .unwrap_or(true)
@@ -387,7 +416,8 @@ impl BridgeBackoffManager {
         for proc in self.processes.values_mut() {
             proc.cleanup();
         }
-        self.processes.retain(|_, p| p.active_count() > 0 || p.total_failures > 0);
+        self.processes
+            .retain(|_, p| p.active_count() > 0 || p.total_failures > 0);
         self.update_stats();
     }
 
