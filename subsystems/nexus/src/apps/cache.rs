@@ -48,11 +48,11 @@ impl CacheLevel {
     /// Main memory latency for miss
     pub fn miss_penalty_ns(&self) -> u64 {
         match self {
-            Self::L1I | Self::L1D => 4,   // hits L2
-            Self::L2 => 12,               // hits L3
-            Self::L3 => 80,               // hits RAM
-            Self::Tlb => 100,             // page walk
-            Self::BranchPredict => 15,    // misprediction
+            Self::L1I | Self::L1D => 4, // hits L2
+            Self::L2 => 12,             // hits L3
+            Self::L3 => 80,             // hits RAM
+            Self::Tlb => 100,           // page walk
+            Self::BranchPredict => 15,  // misprediction
         }
     }
 }
@@ -411,7 +411,10 @@ impl AppCacheAnalyzer {
     /// Record cache access
     pub fn record_access(&mut self, pid: u64, level: CacheLevel, hit: bool) {
         let key = (pid, level as u8);
-        let counters = self.counters.entry(key).or_insert_with(CacheLevelCounters::default);
+        let counters = self
+            .counters
+            .entry(key)
+            .or_insert_with(CacheLevelCounters::default);
         if hit {
             counters.record_hit();
             self.stats.total_hits += 1;
