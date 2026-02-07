@@ -67,3 +67,19 @@ observability = ["trace", "causal", "replay", "debug"]
 # Full GENESIS
 full = ["q1_complete", "q2_complete", "q3_complete", "q4_complete", "observability"]
 minimal = ["prediction", "healing", "trace"]
+
+# ---------------------------------------------------------------------------
+# Experimental-lite: ultra-lightweight sandbox subset for minimal profiles.
+#
+# Enables ONLY:
+#   - Core infrastructure  (types, traits, config, error, event, stats, math)
+#   - Prediction primitives (predict, anomaly, canary)
+#   - Healing primitives   (healing, microrollback)
+#   - Telemetry basics     (trace)
+#
+# Does NOT pull in:
+#   Year-2 cognition, Year-3 evolution, neural/genetic/codegen,
+#   hardware intelligence (iommu/pci/usb), distributed, quantum,
+#   or any heavy allocator-dependent subsystem.
+# ---------------------------------------------------------------------------
+experimental-lite = ["prediction", "anomaly", "canary", "healing", "microrollback", "trace"]
