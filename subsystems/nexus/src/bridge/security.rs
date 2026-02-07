@@ -580,12 +580,12 @@ impl SecurityEngine {
                     SecurityAction::Deny | SecurityAction::Kill => {
                         self.total_blocks += 1;
                         return rule.action;
-                    }
+                    },
                     SecurityAction::AllowLog | SecurityAction::Trap => {
                         self.total_alerts += 1;
                         return rule.action;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -598,9 +598,13 @@ impl SecurityEngine {
         }
 
         // Layer 3: Anomaly detection
-        let anomalies = self.anomaly_detector.check(pid, syscall_type, args, rate, timestamp);
+        let anomalies = self
+            .anomaly_detector
+            .check(pid, syscall_type, args, rate, timestamp);
         if let Some(worst) = anomalies.iter().max_by(|a, b| {
-            a.severity.partial_cmp(&b.severity).unwrap_or(core::cmp::Ordering::Equal)
+            a.severity
+                .partial_cmp(&b.severity)
+                .unwrap_or(core::cmp::Ordering::Equal)
         }) {
             if worst.severity > 0.8 {
                 self.total_alerts += 1;
