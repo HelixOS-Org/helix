@@ -21,19 +21,19 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PriorityClass {
     /// Real-time critical
-    RealTime = 0,
+    RealTime    = 0,
     /// System services
-    System = 1,
+    System      = 1,
     /// High priority user
-    HighUser = 2,
+    HighUser    = 2,
     /// Normal
-    Normal = 3,
+    Normal      = 3,
     /// Below normal
     BelowNormal = 4,
     /// Low background
-    Background = 5,
+    Background  = 5,
     /// Idle only
-    Idle = 6,
+    Idle        = 6,
 }
 
 impl PriorityClass {
@@ -252,7 +252,13 @@ impl ProcessPriorityState {
     }
 
     /// Apply adjustment
-    pub fn apply_adjustment(&mut self, reason: AdjustmentReason, new_priority: i32, now: u64, duration_ms: u64) {
+    pub fn apply_adjustment(
+        &mut self,
+        reason: AdjustmentReason,
+        new_priority: i32,
+        now: u64,
+        duration_ms: u64,
+    ) {
         let adj = PriorityAdjustment {
             pid: self.pid,
             timestamp: now,
@@ -260,7 +266,11 @@ impl ProcessPriorityState {
             new_priority,
             reason,
             duration_ms,
-            expires_at: if duration_ms > 0 { now + duration_ms } else { 0 },
+            expires_at: if duration_ms > 0 {
+                now + duration_ms
+            } else {
+                0
+            },
         };
 
         self.effective = new_priority;
@@ -350,7 +360,8 @@ impl AppPriorityAnalyzer {
 
     /// Register process
     pub fn register(&mut self, pid: u64, class: PriorityClass) {
-        self.states.insert(pid, ProcessPriorityState::new(pid, class));
+        self.states
+            .insert(pid, ProcessPriorityState::new(pid, class));
         self.stats.total_processes = self.states.len();
     }
 
@@ -388,7 +399,13 @@ impl AppPriorityAnalyzer {
     }
 
     /// Report priority inversion
-    pub fn report_inversion(&mut self, blocked_pid: u64, holder_pid: u64, resource_id: u64, now: u64) {
+    pub fn report_inversion(
+        &mut self,
+        blocked_pid: u64,
+        holder_pid: u64,
+        resource_id: u64,
+        now: u64,
+    ) {
         let event = InversionEvent {
             blocked_pid,
             holder_pid,
@@ -410,12 +427,7 @@ impl AppPriorityAnalyzer {
         if let Some(holder) = self.states.get_mut(&holder_pid) {
             if holder.effective > blocked_prio {
                 let original = holder.effective;
-                holder.apply_adjustment(
-                    AdjustmentReason::InversionFix,
-                    blocked_prio,
-                    now,
-                    100,
-                );
+                holder.apply_adjustment(AdjustmentReason::InversionFix, blocked_prio, now, 100);
                 holder.inversion_count += 1;
 
                 self.inheritances.push(InheritanceState {
@@ -469,12 +481,7 @@ impl AppPriorityAnalyzer {
             if should_boost {
                 if let Some(state) = self.states.get_mut(&pid) {
                     let new_prio = (state.effective - 3).max(-20);
-                    state.apply_adjustment(
-                        AdjustmentReason::StarvationFix,
-                        new_prio,
-                        now,
-                        200,
-                    );
+                    state.apply_adjustment(AdjustmentReason::StarvationFix, new_prio, now, 200);
                     starved.push(pid);
                     self.stats.starvation_prevented += 1;
                     self.stats.total_adjustments += 1;
@@ -512,7 +519,8 @@ impl AppPriorityAnalyzer {
     /// Unregister
     pub fn unregister(&mut self, pid: u64) {
         self.states.remove(&pid);
-        self.inversions.retain(|i| i.blocked_pid != pid && i.holder_pid != pid);
+        self.inversions
+            .retain(|i| i.blocked_pid != pid && i.holder_pid != pid);
         self.inheritances.retain(|i| i.boosted_pid != pid);
         self.stats.total_processes = self.states.len();
     }
