@@ -23,19 +23,19 @@ pub enum RoutePath {
     /// Ultra-fast path - no validation, trusted callers
     UltraFast = 0,
     /// Fast path - minimal validation
-    Fast = 1,
+    Fast      = 1,
     /// Normal path - full validation
-    Normal = 2,
+    Normal    = 2,
     /// Slow path - extra checking, logging
-    Slow = 3,
+    Slow      = 3,
     /// Async path - queued for later
-    Async = 4,
+    Async     = 4,
     /// Batch path - coalesced with similar calls
-    Batch = 5,
+    Batch     = 5,
     /// Emulation path - compatibility layer
     Emulation = 6,
     /// Redirect path - forwarded to another handler
-    Redirect = 7,
+    Redirect  = 7,
 }
 
 impl RoutePath {
@@ -215,7 +215,14 @@ impl RouteCache {
     }
 
     /// Insert cached route
-    pub fn insert(&mut self, pid: u64, syscall_nr: u32, path: RoutePath, handler_id: u32, timestamp: u64) {
+    pub fn insert(
+        &mut self,
+        pid: u64,
+        syscall_nr: u32,
+        path: RoutePath,
+        handler_id: u32,
+        timestamp: u64,
+    ) {
         let process_cache = self.entries.entry(pid).or_insert_with(BTreeMap::new);
 
         // Evict if full
@@ -230,18 +237,15 @@ impl RouteCache {
             }
         }
 
-        process_cache.insert(
+        process_cache.insert(syscall_nr, CachedRoute {
             syscall_nr,
-            CachedRoute {
-                syscall_nr,
-                pid,
-                path,
-                handler_id,
-                cached_at: timestamp,
-                expires_at: timestamp + self.default_ttl_ms,
-                hits: 0,
-            },
-        );
+            pid,
+            path,
+            handler_id,
+            cached_at: timestamp,
+            expires_at: timestamp + self.default_ttl_ms,
+            hits: 0,
+        });
     }
 
     /// Invalidate routes for process
@@ -418,8 +422,8 @@ impl RoutingEngine {
                     None => best = Some((route.path, route.handler_id, route.priority)),
                     Some((_, _, p)) if route.priority > p => {
                         best = Some((route.path, route.handler_id, route.priority))
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
 
@@ -446,7 +450,13 @@ impl RoutingEngine {
     }
 
     /// Update route stats
-    pub fn record_completion(&mut self, syscall_nr: u32, handler_id: u32, latency_ns: u64, error: bool) {
+    pub fn record_completion(
+        &mut self,
+        syscall_nr: u32,
+        handler_id: u32,
+        latency_ns: u64,
+        error: bool,
+    ) {
         if let Some(routes) = self.routes.get_mut(&syscall_nr) {
             for route in routes {
                 if route.stats.total_calls == 0 || route.handler_id == handler_id {
