@@ -1,147 +1,222 @@
 # Contributing to Helix OS
 
-<div align="center">
+We're building a kernel. Quality matters more than velocity.
 
-🤝 **Welcome Contributors!**
+Every patch that lands in this tree runs on bare metal with no safety net —
+no standard library, no OS underneath, no second chance. We hold contributions
+to a high standard because the code demands it. That said, the codebase is
+modular: you can work on a single crate (a scheduler, a driver, a filesystem
+module) without understanding the full kernel. We welcome contributions of all
+sizes, from typo fixes to new subsystems.
 
-*Your guide to contributing to the Helix OS project*
-
-</div>
+Read this document before opening your first PR.
 
 ---
 
 ## Table of Contents
 
-1. [Getting Started](#1-getting-started)
-2. [Development Workflow](#2-development-workflow)
-3. [Code Standards](#3-code-standards)
-4. [Pull Request Process](#4-pull-request-process)
-5. [Issue Guidelines](#5-issue-guidelines)
-6. [Testing Requirements](#6-testing-requirements)
-7. [Documentation](#7-documentation)
-8. [Community Guidelines](#8-community-guidelines)
-9. [Recognition](#9-recognition)
+1. [Development Environment](#1-development-environment)
+2. [Code Standards (Non-Negotiable)](#2-code-standards-non-negotiable)
+3. [Contribution Workflow](#3-contribution-workflow)
+4. [Commit Conventions](#4-commit-conventions)
+5. [Testing & CI](#5-testing--ci)
+6. [Reporting Bugs](#6-reporting-bugs)
+7. [Where to Start](#7-where-to-start)
 
 ---
 
-## 1. Getting Started
+## 1. Development Environment
 
-### 1.1 Prerequisites
+### 1.1 Toolchain
 
-Before contributing, ensure you have:
+The project pins a **specific Rust nightly** in `rust-toolchain.toml`
+(`nightly-2025-01-15`). Rustup will install it automatically when you enter
+the repository. Do **not** override it with a different nightly — the kernel
+uses unstable features that may break across nightly versions.
 
-- **Rust Nightly**: Required for `#![no_std]` kernel development
-- **QEMU**: For testing the kernel
-- **Git**: For version control
-- **A text editor**: VS Code recommended with rust-analyzer
+Required components (also pinned in the toolchain file):
+
+| Component | Purpose |
+|:----------|:--------|
+| `rust-src` | Required for `-Zbuild-std` (we rebuild `core`/`alloc` for the bare-metal target) |
+| `rustfmt` | Code formatting — enforced in CI |
+| `clippy` | Linting — enforced in CI |
+| `llvm-tools-preview` | `objcopy`, `objdump`, binary inspection |
+
+### 1.2 System Dependencies
 
 ```bash
-# Install Rust nightly
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup default nightly
-rustup component add rust-src llvm-tools-preview
+# Debian / Ubuntu
+sudo apt install qemu-system-x86 lld make git
 
-# Install QEMU
-sudo apt install qemu-system-x86
+# Fedora
+sudo dnf install qemu-system-x86 lld make git
+
+# Arch
+sudo pacman -S qemu-full lld make git
 ```
 
-### 1.2 Fork and Clone
+**QEMU** is the primary testing platform. We target `x86_64-unknown-none`.
+
+### 1.3 Setup
 
 ```bash
 # Fork the repository on GitHub, then:
 git clone https://github.com/YOUR_USERNAME/helix.git
 cd helix
-
-# Add upstream remote
 git remote add upstream https://github.com/helix-os/helix.git
 
-# Verify remotes
-git remote -v
-```
+# Verify the toolchain installs automatically
+rustc --version   # should show nightly-2025-01-15
 
-### 1.3 Build and Test
-
-```bash
-# Build the kernel
+# Build
 ./scripts/build.sh
 
-# Run in QEMU
+# Boot in QEMU
 ./scripts/run_qemu.sh
-
-# Run tests
-./scripts/test.sh
 ```
 
-### 1.4 Project Structure Overview
+If `./scripts/build.sh` completes and QEMU boots, your environment is ready.
 
+---
+
+## 2. Code Standards (Non-Negotiable)
+
+These checks run in CI. A PR that fails any of them will not be reviewed.
+
+### 2.1 Formatting — `rustfmt`
+
+The project ships a `rustfmt.toml` with specific rules (100-column width,
+module-level import granularity, Unix line endings). Before committing:
+
+```bash
+cargo fmt --all -- --check
 ```
-helix/
-├── core/          # Core kernel functionality
-├── hal/           # Hardware Abstraction Layer
-├── modules/       # Module system
-├── fs/            # HelixFS filesystem
-├── subsystems/    # Major subsystems (DIS, memory, etc.)
-│   ├── dis/       # Differentiated Intent Scheduler
-│   ├── execution/ # Execution management
-│   ├── memory/    # Memory management
-│   └── userspace/ # Userspace support
-├── boot/          # Boot code
-├── profiles/      # Build profiles
-├── scripts/       # Build scripts
-├── docs/          # Documentation (you are here!)
-└── benchmarks/    # Performance benchmarks
+
+If it reports diffs, run `cargo fmt --all` and amend your commit.
+
+### 2.2 Linting — `clippy`
+
+The workspace configures Clippy at the `[workspace.lints.clippy]` level in
+`Cargo.toml`. The rules are strict:
+
+- **`correctness`** — denied (build fails)
+- **`suspicious`**, **`complexity`**, **`perf`**, **`style`** — warned
+- **`unsafe_op_in_unsafe_fn`** — warned (every `unsafe` block inside an
+  `unsafe fn` must have its own `unsafe {}`)
+- **`missing_safety_doc`** — warned (every `unsafe fn` must document its
+  safety contract)
+- **`unwrap_used`**, **`todo`**, **`unimplemented`** — warned
+
+Run before pushing:
+
+```bash
+cargo clippy --all-targets --all-features -- -D warnings
+```
+
+Yes, `-D warnings` promotes all warnings to errors. If Clippy complains,
+fix it. If you believe a lint is a false positive, add an `#[allow(...)]`
+with a comment explaining why — not a blanket suppression.
+
+### 2.3 Documentation
+
+Every public item (`pub fn`, `pub struct`, `pub trait`, `pub enum`) must
+have a `///` doc comment. The comment must explain:
+
+- **What** the item does (one sentence).
+- **Safety** (if `unsafe`) — what invariants the caller must uphold.
+- **Panics** (if applicable) — under what conditions.
+
+```rust
+/// Allocate a contiguous range of physical frames.
+///
+/// Returns `Err(MemError::OutOfMemory)` if the allocator cannot
+/// satisfy the request.
+///
+/// # Safety
+///
+/// The caller must ensure `count > 0` and that the returned frames
+/// are not aliased.
+pub unsafe fn alloc_frames(count: usize) -> MemResult<Frame> { ... }
+```
+
+### 2.4 `#![no_std]` — No Standard Library
+
+Every crate in this workspace compiles with `#![no_std]`. This means:
+
+- **No `std::` imports.** Use `core::` and `alloc::` only.
+- **No hidden allocations.** `format!()`, `vec![]`, `String::from()` all
+  allocate. Be deliberate about every allocation. Prefer fixed-size types
+  (`heapless`, `arrayvec`) or stack buffers.
+- **No `println!()`.** Use the kernel's debug console (`core/src/debug/`).
+- **No `unwrap()` in production paths.** Handle errors explicitly. `unwrap()`
+  in kernel code is a panic on bare metal — there is no one to catch it.
+
+### 2.5 `unsafe` Code
+
+`unsafe` is allowed — this is a kernel. But it is never casual:
+
+- Minimize the scope of each `unsafe` block.
+- Annotate every `unsafe fn` with a `# Safety` doc section.
+- Prefer safe abstractions. If you write a raw pointer dance, wrap it in a
+  safe API with documented invariants.
+- Every `unsafe` block should have a `// SAFETY: ...` comment on the line
+  above it explaining why the operation is sound.
+
+```rust
+// SAFETY: `ptr` is guaranteed non-null and aligned by the frame allocator.
+// The frame was allocated in `alloc_frames` and has not been freed.
+unsafe { core::ptr::write(ptr, value) };
 ```
 
 ---
 
-## 2. Development Workflow
+## 3. Contribution Workflow
 
-### 2.1 Branch Strategy
-
-```
-main
-  │
-  ├── develop          # Development branch
-  │     │
-  │     ├── feature/xxx  # Feature branches
-  │     ├── bugfix/xxx   # Bug fix branches
-  │     └── docs/xxx     # Documentation branches
-  │
-  └── release/x.y      # Release branches
-```
-
-### 2.2 Creating a Feature Branch
+### 3.1 Branching
 
 ```bash
-# Update your fork
 git checkout main
+git pull upstream main
+git checkout -b feat/my-feature     # or fix/issue-42, refactor/hal-cleanup
+```
+
+Branch naming: `feat/`, `fix/`, `refactor/`, `docs/`, `test/`, `bench/`.
+
+### 3.2 One PR, One Concern
+
+Each PR should address **one** logical change. A scheduler refactor and a
+typo fix are two separate PRs. This makes review faster and reverts cleaner.
+
+### 3.3 Keep Up to Date
+
+Rebase on `main` before requesting review. We do not accept merge commits.
+
+```bash
 git fetch upstream
-git merge upstream/main
-
-# Create feature branch
-git checkout -b feature/my-awesome-feature
-
-# Work on your changes
-# ... make changes ...
-
-# Commit with meaningful messages
-git add -A
-git commit -m "feat(module): add awesome functionality
-
-- Added feature X
-- Improved performance of Y
-- Fixed edge case in Z"
-
-# Push to your fork
-git push origin feature/my-awesome-feature
+git rebase upstream/main
+# resolve conflicts if any
+git push --force-with-lease origin feat/my-feature
 ```
 
-### 2.3 Commit Message Format
+### 3.4 Code Review
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
+- Every PR requires at least one approving review.
+- Respond to feedback within a reasonable time.
+- Mark review comments as resolved when addressed.
+- Do not force-push after a review has started unless asked to rebase.
+
+---
+
+## 4. Commit Conventions
+
+### 4.1 Conventional Commits
+
+All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/)
+specification:
 
 ```
-<type>(<scope>): <description>
+<type>(<scope>): <short description>
 
 [optional body]
 
@@ -149,762 +224,165 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `style` | Formatting, no code change |
-| `refactor` | Code change without fix/feat |
-| `perf` | Performance improvement |
-| `test` | Adding tests |
-| `chore` | Maintenance tasks |
 
-**Scopes:**
-| Scope | Area |
-|-------|------|
-| `core` | Core kernel |
-| `hal` | Hardware abstraction |
-| `modules` | Module system |
-| `fs` | Filesystem |
-| `dis` | Scheduler |
-| `memory` | Memory management |
-| `boot` | Boot process |
-| `docs` | Documentation |
+| Type | Usage |
+|:-----|:------|
+| `feat` | New feature or module |
+| `fix` | Bug fix |
+| `refactor` | Code restructuring (no behavior change) |
+| `docs` | Documentation only |
+| `test` | Tests only |
+| `perf` | Performance improvement |
+| `ci` | CI/CD pipeline changes |
+| `chore` | Build scripts, tooling, dependencies |
+
+**Scope** is the crate or subsystem affected: `hal`, `core`, `execution`,
+`memory`, `fs`, `nexus`, `modules`, `boot/limine`, `boot/uefi`, etc.
 
 **Examples:**
 
-```bash
-# Good commit messages
-git commit -m "feat(dis): implement EDF scheduling policy"
-git commit -m "fix(memory): prevent double-free in buddy allocator"
-git commit -m "docs(api): add HAL interrupt documentation"
-git commit -m "refactor(core): simplify IPC channel creation"
-git commit -m "perf(fs): optimize B-tree node splitting"
-
-# Bad commit messages (avoid these)
-git commit -m "fixed stuff"
-git commit -m "WIP"
-git commit -m "asdf"
+```
+feat(execution): implement CFS scheduler module
+fix(memory): prevent double-free in slab allocator
+refactor(hal): extract APIC logic into dedicated submodule
+docs(modules): add hot-reload protocol specification
+test(fs): add CoW snapshot round-trip tests
 ```
 
-### 2.4 Keeping Your Branch Updated
+### 4.2 Developer Certificate of Origin (DCO)
+
+By submitting a patch, you certify that you have the right to do so under
+the project's license. We enforce this via the
+[DCO](https://developercertificate.org/).
+
+**Sign every commit** with the `-s` flag:
 
 ```bash
-# Fetch upstream changes
-git fetch upstream
-
-# Rebase your branch on latest main
-git checkout feature/my-feature
-git rebase upstream/main
-
-# If conflicts occur:
-# 1. Resolve conflicts in each file
-# 2. git add <resolved-files>
-# 3. git rebase --continue
-
-# Force push after rebase (only to your branch!)
-git push origin feature/my-feature --force-with-lease
+git commit -s -m "feat(hal): add x2APIC MSR-based IPI support"
 ```
+
+This adds a `Signed-off-by: Your Name <your@email.com>` trailer. CI will
+reject unsigned commits.
+
+If you forgot to sign, amend:
+
+```bash
+# Last commit
+git commit --amend -s --no-edit
+
+# Multiple commits
+git rebase --signoff HEAD~N
+```
+
+### 4.3 Commit Hygiene
+
+- One logical change per commit. If a commit message needs "and", split it.
+- Write the subject in imperative mood: "add", not "added" or "adds".
+- Keep the subject line under 72 characters.
+- Use the body to explain **why**, not **what** (the diff shows what).
 
 ---
 
-## 3. Code Standards
+## 5. Testing & CI
 
-### 3.1 Rust Style Guide
+### 5.1 Local Checks (Run Before Every Push)
 
-```rust
-// ═══════════════════════════════════════════════════════════════════════════
-//                           HELIX RUST STYLE GUIDE
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ─── FILE STRUCTURE ─────────────────────────────────────────────────────────
-
-// 1. Module documentation
-//! This module provides...
-
-// 2. Imports (grouped and ordered)
-use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
-
-use crate::internal::module;
-use super::parent_module;
-
-// 3. Constants
-const MAX_SIZE: usize = 1024;
-
-// 4. Type definitions
-type Result<T> = core::result::Result<T, Error>;
-
-// 5. Traits
-pub trait Scheduler { ... }
-
-// 6. Structs and enums
-pub struct Task { ... }
-
-// 7. Implementations
-impl Task { ... }
-
-// 8. Functions
-pub fn create_task() -> Task { ... }
-
-// 9. Tests (at bottom)
-#[cfg(test)]
-mod tests { ... }
-
-// ─── NAMING CONVENTIONS ─────────────────────────────────────────────────────
-
-// Types: PascalCase
-struct TaskManager;
-enum TaskState { Ready, Running, Blocked }
-trait Scheduler;
-
-// Functions and variables: snake_case
-fn create_task() -> Task { ... }
-let task_count = 42;
-
-// Constants: SCREAMING_SNAKE_CASE
-const MAX_TASKS: usize = 256;
-static GLOBAL_COUNTER: AtomicU64 = AtomicU64::new(0);
-
-// Lifetimes: short lowercase
-fn process<'a>(data: &'a [u8]) -> &'a str { ... }
-
-// ─── DOCUMENTATION ──────────────────────────────────────────────────────────
-
-/// Brief description of the function.
-///
-/// Longer description explaining the purpose, behavior,
-/// and any important details.
-///
-/// # Arguments
-///
-/// * `name` - Description of the parameter
-/// * `config` - Description of another parameter
-///
-/// # Returns
-///
-/// Description of what is returned.
-///
-/// # Errors
-///
-/// Returns `Error::NotFound` if the task doesn't exist.
-///
-/// # Panics
-///
-/// Panics if `name` is empty.
-///
-/// # Examples
-///
-/// ```
-/// let task = create_task("worker", TaskConfig::default())?;
-/// assert_eq!(task.name(), "worker");
-/// ```
-///
-/// # Safety
-///
-/// (For unsafe functions) Explain invariants that must be upheld.
-pub fn create_task(name: &str, config: TaskConfig) -> Result<Task> {
-    // Implementation
-}
-
-// ─── ERROR HANDLING ─────────────────────────────────────────────────────────
-
-// Use Result for fallible operations
-pub fn allocate_page() -> Result<Page, AllocError> {
-    // ...
-}
-
-// Define specific error types
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AllocError {
-    OutOfMemory,
-    InvalidSize,
-    Alignment,
-}
-
-impl core::fmt::Display for AllocError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::OutOfMemory => write!(f, "out of memory"),
-            Self::InvalidSize => write!(f, "invalid allocation size"),
-            Self::Alignment => write!(f, "alignment error"),
-        }
-    }
-}
-
-// ─── UNSAFE CODE ────────────────────────────────────────────────────────────
-
-// Minimize unsafe blocks
-// Document safety requirements
-// Provide safe wrappers
-
-/// Reads a value from a memory-mapped I/O register.
-///
-/// # Safety
-///
-/// - `addr` must be a valid MMIO address
-/// - `addr` must be properly aligned for type `T`
-/// - The memory at `addr` must be valid for reading
-pub unsafe fn mmio_read<T: Copy>(addr: usize) -> T {
-    // SAFETY: Caller guarantees addr is valid MMIO
-    core::ptr::read_volatile(addr as *const T)
-}
-
-// Safe wrapper
-pub fn read_status_register() -> u32 {
-    const STATUS_REG: usize = 0xFEE0_0000;
-    // SAFETY: STATUS_REG is a known-valid MMIO address
-    unsafe { mmio_read(STATUS_REG) }
-}
-
-// ─── FORMATTING ─────────────────────────────────────────────────────────────
-
-// Line length: 100 characters max (prefer 80)
-// Indentation: 4 spaces (no tabs)
-// Braces: same line for functions
-
-fn example_function() {
-    // Correct
-}
-
-// Match arms alignment
-match state {
-    TaskState::Ready    => handle_ready(),
-    TaskState::Running  => handle_running(),
-    TaskState::Blocked  => handle_blocked(),
-}
-
-// Chain method calls
-let result = items
-    .iter()
-    .filter(|x| x.is_valid())
-    .map(|x| x.process())
-    .collect::<Vec<_>>();
+```bash
+# The full pre-commit gate — mirrors what CI runs
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --target x86_64-unknown-linux-gnu --lib
+./scripts/build.sh
 ```
 
-### 3.2 Code Quality Checklist
+If all four pass locally, CI will pass.
 
-Before submitting, verify:
+### 5.2 What CI Checks
 
-- [ ] Code compiles with `cargo build --release`
-- [ ] No warnings with `cargo clippy`
-- [ ] Formatted with `cargo fmt`
-- [ ] All tests pass with `cargo test`
-- [ ] Documentation builds with `cargo doc`
-- [ ] No unsafe code without safety comments
-- [ ] Error handling is appropriate
-- [ ] Public APIs are documented
+| Check | Command | Failure = blocked |
+|:------|:--------|:------------------|
+| Format | `cargo fmt --all -- --check` | ✅ |
+| Lint | `cargo clippy --all-targets --all-features -- -D warnings` | ✅ |
+| Unit tests | `cargo test --target x86_64-unknown-linux-gnu --lib` | ✅ |
+| Kernel build | `./scripts/build.sh` | ✅ |
+| DCO | Signed-off-by trailer present | ✅ |
+
+### 5.3 Writing Tests
+
+- Unit tests go in the same file as the code, inside a `#[cfg(test)]` module.
+- Tests run on the **host** (`x86_64-unknown-linux-gnu`), not on bare metal.
+  This means `std` is available in test modules — but keep test logic
+  portable.
+- If your change touches a subsystem framework (e.g., `execution/`,
+  `memory/`), add or update tests for the trait contracts.
+- Integration tests and boot tests use `./scripts/test.sh`.
 
 ---
 
-## 4. Pull Request Process
+## 6. Reporting Bugs
 
-### 4.1 Before Opening a PR
+A kernel bug report must be actionable. Include:
 
-1. **Update your branch** with latest upstream
-2. **Run all checks locally**:
-   ```bash
-   cargo fmt --check
-   cargo clippy -- -D warnings
-   cargo test
-   ./scripts/build.sh
-   ```
-3. **Write/update tests** for your changes
-4. **Update documentation** if needed
+1. **Summary** — One sentence describing the observed behavior.
+2. **Expected behavior** — What should have happened.
+3. **Reproduction steps** — Exact commands, starting from `git clone`.
+4. **Environment:**
+   - Output of `rustc --version`
+   - Output of `qemu-system-x86_64 --version`
+   - Host OS and architecture
+   - Boot protocol used (Limine / UEFI / Multiboot2)
+5. **Logs** — Serial output, QEMU console output, or panic messages.
+   Attach the full log, not a screenshot.
+6. **Bisect** (if possible) — `git bisect` to the first bad commit.
 
-### 4.2 PR Template
+**Template:**
 
 ```markdown
-## Description
-
-Brief description of what this PR does.
-
-## Related Issues
-
-Fixes #123
-Related to #456
-
-## Type of Change
-
-- [ ] Bug fix (non-breaking change that fixes an issue)
-- [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Performance improvement
-- [ ] Code refactoring
-
-## Changes Made
-
-- Added X functionality
-- Fixed Y bug
-- Improved Z performance
-
-## Testing
-
-Describe how you tested your changes:
-
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Manual testing in QEMU
-- [ ] Benchmarks run (if applicable)
-
-## Screenshots (if applicable)
-
-Add screenshots of QEMU output or relevant visuals.
-
-## Checklist
-
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-```
-
-### 4.3 Review Process
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         PULL REQUEST LIFECYCLE                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌───────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐       │
-│  │   Open    │────▶│  Review   │────▶│  Iterate  │────▶│  Approve  │       │
-│  │    PR     │     │           │     │           │     │           │       │
-│  └───────────┘     └───────────┘     └───────────┘     └───────────┘       │
-│       │                 │                 │                 │               │
-│       │                 │                 │                 │               │
-│       ▼                 ▼                 ▼                 ▼               │
-│  ┌───────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐       │
-│  │  CI Runs  │     │ Comments  │     │  Updates  │     │   Merge   │       │
-│  │  Checks   │     │ & Request │     │  & Fixes  │     │           │       │
-│  └───────────┘     └───────────┘     └───────────┘     └───────────┘       │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Review Timeline:**
-- Initial review: Within 3 business days
-- Follow-up reviews: Within 2 business days
-- Simple fixes: Can be merged by any maintainer
-- Major changes: Require 2 maintainer approvals
-
-### 4.4 Addressing Review Comments
-
-```bash
-# Make requested changes
-# ... edit files ...
-
-# Commit with reference to review
-git add -A
-git commit -m "fix: address review comments
-
-- Renamed variable for clarity
-- Added missing error handling
-- Improved documentation"
-
-# Push updates
-git push origin feature/my-feature
-```
-
-**DO:**
-- Respond to all comments
-- Ask for clarification if needed
-- Explain your reasoning
-
-**DON'T:**
-- Take feedback personally
-- Ignore comments
-- Force push without warning
-
----
-
-## 5. Issue Guidelines
-
-### 5.1 Bug Reports
-
-Use this template for bugs:
-
-```markdown
-## Bug Description
-
-A clear and concise description of the bug.
-
-## Environment
-
-- OS: [e.g., Ubuntu 22.04]
-- Rust version: [e.g., nightly-2024-01-15]
-- QEMU version: [e.g., 8.1.0]
-- Commit hash: [e.g., abc1234]
-
-## Steps to Reproduce
-
-1. Build the kernel with '...'
-2. Run in QEMU with '...'
-3. Perform action '...'
-4. See error
-
-## Expected Behavior
-
-What you expected to happen.
-
-## Actual Behavior
-
-What actually happened.
-
-## Logs/Output
-
-```
-Paste relevant serial output or error messages
-```
-
-## Additional Context
-
-Any other relevant information (screenshots, related issues, etc.)
-```
-
-### 5.2 Feature Requests
-
-```markdown
-## Feature Description
-
-A clear and concise description of the feature.
-
-## Motivation
-
-Why is this feature needed? What problem does it solve?
-
-## Proposed Solution
-
-How would you like to see this implemented?
-
-## Alternatives Considered
-
-Other approaches you've thought about.
-
-## Additional Context
-
-Any other relevant information.
-```
-
-### 5.3 Issue Labels
-
-| Label | Description |
-|-------|-------------|
-| `bug` | Something isn't working |
-| `enhancement` | New feature or improvement |
-| `documentation` | Documentation improvements |
-| `good first issue` | Good for newcomers |
-| `help wanted` | Extra attention needed |
-| `priority: high` | Urgent issues |
-| `priority: low` | Nice to have |
-| `wontfix` | Will not be addressed |
-| `duplicate` | Already exists |
-| `question` | Needs discussion |
-
----
-
-## 6. Testing Requirements
-
-### 6.1 Test Types
-
-```rust
-// ═══════════════════════════════════════════════════════════════════════════
-//                              TEST TYPES
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ─── UNIT TESTS ─────────────────────────────────────────────────────────────
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_task_creation() {
-        let task = Task::new("test", Intent::batch());
-        assert_eq!(task.name(), "test");
-        assert_eq!(task.state(), TaskState::Ready);
-    }
-    
-    #[test]
-    fn test_task_state_transition() {
-        let mut task = Task::new("test", Intent::batch());
-        task.set_state(TaskState::Running);
-        assert_eq!(task.state(), TaskState::Running);
-    }
-    
-    #[test]
-    #[should_panic(expected = "invalid state")]
-    fn test_invalid_transition() {
-        let mut task = Task::new("test", Intent::batch());
-        task.set_state(TaskState::Running);
-        task.set_state(TaskState::Ready); // Not allowed, should panic
-    }
-}
-
-// ─── INTEGRATION TESTS ──────────────────────────────────────────────────────
-
-// In tests/integration_test.rs
-#[test]
-fn test_scheduler_integration() {
-    let mut scheduler = Scheduler::new();
-    
-    // Create multiple tasks
-    let t1 = scheduler.spawn("task1", Intent::interactive(1000));
-    let t2 = scheduler.spawn("task2", Intent::batch());
-    
-    // Verify scheduling order
-    assert_eq!(scheduler.next(), Some(t1)); // Interactive first
-    assert_eq!(scheduler.next(), Some(t2)); // Then batch
-}
-
-// ─── PROPERTY-BASED TESTS ───────────────────────────────────────────────────
-
-// Using proptest crate (when available)
-#[test]
-fn test_allocator_properties() {
-    // Any allocation followed by deallocation should be valid
-    // Multiple allocations should not overlap
-    // etc.
-}
-
-// ─── FUZZ TESTS ─────────────────────────────────────────────────────────────
-
-// For critical components like parsers
-#[test]
-fn fuzz_path_parser() {
-    // Test with random inputs
-}
-```
-
-### 6.2 Test Coverage Requirements
-
-| Component | Minimum Coverage |
-|-----------|-----------------|
-| Core modules | 80% |
-| HAL | 70% |
-| Filesystem | 85% |
-| Scheduler | 80% |
-| IPC | 75% |
-| New features | 90% |
-
-### 6.3 Running Tests
-
-```bash
-# Run all tests
-cargo test
-
-# Run tests for specific crate
-cargo test -p helix-core
-
-# Run tests with output
-cargo test -- --nocapture
-
-# Run specific test
-cargo test test_task_creation
-
-# Run ignored tests (slow/require hardware)
-cargo test -- --ignored
-
-# Run benchmarks
-cargo bench
+## Bug: [short description]
+
+**Environment:**
+- rustc: nightly-2025-01-15
+- QEMU: 8.2.0
+- Host: Ubuntu 24.04 x86_64
+- Boot: Limine
+
+**Steps to reproduce:**
+1. `git checkout main`
+2. `./scripts/build.sh`
+3. `./scripts/run_qemu.sh`
+4. Observe: [what happens]
+
+**Expected:** [what should happen]
+
+**Serial log:**
+[paste full output]
 ```
 
 ---
 
-## 7. Documentation
+## 7. Where to Start
 
-### 7.1 Documentation Requirements
+The codebase is a Cargo workspace with ~20 crates. You don't need to
+understand all of them. Pick an area that interests you:
 
-All public APIs must have:
+| Area | Crate(s) | What to do |
+|:-----|:---------|:-----------|
+| **New scheduler** | `modules_impl/schedulers/` | Implement the `Scheduler` trait. Use `round_robin/` as reference. |
+| **Drivers** | (new crate) | VirtIO block, VirtIO net, PS/2 keyboard. The HAL provides interrupt and MMIO abstractions. |
+| **Filesystem** | `fs/` | Implement a ramfs, extend VFS coverage, add tests for CoW snapshots. |
+| **HAL** | `hal/` | Improve x86_64 timer calibration, add HPET support, extend ACPI parsing. |
+| **Benchmarks** | `benchmarks/` | Add benchmarks for IPC latency, context switch time, allocation throughput. |
+| **Documentation** | `docs/` | Improve module guide, add architecture diagrams, write tutorials. |
+| **Tests** | Any crate | Increase test coverage. Every subsystem needs more unit tests. |
 
-1. **Brief description**: One-line summary
-2. **Detailed description**: Full explanation
-3. **Arguments**: Document all parameters
-4. **Returns**: What the function returns
-5. **Errors**: When and why it fails
-6. **Examples**: Working code examples
-7. **Safety**: For unsafe functions
-
-### 7.2 Documentation Types
-
-```
-docs/
-├── README.md              # Main index
-├── guide/                 # User guides
-│   ├── INTRODUCTION.md
-│   └── GETTING_STARTED.md
-├── architecture/          # Architecture docs
-│   ├── OVERVIEW.md
-│   ├── BOOT_PROCESS.md
-│   └── MEMORY_MODEL.md
-├── api/                   # API reference
-│   ├── CORE.md
-│   ├── HAL.md
-│   ├── MODULES.md
-│   ├── FILESYSTEM.md
-│   └── SCHEDULER.md
-├── development/           # Developer docs
-│   ├── CONTRIBUTING.md    # (this file)
-│   ├── CODING_STANDARDS.md
-│   └── DEBUGGING.md
-└── reference/             # Reference docs
-    ├── CHANGELOG.md
-    ├── GLOSSARY.md
-    └── FAQ.md
-```
-
-### 7.3 Building Documentation
-
-```bash
-# Build Rust docs
-cargo doc --no-deps --document-private-items
-
-# Open in browser
-cargo doc --open
-
-# Check doc links
-cargo doc --no-deps 2>&1 | grep -i "warning"
-```
+Start small. A clean, well-tested 50-line patch is worth more than a
+sprawling 500-line patch with no tests.
 
 ---
 
-## 8. Community Guidelines
+## License
 
-### 8.1 Code of Conduct
+By contributing to Helix OS, you agree that your contributions will be
+licensed under the project's dual license: **MIT OR Apache-2.0**.
 
-We are committed to providing a welcoming and inclusive environment.
-
-**Our Standards:**
-
-✅ **DO:**
-- Use welcoming and inclusive language
-- Be respectful of differing viewpoints
-- Accept constructive criticism gracefully
-- Focus on what is best for the community
-- Show empathy towards other community members
-
-❌ **DON'T:**
-- Use sexualized language or imagery
-- Engage in trolling, insults, or personal attacks
-- Harass anyone publicly or privately
-- Publish others' private information
-- Conduct yourself unprofessionally
-
-### 8.2 Communication Channels
-
-| Channel | Purpose |
-|---------|---------|
-| GitHub Issues | Bug reports, feature requests |
-| GitHub Discussions | Questions, ideas, showcase |
-| Discord | Real-time chat, help |
-| Mailing List | Announcements, design discussions |
-
-### 8.3 Getting Help
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         GETTING HELP FLOWCHART                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────────┐                                                        │
-│  │ I have a        │                                                        │
-│  │ question...     │                                                        │
-│  └────────┬────────┘                                                        │
-│           │                                                                 │
-│           ▼                                                                 │
-│  ┌─────────────────┐     Yes    ┌─────────────────┐                        │
-│  │ Is it in the    │───────────▶│ Read the docs!  │                        │
-│  │ documentation?  │            └─────────────────┘                        │
-│  └────────┬────────┘                                                        │
-│           │ No                                                              │
-│           ▼                                                                 │
-│  ┌─────────────────┐     Yes    ┌─────────────────┐                        │
-│  │ Has it been     │───────────▶│ Read the issue  │                        │
-│  │ asked before?   │            │ and comments    │                        │
-│  └────────┬────────┘            └─────────────────┘                        │
-│           │ No                                                              │
-│           ▼                                                                 │
-│  ┌─────────────────┐     Quick  ┌─────────────────┐                        │
-│  │ What type of    │───────────▶│ Ask on Discord  │                        │
-│  │ question?       │            └─────────────────┘                        │
-│  └────────┬────────┘                                                        │
-│           │ Detailed                                                        │
-│           ▼                                                                 │
-│  ┌─────────────────┐                                                        │
-│  │ Open a GitHub   │                                                        │
-│  │ Discussion      │                                                        │
-│  └─────────────────┘                                                        │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 9. Recognition
-
-### 9.1 Contributor Recognition
-
-We appreciate all contributions! Contributors are recognized in:
-
-- **CONTRIBUTORS.md**: Listed by name/handle
-- **Release notes**: Mentioned for significant contributions
-- **Project website**: Hall of fame for major contributors
-
-### 9.2 Types of Contributions
-
-All contributions are valued:
-
-| Contribution | Recognition |
-|--------------|-------------|
-| Code | Listed in CONTRIBUTORS.md |
-| Documentation | Listed in CONTRIBUTORS.md |
-| Bug reports | Acknowledged in issue |
-| Design work | Credited in relevant docs |
-| Testing | Acknowledged in release notes |
-| Community help | Community champion badge |
-
-### 9.3 Becoming a Maintainer
-
-Active contributors may be invited to become maintainers:
-
-**Criteria:**
-- Multiple quality contributions
-- Good code review participation
-- Helpful in community
-- Understanding of project direction
-
-**Responsibilities:**
-- Review PRs
-- Triage issues
-- Help new contributors
-- Participate in design discussions
-
----
-
-## Summary
-
-Contributing to Helix OS is straightforward:
-
-1. **Fork & Clone** the repository
-2. **Create a branch** for your changes
-3. **Make changes** following our guidelines
-4. **Test thoroughly** before submitting
-5. **Open a PR** with clear description
-6. **Respond to review** comments
-7. **Celebrate** when merged! 🎉
-
-Thank you for contributing to Helix OS!
-
----
-
-<div align="center">
-
-🤝 *Together we build better software* 🤝
-
-**Questions?** Open a [GitHub Discussion](https://github.com/helix-os/helix/discussions)
-
-</div>
+See [LICENSE](../../LICENSE) for details.
