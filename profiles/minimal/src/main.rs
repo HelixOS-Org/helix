@@ -1054,11 +1054,8 @@ fn nexus_sandbox_demo() {
     // The lite subset exposes `helix_nexus::predict` with the DecisionTree
     // and lightweight forecasting primitives — no neural backend required.
     let sample_metrics: [f64; 8] = [0.12, 0.15, 0.14, 0.18, 0.22, 0.31, 0.45, 0.62];
-    let _trend_rising = sample_metrics
-        .windows(2)
-        .filter(|w| w[1] > w[0])
-        .count()
-        > sample_metrics.len() / 2;
+    let _trend_rising =
+        sample_metrics.windows(2).filter(|w| w[1] > w[0]).count() > sample_metrics.len() / 2;
 
     serial_write_str("  [nexus-lite] Metric trend: rising → anomaly candidate\n");
 
