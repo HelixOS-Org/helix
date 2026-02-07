@@ -212,11 +212,7 @@ impl CoalesceWindow {
 
         self.state = CoalesceState::Ready;
 
-        let start_offset = self
-            .pending
-            .first()
-            .and_then(|e| e.offset)
-            .unwrap_or(0);
+        let start_offset = self.pending.first().and_then(|e| e.offset).unwrap_or(0);
 
         let savings = self.estimate_savings();
 
@@ -247,23 +243,23 @@ impl CoalesceWindow {
             CoalesceCategory::SequentialRead | CoalesceCategory::SequentialWrite => {
                 // Sequential I/O: ~50-80% reduction in syscall overhead
                 50 + (n.min(10) * 3)
-            }
+            },
             CoalesceCategory::SmallWrite => {
                 // Small writes: high savings from Nagle-like coalescing
                 60 + (n.min(20) * 2)
-            }
+            },
             CoalesceCategory::Metadata => {
                 // Metadata: moderate savings
                 30 + (n.min(8) * 5)
-            }
+            },
             CoalesceCategory::MemoryMap => {
                 // mmap: moderate savings, reduced TLB pressure
                 40 + (n.min(5) * 8)
-            }
+            },
             CoalesceCategory::Timer => {
                 // Timer: good savings from alignment
                 40 + (n.min(10) * 4)
-            }
+            },
             _ => 20 + (n.min(5) * 5),
         }
     }
@@ -450,8 +446,8 @@ impl CoalesceEngine {
                         self.stats.syscalls_saved += saved;
 
                         if self.stats.total_batches > 0 {
-                            self.stats.avg_batch_size = self.stats.total_coalesced as f64
-                                / self.stats.total_batches as f64;
+                            self.stats.avg_batch_size =
+                                self.stats.total_coalesced as f64 / self.stats.total_batches as f64;
                         }
 
                         batches.push(batch);
