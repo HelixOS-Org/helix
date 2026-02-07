@@ -4,7 +4,6 @@
 //! future system states, enabling proactive optimization.
 
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 use super::global::{BottleneckType, SystemSnapshot};
 
