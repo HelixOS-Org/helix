@@ -20,14 +20,14 @@ use super::syscall::SyscallType;
 /// Buckets: [0-1µs, 1-10µs, 10-100µs, 100µs-1ms, 1-10ms, 10-100ms, 100ms-1s, >1s]
 const NUM_BUCKETS: usize = 8;
 const BUCKET_BOUNDARIES_NS: [u64; 8] = [
-    1_000,        // 1µs
-    10_000,       // 10µs
-    100_000,      // 100µs
-    1_000_000,    // 1ms
-    10_000_000,   // 10ms
-    100_000_000,  // 100ms
+    1_000,         // 1µs
+    10_000,        // 10µs
+    100_000,       // 100µs
+    1_000_000,     // 1ms
+    10_000_000,    // 10ms
+    100_000_000,   // 100ms
     1_000_000_000, // 1s
-    u64::MAX,     // >1s
+    u64::MAX,      // >1s
 ];
 
 /// Latency histogram
@@ -264,9 +264,15 @@ impl ThroughputTracker {
             return 0.0;
         }
         let n = self.windows.len();
-        let first_half: f64 = self.windows[..n / 2].iter().map(|w| w.ops as f64).sum::<f64>()
+        let first_half: f64 = self.windows[..n / 2]
+            .iter()
+            .map(|w| w.ops as f64)
+            .sum::<f64>()
             / (n / 2) as f64;
-        let second_half: f64 = self.windows[n / 2..].iter().map(|w| w.ops as f64).sum::<f64>()
+        let second_half: f64 = self.windows[n / 2..]
+            .iter()
+            .map(|w| w.ops as f64)
+            .sum::<f64>()
             / (n - n / 2) as f64;
 
         if first_half < 0.001 {
@@ -336,13 +342,20 @@ impl ErrorTracker {
             return 0.0;
         }
         let window_start = current_time.saturating_sub(1000);
-        let recent_count = self.recent_errors.iter().filter(|&&t| t >= window_start).count();
+        let recent_count = self
+            .recent_errors
+            .iter()
+            .filter(|&&t| t >= window_start)
+            .count();
         recent_count as f64
     }
 
     /// Most common error code
     pub fn most_common_error(&self) -> Option<(i32, u64)> {
-        self.error_counts.iter().max_by_key(|(_, &v)| v).map(|(&k, &v)| (k, v))
+        self.error_counts
+            .iter()
+            .max_by_key(|(_, &v)| v)
+            .map(|(&k, &v)| (k, v))
     }
 }
 
@@ -380,13 +393,7 @@ impl SyscallTypeMetrics {
     }
 
     /// Record a syscall completion
-    pub fn record(
-        &mut self,
-        latency_ns: u64,
-        return_value: i64,
-        bytes: u64,
-        timestamp: u64,
-    ) {
+    pub fn record(&mut self, latency_ns: u64, return_value: i64, bytes: u64, timestamp: u64) {
         self.invocations += 1;
         self.bytes_transferred += bytes;
         self.latency.record(latency_ns);
@@ -427,7 +434,13 @@ impl ProcessSyscallMetrics {
         }
     }
 
-    pub fn record(&mut self, syscall_type: SyscallType, latency_ns: u64, success: bool, timestamp: u64) {
+    pub fn record(
+        &mut self,
+        syscall_type: SyscallType,
+        latency_ns: u64,
+        success: bool,
+        timestamp: u64,
+    ) {
         self.total_syscalls += 1;
         self.total_latency_ns += latency_ns;
         *self.per_type.entry(syscall_type as u8).or_insert(0) += 1;
@@ -524,7 +537,9 @@ impl MetricsRegistry {
             .record(latency_ns, return_value, bytes, timestamp);
 
         // Per-process
-        if self.process_metrics.len() < self.max_processes || self.process_metrics.contains_key(&pid) {
+        if self.process_metrics.len() < self.max_processes
+            || self.process_metrics.contains_key(&pid)
+        {
             self.process_metrics
                 .entry(pid)
                 .or_insert_with(|| ProcessSyscallMetrics::new(pid))
