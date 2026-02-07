@@ -127,8 +127,7 @@ impl CapabilityToken {
 
     /// Check if active
     pub fn is_valid(&self, now: u64) -> bool {
-        self.state == CapabilityState::Active
-            && (self.expires_ns == 0 || now < self.expires_ns)
+        self.state == CapabilityState::Active && (self.expires_ns == 0 || now < self.expires_ns)
     }
 
     /// Derive attenuated capability
@@ -212,7 +211,13 @@ impl ProcessCapabilityTable {
     }
 
     /// Check permission
-    pub fn has_permission(&self, resource: ProtectedResource, resource_id: u64, cap_type: CapabilityType, now: u64) -> bool {
+    pub fn has_permission(
+        &self,
+        resource: ProtectedResource,
+        resource_id: u64,
+        cap_type: CapabilityType,
+        now: u64,
+    ) -> bool {
         self.capabilities.values().any(|c| {
             c.resource == resource
                 && c.resource_id == resource_id
@@ -243,7 +248,10 @@ impl ProcessCapabilityTable {
 
     /// Count active
     pub fn active_count(&self) -> usize {
-        self.capabilities.values().filter(|c| c.state == CapabilityState::Active).count()
+        self.capabilities
+            .values()
+            .filter(|c| c.state == CapabilityState::Active)
+            .count()
     }
 
     /// Cleanup expired/revoked
@@ -251,7 +259,9 @@ impl ProcessCapabilityTable {
         for cap in self.capabilities.values_mut() {
             cap.check_expiry(now);
         }
-        self.capabilities.retain(|_, c| c.state != CapabilityState::Revoked && c.state != CapabilityState::Expired);
+        self.capabilities.retain(|_, c| {
+            c.state != CapabilityState::Revoked && c.state != CapabilityState::Expired
+        });
     }
 
     /// Allocate next ID
@@ -305,10 +315,20 @@ impl BridgeCapabilityManager {
     }
 
     /// Grant capability
-    pub fn grant(&mut self, pid: u64, cap_type: CapabilityType, resource: ProtectedResource, resource_id: u64, now: u64) -> u64 {
+    pub fn grant(
+        &mut self,
+        pid: u64,
+        cap_type: CapabilityType,
+        resource: ProtectedResource,
+        resource_id: u64,
+        now: u64,
+    ) -> u64 {
         let id = self.alloc_id();
         let cap = CapabilityToken::new(id, pid, cap_type, resource, resource_id, now);
-        let table = self.tables.entry(pid).or_insert_with(|| ProcessCapabilityTable::new(pid));
+        let table = self
+            .tables
+            .entry(pid)
+            .or_insert_with(|| ProcessCapabilityTable::new(pid));
         table.add(cap);
         self.stats.grants += 1;
         self.update_stats();
@@ -316,11 +336,22 @@ impl BridgeCapabilityManager {
     }
 
     /// Grant with expiry
-    pub fn grant_timed(&mut self, pid: u64, cap_type: CapabilityType, resource: ProtectedResource, resource_id: u64, now: u64, duration_ns: u64) -> u64 {
+    pub fn grant_timed(
+        &mut self,
+        pid: u64,
+        cap_type: CapabilityType,
+        resource: ProtectedResource,
+        resource_id: u64,
+        now: u64,
+        duration_ns: u64,
+    ) -> u64 {
         let id = self.alloc_id();
         let mut cap = CapabilityToken::new(id, pid, cap_type, resource, resource_id, now);
         cap.expires_ns = now + duration_ns;
-        let table = self.tables.entry(pid).or_insert_with(|| ProcessCapabilityTable::new(pid));
+        let table = self
+            .tables
+            .entry(pid)
+            .or_insert_with(|| ProcessCapabilityTable::new(pid));
         table.add(cap);
         self.stats.grants += 1;
         self.update_stats();
@@ -328,9 +359,17 @@ impl BridgeCapabilityManager {
     }
 
     /// Check permission
-    pub fn check(&mut self, pid: u64, resource: ProtectedResource, resource_id: u64, cap_type: CapabilityType, now: u64) -> bool {
+    pub fn check(
+        &mut self,
+        pid: u64,
+        resource: ProtectedResource,
+        resource_id: u64,
+        cap_type: CapabilityType,
+        now: u64,
+    ) -> bool {
         self.stats.permission_checks += 1;
-        self.tables.get(&pid)
+        self.tables
+            .get(&pid)
             .map(|t| t.has_permission(resource, resource_id, cap_type, now))
             .unwrap_or(false)
     }
@@ -340,7 +379,10 @@ impl BridgeCapabilityManager {
         let parent = self.tables.get(&from_pid)?.get(cap_id)?.clone();
         let new_id = self.alloc_id();
         let derived = parent.derive(new_id, to_pid, now)?;
-        let table = self.tables.entry(to_pid).or_insert_with(|| ProcessCapabilityTable::new(to_pid));
+        let table = self
+            .tables
+            .entry(to_pid)
+            .or_insert_with(|| ProcessCapabilityTable::new(to_pid));
         table.add(derived);
         self.stats.derivations += 1;
         self.update_stats();
