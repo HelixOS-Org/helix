@@ -23,16 +23,28 @@
 extern crate alloc;
 
 pub mod adapt;
+pub mod anomaly;
 pub mod classify;
+pub mod history;
+pub mod io;
+pub mod lifecycle;
+pub mod memory;
 pub mod optimize;
 pub mod predict;
 pub mod profile;
+pub mod resource;
+pub mod scheduler;
 
 // Re-export core types
 pub use adapt::{AdaptationAction, AdaptationEngine, ResourceAdjustment, ResourceTarget};
+pub use anomaly::{Anomaly, AnomalyManager, AnomalySeverity, AnomalyType, ProcessAnomalyDetector};
 pub use classify::{
     AppFingerprint, BehaviorSignature, ClassificationResult, Classifier, WorkloadCategory,
 };
+pub use history::{BinaryHistory, TimeSeries, WorkloadFingerprint, WorkloadHistory, WorkloadHistoryManager};
+pub use io::{BandwidthEstimator, IoAnalyzer, IoPattern, IoSchedulingHint, ProcessIoAnalyzer};
+pub use lifecycle::{LifecycleEvent, LifecycleManager, LifecyclePhase, ProcessLifecycle};
+pub use memory::{AccessPattern, AllocationAnalyzer, MemoryAnalyzer, WorkingSetEstimator};
 pub use optimize::{
     AppOptimization, OptimizationEngine, OptimizationStrategy, SchedulerHint, TuningKnob,
 };
@@ -42,6 +54,8 @@ pub use predict::{
 pub use profile::{
     AppLifecyclePhase, CpuBehavior, IoBehavior, MemoryBehavior, NetworkBehavior, ProcessProfile,
 };
+pub use resource::{CpuAccounting, FdTracker, IoAccounting, MemoryAccounting, NetworkAccounting, ResourceManager, ResourceTracker};
+pub use scheduler::{SchedulingAnalyzer, SchedulingHint as AppSchedulingHint, SchedClassHint};
 
 // ============================================================================
 // TESTS
