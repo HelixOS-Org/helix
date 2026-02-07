@@ -194,7 +194,10 @@ impl RecordingSession {
         if !self.active {
             return false;
         }
-        if !self.filter.matches(syscall.pid, syscall.syscall_nr, syscall.duration_ns) {
+        if !self
+            .filter
+            .matches(syscall.pid, syscall.syscall_nr, syscall.duration_ns)
+        {
             return false;
         }
         if self.syscalls.len() >= self.max_records {
@@ -396,11 +399,7 @@ impl BridgeReplayManager {
         self.next_id += 1;
         self.recordings
             .insert(id, RecordingSession::new(id, filter, now));
-        self.stats.active_recordings = self
-            .recordings
-            .values()
-            .filter(|r| r.active)
-            .count();
+        self.stats.active_recordings = self.recordings.values().filter(|r| r.active).count();
         id
     }
 
@@ -409,16 +408,8 @@ impl BridgeReplayManager {
         if let Some(rec) = self.recordings.get_mut(&id) {
             rec.stop(now);
         }
-        self.stats.active_recordings = self
-            .recordings
-            .values()
-            .filter(|r| r.active)
-            .count();
-        self.stats.completed_recordings = self
-            .recordings
-            .values()
-            .filter(|r| !r.active)
-            .count();
+        self.stats.active_recordings = self.recordings.values().filter(|r| r.active).count();
+        self.stats.completed_recordings = self.recordings.values().filter(|r| !r.active).count();
     }
 
     /// Record syscall
