@@ -256,11 +256,11 @@ pub enum IoPriority {
     /// Background (best effort, lowest)
     Background = 0,
     /// Normal
-    Normal = 1,
+    Normal     = 1,
     /// High (interactive)
-    High = 2,
+    High       = 2,
     /// Realtime (latency-critical)
-    Realtime = 3,
+    Realtime   = 3,
 }
 
 // ============================================================================
@@ -407,9 +407,11 @@ impl ProcessIoAnalyzer {
 
         if let Some(tracker) = self.file_trackers.get_mut(&op.fd) {
             match op.op_type {
-                IoOpType::Read => tracker.record_read(op.offset, op.size, op.latency_ns, op.cache_hit),
+                IoOpType::Read => {
+                    tracker.record_read(op.offset, op.size, op.latency_ns, op.cache_hit)
+                },
                 IoOpType::Write => tracker.record_write(op.offset, op.size, op.latency_ns),
-                _ => {}
+                _ => {},
             }
         }
 
@@ -420,8 +422,14 @@ impl ProcessIoAnalyzer {
 
     /// Generate I/O scheduling hint
     pub fn scheduling_hint(&self) -> IoSchedulingHint {
-        let is_sequential = self.file_trackers.values().any(|t| t.pattern == IoPattern::Sequential);
-        let is_random = self.file_trackers.values().any(|t| t.pattern == IoPattern::Random);
+        let is_sequential = self
+            .file_trackers
+            .values()
+            .any(|t| t.pattern == IoPattern::Sequential);
+        let is_random = self
+            .file_trackers
+            .values()
+            .any(|t| t.pattern == IoPattern::Random);
         let bw = self.bandwidth.total_bandwidth();
 
         let priority = if bw > 100_000_000.0 {
