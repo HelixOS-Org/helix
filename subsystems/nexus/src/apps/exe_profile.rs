@@ -10,8 +10,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // EXECUTABLE TYPES
@@ -187,7 +187,7 @@ impl ExecutableProfile {
             SectionType::Text => self.code_size += section.file_size,
             SectionType::Data | SectionType::Rodata => self.data_size += section.file_size,
             SectionType::Bss => self.bss_size += section.mem_size,
-            _ => {}
+            _ => {},
         }
         self.sections.push(section);
     }
@@ -265,7 +265,9 @@ impl AppExeProfiler {
 
     /// Create profile
     pub fn create_profile(&mut self, pid: u64) -> &mut ExecutableProfile {
-        self.profiles.entry(pid).or_insert_with(|| ExecutableProfile::new(pid))
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ExecutableProfile::new(pid))
     }
 
     /// Get profile
@@ -281,7 +283,8 @@ impl AppExeProfiler {
 
     /// Find processes using library
     pub fn processes_using_library(&self, lib_hash: u64) -> Vec<u64> {
-        self.profiles.iter()
+        self.profiles
+            .iter()
             .filter(|(_, p)| p.libraries.iter().any(|l| l.name_hash == lib_hash))
             .map(|(&pid, _)| pid)
             .collect()
@@ -289,14 +292,12 @@ impl AppExeProfiler {
 
     fn update_stats(&mut self) {
         self.stats.profiled = self.profiles.len();
-        self.stats.total_libraries = self.profiles.values()
-            .map(|p| p.libraries.len())
-            .sum();
-        self.stats.pie_count = self.profiles.values()
-            .filter(|p| p.is_pie)
-            .count();
+        self.stats.total_libraries = self.profiles.values().map(|p| p.libraries.len()).sum();
+        self.stats.pie_count = self.profiles.values().filter(|p| p.is_pie).count();
         if !self.profiles.is_empty() {
-            let total: f64 = self.profiles.values()
+            let total: f64 = self
+                .profiles
+                .values()
                 .map(|p| p.security_score() as f64)
                 .sum();
             self.stats.avg_security_score = total / self.profiles.len() as f64;
