@@ -56,19 +56,39 @@ pub struct VmaPerms {
 
 impl VmaPerms {
     pub fn rwx() -> Self {
-        Self { read: true, write: true, exec: true, shared: false }
+        Self {
+            read: true,
+            write: true,
+            exec: true,
+            shared: false,
+        }
     }
 
     pub fn rw() -> Self {
-        Self { read: true, write: true, exec: false, shared: false }
+        Self {
+            read: true,
+            write: true,
+            exec: false,
+            shared: false,
+        }
     }
 
     pub fn rx() -> Self {
-        Self { read: true, write: false, exec: true, shared: false }
+        Self {
+            read: true,
+            write: false,
+            exec: true,
+            shared: false,
+        }
     }
 
     pub fn ro() -> Self {
-        Self { read: true, write: false, exec: false, shared: false }
+        Self {
+            read: true,
+            write: false,
+            exec: false,
+            shared: false,
+        }
     }
 
     /// Security: writable + executable is dangerous
@@ -342,7 +362,8 @@ impl ProcessVmaTracker {
 
     /// Heap VMAs
     pub fn heap_size(&self) -> u64 {
-        self.vmas.values()
+        self.vmas
+            .values()
             .filter(|v| v.vma_type == VmaType::Heap)
             .map(|v| v.size())
             .sum()
@@ -350,7 +371,8 @@ impl ProcessVmaTracker {
 
     /// Stack VMAs
     pub fn stack_size(&self) -> u64 {
-        self.vmas.values()
+        self.vmas
+            .values()
             .filter(|v| v.vma_type == VmaType::Stack)
             .map(|v| v.size())
             .sum()
@@ -392,12 +414,17 @@ impl AppVmaTracker {
 
     /// Get/create process
     pub fn process(&mut self, pid: u64) -> &mut ProcessVmaTracker {
-        self.processes.entry(pid).or_insert_with(|| ProcessVmaTracker::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessVmaTracker::new(pid))
     }
 
     /// Add VMA
     pub fn add_vma(&mut self, pid: u64, start: u64, end: u64, vma_type: VmaType, perms: VmaPerms) {
-        let proc = self.processes.entry(pid).or_insert_with(|| ProcessVmaTracker::new(pid));
+        let proc = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessVmaTracker::new(pid));
         proc.add_vma(start, end, vma_type, perms);
         self.update_stats();
     }
@@ -418,12 +445,8 @@ impl AppVmaTracker {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.total_vmas = self.processes.values()
-            .map(|p| p.vmas.len())
-            .sum();
-        self.stats.wx_violations = self.processes.values()
-            .map(|p| p.wx_regions)
-            .sum();
+        self.stats.total_vmas = self.processes.values().map(|p| p.vmas.len()).sum();
+        self.stats.wx_violations = self.processes.values().map(|p| p.wx_regions).sum();
     }
 
     /// Stats
