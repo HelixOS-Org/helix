@@ -208,7 +208,11 @@ impl AdaptationEngine {
         Some(AdaptationAction {
             pid: profile.pid,
             triggered_by: WorkloadCategory::CpuBound,
-            expected_improvement: adjustments.iter().map(|a| a.expected_benefit).sum::<f64>().min(0.5),
+            expected_improvement: adjustments
+                .iter()
+                .map(|a| a.expected_benefit)
+                .sum::<f64>()
+                .min(0.5),
             adjustments,
             reversible: true,
         })
@@ -254,7 +258,11 @@ impl AdaptationEngine {
         Some(AdaptationAction {
             pid: profile.pid,
             triggered_by: WorkloadCategory::MemoryBound,
-            expected_improvement: adjustments.iter().map(|a| a.expected_benefit).sum::<f64>().min(0.5),
+            expected_improvement: adjustments
+                .iter()
+                .map(|a| a.expected_benefit)
+                .sum::<f64>()
+                .min(0.5),
             adjustments,
             reversible: true,
         })
@@ -301,7 +309,11 @@ impl AdaptationEngine {
         Some(AdaptationAction {
             pid: profile.pid,
             triggered_by: WorkloadCategory::IoBound,
-            expected_improvement: adjustments.iter().map(|a| a.expected_benefit).sum::<f64>().min(0.5),
+            expected_improvement: adjustments
+                .iter()
+                .map(|a| a.expected_benefit)
+                .sum::<f64>()
+                .min(0.5),
             adjustments,
             reversible: true,
         })
@@ -344,7 +356,11 @@ impl AdaptationEngine {
         Some(AdaptationAction {
             pid: profile.pid,
             triggered_by: WorkloadCategory::NetworkBound,
-            expected_improvement: adjustments.iter().map(|a| a.expected_benefit).sum::<f64>().min(0.5),
+            expected_improvement: adjustments
+                .iter()
+                .map(|a| a.expected_benefit)
+                .sum::<f64>()
+                .min(0.5),
             adjustments,
             reversible: true,
         })
@@ -367,7 +383,7 @@ impl AdaptationEngine {
                     expected_improvement: 0.20,
                     reversible: true,
                 })
-            }
+            },
             AppLifecyclePhase::Idle => {
                 // During idle: release resources
                 Some(AdaptationAction {
@@ -392,7 +408,7 @@ impl AdaptationEngine {
                     expected_improvement: 0.08,
                     reversible: true,
                 })
-            }
+            },
             _ => None,
         }
     }
