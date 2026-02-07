@@ -124,7 +124,11 @@ impl IrqStats {
 
     /// Average duration
     pub fn avg_ns(&self) -> u64 {
-        if self.invocations == 0 { 0 } else { self.total_ns / self.invocations }
+        if self.invocations == 0 {
+            0
+        } else {
+            self.total_ns / self.invocations
+        }
     }
 
     /// Rate (per second, given time window)
@@ -325,12 +329,27 @@ impl AppInterruptProfiler {
     }
 
     /// Record IRQ
-    pub fn record_irq(&mut self, irq: u32, category: IrqCategory, cpu: u32, duration_ns: u64, affected_pid: Option<u64>, caused_switch: bool, now: u64) {
-        let stats = self.irqs.entry(irq).or_insert_with(|| IrqStats::new(irq, category));
+    pub fn record_irq(
+        &mut self,
+        irq: u32,
+        category: IrqCategory,
+        cpu: u32,
+        duration_ns: u64,
+        affected_pid: Option<u64>,
+        caused_switch: bool,
+        now: u64,
+    ) {
+        let stats = self
+            .irqs
+            .entry(irq)
+            .or_insert_with(|| IrqStats::new(irq, category));
         stats.record(duration_ns, cpu);
         self.storm_detector.record(irq, now);
         if let Some(pid) = affected_pid {
-            let impact = self.processes.entry(pid).or_insert_with(|| ProcessIrqImpact::new(pid));
+            let impact = self
+                .processes
+                .entry(pid)
+                .or_insert_with(|| ProcessIrqImpact::new(pid));
             impact.record_irq(irq, duration_ns, caused_switch);
         }
         self.stats.total_irqs += 1;
@@ -338,11 +357,22 @@ impl AppInterruptProfiler {
     }
 
     /// Record softirq
-    pub fn record_softirq(&mut self, stype: SoftirqType, duration_ns: u64, affected_pid: Option<u64>) {
-        let stats = self.softirqs.entry(stype as u8).or_insert_with(|| SoftirqStats::new(stype));
+    pub fn record_softirq(
+        &mut self,
+        stype: SoftirqType,
+        duration_ns: u64,
+        affected_pid: Option<u64>,
+    ) {
+        let stats = self
+            .softirqs
+            .entry(stype as u8)
+            .or_insert_with(|| SoftirqStats::new(stype));
         stats.record(duration_ns);
         if let Some(pid) = affected_pid {
-            let impact = self.processes.entry(pid).or_insert_with(|| ProcessIrqImpact::new(pid));
+            let impact = self
+                .processes
+                .entry(pid)
+                .or_insert_with(|| ProcessIrqImpact::new(pid));
             impact.record_softirq(duration_ns);
         }
     }
