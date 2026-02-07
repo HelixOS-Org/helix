@@ -222,15 +222,15 @@ impl BatchOptimizer {
         if self.queues[idx].1.len() >= self.batch_threshold {
             let entries = core::mem::take(&mut self.queues[idx].1);
             let mut group = BatchGroup::new(syscall_type);
-            for e in &entries {
-                self.stats.total_batched += 1;
-            }
+            self.stats.total_batched += entries.len() as u64;
             for e in entries {
                 group.add(e);
             }
             self.stats.total_batches += 1;
             self.stats.total_savings_ns += group.estimated_savings_ns;
-            self.update_avg_batch_size(group.size());
+            let batch_size = group.size();
+            let avg = &mut self.stats.avg_batch_size;
+            *avg = (*avg * 0.9) + (batch_size as f64 * 0.1);
             return BatchDecision::BatchReady(group);
         }
 
@@ -246,6 +246,8 @@ impl BatchOptimizer {
     /// Flush all pending queues into batch groups
     pub fn flush(&mut self) -> Vec<BatchGroup> {
         let mut groups = Vec::new();
+        let mut total_batched = 0u64;
+        let mut total_savings = 0u64;
 
         for (syscall_type, queue) in &mut self.queues {
             if queue.is_empty() {
@@ -253,19 +255,23 @@ impl BatchOptimizer {
             }
 
             let entries = core::mem::take(queue);
+            let count = entries.len() as u64;
             let mut group = BatchGroup::new(*syscall_type);
-            for e in &entries {
-                self.stats.total_batched += 1;
-            }
             for e in entries {
                 group.add(e);
             }
             if group.size() > 0 {
-                self.stats.total_batches += 1;
-                self.stats.total_savings_ns += group.estimated_savings_ns;
-                self.update_avg_batch_size(group.size());
+                total_batched += count;
+                total_savings += group.estimated_savings_ns;
                 groups.push(group);
             }
+        }
+
+        self.stats.total_batched += total_batched;
+        self.stats.total_batches += groups.len() as u64;
+        self.stats.total_savings_ns += total_savings;
+        for g in &groups {
+            self.update_avg_batch_size(g.size());
         }
 
         groups
@@ -274,24 +280,33 @@ impl BatchOptimizer {
     /// Check for expired entries and flush them
     pub fn check_deadlines(&mut self, current_time: u64) -> Vec<BatchGroup> {
         let mut expired_groups = Vec::new();
+        let mut total_batched = 0u64;
+        let mut total_savings = 0u64;
+        let max_wait = self.max_wait_ticks;
 
         for (syscall_type, queue) in &mut self.queues {
             let has_expired = queue
                 .iter()
-                .any(|e| current_time.saturating_sub(e.submitted_at) >= self.max_wait_ticks);
+                .any(|e| current_time.saturating_sub(e.submitted_at) >= max_wait);
 
             if has_expired && !queue.is_empty() {
                 let entries = core::mem::take(queue);
+                let count = entries.len() as u64;
                 let mut group = BatchGroup::new(*syscall_type);
                 for e in entries {
-                    self.stats.total_batched += 1;
                     group.add(e);
                 }
-                self.stats.total_batches += 1;
-                self.stats.total_savings_ns += group.estimated_savings_ns;
-                self.update_avg_batch_size(group.size());
+                total_batched += count;
+                total_savings += group.estimated_savings_ns;
                 expired_groups.push(group);
             }
+        }
+
+        self.stats.total_batched += total_batched;
+        self.stats.total_batches += expired_groups.len() as u64;
+        self.stats.total_savings_ns += total_savings;
+        for g in &expired_groups {
+            self.update_avg_batch_size(g.size());
         }
 
         expired_groups
