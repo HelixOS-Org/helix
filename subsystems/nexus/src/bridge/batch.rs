@@ -206,17 +206,14 @@ impl BatchOptimizer {
         let syscall_type = entry.syscall_type;
 
         // Find or create queue for this type
-        let queue_idx = self
-            .queues
-            .iter()
-            .position(|(t, _)| *t == syscall_type);
+        let queue_idx = self.queues.iter().position(|(t, _)| *t == syscall_type);
 
         let idx = match queue_idx {
             Some(i) => i,
             None => {
                 self.queues.push((syscall_type, Vec::new()));
                 self.queues.len() - 1
-            }
+            },
         };
 
         self.queues[idx].1.push(entry);
@@ -279,9 +276,9 @@ impl BatchOptimizer {
         let mut expired_groups = Vec::new();
 
         for (syscall_type, queue) in &mut self.queues {
-            let has_expired = queue.iter().any(|e| {
-                current_time.saturating_sub(e.submitted_at) >= self.max_wait_ticks
-            });
+            let has_expired = queue
+                .iter()
+                .any(|e| current_time.saturating_sub(e.submitted_at) >= self.max_wait_ticks);
 
             if has_expired && !queue.is_empty() {
                 let entries = core::mem::take(queue);
