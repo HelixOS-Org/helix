@@ -122,3 +122,45 @@ impl AppEpoll {
         EpollAppStats { total_instances: self.instances.len() as u32, total_fds_monitored: fds, total_waits: waits, total_events: evts }
     }
 }
+
+// ============================================================================
+// Merged from epoll_v2_app
+// ============================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpollV2AppOp { Create, CtlAdd, CtlMod, CtlDel, Wait, Pwait }
+
+/// Epoll v2 request
+#[derive(Debug, Clone)]
+pub struct EpollV2Request {
+    pub op: EpollV2AppOp,
+    pub epfd: i32,
+    pub target_fd: i32,
+    pub events: u32,
+    pub max_events: i32,
+    pub timeout_ms: i32,
+}
+
+impl EpollV2Request {
+    pub fn new(op: EpollV2AppOp, epfd: i32) -> Self { Self { op, epfd, target_fd: -1, events: 0, max_events: 64, timeout_ms: -1 } }
+}
+
+/// Epoll v2 app stats
+#[derive(Debug, Clone)]
+pub struct EpollV2AppStats { pub total_ops: u64, pub creates: u64, pub waits: u64, pub ctl_ops: u64 }
+
+/// Main app epoll v2
+#[derive(Debug)]
+pub struct AppEpollV2 { pub stats: EpollV2AppStats }
+
+impl AppEpollV2 {
+    pub fn new() -> Self { Self { stats: EpollV2AppStats { total_ops: 0, creates: 0, waits: 0, ctl_ops: 0 } } }
+    pub fn execute(&mut self, req: &EpollV2Request) -> i32 {
+        self.stats.total_ops += 1;
+        match req.op {
+            EpollV2AppOp::Create => { self.stats.creates += 1; 3 }
+            EpollV2AppOp::Wait | EpollV2AppOp::Pwait => { self.stats.waits += 1; 0 }
+            _ => { self.stats.ctl_ops += 1; 0 }
+        }
+    }
+}
