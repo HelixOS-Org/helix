@@ -13,7 +13,12 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RemapOp { Grow, Shrink, Move, Split }
+pub enum RemapOp {
+    Grow,
+    Shrink,
+    Move,
+    Split,
+}
 
 #[derive(Debug, Clone)]
 pub struct RemapRequest {
@@ -31,7 +36,9 @@ impl RemapRequest {
     pub fn size_delta(&self) -> i64 {
         self.new_size as i64 - self.old_size as i64
     }
-    pub fn is_expansion(&self) -> bool { self.new_size > self.old_size }
+    pub fn is_expansion(&self) -> bool {
+        self.new_size > self.old_size
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -85,14 +92,25 @@ impl MremapCoopManager {
 
     /// Submit a remap request
     pub fn submit_request(
-        &mut self, pid: u64, old_addr: u64, old_size: u64,
-        new_size: u64, op: RemapOp, now: u64,
+        &mut self,
+        pid: u64,
+        old_addr: u64,
+        old_size: u64,
+        new_size: u64,
+        op: RemapOp,
+        now: u64,
     ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         self.pending.insert(id, RemapRequest {
-            request_id: id, pid, old_addr, old_size, new_size,
-            op, timestamp: now, approved: false,
+            request_id: id,
+            pid,
+            old_addr,
+            old_size,
+            new_size,
+            op,
+            timestamp: now,
+            approved: false,
         });
         id
     }
@@ -108,7 +126,9 @@ impl MremapCoopManager {
         let mut conflicts = Vec::new();
 
         for (&pid, ranges) in &self.reservations {
-            if pid == req.pid { continue; }
+            if pid == req.pid {
+                continue;
+            }
             for &(start, end) in ranges {
                 if req.old_addr < end && new_end > start {
                     conflicts.push((pid, start.max(req.old_addr), end.min(new_end)));
@@ -139,7 +159,10 @@ impl MremapCoopManager {
     pub fn create_batch(&mut self, group_id: u64, requests: Vec<RemapRequest>) -> u64 {
         let total: i64 = requests.iter().map(|r| r.size_delta()).sum();
         self.batches.insert(group_id, BatchRemap {
-            group_id, requests, total_growth: total, committed: false,
+            group_id,
+            requests,
+            total_growth: total,
+            committed: false,
         });
         self.stats.batch_remaps += 1;
         group_id
@@ -148,7 +171,9 @@ impl MremapCoopManager {
     /// Commit a batch remap atomically
     pub fn commit_batch(&mut self, group_id: u64) -> bool {
         if let Some(batch) = self.batches.get_mut(&group_id) {
-            if batch.committed { return false; }
+            if batch.committed {
+                return false;
+            }
             for req in &mut batch.requests {
                 req.approved = true;
                 let ranges = self.reservations.entry(req.pid).or_insert_with(Vec::new);
@@ -178,6 +203,10 @@ impl MremapCoopManager {
         new_bases
     }
 
-    pub fn pending_count(&self) -> usize { self.pending.len() }
-    pub fn stats(&self) -> &MremapCoopStats { &self.stats }
+    pub fn pending_count(&self) -> usize {
+        self.pending.len()
+    }
+    pub fn stats(&self) -> &MremapCoopStats {
+        &self.stats
+    }
 }
