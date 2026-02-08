@@ -13,10 +13,22 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShedStrategy { DropCaches, CompressHeap, ReleaseBuffers, Downgrade, None }
+pub enum ShedStrategy {
+    DropCaches,
+    CompressHeap,
+    ReleaseBuffers,
+    Downgrade,
+    None,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OomPhase { Normal, Warning, Critical, Killing, Recovering }
+pub enum OomPhase {
+    Normal,
+    Warning,
+    Critical,
+    Killing,
+    Recovering,
+}
 
 #[derive(Debug, Clone)]
 pub struct MemDonation {
@@ -82,7 +94,9 @@ impl OomCoopManager {
         self.groups.insert(group_id, members);
     }
 
-    pub fn set_phase(&mut self, phase: OomPhase) { self.phase = phase; }
+    pub fn set_phase(&mut self, phase: OomPhase) {
+        self.phase = phase;
+    }
 
     /// Request cooperative memory shedding from a group
     pub fn request_shed(&mut self, group_id: u64, needed_pages: u64) -> Vec<u64> {
@@ -99,7 +113,9 @@ impl OomCoopManager {
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
 
         for (pid, max_shed) in sorted {
-            if remaining == 0 { break; }
+            if remaining == 0 {
+                break;
+            }
             let shed_amount = max_shed.min(remaining);
             targets.push(pid);
             remaining = remaining.saturating_sub(shed_amount);
@@ -119,7 +135,10 @@ impl OomCoopManager {
     /// A process donates memory pages to another
     pub fn donate_memory(&mut self, donor: u64, recipient: u64, pages: u64, now: u64) {
         self.donations.push(MemDonation {
-            donor_pid: donor, recipient_pid: recipient, pages, timestamp: now,
+            donor_pid: donor,
+            recipient_pid: recipient,
+            pages,
+            timestamp: now,
         });
         self.stats.donations_made += 1;
         self.stats.donations_pages += pages;
@@ -127,7 +146,9 @@ impl OomCoopManager {
 
     /// Negotiate sacrifice within a group
     pub fn negotiate_sacrifice(
-        &mut self, group_id: u64, needed_pages: u64,
+        &mut self,
+        group_id: u64,
+        needed_pages: u64,
     ) -> Option<GroupSacrifice> {
         let members = match self.groups.get(&group_id) {
             Some(m) if !m.is_empty() => m,
@@ -155,7 +176,9 @@ impl OomCoopManager {
             }
         } else {
             // No volunteer: pick the least essential (smallest shed = smallest)
-            let victim = members.iter().min_by_key(|(_, s)| *s)
+            let victim = members
+                .iter()
+                .min_by_key(|(_, s)| *s)
                 .map(|(p, _)| *p)
                 .unwrap_or(0);
             self.stats.forced_kills += 1;
@@ -179,6 +202,10 @@ impl OomCoopManager {
         }
     }
 
-    pub fn phase(&self) -> OomPhase { self.phase }
-    pub fn stats(&self) -> &OomCoopStats { &self.stats }
+    pub fn phase(&self) -> OomPhase {
+        self.phase
+    }
+    pub fn stats(&self) -> &OomCoopStats {
+        &self.stats
+    }
 }
