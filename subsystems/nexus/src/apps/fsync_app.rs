@@ -73,7 +73,13 @@ impl AppFsyncManager {
         }
     }
 
-    pub fn submit_sync(&mut self, fd: u64, sync_type: AppSyncType, offset: u64, length: u64) -> u64 {
+    pub fn submit_sync(
+        &mut self,
+        fd: u64,
+        sync_type: AppSyncType,
+        offset: u64,
+        length: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let req = AppSyncRequest {
@@ -89,7 +95,7 @@ impl AppFsyncManager {
             AppSyncType::Fsync => self.stats.fsync_count += 1,
             AppSyncType::Fdatasync => self.stats.fdatasync_count += 1,
             AppSyncType::SyncFs => self.stats.syncfs_count += 1,
-            _ => {}
+            _ => {},
         }
         id
     }
