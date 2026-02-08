@@ -80,7 +80,15 @@ impl TraceEvent {
         }
     }
 
-    pub fn exit(pid: u64, tid: u64, syscall_nr: u32, cpu: u32, ts: u64, ret: i64, dur: u64) -> Self {
+    pub fn exit(
+        pid: u64,
+        tid: u64,
+        syscall_nr: u32,
+        cpu: u32,
+        ts: u64,
+        ret: i64,
+        dur: u64,
+    ) -> Self {
         Self {
             event_type: TraceEventType::SyscallExit,
             timestamp_ns: ts,
@@ -257,20 +265,20 @@ impl LatencyHistogram {
     /// Create with default buckets
     pub fn new() -> Self {
         let bucket_bounds = [
-            100,          // 100ns
-            500,          // 500ns
-            1_000,        // 1us
-            5_000,        // 5us
-            10_000,       // 10us
-            50_000,       // 50us
-            100_000,      // 100us
-            500_000,      // 500us
-            1_000_000,    // 1ms
-            5_000_000,    // 5ms
-            10_000_000,   // 10ms
-            50_000_000,   // 50ms
-            100_000_000,  // 100ms
-            u64::MAX,     // overflow
+            100,         // 100ns
+            500,         // 500ns
+            1_000,       // 1us
+            5_000,       // 5us
+            10_000,      // 10us
+            50_000,      // 50us
+            100_000,     // 100us
+            500_000,     // 500us
+            1_000_000,   // 1ms
+            5_000_000,   // 5ms
+            10_000_000,  // 10ms
+            50_000_000,  // 50ms
+            100_000_000, // 100ms
+            u64::MAX,    // overflow
         ];
 
         Self {
@@ -508,11 +516,7 @@ impl BridgeTraceManager {
     }
 
     /// Create trace session
-    pub fn create_session(
-        &mut self,
-        filter: TraceFilter,
-        buffer_size: usize,
-    ) -> u32 {
+    pub fn create_session(&mut self, filter: TraceFilter, buffer_size: usize) -> u32 {
         let id = self.next_session_id;
         self.next_session_id += 1;
         self.sessions
