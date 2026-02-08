@@ -61,7 +61,14 @@ impl AppExitManager {
         }
     }
 
-    pub fn exit_process(&mut self, pid: u64, exit_code: i32, reason: AppExitReason, fds: u32, mem_kb: u64) {
+    pub fn exit_process(
+        &mut self,
+        pid: u64,
+        exit_code: i32,
+        reason: AppExitReason,
+        fds: u32,
+        mem_kb: u64,
+    ) {
         let record = AppExitRecord {
             pid,
             exit_code,
@@ -75,9 +82,11 @@ impl AppExitManager {
         self.stats.total_memory_freed_kb += mem_kb;
         match reason {
             AppExitReason::Normal => self.stats.normal_exits += 1,
-            AppExitReason::Signal | AppExitReason::Abort | AppExitReason::Segfault => self.stats.signal_exits += 1,
+            AppExitReason::Signal | AppExitReason::Abort | AppExitReason::Segfault => {
+                self.stats.signal_exits += 1
+            },
             AppExitReason::OutOfMemory => self.stats.oom_kills += 1,
-            _ => {}
+            _ => {},
         }
     }
 
