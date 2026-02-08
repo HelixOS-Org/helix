@@ -13,7 +13,12 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MmapCoopAction { Share, Duplicate, CopyOnWrite, Reject }
+pub enum MmapCoopAction {
+    Share,
+    Duplicate,
+    CopyOnWrite,
+    Reject,
+}
 
 #[derive(Debug, Clone)]
 pub struct SharedMapping {
@@ -28,13 +33,17 @@ pub struct SharedMapping {
 }
 
 impl SharedMapping {
-    pub fn participant_count(&self) -> usize { self.participants.len() + 1 }
+    pub fn participant_count(&self) -> usize {
+        self.participants.len() + 1
+    }
     pub fn savings_bytes(&self) -> u64 {
         self.shared_pages * 4096 * (self.participant_count() as u64 - 1).max(1)
     }
     pub fn cow_ratio(&self) -> f64 {
         let total = self.cow_pages + self.shared_pages;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.cow_pages as f64 / total as f64
     }
 }
@@ -87,14 +96,23 @@ impl MmapCoopManager {
 
     /// Register a new shared mapping
     pub fn register_mapping(
-        &mut self, owner: u64, base: u64, size: u64, file_hash: u64, epoch: u64,
+        &mut self,
+        owner: u64,
+        base: u64,
+        size: u64,
+        file_hash: u64,
+        epoch: u64,
     ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         self.mappings.insert(id, SharedMapping {
-            mapping_id: id, owner_pid: owner,
-            participants: Vec::new(), base_addr: base, size,
-            cow_pages: 0, shared_pages: size / 4096,
+            mapping_id: id,
+            owner_pid: owner,
+            participants: Vec::new(),
+            base_addr: base,
+            size,
+            cow_pages: 0,
+            shared_pages: size / 4096,
             creation_epoch: epoch,
         });
         self.file_dedup.insert(file_hash, id);
@@ -127,8 +145,12 @@ impl MmapCoopManager {
     /// Detect address overlap conflicts between two processes
     pub fn detect_conflict(&mut self, pid_a: u64, pid_b: u64, start: u64, end: u64) {
         self.conflicts.push(MappingConflict {
-            pid_a, pid_b, addr_start: start, addr_end: end,
-            resolved: false, resolution: MmapCoopAction::Reject,
+            pid_a,
+            pid_b,
+            addr_start: start,
+            addr_end: end,
+            resolved: false,
+            resolution: MmapCoopAction::Reject,
         });
     }
 
@@ -148,6 +170,10 @@ impl MmapCoopManager {
         resolved
     }
 
-    pub fn mapping(&self, id: u64) -> Option<&SharedMapping> { self.mappings.get(&id) }
-    pub fn stats(&self) -> &MmapCoopStats { &self.stats }
+    pub fn mapping(&self, id: u64) -> Option<&SharedMapping> {
+        self.mappings.get(&id)
+    }
+    pub fn stats(&self) -> &MmapCoopStats {
+        &self.stats
+    }
 }
