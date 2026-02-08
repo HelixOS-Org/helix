@@ -273,12 +273,10 @@ impl HeapAppManager {
         now: u64,
     ) {
         let sites = self.app_sites.entry(app_id).or_insert_with(BTreeMap::new);
-        let site_stats = sites
-            .entry(site)
-            .or_insert_with(|| {
-                self.stats.total_sites += 1;
-                SiteStats::new(site)
-            });
+        let site_stats = sites.entry(site).or_insert_with(|| {
+            self.stats.total_sites += 1;
+            SiteStats::new(site)
+        });
         site_stats.record_alloc(size);
         self.stats.total_allocs_profiled += 1;
 
@@ -415,7 +413,7 @@ impl HeapAppManager {
                 sorted.sort_by(|a, b| b.total_bytes.cmp(&a.total_bytes));
                 sorted.truncate(n);
                 sorted
-            }
+            },
             None => Vec::new(),
         }
     }
