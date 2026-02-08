@@ -448,3 +448,169 @@ impl AppMmapTracker {
         &self.stats
     }
 }
+
+// ============================================================================
+// Merged from mmap_v2_tracker
+// ============================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MmapTrackerProt {
+    None,
+    Read,
+    Write,
+    Exec,
+    ReadWrite,
+    ReadExec,
+    ReadWriteExec,
+}
+
+/// Mapping type for tracker
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MmapTrackerType {
+    PrivateAnon,
+    SharedAnon,
+    PrivateFile,
+    SharedFile,
+    HugePage,
+    DeviceMap,
+}
+
+/// A tracked mapping region
+#[derive(Debug, Clone)]
+pub struct TrackedMmapRegion {
+    pub start: u64,
+    pub end: u64,
+    pub prot: MmapTrackerProt,
+    pub map_type: MmapTrackerType,
+    pub file_ino: Option<u64>,
+    pub offset: u64,
+    pub fault_count: u64,
+    pub cow_count: u64,
+    pub resident_pages: u64,
+    pub swap_pages: u64,
+}
+
+impl TrackedMmapRegion {
+    pub fn new(start: u64, end: u64, prot: MmapTrackerProt, map_type: MmapTrackerType) -> Self {
+        Self {
+            start, end, prot, map_type,
+            file_ino: None, offset: 0,
+            fault_count: 0, cow_count: 0,
+            resident_pages: 0, swap_pages: 0,
+        }
+    }
+
+    pub fn length(&self) -> u64 { self.end - self.start }
+    pub fn pages(&self) -> u64 { self.length() / 4096 }
+
+    pub fn page_fault(&mut self) {
+        self.fault_count += 1;
+        self.resident_pages += 1;
+    }
+
+    pub fn cow_fault(&mut self) {
+        self.cow_count += 1;
+    }
+}
+
+/// Per-process mmap tracking
+#[derive(Debug, Clone)]
+pub struct ProcessMmapV2State {
+    pub pid: u64,
+    pub regions: BTreeMap<u64, TrackedMmapRegion>,
+    pub total_virtual: u64,
+    pub total_resident: u64,
+    pub peak_virtual: u64,
+    pub mmap_calls: u64,
+    pub munmap_calls: u64,
+}
+
+impl ProcessMmapV2State {
+    pub fn new(pid: u64) -> Self {
+        Self {
+            pid,
+            regions: BTreeMap::new(),
+            total_virtual: 0, total_resident: 0,
+            peak_virtual: 0, mmap_calls: 0, munmap_calls: 0,
+        }
+    }
+
+    pub fn add_region(&mut self, region: TrackedMmapRegion) {
+        let len = region.length();
+        self.regions.insert(region.start, region);
+        self.total_virtual += len;
+        self.mmap_calls += 1;
+        if self.total_virtual > self.peak_virtual {
+            self.peak_virtual = self.total_virtual;
+        }
+    }
+
+    pub fn remove_region(&mut self, addr: u64) -> Option<TrackedMmapRegion> {
+        if let Some(r) = self.regions.remove(&addr) {
+            self.total_virtual -= r.length();
+            self.munmap_calls += 1;
+            Some(r)
+        } else { None }
+    }
+}
+
+/// Statistics for mmap V2 tracker
+#[derive(Debug, Clone)]
+pub struct MmapV2TrackerStats {
+    pub processes_tracked: u64,
+    pub total_mmaps: u64,
+    pub total_munmaps: u64,
+    pub total_faults: u64,
+    pub total_cow_faults: u64,
+    pub peak_virtual_bytes: u64,
+}
+
+/// Main mmap V2 tracker manager
+#[derive(Debug)]
+pub struct AppMmapV2Tracker {
+    processes: BTreeMap<u64, ProcessMmapV2State>,
+    stats: MmapV2TrackerStats,
+}
+
+impl AppMmapV2Tracker {
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+            stats: MmapV2TrackerStats {
+                processes_tracked: 0, total_mmaps: 0,
+                total_munmaps: 0, total_faults: 0,
+                total_cow_faults: 0, peak_virtual_bytes: 0,
+            },
+        }
+    }
+
+    pub fn register_process(&mut self, pid: u64) {
+        self.processes.insert(pid, ProcessMmapV2State::new(pid));
+        self.stats.processes_tracked += 1;
+    }
+
+    pub fn mmap(&mut self, pid: u64, start: u64, end: u64, prot: MmapTrackerProt, map_type: MmapTrackerType) -> bool {
+        if let Some(proc) = self.processes.get_mut(&pid) {
+            proc.add_region(TrackedMmapRegion::new(start, end, prot, map_type));
+            self.stats.total_mmaps += 1;
+            if proc.peak_virtual > self.stats.peak_virtual_bytes {
+                self.stats.peak_virtual_bytes = proc.peak_virtual;
+            }
+            true
+        } else { false }
+    }
+
+    pub fn munmap(&mut self, pid: u64, addr: u64) -> bool {
+        if let Some(proc) = self.processes.get_mut(&pid) {
+            if proc.remove_region(addr).is_some() {
+                self.stats.total_munmaps += 1;
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn stats(&self) -> &MmapV2TrackerStats {
+        &self.stats
+    }
+}
