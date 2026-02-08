@@ -13,7 +13,12 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UnmapStrategy { Immediate, Deferred, Batched, Lazy }
+pub enum UnmapStrategy {
+    Immediate,
+    Deferred,
+    Batched,
+    Lazy,
+}
 
 #[derive(Debug, Clone)]
 pub struct SharedUnmapRef {
@@ -26,8 +31,12 @@ pub struct SharedUnmapRef {
 }
 
 impl SharedUnmapRef {
-    pub fn can_reclaim(&self) -> bool { self.refcount == 0 }
-    pub fn page_count(&self) -> u64 { self.size / 4096 }
+    pub fn can_reclaim(&self) -> bool {
+        self.refcount == 0
+    }
+    pub fn page_count(&self) -> u64 {
+        self.size / 4096
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -81,14 +90,22 @@ impl MunmapCoopManager {
     pub fn register_shared(&mut self, mapping_id: u64, base: u64, size: u64, pids: Vec<u64>) {
         let refcount = pids.len() as u32;
         self.shared_refs.insert(mapping_id, SharedUnmapRef {
-            mapping_id, base_addr: base, size,
-            refcount, pids, deferred_until: 0,
+            mapping_id,
+            base_addr: base,
+            size,
+            refcount,
+            pids,
+            deferred_until: 0,
         });
     }
 
     /// One process requests unmap of a shared region
     pub fn request_unmap(
-        &mut self, mapping_id: u64, pid: u64, strategy: UnmapStrategy, now: u64,
+        &mut self,
+        mapping_id: u64,
+        pid: u64,
+        strategy: UnmapStrategy,
+        now: u64,
     ) -> bool {
         let entry = match self.shared_refs.get_mut(&mapping_id) {
             Some(e) => e,
@@ -101,8 +118,8 @@ impl MunmapCoopManager {
                 self.deferred.push((mapping_id, pid, entry.deferred_until));
                 self.stats.deferred_unmaps += 1;
                 return true;
-            }
-            UnmapStrategy::Immediate | UnmapStrategy::Batched | UnmapStrategy::Lazy => {}
+            },
+            UnmapStrategy::Immediate | UnmapStrategy::Batched | UnmapStrategy::Lazy => {},
         }
 
         // Drop refcount
@@ -142,8 +159,11 @@ impl MunmapCoopManager {
         self.next_batch += 1;
         let page_count = pages.len() as u64;
         self.shootdown_queue.push(TlbShootdownBatch {
-            batch_id: id, target_cpus: cpus, pages,
-            initiated_at: now, completed: false,
+            batch_id: id,
+            target_cpus: cpus,
+            pages,
+            initiated_at: now,
+            completed: false,
         });
         self.stats.tlb_shootdowns += 1;
         self.stats.tlb_pages_invalidated += page_count;
@@ -152,7 +172,11 @@ impl MunmapCoopManager {
 
     /// Complete a TLB shootdown batch
     pub fn complete_shootdown(&mut self, batch_id: u64) {
-        if let Some(batch) = self.shootdown_queue.iter_mut().find(|b| b.batch_id == batch_id) {
+        if let Some(batch) = self
+            .shootdown_queue
+            .iter_mut()
+            .find(|b| b.batch_id == batch_id)
+        {
             batch.completed = true;
         }
         self.shootdown_queue.retain(|b| !b.completed);
@@ -177,11 +201,14 @@ impl MunmapCoopManager {
     }
 
     pub fn reclaimable_mappings(&self) -> Vec<u64> {
-        self.shared_refs.iter()
+        self.shared_refs
+            .iter()
             .filter(|(_, r)| r.can_reclaim())
             .map(|(id, _)| *id)
             .collect()
     }
 
-    pub fn stats(&self) -> &MunmapCoopStats { &self.stats }
+    pub fn stats(&self) -> &MunmapCoopStats {
+        &self.stats
+    }
 }
