@@ -75,7 +75,10 @@ impl AppForkManager {
         let child_pid = self.next_pid;
         self.next_pid += 1;
         let cow = match mode {
-            AppForkMode::Vfork => { self.stats.vforks += 1; 0 }
+            AppForkMode::Vfork => {
+                self.stats.vforks += 1;
+                0
+            },
             AppForkMode::CopyOnWrite => 512,
             _ => 256,
         };
@@ -86,7 +89,10 @@ impl AppForkManager {
             latency_us: if cow == 0 { 30 } else { 150 },
             success: true,
         };
-        self.active_children.entry(parent_pid).or_insert_with(Vec::new).push(child_pid);
+        self.active_children
+            .entry(parent_pid)
+            .or_insert_with(Vec::new)
+            .push(child_pid);
         self.results.push(result.clone());
         self.stats.total_forks += 1;
         self.stats.successful += 1;
@@ -104,7 +110,10 @@ impl AppForkManager {
     }
 
     pub fn children_of(&self, parent: u64) -> usize {
-        self.active_children.get(&parent).map(|v| v.len()).unwrap_or(0)
+        self.active_children
+            .get(&parent)
+            .map(|v| v.len())
+            .unwrap_or(0)
     }
 
     pub fn stats(&self) -> &AppForkStats {
