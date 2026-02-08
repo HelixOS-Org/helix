@@ -13,7 +13,12 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LockTier { Realtime, Interactive, Batch, Background }
+pub enum LockTier {
+    Realtime,
+    Interactive,
+    Batch,
+    Background,
+}
 
 impl LockTier {
     pub fn quota_fraction(&self) -> f64 {
@@ -37,8 +42,12 @@ pub struct LockAllocation {
 }
 
 impl LockAllocation {
-    pub fn over_quota(&self) -> bool { self.locked_pages > self.quota_pages }
-    pub fn excess_pages(&self) -> u64 { self.locked_pages.saturating_sub(self.quota_pages) }
+    pub fn over_quota(&self) -> bool {
+        self.locked_pages > self.quota_pages
+    }
+    pub fn excess_pages(&self) -> u64 {
+        self.locked_pages.saturating_sub(self.quota_pages)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -84,8 +93,12 @@ impl MlockCoopManager {
     pub fn register(&mut self, pid: u64, group_id: u64, tier: LockTier) {
         let quota = (self.system_lock_limit as f64 * tier.quota_fraction()) as u64;
         self.allocations.insert(pid, LockAllocation {
-            pid, group_id, tier, locked_pages: 0,
-            quota_pages: quota, preempted_count: 0,
+            pid,
+            group_id,
+            tier,
+            locked_pages: 0,
+            quota_pages: quota,
+            preempted_count: 0,
         });
     }
 
@@ -138,7 +151,9 @@ impl MlockCoopManager {
 
     /// Try to preempt lower-priority lock holders
     fn try_preempt(&mut self, requester_tier: LockTier, needed: u64) -> bool {
-        let mut candidates: Vec<_> = self.allocations.values()
+        let mut candidates: Vec<_> = self
+            .allocations
+            .values()
             .filter(|a| a.tier > requester_tier && a.locked_pages > 0)
             .map(|a| (a.pid, a.locked_pages, a.tier))
             .collect();
@@ -148,7 +163,9 @@ impl MlockCoopManager {
         let mut freed = 0u64;
         let mut preempted_pids = Vec::new();
         for (pid, pages, _) in &candidates {
-            if freed >= needed { break; }
+            if freed >= needed {
+                break;
+            }
             preempted_pids.push(*pid);
             freed += pages;
         }
@@ -175,12 +192,17 @@ impl MlockCoopManager {
 
     /// Find processes over their quota that should be asked to release
     pub fn over_quota_processes(&self) -> Vec<(u64, u64)> {
-        self.allocations.values()
+        self.allocations
+            .values()
             .filter(|a| a.over_quota())
             .map(|a| (a.pid, a.excess_pages()))
             .collect()
     }
 
-    pub fn allocation(&self, pid: u64) -> Option<&LockAllocation> { self.allocations.get(&pid) }
-    pub fn stats(&self) -> &MlockCoopStats { &self.stats }
+    pub fn allocation(&self, pid: u64) -> Option<&LockAllocation> {
+        self.allocations.get(&pid)
+    }
+    pub fn stats(&self) -> &MlockCoopStats {
+        &self.stats
+    }
 }
