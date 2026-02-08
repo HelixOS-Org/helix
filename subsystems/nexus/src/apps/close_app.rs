@@ -59,7 +59,12 @@ impl AppCloseManager {
         }
     }
 
-    pub fn close_fd(&mut self, fd: u64, flush_pending: bool, sync_required: bool) -> AppCloseResult {
+    pub fn close_fd(
+        &mut self,
+        fd: u64,
+        flush_pending: bool,
+        sync_required: bool,
+    ) -> AppCloseResult {
         self.stats.total_closes += 1;
         if flush_pending || sync_required {
             if self.deferred_closes.len() >= self.max_deferred {
