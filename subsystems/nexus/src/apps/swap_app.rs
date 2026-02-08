@@ -13,10 +13,20 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SwapState { Active, SwapCandidate, PartialSwap, FullySwapped }
+pub enum SwapState {
+    Active,
+    SwapCandidate,
+    PartialSwap,
+    FullySwapped,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ThrashLevel { None, Mild, Moderate, Severe }
+pub enum ThrashLevel {
+    None,
+    Mild,
+    Moderate,
+    Severe,
+}
 
 #[derive(Debug, Clone)]
 pub struct AppSwapProfile {
@@ -25,7 +35,7 @@ pub struct AppSwapProfile {
     pub working_set_pages: u64,
     pub swap_in_count: u64,
     pub swap_out_count: u64,
-    pub swap_in_rate: f64,   // per second
+    pub swap_in_rate: f64, // per second
     pub swap_out_rate: f64,
     pub compression_ratio: f64,
     pub state: SwapState,
@@ -35,16 +45,23 @@ pub struct AppSwapProfile {
 
 impl AppSwapProfile {
     pub fn divergence(&self) -> f64 {
-        if self.rss_pages == 0 { return 0.0; }
+        if self.rss_pages == 0 {
+            return 0.0;
+        }
         1.0 - (self.working_set_pages as f64 / self.rss_pages as f64).min(1.0)
     }
 
     pub fn thrash_level(&self) -> ThrashLevel {
         let churn = self.swap_in_rate + self.swap_out_rate;
-        if churn > 500.0 { ThrashLevel::Severe }
-        else if churn > 100.0 { ThrashLevel::Moderate }
-        else if churn > 20.0 { ThrashLevel::Mild }
-        else { ThrashLevel::None }
+        if churn > 500.0 {
+            ThrashLevel::Severe
+        } else if churn > 100.0 {
+            ThrashLevel::Moderate
+        } else if churn > 20.0 {
+            ThrashLevel::Mild
+        } else {
+            ThrashLevel::None
+        }
     }
 
     pub fn swappable_pages(&self) -> u64 {
@@ -83,16 +100,15 @@ impl SwapAppManager {
         }
     }
 
-    pub fn update_profile(
-        &mut self, app_id: u64, rss_pages: u64,
-        working_set: u64, now: u64,
-    ) {
+    pub fn update_profile(&mut self, app_id: u64, rss_pages: u64, working_set: u64, now: u64) {
         let profile = self.profiles.entry(app_id).or_insert(AppSwapProfile {
             app_id,
             rss_pages,
             working_set_pages: working_set,
-            swap_in_count: 0, swap_out_count: 0,
-            swap_in_rate: 0.0, swap_out_rate: 0.0,
+            swap_in_count: 0,
+            swap_out_count: 0,
+            swap_in_rate: 0.0,
+            swap_out_rate: 0.0,
             compression_ratio: 1.0,
             state: SwapState::Active,
             priority_score: 0.0,
@@ -128,8 +144,12 @@ impl SwapAppManager {
     }
 
     pub fn record_swap_out(
-        &mut self, app_id: u64, page_count: u64,
-        original_bytes: u64, compressed_bytes: u64, now: u64,
+        &mut self,
+        app_id: u64,
+        page_count: u64,
+        original_bytes: u64,
+        compressed_bytes: u64,
+        now: u64,
     ) {
         if let Some(p) = self.profiles.get_mut(&app_id) {
             p.swap_out_count += page_count;
@@ -146,9 +166,13 @@ impl SwapAppManager {
 
     /// Select top N apps to swap out based on priority
     pub fn select_swap_candidates(&self, n: usize) -> Vec<u64> {
-        let mut candidates: Vec<_> = self.profiles.iter()
+        let mut candidates: Vec<_> = self
+            .profiles
+            .iter()
             .filter(|(_, p)| p.state == SwapState::SwapCandidate || p.state == SwapState::Active)
-            .filter(|(_, p)| p.thrash_level() == ThrashLevel::None || p.thrash_level() == ThrashLevel::Mild)
+            .filter(|(_, p)| {
+                p.thrash_level() == ThrashLevel::None || p.thrash_level() == ThrashLevel::Mild
+            })
             .map(|(id, p)| (*id, p.priority_score))
             .collect();
         candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -164,10 +188,16 @@ impl SwapAppManager {
         self.ring_head = (self.ring_head + 1) % self.ring_capacity;
     }
 
-    pub fn profile(&self, app_id: u64) -> Option<&AppSwapProfile> { self.profiles.get(&app_id) }
-    pub fn stats(&self) -> &SwapAppStats { &self.stats }
+    pub fn profile(&self, app_id: u64) -> Option<&AppSwapProfile> {
+        self.profiles.get(&app_id)
+    }
+    pub fn stats(&self) -> &SwapAppStats {
+        &self.stats
+    }
     pub fn global_compression_ratio(&self) -> f64 {
-        if self.stats.total_compressed_bytes == 0 { return 1.0; }
+        if self.stats.total_compressed_bytes == 0 {
+            return 1.0;
+        }
         self.stats.total_original_bytes as f64 / self.stats.total_compressed_bytes as f64
     }
 }
