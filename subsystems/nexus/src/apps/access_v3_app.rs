@@ -47,8 +47,17 @@ pub struct AccessV3Record {
 impl AccessV3Record {
     pub fn new(mode: AccessV3Mode, path: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { mode, flag: AccessV3Flag::None, result: AccessV3Result::Permitted, path_hash: h, dirfd: -100 }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            mode,
+            flag: AccessV3Flag::None,
+            result: AccessV3Result::Permitted,
+            path_hash: h,
+            dirfd: -100,
+        }
     }
 }
 
@@ -69,7 +78,14 @@ pub struct AppAccessV3 {
 
 impl AppAccessV3 {
     pub fn new() -> Self {
-        Self { stats: AccessV3AppStats { total_ops: 0, permitted: 0, denied: 0, not_found: 0 } }
+        Self {
+            stats: AccessV3AppStats {
+                total_ops: 0,
+                permitted: 0,
+                denied: 0,
+                not_found: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &AccessV3Record) {
@@ -78,7 +94,7 @@ impl AppAccessV3 {
             AccessV3Result::Permitted => self.stats.permitted += 1,
             AccessV3Result::Denied => self.stats.denied += 1,
             AccessV3Result::NotFound => self.stats.not_found += 1,
-            _ => {}
+            _ => {},
         }
     }
 }
