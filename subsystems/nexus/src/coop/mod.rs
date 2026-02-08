@@ -1438,3 +1438,16 @@ pub mod semaphore;
 pub mod telemetry;
 pub mod wait_queue;
 pub mod dist_lock;
+// R30 — Memory Management
+pub mod mmap_coop;
+pub mod shmem_coop;
+pub mod hugepage_coop;
+pub mod mprotect_coop;
+pub mod mremap_coop;
+pub mod msync_coop;
+pub mod munmap_coop;
+pub mod vma_coop;
+pub mod page_fault_coop;
+pub mod oom_coop;
+pub mod swap_coop;
+pub mod mlock_coop;
