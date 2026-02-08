@@ -1233,3 +1233,15 @@ pub mod prctl;
 pub mod seccomp;
 pub mod syscall;
 pub mod tls;
+// R30 — Memory Management
+pub mod heap_app;
+pub mod shmem_app;
+pub mod hugepage_app;
+pub mod mprotect_app;
+pub mod region_app;
+pub mod pageout_app;
+pub mod munmap_app;
+pub mod vma_app;
+pub mod swap_app;
+pub mod oom_app;
+pub mod mlock_app2;
