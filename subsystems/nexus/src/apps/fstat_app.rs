@@ -30,7 +30,17 @@ pub struct FstatRecord {
 
 impl FstatRecord {
     pub fn new(fd: i32) -> Self {
-        Self { fd, result: FstatResult::Success, inode: 0, size: 0, mode: 0, nlink: 1, uid: 0, gid: 0, latency_ns: 0 }
+        Self {
+            fd,
+            result: FstatResult::Success,
+            inode: 0,
+            size: 0,
+            mode: 0,
+            nlink: 1,
+            uid: 0,
+            gid: 0,
+            latency_ns: 0,
+        }
     }
 }
 
@@ -46,10 +56,18 @@ pub struct FstatCacheEntry {
 
 impl FstatCacheEntry {
     pub fn new(inode: u64, size: u64, mode: u32) -> Self {
-        Self { inode, size, mode, hits: 0, last_refresh_ns: 0 }
+        Self {
+            inode,
+            size,
+            mode,
+            hits: 0,
+            last_refresh_ns: 0,
+        }
     }
 
-    pub fn hit(&mut self) { self.hits += 1; }
+    pub fn hit(&mut self) {
+        self.hits += 1;
+    }
 
     pub fn refresh(&mut self, size: u64, mode: u32, now_ns: u64) {
         self.size = size;
@@ -76,23 +94,39 @@ pub struct AppFstat {
 
 impl AppFstat {
     pub fn new() -> Self {
-        Self { cache: BTreeMap::new(), stats: FstatAppStats { total_calls: 0, cache_hits: 0, cache_misses: 0, errors: 0 } }
+        Self {
+            cache: BTreeMap::new(),
+            stats: FstatAppStats {
+                total_calls: 0,
+                cache_hits: 0,
+                cache_misses: 0,
+                errors: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &FstatRecord) {
         self.stats.total_calls += 1;
-        if rec.result != FstatResult::Success { self.stats.errors += 1; return; }
+        if rec.result != FstatResult::Success {
+            self.stats.errors += 1;
+            return;
+        }
         if let Some(entry) = self.cache.get_mut(&rec.fd) {
             entry.hit();
             self.stats.cache_hits += 1;
         } else {
-            self.cache.insert(rec.fd, FstatCacheEntry::new(rec.inode, rec.size, rec.mode));
+            self.cache
+                .insert(rec.fd, FstatCacheEntry::new(rec.inode, rec.size, rec.mode));
             self.stats.cache_misses += 1;
         }
     }
 
     pub fn cache_hit_rate(&self) -> f64 {
         let total = self.stats.cache_hits + self.stats.cache_misses;
-        if total == 0 { 0.0 } else { self.stats.cache_hits as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.stats.cache_hits as f64 / total as f64
+        }
     }
 }
