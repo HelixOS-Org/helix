@@ -13,7 +13,10 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HugePageSize { TwoMB, OneGB }
+pub enum HugePageSize {
+    TwoMB,
+    OneGB,
+}
 
 impl HugePageSize {
     pub fn bytes(&self) -> u64 {
@@ -38,12 +41,16 @@ pub struct HugePagePool {
 
 impl HugePagePool {
     pub fn utilization_2mb(&self) -> f64 {
-        if self.total_2mb == 0 { return 0.0; }
+        if self.total_2mb == 0 {
+            return 0.0;
+        }
         1.0 - (self.free_2mb as f64 / self.total_2mb as f64)
     }
     pub fn pressure(&self) -> f64 {
         let reserved: u64 = self.reservations.values().sum();
-        if self.free_2mb == 0 { return 1.0; }
+        if self.free_2mb == 0 {
+            return 1.0;
+        }
         (reserved as f64 / self.free_2mb as f64).min(1.0)
     }
 }
@@ -87,8 +94,10 @@ impl HugePageCoopManager {
 
     pub fn init_pool(&mut self, numa_node: u32, total_2mb: u64, total_1gb: u64) {
         self.pools.insert(numa_node, HugePagePool {
-            total_2mb, free_2mb: total_2mb,
-            total_1gb, free_1gb: total_1gb,
+            total_2mb,
+            free_2mb: total_2mb,
+            total_1gb,
+            free_1gb: total_1gb,
             reservations: BTreeMap::new(),
         });
     }
@@ -114,7 +123,9 @@ impl HugePageCoopManager {
             pool.free_2mb += count;
             if let Some(r) = pool.reservations.get_mut(&pid) {
                 *r = r.saturating_sub(count);
-                if *r == 0 { pool.reservations.remove(&pid); }
+                if *r == 0 {
+                    pool.reservations.remove(&pid);
+                }
             }
         }
     }
@@ -132,10 +143,14 @@ impl HugePageCoopManager {
     /// Request compaction to free contiguous huge page frames
     pub fn request_compaction(&mut self, pid: u64, target: u64, priority: u32, now: u64) {
         self.compaction_queue.push(CompactionRequest {
-            pid, target_pages: target, priority,
-            requested_at: now, deadline_ns: now + 100_000_000, // 100ms deadline
+            pid,
+            target_pages: target,
+            priority,
+            requested_at: now,
+            deadline_ns: now + 100_000_000, // 100ms deadline
         });
-        self.compaction_queue.sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.compaction_queue
+            .sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
     /// Process compaction queue
@@ -156,8 +171,8 @@ impl HugePageCoopManager {
     /// Rebalance huge pages across NUMA nodes
     pub fn rebalance_numa(&mut self) -> Vec<(u32, u32, u64)> {
         let mut moves = Vec::new();
-        let pressures: Vec<(u32, f64)> = self.pools.iter()
-            .map(|(n, p)| (*n, p.pressure())).collect();
+        let pressures: Vec<(u32, f64)> =
+            self.pools.iter().map(|(n, p)| (*n, p.pressure())).collect();
 
         for i in 0..pressures.len() {
             for j in (i + 1)..pressures.len() {
@@ -177,6 +192,10 @@ impl HugePageCoopManager {
         moves
     }
 
-    pub fn pool(&self, numa_node: u32) -> Option<&HugePagePool> { self.pools.get(&numa_node) }
-    pub fn stats(&self) -> &HugePageCoopStats { &self.stats }
+    pub fn pool(&self, numa_node: u32) -> Option<&HugePagePool> {
+        self.pools.get(&numa_node)
+    }
+    pub fn stats(&self) -> &HugePageCoopStats {
+        &self.stats
+    }
 }
