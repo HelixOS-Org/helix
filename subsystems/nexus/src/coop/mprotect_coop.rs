@@ -13,7 +13,13 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProtDomain { Kernel, Trusted, Normal, Sandbox, Untrusted }
+pub enum ProtDomain {
+    Kernel,
+    Trusted,
+    Normal,
+    Sandbox,
+    Untrusted,
+}
 
 impl ProtDomain {
     pub fn trust_level(&self) -> u32 {
@@ -91,8 +97,11 @@ impl MprotectCoopManager {
 
     pub fn assign_domain(&mut self, pid: u64, domain: ProtDomain, pku_key: Option<u32>) {
         self.domains.insert(pid, ProtDomainEntry {
-            pid, domain, pku_key,
-            shared_guard_pages: 0, wx_violations: 0,
+            pid,
+            domain,
+            pku_key,
+            shared_guard_pages: 0,
+            wx_violations: 0,
             escalation_attempts: 0,
         });
         self.stats.domain_assignments += 1;
@@ -100,14 +109,24 @@ impl MprotectCoopManager {
 
     /// Check if two processes can share a memory region
     pub fn can_share(&self, pid_a: u64, pid_b: u64) -> bool {
-        let da = match self.domains.get(&pid_a) { Some(d) => d, None => return false };
-        let db = match self.domains.get(&pid_b) { Some(d) => d, None => return false };
+        let da = match self.domains.get(&pid_a) {
+            Some(d) => d,
+            None => return false,
+        };
+        let db = match self.domains.get(&pid_b) {
+            Some(d) => d,
+            None => return false,
+        };
         da.domain.can_share_with(&db.domain)
     }
 
     /// Create a shared guard page region between cooperating processes
     pub fn create_shared_guard(
-        &mut self, base: u64, size: u64, participants: Vec<u64>, density: f64,
+        &mut self,
+        base: u64,
+        size: u64,
+        participants: Vec<u64>,
+        density: f64,
     ) -> u64 {
         let id = self.next_guard_id;
         self.next_guard_id += 1;
@@ -118,8 +137,11 @@ impl MprotectCoopManager {
             }
         }
         self.guards.insert(id, SharedGuardRegion {
-            region_id: id, base_addr: base, size,
-            participants, guard_density: density,
+            region_id: id,
+            base_addr: base,
+            size,
+            participants,
+            guard_density: density,
         });
         self.stats.shared_guards_created += 1;
         id
@@ -135,21 +157,34 @@ impl MprotectCoopManager {
 
     /// Request domain escalation
     pub fn request_escalation(
-        &mut self, pid: u64, target: ProtDomain, now: u64, reason: u64,
+        &mut self,
+        pid: u64,
+        target: ProtDomain,
+        now: u64,
+        reason: u64,
     ) -> bool {
         let current = match self.domains.get_mut(&pid) {
-            Some(d) => { d.escalation_attempts += 1; d.domain },
+            Some(d) => {
+                d.escalation_attempts += 1;
+                d.domain
+            },
             None => return false,
         };
 
-        let granted = target.trust_level() <= current.trust_level() + 1
-            && target != ProtDomain::Kernel;
+        let granted =
+            target.trust_level() <= current.trust_level() + 1 && target != ProtDomain::Kernel;
 
         self.escalation_log.push(EscalationEvent {
-            pid, from_domain: current, requested_domain: target,
-            timestamp: now, granted, reason,
+            pid,
+            from_domain: current,
+            requested_domain: target,
+            timestamp: now,
+            granted,
+            reason,
         });
-        if self.escalation_log.len() > 512 { self.escalation_log.drain(..256); }
+        if self.escalation_log.len() > 512 {
+            self.escalation_log.drain(..256);
+        }
 
         if granted {
             if let Some(d) = self.domains.get_mut(&pid) {
@@ -162,6 +197,10 @@ impl MprotectCoopManager {
         granted
     }
 
-    pub fn domain(&self, pid: u64) -> Option<&ProtDomainEntry> { self.domains.get(&pid) }
-    pub fn stats(&self) -> &MprotectCoopStats { &self.stats }
+    pub fn domain(&self, pid: u64) -> Option<&ProtDomainEntry> {
+        self.domains.get(&pid)
+    }
+    pub fn stats(&self) -> &MprotectCoopStats {
+        &self.stats
+    }
 }
