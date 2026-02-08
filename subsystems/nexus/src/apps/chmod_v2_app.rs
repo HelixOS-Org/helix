@@ -39,14 +39,32 @@ pub struct ChmodV2Record {
 impl ChmodV2Record {
     pub fn new(call: ChmodV2Call, path: &[u8], new_mode: u32) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { call, result: ChmodV2Result::Success, path_hash: h, old_mode: 0, new_mode, fd: -1 }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            call,
+            result: ChmodV2Result::Success,
+            path_hash: h,
+            old_mode: 0,
+            new_mode,
+            fd: -1,
+        }
     }
 
-    pub fn is_setuid(&self) -> bool { self.new_mode & 0o4000 != 0 }
-    pub fn is_setgid(&self) -> bool { self.new_mode & 0o2000 != 0 }
-    pub fn is_sticky(&self) -> bool { self.new_mode & 0o1000 != 0 }
-    pub fn made_world_writable(&self) -> bool { self.new_mode & 0o002 != 0 && self.old_mode & 0o002 == 0 }
+    pub fn is_setuid(&self) -> bool {
+        self.new_mode & 0o4000 != 0
+    }
+    pub fn is_setgid(&self) -> bool {
+        self.new_mode & 0o2000 != 0
+    }
+    pub fn is_sticky(&self) -> bool {
+        self.new_mode & 0o1000 != 0
+    }
+    pub fn made_world_writable(&self) -> bool {
+        self.new_mode & 0o002 != 0 && self.old_mode & 0o002 == 0
+    }
 }
 
 /// Chmod v2 app stats
@@ -66,13 +84,26 @@ pub struct AppChmodV2 {
 
 impl AppChmodV2 {
     pub fn new() -> Self {
-        Self { stats: ChmodV2AppStats { total_calls: 0, setuid_changes: 0, world_writable: 0, errors: 0 } }
+        Self {
+            stats: ChmodV2AppStats {
+                total_calls: 0,
+                setuid_changes: 0,
+                world_writable: 0,
+                errors: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &ChmodV2Record) {
         self.stats.total_calls += 1;
-        if rec.is_setuid() || rec.is_setgid() { self.stats.setuid_changes += 1; }
-        if rec.made_world_writable() { self.stats.world_writable += 1; }
-        if rec.result != ChmodV2Result::Success { self.stats.errors += 1; }
+        if rec.is_setuid() || rec.is_setgid() {
+            self.stats.setuid_changes += 1;
+        }
+        if rec.made_world_writable() {
+            self.stats.world_writable += 1;
+        }
+        if rec.result != ChmodV2Result::Success {
+            self.stats.errors += 1;
+        }
     }
 }
