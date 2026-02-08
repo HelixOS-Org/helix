@@ -16,11 +16,11 @@ use alloc::vec::Vec;
 /// Page age bucket (ticks since last access)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PageAgeBucket {
-    Hot,        // < 100ms
-    Warm,       // 100ms - 1s
-    Cool,       // 1s - 10s
-    Cold,       // 10s - 60s
-    Frozen,     // > 60s
+    Hot,    // < 100ms
+    Warm,   // 100ms - 1s
+    Cool,   // 1s - 10s
+    Cold,   // 10s - 60s
+    Frozen, // > 60s
 }
 
 impl PageAgeBucket {
@@ -48,7 +48,13 @@ pub struct PageAgeHistogram {
 
 impl PageAgeHistogram {
     pub fn new() -> Self {
-        Self { hot: 0, warm: 0, cool: 0, cold: 0, frozen: 0 }
+        Self {
+            hot: 0,
+            warm: 0,
+            cool: 0,
+            cold: 0,
+            frozen: 0,
+        }
     }
 
     pub fn record(&mut self, bucket: PageAgeBucket) {
@@ -78,7 +84,9 @@ impl PageAgeHistogram {
     /// Ratio of actively-used pages
     pub fn active_ratio(&self) -> f64 {
         let total = self.total();
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         (self.hot + self.warm) as f64 / total as f64
     }
 
@@ -168,7 +176,9 @@ impl AppPagePolicy {
     }
 
     pub fn refault_rate(&self) -> f64 {
-        if self.pageouts == 0 { return 0.0; }
+        if self.pageouts == 0 {
+            return 0.0;
+        }
         self.refaults as f64 / self.pageouts as f64
     }
 }
@@ -262,5 +272,7 @@ impl PageoutAppManager {
         ranking
     }
 
-    pub fn stats(&self) -> &PageoutAppStats { &self.stats }
+    pub fn stats(&self) -> &PageoutAppStats {
+        &self.stats
+    }
 }
