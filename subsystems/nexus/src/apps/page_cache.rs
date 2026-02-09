@@ -9,7 +9,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -67,6 +69,7 @@ pub enum AccessPattern {
 
 /// Page entry in cache
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CachedPage {
     /// Page frame number
     pub pfn: u64,
@@ -104,6 +107,7 @@ impl CachedPage {
     }
 
     /// Record access
+    #[inline]
     pub fn touch(&mut self, now: u64) {
         self.access_count += 1;
         self.last_access = now;
@@ -113,11 +117,13 @@ impl CachedPage {
     }
 
     /// Mark dirty
+    #[inline(always)]
     pub fn mark_dirty(&mut self) {
         self.state = PageState::Dirty;
     }
 
     /// Age (ns)
+    #[inline(always)]
     pub fn age_ns(&self, now: u64) -> u64 {
         now.saturating_sub(self.first_access)
     }
@@ -159,6 +165,7 @@ impl FaultLatencyHistogram {
     }
 
     /// Record a latency sample
+    #[inline]
     pub fn record(&mut self, latency_ns: u64) {
         let idx = self
             .boundaries
@@ -169,6 +176,7 @@ impl FaultLatencyHistogram {
     }
 
     /// Total samples
+    #[inline(always)]
     pub fn total(&self) -> u64 {
         self.counts.iter().sum()
     }
@@ -203,7 +211,7 @@ pub struct WorkingSetEstimator {
     /// Inactive pages
     inactive_pages: u64,
     /// Recent window sizes (for trend)
-    history: Vec<u64>,
+    history: VecDeque<u64>,
     /// Max history
     max_history: usize,
     /// Estimated working set in pages
@@ -217,7 +225,7 @@ impl WorkingSetEstimator {
         Self {
             active_pages: 0,
             inactive_pages: 0,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 32,
             estimated_pages: 0,
             alpha: 0.3,
@@ -239,12 +247,13 @@ impl WorkingSetEstimator {
         }
 
         if self.history.len() >= self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
-        self.history.push(self.estimated_pages);
+        self.history.push_back(self.estimated_pages);
     }
 
     /// Is working set growing?
+    #[inline]
     pub fn is_growing(&self) -> bool {
         if self.history.len() < 4 {
             return false;
@@ -254,6 +263,7 @@ impl WorkingSetEstimator {
     }
 
     /// Estimated bytes (4K pages)
+    #[inline(always)]
     pub fn estimated_bytes(&self) -> u64 {
         self.estimated_pages * 4096
     }
@@ -279,7 +289,7 @@ pub struct ThrashingDetector {
     /// Is thrashing detected
     pub is_thrashing: bool,
     /// Recently evicted pages (pfn -> eviction time)
-    evicted: BTreeMap<u64, u64>,
+    evicted: LinearMap<u64, 64>,
     /// Max tracked evictions
     max_evicted: usize,
 }
@@ -293,28 +303,30 @@ impl ThrashingDetector {
             window_ns,
             threshold: 0.25,
             is_thrashing: false,
-            evicted: BTreeMap::new(),
+            evicted: LinearMap::new(),
             max_evicted: 4096,
         }
     }
 
     /// Record eviction
+    #[inline]
     pub fn on_eviction(&mut self, pfn: u64, now: u64) {
         if self.evicted.len() >= self.max_evicted {
             // Remove oldest
             if let Some(&oldest_key) = self.evicted.keys().next() {
-                self.evicted.remove(&oldest_key);
+                self.evicted.remove(oldest_key);
             }
         }
         self.evicted.insert(pfn, now);
     }
 
     /// Record fault — check if it's a refault
+    #[inline]
     pub fn on_fault(&mut self, pfn: u64, now: u64) {
         self.maybe_reset_window(now);
         self.window_faults += 1;
 
-        if self.evicted.remove(&pfn).is_some() {
+        if self.evicted.remove(pfn).is_some() {
             self.refault_count += 1;
         }
 
@@ -339,6 +351,7 @@ impl ThrashingDetector {
     }
 
     /// Refault ratio
+    #[inline]
     pub fn refault_ratio(&self) -> f64 {
         if self.window_faults == 0 {
             return 0.0;
@@ -353,6 +366,7 @@ impl ThrashingDetector {
 
 /// Per-process page cache stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct ProcessPageCacheStats {
     /// Total cached pages
     pub cached_pages: u64,
@@ -370,6 +384,7 @@ pub struct ProcessPageCacheStats {
 
 /// App page cache stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppPageCacheStats {
     /// Tracked processes
     pub tracked_processes: usize,
@@ -382,6 +397,7 @@ pub struct AppPageCacheStats {
 }
 
 /// App page cache profiler
+#[repr(align(64))]
 pub struct AppPageCacheProfiler {
     /// Per-process cached pages: pid -> pages
     pages: BTreeMap<u64, Vec<CachedPage>>,
@@ -407,6 +423,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Register process
+    #[inline]
     pub fn register(&mut self, pid: u64) {
         self.pages.insert(pid, Vec::new());
         self.fault_histograms
@@ -419,6 +436,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Record page fault
+    #[inline]
     pub fn on_fault(&mut self, pid: u64, fault: PageFaultRecord) {
         if let Some(hist) = self.fault_histograms.get_mut(&pid) {
             hist.record(fault.latency_ns);
@@ -430,6 +448,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Record page eviction
+    #[inline]
     pub fn on_eviction(&mut self, pid: u64, pfn: u64, now: u64) {
         if let Some(thrash) = self.thrashing.get_mut(&pid) {
             thrash.on_eviction(pfn, now);
@@ -442,6 +461,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Add cached page
+    #[inline]
     pub fn add_page(&mut self, pid: u64, page: CachedPage) {
         if let Some(pages) = self.pages.get_mut(&pid) {
             pages.push(page);
@@ -450,6 +470,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Update working set estimate
+    #[inline]
     pub fn update_working_set(&mut self, pid: u64, active: u64, inactive: u64) {
         if let Some(ws) = self.working_sets.get_mut(&pid) {
             ws.update(active, inactive);
@@ -457,6 +478,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Remove process
+    #[inline]
     pub fn remove(&mut self, pid: u64) {
         self.pages.remove(&pid);
         self.fault_histograms.remove(&pid);
@@ -485,6 +507,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Is process thrashing?
+    #[inline(always)]
     pub fn is_thrashing(&self, pid: u64) -> bool {
         self.thrashing.get(&pid).map_or(false, |t| t.is_thrashing)
     }
@@ -502,6 +525,7 @@ impl AppPageCacheProfiler {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppPageCacheStats {
         &self.stats
     }
