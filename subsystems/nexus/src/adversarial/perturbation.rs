@@ -33,6 +33,7 @@ impl Perturbation {
     }
 
     /// Get L-infinity norm
+    #[inline]
     pub fn linf_norm(&self) -> f64 {
         self.delta
             .iter()
@@ -41,12 +42,14 @@ impl Perturbation {
     }
 
     /// Get L2 norm
+    #[inline(always)]
     pub fn l2_norm(&self) -> f64 {
         let sum_sq: f64 = self.delta.iter().map(|x| x * x).sum();
         libm::sqrt(sum_sq)
     }
 
     /// Get L1 norm
+    #[inline(always)]
     pub fn l1_norm(&self) -> f64 {
         self.delta.iter().map(|&x| libm::fabs(x)).sum()
     }
@@ -81,6 +84,7 @@ impl Perturbation {
     }
 
     /// Apply perturbation to input
+    #[inline]
     pub fn apply(&self, input: &[f64]) -> Vec<f64> {
         input
             .iter()
