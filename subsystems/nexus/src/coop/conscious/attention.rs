@@ -148,7 +148,13 @@ impl AttentionTarget {
 
     /// Update urgency and recompute salience
     pub fn update_urgency(&mut self, urgency: f32, tick: u64) {
-        let clamped = if urgency < 0.0 { 0.0 } else if urgency > 1.0 { 1.0 } else { urgency };
+        let clamped = if urgency < 0.0 {
+            0.0
+        } else if urgency > 1.0 {
+            1.0
+        } else {
+            urgency
+        };
         self.urgency = clamped;
         self.salience = clamped * 0.6 + (self.priority as f32 / 10.0).min(1.0) * 0.4;
         self.last_update_tick = tick;
@@ -156,7 +162,13 @@ impl AttentionTarget {
 
     /// Apply focus and record history
     pub fn apply_focus(&mut self, new_focus: f32) {
-        let clamped = if new_focus < 0.0 { 0.0 } else if new_focus > 1.0 { 1.0 } else { new_focus };
+        let clamped = if new_focus < 0.0 {
+            0.0
+        } else if new_focus > 1.0 {
+            1.0
+        } else {
+            new_focus
+        };
         self.focus = clamped;
         self.focus_history[self.focus_write_idx] = clamped;
         self.focus_write_idx = (self.focus_write_idx + 1) % MAX_ATTENTION_HISTORY;
@@ -390,7 +402,10 @@ impl CoopAttentionEngine {
 
     /// Count of urgent targets (above URGENCY_HIGH)
     pub fn urgent_count(&self) -> usize {
-        self.targets.values().filter(|t| t.urgency >= URGENCY_HIGH).count()
+        self.targets
+            .values()
+            .filter(|t| t.urgency >= URGENCY_HIGH)
+            .count()
     }
 
     // ========================================================================
@@ -399,7 +414,13 @@ impl CoopAttentionEngine {
 
     /// Shift attention smoothly from one target to another
     pub fn attention_shift(&mut self, from_id: u64, to_id: u64, amount: f32) -> bool {
-        let clamped = if amount < 0.0 { 0.0 } else if amount > 1.0 { 1.0 } else { amount };
+        let clamped = if amount < 0.0 {
+            0.0
+        } else if amount > 1.0 {
+            1.0
+        } else {
+            amount
+        };
 
         let from_focus = if let Some(t) = self.targets.get(&from_id) {
             t.focus
@@ -453,7 +474,13 @@ impl CoopAttentionEngine {
         };
 
         let raw = urgency * 0.4 + kind_weight * 0.25 + process_factor * 0.2 + recency_factor * 0.15;
-        if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw }
+        if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        }
     }
 
     // ========================================================================
@@ -485,8 +512,14 @@ impl CoopAttentionEngine {
 
     /// Prune targets not updated within max_age ticks
     pub fn prune_stale(&mut self, max_age: u64) {
-        let cutoff = if self.tick > max_age { self.tick - max_age } else { 0 };
-        let stale: Vec<u64> = self.targets.iter()
+        let cutoff = if self.tick > max_age {
+            self.tick - max_age
+        } else {
+            0
+        };
+        let stale: Vec<u64> = self
+            .targets
+            .iter()
             .filter(|(_, t)| t.last_update_tick < cutoff)
             .map(|(k, _)| *k)
             .collect();
