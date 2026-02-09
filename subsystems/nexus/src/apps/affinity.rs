@@ -10,6 +10,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -320,7 +321,7 @@ pub struct AppAffinityManager {
     /// Exclusive assignments (core -> pid)
     exclusive: BTreeMap<u32, u64>,
     /// Migration log
-    migration_log: Vec<MigrationEvent>,
+    migration_log: VecDeque<MigrationEvent>,
     /// Max log size
     max_log: usize,
     /// Stats
@@ -333,7 +334,7 @@ impl AppAffinityManager {
             cores: BTreeMap::new(),
             profiles: BTreeMap::new(),
             exclusive: BTreeMap::new(),
-            migration_log: Vec::new(),
+            migration_log: VecDeque::new(),
             max_log: 1024,
             stats: AppAffinityStats::default(),
         }
@@ -383,7 +384,7 @@ impl AppAffinityManager {
             let old_core = profile.last_core;
             profile.record_usage(core, duration_ns);
             if core != old_core && profile.total_runtime_ns > duration_ns {
-                self.migration_log.push(MigrationEvent {
+                self.migration_log.push_back(MigrationEvent {
                     pid,
                     thread_id: 0,
                     from_core: old_core,
@@ -392,7 +393,7 @@ impl AppAffinityManager {
                     voluntary: false,
                 });
                 if self.migration_log.len() > self.max_log {
-                    self.migration_log.remove(0);
+                    self.migration_log.pop_front();
                 }
                 self.stats.total_migrations += 1;
             }
