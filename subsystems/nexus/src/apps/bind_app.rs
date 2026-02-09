@@ -45,7 +45,9 @@ impl BindAddress {
         }
     }
 
+    #[inline(always)]
     pub fn is_wildcard(&self) -> bool { self.addr_hash == 0 }
+    #[inline(always)]
     pub fn is_loopback(&self) -> bool { self.port == 0 }
 }
 
@@ -68,6 +70,7 @@ pub struct PortAllocation {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BindAppStats {
     pub total_binds: u64,
     pub successful_binds: u64,
@@ -122,12 +125,14 @@ impl AppBind {
         result
     }
 
+    #[inline]
     pub fn release_port(&mut self, fd: u64, port: u16) {
         if let Some(allocs) = self.port_map.get_mut(&port) {
             allocs.retain(|a| a.owner_fd != fd);
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &BindAppStats { &self.stats }
 }
 
@@ -167,6 +172,7 @@ impl BindV2Request {
 
 /// Bind v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct BindV2AppStats {
     pub total_binds: u64,
     pub successes: u64,
@@ -191,6 +197,7 @@ impl AppBindV2 {
             },
         }
     }
+    #[inline]
     pub fn bind(&mut self, req: &BindV2Request) -> BindV2Result {
         self.stats.total_binds += 1;
         if req.reuse_addr || req.reuse_port {
