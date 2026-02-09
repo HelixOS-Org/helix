@@ -67,6 +67,30 @@ pub mod reflection;
 /// Apps engine identity declaration and capability evolution
 pub mod identity;
 
+/// Computational emotional signals for application understanding
+pub mod emotion;
+
+/// Selective attention for application monitoring
+pub mod attention;
+
+/// Offline consolidation for app understanding (dream cycles)
+pub mod dream;
+
+/// Understanding apps from the app's "perspective"
+pub mod empathy;
+
+/// Fast app classification without full analysis
+pub mod intuition;
+
+/// Structured knowledge store for app understanding
+pub mod memory_palace;
+
+/// Fairness framework for application resource allocation
+pub mod conscience;
+
+/// Subjective experience of app management
+pub mod qualia;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
@@ -79,3 +103,12 @@ pub use self::meta_apps::AppsMetaCognition;
 pub use self::reflection::AppsReflection;
 pub use self::self_model::AppsSelfModel;
 pub use self::world_model::AppsWorldModel;
+
+pub use self::emotion::AppsEmotionEngine;
+pub use self::attention::AppsAttentionEngine;
+pub use self::dream::AppsDreamEngine;
+pub use self::empathy::AppsEmpathyEngine;
+pub use self::intuition::AppsIntuitionEngine;
+pub use self::memory_palace::AppsMemoryPalace;
+pub use self::conscience::AppsConscience;
+pub use self::qualia::AppsQualiaEngine;
