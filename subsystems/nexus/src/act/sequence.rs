@@ -214,6 +214,7 @@ impl Default for SequenceConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct SequenceStats {
     /// Sequences created
     pub sequences_created: u64,
@@ -470,6 +471,7 @@ impl SequenceEngine {
     }
 
     /// Pause sequence
+    #[inline]
     pub fn pause(&mut self, sequence_id: u64) {
         if let Some(seq) = self.sequences.get_mut(&sequence_id) {
             if seq.status == SequenceStatus::Running {
@@ -479,6 +481,7 @@ impl SequenceEngine {
     }
 
     /// Resume sequence
+    #[inline]
     pub fn resume(&mut self, sequence_id: u64) {
         if let Some(seq) = self.sequences.get_mut(&sequence_id) {
             if seq.status == SequenceStatus::Paused {
@@ -488,6 +491,7 @@ impl SequenceEngine {
     }
 
     /// Cancel sequence
+    #[inline]
     pub fn cancel(&mut self, sequence_id: u64) {
         if let Some(seq) = self.sequences.get_mut(&sequence_id) {
             seq.status = SequenceStatus::Cancelled;
@@ -496,16 +500,19 @@ impl SequenceEngine {
     }
 
     /// Set variable
+    #[inline(always)]
     pub fn set_variable(&mut self, name: &str, value: &str) {
         self.variables.insert(name.into(), value.into());
     }
 
     /// Get step output
+    #[inline(always)]
     pub fn get_output(&self, step_id: u64) -> Option<&String> {
         self.outputs.get(&step_id)
     }
 
     /// Get sequence
+    #[inline(always)]
     pub fn get(&self, id: u64) -> Option<&ActionSequence> {
         self.sequences.get(&id)
     }
@@ -530,6 +537,7 @@ impl SequenceEngine {
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &SequenceStats {
         &self.stats
     }
@@ -562,6 +570,7 @@ impl<'a> SequenceBuilder<'a> {
     }
 
     /// Add execute step
+    #[inline]
     pub fn execute(self, name: &str, command: &str) -> Self {
         self.engine.add_step(
             self.sequence_id,
@@ -573,6 +582,7 @@ impl<'a> SequenceBuilder<'a> {
     }
 
     /// Add step with dependencies
+    #[inline]
     pub fn execute_after(self, name: &str, command: &str, deps: Vec<u64>) -> Self {
         self.engine.add_step(
             self.sequence_id,
@@ -599,6 +609,7 @@ impl<'a> SequenceBuilder<'a> {
     }
 
     /// Build and return sequence ID
+    #[inline(always)]
     pub fn build(self) -> u64 {
         self.sequence_id
     }
