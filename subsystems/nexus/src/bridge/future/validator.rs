@@ -128,11 +128,19 @@ impl CalibrationBucket {
     }
 
     fn avg_predicted(&self) -> f32 {
-        if self.count == 0 { 0.0 } else { self.sum_predicted / self.count as f32 }
+        if self.count == 0 {
+            0.0
+        } else {
+            self.sum_predicted / self.count as f32
+        }
     }
 
     fn actual_frequency(&self) -> f32 {
-        if self.count == 0 { 0.0 } else { self.hits as f32 / self.count as f32 }
+        if self.count == 0 {
+            0.0
+        } else {
+            self.hits as f32 / self.count as f32
+        }
     }
 
     fn calibration_error(&self) -> f32 {
@@ -179,7 +187,9 @@ impl SourceTracker {
         self.brier_sum += brier;
 
         // Log loss: -(outcome * ln(p) + (1-outcome) * ln(1-p))
-        let p = predicted_conf.max(LOG_LOSS_EPSILON).min(1.0 - LOG_LOSS_EPSILON);
+        let p = predicted_conf
+            .max(LOG_LOSS_EPSILON)
+            .min(1.0 - LOG_LOSS_EPSILON);
         let ll = -(outcome * ln_approx(p) + (1.0 - outcome) * ln_approx(1.0 - p));
         self.log_loss_sum += ll;
 
@@ -191,15 +201,27 @@ impl SourceTracker {
     }
 
     fn brier_score(&self) -> f32 {
-        if self.total == 0 { 0.0 } else { self.brier_sum / self.total as f32 }
+        if self.total == 0 {
+            0.0
+        } else {
+            self.brier_sum / self.total as f32
+        }
     }
 
     fn log_loss(&self) -> f32 {
-        if self.total == 0 { 0.0 } else { self.log_loss_sum / self.total as f32 }
+        if self.total == 0 {
+            0.0
+        } else {
+            self.log_loss_sum / self.total as f32
+        }
     }
 
     fn sharpness(&self) -> f32 {
-        if self.total == 0 { 0.0 } else { self.sharpness_sum / self.total as f32 }
+        if self.total == 0 {
+            0.0
+        } else {
+            self.sharpness_sum / self.total as f32
+        }
     }
 }
 
@@ -246,11 +268,16 @@ impl BridgePredictionValidator {
             predictions: Vec::new(),
             write_idx: 0,
             calibration_buckets: [
-                CalibrationBucket::new(), CalibrationBucket::new(),
-                CalibrationBucket::new(), CalibrationBucket::new(),
-                CalibrationBucket::new(), CalibrationBucket::new(),
-                CalibrationBucket::new(), CalibrationBucket::new(),
-                CalibrationBucket::new(), CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
+                CalibrationBucket::new(),
             ],
             source_trackers: BTreeMap::new(),
             tick: 0,
@@ -297,7 +324,9 @@ impl BridgePredictionValidator {
 
     /// Validate a prediction against the actual outcome
     pub fn validate_prediction(&mut self, prediction_id: u64, actual_outcome: u32) -> Option<f32> {
-        let pred = self.predictions.iter_mut()
+        let pred = self
+            .predictions
+            .iter_mut()
             .find(|p| p.prediction_id == prediction_id && !p.validated)?;
 
         pred.actual_outcome = Some(actual_outcome);
@@ -310,12 +339,14 @@ impl BridgePredictionValidator {
         let source_key = pred.source as u8;
 
         // Update calibration bucket
-        let bucket_idx = ((conf * CALIBRATION_BUCKETS as f32) as usize)
-            .min(CALIBRATION_BUCKETS - 1);
+        let bucket_idx =
+            ((conf * CALIBRATION_BUCKETS as f32) as usize).min(CALIBRATION_BUCKETS - 1);
         self.calibration_buckets[bucket_idx].record(conf, correct);
 
         // Update source tracker
-        let tracker = self.source_trackers.entry(source_key)
+        let tracker = self
+            .source_trackers
+            .entry(source_key)
             .or_insert_with(SourceTracker::new);
         tracker.record(conf, correct);
 
@@ -340,7 +371,8 @@ impl BridgePredictionValidator {
 
     /// Compute per-source Brier score
     pub fn brier_score_by_source(&self, source: PredictionSource) -> f32 {
-        self.source_trackers.get(&(source as u8))
+        self.source_trackers
+            .get(&(source as u8))
             .map(|t| t.brier_score())
             .unwrap_or(0.25)
     }
@@ -394,7 +426,9 @@ impl BridgePredictionValidator {
         if total == 0 {
             return 0.0;
         }
-        let weighted_error: f32 = self.calibration_buckets.iter()
+        let weighted_error: f32 = self
+            .calibration_buckets
+            .iter()
             .filter(|b| b.count >= MIN_SAMPLES_FOR_CALIBRATION)
             .map(|b| b.calibration_error() * b.count as f32)
             .sum();
@@ -403,33 +437,46 @@ impl BridgePredictionValidator {
 
     /// Log loss by source
     pub fn log_loss_by_source(&self, source: PredictionSource) -> f32 {
-        self.source_trackers.get(&(source as u8))
+        self.source_trackers
+            .get(&(source as u8))
             .map(|t| t.log_loss())
             .unwrap_or(0.693) // ln(2) ≈ random guessing
     }
 
     /// Aggregate validation statistics
     pub fn stats(&self) -> ValidationStats {
-        let overall_acc = if self.validated_count == 0 { 0.0 } else {
+        let overall_acc = if self.validated_count == 0 {
+            0.0
+        } else {
             self.global_accuracy_ema
         };
 
-        let overconf_count = self.calibration_buckets.iter()
-            .filter(|b| b.count >= MIN_SAMPLES_FOR_CALIBRATION
-                && b.avg_predicted() > b.actual_frequency() + 0.05)
+        let overconf_count = self
+            .calibration_buckets
+            .iter()
+            .filter(|b| {
+                b.count >= MIN_SAMPLES_FOR_CALIBRATION
+                    && b.avg_predicted() > b.actual_frequency() + 0.05
+            })
             .count();
-        let total_populated = self.calibration_buckets.iter()
+        let total_populated = self
+            .calibration_buckets
+            .iter()
             .filter(|b| b.count >= MIN_SAMPLES_FOR_CALIBRATION)
-            .count().max(1);
+            .count()
+            .max(1);
 
         ValidationStats {
             total_predictions: self.total_predictions,
             validated_count: self.validated_count,
             overall_accuracy: overall_acc,
             brier_score: self.global_brier_ema,
-            log_loss: self.source_trackers.values()
+            log_loss: self
+                .source_trackers
+                .values()
                 .map(|t| t.log_loss())
-                .sum::<f32>() / self.source_trackers.len().max(1) as f32,
+                .sum::<f32>()
+                / self.source_trackers.len().max(1) as f32,
             sharpness: self.global_sharpness_ema,
             calibration_error: self.expected_calibration_error(),
             overconfidence_rate: overconf_count as f32 / total_populated as f32,
