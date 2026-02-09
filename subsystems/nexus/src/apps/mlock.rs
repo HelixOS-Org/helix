@@ -56,21 +56,26 @@ impl LockedRegion {
         }
     }
 
+    #[inline]
     pub fn fault_in(&mut self, pages: u64) {
         self.pages_locked = (self.pages_locked + pages).min(self.pages_total);
         self.faults_needed = self.pages_total.saturating_sub(self.pages_locked);
         self.state = if self.pages_locked == self.pages_total { LockRegionState::Locked } else { LockRegionState::Faulting };
     }
 
+    #[inline(always)]
     pub fn unlock(&mut self) { self.state = LockRegionState::Unlocked; self.pages_locked = 0; }
 
+    #[inline(always)]
     pub fn locked_bytes(&self) -> u64 { self.pages_locked * 4096 }
 
+    #[inline(always)]
     pub fn completion(&self) -> f64 {
         if self.pages_total == 0 { return 1.0; }
         self.pages_locked as f64 / self.pages_total as f64
     }
 
+    #[inline(always)]
     pub fn overlaps(&self, addr: u64, size: u64) -> bool {
         self.start < addr + size && addr < self.start + self.len
     }
@@ -78,6 +83,7 @@ impl LockedRegion {
 
 /// Per-process mlock state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessMlockState {
     pub pid: u64,
     pub regions: Vec<LockedRegion>,
@@ -91,6 +97,7 @@ impl ProcessMlockState {
         Self { pid, regions: Vec::new(), locked_pages: 0, limit_pages, all_locked: false }
     }
 
+    #[inline]
     pub fn lock(&mut self, start: u64, len: u64, mode: MlockMode, now: u64) -> bool {
         let pages = (len + 4095) / 4096;
         if self.locked_pages + pages > self.limit_pages { return false; }
@@ -101,6 +108,7 @@ impl ProcessMlockState {
         true
     }
 
+    #[inline]
     pub fn unlock(&mut self, start: u64, len: u64) {
         for region in &mut self.regions {
             if region.overlaps(start, len) && region.state != LockRegionState::Unlocked {
@@ -110,11 +118,13 @@ impl ProcessMlockState {
         }
     }
 
+    #[inline(always)]
     pub fn locked_bytes(&self) -> u64 { self.locked_pages * 4096 }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct MlockV2Stats {
     pub total_processes: u32,
     pub total_regions: u32,
@@ -131,15 +141,18 @@ pub struct AppMlockV2 {
 impl AppMlockV2 {
     pub fn new() -> Self { Self { processes: BTreeMap::new() } }
 
+    #[inline(always)]
     pub fn mlock(&mut self, pid: u64, start: u64, len: u64, mode: MlockMode, now: u64) -> bool {
         let state = self.processes.entry(pid).or_insert_with(|| ProcessMlockState::new(pid, 65536));
         state.lock(start, len, mode, now)
     }
 
+    #[inline(always)]
     pub fn munlock(&mut self, pid: u64, start: u64, len: u64) {
         if let Some(state) = self.processes.get_mut(&pid) { state.unlock(start, len); }
     }
 
+    #[inline]
     pub fn stats(&self) -> MlockV2Stats {
         let regions: u32 = self.processes.values().map(|p| p.regions.len() as u32).sum();
         let pages: u64 = self.processes.values().map(|p| p.locked_pages).sum();
