@@ -181,27 +181,43 @@ impl HolisticJournal {
             velocity_log: Vec::new(),
             rng_state: seed | 1,
             stats: JournalStats {
-                total_entries: 0, cross_references: 0, breakthroughs: 0,
-                avg_impact_ema: 0.0, research_velocity: 0.0,
-                knowledge_nodes: 0, domains_active: 0,
+                total_entries: 0,
+                cross_references: 0,
+                breakthroughs: 0,
+                avg_impact_ema: 0.0,
+                research_velocity: 0.0,
+                knowledge_nodes: 0,
+                domains_active: 0,
             },
         }
     }
 
     /// Record a new discovery in the journal
     pub fn record_discovery(
-        &mut self, domain: ResearchDomain, title: String, summary: String,
-        importance: ImportanceTier, impact: f32, confidence: f32, tick: u64,
+        &mut self,
+        domain: ResearchDomain,
+        title: String,
+        summary: String,
+        importance: ImportanceTier,
+        impact: f32,
+        confidence: f32,
+        tick: u64,
     ) -> u64 {
         let id = fnv1a_hash(title.as_bytes()) ^ fnv1a_hash(&tick.to_le_bytes());
         if self.entries.len() >= MAX_ENTRIES {
             self.evict_oldest();
         }
         let entry = JournalEntry {
-            id, domain, title, summary, importance,
-            impact_score: impact, confidence,
+            id,
+            domain,
+            title,
+            summary,
+            importance,
+            impact_score: impact,
+            confidence,
             cross_ref_ids: Vec::new(),
-            created_tick: tick, updated_tick: tick,
+            created_tick: tick,
+            updated_tick: tick,
         };
         if importance == ImportanceTier::Breakthrough {
             self.stats.breakthroughs += 1;
@@ -217,14 +233,23 @@ impl HolisticJournal {
 
     /// Create a cross-reference between two journal entries
     pub fn cross_reference(
-        &mut self, from_id: u64, to_id: u64, relation: CrossRefRelation, strength: f32,
+        &mut self,
+        from_id: u64,
+        to_id: u64,
+        relation: CrossRefRelation,
+        strength: f32,
     ) -> bool {
         if !self.entries.contains_key(&from_id) || !self.entries.contains_key(&to_id) {
             return false;
         }
-        if self.cross_refs.len() >= MAX_CROSS_REFS { return false; }
+        if self.cross_refs.len() >= MAX_CROSS_REFS {
+            return false;
+        }
         self.cross_refs.push(CrossReference {
-            from_id, to_id, relation, strength,
+            from_id,
+            to_id,
+            relation,
+            strength,
         });
         if let Some(entry) = self.entries.get_mut(&from_id) {
             if !entry.cross_ref_ids.contains(&to_id) {
@@ -250,9 +275,14 @@ impl HolisticJournal {
     pub fn impact_analysis(&self, discovery_id: u64) -> ImpactAnalysis {
         let entry = match self.entries.get(&discovery_id) {
             Some(e) => e,
-            None => return ImpactAnalysis {
-                discovery_id, direct_impact: 0.0, transitive_impact: 0.0,
-                affected_domains: Vec::new(), downstream_count: 0,
+            None => {
+                return ImpactAnalysis {
+                    discovery_id,
+                    direct_impact: 0.0,
+                    transitive_impact: 0.0,
+                    affected_domains: Vec::new(),
+                    downstream_count: 0,
+                };
             },
         };
         let direct = entry.impact_score;
@@ -261,7 +291,9 @@ impl HolisticJournal {
         let mut transitive = 0.0f32;
         let mut domains: Vec<ResearchDomain> = Vec::new();
         while let Some(next_id) = queue.pop() {
-            if visited.contains(&next_id) { continue; }
+            if visited.contains(&next_id) {
+                continue;
+            }
             visited.push(next_id);
             if let Some(linked) = self.entries.get(&next_id) {
                 transitive += linked.impact_score * IMPACT_DECAY;
@@ -276,7 +308,8 @@ impl HolisticJournal {
             }
         }
         ImpactAnalysis {
-            discovery_id, direct_impact: direct,
+            discovery_id,
+            direct_impact: direct,
             transitive_impact: transitive,
             affected_domains: domains,
             downstream_count: visited.len(),
@@ -301,28 +334,38 @@ impl HolisticJournal {
         let window = self.velocity_log.len().min(VELOCITY_WINDOW);
         if window < 2 {
             return VelocityReport {
-                window_size: window, discoveries_in_window: 0,
-                breakthroughs_in_window: 0, avg_impact: 0.0, acceleration: 0.0,
+                window_size: window,
+                discoveries_in_window: 0,
+                breakthroughs_in_window: 0,
+                avg_impact: 0.0,
+                acceleration: 0.0,
             };
         }
         let recent = &self.velocity_log[self.velocity_log.len() - window..];
         let total_disc: usize = recent.iter().map(|(_, c)| c).sum();
-        let bt_count = self.entries.values()
-            .filter(|e| e.importance == ImportanceTier::Breakthrough
-                && tick.saturating_sub(e.created_tick) < STALE_AGE_TICKS)
+        let bt_count = self
+            .entries
+            .values()
+            .filter(|e| {
+                e.importance == ImportanceTier::Breakthrough
+                    && tick.saturating_sub(e.created_tick) < STALE_AGE_TICKS
+            })
             .count();
         let avg_impact = self.stats.avg_impact_ema;
         let first_half = &recent[..window / 2];
         let second_half = &recent[window / 2..];
-        let rate_1: f32 = first_half.iter().map(|(_, c)| *c as f32).sum::<f32>()
-            / first_half.len().max(1) as f32;
+        let rate_1: f32 =
+            first_half.iter().map(|(_, c)| *c as f32).sum::<f32>() / first_half.len().max(1) as f32;
         let rate_2: f32 = second_half.iter().map(|(_, c)| *c as f32).sum::<f32>()
             / second_half.len().max(1) as f32;
         let accel = rate_2 - rate_1;
         self.stats.research_velocity = rate_2;
         VelocityReport {
-            window_size: window, discoveries_in_window: total_disc,
-            breakthroughs_in_window: bt_count, avg_impact, acceleration: accel,
+            window_size: window,
+            discoveries_in_window: total_disc,
+            breakthroughs_in_window: bt_count,
+            avg_impact,
+            acceleration: accel,
         }
     }
 
@@ -345,7 +388,9 @@ impl HolisticJournal {
     }
 
     /// Current statistics snapshot
-    pub fn stats(&self) -> &JournalStats { &self.stats }
+    pub fn stats(&self) -> &JournalStats {
+        &self.stats
+    }
 
     // ── private helpers ─────────────────────────────────────────────────
 
@@ -367,11 +412,16 @@ impl HolisticJournal {
     }
 
     fn ensure_knowledge_node(&mut self, id: u64, domain: ResearchDomain, imp: f32) {
-        if self.knowledge_nodes.len() >= MAX_GRAPH_NODES { return; }
+        if self.knowledge_nodes.len() >= MAX_GRAPH_NODES {
+            return;
+        }
         if !self.knowledge_nodes.contains_key(&id) {
             self.knowledge_nodes.insert(id, KnowledgeNode {
-                id, label: String::from("discovery"),
-                domain, importance: imp, edges: Vec::new(),
+                id,
+                label: String::from("discovery"),
+                domain,
+                importance: imp,
+                edges: Vec::new(),
             });
         }
     }
