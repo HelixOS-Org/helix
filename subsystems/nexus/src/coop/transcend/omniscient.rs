@@ -53,7 +53,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -195,10 +201,10 @@ impl CoopOmniscient {
                             rev.trust_score - fwd.trust_score
                         };
                         100u64.saturating_sub(diff)
-                    }
+                    },
                     None => 50,
                 }
-            }
+            },
             None => 0,
         }
     }
@@ -225,7 +231,11 @@ impl CoopOmniscient {
         if let Some(flow) = self.resource_flows.get_mut(&key) {
             flow.bandwidth = ema_update(flow.bandwidth, bw);
             flow.ema_latency = ema_update(flow.ema_latency, lat);
-            flow.utilisation = if flow.bandwidth > 0 { clamp(bw * 100 / flow.bandwidth, 0, 100) } else { 0 };
+            flow.utilisation = if flow.bandwidth > 0 {
+                clamp(bw * 100 / flow.bandwidth, 0, 100)
+            } else {
+                0
+            };
         } else {
             self.resource_flows.insert(key, ResourceFlow {
                 flow_id: key,
@@ -319,8 +329,16 @@ impl CoopOmniscient {
 
     pub fn cooperation_omniscience(&self) -> u64 {
         let edge_score = if self.trust_edges.is_empty() { 0 } else { 30 };
-        let flow_score = if self.resource_flows.is_empty() { 0 } else { 30 };
-        let zone_score = if self.contention_zones.is_empty() { 0 } else { 20 };
+        let flow_score = if self.resource_flows.is_empty() {
+            0
+        } else {
+            30
+        };
+        let zone_score = if self.contention_zones.is_empty() {
+            0
+        } else {
+            20
+        };
         let tick_score = clamp(self.tick / 10, 0, 20);
         edge_score + flow_score + zone_score + tick_score
     }
@@ -331,9 +349,21 @@ impl CoopOmniscient {
         let n_edges = self.trust_edges.len();
         let n_flows = self.resource_flows.len();
         let n_zones = self.contention_zones.len();
-        let avg_t = if n_edges > 0 { self.trust_sum / n_edges as u64 } else { 0 };
-        let avg_u = if n_flows > 0 { self.utilisation_sum / n_flows as u64 } else { 0 };
-        let avg_s = if n_zones > 0 { self.severity_sum / n_zones as u64 } else { 0 };
+        let avg_t = if n_edges > 0 {
+            self.trust_sum / n_edges as u64
+        } else {
+            0
+        };
+        let avg_u = if n_flows > 0 {
+            self.utilisation_sum / n_flows as u64
+        } else {
+            0
+        };
+        let avg_s = if n_zones > 0 {
+            self.severity_sum / n_zones as u64
+        } else {
+            0
+        };
         self.stats = OmniscientStats {
             total_edges: n_edges,
             total_flows: n_flows,
