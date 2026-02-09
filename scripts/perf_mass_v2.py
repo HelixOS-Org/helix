@@ -128,7 +128,7 @@ BTREEMAP_U32_FIELD_RE = re.compile(
     r'(\s*)(pub\s+)?(\w+):\s*BTreeMap<u32,\s*(u64|usize|f32|f64|i64|u32)>'
 )
 
-# Pattern: BTreeMap::new() in struct initialization  
+# Pattern: BTreeMap::new() in struct initialization
 BTREE_NEW_RE = re.compile(r'(\w+):\s*BTreeMap::new\(\)')
 
 # Pattern: .entry(x as u32).or_insert(0) += 1  or .entry(x).or_insert(0)
