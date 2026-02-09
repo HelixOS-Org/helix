@@ -186,8 +186,7 @@ impl HolisticWorldModel {
         if let Some(entry) = self.states.get_mut(&id) {
             let old_value = entry.value;
             entry.value = value;
-            entry.confidence =
-                EMA_ALPHA * clamped_conf + (1.0 - EMA_ALPHA) * entry.confidence;
+            entry.confidence = EMA_ALPHA * clamped_conf + (1.0 - EMA_ALPHA) * entry.confidence;
             entry.trend = EMA_ALPHA * (value - old_value) + (1.0 - EMA_ALPHA) * entry.trend;
             entry.last_update_tick = self.tick;
             entry.update_count += 1;
@@ -205,8 +204,7 @@ impl HolisticWorldModel {
             self.states.insert(id, entry);
         }
 
-        self.confidence_ema =
-            EMA_ALPHA * clamped_conf + (1.0 - EMA_ALPHA) * self.confidence_ema;
+        self.confidence_ema = EMA_ALPHA * clamped_conf + (1.0 - EMA_ALPHA) * self.confidence_ema;
 
         if self.recent_values.len() < ENTROPY_WINDOW {
             self.recent_values.push(value);
@@ -265,8 +263,8 @@ impl HolisticWorldModel {
                     resolved_count += 1;
 
                     if error > SURPRISE_THRESHOLD {
-                        let surprise_id =
-                            fnv1a_hash(&pred.state_id.to_le_bytes()) ^ xorshift64(&mut self.rng_state);
+                        let surprise_id = fnv1a_hash(&pred.state_id.to_le_bytes())
+                            ^ xorshift64(&mut self.rng_state);
                         let surprise = Surprise {
                             id: surprise_id,
                             state_id: pred.state_id,
@@ -290,8 +288,7 @@ impl HolisticWorldModel {
             self.prediction_accuracy_ema =
                 EMA_ALPHA * avg_acc + (1.0 - EMA_ALPHA) * self.prediction_accuracy_ema;
             let rate = surprise_count as f32 / resolved_count as f32;
-            self.surprise_rate_ema =
-                EMA_ALPHA * rate + (1.0 - EMA_ALPHA) * self.surprise_rate_ema;
+            self.surprise_rate_ema = EMA_ALPHA * rate + (1.0 - EMA_ALPHA) * self.surprise_rate_ema;
         }
     }
 
@@ -343,8 +340,8 @@ impl HolisticWorldModel {
             return 0.5;
         }
 
-        let avg_confidence = self.states.values().map(|s| s.confidence).sum::<f32>()
-            / self.states.len() as f32;
+        let avg_confidence =
+            self.states.values().map(|s| s.confidence).sum::<f32>() / self.states.len() as f32;
 
         let avg_staleness = self
             .states
@@ -359,8 +356,7 @@ impl HolisticWorldModel {
         let freshness = 1.0 - avg_staleness;
         let fidelity = avg_confidence * 0.5 + freshness * 0.3 + self.prediction_accuracy_ema * 0.2;
 
-        self.fidelity_ema =
-            EMA_ALPHA * fidelity + (1.0 - EMA_ALPHA) * self.fidelity_ema;
+        self.fidelity_ema = EMA_ALPHA * fidelity + (1.0 - EMA_ALPHA) * self.fidelity_ema;
 
         let snapshot = StateSnapshot {
             tick: self.tick,
