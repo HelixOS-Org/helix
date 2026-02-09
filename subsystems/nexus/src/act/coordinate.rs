@@ -187,6 +187,7 @@ impl Default for CoordinatorConfig {
 
 /// Statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct CoordinatorStats {
     /// Actions initiated
     pub actions_initiated: u64,
@@ -406,6 +407,7 @@ impl Coordinator {
     }
 
     /// Release lock
+    #[inline]
     pub fn release_lock(&mut self, resource: &str, owner: u64) -> bool {
         if let Some(lock) = self.locks.get(resource) {
             if lock.owner == owner {
@@ -456,21 +458,25 @@ impl Coordinator {
     }
 
     /// Check if barrier released
+    #[inline(always)]
     pub fn is_barrier_released(&self, barrier_id: u64) -> bool {
         self.barriers.get(&barrier_id).map_or(false, |b| b.released)
     }
 
     /// Get action
+    #[inline(always)]
     pub fn get_action(&self, id: u64) -> Option<&CoordinatedAction> {
         self.actions.get(&id)
     }
 
     /// Get participant
+    #[inline(always)]
     pub fn get_participant(&self, id: u64) -> Option<&Participant> {
         self.participants.get(&id)
     }
 
     /// Get statistics
+    #[inline(always)]
     pub fn stats(&self) -> &CoordinatorStats {
         &self.stats
     }
