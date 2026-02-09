@@ -220,9 +220,7 @@ impl CoopPredictionValidator {
         let within_tol = abs_error <= self.tolerance;
 
         let accuracy = 1000u64.saturating_sub(rel_error.min(1000));
-        self.stats.avg_trust_accuracy = ema_update(
-            self.stats.avg_trust_accuracy, accuracy, 3, 10,
-        );
+        self.stats.avg_trust_accuracy = ema_update(self.stats.avg_trust_accuracy, accuracy, 3, 10);
 
         self.update_calibration(key, predicted, actual);
         self.update_drift(key, predicted, actual);
@@ -262,16 +260,15 @@ impl CoopPredictionValidator {
         } else {
             actual - predicted
         };
-        let accuracy = 1000u64.saturating_sub(
-            abs_error.saturating_mul(1000) / actual.max(1)
-        ).min(1000);
+        let accuracy = 1000u64
+            .saturating_sub(abs_error.saturating_mul(1000) / actual.max(1))
+            .min(1000);
 
         let bias = predicted as i64 - actual as i64;
         let sample_count = pairs.len() as u64;
 
-        self.stats.avg_contention_accuracy = ema_update(
-            self.stats.avg_contention_accuracy, accuracy, 3, 10,
-        );
+        self.stats.avg_contention_accuracy =
+            ema_update(self.stats.avg_contention_accuracy, accuracy, 3, 10);
 
         self.update_calibration(key, predicted, actual);
         self.update_drift(key, predicted, actual);
@@ -317,9 +314,8 @@ impl CoopPredictionValidator {
                 let calibration_score = 1000u64.saturating_sub(balance).saturating_sub(mae / 2);
                 let needs_recal = calibration_score < 500 || mae > 200;
 
-                self.stats.avg_calibration = ema_update(
-                    self.stats.avg_calibration, calibration_score, 2, 10,
-                );
+                self.stats.avg_calibration =
+                    ema_update(self.stats.avg_calibration, calibration_score, 2, 10);
 
                 results.push(CalibrationResult {
                     model_hash: key,
@@ -339,27 +335,40 @@ impl CoopPredictionValidator {
         self.stats.drift_measurements = self.stats.drift_measurements.saturating_add(1);
 
         let key = fnv1a_hash(metric_name.as_bytes());
-        let tracker = self.drift_trackers.entry(key).or_insert_with(|| DriftTracker {
-            metric_hash: key,
-            error_trend: Vec::new(),
-            ema_drift: 0,
-            last_stable_tick: 0,
-            stable_threshold: 50,
-        });
+        let tracker = self
+            .drift_trackers
+            .entry(key)
+            .or_insert_with(|| DriftTracker {
+                metric_hash: key,
+                error_trend: Vec::new(),
+                ema_drift: 0,
+                last_stable_tick: 0,
+                stable_threshold: 50,
+            });
 
         let magnitude = if tracker.ema_drift >= 0 {
             tracker.ema_drift as u64
         } else {
             (-tracker.ema_drift) as u64
         };
-        let direction = if tracker.ema_drift > 0 { 1i64 } else if tracker.ema_drift < 0 { -1i64 } else { 0i64 };
+        let direction = if tracker.ema_drift > 0 {
+            1i64
+        } else if tracker.ema_drift < 0 {
+            -1i64
+        } else {
+            0i64
+        };
 
         let velocity = if tracker.error_trend.len() >= 2 {
             let recent = tracker.error_trend.len();
             let last = tracker.error_trend[recent - 1];
             let prev = tracker.error_trend[recent - 2];
             let diff = last - prev;
-            if diff >= 0 { diff as u64 } else { (-diff) as u64 }
+            if diff >= 0 {
+                diff as u64
+            } else {
+                (-diff) as u64
+            }
         } else {
             0
         };
@@ -389,15 +398,18 @@ impl CoopPredictionValidator {
         self.stats.recalibrations = self.stats.recalibrations.saturating_add(1);
 
         let key = fnv1a_hash(model_name.as_bytes());
-        let cal = self.calibrations.entry(key).or_insert_with(|| CalibrationState {
-            model_hash: key,
-            bias: 0,
-            scale_factor: 1000,
-            error_history: Vec::new(),
-            overestimates: 0,
-            underestimates: 0,
-            last_calibration_tick: 0,
-        });
+        let cal = self
+            .calibrations
+            .entry(key)
+            .or_insert_with(|| CalibrationState {
+                model_hash: key,
+                bias: 0,
+                scale_factor: 1000,
+                error_history: Vec::new(),
+                overestimates: 0,
+                underestimates: 0,
+                last_calibration_tick: 0,
+            });
 
         let old_bias = cal.bias;
         let old_scale = cal.scale_factor;
@@ -428,7 +440,11 @@ impl CoopPredictionValidator {
         let improvement = mae.saturating_mul(3) / 10 + noise;
 
         let params_adjusted = if old_bias != cal.bias { 1u64 } else { 0u64 }
-            + if old_scale != cal.scale_factor { 1u64 } else { 0u64 };
+            + if old_scale != cal.scale_factor {
+                1u64
+            } else {
+                0u64
+            };
 
         cal.error_history.clear();
         cal.overestimates = 0;
@@ -453,15 +469,18 @@ impl CoopPredictionValidator {
 
     /// Update calibration state for a model given a prediction pair.
     fn update_calibration(&mut self, key: u64, predicted: u64, actual: u64) {
-        let cal = self.calibrations.entry(key).or_insert_with(|| CalibrationState {
-            model_hash: key,
-            bias: 0,
-            scale_factor: 1000,
-            error_history: Vec::new(),
-            overestimates: 0,
-            underestimates: 0,
-            last_calibration_tick: 0,
-        });
+        let cal = self
+            .calibrations
+            .entry(key)
+            .or_insert_with(|| CalibrationState {
+                model_hash: key,
+                bias: 0,
+                scale_factor: 1000,
+                error_history: Vec::new(),
+                overestimates: 0,
+                underestimates: 0,
+                last_calibration_tick: 0,
+            });
 
         let error = if predicted > actual {
             cal.overestimates = cal.overestimates.saturating_add(1);
@@ -482,13 +501,16 @@ impl CoopPredictionValidator {
 
     /// Update drift tracking for a metric.
     fn update_drift(&mut self, key: u64, predicted: u64, actual: u64) {
-        let tracker = self.drift_trackers.entry(key).or_insert_with(|| DriftTracker {
-            metric_hash: key,
-            error_trend: Vec::new(),
-            ema_drift: 0,
-            last_stable_tick: self.current_tick,
-            stable_threshold: 50,
-        });
+        let tracker = self
+            .drift_trackers
+            .entry(key)
+            .or_insert_with(|| DriftTracker {
+                metric_hash: key,
+                error_trend: Vec::new(),
+                ema_drift: 0,
+                last_stable_tick: self.current_tick,
+                stable_threshold: 50,
+            });
 
         let signed_error = predicted as i64 - actual as i64;
         if tracker.error_trend.len() >= self.max_history {
