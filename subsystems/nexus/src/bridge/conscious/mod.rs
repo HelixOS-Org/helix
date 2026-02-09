@@ -66,6 +66,30 @@ pub mod reflection;
 /// Bridge identity declaration and capability evolution tracking
 pub mod identity;
 
+/// Computational emotional signals for bridge routing decisions
+pub mod emotion;
+
+/// Selective attention scheduling for bridge monitoring
+pub mod attention;
+
+/// Offline consolidation and dream-based pattern discovery
+pub mod dream;
+
+/// Subsystem empathy: inferring other subsystems' internal states
+pub mod empathy;
+
+/// Fast-path intuition: cached pattern matching without full analysis
+pub mod intuition;
+
+/// Structured memory organization with spaced repetition
+pub mod memory_palace;
+
+/// Ethical decision framework ensuring fairness and no starvation
+pub mod conscience;
+
+/// Subjective experience representation for bridge operations
+pub mod qualia;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
@@ -78,3 +102,12 @@ pub use self::meta_bridge::BridgeMetaCognition;
 pub use self::reflection::BridgeReflection;
 pub use self::self_model::BridgeSelfModel;
 pub use self::world_model::BridgeWorldModel;
+
+pub use self::emotion::BridgeEmotionEngine;
+pub use self::attention::BridgeAttentionEngine;
+pub use self::dream::BridgeDreamEngine;
+pub use self::empathy::BridgeEmpathyEngine;
+pub use self::intuition::BridgeIntuitionEngine;
+pub use self::memory_palace::BridgeMemoryPalace;
+pub use self::conscience::BridgeConscience;
+pub use self::qualia::BridgeQualiaEngine;
