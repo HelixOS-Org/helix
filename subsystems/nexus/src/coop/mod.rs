@@ -1453,3 +1453,12 @@ pub mod swap_coop;
 pub mod mlock_coop;
 // Consciousness — Cooperation Self-Awareness
 pub mod conscious;
+
+// Future Prediction Engine — Cooperation Long-Horizon Prediction
+pub mod future;
+
+// Autonomous Research Engine — Cooperation Research
+pub mod research;
+
+// Superintelligent Kernel — Cooperation Transcendence Engine
+pub mod transcend;
