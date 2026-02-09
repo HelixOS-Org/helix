@@ -391,11 +391,11 @@ impl BridgeCompressionManager {
                 b.compressed_size = data.len();
                 b.data = data.to_vec();
                 b
-            }
+            },
             _ => {
                 // Fallback to RLE for unsupported methods
                 RleCompressor::compress(data)
-            }
+            },
         };
 
         self.stats.total_output += block.compressed_size as u64;
