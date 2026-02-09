@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// File descriptor type
@@ -180,7 +181,7 @@ pub struct ProcessFdProfile {
     pub current_open: u32,
     pub fd_limit: u32,
     pub distribution: FdTypeDistribution,
-    pub fd_growth_samples: Vec<(u64, u32)>, // (ts, open_count)
+    pub fd_growth_samples: VecDeque<(u64, u32)>, // (ts, open_count)
 }
 
 impl ProcessFdProfile {
@@ -194,7 +195,7 @@ impl ProcessFdProfile {
             current_open: 0,
             fd_limit,
             distribution: FdTypeDistribution::default(),
-            fd_growth_samples: Vec::new(),
+            fd_growth_samples: VecDeque::new(),
         }
     }
 
@@ -206,9 +207,9 @@ impl ProcessFdProfile {
         if self.current_open > self.peak_open { self.peak_open = self.current_open; }
         self.distribution.count(fd_type);
 
-        self.fd_growth_samples.push((ts, self.current_open));
+        self.fd_growth_samples.push_back((ts, self.current_open));
         if self.fd_growth_samples.len() > 128 {
-            self.fd_growth_samples.remove(0);
+            self.fd_growth_samples.pop_front();
         }
     }
 
