@@ -50,6 +50,7 @@ pub enum DumpableSetting {
 
 /// Process control state
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct ProcessPrctlState {
     pub pid: u64,
     pub name: String,
@@ -112,6 +113,7 @@ pub struct PrctlAuditRecord {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct PrctlV2Stats {
     pub total_processes: u32,
     pub total_calls: u64,
@@ -133,6 +135,7 @@ impl AppPrctlV2 {
         Self { processes: BTreeMap::new(), audit_log: Vec::new(), max_audit: 4096 }
     }
 
+    #[inline]
     pub fn prctl(&mut self, pid: u64, opt: PrctlOption, arg: u64, now: u64) -> i64 {
         let state = self.processes.entry(pid).or_insert_with(|| ProcessPrctlState::new(pid));
         let result = state.apply(opt, arg);
