@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -147,6 +148,7 @@ impl AppIpcChannel {
     }
 
     /// Record send
+    #[inline]
     pub fn record_send(&mut self, bytes: u64, latency_ns: u64, now: u64) {
         self.messages_sent += 1;
         self.bytes_transferred += bytes;
@@ -156,16 +158,19 @@ impl AppIpcChannel {
     }
 
     /// Record error
+    #[inline(always)]
     pub fn record_error(&mut self) {
         self.error_count += 1;
     }
 
     /// Record would-block
+    #[inline(always)]
     pub fn record_would_block(&mut self) {
         self.would_block_count += 1;
     }
 
     /// Average latency
+    #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.latency_samples == 0 {
             return 0;
@@ -188,6 +193,7 @@ impl AppIpcChannel {
     }
 
     /// Error rate
+    #[inline]
     pub fn error_rate(&self) -> f64 {
         if self.messages_sent == 0 {
             return 0.0;
@@ -196,6 +202,7 @@ impl AppIpcChannel {
     }
 
     /// Is bottleneck? (high would_block ratio)
+    #[inline]
     pub fn is_bottleneck(&self) -> bool {
         if self.messages_sent < 10 {
             return false;
@@ -205,6 +212,7 @@ impl AppIpcChannel {
     }
 
     /// Close channel
+    #[inline(always)]
     pub fn close(&mut self) {
         self.alive = false;
     }
@@ -282,6 +290,7 @@ impl IpcGraph {
     }
 
     /// Top talkers by bytes
+    #[inline]
     pub fn top_talkers(&self, limit: usize) -> Vec<(u64, u64, u64)> {
         let mut edges: Vec<_> = self.edges.values().map(|e| (e.src, e.dst, e.bytes)).collect();
         edges.sort_by(|a, b| b.2.cmp(&a.2));
@@ -290,8 +299,9 @@ impl IpcGraph {
     }
 
     /// Processes with most connections
+    #[inline]
     pub fn most_connected(&self) -> Vec<(u64, usize)> {
-        let mut counts: BTreeMap<u64, usize> = BTreeMap::new();
+        let mut counts: LinearMap<usize, 64> = BTreeMap::new();
         for edge in self.edges.values() {
             *counts.entry(edge.src).or_insert(0) += 1;
             *counts.entry(edge.dst).or_insert(0) += 1;
@@ -308,6 +318,7 @@ impl IpcGraph {
 
 /// IPC stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppIpcStats {
     /// Active channels
     pub active_channels: usize,
@@ -342,6 +353,7 @@ impl AppIpcAnalyzer {
     }
 
     /// Create channel
+    #[inline]
     pub fn create_channel(
         &mut self,
         mechanism: AppIpcMechanism,
@@ -358,6 +370,7 @@ impl AppIpcAnalyzer {
     }
 
     /// Record send on channel
+    #[inline]
     pub fn record_send(
         &mut self,
         channel_id: IpcChannelId,
@@ -374,6 +387,7 @@ impl AppIpcAnalyzer {
     }
 
     /// Record error
+    #[inline]
     pub fn record_error(&mut self, channel_id: IpcChannelId) {
         if let Some(ch) = self.channels.get_mut(&channel_id.0) {
             ch.record_error();
@@ -381,6 +395,7 @@ impl AppIpcAnalyzer {
     }
 
     /// Close channel
+    #[inline]
     pub fn close_channel(&mut self, channel_id: IpcChannelId) {
         if let Some(ch) = self.channels.get_mut(&channel_id.0) {
             ch.close();
@@ -389,11 +404,13 @@ impl AppIpcAnalyzer {
     }
 
     /// Get channel
+    #[inline(always)]
     pub fn channel(&self, id: IpcChannelId) -> Option<&AppIpcChannel> {
         self.channels.get(&id.0)
     }
 
     /// Find bottlenecks
+    #[inline]
     pub fn bottlenecks(&self) -> Vec<IpcChannelId> {
         self.channels
             .values()
@@ -403,11 +420,13 @@ impl AppIpcAnalyzer {
     }
 
     /// Top talkers
+    #[inline(always)]
     pub fn top_talkers(&self, limit: usize) -> Vec<(u64, u64, u64)> {
         self.graph.top_talkers(limit)
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppIpcStats {
         &self.stats
     }
