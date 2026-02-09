@@ -67,12 +67,15 @@ impl InotifyAppInstance {
         Self { fd, watches: BTreeMap::new(), event_queue: Vec::new(), max_queued: max_q, overflow_count: 0, total_events: 0 }
     }
 
+    #[inline(always)]
     pub fn add_watch(&mut self, wd: u64, path_hash: u64, mask: u32, now: u64) {
         self.watches.insert(wd, InotifyWatch::new(wd, path_hash, mask, now));
     }
 
+    #[inline(always)]
     pub fn remove_watch(&mut self, wd: u64) { self.watches.remove(&wd); }
 
+    #[inline]
     pub fn queue_event(&mut self, evt: InotifyAppEvent) {
         if self.event_queue.len() >= self.max_queued as usize { self.overflow_count += 1; return; }
         if let Some(w) = self.watches.get_mut(&evt.wd) { w.event_count += 1; }
@@ -80,6 +83,7 @@ impl InotifyAppInstance {
         self.event_queue.push(evt);
     }
 
+    #[inline(always)]
     pub fn read_events(&mut self) -> Vec<InotifyAppEvent> {
         let evts = core::mem::take(&mut self.event_queue);
         evts
@@ -88,6 +92,7 @@ impl InotifyAppInstance {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct InotifyAppStats {
     pub total_instances: u32,
     pub total_watches: u32,
@@ -104,22 +109,27 @@ pub struct AppInotify {
 impl AppInotify {
     pub fn new() -> Self { Self { instances: BTreeMap::new(), next_fd: 1 } }
 
+    #[inline]
     pub fn init(&mut self, max_queued: u32) -> u64 {
         let fd = self.next_fd; self.next_fd += 1;
         self.instances.insert(fd, InotifyAppInstance::new(fd, max_queued));
         fd
     }
 
+    #[inline(always)]
     pub fn add_watch(&mut self, fd: u64, wd: u64, path_hash: u64, mask: u32, now: u64) {
         if let Some(inst) = self.instances.get_mut(&fd) { inst.add_watch(wd, path_hash, mask, now); }
     }
 
+    #[inline(always)]
     pub fn remove_watch(&mut self, fd: u64, wd: u64) {
         if let Some(inst) = self.instances.get_mut(&fd) { inst.remove_watch(wd); }
     }
 
+    #[inline(always)]
     pub fn close(&mut self, fd: u64) { self.instances.remove(&fd); }
 
+    #[inline]
     pub fn stats(&self) -> InotifyAppStats {
         let watches: u32 = self.instances.values().map(|i| i.watches.len() as u32).sum();
         let events: u64 = self.instances.values().map(|i| i.total_events).sum();
