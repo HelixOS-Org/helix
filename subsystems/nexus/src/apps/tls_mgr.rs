@@ -72,7 +72,7 @@ impl ThreadTlsState {
     #[inline(always)]
     pub fn record_dynamic_alloc(&mut self) { self.dynamic_allocs += 1; }
     #[inline(always)]
-    pub fn update_dtv(&mut self, gen: u32, slots: u32) { self.dtv_generation = gen; self.dtv_slots = slots; }
+    pub fn update_dtv(&mut self, generation: u32, slots: u32) { self.dtv_generation = generation; self.dtv_slots = slots; }
     #[inline(always)]
     pub fn total_overhead(&self) -> usize { self.static_area_size + (self.dtv_slots as usize * 16) }
 }
@@ -149,8 +149,8 @@ impl AppsTlsMgr {
     }
 
     #[inline(always)]
-    pub fn update_dtv(&mut self, tid: u64, gen: u32, slots: u32) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.update_dtv(gen, slots); }
+    pub fn update_dtv(&mut self, tid: u64, generation: u32, slots: u32) {
+        if let Some(t) = self.threads.get_mut(&tid) { t.update_dtv(generation, slots); }
     }
 
     #[inline(always)]
