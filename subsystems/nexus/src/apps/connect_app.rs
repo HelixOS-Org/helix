@@ -48,15 +48,18 @@ impl ConnectAttempt {
         }
     }
 
+    #[inline(always)]
     pub fn complete(&mut self, state: ConnectState, end: u64) {
         self.state = state;
         self.end_ns = end;
     }
 
+    #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
         if self.end_ns > self.start_ns { self.end_ns - self.start_ns } else { 0 }
     }
 
+    #[inline]
     pub fn is_terminal(&self) -> bool {
         matches!(self.state,
             ConnectState::Established | ConnectState::Refused |
@@ -66,6 +69,7 @@ impl ConnectAttempt {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConnectTargetStats {
     pub addr_hash: u64,
     pub port: u16,
@@ -99,11 +103,13 @@ impl ConnectTargetStats {
         }
     }
 
+    #[inline(always)]
     pub fn success_rate(&self) -> u64 {
         if self.total_attempts == 0 { 0 }
         else { (self.successful * 100) / self.total_attempts }
     }
 
+    #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
         if self.total_attempts == 0 { 0 }
         else { self.total_latency_ns / self.total_attempts }
@@ -111,6 +117,7 @@ impl ConnectTargetStats {
 }
 
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConnectAppStats {
     pub total_connects: u64,
     pub successful: u64,
@@ -137,6 +144,7 @@ impl AppConnect {
         }
     }
 
+    #[inline(always)]
     pub fn start_connect(&mut self, attempt: ConnectAttempt) {
         self.stats.total_connects += 1;
         self.pending.insert(attempt.fd, attempt);
@@ -158,6 +166,7 @@ impl AppConnect {
         }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &ConnectAppStats { &self.stats }
 }
 
@@ -196,6 +205,7 @@ impl ConnectV2Request {
 
 /// Connect v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ConnectV2AppStats {
     pub total_connects: u64,
     pub connected: u64,
@@ -220,6 +230,7 @@ impl AppConnectV2 {
             },
         }
     }
+    #[inline]
     pub fn connect(&mut self, req: &ConnectV2Request) -> ConnectV2Result {
         self.stats.total_connects += 1;
         self.stats.connected += 1;
