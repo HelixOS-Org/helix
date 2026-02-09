@@ -60,24 +60,24 @@ IMPORT_PATTERN = re.compile(r'use alloc::collections::BTreeMap;')
 
 def migrate_file(file_path, content):
     """Migrate a single file's BTreeMap<u32, V> patterns to ArrayMap."""
-    
+
     # First, find all fields that are BTreeMap<u32, primitive>
     u32_fields = set()
     for m in FIELD_PATTERN.finditer(content):
         field_name = m.group(3)
         u32_fields.add(field_name)
-    
+
     if not u32_fields:
         return content, 0
-    
+
     changes = 0
     lines = content.split('\n')
     new_lines = []
     added_import = False
-    
+
     for i, line in enumerate(lines):
         new_line = line
-        
+
         # Replace BTreeMap<u32, V> field declarations with ArrayMap<V, 32>
         fm = FIELD_PATTERN.search(line)
         if fm:
@@ -88,7 +88,7 @@ def migrate_file(file_path, content):
                 line
             )
             changes += 1
-        
+
         # Replace BTreeMap::new() for known u32 fields
         im = INIT_PATTERN.search(line)
         if im and im.group(1) in u32_fields:
@@ -101,7 +101,7 @@ def migrate_file(file_path, content):
                     new_line = line.replace('BTreeMap::new()', f'ArrayMap::new({default})')
                     changes += 1
                     break
-        
+
         # Replace *self.field.entry(x as u32).or_insert(0) += 1
         em = ENTRY_INC_PATTERN.search(line)
         if em and em.group(1) in u32_fields:
@@ -110,7 +110,7 @@ def migrate_file(file_path, content):
             indent = len(line) - len(line.lstrip())
             new_line = ' ' * indent + f'self.{field}.inc({key_expr} as usize);'
             changes += 1
-        
+
         # Replace *self.field.entry(x as u32).or_insert(default) += val
         am = ENTRY_ADD_PATTERN.search(line)
         if am and am.group(1) in u32_fields:
@@ -120,7 +120,7 @@ def migrate_file(file_path, content):
             indent = len(line) - len(line.lstrip())
             new_line = ' ' * indent + f'self.{field}.add({key_expr} as usize, {val_expr});'
             changes += 1
-        
+
         # Replace self.field.get(&key) for u32 fields
         gm = GET_PATTERN.search(line)
         if gm and gm.group(1) in u32_fields:
@@ -131,23 +131,23 @@ def migrate_file(file_path, content):
                 f'self.{field}.try_get({key_expr} as usize)'
             )
             changes += 1
-        
+
         # Add ArrayMap import if we made changes and haven't added it yet
         if changes > 0 and not added_import and IMPORT_PATTERN.search(line):
             new_lines.append(line)
             new_lines.append('use crate::fast::array_map::ArrayMap;')
             added_import = True
             continue
-        
+
         new_lines.append(new_line)
-    
+
     if changes > 0 and not added_import:
         # Add import at the top (after existing use statements)
         for i, line in enumerate(new_lines):
             if line.startswith('use ') or line.strip().startswith('use '):
                 new_lines.insert(i, 'use crate::fast::array_map::ArrayMap;')
                 break
-    
+
     return '\n'.join(new_lines), changes
 
 
@@ -155,28 +155,28 @@ def main():
     print("=== NEXUS BTreeMap<u32, V> → ArrayMap Migrator ===")
     print(f"Dry run: {DRY_RUN}")
     print()
-    
+
     total_changes = 0
     total_files = 0
-    
+
     for root, dirs, files in os.walk(NEXUS_SRC):
         dirs[:] = [d for d in dirs if d != 'tests']
         for fname in files:
             if not fname.endswith('.rs'):
                 continue
             fpath = os.path.join(root, fname)
-            
+
             try:
                 with open(fpath, 'r', encoding='utf-8') as f:
                     content = f.read()
             except (UnicodeDecodeError, IOError):
                 continue
-            
+
             if 'BTreeMap<u32,' not in content:
                 continue
-            
+
             new_content, changes = migrate_file(fpath, content)
-            
+
             if changes > 0:
                 total_files += 1
                 total_changes += changes
@@ -186,7 +186,7 @@ def main():
                     with open(fpath, 'w', encoding='utf-8') as f:
                         f.write(new_content)
                     print(f"  ✓ {fpath}: {changes} changes")
-    
+
     print(f"\n=== RESULTS ===")
     print(f"Files modified: {total_files}")
     print(f"Total changes:  {total_changes}")
