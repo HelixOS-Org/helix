@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use alloc::string::String;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::math;
@@ -19,7 +20,7 @@ pub struct MetricStats {
     /// Metric name
     pub name: String,
     /// Values window
-    pub values: Vec<f64>,
+    pub values: VecDeque<f64>,
     /// Window size
     pub window_size: usize,
     /// Sum
@@ -60,11 +61,11 @@ impl MetricStats {
 
         // Add to window
         if self.values.len() >= self.window_size {
-            let removed = self.values.remove(0);
+            let removed = self.values.pop_front().unwrap();
             self.sum -= removed;
             self.sum_sq -= removed * removed;
         }
-        self.values.push(value);
+        self.values.push_back(value);
     }
 
     /// Get mean
