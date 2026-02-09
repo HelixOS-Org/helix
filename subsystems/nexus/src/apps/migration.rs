@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -70,6 +72,7 @@ pub enum MigrationDecision {
 
 /// Cache affinity state for a process
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct CacheAffinity {
     /// Last CPU
     pub last_cpu: u32,
@@ -95,6 +98,7 @@ impl CacheAffinity {
     }
 
     /// Update warmth based on time on CPU
+    #[inline]
     pub fn update_warmth(&mut self, elapsed_ms: u64) {
         self.time_on_cpu_ms += elapsed_ms;
         // Warmth saturates over ~50ms
@@ -102,6 +106,7 @@ impl CacheAffinity {
     }
 
     /// Reset on migration
+    #[inline]
     pub fn reset(&mut self, new_cpu: u32, now: u64) {
         self.last_cpu = new_cpu;
         self.time_on_cpu_ms = 0;
@@ -110,6 +115,7 @@ impl CacheAffinity {
     }
 
     /// Estimated migration cost (arbitrary units)
+    #[inline(always)]
     pub fn migration_cost(&self) -> u64 {
         (self.hot_cache_kb as f64 * self.warmth) as u64
     }
@@ -144,6 +150,7 @@ pub struct MigrationEvent {
 
 impl MigrationEvent {
     /// Was cross-NUMA
+    #[inline(always)]
     pub fn is_cross_numa(&self) -> bool {
         self.from_numa != self.to_numa
     }
@@ -173,7 +180,7 @@ pub struct ProcessMigrationProfile {
     /// Migration frequency (per second)
     pub migration_rate: f64,
     /// Recent events
-    history: Vec<MigrationEvent>,
+    history: VecDeque<MigrationEvent>,
     /// Max history
     max_history: usize,
 }
@@ -189,7 +196,7 @@ impl ProcessMigrationProfile {
             preferred_cpu: cpu,
             preferred_numa: numa,
             migration_rate: 0.0,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 64,
         }
     }
@@ -207,13 +214,14 @@ impl ProcessMigrationProfile {
 
         self.cache_affinity.reset(event.to_cpu, event.timestamp);
 
-        self.history.push(event);
+        self.history.push_back(event);
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
     /// Cross-NUMA ratio
+    #[inline]
     pub fn cross_numa_ratio(&self) -> f64 {
         if self.total_migrations == 0 {
             return 0.0;
@@ -222,6 +230,7 @@ impl ProcessMigrationProfile {
     }
 
     /// Is migrating too frequently (thrashing)
+    #[inline(always)]
     pub fn is_thrashing(&self, threshold_per_sec: f64) -> bool {
         self.migration_rate > threshold_per_sec
     }
@@ -303,6 +312,7 @@ impl Default for MigrationPolicy {
 
 /// Migration analyzer statistics
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct MigrationStats {
     /// Total migrations
     pub total: u64,
@@ -325,9 +335,9 @@ pub struct AppMigrationAnalyzer {
     /// Migration policy
     policy: MigrationPolicy,
     /// Per-CPU load (percent)
-    cpu_loads: BTreeMap<u32, u32>,
+    cpu_loads: ArrayMap<u32, 32>,
     /// CPU to NUMA mapping
-    cpu_to_numa: BTreeMap<u32, u32>,
+    cpu_to_numa: ArrayMap<u32, 32>,
     /// Stats
     stats: MigrationStats,
     /// Window for rate calculation (ms)
@@ -339,26 +349,29 @@ impl AppMigrationAnalyzer {
         Self {
             profiles: BTreeMap::new(),
             policy,
-            cpu_loads: BTreeMap::new(),
-            cpu_to_numa: BTreeMap::new(),
+            cpu_loads: ArrayMap::new(0),
+            cpu_to_numa: ArrayMap::new(0),
             stats: MigrationStats::default(),
             rate_window_ms: 1000,
         }
     }
 
     /// Register CPU to NUMA mapping
+    #[inline(always)]
     pub fn set_cpu_numa(&mut self, cpu: u32, numa: u32) {
         self.cpu_to_numa.insert(cpu, numa);
     }
 
     /// Update CPU load
+    #[inline(always)]
     pub fn update_cpu_load(&mut self, cpu: u32, load_pct: u32) {
         self.cpu_loads.insert(cpu, load_pct);
     }
 
     /// Register process
+    #[inline]
     pub fn register(&mut self, pid: u64, cpu: u32) {
-        let numa = self.cpu_to_numa.get(&cpu).copied().unwrap_or(0);
+        let numa = self.cpu_to_numa.try_get(cpu as usize).copied().unwrap_or(0);
         self.profiles
             .insert(pid, ProcessMigrationProfile::new(pid, cpu, numa));
     }
@@ -388,7 +401,7 @@ impl AppMigrationAnalyzer {
 
         // Cache warmth check
         if profile.cache_affinity.warmth > self.policy.cache_warmth_threshold {
-            let target_numa = self.cpu_to_numa.get(&target_cpu).copied().unwrap_or(0);
+            let target_numa = self.cpu_to_numa.try_get(target_cpu as usize).copied().unwrap_or(0);
             if target_numa != profile.preferred_numa {
                 return MigrationDecision::AllowWithPenalty;
             }
@@ -396,8 +409,8 @@ impl AppMigrationAnalyzer {
 
         // Check if target is less loaded
         let current_cpu = profile.cache_affinity.last_cpu;
-        let current_load = self.cpu_loads.get(&current_cpu).copied().unwrap_or(50);
-        let target_load = self.cpu_loads.get(&target_cpu).copied().unwrap_or(50);
+        let current_load = self.cpu_loads.try_get(current_cpu as usize).copied().unwrap_or(50);
+        let target_load = self.cpu_loads.try_get(target_cpu as usize).copied().unwrap_or(50);
 
         if target_load >= current_load {
             match reason {
@@ -440,7 +453,7 @@ impl AppMigrationAnalyzer {
                 continue;
             }
 
-            let numa = self.cpu_to_numa.get(&cpu).copied().unwrap_or(0);
+            let numa = self.cpu_to_numa.try_get(cpu as usize).copied().unwrap_or(0);
             let same_numa = numa == current_numa;
 
             let cache_benefit = if same_numa { 0.5 } else { 0.0 };
@@ -512,16 +525,19 @@ impl AppMigrationAnalyzer {
     }
 
     /// Get profile
+    #[inline(always)]
     pub fn profile(&self, pid: u64) -> Option<&ProcessMigrationProfile> {
         self.profiles.get(&pid)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &MigrationStats {
         &self.stats
     }
 
     /// Unregister
+    #[inline(always)]
     pub fn unregister(&mut self, pid: u64) {
         self.profiles.remove(&pid);
     }
