@@ -36,14 +36,17 @@ impl SessionDesc {
         }
     }
 
+    #[inline(always)]
     pub fn add_group(&mut self, pgid: u64) {
         if !self.groups.contains(&pgid) { self.groups.push(pgid); }
     }
 
+    #[inline(always)]
     pub fn remove_group(&mut self, pgid: u64) {
         self.groups.retain(|&g| g != pgid);
     }
 
+    #[inline(always)]
     pub fn has_controlling_tty(&self) -> bool { self.controlling_tty.is_some() }
 }
 
@@ -70,20 +73,25 @@ impl ProcessGroup {
         }
     }
 
+    #[inline(always)]
     pub fn add_member(&mut self, pid: u64) {
         if !self.members.contains(&pid) { self.members.push(pid); }
     }
 
+    #[inline(always)]
     pub fn remove_member(&mut self, pid: u64) {
         self.members.retain(|&m| m != pid);
     }
 
+    #[inline(always)]
     pub fn member_count(&self) -> usize { self.members.len() }
+    #[inline(always)]
     pub fn is_empty(&self) -> bool { self.members.is_empty() }
 }
 
 /// Per-process PG/session state
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ProcessPgState {
     pub process_id: u64,
     pub parent_pid: u64,
@@ -106,6 +114,7 @@ pub enum JobAction {
 
 /// Apps PG manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsPgMgrStats {
     pub total_sessions: usize,
     pub total_groups: usize,
@@ -194,6 +203,7 @@ impl AppsPgMgr {
         true
     }
 
+    #[inline]
     pub fn register_process(&mut self, pid: u64, parent_pid: u64, pgid: u64, sid: u64) {
         self.processes.insert(pid, ProcessPgState {
             process_id: pid, parent_pid, pgid, session_id: sid,
@@ -257,6 +267,7 @@ impl AppsPgMgr {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_sessions = self.sessions.len();
         self.stats.total_groups = self.groups.len();
@@ -265,7 +276,10 @@ impl AppsPgMgr {
         self.stats.foreground_groups = self.groups.values().filter(|g| g.is_foreground).count();
     }
 
+    #[inline(always)]
     pub fn session(&self, sid: u64) -> Option<&SessionDesc> { self.sessions.get(&sid) }
+    #[inline(always)]
     pub fn group(&self, pgid: u64) -> Option<&ProcessGroup> { self.groups.get(&pgid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsPgMgrStats { &self.stats }
 }
