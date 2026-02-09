@@ -68,7 +68,9 @@ impl FileDescription {
         }
     }
 
+    #[inline(always)]
     pub fn add_ref(&mut self) { self.ref_count += 1; }
+    #[inline(always)]
     pub fn release(&mut self) -> bool {
         self.ref_count = self.ref_count.saturating_sub(1);
         self.ref_count == 0
@@ -127,6 +129,7 @@ impl ProcessFdTable {
         Some(fd)
     }
 
+    #[inline]
     pub fn close_fd(&mut self, fd: i32) -> Option<u64> {
         if let Some(entry) = self.entries.remove(&fd) {
             self.total_closes += 1;
@@ -134,6 +137,7 @@ impl ProcessFdTable {
         } else { None }
     }
 
+    #[inline]
     pub fn dup(&mut self, oldfd: i32, ts: u64) -> Option<i32> {
         let desc_id = self.entries.get(&oldfd)?.description_id;
         let flags = FdFlags::default(); // dup clears CLOEXEC
@@ -171,6 +175,7 @@ impl ProcessFdTable {
         Some(newfd)
     }
 
+    #[inline]
     pub fn set_cloexec(&mut self, fd: i32, cloexec: bool) -> bool {
         if let Some(entry) = self.entries.get_mut(&fd) {
             entry.flags.cloexec = cloexec;
@@ -178,6 +183,7 @@ impl ProcessFdTable {
         } else { false }
     }
 
+    #[inline]
     pub fn close_cloexec(&mut self) -> Vec<i32> {
         let to_close: Vec<i32> = self.entries.iter()
             .filter(|(_, e)| e.flags.cloexec)
@@ -188,6 +194,7 @@ impl ProcessFdTable {
     }
 
     /// Fork: copy entire FD table
+    #[inline]
     pub fn fork_table(&self, child_pid: u64) -> ProcessFdTable {
         let mut child = ProcessFdTable::new(child_pid, self.fd_limit);
         child.entries = self.entries.clone();
@@ -195,7 +202,9 @@ impl ProcessFdTable {
         child
     }
 
+    #[inline(always)]
     pub fn fd_count(&self) -> usize { self.entries.len() }
+    #[inline(always)]
     pub fn get(&self, fd: i32) -> Option<&FdEntry> { self.entries.get(&fd) }
 }
 
@@ -211,6 +220,7 @@ pub struct FdLeakHeuristic {
 
 /// Apps FD manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppsFdMgrStats {
     pub total_processes: usize,
     pub total_fds: usize,
@@ -240,10 +250,12 @@ impl AppsFdMgr {
         }
     }
 
+    #[inline(always)]
     pub fn register_process(&mut self, pid: u64, fd_limit: u32) {
         self.tables.entry(pid).or_insert_with(|| ProcessFdTable::new(pid, fd_limit));
     }
 
+    #[inline]
     pub fn open(&mut self, pid: u64, ftype: FdType, inode: u64, mode: u32, flags: FdFlags, ts: u64) -> Option<i32> {
         let desc_id = self.next_desc_id;
         self.next_desc_id += 1;
@@ -266,6 +278,7 @@ impl AppsFdMgr {
         false
     }
 
+    #[inline]
     pub fn dup(&mut self, pid: u64, oldfd: i32, ts: u64) -> Option<i32> {
         let desc_id = self.tables.get(&pid)?.get(oldfd)?.description_id;
         if let Some(desc) = self.descriptions.get_mut(&desc_id) { desc.add_ref(); }
@@ -285,6 +298,7 @@ impl AppsFdMgr {
         }
     }
 
+    #[inline]
     pub fn remove_process(&mut self, pid: u64) {
         if let Some(table) = self.tables.remove(&pid) {
             for entry in table.entries.values() {
@@ -295,6 +309,7 @@ impl AppsFdMgr {
         }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.tables.len();
         self.stats.total_fds = self.tables.values().map(|t| t.fd_count()).sum();
@@ -304,6 +319,8 @@ impl AppsFdMgr {
         self.stats.suspected_leaks = self.leak_checks.values().map(|l| l.suspected_leaks.len()).sum();
     }
 
+    #[inline(always)]
     pub fn table(&self, pid: u64) -> Option<&ProcessFdTable> { self.tables.get(&pid) }
+    #[inline(always)]
     pub fn stats(&self) -> &AppsFdMgrStats { &self.stats }
 }
