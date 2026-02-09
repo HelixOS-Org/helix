@@ -37,6 +37,7 @@ pub struct AppForkResult {
 
 /// Stats for fork operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppForkStats {
     pub total_forks: u64,
     pub successful: u64,
@@ -99,6 +100,7 @@ impl AppForkManager {
         result
     }
 
+    #[inline]
     pub fn reap_child(&mut self, parent_pid: u64, child_pid: u64) -> bool {
         if let Some(children) = self.active_children.get_mut(&parent_pid) {
             let before = children.len();
@@ -109,6 +111,7 @@ impl AppForkManager {
         }
     }
 
+    #[inline]
     pub fn children_of(&self, parent: u64) -> usize {
         self.active_children
             .get(&parent)
@@ -116,6 +119,7 @@ impl AppForkManager {
             .unwrap_or(0)
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppForkStats {
         &self.stats
     }
