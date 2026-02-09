@@ -246,7 +246,14 @@ impl CoopMetaCognition {
     }
 
     /// Suggest protocol optimizations based on evaluation history
-    pub fn protocol_optimization(&mut self, name: &str, effectiveness: f32, fairness: f32, efficiency: f32, success_rate: f32) {
+    pub fn protocol_optimization(
+        &mut self,
+        name: &str,
+        effectiveness: f32,
+        fairness: f32,
+        efficiency: f32,
+        success_rate: f32,
+    ) {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
 
@@ -265,14 +272,14 @@ impl CoopMetaCognition {
         let diff = effectiveness - proto.effectiveness;
         proto.variance = EMA_ALPHA * diff * diff + (1.0 - EMA_ALPHA) * proto.variance;
 
-        proto.effectiveness = EMA_ALPHA * effectiveness.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * proto.effectiveness;
+        proto.effectiveness =
+            EMA_ALPHA * effectiveness.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * proto.effectiveness;
         proto.fairness =
             EMA_ALPHA * fairness.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * proto.fairness;
         proto.efficiency =
             EMA_ALPHA * efficiency.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * proto.efficiency;
-        proto.success_rate = EMA_ALPHA * success_rate.max(0.0).min(1.0)
-            + (1.0 - EMA_ALPHA) * proto.success_rate;
+        proto.success_rate =
+            EMA_ALPHA * success_rate.max(0.0).min(1.0) + (1.0 - EMA_ALPHA) * proto.success_rate;
         proto.evaluations += 1;
     }
 
@@ -368,14 +375,16 @@ impl CoopMetaCognition {
         let avg_eff = if self.protocols.is_empty() {
             0.0
         } else {
-            self.protocols.values().map(|p| p.effectiveness).sum::<f32>()
+            self.protocols
+                .values()
+                .map(|p| p.effectiveness)
+                .sum::<f32>()
                 / self.protocols.len() as f32
         };
         let avg_fair = if self.protocols.is_empty() {
             0.0
         } else {
-            self.protocols.values().map(|p| p.fairness).sum::<f32>()
-                / self.protocols.len() as f32
+            self.protocols.values().map(|p| p.fairness).sum::<f32>() / self.protocols.len() as f32
         };
 
         let pending = self
