@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -101,6 +103,7 @@ impl ResourceQuota {
     }
 
     /// Set burst configuration
+    #[inline]
     pub fn with_burst(mut self, limit: u64, recovery_rate: u64) -> Self {
         self.burst_limit = limit;
         self.burst_recovery_rate = recovery_rate;
@@ -108,6 +111,7 @@ impl ResourceQuota {
     }
 
     /// Usage percentage
+    #[inline]
     pub fn usage_pct(&self) -> u32 {
         if self.hard_limit == 0 {
             return 0;
@@ -116,11 +120,13 @@ impl ResourceQuota {
     }
 
     /// Remaining before hard limit
+    #[inline(always)]
     pub fn remaining(&self) -> u64 {
         self.hard_limit.saturating_sub(self.usage)
     }
 
     /// Remaining including burst
+    #[inline(always)]
     pub fn remaining_with_burst(&self) -> u64 {
         let burst_remaining = self.burst_limit.saturating_sub(self.burst_used);
         self.remaining() + burst_remaining
@@ -167,6 +173,7 @@ impl ResourceQuota {
     }
 
     /// Reset for new period
+    #[inline]
     pub fn reset_period(&mut self) {
         self.usage = 0;
         // Recover burst
@@ -208,6 +215,7 @@ impl QuotaSet {
     }
 
     /// Add quota
+    #[inline]
     pub fn add(&mut self, quota: ResourceQuota) {
         // Replace if exists
         self.quotas.retain(|q| q.resource != quota.resource);
@@ -215,16 +223,19 @@ impl QuotaSet {
     }
 
     /// Get quota for resource
+    #[inline(always)]
     pub fn get(&self, resource: QuotaResource) -> Option<&ResourceQuota> {
         self.quotas.iter().find(|q| q.resource == resource)
     }
 
     /// Get mutable quota
+    #[inline(always)]
     pub fn get_mut(&mut self, resource: QuotaResource) -> Option<&mut ResourceQuota> {
         self.quotas.iter_mut().find(|q| q.resource == resource)
     }
 
     /// Check if resource consumption is allowed
+    #[inline]
     pub fn check_resource(&self, resource: QuotaResource, amount: u64) -> EnforcementAction {
         match self.get(resource) {
             Some(q) => q.check(amount),
@@ -233,6 +244,7 @@ impl QuotaSet {
     }
 
     /// Consume resource
+    #[inline]
     pub fn consume(&mut self, resource: QuotaResource, amount: u64) -> EnforcementAction {
         match self.get_mut(resource) {
             Some(q) => q.consume(amount),
@@ -241,6 +253,7 @@ impl QuotaSet {
     }
 
     /// Reset periodic quotas
+    #[inline]
     pub fn reset_periodic(&mut self, now: u64) {
         for quota in &mut self.quotas {
             if quota.period_ms > 0 {
@@ -251,6 +264,7 @@ impl QuotaSet {
     }
 
     /// Most constrained resource
+    #[inline(always)]
     pub fn most_constrained(&self) -> Option<&ResourceQuota> {
         self.quotas.iter().max_by_key(|q| q.usage_pct())
     }
@@ -287,6 +301,7 @@ impl QuotaGroup {
     }
 
     /// Add member
+    #[inline]
     pub fn add_member(&mut self, pid: u64) -> bool {
         if self.members.len() >= self.max_members {
             return false;
@@ -298,11 +313,13 @@ impl QuotaGroup {
     }
 
     /// Remove member
+    #[inline(always)]
     pub fn remove_member(&mut self, pid: u64) {
         self.members.retain(|&p| p != pid);
     }
 
     /// Per-member fair share
+    #[inline]
     pub fn fair_share(&self, resource: QuotaResource) -> u64 {
         if self.members.is_empty() {
             return 0;
@@ -364,6 +381,7 @@ pub struct QuotaViolation {
 
 /// Quota manager stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct QuotaManagerStats {
     /// Total quota sets
     pub total_sets: usize,
@@ -386,11 +404,11 @@ pub struct AppQuotaManager {
     /// Quota groups
     groups: BTreeMap<u64, QuotaGroup>,
     /// Process to group mapping
-    pid_to_group: BTreeMap<u64, u64>,
+    pid_to_group: LinearMap<u64, 64>,
     /// Active transfers
     transfers: Vec<QuotaTransfer>,
     /// Recent violations
-    violations: Vec<QuotaViolation>,
+    violations: VecDeque<QuotaViolation>,
     /// Stats
     stats: QuotaManagerStats,
     /// Max violations to keep
@@ -402,21 +420,23 @@ impl AppQuotaManager {
         Self {
             process_quotas: BTreeMap::new(),
             groups: BTreeMap::new(),
-            pid_to_group: BTreeMap::new(),
+            pid_to_group: LinearMap::new(),
             transfers: Vec::new(),
-            violations: Vec::new(),
+            violations: VecDeque::new(),
             stats: QuotaManagerStats::default(),
             max_violations: 1024,
         }
     }
 
     /// Set quota for process
+    #[inline(always)]
     pub fn set_quota(&mut self, pid: u64, quota_set: QuotaSet) {
         self.process_quotas.insert(pid, quota_set);
         self.stats.total_sets = self.process_quotas.len();
     }
 
     /// Add single resource quota to process
+    #[inline]
     pub fn add_resource_quota(&mut self, pid: u64, quota: ResourceQuota) {
         if let Some(set) = self.process_quotas.get_mut(&pid) {
             set.add(quota);
@@ -424,12 +444,14 @@ impl AppQuotaManager {
     }
 
     /// Create quota group
+    #[inline(always)]
     pub fn create_group(&mut self, group: QuotaGroup) {
         self.groups.insert(group.id, group);
         self.stats.total_groups = self.groups.len();
     }
 
     /// Add process to group
+    #[inline]
     pub fn add_to_group(&mut self, pid: u64, group_id: u64) -> bool {
         if let Some(group) = self.groups.get_mut(&group_id) {
             if group.add_member(pid) {
@@ -451,7 +473,7 @@ impl AppQuotaManager {
         }
 
         // Check group quota
-        if let Some(group_id) = self.pid_to_group.get(&pid) {
+        if let Some(group_id) = self.pid_to_group.get(pid) {
             if let Some(group) = self.groups.get(group_id) {
                 let action = group.shared_quota.check_resource(resource, amount);
                 if matches!(action, EnforcementAction::Deny | EnforcementAction::Kill) {
@@ -482,7 +504,7 @@ impl AppQuotaManager {
         }
 
         // Consume from group quota
-        let group_id = self.pid_to_group.get(&pid).copied();
+        let group_id = self.pid_to_group.get(pid).copied();
         if let Some(gid) = group_id {
             if let Some(group) = self.groups.get_mut(&gid) {
                 let action = group.shared_quota.consume(resource, amount);
@@ -504,7 +526,7 @@ impl AppQuotaManager {
                 .map(|q| q.remaining())
                 .unwrap_or(0);
 
-            self.violations.push(QuotaViolation {
+            self.violations.push_back(QuotaViolation {
                 pid,
                 resource,
                 requested: amount,
@@ -514,7 +536,7 @@ impl AppQuotaManager {
             });
 
             if self.violations.len() > self.max_violations {
-                self.violations.remove(0);
+                self.violations.pop_front();
             }
 
             self.stats.violations += 1;
@@ -623,19 +645,22 @@ impl AppQuotaManager {
     }
 
     /// Get process quota set
+    #[inline(always)]
     pub fn quota_set(&self, pid: u64) -> Option<&QuotaSet> {
         self.process_quotas.get(&pid)
     }
 
     /// Get stats
+    #[inline(always)]
     pub fn stats(&self) -> &QuotaManagerStats {
         &self.stats
     }
 
     /// Unregister process
+    #[inline]
     pub fn unregister(&mut self, pid: u64) {
         self.process_quotas.remove(&pid);
-        if let Some(gid) = self.pid_to_group.remove(&pid) {
+        if let Some(gid) = self.pid_to_group.remove(pid) {
             if let Some(group) = self.groups.get_mut(&gid) {
                 group.remove_member(pid);
             }
