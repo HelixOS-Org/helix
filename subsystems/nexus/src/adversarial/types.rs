@@ -110,6 +110,7 @@ pub struct AdversarialEvent {
 
 /// Defense statistics
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct DefenseStats {
     /// Total attacks detected
     pub total_attacks: usize,
