@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 
 /// Readlink result
@@ -28,8 +29,9 @@ pub struct SymlinkResolution {
 
 /// Symlink cache
 #[derive(Debug)]
+#[repr(align(64))]
 pub struct SymlinkCache {
-    pub entries: BTreeMap<u64, u64>,
+    pub entries: LinearMap<u64, 64>,
     pub max_entries: usize,
     pub hits: u64,
     pub misses: u64,
@@ -37,25 +39,29 @@ pub struct SymlinkCache {
 }
 
 impl SymlinkCache {
-    pub fn new(max: usize) -> Self { Self { entries: BTreeMap::new(), max_entries: max, hits: 0, misses: 0, evictions: 0 } }
+    pub fn new(max: usize) -> Self { Self { entries: LinearMap::new(), max_entries: max, hits: 0, misses: 0, evictions: 0 } }
 
+    #[inline(always)]
     pub fn lookup(&mut self, path_hash: u64) -> Option<u64> {
-        if let Some(&target) = self.entries.get(&path_hash) { self.hits += 1; Some(target) }
+        if let Some(&target) = self.entries.get(path_hash) { self.hits += 1; Some(target) }
         else { self.misses += 1; None }
     }
 
+    #[inline]
     pub fn insert(&mut self, path_hash: u64, target_hash: u64) {
         if self.entries.len() >= self.max_entries {
-            if let Some(&first) = self.entries.keys().next() { self.entries.remove(&first); self.evictions += 1; }
+            if let Some(&first) = self.entries.keys().next() { self.entries.remove(first); self.evictions += 1; }
         }
         self.entries.insert(path_hash, target_hash);
     }
 
+    #[inline(always)]
     pub fn hit_rate(&self) -> f64 { let total = self.hits + self.misses; if total == 0 { 0.0 } else { self.hits as f64 / total as f64 } }
 }
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReadlinkAppStats {
     pub total_resolutions: u64,
     pub cache_hit_rate: f64,
@@ -74,6 +80,7 @@ pub struct AppReadlink {
 impl AppReadlink {
     pub fn new(cache_size: usize) -> Self { Self { cache: SymlinkCache::new(cache_size), total_resolutions: 0, max_depth: 0, loops: 0 } }
 
+    #[inline]
     pub fn resolve(&mut self, path_hash: u64, target_hash: u64, depth: u32, result: ReadlinkResult) {
         self.total_resolutions += 1;
         if depth > self.max_depth { self.max_depth = depth; }
@@ -81,6 +88,7 @@ impl AppReadlink {
         if result == ReadlinkResult::Success { self.cache.insert(path_hash, target_hash); }
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> ReadlinkAppStats {
         ReadlinkAppStats { total_resolutions: self.total_resolutions, cache_hit_rate: self.cache.hit_rate(), max_depth_seen: self.max_depth, loop_count: self.loops }
     }
@@ -127,6 +135,7 @@ impl ReadlinkV2Record {
         }
     }
 
+    #[inline(always)]
     pub fn was_truncated(&self) -> bool {
         self.target_len > self.buf_size
     }
@@ -134,6 +143,7 @@ impl ReadlinkV2Record {
 
 /// Readlink cache entry
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReadlinkCacheEntry {
     pub path_hash: u64,
     pub target_hash: u64,
@@ -148,11 +158,13 @@ impl ReadlinkCacheEntry {
         Self { path_hash, target_hash, target_len, hit_count: 0, last_used_ns: 0, valid: true }
     }
 
+    #[inline(always)]
     pub fn touch(&mut self, ts_ns: u64) {
         self.hit_count += 1;
         self.last_used_ns = ts_ns;
     }
 
+    #[inline(always)]
     pub fn invalidate(&mut self) {
         self.valid = false;
     }
@@ -160,6 +172,7 @@ impl ReadlinkCacheEntry {
 
 /// Readlink v2 app stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ReadlinkV2AppStats {
     pub total_ops: u64,
     pub cache_hits: u64,
@@ -215,6 +228,7 @@ impl AppReadlinkV2 {
         }
     }
 
+    #[inline(always)]
     pub fn cache_hit_rate(&self) -> f64 {
         let total = self.stats.cache_hits + self.stats.cache_misses;
         if total == 0 { 0.0 } else { self.stats.cache_hits as f64 / total as f64 }
