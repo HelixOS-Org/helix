@@ -44,13 +44,13 @@ fn fnv1a_hash(data: &[u8]) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CoopGoalPriority {
     /// Must be achieved — fairness invariants
-    Critical   = 4,
+    Critical = 4,
     /// Should be achieved — resource efficiency
-    High       = 3,
+    High     = 3,
     /// Nice to have — protocol optimization
-    Medium     = 2,
+    Medium   = 2,
     /// Aspirational — long-term cooperation quality
-    Low        = 1,
+    Low      = 1,
 }
 
 /// Current status of a cooperation goal
@@ -276,8 +276,7 @@ impl CoopGoalTracker {
             0.0
         };
 
-        self.waste_rate_ema =
-            EMA_ALPHA * waste_fraction + (1.0 - EMA_ALPHA) * self.waste_rate_ema;
+        self.waste_rate_ema = EMA_ALPHA * waste_fraction + (1.0 - EMA_ALPHA) * self.waste_rate_ema;
 
         let source_id = fnv1a_hash(source.as_bytes());
         let record = WasteRecord {
@@ -354,11 +353,8 @@ impl CoopGoalTracker {
             let window_start = len.saturating_sub(CONVERGENCE_WINDOW);
             let window = &goal.progress_history[window_start..];
             let mean = window.iter().sum::<f32>() / window.len() as f32;
-            let variance = window
-                .iter()
-                .map(|v| (v - mean) * (v - mean))
-                .sum::<f32>()
-                / window.len() as f32;
+            let variance =
+                window.iter().map(|v| (v - mean) * (v - mean)).sum::<f32>() / window.len() as f32;
 
             if libm::sqrtf(variance) < CONVERGENCE_THRESHOLD && goal.progress_rate >= 0.0 {
                 converging += 1;
