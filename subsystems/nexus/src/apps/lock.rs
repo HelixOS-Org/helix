@@ -110,6 +110,7 @@ impl LockInstance {
     }
 
     /// Acquire
+    #[inline]
     pub fn acquire(&mut self, tid: u64, now: u64, waited_ns: u64) {
         self.state = LockState::Held;
         self.holder = Some(tid);
@@ -137,6 +138,7 @@ impl LockInstance {
     }
 
     /// Contention rate
+    #[inline]
     pub fn contention_rate(&self) -> f64 {
         if self.total_acquisitions == 0 {
             return 0.0;
@@ -145,6 +147,7 @@ impl LockInstance {
     }
 
     /// Average hold time (ns)
+    #[inline]
     pub fn avg_hold_time_ns(&self) -> f64 {
         if self.total_acquisitions == 0 {
             return 0.0;
@@ -153,6 +156,7 @@ impl LockInstance {
     }
 
     /// Average wait time (ns)
+    #[inline]
     pub fn avg_wait_time_ns(&self) -> f64 {
         if self.total_contentions == 0 {
             return 0.0;
@@ -161,6 +165,7 @@ impl LockInstance {
     }
 
     /// Is hotspot? (high contention)
+    #[inline(always)]
     pub fn is_hotspot(&self) -> bool {
         self.contention_rate() > 0.3 && self.total_acquisitions > 100
     }
@@ -236,6 +241,7 @@ impl LockOrderValidator {
     }
 
     /// Record lock release
+    #[inline]
     pub fn on_release(&mut self, tid: u64, lock_id: u64) {
         if let Some(held) = self.held.get_mut(&tid) {
             held.retain(|&l| l != lock_id);
@@ -273,11 +279,13 @@ impl DeadlockDetector {
     }
 
     /// Add wait-for edge
+    #[inline(always)]
     pub fn add_wait(&mut self, waiter: u64, holder: u64, lock_id: u64) {
         self.edges.push(WaitForEdge { waiter, holder, lock_id });
     }
 
     /// Remove waits for thread
+    #[inline(always)]
     pub fn remove_thread(&mut self, tid: u64) {
         self.edges.retain(|e| e.waiter != tid && e.holder != tid);
     }
@@ -304,6 +312,7 @@ impl DeadlockDetector {
 
 /// Lock stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct AppLockStats {
     /// Tracked locks
     pub tracked_locks: usize,
@@ -338,12 +347,14 @@ impl AppLockAnalyzer {
     }
 
     /// Register lock
+    #[inline(always)]
     pub fn register(&mut self, id: u64, lock_type: LockType) {
         self.locks.insert(id, LockInstance::new(id, lock_type));
         self.update_stats();
     }
 
     /// Record acquisition
+    #[inline]
     pub fn on_acquire(&mut self, lock_id: u64, tid: u64, now: u64, waited_ns: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.acquire(tid, now, waited_ns);
@@ -354,6 +365,7 @@ impl AppLockAnalyzer {
     }
 
     /// Record release
+    #[inline]
     pub fn on_release(&mut self, lock_id: u64, tid: u64, now: u64) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.release(now);
@@ -363,6 +375,7 @@ impl AppLockAnalyzer {
     }
 
     /// Record contention (waiting)
+    #[inline]
     pub fn on_contend(&mut self, lock_id: u64, waiter_tid: u64) {
         if let Some(lock) = self.locks.get(&lock_id) {
             if let Some(holder) = lock.holder {
@@ -372,6 +385,7 @@ impl AppLockAnalyzer {
     }
 
     /// Check for deadlocks
+    #[inline]
     pub fn check_deadlocks(&mut self) -> Vec<(u64, u64)> {
         let cycles = self.deadlock_detector.detect_cycles();
         self.stats.deadlocks_detected += cycles.len() as u64;
@@ -379,6 +393,7 @@ impl AppLockAnalyzer {
     }
 
     /// Hotspot locks
+    #[inline(always)]
     pub fn hotspots(&self) -> Vec<&LockInstance> {
         self.locks.values().filter(|l| l.is_hotspot()).collect()
     }
@@ -390,6 +405,7 @@ impl AppLockAnalyzer {
     }
 
     /// Stats
+    #[inline(always)]
     pub fn stats(&self) -> &AppLockStats {
         &self.stats
     }
