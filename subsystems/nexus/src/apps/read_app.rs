@@ -41,6 +41,7 @@ pub struct AppReadCompletion {
 
 /// Statistics for read operations
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct AppReadStats {
     pub total_reads: u64,
     pub total_bytes_read: u64,
@@ -116,14 +117,17 @@ impl AppReadManager {
         }
     }
 
+    #[inline(always)]
     pub fn set_readahead(&mut self, window: usize) {
         self.readahead_window = window;
     }
 
+    #[inline(always)]
     pub fn pending_count(&self) -> usize {
         self.pending_reads.len()
     }
 
+    #[inline(always)]
     pub fn stats(&self) -> &AppReadStats {
         &self.stats
     }
