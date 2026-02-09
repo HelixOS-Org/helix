@@ -76,3 +76,36 @@ pub use self::journal::BridgeJournal;
 pub use self::literature::BridgeLiterature;
 pub use self::synthesis::BridgeSynthesis;
 pub use self::validator::BridgeDiscoveryValidator;
+
+/// Statistical analysis of bridge research results
+pub mod analysis;
+
+/// Proactive curiosity-driven exploration of syscall optimization space
+pub mod curiosity;
+
+/// Cross-validation of research findings via peer review
+pub mod peer_review;
+
+/// Persistent knowledge store for bridge research
+pub mod knowledge_base;
+
+/// Breakthrough detection for genuine discoveries
+pub mod breakthrough;
+
+/// Research methodology validation framework
+pub mod methodology;
+
+/// Result replication engine for reproducibility
+pub mod replication;
+
+/// Paradigm shift detection and transition management
+pub mod paradigm;
+
+pub use self::analysis::BridgeAnalysisEngine;
+pub use self::breakthrough::BridgeBreakthroughDetector;
+pub use self::curiosity::BridgeCuriosityEngine;
+pub use self::knowledge_base::BridgeKnowledgeBase;
+pub use self::methodology::BridgeMethodology;
+pub use self::paradigm::BridgeParadigm;
+pub use self::peer_review::BridgePeerReview;
+pub use self::replication::BridgeReplication;
