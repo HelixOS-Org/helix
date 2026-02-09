@@ -9,6 +9,7 @@
 //! - I/O dependency graph construction
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -154,6 +155,7 @@ impl FileIoTracker {
     }
 
     /// Record a write operation
+    #[inline]
     pub fn record_write(&mut self, offset: u64, size: u64, latency_ns: u64) {
         self.write_count += 1;
         self.write_bytes += size;
@@ -195,6 +197,7 @@ impl FileIoTracker {
     }
 
     /// Average read latency (ns)
+    #[inline]
     pub fn avg_read_latency(&self) -> u64 {
         if self.read_count == 0 {
             0
@@ -204,6 +207,7 @@ impl FileIoTracker {
     }
 
     /// Average write latency (ns)
+    #[inline]
     pub fn avg_write_latency(&self) -> u64 {
         if self.write_count == 0 {
             0
@@ -213,6 +217,7 @@ impl FileIoTracker {
     }
 
     /// Cache hit rate
+    #[inline]
     pub fn cache_hit_rate(&self) -> f64 {
         if self.total_ops == 0 {
             0.0
@@ -222,6 +227,7 @@ impl FileIoTracker {
     }
 
     /// Total bytes
+    #[inline(always)]
     pub fn total_bytes(&self) -> u64 {
         self.read_bytes + self.write_bytes
     }
@@ -271,9 +277,9 @@ pub enum IoPriority {
 #[derive(Debug)]
 pub struct BandwidthEstimator {
     /// Recent read bandwidth samples (bytes/sec)
-    read_samples: Vec<f64>,
+    read_samples: VecDeque<f64>,
     /// Recent write bandwidth samples (bytes/sec)
-    write_samples: Vec<f64>,
+    write_samples: VecDeque<f64>,
     /// Max samples
     max_samples: usize,
     /// Window start
@@ -289,8 +295,8 @@ pub struct BandwidthEstimator {
 impl BandwidthEstimator {
     pub fn new(window_ms: u64) -> Self {
         Self {
-            read_samples: Vec::new(),
-            write_samples: Vec::new(),
+            read_samples: VecDeque::new(),
+            write_samples: VecDeque::new(),
             max_samples: 60,
             window_start: 0,
             window_read_bytes: 0,
@@ -318,14 +324,14 @@ impl BandwidthEstimator {
             let write_bw = self.window_write_bytes as f64 / duration_sec;
 
             if self.read_samples.len() >= self.max_samples {
-                self.read_samples.remove(0);
+                self.read_samples.pop_front();
             }
-            self.read_samples.push(read_bw);
+            self.read_samples.push_back(read_bw);
 
             if self.write_samples.len() >= self.max_samples {
-                self.write_samples.remove(0);
+                self.write_samples.pop_front();
             }
-            self.write_samples.push(write_bw);
+            self.write_samples.push_back(write_bw);
 
             self.window_start = timestamp;
             self.window_read_bytes = 0;
@@ -334,6 +340,7 @@ impl BandwidthEstimator {
     }
 
     /// Current read bandwidth estimate (bytes/sec)
+    #[inline]
     pub fn read_bandwidth(&self) -> f64 {
         if self.read_samples.is_empty() {
             0.0
@@ -344,6 +351,7 @@ impl BandwidthEstimator {
     }
 
     /// Current write bandwidth estimate (bytes/sec)
+    #[inline]
     pub fn write_bandwidth(&self) -> f64 {
         if self.write_samples.is_empty() {
             0.0
@@ -354,6 +362,7 @@ impl BandwidthEstimator {
     }
 
     /// Total bandwidth
+    #[inline(always)]
     pub fn total_bandwidth(&self) -> f64 {
         self.read_bandwidth() + self.write_bandwidth()
     }
@@ -455,6 +464,7 @@ impl ProcessIoAnalyzer {
     }
 
     /// Hot files (most I/O)
+    #[inline]
     pub fn hot_files(&self, n: usize) -> Vec<(u64, u64)> {
         let mut files: Vec<(u64, u64)> = self
             .file_trackers
@@ -467,6 +477,7 @@ impl ProcessIoAnalyzer {
     }
 
     /// Close file
+    #[inline(always)]
     pub fn close_file(&mut self, fd: u64) {
         self.file_trackers.remove(&fd);
     }
@@ -496,6 +507,7 @@ impl IoAnalyzer {
     }
 
     /// Get or create analyzer for a process
+    #[inline]
     pub fn get_or_create(&mut self, pid: u64) -> &mut ProcessIoAnalyzer {
         let max_files = self.max_files_per_process;
         if !self.analyzers.contains_key(&pid) && self.analyzers.len() < self.max_processes {
@@ -508,16 +520,19 @@ impl IoAnalyzer {
     }
 
     /// Get analyzer
+    #[inline(always)]
     pub fn get(&self, pid: u64) -> Option<&ProcessIoAnalyzer> {
         self.analyzers.get(&pid)
     }
 
     /// Remove process
+    #[inline(always)]
     pub fn remove_process(&mut self, pid: u64) {
         self.analyzers.remove(&pid);
     }
 
     /// Top I/O consumers
+    #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<(u64, u64)> {
         let mut consumers: Vec<(u64, u64)> = self
             .analyzers
