@@ -67,23 +67,29 @@ impl IpcChannel {
         }
     }
 
+    #[inline(always)]
     pub fn connect(&mut self, pid_b: u64) { self.pid_b = Some(pid_b); self.state = IpcEndpointState::Connected; }
 
+    #[inline(always)]
     pub fn send(&mut self, bytes: u64, ts: u64) {
         self.bytes_sent += bytes; self.msgs_sent += 1; self.last_activity_ts = ts;
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, bytes: u64, ts: u64) {
         self.bytes_recv += bytes; self.msgs_recv += 1; self.last_activity_ts = ts;
     }
 
+    #[inline(always)]
     pub fn close(&mut self) { self.state = IpcEndpointState::Closed; }
 
+    #[inline(always)]
     pub fn throughput_bps(&self, now: u64) -> f64 {
         let elapsed = now.saturating_sub(self.created_ts);
         if elapsed == 0 { 0.0 } else { (self.bytes_sent + self.bytes_recv) as f64 / (elapsed as f64 / 1_000_000_000.0) }
     }
 
+    #[inline(always)]
     pub fn buffer_util(&self) -> f64 { if self.buffer_size == 0 { 0.0 } else { self.buffer_used as f64 / self.buffer_size as f64 * 100.0 } }
 }
 
@@ -112,11 +118,13 @@ impl ShmSegment {
         }
     }
 
+    #[inline(always)]
     pub fn attach(&mut self, pid: u64, ts: u64) {
         if !self.attached_pids.contains(&pid) { self.attached_pids.push(pid); }
         self.nattach += 1; self.last_attach_ts = ts;
     }
 
+    #[inline]
     pub fn detach(&mut self, pid: u64, ts: u64) {
         self.attached_pids.retain(|&p| p != pid);
         self.nattach = self.nattach.saturating_sub(1);
@@ -144,6 +152,7 @@ impl ProcessIpcSummary {
 
 /// IPC tracker stats
 #[derive(Debug, Clone, Default)]
+#[repr(align(64))]
 pub struct IpcTrackerStats {
     pub total_channels: usize,
     pub active_channels: usize,
@@ -168,6 +177,7 @@ impl AppsIpcTracker {
         Self { channels: BTreeMap::new(), shm_segments: BTreeMap::new(), process_summaries: BTreeMap::new(), stats: IpcTrackerStats::default(), next_id: 1 }
     }
 
+    #[inline]
     pub fn create_channel(&mut self, ipc_type: IpcType, pid: u64, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut ch = IpcChannel::new(id, ipc_type, pid);
@@ -177,23 +187,28 @@ impl AppsIpcTracker {
         id
     }
 
+    #[inline(always)]
     pub fn connect(&mut self, ch_id: u64, pid_b: u64) {
         if let Some(ch) = self.channels.get_mut(&ch_id) { ch.connect(pid_b); }
         self.process_summaries.entry(pid_b).or_insert_with(|| ProcessIpcSummary::new(pid_b)).channels.push(ch_id);
     }
 
+    #[inline(always)]
     pub fn send(&mut self, ch_id: u64, bytes: u64, ts: u64) {
         if let Some(ch) = self.channels.get_mut(&ch_id) { ch.send(bytes, ts); }
     }
 
+    #[inline(always)]
     pub fn recv(&mut self, ch_id: u64, bytes: u64, ts: u64) {
         if let Some(ch) = self.channels.get_mut(&ch_id) { ch.recv(bytes, ts); }
     }
 
+    #[inline(always)]
     pub fn close_channel(&mut self, ch_id: u64) {
         if let Some(ch) = self.channels.get_mut(&ch_id) { ch.close(); }
     }
 
+    #[inline]
     pub fn create_shm(&mut self, key: u64, size: u64, owner: u64, ts: u64) -> u64 {
         let id = self.next_id; self.next_id += 1;
         let mut seg = ShmSegment::new(id, key, size, owner);
@@ -203,14 +218,17 @@ impl AppsIpcTracker {
         id
     }
 
+    #[inline(always)]
     pub fn attach_shm(&mut self, seg_id: u64, pid: u64, ts: u64) {
         if let Some(s) = self.shm_segments.get_mut(&seg_id) { s.attach(pid, ts); }
     }
 
+    #[inline(always)]
     pub fn detach_shm(&mut self, seg_id: u64, pid: u64, ts: u64) {
         if let Some(s) = self.shm_segments.get_mut(&seg_id) { s.detach(pid, ts); }
     }
 
+    #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_channels = self.channels.len();
         self.stats.active_channels = self.channels.values().filter(|c| c.state == IpcEndpointState::Connected || c.state == IpcEndpointState::Open).count();
@@ -221,7 +239,10 @@ impl AppsIpcTracker {
         self.stats.total_errors = self.channels.values().map(|c| c.errors).sum();
     }
 
+    #[inline(always)]
     pub fn channel(&self, id: u64) -> Option<&IpcChannel> { self.channels.get(&id) }
+    #[inline(always)]
     pub fn shm(&self, id: u64) -> Option<&ShmSegment> { self.shm_segments.get(&id) }
+    #[inline(always)]
     pub fn stats(&self) -> &IpcTrackerStats { &self.stats }
 }
