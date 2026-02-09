@@ -155,7 +155,8 @@ impl DemandTracker {
             let dt = (tick - self.last_tick) as f32;
             let new_trend = (value - old_avg) / dt;
             let old_trend = *self.trend.get(&key).unwrap_or(&0.0);
-            self.trend.insert(key, EMA_ALPHA * new_trend + (1.0 - EMA_ALPHA) * old_trend);
+            self.trend
+                .insert(key, EMA_ALPHA * new_trend + (1.0 - EMA_ALPHA) * old_trend);
         }
         self.sample_count += 1;
         self.last_tick = tick;
@@ -252,12 +253,14 @@ impl AppsProactive {
     ) {
         self.tick = tick;
         self.total_observations += 1;
-        if self.trackers.len() >= MAX_TRACKED_PROCESSES
-            && !self.trackers.contains_key(&process_id)
+        if self.trackers.len() >= MAX_TRACKED_PROCESSES && !self.trackers.contains_key(&process_id)
         {
             return;
         }
-        let tracker = self.trackers.entry(process_id).or_insert_with(DemandTracker::new);
+        let tracker = self
+            .trackers
+            .entry(process_id)
+            .or_insert_with(DemandTracker::new);
         tracker.update(resource, value, tick);
     }
 
@@ -279,8 +282,8 @@ impl AppsProactive {
                     if let Some(ratio) = tracker.is_spiking(res) {
                         let current = *tracker.avg_demand.get(&(res as u8)).unwrap_or(&0.0);
                         let predicted_peak = current * ratio;
-                        let confidence = (0.5 + 0.1 * (tracker.sample_count as f32).min(5.0))
-                            .min(0.95);
+                        let confidence =
+                            (0.5 + 0.1 * (tracker.sample_count as f32).min(5.0)).min(0.95);
                         let spike = DemandSpike {
                             process_id: pid,
                             resource: res,
@@ -298,7 +301,10 @@ impl AppsProactive {
         }
 
         if self.spike_history.len() + spikes.len() > MAX_SPIKE_HISTORY {
-            let drain = self.spike_history.len().saturating_sub(MAX_SPIKE_HISTORY / 2);
+            let drain = self
+                .spike_history
+                .len()
+                .saturating_sub(MAX_SPIKE_HISTORY / 2);
             if drain > 0 {
                 self.spike_history.drain(..drain);
             }
