@@ -35,6 +35,7 @@ impl ChrootEntry {
 
 /// Stats
 #[derive(Debug, Clone)]
+#[repr(align(64))]
 pub struct ChrootAppStats {
     pub total_chroots: u32,
     pub active_chroots: u32,
@@ -50,14 +51,17 @@ pub struct AppChroot {
 impl AppChroot {
     pub fn new() -> Self { Self { entries: BTreeMap::new() } }
 
+    #[inline]
     pub fn chroot(&mut self, pid: u64, root_hash: u64, now: u64) {
         let mut entry = ChrootEntry::new(pid, root_hash, now);
         if let Some(old) = self.entries.get(&pid) { entry.depth = old.depth + 1; entry.old_root_hash = old.root_path_hash; }
         self.entries.insert(pid, entry);
     }
 
+    #[inline(always)]
     pub fn exit(&mut self, pid: u64) { self.entries.remove(&pid); }
 
+    #[inline]
     pub fn stats(&self) -> ChrootAppStats {
         let active = self.entries.values().filter(|e| e.state == ChrootState::Chrooted).count() as u32;
         let escapes: u64 = self.entries.values().map(|e| e.escapes_blocked).sum();
