@@ -92,22 +92,6 @@ pub struct Parameter {
 /// Type specification
 #[derive(Debug, Clone)]
 pub enum TypeSpec {
-    Unit,
-    Bool,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    Usize,
-    Isize,
-    F32,
-    F64,
     Ptr(Box<TypeSpec>),
     MutPtr(Box<TypeSpec>),
     Ref(Box<TypeSpec>),
@@ -185,7 +169,7 @@ pub enum Expr {
     /// Old value (for postconditions)
     Old(Box<Expr>),
     /// Result value (for postconditions)
-    Result,
+    ResultValue,
     /// Conditional
     If(Box<Expr>, Box<Expr>, Box<Expr>),
 }
@@ -193,34 +177,11 @@ pub enum Expr {
 /// Binary operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Rem,
-    BitAnd,
-    BitOr,
-    BitXor,
-    Shl,
-    Shr,
-    And,
-    Or,
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
 }
 
 /// Unary operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOp {
-    Neg,
-    Not,
-    Deref,
-    Ref,
-    MutRef,
 }
 
 /// Performance specification
@@ -243,13 +204,6 @@ pub struct PerformanceSpec {
 /// Algorithmic complexity
 #[derive(Debug, Clone)]
 pub enum Complexity {
-    O1,
-    OLogN,
-    ON,
-    ONLogN,
-    ON2,
-    ON3,
-    O2N,
     Custom(String),
 }
 
@@ -283,29 +237,17 @@ impl Default for GenOptions {
 /// Verification level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerificationLevel {
-    None,
-    Testing,
-    Partial,
-    Full,
-    Formal,
 }
 
 /// Target architecture
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetArch {
     X86_64,
-    AArch64,
-    RiscV64,
-    Generic,
 }
 
 /// Priority level
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
-    Low,
-    Normal,
-    High,
-    Critical,
 }
 
 /// Generated code result
@@ -352,12 +294,6 @@ pub struct ProvedProperty {
 /// Proof method
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProofMethod {
-    Testing,
-    SymbolicExecution,
-    ModelChecking,
-    TheoremProving,
-    AbstractInterpretation,
-    Hybrid,
 }
 
 /// Code metrics
@@ -434,14 +370,6 @@ pub struct CodeTemplate {
 /// Template category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TemplateCategory {
-    Loop,
-    Conditional,
-    DataStructure,
-    Algorithm,
-    ErrorHandling,
-    Synchronization,
-    Memory,
-    IO,
 }
 
 /// Template condition
