@@ -1,6 +1,7 @@
 //! Kernel-level adversarial defense system.
 
 use alloc::collections::BTreeMap;
+use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -25,7 +26,7 @@ pub struct KernelAdversarialDefense {
     /// Is defense active?
     pub active: bool,
     /// Reference samples for detection
-    reference_samples: Vec<Vec<f64>>,
+    reference_samples: VecDeque<Vec<f64>>,
 }
 
 impl KernelAdversarialDefense {
@@ -38,17 +39,17 @@ impl KernelAdversarialDefense {
             ensemble: EnsembleDefense::new(5),
             events: Vec::new(),
             active: true,
-            reference_samples: Vec::new(),
+            reference_samples: VecDeque::new(),
         }
     }
 
     /// Add reference sample
     pub fn add_reference(&mut self, sample: Vec<f64>) {
-        self.reference_samples.push(sample);
+        self.reference_samples.push_back(sample);
 
         // Limit size
         while self.reference_samples.len() > 1000 {
-            self.reference_samples.remove(0);
+            self.reference_samples.pop_front();
         }
     }
 
