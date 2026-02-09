@@ -52,7 +52,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(v: u64, lo: u64, hi: u64) -> u64 {
-    if v < lo { lo } else if v > hi { hi } else { v }
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -150,7 +156,13 @@ impl CoopSingularity {
 
     // -- domain registration ------------------------------------------------
 
-    pub fn register_domain(&mut self, domain_id: u64, fairness: u64, contention: u64, efficiency: u64) {
+    pub fn register_domain(
+        &mut self,
+        domain_id: u64,
+        fairness: u64,
+        contention: u64,
+        efficiency: u64,
+    ) {
         if self.domains.len() >= MAX_DOMAINS {
             return;
         }
@@ -169,7 +181,13 @@ impl CoopSingularity {
         });
     }
 
-    pub fn update_domain(&mut self, domain_id: u64, fairness: u64, contention: u64, efficiency: u64) {
+    pub fn update_domain(
+        &mut self,
+        domain_id: u64,
+        fairness: u64,
+        contention: u64,
+        efficiency: u64,
+    ) {
         if let Some(d) = self.domains.get_mut(&domain_id) {
             let f = clamp(fairness, 0, 100);
             let c = clamp(contention, 0, 100);
@@ -231,7 +249,10 @@ impl CoopSingularity {
                         d.ema_contention = d.ema_contention.saturating_sub(1);
                         any_change = true;
                     }
-                    d.convergence_score = (d.ema_fairness + 100u64.saturating_sub(d.ema_contention) + d.ema_efficiency) / 3;
+                    d.convergence_score = (d.ema_fairness
+                        + 100u64.saturating_sub(d.ema_contention)
+                        + d.ema_efficiency)
+                        / 3;
                 }
             }
             if !any_change {
@@ -351,7 +372,8 @@ impl CoopSingularity {
         self.tick += 1;
         for d in self.domains.values_mut() {
             d.ema_contention = d.ema_contention.saturating_sub(1);
-            d.convergence_score = (d.ema_fairness + 100u64.saturating_sub(d.ema_contention) + d.ema_efficiency) / 3;
+            d.convergence_score =
+                (d.ema_fairness + 100u64.saturating_sub(d.ema_contention) + d.ema_efficiency) / 3;
         }
         self.recompute_unified();
         self.refresh_stats();
