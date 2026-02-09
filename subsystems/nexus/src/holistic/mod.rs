@@ -1541,3 +1541,14 @@ pub mod page_fault_holistic;
 pub mod oom_holistic;
 pub mod swap_holistic;
 pub mod mlock_holistic;
+// Year 5 Expansion — Holistic Future Prediction: The Master Prediction Engine
+pub mod future;
+
+// Year 5 Expansion — Holistic Consciousness: The Crown Module
+pub mod conscious;
+
+// Year 5 Expansion — Holistic Research: The Master Research Engine
+pub mod research;
+
+// Year 5 Expansion — Holistic Transcendence: The Superintelligent Kernel APEX
+pub mod transcend;
