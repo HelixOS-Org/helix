@@ -21,13 +21,13 @@ def fix_format_hash(filepath: str) -> bool:
     """Replace fnv1a_hash(format!(...)) with FastHasher chain."""
     with open(filepath, 'r') as f:
         content = f.read()
-    
+
     if 'fnv1a_hash(format!' not in content:
         return False
-    
+
     original = content
     modified = False
-    
+
     # Add FastHasher import if not present
     if 'FastHasher' not in content:
         if 'use crate::fast::' in content:
@@ -54,7 +54,7 @@ def fix_format_hash(filepath: str) -> bool:
                     break
             lines.insert(insert_idx, 'use crate::fast::fast_hash::FastHasher;')
             content = '\n'.join(lines)
-    
+
     # Now replace patterns line by line
     lines = content.split('\n')
     new_lines = []
@@ -69,15 +69,15 @@ def fix_format_hash(filepath: str) -> bool:
             if match:
                 fmt_str = match.group(1)
                 args_str = match.group(2) or ""
-                
+
                 # Build FastHasher chain
                 # Split format string by {} and {:?} placeholders
                 parts = re.split(r'\{[^}]*\}', fmt_str)
                 args = [a.strip() for a in args_str.split(',') if a.strip()] if args_str else []
-                
+
                 # Build the chain
                 chain = 'FastHasher::new()'
-                
+
                 # Interleave string parts and arguments
                 for i, part in enumerate(parts):
                     if part:
@@ -92,36 +92,36 @@ def fix_format_hash(filepath: str) -> bool:
                             chain += f'.feed_u64({arg} as u64)'
                         else:
                             chain += f'.feed_u64({arg} as u64)'
-                
+
                 chain += '.finish()'
-                
+
                 # Replace in line
                 old_pattern = match.group(0)
                 line = line.replace(old_pattern, chain)
                 stats['patterns_fixed'] += 1
                 modified = True
-        
+
         new_lines.append(line)
-    
+
     if modified:
         content = '\n'.join(new_lines)
         with open(filepath, 'w') as f:
             f.write(content)
         stats['files_modified'] += 1
-    
+
     return modified
 
 
 def main():
     nexus_src = os.path.abspath(NEXUS_SRC)
     print(f"Scanning {nexus_src} for fnv1a_hash(format!()) patterns...")
-    
+
     for root, dirs, files in os.walk(nexus_src):
         for fname in files:
             if not fname.endswith('.rs'):
                 continue
             fix_format_hash(os.path.join(root, fname))
-    
+
     print(f"\n{'='*60}")
     print(f"format!() → FastHasher Migration COMPLETE")
     print(f"{'='*60}")
