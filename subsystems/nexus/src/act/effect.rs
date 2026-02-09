@@ -121,32 +121,38 @@ impl Effect {
     }
 
     /// Set transactional flag
+    #[inline(always)]
     pub fn with_transaction(mut self) -> Self {
         self.transactional = true;
         self
     }
 
     /// Mark as rolled back
+    #[inline(always)]
     pub fn mark_rolled_back(&mut self) {
         self.rolled_back = true;
     }
 
     /// Is successful?
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         self.outcome.is_success()
     }
 
     /// Is failure?
+    #[inline(always)]
     pub fn is_failure(&self) -> bool {
         self.outcome.is_failure()
     }
 
     /// Get change count
+    #[inline(always)]
     pub fn change_count(&self) -> usize {
         self.changes.len()
     }
 
     /// Has reversible changes?
+    #[inline(always)]
     pub fn has_reversible_changes(&self) -> bool {
         self.changes.iter().any(|c| c.reversible)
     }
@@ -192,31 +198,37 @@ pub enum ActionOutcome {
 
 impl ActionOutcome {
     /// Is this a success
+    #[inline(always)]
     pub fn is_success(&self) -> bool {
         matches!(self, Self::Success { .. })
     }
 
     /// Is this a partial success
+    #[inline(always)]
     pub fn is_partial(&self) -> bool {
         matches!(self, Self::Partial { .. })
     }
 
     /// Is this a failure
+    #[inline(always)]
     pub fn is_failure(&self) -> bool {
         matches!(self, Self::Failed { .. })
     }
 
     /// Is this skipped
+    #[inline(always)]
     pub fn is_skipped(&self) -> bool {
         matches!(self, Self::Skipped { .. })
     }
 
     /// Is this rejected
+    #[inline(always)]
     pub fn is_rejected(&self) -> bool {
         matches!(self, Self::Rejected { .. })
     }
 
     /// Get summary/message
+    #[inline]
     pub fn message(&self) -> &str {
         match self {
             Self::Success { summary } => summary,
@@ -263,18 +275,21 @@ impl Change {
     }
 
     /// Set previous value
+    #[inline(always)]
     pub fn with_previous(mut self, value: ChangeValue) -> Self {
         self.previous_value = Some(value);
         self
     }
 
     /// Mark as irreversible
+    #[inline(always)]
     pub fn irreversible(mut self) -> Self {
         self.reversible = false;
         self
     }
 
     /// Can be rolled back?
+    #[inline(always)]
     pub fn can_rollback(&self) -> bool {
         self.reversible && self.previous_value.is_some()
     }
@@ -301,6 +316,7 @@ pub enum ChangeType {
 
 impl ChangeType {
     /// Get display name
+    #[inline]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Create => "Create",
@@ -313,6 +329,7 @@ impl ChangeType {
     }
 
     /// Is destructive?
+    #[inline(always)]
     pub fn is_destructive(&self) -> bool {
         matches!(self, Self::Delete | Self::Deallocate)
     }
@@ -343,11 +360,13 @@ pub enum ChangeValue {
 
 impl ChangeValue {
     /// Is none?
+    #[inline(always)]
     pub fn is_none(&self) -> bool {
         matches!(self, Self::None)
     }
 
     /// As boolean
+    #[inline]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Boolean(v) => Some(*v),
@@ -356,6 +375,7 @@ impl ChangeValue {
     }
 
     /// As integer
+    #[inline]
     pub fn as_int(&self) -> Option<i64> {
         match self {
             Self::Integer(v) => Some(*v),
@@ -364,6 +384,7 @@ impl ChangeValue {
     }
 
     /// As string
+    #[inline]
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Self::String(v) => Some(v),
