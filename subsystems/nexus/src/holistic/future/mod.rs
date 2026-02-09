@@ -64,6 +64,30 @@ pub mod monte_carlo;
 /// System-wide prediction validation — accuracy, systematic errors, recalibration
 pub mod validator;
 
+/// System-wide scenario tree — predicts the entire system's future as branching states
+pub mod scenario_tree;
+
+/// System-wide causal prediction — every event's cause and effect across ALL subsystems
+pub mod causal_forecast;
+
+/// System-wide counterfactual reasoning — "what if the entire system had done X?"
+pub mod counterfactual;
+
+/// System-wide confidence intervals — uncertainty quantification for every prediction
+pub mod confidence_interval;
+
+/// Master ensemble — combines ALL prediction models from ALL subsystems
+pub mod ensemble;
+
+/// System-wide multi-horizon temporal fusion — microseconds to hours, coherent view
+pub mod temporal_fusion;
+
+/// System-wide anomaly forecasting — cascading failures, performance cliffs, risk
+pub mod anomaly_forecast;
+
+/// System-wide pre-cognitive sensing — regime changes, phase transitions, paradigm shifts
+pub mod precognition;
+
 // ============================================================================
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
@@ -95,4 +119,36 @@ pub use self::timeline::{
 pub use self::validator::{
     GlobalValidation, HolisticPredictionValidator, ModelSelectionSignal, PredictionDecomposition,
     RecalibrationSignal, SubsystemAccuracy, SubsystemId, SystematicError, ValidatorStats,
+};
+pub use self::scenario_tree::{
+    ExpectedSystemState, HolisticScenarioTree, PruningReport, PruningStrategy, ScenarioNode,
+    ScenarioTreeStats, StateTransition, SystemStateVector, TreePath,
+};
+pub use self::causal_forecast::{
+    CausalCascade, CausalCompleteness, CausalEdge, CausalForecastStats, CausalNode,
+    CrossSubsystemCausality, HolisticCausalForecast, InterventionPlan, RootCauseChain,
+};
+pub use self::counterfactual::{
+    AlternativeTimeline, CounterfactualCascade, CounterfactualStats, DecisionQualityReport,
+    GlobalRegret, HolisticCounterfactual, OptimalHistory, WhatIfQuery, WhatIfResult,
+};
+pub use self::confidence_interval::{
+    CalibrationAudit, ConfidenceIntervalStats, GlobalUncertainty, HolisticConfidenceInterval,
+    IntervalReliability, PredictionCI, UncertaintyBudget, UncertaintyPropagation,
+};
+pub use self::ensemble::{
+    CrossSubsystemFusion, EnsembleDominance, EnsembleStats, HolisticEnsemble,
+    MasterEnsembleResult, MetaAccuracy, ModelSelection,
+};
+pub use self::temporal_fusion::{
+    FusedHorizonPrediction, FusionPanorama, HolisticTemporalFusion, LongRangeForecast,
+    MicroToMacroBridge, SystemTemporalFusion, TemporalFusionStats, TemporalHorizon,
+};
+pub use self::anomaly_forecast::{
+    AnomalyForecastStats, CascadePrediction, CliffWarning, EarlySystemWarning,
+    HolisticAnomalyForecast, PreventionStrategy, SystemAnomalyForecast, SystemicRisk,
+};
+pub use self::precognition::{
+    HolisticPrecognition, ParadigmShiftAlert, PhaseTransitionSense, PrecogAccuracyReport,
+    PrecognitionStats, RegimeChangeDetection, TranscendentForesight,
 };
