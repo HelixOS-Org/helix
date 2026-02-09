@@ -322,21 +322,6 @@ impl Iocb {
     }
 }
 
-/// AIO context
-#[derive(Debug)]
-#[repr(align(64))]
-pub struct AioContext {
-    pub id: u64,
-    pub state: AioCtxState,
-    pub max_events: u32,
-    pub iocbs: Vec<Iocb>,
-    pub in_flight: u32,
-    pub total_submitted: u64,
-    pub total_completed: u64,
-    pub total_bytes: u64,
-    pub completion_mode: AioV2CompletionMode,
-}
-
 impl AioContext {
     pub fn new(id: u64, max_events: u32) -> Self {
         Self {
